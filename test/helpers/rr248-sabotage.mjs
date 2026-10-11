@@ -40,6 +40,9 @@ const SABOTAGES = [
   ["R02", "SF-2 · a span that occurs twice in its target", [[AD, CREATE, `${CREATE}\n/* a second copy:\n${CREATE}\n*/`]], "SF-2"],
   ["R03", "SF-6 · a harness writes a fixed evidence name", [[R180, R180_EVIDENCE, 'const EVIDENCE = join(REPO, "runs", "audit", "rr180-sabotage.txt");']], "SF-6"],
   ["R04", "SF-6 · the shared evidence writer opens an existing file", [[EO, 'writeFileSync(join(repo, rel), text, { flag: "wx" })', 'writeFileSync(join(repo, rel), text, { flag: "w" })']], "SF-6"],
+  /* RR-248 (beta-g ruling, 11 Oct): f34 S9 BLOCKED by the F34 C6 defect — SF-7 must see a blocked limb counted PROVED, or a block lifted */
+  ["R16", "SF-7 · a BLOCKED limb is counted PROVED", [["test/helpers/f34-sabotage.mjs", "  const ok = landed && red && restored && blocked === null;", "  const ok = landed && red && restored;"]], "SF-7"],
+  ["R17", "SF-7 · the block on f34 S9 is lifted without a fix", [["test/helpers/f34-sabotage.mjs", '  ["S9", "F34 C6 DEFECT', '  ["S9-LIFTED", "F34 C6 DEFECT']], "SF-7"],
   ["R15", "SF-6 · a harness names its evidence by the day alone (a second run that day is refused)", [[R180, 'const DAY = new Date().toISOString().slice(0, 16).replace(":", "");', "const DAY = new Date().toISOString().slice(0, 10);"]], "SF-6"],
   ["R05", "SF-6 · an operator-named evidence write without wx", [[F01, '    writeFileSync(join(REPO, outArg), text, { flag: "wx" });', "    writeFileSync(join(REPO, outArg), text);"]], "SF-6"],
   ["R06", "SF-3 · the reader imports a write", [[HS, FS_IMPORT, 'import { readFileSync, existsSync, readdirSync, statSync, lstatSync, realpathSync, writeFileSync } from "node:fs";']], "SF-3"],

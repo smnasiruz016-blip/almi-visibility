@@ -13,6 +13,7 @@
  *   SF-4  CONTROL: the verdict fires on a span made stale (removed, or doubled) — in memory, on a real harness's real span
  *   SF-5  the two exceptions are pinned by name: rr233's file adapter, f09's dynamic imports — a third is a decision, never a default
  *   SF-6  EVIDENCE IS NEVER OVERWRITTEN: no fixed evidence name, and every evidence write refuses an existing file (RR-248 goal 4)
+ *   SF-7  BLOCKED LIMBS ARE NAMED: a limb whose protection is a product DEFECT is listed here by name and reason, and is never PROVED
  *
  * test/helpers/rr248-sabotage.mjs proves these tests can fail on the real tree (one span made stale in a throwaway change, and more).
  */
@@ -99,4 +100,22 @@ test("SF-6 · EVIDENCE IS NEVER OVERWRITTEN: every harness writes its evidence t
   const once = readFileSync(join(REPO, "test/helpers/evidence-once.mjs"), "utf8");
   assert.match(once, /writeFileSync\(join\(repo, rel\), text, \{ flag: "wx" \}\)/, "the shared writer opens no existing file");
   assert.match(once, /\$\{base\}-\$\{stamp\}/, "the shared writer names each run's file by its time");
+});
+
+/* RR-248 (beta-g ruling, 11 Oct): f34 S9 cannot be proved — its protection (F34 C6, a recorded decision for every stopped candidate) is
+ * a DEFECT in product code since RR-179/RR-180. It is neither restated to something easier nor retired: it is BLOCKED, by name, until
+ * RR-249 fixes F34. A new blocked limb, or one lifted, changes this list — a decision, never a silent default. */
+test("SF-7 · BLOCKED LIMBS ARE NAMED: every blocked limb is listed with its defect, and a harness never counts one PROVED", () => {
+  const blocked = [];
+  for (const f of HARNESSES) {
+    const src = readFileSync(join(REPO, f), "utf8");
+    const m = src.match(/^const BLOCKED = new Map\(\[\r?\n([\s\S]*?)\r?\n\]\);/m);
+    if (!m) continue;
+    for (const [, id, why] of m[1].matchAll(/^\s*\["([\w-]+)", "([^"]+)"\],?\r?$/gm)) blocked.push({ limb: `${f} ${id}`, why });
+    assert.match(src, /const ok = [^;\n]*&& blocked === null;/, `${f}: a BLOCKED limb could be counted PROVED`);
+    assert.match(src, /BLOCKED — NOT PROVED/, `${f}: a BLOCKED limb must say so in its evidence`);
+  }
+  console.log(`ℹ SF-7 blocked ${blocked.length}: ${blocked.map((b) => b.limb).join(", ")}`);
+  assert.deepEqual(blocked.map((b) => b.limb), ["test/helpers/f34-sabotage.mjs S9"], "the blocked limbs changed — name the defect (and its round), or lift the block in the round that fixes it");
+  assert.match(blocked[0].why, /F34 C6 DEFECT[\s\S]*RR-249/, "f34 S9 names its defect and the round that fixes it");
 });

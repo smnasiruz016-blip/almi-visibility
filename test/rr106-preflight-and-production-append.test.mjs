@@ -112,7 +112,10 @@ test("§2 · IN THE BINARY: the preflight runs before the connector, the IPv6 pr
   const at = (s) => { const i = src.indexOf(s); assert.ok(i >= 0, `${s} not found`); return i; };
   const pf = at("const pf = await preflightCrawlWrites(");
   for (const later of ["await measureIpv6Egress()", "await addressFamilies(", "openConnector({", "const result = await crawl("]) assert.ok(pf < at(later), `the preflight does not precede ${later}`);
-  assert.match(src.slice(pf, pf + 2500), /if \(!pf\.ok\) \{[\s\S]*?process\.exit\(3\);/);
+  /* RR-248: bounded to the block itself — RR-135 (94e5329) put NO_SEEDS's own exit(3) right after it, which the old unbounded match reached */
+  const refusedBlock = src.slice(pf, pf + 2500).match(/\n  if \(!pf\.ok\) \{\r?\n([\s\S]*?)\r?\n  \}\r?\n/);
+  assert.ok(refusedBlock, "the preflight's refusal block is not found");
+  assert.match(refusedBlock[1], /\n\s*process\.exit\(3\);$/, "a refused preflight does not exit 3 inside its own block");
   assert.match(src, /\nif \(live\) \{\n  const PF_INSTANT = /, "the preflight is not run on every live run");
   assert.ok(src.slice(pf, pf + 2500).includes("observations: (records) => observationsAppend("), "the preflight does not use the live run's own builder");
   assert.ok(src.includes("executeGovernedWrite(observationsAppend("), "the live run does not use the builder the preflight checked");

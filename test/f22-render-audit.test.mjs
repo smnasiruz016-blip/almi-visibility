@@ -282,7 +282,9 @@ test("C4 · the binary's live mode refuses without the owner's green, with no re
   try {
     const noGreen = runAudit(WORLD, corpus, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, batch: "render-a", extra: ["--live-render"] });
     assert.equal(noGreen.status, 3);
-    assert.match(noGreen.stderr, /NO REQUEST WAS MADE/);
+    /* RR-248: the owner-green refusal ITSELF — since RR-243 (e92cc8c) the --confirm refusal also prints "NO REQUEST WAS MADE" */
+    assert.match(noGreen.stderr, /needs the owner's reviewed bounded request \(--i-have-the-owners-green\)\. NO REQUEST WAS MADE/);
+    assert.doesNotMatch(noGreen.stderr, /NO_WRITE_PERMISSION/);
     const r = runAudit(WORLD, corpus, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, batch: "render-a", preload: pathToFileURL(join(REPO, "test", "helpers", "fs-read-log-preload.mjs")).href, env: { FS_READ_LOG: log } });
     assert.equal(r.status, 0, r.stderr.slice(-400));
     const reads = JSON.parse(readFileSync(log, "utf8"));

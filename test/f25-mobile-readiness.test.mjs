@@ -198,7 +198,9 @@ test("C1 · the live mode needs the owner's green and refuses with no request; n
   try {
     const r = spawnSync(process.execPath, ["bin/mobile-audit.mjs", "--research-batch=mob-a", `--subject=${FIXTURE_SUBJECT}`, `--corpus=${corpus}`, `--tenant=${FIXTURE_TENANT}`, "--actor=actor:cc", "--live-render"], { cwd: REPO, encoding: "utf8", env: WORLD.envWith() });
     assert.equal(r.status, 3);
-    assert.match(r.stderr, /NO REQUEST WAS MADE/);
+    /* RR-248: the owner-green refusal ITSELF — since RR-243 (e92cc8c) the --confirm refusal also prints "NO REQUEST WAS MADE" */
+    assert.match(r.stderr, /needs the owner's reviewed bounded request \(--i-have-the-owners-green\)\. NO REQUEST WAS MADE/);
+    assert.doesNotMatch(r.stderr, /NO_WRITE_PERMISSION/);
   } finally { rmSync(corpus, { recursive: true, force: true }); WORLD.cleanup(); }
   for (const f of ["src/audit/mobile-readiness.mjs", "bin/mobile-audit.mjs"]) assert.doesNotMatch(readFileSync(join(REPO, f), "utf8"), /case-study/i);
 });

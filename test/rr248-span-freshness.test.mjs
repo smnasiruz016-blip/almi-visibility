@@ -116,6 +116,6 @@ test("SF-7 · BLOCKED LIMBS ARE NAMED: every blocked limb is listed with its def
     assert.match(src, /BLOCKED — NOT PROVED/, `${f}: a BLOCKED limb must say so in its evidence`);
   }
   console.log(`ℹ SF-7 blocked ${blocked.length}: ${blocked.map((b) => b.limb).join(", ")}`);
-  assert.deepEqual(blocked.map((b) => b.limb), ["test/helpers/f34-sabotage.mjs S9"], "the blocked limbs changed — name the defect (and its round), or lift the block in the round that fixes it");
-  assert.match(blocked[0].why, /F34 C6 DEFECT[\s\S]*RR-249/, "f34 S9 names its defect and the round that fixes it");
+  assert.deepEqual(blocked.map((b) => b.limb).sort(), ["test/helpers/f33-sabotage.mjs S15", "test/helpers/f34-sabotage.mjs S9"], "the blocked limbs changed — name the defect (and its round), or lift the block in the round that fixes it");
+  for (const b of blocked) assert.match(b.why, /F34 C6 DEFECT[\s\S]*RR-249/, `${b.limb} names its defect and the round that fixes it`);
 });

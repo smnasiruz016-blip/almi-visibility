@@ -41,8 +41,12 @@ const SABOTAGES = [
   ["S14", "C5 SHELL ONLY is insufficient", D, `: shell === "SHELL_ONLY" ? { state: "INSUFFICIENT", basis: "SHELL_ONLY" }`, `: false ? { state: "INSUFFICIENT", basis: "SHELL_ONLY" }`, "C5 ·"],
   ["S15", "C5 a recorded value record decides", D, `: rec && typeof rec.insufficient === "boolean" ?`, `: false && rec ?`, "C5 ·"],
   ["S16", "C5 an empty review list is passed, never defaulted", D, "if (!Array.isArray(reviews) || !Array.isArray(valueRecords)) throw", "if (false) throw", "C5 ·"],
-  ["S17", "C6 no action field in the result", D, "    methods: METHODS,\n", "    methods: METHODS, action: \"REJECT\",\n", "C6 ·"],
-  ["S18", "C6 the legacy thresholds are unchanged", CC, "export const NEAR_DUPLICATE_THRESHOLD = 0.9;", "export const NEAR_DUPLICATE_THRESHOLD = 0.4;", "C6 ·"],
+  /* RR-248 · RESTATED (owner answer 11 Oct, item 4): RR-192 (09b14ae) renamed the C6 test "C6 AS AMENDED ·" (F32 Amendment 1); the rule is the same */
+  ["S17", "C6 no action field in the result", D, "    methods: METHODS,\n", "    methods: METHODS, action: \"REJECT\",\n", "C6 AS AMENDED ·"],
+  /* RR-248 · S18 RETIRED (owner answer 11 Oct, item 5): F32 Acceptance Amendment 1 (_handoffs 3317b25; freeze 3a1f896; build 09b14ae)
+   * supersedes C6 in full — F32 pins no threshold value. The protection now lives in rr192-sabotage F32-A4 (F32 imports and reads one
+   * of the six threshold constants) and F32-A5 (F32 imports a module that can change a gate), both on "C6 AS AMENDED ·", and the 0.9
+   * value itself is pinned by test/rr102-content-check-boundaries.test.mjs ("the fixtures sit exactly on each numeric line"). */
   ["S19", "C7 an unverified body is not measured", D, "if (!p.verified || typeof p.html !== \"string\" || p.html === \"\")", "if (typeof p.html !== \"string\" || p.html === \"\")", "C7 · an unverified"],
   ["S20", "C7 verification is the body's OWN fingerprint", EV, "f.observationId === p.bodyObservationId && f.verified === true", "f.verified === true", "C7 · an unverified"],
   ["S21", "C7 the population names the body's observation", POP, "bodyObservationId: latest ? latest.observation_id : null", "bodyObservationId: null", "REAL ·"],

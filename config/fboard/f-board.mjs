@@ -1761,7 +1761,7 @@ export const DECLARED = Object.freeze({
   F33: Object.freeze({
     featureId: "F33",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F33_ORIGINAL.ruling, contractSha256: F33_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1832,6 +1832,21 @@ export const DECLARED = Object.freeze({
         matcher: "C8: a RECORDED per-question coverage judgement (a method or an agent) or an EXACT match after the one declared normalisation (letter case, runs of white space, terminal punctuation) — never similarity, never F33's stem matcher. C1–C7: F33's free matcher, unchanged.",
         ownerRulings: Object.freeze({ repo: "_handoffs", rr172CoverageRulings: "48ae36618a50835402fb37121a2295db17eafd52" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-249 (item 5): F33 REOPENED under its SAME acceptance (Amendment 1) — concrete contradictory evidence: C5, the same stop as F34 C6 */
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F33",
+        on: "2026-10-11",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS (concrete contradictory evidence: F33's outcome for a candidate stopped inside F35 is recorded zero times)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F33 Amendment 1 C5: 'Every outcome carries its reason … each is recorded through the audit trail exactly once'; FAILURE [C5]: '… or is recorded zero times or twice.' F33's outcome travels in F34's recorded decision (existingPageDecisionEvent: need=… ev=…). Since RR-179 (1d4bc58) / RR-180 (67a7e15) a candidate F34's check stops inside F35 (action-evidence rteFor) gets no recorded decision, so its F33 outcome is recorded zero times: the real runner over a research batch recorded 0 decisions for the stopped candidate (test/f34-no-blind-regeneration.test.mjs 'C6 · END TO END', RED without the RR-249 fix); f33 S15 could not fail (carried BLOCKED by RR-248).",
+        acceptanceUnchanged: Object.freeze({ ruling: F33_AMENDMENT_1.ruling.sha256, contract: F33_AMENDMENT_1.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_RR-248_END_REPORT_2026-10-11.md", commit: "c63bc1809b6b6cf9927bb8646e42d803a579ea9d", sha256: "a3b41a3c9609a5f045109f9c7dcdf2a7f71a6abd1e73e4edbaa189a75320c414" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md", commit: "c9d5830381c90a73a6196eb9c64bc923208ba475", sha256: "332eef1237a8ee5d410141e6fff9d4ec2d123431af3382af71a591d33f184f10" }),
       }),
     ]),
   }),

@@ -562,7 +562,8 @@ test("R33-E10 · F33 moves only through the production validator and the audit t
   const { DECLARED } = await import("../config/fboard/f-board.mjs");
   const f33 = DECLARED.F33;
   const reopened = f33.events.filter((e) => e.kind === "REOPENED");
-  assert.equal(reopened.at(-1)?.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
+  /* RR-249: F33 has a later REOPENED (C5, CONCRETE_CONTRADICTORY_EVIDENCE); this test is about RR-172's, on 2026-10-05 */
+  assert.equal(reopened.filter((e) => e.on === "2026-10-05").at(-1)?.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   assert.ok(trail.some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === "F33"), "F33's REOPENED is not in the audit trail");
   if (f33.state === "VERIFIED-PASS") {

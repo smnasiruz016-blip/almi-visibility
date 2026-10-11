@@ -1,0 +1,27 @@
+F06 EVIDENCE STATE MODEL — SABOTAGE EVIDENCE (§11)
+
+Engine tree: ae1e8a02cd9e5077ea380fda6a7b7845ba92393f. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+E10      landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a cross-TENANT evidence reference allowed
+         target src/evidence/evidence-state.mjs · named test "P30…" in test/f06-evidence-state.test.mjs
+         sha256 before 1183c14aac7e7bddf9100acc5b7c45b40d43e4fbee45a4a3de7677b587651780 · after 1183c14aac7e7bddf9100acc5b7c45b40d43e4fbee45a4a3de7677b587651780
+         failing tests: P30 · a cross-TENANT evidence reference is refused
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1  after b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+  audit-trail/head.json  before d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d  after d624c54b24c60777f7e2c1e3d55c446b0401ecec9c93a54f1802d85735f0475d
+  untouched: true
+
+PROBE CONTROL (clean tree): 1 of 1 probes report no defect.
+  E10  ran true · bytes landed true · defect took effect true · RED, named test, intended reason · restored true  — a cross-TENANT evidence reference allowed
+RAN 1 of 1 · LANDED 1 of 1 · PROVED 1 of 1

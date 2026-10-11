@@ -1,0 +1,9 @@
+RR-159 sabotage run · 2026-10-11T05:38:12.104Z
+population: 1 sabotage(s) over test/rr159-ai-led-discovery.test.mjs · each applied ALONE · a FAKE provider and a FAKE source transport only, zero real requests
+BASELINE (the named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): S08=1 · all exactly once: true
+production trail sha256 before: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1
+
+S08 C17 · a live provider with NO adapter reached [bin/collect-public-questions.mjs]: landed true · named test "P2" red true · its failure AssertionError · SyntaxError false · a production child crashed true · failing 1 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: b4acbc1126c8bf1bd61a288691d580fe31ce3b75dee3aa44042c6fe39f7b28a1 · unchanged true

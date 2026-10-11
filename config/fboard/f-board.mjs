@@ -1842,7 +1842,7 @@ export const DECLARED = Object.freeze({
   F34: Object.freeze({
     featureId: "F34",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F34_ORIGINAL.ruling, contractSha256: F34_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1911,6 +1911,21 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr174-sabotage-2026-10-05T0529.txt: 42 of 42 proved (F35 C3, C4, C8, C9 and F34 C7, and F35 C1–C7 / F34 C1–C6 for the re-proofs), residue 0, production trail unchanged",
         ownerRulings: Object.freeze({ repo: "_handoffs", rr174R3Rulings: "7945b7692b15a31fd546d90a0c0c7a00e0b62759" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-249: F34 REOPENED under its SAME acceptance (Amendment 1) — concrete contradictory evidence: C6 (precedent F35 RR-89, F31 RR-229) */
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F34",
+        on: "2026-10-11",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS (concrete contradictory evidence: a candidate an existing page stops inside F35 gets no recorded decision)",
+        reason: "CONCRETE_CONTRADICTORY_EVIDENCE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F34 Amendment 1 C6: 'Every decision taken on a rediscovered intent — the outcome, the existing page it names and the reason — and every refusal is recorded through the audit trail exactly once.' Since RR-179 (1d4bc58) and RR-180 (67a7e15) the runner builds only what F35 chose, and F35 takes F34's existing-page decision for each declared spec inside src/page/action-evidence.mjs (rteFor); a candidate that decision stops (KEEP / REJECT / HOLD) never reaches construction, whose recordDecision is the only one — so its decision is never recorded. No test pinned it: 'C6 · END TO END' asserts no decision, and the f34 S9 / f33 S15 sabotages could not fail (carried BLOCKED by RR-248).",
+        acceptanceUnchanged: Object.freeze({ ruling: F34_AMENDMENT_1.ruling.sha256, contract: F34_AMENDMENT_1.contractSha256 }),
+        evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_RR-248_END_REPORT_2026-10-11.md", commit: "c63bc1809b6b6cf9927bb8646e42d803a579ea9d", sha256: "a3b41a3c9609a5f045109f9c7dcdf2a7f71a6abd1e73e4edbaa189a75320c414" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md", commit: "c9d5830381c90a73a6196eb9c64bc923208ba475", sha256: "332eef1237a8ee5d410141e6fff9d4ec2d123431af3382af71a591d33f184f10" }),
       }),
     ]),
   }),

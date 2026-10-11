@@ -373,7 +373,8 @@ test("R3-BOARD · F35 and F34 move only through the production validator and the
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   for (const [f, n] of [["F35", 9], ["F34", 7]]) {
     const row = DECLARED[f];
-    const reopened = row.events.filter((e) => e.kind === "REOPENED").at(-1);
+    /* RR-249: F34 has a later REOPENED (C6, CONCRETE_CONTRADICTORY_EVIDENCE); this test is about RR-174's, on 2026-10-05 */
+    const reopened = row.events.filter((e) => e.kind === "REOPENED" && e.on === "2026-10-05").at(-1);
     assert.equal(reopened?.reason, "AUTHORITATIVE_REQUIREMENT_CHANGE");
     assert.ok(trail.some((e) => e.eventType === "BOARD_TRANSITION" && e.action === "REOPENED" && e.metadata?.featureId === f && e.occurredAt.startsWith("2026-10-05")), `${f}'s REOPENED is not in the trail`);
     if (row.state === "VERIFIED-PASS") {

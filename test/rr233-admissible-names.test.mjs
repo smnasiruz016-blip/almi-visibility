@@ -27,12 +27,14 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const NEW = Object.freeze(["specification-amendment", "tenant-consent-record"]);
 const BEFORE = GOVERNANCE_RULES.filter((r) => !NEW.includes(r.id));
 const idOf = (name, rules = GOVERNANCE_RULES) => ruleFor(rules, name, EXCLUDE)?.id ?? null;
-/* every committed _handoffs name, ever, that starts with one of the two prefixes (measured 9 Oct 2026: four, none admitted) */
+/* every committed _handoffs name, ever, that starts with one of the two prefixes AND was never admitted (measured 9 Oct 2026: four;
+ * 12 Oct 2026: five — the held draft of Amendment 6 joined; the adopted Amendment 6 itself is admitted and is not in this list) */
 const PREFIX_POPULATION = Object.freeze([
   "AlmiVisibility_SPECIFICATION_AMENDMENT_2_2026-09-28.md",
   "AlmiVisibility_SPECIFICATION_AMENDMENT_3_2026-09-30.md",
   "AlmiVisibility_SPECIFICATION_AMENDMENT_4_2026-10-04.md",
   "AlmiVisibility_SPECIFICATION_AMENDMENT_5_2026-10-06_SEO_GAPS_G1-G12_FOR_OWNER_APPROVAL.md",
+  "AlmiVisibility_SPECIFICATION_AMENDMENT_6_2026-10-12_FOR_OWNER_APPROVAL.md", /* RR-251: the held draft of Amendment 6 — a suffix after the date, never admitted */
 ]);
 const PREFIX = /^AlmiVisibility_(SPECIFICATION_AMENDMENT|TENANT_CONSENT)_/;
 
@@ -101,15 +103,18 @@ NEAR({
  * the T1/T2 consent records (the RR-233 tenant-consent rule) — 421 -> 424. A record a new rule admits must be one NO earlier rule admits.
  * RR-244 (restated): the RR-244 migration at _handoffs 2e623ff admitted one record — F78's Acceptance Amendment 2 (an earlier rule, the
  * f-row acceptance amendment rule) — 424 -> 425; the two RR-233 rules still admit exactly the two consent records. */
-test("N4 · the admitted set is unchanged: 425 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
-  assert.equal(AUTHORITY_CORPUS.length, 426, "the corpus population moved — re-measure"); /* RR-249: +1 — the RR-249 command record (AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md), admitted by the existing command-record rule; no rule changed */
+/* RR-251 (restated): the RR-251 migrations admitted six records, 426 -> 432 — the RR-250 and RR-251 command records and owner decisions and
+ * F44's Acceptance Amendment 1 (earlier rules), and Specification Amendment 6, the FIRST record the RR-233 specification-amendment rule
+ * admits (the owner's approval of it: the RR-251 decision record). The two RR-233 rules now admit exactly three records. */
+test("N4 · the admitted set is unchanged: 432 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
+  assert.equal(AUTHORITY_CORPUS.length, 432, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;
     assert.equal(idOf(name, rules), r.inclusionRule, `${r.authorityId} is no longer admitted by ${r.inclusionRule}`);
   }
   const byNew = AUTHORITY_CORPUS.filter((r) => NEW.includes(idOf(r.sourceRef.path, GOVERNANCE_RULES)));
-  assert.deepEqual(byNew.map((r) => r.sourceRef.path).sort(), ["AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md"], "the records the two RR-233 rules admit are not exactly the two consent records");
+  assert.deepEqual(byNew.map((r) => r.sourceRef.path).sort(), ["AlmiVisibility_SPECIFICATION_AMENDMENT_6_2026-10-12.md", "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md"], "the records the two RR-233 rules admit are not exactly Specification Amendment 6 and the two consent records");
   assert.ok(byNew.every((r) => idOf(r.sourceRef.path, BEFORE) === null), "a new rule takes a name that was already admitted");
   for (const n of PREFIX_POPULATION) {
     assert.equal(idOf(n), null, `${n} became admitted`);

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1459,14 +1459,15 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
-  /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code. Every non-derived record carries
-   * the nine recorded fields; the unit is never judged (no declared rule) and no capability claim is recorded — so IN-PROGRESS only. */
+  /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code; IN-PROGRESS until 12 Oct 2026 because
+   * the unit had no declared rule and no capability record existed. Acceptance Amendment 1 (RR-251) gave the unit the owner's rule and made
+   * a capability record an owner-approved questionnaire answer; every clause then PROVED on the real registry — VERIFIED-PASS. */
   F44: Object.freeze({
     featureId: "F44",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: ACCEPTANCES.F44.ruling, contractSha256: ACCEPTANCES.F44.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F44_ORIGINAL.ruling, contractSha256: F44_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F44",
@@ -1475,12 +1476,35 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F44.ruling.sha256, contract: ACCEPTANCES.F44.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F44_ORIGINAL.ruling.sha256, contract: F44_ORIGINAL.contractSha256 }),
         branch: "f44-fact-supply",
         baseSha: "a09c40f6da7a5c6c42e8d2bb548cbd6da8be8c77",
         baseCiRun: "36813939064",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-113_CLOSE_RR-112_BUILD_THE_F91_PAGE_PLANNER.md", commit: "0e1924bf2366a635b0d58fbb492ebe5b3649f6b7", sha256: "4b035e9ce223812ebb75b25d1f298a05db914ad2b4aa65c8837652c19531264e" }),
+      }),
+      /* RR-251: F44's Acceptance Amendment 1 (the unit by the owner's rule; a capability record only as an owner-approved questionnaire answer),
+       * an owner act frozen ALONE; F44 stays IN-PROGRESS, so no reopen is recorded */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F44", on: "2026-10-12", ruling: F44_AMENDMENT_1.ruling, contractSha256: F44_AMENDMENT_1.contractSha256, amends: F44_AMENDMENT_1.amends }),
+      /* RR-251: F44 PROVED — every clause of its frozen acceptance (Amendment 1, _handoffs 1fe07aa) PROVED on the real recorded registry of the one
+       * declared product; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F44",
+        population: "REAL",
+        on: "2026-10-12",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F44_AMENDMENT_1.ruling.sha256, contract: F44_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL, count-only: the one declared product's own registry, read through its own scope by the production reader. 70 records = 46 non-derived + 1 derived + 23 capability. C2 on the 46 non-derived, non-capability records: claim 46/46, value 46/46, scope 46/46, source 46/46, tier 46/46, checker 46/46, date 46/46, freshness 46/46, provenance 46/46 — each PROVED. C3: a unit is required of 24 records (value type money, duration or count), 24 carry one, 0 do not — PROVED; every other value type reported, never judged. C4: 1 derived record, 1 with its derivation, 2 inputs counted — PROVED. C5: the client questionnaire is READ, 24 answers, 23 approved by the owner and 1 pending (no record); 23 capability records, 23 of 23 an approved answer naming its committed approval record, admitted 23 of 23, refused 0, SELF-SOURCED 23, holding a tier 0, VERIFIED 0 — PROVED. C6: every part PROVED, so the row is PROVED.",
+        proofs: "test/f44-fact-supply.test.mjs (a firing control for each clause, the production reader driven over a temporary registry with the production resolver, the REAL result, the entry point in a declared world, the no-network call-path check); test/rr250-product-questionnaire.test.mjs (the questionnaire contract: the unit rule, deny by default, only an approved answer becomes a record); test/f44-capability-claim-precondition.test.mjs (the existing admission rules, unchanged)",
+        sabotage: "runs/audit/f44-sabotage-2026-10-12T1810.txt (sha256 df2f6117…): 38 of 38 — one limb per protection of C1–C6 as amended, each red by assertion in its named test — residue 0, production trail unchanged",
+        historicalReuse: "F44's RR-113 audit (the nine fields at their recorded paths, the derived waiver) and the RR-79 capability-claim admission are reused unchanged; RR-250 added the one product-neutral client questionnaire; RR-251 made the audit judge the unit by the owner's rule, hold capability records to an approved answer, and read PROVED only when every part does",
+        declaredLimit: "every capability record is the product speaking about itself: SELF-SOURCED, no independent tier, UNVERIFIED — F44 proves the record's supply fields, never that the statement is true; the answers were pre-filled by CC from the product's code and public page (basis INFERRED) and approved by the owner for the product as it was live on 2026-10-12, so a change in the product's live offer makes them stale until approved again; one answer is pending and yields no record; one declared product resolves today, so the result is that one product's",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

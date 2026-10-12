@@ -1,0 +1,21 @@
+probe control on the clean tree: 16 of 16 report no defect
+F06 §11 · SABOTAGE — ran · landed (bytes AND behaviour) · named test RED · intended reason · restored
+
+  ok   E1      failed= 4 RED, named test, intended reason
+  ok   E2      failed= 2 RED, named test, intended reason
+  ok   E3      failed= 2 RED, named test, intended reason
+  ok   E4      failed= 6 RED, named test, intended reason
+  ok   E5      failed=18 RED, named test, intended reason
+  ok   E6      failed=17 RED, named test, intended reason
+  ok   E7      failed= 5 RED, named test, intended reason
+  ok   E8      failed= 1 RED, named test, intended reason
+  ok   E9      failed= 1 RED, named test, intended reason
+  ok   E10     failed= 1 RED, named test, intended reason
+  ok   E11     failed= 1 RED, named test, intended reason
+  ok   E12     failed= 1 RED, named test, intended reason
+  ok   E13     failed= 1 RED, named test, intended reason
+  ok   E14     failed= 1 RED, named test, intended reason
+  ok   E15     failed= 1 RED, named test, intended reason
+  ok   E16     failed= 2 RED, named test, intended reason
+
+16 sabotage(s) · RAN 16 of 16 · LANDED 16 of 16 (bytes and behaviour) · PROVED 16 · residue 0 · production untouched true

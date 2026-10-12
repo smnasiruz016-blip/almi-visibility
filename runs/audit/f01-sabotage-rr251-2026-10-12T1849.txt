@@ -1,0 +1,25 @@
+probe control on the clean tree: 20 of 20 report no defect
+F01 · SABOTAGE — ran · landed (bytes AND behaviour) · named test RED · intended reason · restored
+
+  ok   S1      failed= 1 RED, named test, intended reason
+  ok   S2      failed= 2 RED, named test, intended reason
+  ok   S3      failed= 3 RED, named test, intended reason
+  ok   S4      failed= 1 RED, named test, intended reason
+  ok   S5      failed= 1 RED, named test, intended reason
+  ok   S6      failed= 4 RED, named test, intended reason
+  ok   S7      failed= 1 RED, named test, intended reason
+  ok   S8      failed= 4 RED, named test, intended reason
+  ok   S9      failed= 1 RED, named test, intended reason
+  ok   S10     failed= 2 RED, named test, intended reason
+  ok   S11     failed= 2 RED, named test, intended reason
+  ok   S12     failed= 3 RED, named test, intended reason
+  ok   S13     failed= 1 RED, named test, intended reason
+  ok   S14     failed= 2 RED, named test, intended reason
+  ok   S15     failed= 1 RED, named test, intended reason
+  ok   S16     failed= 1 RED, named test, intended reason
+  ok   S17     failed= 1 RED, named test, intended reason
+  ok   S18     failed= 1 RED, named test, intended reason
+  ok   S19     failed= 2 RED, named test, intended reason
+  ok   S20     failed= 1 RED, named test, intended reason
+
+20 sabotage(s) · RAN 20 of 20 · LANDED 20 of 20 (bytes and behaviour) · COULD-FAIL 20 of 20 (named test RED for the pinned reason) · PROVED 20 · residue 0 · production untouched true

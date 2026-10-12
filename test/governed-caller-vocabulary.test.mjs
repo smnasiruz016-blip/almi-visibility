@@ -324,9 +324,12 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
    * was added; bin/render-audit.mjs and bin/mobile-audit.mjs now write their LIVE run's cost entry into the tenant's own ledger through
    * the boundary (src/cost/run-cost.mjs, handed executeGovernedWrite) — READ_ONLY_DIAGNOSTIC 57 → 55, both BOUNDARY_ROUTED. No other
    * caller moved class. */
-  assert.equal(rows.length, 114);
+  /* 114/59 → 115/59 on 12 October (RR-250/RR-251), for a MEASURED reason, moved in the same round as the change: one production entry
+   * point, bin/product-questionnaire.mjs, READ-ONLY — it prints one client's own questionnaire answers and writes nothing
+   * (READ_ONLY_DIAGNOSTIC 55 → 56). No governed caller was added and no existing caller moved class. */
+  assert.equal(rows.length, 115);
   assert.equal(governed.length, 59);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 55);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 56);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

@@ -1,0 +1,9 @@
+RR-225 F02 A2 + F31 A1 sabotage run · 2026-10-12T18:25:58.620Z
+population: 1 sabotage(s) over test/f31-inventory.test.mjs + test/rr223-f31a1.test.mjs + test/f02-tenant-scope.test.mjs + test/f02-real-prerequisites.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S43=1 · all exactly once: true
+production trail sha256 before: 4f970e6da00cf3f2b5b33db07d231d9d3d5471be227e2774586e798f71cd2395
+
+S43 F02 A2 · the census excuses a function by its NAME alone [tools/tenant-scope-census.mjs]: landed true · named test "F02-EXCL-4 · A2 [CENSUS]" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing F02-EXCL-1,F02-EXCL-4 · restored true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 4f970e6da00cf3f2b5b33db07d231d9d3d5471be227e2774586e798f71cd2395 · unchanged true

@@ -1,23 +1,28 @@
 /**
- * F44 · VERIFIED FACT SUPPLY (acceptance _handoffs eecdfe4, RR-113). What every fact record carries, and what it lacks — counted, never
- * filled. Built under the owner's refinement (RR-111 §0): an empty population is reported empty, never passed.
+ * F44 · VERIFIED FACT SUPPLY (acceptance _handoffs eecdfe4, RR-113; ACCEPTANCE AMENDMENT 1, _handoffs 1fe07aa, RR-251). What every
+ * record carries, and what it lacks — counted, never filled. Built under the owner's refinement (RR-111 §0): an empty population is
+ * reported empty, never passed.
  *
  *   C1  one product's registry; records the registry declares derived (registry.mjs isDerivedFact) are counted apart
- *   C2  nine recorded fields on every non-derived record, each PRESENT or ABSENT at its recorded path; one ABSENT disproves the field
- *   C3  unit: recorded or recorded-empty by value type — never judged (no authority says which facts need one)
+ *   C2  nine recorded fields on every record that is neither derived nor of kind capability, each PRESENT or ABSENT at its recorded
+ *       path; one ABSENT disproves the field. A capability record is not among them — C5 judges it
+ *   C3  unit: recorded or recorded-empty by value type. The owner's rule (RR-250 A1): a unit is required ONLY of money, duration and
+ *       count. One such record without a unit DISPROVES; no such record → COULD-NOT-PROVE; any other value type is never judged
  *   C4  derived records: source, tier, checker, check date and freshness waived ONLY for them; their derivation inputs counted
- *   C5  capability claims: admitted or refused by the EXISTING rules (capability-claims.mjs admitCapabilityClaim); none → COULD-NOT-PROVE
- *   C6  every count with its denominator; three verdicts
+ *   C5  capability records: each exists only as an owner-APPROVED answer of the product's client questionnaire, naming its committed
+ *       approval record, and each is admitted or refused by the EXISTING rules (capability-claims.mjs); none → COULD-NOT-PROVE
+ *   C6  every count with its denominator; three verdicts; the row is PROVED only when EVERY part is PROVED
  * Pure: records in, counts out. Never fetches, re-checks or writes. Names no product.
  */
-import { primaryFacts, derivedFacts } from "./registry.mjs";
+import { isDerivedFact } from "./registry.mjs";
 import { isCapabilityClaim, SELF_SOURCED } from "./capability-claims.mjs";
+import { UNIT_REQUIRED_VALUE_TYPES, isOfAnApprovedAnswer } from "../questionnaire/product-questionnaire.mjs";
 
 export const VERDICT = Object.freeze({ PROVED: "PROVED", DISPROVED: "DISPROVED", COULD_NOT_PROVE: "COULD-NOT-PROVE" });
 export const MISSING = Object.freeze({
-  unitRule: "an owner declaration of which facts must carry a unit — none exists",
+  noUnitRecord: "a record whose value type is money, duration or count — none is recorded",
   noPrimary: "a non-derived fact record",
-  noCapability: "a capability claim in the registry — none is recorded",
+  noCapability: "a capability record: an owner-approved answer of the product's client questionnaire — none is recorded",
 });
 
 const text = (v) => typeof v === "string" && v.trim() !== "";
@@ -42,41 +47,51 @@ const fieldVerdict = (absent, n) => (n === 0 ? VERDICT.COULD_NOT_PROVE : absent 
 
 /** @param {object[]} records  one product's registry · @param {(c:object)=>{admitted:boolean, record:object|null, refusals:string[]}} admit  the existing admission, bound to its context */
 export function auditFactSupply(records, { admit }) {
-  const primary = primaryFacts(records);
-  const derived = derivedFacts(records);
+  const derived = records.filter(isDerivedFact);
+  const caps = records.filter(isCapabilityClaim);
+  const primary = records.filter((r) => !isDerivedFact(r) && !isCapabilityClaim(r));
   const n = primary.length;
   const fields = Object.fromEntries(Object.entries(FIELDS).map(([name, has]) => {
     const present = primary.filter(has).length;
     return [name, { present, absent: n - present, denominator: n, verdict: fieldVerdict(n - present, n) }];
   }));
+  /* C3 — EACH record's unit, whatever its kind; judged only for the owner's three value types */
   const unitByType = {};
-  for (const r of primary) {
+  let unitRequired = 0, unitRequiredAbsent = 0;
+  for (const r of records) {
     const t = r?.value?.valueType ?? "(no value type)";
     const k = text(r?.value?.unit) ? "recorded" : "recorded-empty";
     unitByType[t] = unitByType[t] ?? { recorded: 0, "recorded-empty": 0 };
     unitByType[t][k]++;
+    if (UNIT_REQUIRED_VALUE_TYPES.includes(t)) { unitRequired++; if (k === "recorded-empty") unitRequiredAbsent++; }
   }
-  const unit = { byValueType: unitByType, denominator: n, missing: MISSING.unitRule, verdict: VERDICT.COULD_NOT_PROVE };
+  const unit = {
+    byValueType: unitByType, denominator: records.length, requiredOf: UNIT_REQUIRED_VALUE_TYPES,
+    required: unitRequired, requiredWithAUnit: unitRequired - unitRequiredAbsent, requiredWithoutAUnit: unitRequiredAbsent,
+    missing: unitRequired === 0 ? MISSING.noUnitRecord : null,
+    verdict: unitRequired === 0 ? VERDICT.COULD_NOT_PROVE : unitRequiredAbsent > 0 ? VERDICT.DISPROVED : VERDICT.PROVED,
+  };
   const withDerivation = derived.filter((r) => Array.isArray(r?.derivation?.inputs) && r.derivation.inputs.length > 0);
   const derivedPart = {
     records: derived.length, withDerivation: withDerivation.length, inputs: withDerivation.reduce((s, r) => s + r.derivation.inputs.length, 0),
     waived: DERIVED_WAIVED, verdict: derived.length === 0 ? VERDICT.COULD_NOT_PROVE : withDerivation.length < derived.length ? VERDICT.DISPROVED : VERDICT.PROVED,
   };
-  const caps = records.filter(isCapabilityClaim);
   const results = caps.map((c) => admit(c));
   const refusedBy = {};
   for (const r of results) for (const why of r.refusals) refusedBy[why] = (refusedBy[why] ?? 0) + 1;
   const admitted = results.filter((r) => r.admitted).map((r) => r.record);
   const selfSourced = admitted.filter((r) => r.source.class === SELF_SOURCED);
+  /* C5 — a capability record that is not an approved answer naming its committed record must not exist at all */
+  const notOfAnApprovedAnswer = caps.filter((c) => !isOfAnApprovedAnswer(c)).length;
   const capability = {
     claims: caps.length, admitted: admitted.length, refused: caps.length - admitted.length, refusedBy,
+    ofAnApprovedAnswer: caps.length - notOfAnApprovedAnswer, notOfAnApprovedAnswer,
     selfSourced: selfSourced.length, selfSourcedWithATier: selfSourced.filter((r) => r.source.tier !== null).length,
     selfSourcedVerified: selfSourced.filter((r) => r.verificationState === "VERIFIED").length,
     missing: caps.length === 0 ? MISSING.noCapability : null,
-    verdict: caps.length === 0 ? VERDICT.COULD_NOT_PROVE : admitted.length < caps.length ? VERDICT.DISPROVED : VERDICT.PROVED,
+    verdict: caps.length === 0 ? VERDICT.COULD_NOT_PROVE : admitted.length < caps.length || notOfAnApprovedAnswer > 0 ? VERDICT.DISPROVED : VERDICT.PROVED,
   };
   const verdicts = [...Object.values(fields).map((f) => f.verdict), unit.verdict, derivedPart.verdict, capability.verdict];
-  /* the unit is never judged (no declared rule), so no row can read PROVED — a branch for it would be unreachable */
-  const verdict = verdicts.includes(VERDICT.DISPROVED) ? VERDICT.DISPROVED : VERDICT.COULD_NOT_PROVE;
+  const verdict = verdicts.includes(VERDICT.DISPROVED) ? VERDICT.DISPROVED : verdicts.every((v) => v === VERDICT.PROVED) ? VERDICT.PROVED : VERDICT.COULD_NOT_PROVE;
   return { records: records.length, primary: n, fields, unit, derived: derivedPart, capability, verdict, missingPrimary: n === 0 ? MISSING.noPrimary : null };
 }

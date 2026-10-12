@@ -31,7 +31,10 @@ const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8"
 export const FAMILIES = Object.freeze({
   /* F03 (25 Sep 2026): a SUBJECT decision names the facts family too — it resolves only when every fact registry the subject
    * declares as a member resolves to the run's tenant, and the descriptor may then claim no other (src/product-cli.mjs). */
-  FACTS: { resource: "factRegistry|factRegistryAt|subject", re: /\bloadRegistry\(/ },
+  /* RR-250/RR-251: a product's client questionnaire lives in that product's fact registry directory and is read only by
+   * readProductQuestionnaire (src/questionnaire/product-questionnaire-reader.mjs) — the same tenant's data, the same family. Without it
+   * the entry point that prints a client's answers read as "loads no tenant-governed family". */
+  FACTS: { resource: "factRegistry|factRegistryAt|subject", re: /\b(loadRegistry|readProductQuestionnaire)\(/ },
   OBSERVATIONS: { resource: "crawlBatch|collectionPartition", re: /\b(batchFile|readBodyArchive|batchJsonlFiles|declaredObservationSources|declaredObservationBatches|readBatchManifest|readTenantPartition|readPartitionBodies)\(/ },
   SITEMAPS: { resource: "sitemapCollection|collectionPartition", re: /["']sitemaps\.jsonl["']|\bsitemapCollectionRef\(/ },
   /* A store's location counts only as a WHOLE path literal or joined path segments — prose that mentions a path is not a

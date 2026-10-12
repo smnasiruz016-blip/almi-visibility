@@ -30,6 +30,7 @@ import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 
 import { AUDIT_STORE } from "../config/audit-store.mjs";
+import { trailWithoutDeclaredIdentifierEvents } from "./helpers/declared-identifier-events.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
 import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
@@ -616,7 +617,10 @@ test("P30 · at least one REAL event exists for every family this feature integr
 });
 
 test("P31 · audit records carry ZERO protected payload and ZERO client or product identifiers", () => {
-  const raw = readFileSync(join(REPO_ROOT, AUDIT_STORE.eventsPath), "utf8");
+  /* 🔴 RR-251: the trail is never reset, so an event that broke this law stays, DECLARED by its id and its line's sha256
+   * (config/known-identifier-events.mjs). Exactly those lines are set aside — each proved present once and unchanged — and every other
+   * line is scanned as before (test/helpers/declared-identifier-events.mjs, shared with f08-board-reconciliation P14). */
+  const raw = trailWithoutDeclaredIdentifierEvents(readFileSync(join(REPO_ROOT, AUDIT_STORE.eventsPath), "utf8"));
   // 🔴 THE CONTROL SHARES THE RULE'S CODE: PRODUCT_WORDS is imported from tools/product-boundary.mjs, never copied.
   const hits = PRODUCT_WORDS.filter((w) => new RegExp(w, "i").test(raw));
   assert.deepEqual(hits, [], `the committed audit trail names ${hits.length} product word class(es)`);

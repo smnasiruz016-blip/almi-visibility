@@ -1,0 +1,9 @@
+RR-227 F19 Acceptance Amendment 1 sabotage run · 2026-10-12T21:44:49.088Z
+population: 1 source sabotage(s) over test/f19-a1.test.mjs · each applied ALONE · fixtures only, no network · + the 10 real-census controls (test/helpers/f19-census-controls.mjs)
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): N31=1 · all exactly once: true
+production trail sha256 before: a79bd3cb00f0ec1a4a77f3a7668422e93a382763739342b91d9ea10fe10c7e57
+
+N31 E · a page body has no lawful evidence state (the live append would refuse) [src/evidence/evidence-state-adapters.mjs] → test/f19-a1.test.mjs: landed true · named test "E1 ·" red true · its failure AssertionError · SyntaxError false · failing E1,E3,E4,F31 · restored true · PROVED
+
+proved 1 of 1 (source 1 of 1) · residue 0 · production trail sha256 after: a79bd3cb00f0ec1a4a77f3a7668422e93a382763739342b91d9ea10fe10c7e57 · unchanged true

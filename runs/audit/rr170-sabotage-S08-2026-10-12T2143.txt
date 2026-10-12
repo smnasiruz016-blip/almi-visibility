@@ -1,0 +1,9 @@
+RR-170 R1 sabotage run · 2026-10-12T21:44:06.409Z
+population: 1 sabotage(s) over test/rr170-r1-research-derived.test.mjs · each applied ALONE · a FAKE provider and a FAKE source transport only, zero real requests
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S08=1 · all exactly once: true
+production trail sha256 before: a79bd3cb00f0ec1a4a77f3a7668422e93a382763739342b91d9ea10fe10c7e57
+
+S08 C27 · a research-derived question placed OBSERVED [src/evidence/evidence-state-adapters.mjs]: landed true · named test "T27d" red true · its failure AssertionError · SyntaxError false · a production child crashed true · failing 7 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: a79bd3cb00f0ec1a4a77f3a7668422e93a382763739342b91d9ea10fe10c7e57 · unchanged true

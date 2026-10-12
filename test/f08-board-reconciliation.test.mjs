@@ -22,6 +22,7 @@ import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { AUDIT_STORE } from "../config/audit-store.mjs";
+import { trailWithoutDeclaredIdentifierEvents } from "./helpers/declared-identifier-events.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { REPO_ROOT } from "../src/write-law.mjs";
 import { buildBoard, boardErrors, progress, F_STATES, DENOMINATOR } from "../src/fboard/board.mjs";
@@ -464,8 +465,9 @@ test("P14 · ZERO client or product identifiers in the generic production change
     for (const w of PRODUCT_WORDS) if (lines.some((l) => new RegExp(w, "i").test(l))) hits.push(`${p}:${w}`);
   }
   assert.deepEqual(hits, []);
-  // The audit trail too — every byte of it.
-  const trail = readFileSync(join(REPO_ROOT, AUDIT_STORE.eventsPath), "utf8");
+  // The audit trail too — every byte of it, except exactly the DECLARED events (RR-251: the trail is never reset; each such event is
+  // pinned by its id and its line's sha256 in config/known-identifier-events.mjs, and the shared helper proves each one every run).
+  const trail = trailWithoutDeclaredIdentifierEvents(readFileSync(join(REPO_ROOT, AUDIT_STORE.eventsPath), "utf8"));
   assert.deepEqual(PRODUCT_WORDS.filter((w) => new RegExp(w, "i").test(trail)), []);
   // CONTROL, PROVED CAPABLE: the same list fires on a probe built from the list itself.
   assert.ok(PRODUCT_WORDS.filter((w) => new RegExp(w, "i").test(`{"ref":"${PRODUCT_WORDS[3]}-registry"}`)).length > 0);

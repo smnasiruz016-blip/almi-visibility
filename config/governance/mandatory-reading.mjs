@@ -423,6 +423,15 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_1_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 1)" }),
+  /* RR-251 (12 Oct 2026): the six CURRENT records admitted by the migrations at _handoffs 5863941 and f7cd821 (the second after the RR-251 decision record was renamed to a neutral name) — the RR-250 and RR-251 command records and owner
+   * decisions, F44's Acceptance Amendment 1, and Specification Amendment 6 (the first record the RR-233 specification-amendment rule admits).
+   * The decision sheet, the A4 measurement and both FOR_OWNER_APPROVAL drafts are named without an admitted token, so the register does not admit them. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-12_RR-250.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-12_RR-250_ANSWERS_A1_TO_A5.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-12_RR-251.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-12_RR-251_APPROVE_CLIENT_ANSWERS_F44_A1_SPEC_A6.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F44_ACCEPTANCE_AMENDMENT_1_2026-10-12.md", loader: "F-board acceptance F44 (Amendment 1)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_SPECIFICATION_AMENDMENT_6_2026-10-12.md", loader: "authority register (CURRENT record) — Specification Amendment 6" }),
   /* RR-244 (9 Oct 2026): the one CURRENT record admitted by the migration at _handoffs 2e623ff — F78's Acceptance Amendment 2. The
    * RR-243 stop report, the RR-244A exposure census and the RR-244 stop report are named without an admitted token. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_2_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 2)" }),

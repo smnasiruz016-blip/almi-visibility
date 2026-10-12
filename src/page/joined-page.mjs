@@ -130,7 +130,7 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       const draft = renderNeed({ spec, decision });
       const qs = spec.sections.map((s) => { const q = questions.get(s.questionId) ?? {}; return Object.freeze({ questionId: s.questionId, wording: s.heading, tier: s.tier, country: q.country ?? null, language: q.language ?? null }); });
       const st = statementsFor(spec.subject);
-      return Object.freeze({ needId: spec.subject, questions: Object.freeze(qs), claims: spec.answer.labels, unknown: spec.answer.unknown, answerState: spec.answer.state,
+      return Object.freeze({ needId: spec.subject, questions: Object.freeze(qs), claims: spec.answer.labels, unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
         needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });

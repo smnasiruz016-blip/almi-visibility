@@ -1,0 +1,38 @@
+§10 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   S3      failed= 2 RED, named test, intended reason
+  ok   S19     failed= 1 RED, named test, intended reason
+  ok   S7+S8   failed= 3 RED, named test, intended reason
+  ok   S9      failed= 1 RED, named test, intended reason
+  ok   S29     failed= 1 RED, named test, intended reason
+  ok   S13     failed= 1 RED, named test, intended reason
+  ok   S32     failed= 2 RED, named test, intended reason
+  ok   S16     failed= 1 RED, named test, intended reason
+  ok   S22     failed= 1 RED, named test, intended reason
+  ok   S27     failed= 2 RED, named test, intended reason
+  ok   S-LEAK  failed= 1 RED, named test, intended reason
+  ok   S-D1    failed= 2 RED, named test, intended reason
+  ok   S-D2    failed= 1 RED, named test, intended reason
+  ok   S-D3    failed= 1 RED, named test, intended reason
+  ok   S-D4    failed= 8 RED, named test, intended reason
+  ok   S-G1    failed= 5 RED, named test, intended reason
+  ok   S-G2    failed= 2 RED, named test, intended reason
+  ok   S-G3    failed= 3 RED, named test, intended reason
+  ok   S-G4    failed= 2 RED, named test, intended reason
+  ok   S-G5    failed= 1 RED, named test, intended reason
+  ok   S-C1    failed= 2 RED, named test, intended reason
+  ok   S-C2    failed= 1 RED, named test, intended reason
+  ok   S-C3    failed= 1 RED, named test, intended reason
+  ok   S-C4    failed= 2 RED, named test, intended reason
+  ok   S-C5    failed= 2 RED, named test, intended reason
+  ok   S-R1    failed= 2 RED, named test, intended reason
+  ok   S-A1    failed= 1 RED, named test, intended reason
+  ok   S-H1    failed= 1 RED, named test, intended reason
+  ok   S-H2    failed= 1 RED, named test, intended reason
+  ok   S-H3    failed= 3 RED, named test, intended reason
+  ok   S-H4    failed= 1 RED, named test, intended reason
+  ok   S-H5    failed= 1 RED, named test, intended reason
+  ok   S-X1    failed= 1 RED, named test, intended reason
+  ok   S-G6    failed= 1 RED, named test, intended reason
+
+34 sabotage(s) · 34 proved · 0 NOT proved · residue 0 · production untouched true

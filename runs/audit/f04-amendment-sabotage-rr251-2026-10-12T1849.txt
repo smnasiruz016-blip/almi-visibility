@@ -1,0 +1,11 @@
+F04 · AMENDMENT 1 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   F4A-S1  failed= 4 RED, named test, intended reason
+  ok   F4A-S2  failed= 2 RED, named test, intended reason
+  ok   F4A-S3  failed= 1 RED, named test, intended reason
+  ok   F4A-S4  failed= 1 RED, named test, intended reason
+  ok   F4A-S5  failed= 1 RED, named test, intended reason
+  ok   F4A-S6  failed= 3 RED, named test, intended reason
+  ok   F4A-S7  failed= 4 RED, named test, intended reason
+
+7 sabotage(s) · EXECUTED 7 of 7 · 7 proved · 0 NOT proved · residue 0 · production untouched true

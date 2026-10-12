@@ -1,0 +1,20 @@
+F09 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   F9-S1   failed= 1 RED, named test, intended reason
+  ok   F9-S2   failed= 1 RED, named test, intended reason
+  ok   F9-S4   failed= 1 RED, named test, intended reason
+  ok   F9-S5   failed= 1 RED, named test, intended reason
+  ok   F9-S6   failed= 1 RED, named test, intended reason
+  ok   F9-S7   failed= 1 RED, named test, intended reason
+  ok   F9-S8   failed= 1 RED, named test, intended reason
+  ok   F9-S9   failed= 1 RED, named test, intended reason
+  ok   F9-S10  failed= 1 RED, named test, intended reason
+  ok   F9-S11  failed= 2 RED, named test, intended reason
+  ok   F9-S12  failed= 1 RED, named test, intended reason
+  ok   F9-S13  failed= 2 RED, named test, intended reason
+  ok   F9-S15  failed= 1 RED, named test, intended reason
+  ok   F9-S16  failed= 1 RED, named test, intended reason
+  ok   F9-S17  failed= 1 RED, named test, intended reason
+  ok   F9-S14  failed= 1 RED, named test, intended reason
+
+16 sabotage(s) · EXECUTED 16 of 16 · 16 proved · 0 NOT proved · residue 0 · production untouched true

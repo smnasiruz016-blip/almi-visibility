@@ -1,0 +1,9 @@
+RR-199 R6b sabotage run · 2026-10-12T18:22:14.837Z
+population: 1 sabotage(s) over test/rr194-t2.test.mjs + test/rr195-r6b.test.mjs + test/rr196-r6b.test.mjs + test/rr197-r6b.test.mjs + test/f90-falsifiability.test.mjs + test/rr100-check-boundaries.test.mjs + test/rr102-content-check-boundaries.test.mjs + test/issue-writer-census.test.mjs + test/class-split.test.mjs + test/populations.test.mjs + test/consequence-register.test.mjs + test/row60-ruling-sheet.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): RA-census=1 · all exactly once: true
+production trail + committed outputs (sheet, report, both stores) sha256 before: 45c8fca2c8784e4946c7b12bd23a56d752d092a4ef1d08318f97a94c29732d21
+
+RA-census re-assessment · the census accepts ANY partition as naming the READS family [tools/tenant-scope-census.mjs]: landed true · named test "T2-CENSUS ·" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T2-CENSUS · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail + committed outputs sha256 after: 45c8fca2c8784e4946c7b12bd23a56d752d092a4ef1d08318f97a94c29732d21 · unchanged true

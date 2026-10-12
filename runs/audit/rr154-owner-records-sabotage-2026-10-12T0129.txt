@@ -1,0 +1,12 @@
+RR-154 owner-records sabotage run · 2026-10-12T01:29:45.157Z
+population: 4 sabotages over test/rr154-owner-records.test.mjs · each applied ALONE
+BASELINE (named tests before any sabotage): GREEN
+PRE-FLIGHT (span occurrences in the code live now): H1=1 H2=1 H3=1 H4=1 · all exactly once: true
+production trail sha256 before: 9d88dc3fa0b82399046d389a7bdb0dee0e515999c206cc0a5d53fda985c199a9
+
+H1 the owner's source decision loses its OWNER issuer config/authority/corpus.mjs: landed true · named test "O1" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+H2 the earlier RR-120 record is rewritten with an issuer config/authority/corpus.mjs: landed true · named test "O2" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+H3 the register stops refusing an issuer-less record src/authority/register.mjs: landed true · named test "O1" red true · by AssertionError only true · failing 2 · restored by sha256 true · PROVED
+H4 the source decision dropped from mandatory reading config/governance/mandatory-reading.mjs: landed true · named test "O3" red true · by AssertionError only true · failing 1 · restored by sha256 true · PROVED
+
+proved 4 of 4 · residue 0 · production trail sha256 after: 9d88dc3fa0b82399046d389a7bdb0dee0e515999c206cc0a5d53fda985c199a9 · unchanged true

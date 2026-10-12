@@ -1,0 +1,9 @@
+RR-208 F37 A2 sabotage run · 2026-10-12T01:51:37.716Z
+population: 1 sabotage(s) over test/rr180-r4b.test.mjs + test/rr186-r5b.test.mjs + test/rr208-f37a2.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S57=1 · all exactly once: true
+production trail sha256 before: 9d88dc3fa0b82399046d389a7bdb0dee0e515999c206cc0a5d53fda985c199a9
+
+S57 C8 · the runner hands F40's draft no plan (the plan does not reach the judged draft) [bin/build-page.mjs]: landed true · named test "T37-C8" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T37-C8 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 9d88dc3fa0b82399046d389a7bdb0dee0e515999c206cc0a5d53fda985c199a9 · unchanged true

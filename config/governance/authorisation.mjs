@@ -161,6 +161,9 @@ export const ACTIONS = Object.freeze({
     /* RR-153 (4 Oct 2026): F91's question-to-page-candidate connections (bin/demand-connect.mjs) — kept in the research batch's own planning
      * store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_PLANNING_DEMAND",
+    /* RR-253 (12 Oct 2026): the joined TEST page drafts and their same-need cancellations (bin/build-joined-pages.mjs) — kept in the
+     * research batch's own joined-pages store, the same family and resource class; a classification only, granting no permission. */
+    "APPEND_JOINED_TEST_PAGES",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

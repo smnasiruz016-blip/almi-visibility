@@ -238,14 +238,18 @@ test("Q7 · the new modules name no product word and reach no network — and ea
   assert.deepEqual(decisionCallPaths({ entries: [NEW[1]], read: (f) => (f === NEW[1] ? `${read(f)}\nawait fetch(u);\n` : read(f)) }).faults.map((x) => x.code), ["RAW_NETWORK_CALL"], "CONTROL: the network scanner cannot fire");
 });
 
-test("REAL · F16's real population: the real data root holds NO public question record — the sample is EMPTY, COULD-NOT-PROVE, never a pass", () => {
+/* RR-253 (restated, 12 Oct 2026, re-measured): the real data root now holds 13 public question records — the research agent's observations
+ * of headings on opened public pages, in ONE batch of one subject (rr253-test-pages-2026-10-12, written by bin/observe-question.mjs). They
+ * are a small agent-observed SAMPLE, never a census; F16 moves on its own acceptance, not on this count. An empty sample still reads
+ * COULD-NOT-PROVE. */
+test("REAL · F16's real population: the real data root holds 13 public question records (one batch, agent-observed) — re-measured; an EMPTY sample is COULD-NOT-PROVE, never a pass", () => {
   const research = join(DATA_ROOT, "research");
   let questions = 0;
   for (const b of existsSync(research) ? readdirSync(research) : []) {
     const d = join(research, b);
     for (const f of existsSync(d) && !f0(d) ? readdirSync(d).filter((n) => n.endsWith(".jsonl")) : []) questions += readFileSync(join(d, f), "utf8").split("\n").filter((l) => l.includes(`"record_type":"${RECORD_TYPE}"`)).length;
   }
-  assert.equal(questions, 0, "the real store now holds public questions — this pin must be re-measured, never assumed");
+  assert.equal(questions, 13, "the real store's public questions moved — this pin must be re-measured, never assumed");
   assert.equal(intakeQuestions([]).verdict, "COULD-NOT-PROVE");
 });
 function f0(d) { try { readdirSync(d); return false; } catch { return true; } }

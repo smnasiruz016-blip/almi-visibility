@@ -1,0 +1,5 @@
+F04 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash
+
+  ok   F4-S14  failed= 5 RED, named test, intended reason
+
+1 sabotage(s) · EXECUTED 1 of 1 · 1 proved · 0 NOT proved · residue 0 · production untouched true

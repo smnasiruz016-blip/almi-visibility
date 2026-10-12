@@ -255,7 +255,8 @@ test("ENTRY4 · bin/demand-connect.mjs in a declared world: no --confirm writes 
     /* Amendment 3 C14: a coverage record for EVERY need, written in the same governed append */
     assert.match(first.stdout, /coverage records 2 need\(s\), one record each \(2 new\)/);
     assert.match(first.stdout, /needs without a coverage record 0/);
-    assert.match(first.stdout, /official sites declared 0 \(turn order — not a gap\)/);
+    /* RR-253 (restated): the declared product now declares its own public site (one origin), so the line reads 1 and carries no turn-order note */
+    assert.match(first.stdout, /official sites declared 1$/m);
     const second = go([`--drafts=${drafts}`, "--confirm"]);
     assert.match(second.stdout, /4 read · 0 connected · refused 4 \(DUPLICATE_WRITE 3 · SEARCH_LEAD_IS_NOT_A_QUESTION 1\)/);
     /* TENANT CROSSOVER at the entry point: the other declared subject, with a batch of its own — refused by name, nothing written there */
@@ -349,9 +350,11 @@ test("REAL · every declared subject in the real data root: admitted public ques
     out.push({ subject: s.subjectId.length, batches: batches.length, admittedQuestions: admitted, connections, numbers });
   }
   console.log(`  REAL (${ON}, count-only, every declared subject): ${JSON.stringify(out)}`);
-  /* pins — re-measured, never assumed: 0 admitted real public questions today, so numbers 2 and 3 are NOT MEASURED, never 0 */
-  assert.equal(out.reduce((n, x) => n + x.admittedQuestions, 0), 0, "the real store now holds admitted public questions — re-measure, never assume");
-  assert.equal(out.reduce((n, x) => n + x.connections, 0), 0);
+  /* pins — re-measured, never assumed. RR-253 (restated, 12 Oct 2026): one subject's batch rr253-test-pages-2026-10-12 now holds 13 admitted
+   * agent-observed public questions and 31 connections (13 observed + 18 research-derived), written through the governed boundary. Numbers 2
+   * and 3 stay NOT MEASURED (asserted below), never 0. */
+  assert.equal(out.reduce((n, x) => n + x.admittedQuestions, 0), 13, "the real store's admitted public questions moved — re-measure, never assume");
+  assert.equal(out.reduce((n, x) => n + x.connections, 0), 31);
   for (const x of out.filter((y) => y.numbers !== NOT_MEASURED)) assert.deepEqual([x.numbers.verified, ...Object.values(x.numbers.needed)], [NOT_MEASURED, NOT_MEASURED, NOT_MEASURED]);
 });
 

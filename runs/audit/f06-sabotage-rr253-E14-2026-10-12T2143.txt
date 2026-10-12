@@ -1,0 +1,6 @@
+probe control on the clean tree: 1 of 1 report no defect
+F06 §11 · SABOTAGE — ran · landed (bytes AND behaviour) · named test RED · intended reason · restored
+
+  ok   E14     failed= 1 RED, named test, intended reason
+
+1 sabotage(s) · RAN 1 of 1 · LANDED 1 of 1 (bytes and behaviour) · PROVED 1 · residue 0 · production untouched true

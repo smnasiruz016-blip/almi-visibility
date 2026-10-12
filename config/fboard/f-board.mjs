@@ -1761,7 +1761,7 @@ export const DECLARED = Object.freeze({
   F33: Object.freeze({
     featureId: "F33",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F33_ORIGINAL.ruling, contractSha256: F33_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1848,6 +1848,24 @@ export const DECLARED = Object.freeze({
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_RR-248_END_REPORT_2026-10-11.md", commit: "c63bc1809b6b6cf9927bb8646e42d803a579ea9d", sha256: "a3b41a3c9609a5f045109f9c7dcdf2a7f71a6abd1e73e4edbaa189a75320c414" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md", commit: "c9d5830381c90a73a6196eb9c64bc923208ba475", sha256: "332eef1237a8ee5d410141e6fff9d4ec2d123431af3382af71a591d33f184f10" }),
       }),
+      /* RR-249: F33 re-proved under its SAME acceptance (Amendment 1) — C5: the outcome of a candidate stopped inside F35 is recorded once */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F33",
+        population: "REAL",
+        on: "2026-10-11",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: C5, a stop inside F35 recorded zero times; acceptance unchanged)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F33_AMENDMENT_1.ruling.sha256, contract: F33_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "C5 on a declared fixture world with a research batch F35 judges (test/f34-no-blind-regeneration.test.mjs 'C6 · END TO END'): the candidate F34's check stops inside F35 gets exactly one recorded decision, and that decision carries F33's outcome and evidence (need=COVERED|CANNOT_DECIDE ev=…). C1–C4, C6–C8 as RR-172, re-run on the changed code. REAL: records only, count-only, as RR-172.",
+        proofs: "test/f34-no-blind-regeneration.test.mjs 'C6 · END TO END' (RED without the fix: 0 decisions) and 'C6 · NO RESEARCH BATCH'; test/f33-need-coverage.test.mjs C1–C7 and test/rr172-r2-f91-f33.test.mjs (C8) re-run; full suite on the exact head",
+        sabotage: "runs/audit/f33-sabotage-2026-10-11T2253.txt: 18 of 18 proved — S15 (the recorded decision drops F33's outcome) a normal limb again, no longer BLOCKED; runs/audit/rr172-sabotage-2026-10-11T2253.txt: 47 of 47; residue 0, production trail unchanged (practice runs/audit/f33-sabotage-2026-10-11T2101.txt: 18 of 18)",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md", commit: "c9d5830381c90a73a6196eb9c64bc923208ba475", sha256: "332eef1237a8ee5d410141e6fff9d4ec2d123431af3382af71a591d33f184f10" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F34 · No blind regeneration. Frozen 28 Sep (_handoffs 53f74b4, RR-83 §2) ALONE, before any F34 code was read. Matched to
@@ -1857,7 +1875,7 @@ export const DECLARED = Object.freeze({
   F34: Object.freeze({
     featureId: "F34",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-28", ruling: F34_ORIGINAL.ruling, contractSha256: F34_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1941,6 +1959,24 @@ export const DECLARED = Object.freeze({
         acceptanceUnchanged: Object.freeze({ ruling: F34_AMENDMENT_1.ruling.sha256, contract: F34_AMENDMENT_1.contractSha256 }),
         evidenceRecord: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_RR-248_END_REPORT_2026-10-11.md", commit: "c63bc1809b6b6cf9927bb8646e42d803a579ea9d", sha256: "a3b41a3c9609a5f045109f9c7dcdf2a7f71a6abd1e73e4edbaa189a75320c414" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md", commit: "c9d5830381c90a73a6196eb9c64bc923208ba475", sha256: "332eef1237a8ee5d410141e6fff9d4ec2d123431af3382af71a591d33f184f10" }),
+      }),
+      /* RR-249: F34 re-proved under its SAME acceptance (Amendment 1) — C6: F35's existing-page stop is recorded by the runner, once */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F34",
+        population: "REAL",
+        on: "2026-10-11",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (concrete contradictory evidence: C6, a stop inside F35 unrecorded; acceptance unchanged)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F34_AMENDMENT_1.ruling.sha256, contract: F34_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "C6 on a declared fixture world with a research batch F35 judges: the real runner, --confirm, exit 2, nothing written; the candidate an existing page stops INSIDE F35 gets exactly one REFUSAL naming the existing pages and its reason; without a batch nothing is judged and no decision is invented. C1–C5, C7 as RR-174, re-run on the changed code. REAL: the same tenant's 27 existing pages, count-only.",
+        proofs: "src/page/action-evidence.mjs keeps F34's first decision per declared spec (existingPageDecisions); bin/build-page.mjs records it once unless construction already recorded that slug. test/f34-no-blind-regeneration.test.mjs 'C6 · END TO END' (RED without the fix: 'exactly one recorded decision: 0') and 'C6 · NO RESEARCH BATCH'; C1–C5, REAL; test/rr174-r3-f35-f34.test.mjs re-run; full suite on the exact head",
+        sabotage: "runs/audit/f34-sabotage-2026-10-12T0121.txt: 19 of 19 proved — S9 (the runner does not record F35's stop) a normal limb again, no longer BLOCKED; S8 within its limit; runs/audit/rr174-sabotage-2026-10-11T2303.txt: 42 of 42; runs/audit/f35-sabotage-2026-10-12T0057.txt: 26 of 26; residue 0, production trail unchanged (practice runs/audit/f34-sabotage-2026-10-11T2128.txt: 19 of 19)",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md", commit: "c9d5830381c90a73a6196eb9c64bc923208ba475", sha256: "332eef1237a8ee5d410141e6fff9d4ec2d123431af3382af71a591d33f184f10" }),
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

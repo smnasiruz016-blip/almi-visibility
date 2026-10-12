@@ -353,8 +353,10 @@ test("REAL · every declared subject in the real data root: admitted public ques
   /* pins — re-measured, never assumed. RR-253 (restated, 12 Oct 2026): one subject's batch rr253-test-pages-2026-10-12 now holds 13 admitted
    * agent-observed public questions and 31 connections (13 observed + 18 research-derived), written through the governed boundary. Numbers 2
    * and 3 stay NOT MEASURED (asserted below), never 0. */
-  assert.equal(out.reduce((n, x) => n + x.admittedQuestions, 0), 13, "the real store's admitted public questions moved — re-measure, never assume");
-  assert.equal(out.reduce((n, x) => n + x.connections, 0), 31);
+  /* RR-254 (restated, re-measured): the rebuilt batch rr254-test-pages-2026-10-12 adds 14 admitted observed questions and 37 connections —
+   * 27 and 68 across the subject's two test batches. */
+  assert.equal(out.reduce((n, x) => n + x.admittedQuestions, 0), 27, "the real store's admitted public questions moved — re-measure, never assume");
+  assert.equal(out.reduce((n, x) => n + x.connections, 0), 68);
   for (const x of out.filter((y) => y.numbers !== NOT_MEASURED)) assert.deepEqual([x.numbers.verified, ...Object.values(x.numbers.needed)], [NOT_MEASURED, NOT_MEASURED, NOT_MEASURED]);
 });
 

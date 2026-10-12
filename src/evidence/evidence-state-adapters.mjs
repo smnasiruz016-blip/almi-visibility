@@ -74,6 +74,10 @@ const DERIVED_TYPES = Object.freeze({
   duplicate_record_superseded: { inputs: (r) => [...(present(r.issue_id) ? [`issue:${r.issue_id}`] : []), ...strs(r.evidence)], at: (r) => r.superseded_at, method: "duplicate-record-note" },
   recommendation_evidence: { inputs: (r) => [...strs(r.issues).map((x) => `issue:${x}`), ...strs(r.observations).map((x) => `observation:${x}`), ...strs(r.sources).map((x) => `source:${x}`)], at: (r) => r.linked_at, method: "recommendation-evidence-link" },
   cost_entry: { inputs: (r) => (present(r.run_ref) ? [`cost-input:${h16(r.run_ref)}`] : []), at: (r) => r.recorded_at, method: "cost-entry-from-run-counts" },
+  /* RR-253: a joined TEST page draft (src/page/joined-page.mjs) is DERIVED from the needs F35 chose — INFERRED, its inputs those needs; a
+   * same-need cancellation (Specification Amendment 6) is derived from the one recorded judgement it names. Neither is an observation. */
+  joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
+  same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our
    * parser from the observation it names, so it is INFERRED with that observation as its one input — never OBSERVED: the links are
    * what our parser found in raw HTML (a script-built link is invisible to it), and a date CLAIM is what the page says, not a date

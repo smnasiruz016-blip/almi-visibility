@@ -147,8 +147,20 @@ export function capabilityClaimsOf(q) {
     freshness: Object.freeze({ state: "DECLARED", declaredOn: a.approval.on }),
     provenance: Object.freeze([`questionnaire:${q.questionnaireId}`, `basis:${a.basis}`, ...a.inferredFrom.map((s) => `inferred-from:${s.kind}:${s.ref}`), `approved-by:${a.approval.by}`]),
     verificationState: "UNVERIFIED",
+    /* the answer this record IS, and the committed record of its approval — what F44 C5 (Amendment 1) requires of every capability record */
+    questionnaire: Object.freeze({ questionnaireId: q.questionnaireId, answerId: a.answerId, approval: Object.freeze({ state: a.approval.state, by: a.approval.by, on: a.approval.on, record: Object.freeze({ ...a.approval.record }) }) }),
   }));
   return { claims, answers: q.answers.length, approved: approved.length, withheld: q.answers.length - approved.length, faults: [] };
+}
+
+/**
+ * F44 C5 (Amendment 1): is this capability record an owner-APPROVED questionnaire answer that names its committed approval record?
+ * Read from the record itself. A record that is not must not exist: the audit counts it and DISPROVES.
+ */
+export function isOfAnApprovedAnswer(record) {
+  const p = record?.questionnaire?.approval;
+  return text(record?.questionnaire?.questionnaireId) && text(record?.questionnaire?.answerId) && p?.state === "APPROVED" && text(p?.by)
+    && plain(p?.record) && text(p.record.repo) && text(p.record.path) && typeof p.record.commit === "string" && COMMIT.test(p.record.commit);
 }
 
 /** One answer in plain words, for the person who must approve it. A value is printed with its unit, never bare. */

@@ -7,12 +7,14 @@
  *   node bin/build-joined-pages.mjs --subject=<id> --product=<id> --research-batch=<id> --on=YYYY-MM-DD
  *        --test-exception=<repo>:<path>@<commit> [--confirm]
  *
- * Its two inputs are read from the batch itself, by fixed name (as bin/research-derived-intake.mjs reads its own): page-drafts.json, reviews.json.
+ * Its inputs are read from the batch itself, by fixed name (as bin/research-derived-intake.mjs reads its own): page-drafts.json, reviews.json
+ * and, where one is filed, rationale-reviews.json (the recorded substance reviews F36 asks for when two items' reasons overlap, by need key).
  *
  * In one governed run, from stored records only (nothing fetched):
  *   1  the proposed pages (page-drafts.json): each a page candidate with its needs, their admitted questions and each need's answer claims;
- *   2  CANCEL AND MOVE (src/page/joined-page.mjs cancelSameNeeds): two pages serving the same need, by a RECORDED judgement → one is
- *      cancelled and its questions move into the survivor's item; the cancellations are written beside the pages;
+ *   2  CANCEL AND MOVE (src/page/joined-page.mjs cancelSamePages), as the owner clarified Specification Amendment 6 (RR-254): only two
+ *      WHOLE pages serving the same need, by RECORDED judgements → one page is cancelled and its questions move into the survivor's items.
+ *      A question shared by two pages stays on each; it is counted, never cancelled;
  *   3  the connections (F91, src/page/demand-connection.mjs connectQuestions — the same function bin/demand-connect.mjs uses), appended to
  *      the batch's planning store through the governed boundary. No coverage record is written here: that is bin/demand-connect.mjs's,
  *      over the tenant's REAL pages;
@@ -21,7 +23,8 @@
  *      page is compiled from the batch's questions. The coverage records it yields live in memory only and are never stored;
  *   5  F35 decides every need (decideGroupedNeeds); only a need it CHOSE to CREATE is joined (reviews.json: the recorded non-duplicate
  *      reviews it requires, by need key — a method's or an agent's, never an approval);
- *   6  each page is rendered with its gate table and appended to the batch's joined-pages.jsonl. A joined page is a DRAFT, never ACCEPTED.
+ *   6  each page is rendered — its title and headings chosen from the recorded questions, observed first (RR-254) — with its gate table
+ *      and the needs it could not answer, and appended to the batch's joined-pages.jsonl. A joined page is a DRAFT, never ACCEPTED.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -38,11 +41,12 @@ import { readProductPlan } from "../src/page/page-opportunities-reader.mjs";
 import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
 import { renderCompiledDraft } from "../src/page/draft-render.mjs";
+import { compiledSlug } from "../src/page/spec-compiler.mjs";
 import { RESEARCH_DERIVED_RECORD, ASSESSMENT_RECORD } from "../src/research/research-derived.mjs";
 import { overturnedIds } from "../src/research/meaning-judgement.mjs";
 import { readProductQuestionnaire } from "../src/questionnaire/product-questionnaire-reader.mjs";
 import { testException, parseExceptionRecord } from "../src/page/test-exception.mjs";
-import { cancelSameNeeds, sameNeedPairs, connectionDrafts, productStatements, joinPages } from "../src/page/joined-page.mjs";
+import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, valueOf } from "../src/page/joined-page.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -80,10 +84,10 @@ console.log(`JOINED TEST PAGES — ${X.stamp} · this subject's product only, fr
 console.log(`  exception        ${X.exception.effect} · owner record ${X.exception.record.repo}:${X.exception.record.path}@${X.exception.record.commit.slice(0, 7)} · the declared page specs are set aside with them`);
 
 /* 2 · Specification Amendment 6 */
-const resolved = cancelSameNeeds(proposed);
-const left = sameNeedPairs({ pages: resolved.pages, sameNeed: proposed.sameNeed ?? [] });
+const resolved = cancelSamePages(proposed);
+const left = samePagePairs({ pages: resolved.pages, sameNeed: proposed.sameNeed ?? [] });
 console.log(`  proposed         ${proposed.pages.length} page(s), ${proposed.pages.reduce((n, p) => n + p.needs.length, 0)} need(s) · same-need judgements ${(proposed.sameNeed ?? []).length}`);
-console.log(`  cancel and move  ${resolved.cancellations.length} need(s) cancelled, ${resolved.cancellations.reduce((n, c) => n + c.movedQuestions.length, 0)} question(s) moved · page(s) cancelled whole ${resolved.cancelledPages.length} · refused ${resolved.refused.length} · same-need pairs left across pages ${left.length}`);
+console.log(`  cancel and move  whole page(s) cancelled ${resolved.cancelledPages.length} (${resolved.cancellations.reduce((n, c) => n + c.movedQuestions.length, 0)} question(s) moved) · shared question(s) kept on each page ${resolved.shared.length} · refused ${resolved.refused.length} · same-need page pairs left ${left.length}`);
 
 /* 3 · the connections, through F91's own function */
 const file = join(batchDir, "planning.jsonl");
@@ -108,9 +112,12 @@ const keyToNeed = new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.ke
 
 /* 5 · F35, unchanged, with the recorded reviews (by need key → need id) */
 const duplicationReviews = reviewsIn.map((r) => ({ needId: keyToNeed.get(r.need) ?? null, against: keyToNeed.get(r.against) ?? null, verdict: r.verdict, needsGuidance: r.needsGuidance, ref: r.ref })).filter((r) => r.needId && r.against);
-const G = decideGroupedNeeds({ tenantId: SCOPE.tenantId, product: { ...product, pageSpecs: {} }, population: X.population, planningRows, overturned, duplicationReviews });
+/* F36 (S38): the recorded substance reviews of two overlapping reasons, by need key → the compiled slugs F36 compares; none filed is [] */
+const rationaleIn = json("rationale-reviews.json") ?? [];
+const rationaleReviews = (Array.isArray(rationaleIn) ? rationaleIn : []).map((r) => ({ pair: (r.needs ?? []).map((k) => (keyToNeed.get(k) ? compiledSlug(keyToNeed.get(k)) : null)), verdict: r.verdict, ref: r.ref, source: r.source })).filter((r) => r.pair.length === 2 && r.pair.every(Boolean));
+const G = decideGroupedNeeds({ tenantId: SCOPE.tenantId, product: { ...product, pageSpecs: {} }, population: X.population, planningRows, overturned, duplicationReviews, rationaleReviews });
 const byClass = G.groupedNeeds.reduce((m, d) => { const k = d.decision === "CHOSEN" ? (d.actions ?? []).map((a) => a.action).join("+") : `${d.class ?? d.decision}`; m[k] = (m[k] ?? 0) + 1; return m; }, {});
-console.log(`  F35 decisions    ${G.groupedNeeds.length} need(s): ${Object.entries(byClass).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"} · reviews read ${duplicationReviews.length} · compiled for construction ${G.compiled.forConstruction.length} · compile refusals ${G.compiled.refusals.length}`);
+console.log(`  F35 decisions    ${G.groupedNeeds.length} need(s): ${Object.entries(byClass).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"} · reviews read ${duplicationReviews.length} · rationale reviews read ${rationaleReviews.length} · compiled for construction ${G.compiled.forConstruction.length} · compile refusals ${G.compiled.refusals.length}`);
 for (const d of G.groupedNeeds.filter((x) => x.decision !== "CHOSEN")) console.log(`    not chosen     ${(d.missing ?? []).join(" | ").slice(0, 200)}`);
 
 /* 6 · JOIN, render, gate table, write */
@@ -118,17 +125,21 @@ const approved = (await readProductQuestionnaire(product)).claims;
 const needToKey = new Map([...keyToNeed].map(([k, v]) => [v, k]));
 const helpOf = new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.key, n.productAnswers ?? []])));
 const questions = new Map(stored.filter((r) => r?.record_type === CONNECTION).map((r) => [r.questionId, r]));
-const pages = joinPages({ construction: G.compiled.forConstruction, questions, stamp: X.stamp,
+/* the place of each need on its page is the order the page's needs were handed in; a need F35 did not choose is reported, never written */
+const order = new Map(resolved.pages.flatMap((p) => p.needs.map((n, i) => [keyToNeed.get(n.key), i])));
+const chosen = new Set(G.compiled.forConstruction.map((c) => c.spec?.subject));
+const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map((d) => [d.subject.needId, (d.missing ?? []).join(" | ")]));
+const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
+const pages = joinPages({ construction: G.compiled.forConstruction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
-  statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }),
-  titleFor: (value) => (proposed.pages.find((p) => Object.values(p.combination).map(String).sort().join("+") === value)?.title ?? value) });
+  statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
 for (const p of pages) {
   const states = Object.entries(p.checks).map(([k, v]) => `${k} ${v.state}`);
   const n = (s) => Object.values(p.checks).filter((v) => v.state === s).length;
-  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), ${p.wordCount} word(s) · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
+  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), ${p.wordCount} word(s) · unanswered need(s) ${p.unanswered.length} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
   console.log(`    ${states.join(" · ")}`);
 }
-const out = [...resolved.cancellations.map((x) => ({ ...x, measurement_key: `${x.record_type}:${x.cancelledNeed}:${x.survivorNeed}`, recorded_at: `${ON}T00:00:00Z`, subject: SUBJECT, stamp: X.stamp })),
+const out = [...resolved.cancellations.map((x) => ({ ...x, measurement_key: `${x.record_type}:${x.cancelledPage}:${x.cancelledNeed}:${x.survivorNeed}`, recorded_at: `${ON}T00:00:00Z`, subject: SUBJECT, stamp: X.stamp })),
   ...pages.map((p) => ({ ...p, recorded_at: `${ON}T00:00:00Z`, subject: SUBJECT, exception: X.exception }))];
 if (out.length) { const g = append(out, join(batchDir, "joined-pages.jsonl"), "APPEND_JOINED_TEST_PAGES"); if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the pages did NOT persist`); process.exit(1); } console.log(`  kept             ${pages.length} page draft(s) and ${resolved.cancellations.length} cancellation record(s) in the batch's joined-pages store (${g.outcome}) — ${X.stamp}`); }
 process.exit(pages.length > 0 ? 0 : 2);

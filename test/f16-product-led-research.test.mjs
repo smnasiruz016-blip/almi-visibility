@@ -242,14 +242,16 @@ test("Q7 · the new modules name no product word and reach no network — and ea
  * of headings on opened public pages, in ONE batch of one subject (rr253-test-pages-2026-10-12, written by bin/observe-question.mjs). They
  * are a small agent-observed SAMPLE, never a census; F16 moves on its own acceptance, not on this count. An empty sample still reads
  * COULD-NOT-PROVE. */
-test("REAL · F16's real population: the real data root holds 13 public question records (one batch, agent-observed) — re-measured; an EMPTY sample is COULD-NOT-PROVE, never a pass", () => {
+/* RR-254 (restated, re-measured): 27 — the rebuilt batch rr254-test-pages-2026-10-12 holds 14 more (the same public headings observed again
+ * for the rebuilt pages, plus one), beside the 13 of rr253. Two batches of one subject; still a small agent-observed sample. */
+test("REAL · F16's real population: the real data root holds 27 public question records (two batches of one subject, agent-observed) — re-measured; an EMPTY sample is COULD-NOT-PROVE, never a pass", () => {
   const research = join(DATA_ROOT, "research");
   let questions = 0;
   for (const b of existsSync(research) ? readdirSync(research) : []) {
     const d = join(research, b);
     for (const f of existsSync(d) && !f0(d) ? readdirSync(d).filter((n) => n.endsWith(".jsonl")) : []) questions += readFileSync(join(d, f), "utf8").split("\n").filter((l) => l.includes(`"record_type":"${RECORD_TYPE}"`)).length;
   }
-  assert.equal(questions, 13, "the real store's public questions moved — this pin must be re-measured, never assumed");
+  assert.equal(questions, 27, "the real store's public questions moved — this pin must be re-measured, never assumed");
   assert.equal(intakeQuestions([]).verdict, "COULD-NOT-PROVE");
 });
 function f0(d) { try { readdirSync(d); return false; } catch { return true; } }

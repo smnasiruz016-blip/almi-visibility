@@ -21,6 +21,6 @@ export const KNOWN_IDENTIFIER_EVENTS = Object.freeze([
     repair: "the record was renamed to a neutral admitted name (bytes unchanged) and the register regenerated; the trail was NOT reset, so this one event stays as the true record of what was admitted at that moment",
     evidenceRecord: "_handoffs f7cd82179d8f1b1c74cbe49cdfb3cb413736f835 AlmiVisibility_RR-251_INCIDENT_CLIENT_WORD_IN_AN_ADMITTED_NAME_2026-10-12.md",
     evidenceSha256: "f41d9df0ff16ab9f972f3e0fc7865082cc8f103f750235fcc958ffa11d20c44c",
-    ownerRatification: "PENDING — asked in the RR-251 stop report; the change that adds this entry is not merged before the owner's word",
+    ownerRatification: "RATIFIED 2026-10-12 — the owner, RR-252 answer 1 (keep it; one line, one declared exception, no reset): _handoffs 38d6e9182e1cc9c5b09a4c8109f27e6300bd6c4a AlmiVisibility_OWNER_DECISION_2026-10-12_RR-252_MERGE_ANSWERS.md",
   }),
 ]);

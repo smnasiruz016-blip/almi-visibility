@@ -102,7 +102,7 @@ NEAR({
  * RR-244 (restated): the RR-244 migration at _handoffs 2e623ff admitted one record — F78's Acceptance Amendment 2 (an earlier rule, the
  * f-row acceptance amendment rule) — 424 -> 425; the two RR-233 rules still admit exactly the two consent records. */
 test("N4 · the admitted set is unchanged: 425 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
-  assert.equal(AUTHORITY_CORPUS.length, 425, "the corpus population moved — re-measure");
+  assert.equal(AUTHORITY_CORPUS.length, 426, "the corpus population moved — re-measure"); /* RR-249: +1 — the RR-249 command record (AlmiVisibility_CC_COMMAND_2026-10-11_RR-249.md), admitted by the existing command-record rule; no rule changed */
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;

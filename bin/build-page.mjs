@@ -163,11 +163,20 @@ if (argv.includes("--all-slugs")) requested = [...requested, ...chosen.decisions
 console.log(`F35 decisions         ${chosen.decisions.length} chosen CREATE (${chosen.decisions.filter((d) => d.spec).length} compiled) · section proposals ${ae.compiled?.sectionProposals?.length ?? 0}${chosen.why ? ` — ${chosen.why}` : ""}`);
 
 const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, plans /* F37 C8: F94's plans; a draft with none says so */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
-/* C6 — one recorded decision per candidate the check stopped, through this run's own guard sink. */
+/* C6 — one recorded decision per candidate the check judged, through this run's own guard sink, exactly once. */
+const judgedInConstruction = new Set();
 for (const c of results) {
-  /* RR-179 (c): a candidate F35 did not choose is never judged, so it has no existing-page decision to record */
+  /* RR-179 (c): a candidate F35 did not choose never reaches construction's check — F35's own check decided it (below) */
   const ev = c.parts.existingPage ? existingPageDecisionEvent(c.parts.existingPage.decision, { entry: "bin/build-page.mjs" }) : null;
+  if (c.parts.existingPage) judgedInConstruction.add(c.slug);
   if (ev) SCOPE.recordDecision(ev);
+}
+/* 🔴 RR-249 · F34 C6: a candidate an existing page stops INSIDE F35 (KEEP / REJECT / HOLD) gets its recorded decision here — F35's own
+ * F34 decision for that declared spec, once; a spec construction judged above was recorded there, never twice. */
+for (const { slug, decision } of ae.existingPageDecisions ?? []) {
+  if (judgedInConstruction.has(slug)) continue;
+  const stop = existingPageDecisionEvent(decision, { entry: "bin/build-page.mjs" });
+  if (stop) SCOPE.recordDecision(stop);
 }
 
 for (const c of results) {

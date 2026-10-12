@@ -22,7 +22,7 @@ const T = "test/f33-need-coverage.test.mjs", PC = "test/page-construction.test.m
 /* 🔴 RR-248 · BLOCKED (owner answer 11 Oct, item 6 — exactly like f34 S9): a limb whose protection is a DEFECT in product code. It still
  * runs and is reported, but it is NEVER counted PROVED, and test/rr248-span-freshness.test.mjs SF-7 names it. Lifted only by RR-249. */
 const BLOCKED = new Map([
-  ["S15", "F34 C6 DEFECT — since RR-179 (1d4bc58) / RR-180 (67a7e15) a candidate an existing page stops is stopped inside F35 and NO decision is recorded for it, so no recorded decision carries F33: C6 · END TO END asserts none (its F33 loop never runs) and no test pins the end-to-end half (C5 · pins the format at unit level only). Reopened as RR-249 (F34 REOPEN + fix + re-VERIFY)"],
+  /* none — RR-249 fixed the F34 C6 defect and lifted S15: the recorded decision carries F33 again, end to end */
 ]);
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");

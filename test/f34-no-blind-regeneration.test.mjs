@@ -12,12 +12,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { execFileSync } from "node:child_process";
 
-import { declaredWorld } from "./helpers/declared-world.mjs";
+import { declaredWorld, FIXTURE_TENANT } from "./helpers/declared-world.mjs";
 import { existingPageFirst, existingPageDecisionEvent, intentForms, EXISTING_PAGE_OUTCOMES as O, EXISTING_PAGE_REASONS as R } from "../src/page/existing-page-first.mjs";
 import { populationFromPartition, readExistingPagePopulation, existingPageGate } from "../src/page/existing-page-population.mjs";
 import { pageProductionCensus, staticImports } from "../tools/existing-page-first-census.mjs";
@@ -179,7 +179,26 @@ test("C6 · the shared gate the subject tools call decides, records exactly once
   assert.ok(none.fault, "an unreadable batch lost its named fault");
 });
 
-test("C6 · END TO END: the real runner, --confirm, in a declared world — F35 chose nothing, so every candidate stops before the check (ruling RR-180 (a)); NOTHING written, no decision owed, on a CONFINED store", () => {
+/* 🔴 RR-249 · F34 C6 (Amendment 1): "Every decision taken on a rediscovered intent — the outcome, the existing page it names and the
+ * reason — and every refusal is recorded through the audit trail exactly once." Since RR-179 (c) / RR-180 (a) F35 takes F34's decision
+ * for each declared spec (action-evidence rteFor); a candidate that decision stops never reaches construction. Until RR-249 this test
+ * asserted NO decision (decisions.length === 0, the defect itself); it now runs the real runner over a research batch F35 judges. */
+const C6_BATCH = "rr249-c6-batch";
+const c6Planning = async () => {
+  const { connectQuestions, coverageRecords } = await import("../src/page/demand-connection.mjs");
+  const { possibleCombinations } = await import("../src/page/page-opportunities.mjs");
+  const P = await subject("almi-oet");
+  const slug = Object.keys(P.pageSpecs)[0];
+  const variant = P.pageSpecs[slug].variant;
+  const possible = possibleCombinations({ dimensions: [{ key: P.axis.key, values: P.variants, source: "the product's own descriptor", applicability: "APPLIES" }] });
+  const q = { record_type: "public_question", question_id: "c6q", measurement_key: "public_question:c6q", recorded_at: "2026-10-01T09:00:00Z",
+    value: { subject: "almi-oet", kind: "OBSERVED", original: "A question a page of this tenant may already answer?", sourceId: "fixture", provenance: { observerType: "SOURCE_ADAPTER_OBSERVED", seenBy: "A SOURCE ADAPTER — the text as the source holds it" } } };
+  const answer = { claims: [{ claimId: "c1", states: "OTHER", source: { kind: "RELATED", name: "a related source", link: "https://related.fixture.invalid/a", readOn: "2026-10-02" }, supports: { finding: "SUPPORTS", ref: "fixture-finding" } }] };
+  const conn = connectQuestions({ subject: "almi-oet", possible, records: [q], drafts: [{ questionId: "c6q", combination: { [P.axis.key]: variant }, answer }], on: "2026-10-05" });
+  const cov = coverageRecords({ subject: "almi-oet", rows: conn.records, tenantId: FIXTURE_TENANT, population: { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] }, on: "2026-10-05" });
+  return { slug, rows: [...conn.records, ...cov] };
+};
+const runC6 = (W, extra) => {
   mkdirSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT), { recursive: true });
   const storeDir = mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "f34-e2e-"));
   mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
@@ -187,31 +206,55 @@ test("C6 · END TO END: the real runner, --confirm, in a declared world — F35 
   try {
     /* The run nonce is set HERE, so this test — not the child — owns the confined run directory: a child that mints its own
      * removes it at exit, and its events could never be counted. It is removed below with the store. */
-    const r = spawnSync(process.execPath, WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), { cwd: REPO, encoding: "utf8", env: { ...WORLD.envWith(), [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `f34-e2e-${process.pid}` } });
-    assert.equal(r.status, 2, r.stdout + r.stderr);
-    assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
-    /* RR-179 (c): construction acts only on F35's decision; the runner hands in none, so neither declared candidate reaches the check */
-    assert.equal((r.stdout.match(/REJECT {5}f35Decision: F35 did not choose CREATE/g) ?? []).length, 2);
-    assert.equal((r.stdout.match(/existingPage +(KEEP|HOLD|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 0, "a candidate F35 did not choose reached the existing-page check"); /* F34 C7 (RR-174): MONITOR is no longer an F34 outcome */
-    assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
-    assert.deepEqual(readdirSync(out), [], "a candidate page was written over existing pages");
+    const r = spawnSync(process.execPath, W.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, ...extra, "--confirm"]), { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), [AUDIT_STORE_OVERRIDE_ENV]: storeDir, [AUDIT_RUN_ENV]: `f34-e2e-${process.pid}-${extra.length}` } });
     const files = [];
     const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) (e.isDirectory() ? walk(join(d, e.name)) : e.name === "events.jsonl" && files.push(join(d, e.name))); };
     walk(storeDir);
     const events = files.flatMap((f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)));
-    const decisions = events.filter((e) => e.action === "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST");
-    /* a decision is owed only by a candidate the check STOPPED (C6, l.139); none reached it, so none is owed — and none is invented */
-    assert.equal(decisions.length, 0, `a decision was recorded for a candidate the check never judged: ${decisions.length}`);
-    for (const e of decisions) {
-      assert.match(e.metadata.resourceRef, /^existing-pages:[0-9a-f]{16}/, "a recorded decision does not name an existing page");
-      assert.match(e.reasonCode, /SERVES|CANNOT_BE_RULED|NOT_RECORDED_COMPLETE/);
-      /* F33 C5 (RR-84): the one recorded decision carries F33's outcome and its per-page evidence counts. */
-      assert.match(e.metadata.classification, /need=(COVERED|CANNOT_DECIDE) ev=[A-Z_:0-9,]+/);
-    }
+    return { r, written: readdirSync(out), decisions: events.filter((e) => e.metadata?.guard === "existing-page-first") };
   } finally {
     rmSync(out, { recursive: true, force: true });
     rmSync(storeDir, { recursive: true, force: true });
   }
+};
+
+test("C6 · END TO END: the real runner, --confirm, a research batch F35 judges — the candidate an existing page stops INSIDE F35 gets exactly one recorded decision naming the existing pages and the reason, carrying F33's evidence (RR-249); nothing written, on a CONFINED store", async () => {
+  const { slug, rows } = await c6Planning();
+  /* its own world: the batch is declared to the fixture tenant by name (F03 researchBatch), so the file's shared world is unchanged */
+  const W = declaredWorld({ extra: [["RESEARCH_BATCH", C6_BATCH]] });
+  try {
+  const dir = join(W.root, "research", C6_BATCH);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "planning.jsonl"), rows.map((x) => JSON.stringify(x)).join("\n") + "\n");
+  const { r, written, decisions } = runC6(W, [`--research-batch=${C6_BATCH}`]);
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
+  /* F35 judged the batch's one need on F34's check and stopped it — no CREATE is chosen over a population that is not COMPLETE */
+  assert.match(r.stdout, /F35 decisions {9}0 chosen CREATE/, "F35 chose a page over existing pages it could not rule out");
+  assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
+  assert.deepEqual(written, [], "a candidate page was written over existing pages");
+  /* C6: the stopped candidate's decision is recorded — exactly once, naming the existing pages and the reason */
+  assert.equal(decisions.length, 1, `the stopped candidate ${slug} must have exactly one recorded decision: ${decisions.length}`);
+  const [e] = decisions;
+  assert.deepEqual([e.eventType, e.action, e.outcome], ["REFUSAL", "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST", "REFUSED"]);
+  assert.match(e.metadata.resourceRef, /^existing-pages:[0-9a-f]{16}/, "a recorded decision does not name an existing page");
+  assert.match(e.reasonCode, /SERVES|CANNOT_BE_RULED|NOT_RECORDED_COMPLETE/);
+  assert.match(e.metadata.role, /^bin\/build-page\.mjs>EXISTING_PAGE_FIRST$/);
+  /* F33 C5 (RR-84): the recorded decision carries F33's outcome and its per-page evidence counts. */
+  assert.match(e.metadata.classification, /need=(COVERED|CANNOT_DECIDE) ev=[A-Z_:0-9,]+/);
+  } finally { W.cleanup(); }
+});
+
+test("C6 · NO RESEARCH BATCH: the real runner, --confirm, no batch named — F35 judges nothing (ruling RR-180 (a)), so no existing-page decision is taken and none is invented; NOTHING written, on a CONFINED store", () => {
+  const { r, written, decisions } = runC6(WORLD, []);
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
+  /* RR-179 (c): construction acts only on F35's decision; with no batch F35 decides nothing, so neither declared candidate reaches a check */
+  assert.equal((r.stdout.match(/REJECT {5}f35Decision: F35 did not choose CREATE/g) ?? []).length, 2);
+  assert.equal((r.stdout.match(/existingPage +(KEEP|HOLD|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 0, "a candidate F35 did not judge reached the existing-page check"); /* F34 C7 (RR-174): MONITOR is no longer an F34 outcome */
+  assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
+  assert.deepEqual(written, [], "a candidate page was written over existing pages");
+  assert.equal(decisions.length, 0, `a decision was recorded for a candidate no check judged: ${decisions.length}`);
 });
 
 /* ---- C5 · the census --------------------------------------------------------------------------------------------- */

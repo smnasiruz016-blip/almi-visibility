@@ -1459,12 +1459,13 @@ export const DECLARED = Object.freeze({
       }),
     ]),
   }),
-  /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code. Every non-derived record carries
-   * the nine recorded fields; the unit is never judged (no declared rule) and no capability claim is recorded — so IN-PROGRESS only. */
+  /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code; IN-PROGRESS until 12 Oct 2026 because
+   * the unit had no declared rule and no capability record existed. Acceptance Amendment 1 (RR-251) gave the unit the owner's rule and made
+   * a capability record an owner-approved questionnaire answer; every clause then PROVED on the real registry — VERIFIED-PASS. */
   F44: Object.freeze({
     featureId: "F44",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F44_ORIGINAL.ruling, contractSha256: F44_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1485,6 +1486,26 @@ export const DECLARED = Object.freeze({
       /* RR-251: F44's Acceptance Amendment 1 (the unit by the owner's rule; a capability record only as an owner-approved questionnaire answer),
        * an owner act frozen ALONE; F44 stays IN-PROGRESS, so no reopen is recorded */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F44", on: "2026-10-12", ruling: F44_AMENDMENT_1.ruling, contractSha256: F44_AMENDMENT_1.contractSha256, amends: F44_AMENDMENT_1.amends }),
+      /* RR-251: F44 PROVED — every clause of its frozen acceptance (Amendment 1, _handoffs 1fe07aa) PROVED on the real recorded registry of the one
+       * declared product; recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F44",
+        population: "REAL",
+        on: "2026-10-12",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F44_AMENDMENT_1.ruling.sha256, contract: F44_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL, count-only: the one declared product's own registry, read through its own scope by the production reader. 70 records = 46 non-derived + 1 derived + 23 capability. C2 on the 46 non-derived, non-capability records: claim 46/46, value 46/46, scope 46/46, source 46/46, tier 46/46, checker 46/46, date 46/46, freshness 46/46, provenance 46/46 — each PROVED. C3: a unit is required of 24 records (value type money, duration or count), 24 carry one, 0 do not — PROVED; every other value type reported, never judged. C4: 1 derived record, 1 with its derivation, 2 inputs counted — PROVED. C5: the client questionnaire is READ, 24 answers, 23 approved by the owner and 1 pending (no record); 23 capability records, 23 of 23 an approved answer naming its committed approval record, admitted 23 of 23, refused 0, SELF-SOURCED 23, holding a tier 0, VERIFIED 0 — PROVED. C6: every part PROVED, so the row is PROVED.",
+        proofs: "test/f44-fact-supply.test.mjs (a firing control for each clause, the production reader driven over a temporary registry with the production resolver, the REAL result, the entry point in a declared world, the no-network call-path check); test/rr250-product-questionnaire.test.mjs (the questionnaire contract: the unit rule, deny by default, only an approved answer becomes a record); test/f44-capability-claim-precondition.test.mjs (the existing admission rules, unchanged)",
+        sabotage: "runs/audit/f44-sabotage-2026-10-12T1810.txt (sha256 df2f6117…): 38 of 38 — one limb per protection of C1–C6 as amended, each red by assertion in its named test — residue 0, production trail unchanged",
+        historicalReuse: "F44's RR-113 audit (the nine fields at their recorded paths, the derived waiver) and the RR-79 capability-claim admission are reused unchanged; RR-250 added the one product-neutral client questionnaire; RR-251 made the audit judge the unit by the owner's rule, hold capability records to an approved answer, and read PROVED only when every part does",
+        declaredLimit: "every capability record is the product speaking about itself: SELF-SOURCED, no independent tier, UNVERIFIED — F44 proves the record's supply fields, never that the statement is true; the answers were pre-filled by CC from the product's code and public page (basis INFERRED) and approved by the owner for the product as it was live on 2026-10-12, so a change in the product's live offer makes them stale until approved again; one answer is pending and yields no record; one declared product resolves today, so the result is that one product's",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F16 · SERP and answer-surface census. Frozen ALONE (_handoffs 944f769, RR-114 §5) before any F16 code, built to RR-89 §1 (397e809).

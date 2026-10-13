@@ -599,6 +599,8 @@ const F10_FILES = [
   "config/follow-up-questions.mjs", "src/discovery/follow-up-pairs.mjs", "src/discovery/follow-up-questions.mjs", "src/heldout/follow-up-rule.mjs", "test/f10-c7-follow-up.test.mjs",
   // the one selection and the owner's packet (27 Sep 2026)
   "src/discovery/f10-versions.mjs", "src/discovery/f10-selection.mjs", "src/discovery/f10-labelling.mjs", "bin/f10-select.mjs", "bin/f10-label.mjs", "test/f10-selection-packet.test.mjs",
+  // RR-261 (Acceptance Amendment 4, 13 Oct 2026): the built-pages check — its module, entry point, declared config, proof file and sabotage harness
+  "src/page/built-page-needs.mjs", "bin/built-page-needs.mjs", "config/page/built-page-needs.mjs", "test/f10-built-pages.test.mjs", "test/helpers/f10-built-pages-sabotage.mjs",
 ];
 async function forbiddenTerms() {
   const d = RESOLVE.declarations;

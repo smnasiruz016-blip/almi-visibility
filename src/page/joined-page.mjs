@@ -64,6 +64,8 @@ export const REFUSAL = Object.freeze({
 const present = (v) => typeof v === "string" && v.trim() !== "";
 const hash = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 24);
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/** the page's own escaping, for a reader that must find a wording in a built page exactly as the page shows it (F10, src/page/built-page-needs.mjs) */
+export const escapeText = esc;
 const words = (text) => String(text).split(/\s+/).filter(Boolean).length;
 const visibleText = (html) => html.replace(/<(script|style)[\s\S]*?<\/\1>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"");
 export const valueOf = (combination) => Object.values(combination ?? {}).map(String).sort().join("+");

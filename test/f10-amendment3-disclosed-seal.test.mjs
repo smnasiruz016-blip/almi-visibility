@@ -33,14 +33,17 @@ const PROD = () => ["audit-trail/events.jsonl", "audit-trail/head.json"].map((p)
 const ctx = { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } };
 const codes = (errs) => errs.map((e) => `${e.code}:${e.id}`);
 /* A board that CLAIMS F10 passed, with a REAL verification event so that no other check is what fires. */
-const claimed = () => buildBoard(CAPABILITIES, DECLARED).map((r) => (r.featureId === "F10" ? { ...r, state: "VERIFIED-PASS", events: [...r.events, { kind: "VERIFIED", featureId: "F10", population: "REAL", on: "2026-09-28", from: "IN-PROGRESS", to: "VERIFIED-PASS" }] } : r));
+const claimed = () => buildBoard(CAPABILITIES, DECLARED).map((r) => (r.featureId === "F10" ? { ...r, state: "VERIFIED-PASS", events: [...r.events, { kind: "VERIFIED", featureId: "F10", population: "REAL", on: "2026-09-28", from: "IN-PROGRESS", to: "VERIFIED-PASS", proofs: `a scoring run on ${DISCLOSED_SEALS[0].sets[0].id}` }] } : r));
 
 test("D1 · the board REFUSES F10 VERIFIED-PASS on the disclosed seal — silent without the disclosure, after a re-registration, and on the real board", () => {
   assert.ok(codes(boardErrors(claimed(), ctx)).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "a pass on the disclosed seal was not refused");
   assert.ok(!codes(boardErrors(claimed(), { ...ctx, disclosedSeals: [] })).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "CONTROL: the check fired with no disclosure");
   const reRegistered = EVIDENCE_ROLE_REGISTRY.map((e) => (DISCLOSED_SEALS[0].sets.some((s) => s.id === e.id) ? { ...e, contentHash: "f".repeat(64) } : e));
   assert.ok(!codes(boardErrors(claimed(), { ...ctx, registry: reRegistered })).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "CONTROL: a different (re-registered) seal is not this disclosure");
-  assert.deepEqual(boardErrors(buildBoard(CAPABILITIES, DECLARED), ctx), [], "CONTROL: the real board, F10 IN-PROGRESS, is clean");
+  /* RR-261 (F10 Acceptance Amendment 4, C7): the refusal is of a pass whose RECORDED EVIDENCE NAMES the seal — a pass on other evidence is not refused by a seal it never reads */
+  const elsewhere = claimed().map((r) => (r.featureId === "F10" ? { ...r, events: r.events.map((e) => (e.kind === "VERIFIED" ? { ...e, proofs: "the built pages" } : e)) } : r));
+  assert.ok(!codes(boardErrors(elsewhere, ctx)).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "CONTROL: a pass whose evidence names no seal was refused");
+  assert.deepEqual(boardErrors(buildBoard(CAPABILITIES, DECLARED), ctx), [], "CONTROL: the real board is clean");
 });
 
 test("D2 · the class and the store are decided by id AND commitment only", () => {

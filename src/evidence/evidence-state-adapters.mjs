@@ -86,6 +86,11 @@ const DERIVED_TYPES = Object.freeze({
    * need it answers. */
   need_cluster: { inputs: (r) => (Array.isArray(r.members) ? r.members.filter((m) => present(m?.inputId)).map((m) => m.inputId) : []), at: (r) => r.recorded_at, method: "wordings-placed-by-a-recorded-grouping" },
   need_sample_answer: { inputs: (r) => (present(r.need) ? [`need:${h16(r.need)}`] : []), at: (r) => r.recorded_at, method: "owner-answer-to-a-sample-item" },
+  /* RR-261 · F10 (Amendment 4): a pair decision, a cancellation and a moved question (src/page/built-page-needs.mjs) are DERIVED from the
+   * built pages they name, by the stored need records — the engine's own decision, never an observation. */
+  built_page_pair_decision: { inputs: (r) => (Array.isArray(r.pages) ? r.pages.filter(present).map((p) => `built-page:${h16(p)}`) : []), at: (r) => r.recorded_at, method: "page-pair-decided-from-stored-need-records" },
+  built_page_cancellation: { inputs: (r) => [r.cancelledBuild, r.survivorBuild].filter(present), at: (r) => r.recorded_at, method: "same-need-page-cancelled-by-the-survivor-rule" },
+  built_page_question_move: { inputs: (r) => [r.fromBuild].filter(present), at: (r) => r.recorded_at, method: "question-moved-from-a-cancelled-page" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
   same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our

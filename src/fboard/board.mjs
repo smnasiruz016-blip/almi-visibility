@@ -103,13 +103,16 @@ export function boardErrors(board, { capabilities, acceptances = {}, authority =
     if (r.state === "VERIFIED-PASS" && !(r.events || []).some((e) => e.kind === "VERIFIED" && e.featureId === at && e.population === "REAL")) errs.push({ code: "PASS_WITHOUT_VERIFICATION", id: at, why: `${at} is VERIFIED-PASS with no verification recorded under ${at} over the real population` });
     if (/^BLOCKED-BY-/.test(r.state) && !(typeof r.blocker === "string" && r.blocker.trim())) errs.push({ code: "BLOCKER_UNNAMED", id: at, why: `${at} is ${r.state} and names no blocker` });
   }
-  /* 🔴 A DISCLOSED SEAL CLOSES NOTHING (config/fboard/disclosed-seals.mjs; F10 Acceptance Amendment 3). While a row's registered
-   * sealed set is a disclosed seal — its id AND commitment still registered — the row can never be VERIFIED-PASS: every result on
-   * that seal is DISCLOSED_POPULATION_AGREEMENT, a weaker class that satisfies no clause requiring a real sealed evaluation. */
+  /* 🔴 A DISCLOSED SEAL CLOSES NOTHING (config/fboard/disclosed-seals.mjs; F10 Acceptance Amendment 3, restated by Amendment 4, C7).
+   * Every result on a disclosed seal is DISCLOSED_POPULATION_AGREEMENT, a weaker class that proves no clause. While the seal is still
+   * registered — its id AND commitment — a row is refused VERIFIED-PASS WHEN ITS RECORDED EVIDENCE NAMES THAT SEAL: a verification
+   * event of the row that holds one of the seal's set ids, one of its commitments or its evidence class. A row proved on other
+   * evidence (F10 on the built pages) is not refused by a seal it never reads. */
   for (const d of disclosedSeals) {
     const row = board.find((r) => r.featureId === d.featureId);
     const live = (registry ?? []).some((e) => disclosureOf(e, [d]));
-    if (row && live && row.state === "VERIFIED-PASS") errs.push({ code: "VERIFIED_ON_DISCLOSED_SEAL", id: d.featureId, why: `${d.featureId} is VERIFIED-PASS while its registered sealed set is a DISCLOSED seal (${d.authority.path}); a ${d.evidenceClass} result closes nothing` });
+    const names = (e) => { const t = JSON.stringify(e); return d.sets.some((s) => t.includes(s.id) || t.includes(s.contentHash)) || t.includes(d.evidenceClass); };
+    if (row && live && row.state === "VERIFIED-PASS" && (row.events || []).some((e) => e.kind === "VERIFIED" && names(e))) errs.push({ code: "VERIFIED_ON_DISCLOSED_SEAL", id: d.featureId, why: `${d.featureId} is VERIFIED-PASS on recorded evidence that names its DISCLOSED seal (${d.authority.path}); a ${d.evidenceClass} result closes nothing` });
   }
   /* 🔴 CONSTRAINTS ON FUTURE ROWS (config/fboard/row-constraints.mjs): an acceptance frozen for a constrained row must carry
    * the named precondition in one of its four clauses — or the freeze is refused. Each constraint's ruling must be CURRENT. */

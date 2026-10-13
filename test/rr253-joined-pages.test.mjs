@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, capitalsIn, keyFactCards, faqOf, faqInPage, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
+import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
 import { testException, parseExceptionRecord, STAMP } from "../src/page/test-exception.mjs";
 import { CHECK } from "../src/page/draft-render.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
@@ -194,10 +194,10 @@ test("PAGE LAW · FIRING CONTROL: a page built with the client's design, a hero,
 });
 
 test("TITLE LAW · FIRING CONTROL: a title is COMPOSED only from recorded search phrases and the date fact, every word traced; with no phrase nothing is composed", () => {
-  const phrases = [{ phraseId: "p1", text: "widget for makers in atlantis", role: "HEAD" }, { phraseId: "p3", text: "abc score", role: "TOPIC", need: "k3" }, { phraseId: "p2", text: "price", role: "TOPIC", need: "k1" }, { phraseId: "p4", text: "test centres", role: "TOPIC", need: "k2" }, { phraseId: "p5", text: "opening hours", role: "TOPIC", need: "k4" }];
+  const phrases = [{ phraseId: "p1", text: "widget for makers in atlantis", role: "HEAD", withYear: true }, { phraseId: "p3", text: "abc score", role: "TOPIC", need: "k3" }, { phraseId: "p2", text: "price", role: "TOPIC", need: "k1" }, { phraseId: "p4", text: "test centres", role: "TOPIC", need: "k2" }, { phraseId: "p5", text: "opening hours", role: "TOPIC", need: "k4" }];
   const c = composeTitle({ phrases, needOrder: ["k1", "k2", "k3", "k4"], lastChecked: "2026-09-01", capitals: capitalsIn(["What ABC score is needed?"]) });
-  assert.equal(c.title, "Widget for Makers in Atlantis 2026: Price, Test Centres & ABC Score");
-  assert.deepEqual(c.trace.map((t) => [t.part, t.from]), [["Widget for Makers in Atlantis", "search-phrase:p1"], ["2026", "date-fact:last-checked:2026-09-01"], ["Price", "search-phrase:p2"], ["Test Centres", "search-phrase:p4"], ["ABC Score", "search-phrase:p3"]]);
+  assert.equal(c.title, "Widget for Makers in Atlantis 2026: Price, Test Centres, ABC Score & Opening Hours");
+  assert.deepEqual(c.trace.map((t) => [t.part, t.from]), [["Widget for Makers in Atlantis", "search-phrase:p1"], ["2026", "date-fact:last-checked:2026-09-01"], ["Price", "search-phrase:p2"], ["Test Centres", "search-phrase:p4"], ["ABC Score", "search-phrase:p3"], ["Opening Hours", "search-phrase:p5"]]);
   assert.deepEqual(titleWordsTraced({ title: c.title, phrases, lastChecked: "2026-09-01" }), []);
   assert.deepEqual(titleWordsTraced({ title: `${c.title} Guaranteed`, phrases, lastChecked: "2026-09-01" }), ["guaranteed"], "CONTROL: a word no record holds must be seen");
   assert.deepEqual(titleWordsTraced({ title: c.title, phrases, lastChecked: null }), ["2026"], "the year passed without its date fact");
@@ -206,8 +206,8 @@ test("TITLE LAW · FIRING CONTROL: a title is COMPOSED only from recorded search
   /* on a page: composed when a HEAD phrase is recorded for it, and the gate says so; otherwise recorded questions, the gate NOT MEASURED */
   const items = [built("n1", "alpha", [["How much does it cost?", OBS]]), built("n2", "alpha", [["Where is it?", OBS]])];
   const withPhrases = joined(items, { orderOf: (id) => Number(id.slice(1)), needKeyOf: (id) => ({ n1: "k1", n2: "k2" })[id], phrasesFor: () => phrases })[0];
-  assert.deepEqual([withPhrases.title, withPhrases.titleComposed, withPhrases.checks.titleFromSearchPhrases.state, withPhrases.checks.titleFromRecords.state], ["Widget for Makers in Atlantis 2026: Price, Test Centres & Abc Score", true, "PASS", "PASS"]);
-  assert.match(withPhrases.html, /<h1>Widget for Makers in Atlantis 2026: Price, Test Centres &amp; Abc Score<\/h1>/);
+  assert.deepEqual([withPhrases.title, withPhrases.titleComposed, withPhrases.checks.titleFromSearchPhrases.state, withPhrases.checks.titleFromRecords.state], ["Widget for Makers in Atlantis 2026: Price, Test Centres, Abc Score & Opening Hours", true, "PASS", "PASS"]);
+  assert.match(withPhrases.html, /<h1>Widget for Makers in Atlantis 2026: Price, Test Centres, Abc Score &amp; Opening Hours<\/h1>/);
   const without = joined(items, { orderOf: (id) => Number(id.slice(1)) })[0];
   assert.deepEqual([without.title, without.titleComposed, without.checks.titleFromSearchPhrases.state, without.titleTrace.map((t) => t.from)], ["How much does it cost? · Where is it?", false, "NOT MEASURED", ["recorded-question:n1-q0", "recorded-question:n2-q0"]]);
   assert.equal(joinedChecks({ items: without.itemList, html: without.html, stamp: STAMP, title: "A written title", titleTrace: [{ part: "A written title", from: "nowhere" }] }).titleFromRecords.state, "FAIL", "a title that is no recorded phrase or question passed");
@@ -235,6 +235,47 @@ test("GATES · FIRING CONTROL: each older check still fails for its own reason a
   const good = joined(one())[0];
   for (const k of ["internalLinks", "technical", "engaging", "acceptableToSearchAndAnswerEngines", "titleFromSearchPhrases", "law3KeyFacts"]) assert.equal(good.checks[k].state, "NOT MEASURED", k);
   assert.equal(joinedChecks({ items: good.itemList, html: renderJoined({ title: "t", stamp: STAMP, items: good.itemList }).replace(STAMP, "x"), stamp: STAMP }).stamped.state, "FAIL");
+});
+
+test("TITLE LAW · FIRING CONTROL (RR-256): a part may use only SOME words of its recorded phrase, in the phrase's order; a closing phrase; the year only when asked; a question that IS a search phrase leads its item", () => {
+  assert.deepEqual([wordsUsed({ text: "widget fees in xts", use: "fees in xts" }), wordsUsed({ text: "widget fees in xts", use: "xts fees" }), wordsUsed({ text: "widget fees in xts", use: "fees in gold" }), wordsUsed({ text: "widget fees" })], ["fees in xts", null, null, "widget fees"]);
+  const phrases = [{ phraseId: "h", text: "widget atlantis fee", use: "widget atlantis", role: "HEAD", withYear: true }, { phraseId: "t1", text: "widget fees in xts", use: "fees in xts", role: "TOPIC", need: "k1" }, { phraseId: "t2", text: "widget atlantis dates", use: "dates", role: "TOPIC", need: "k2" },
+    { phraseId: "z", text: "widget atlantis for makers", use: "for makers", role: "TAIL" }, { phraseId: "bad", text: "widget opening", use: "closing", role: "TOPIC", need: "k0" }, { phraseId: "q", text: "How much is a widget?" }];
+  const c = composeTitle({ phrases, needOrder: ["k1", "k2"], lastChecked: "2026-09-01", capitals: new Set(["XTS"]) });
+  assert.equal(c.title, "Widget Atlantis 2026: Fees in XTS & Dates for Makers");
+  assert.deepEqual(c.trace.map((t) => [t.part, t.from]), [["Widget Atlantis", "search-phrase:h"], ["2026", "date-fact:last-checked:2026-09-01"], ["Fees in XTS", "search-phrase:t1"], ["Dates", "search-phrase:t2"], ["for Makers", "search-phrase:z"]], "a part used a word its phrase does not hold, or the trace lost a part");
+  assert.deepEqual(titleWordsTraced({ title: c.title, phrases, lastChecked: "2026-09-01" }), []);
+  assert.equal(composeTitle({ phrases: phrases.map((p) => (p.role === "HEAD" ? { ...p, withYear: false } : p)), needOrder: ["k1", "k2"], lastChecked: "2026-09-01" }).title.includes("2026"), false, "the year was written although the record does not ask for it");
+  const items = [built("n1", "alpha", [["How much does it cost?", OBS], ["How much is a widget?", INF]])];
+  const p = joined(items, { phrasesFor: () => phrases, needKeyOf: () => "k1" })[0];
+  assert.deepEqual([p.itemList[0].heading.wording, p.itemList[0].heading.searchPhrase, p.title], ["How much is a widget?", "q", "Widget Atlantis 2026: Fees in Xts & Dates for Makers"]);
+  assert.equal(p.checks.titleFromSearchPhrases.state, "PASS");
+});
+
+test("RESTATE · FIRING CONTROL (RR-256): every question joined to a need carries that need's answer, and a need whose stored record lost its draft's answer is restated — one that holds it is left alone", () => {
+  const answer = { claims: [{ claimId: "c1" }] };
+  const pages = [{ combination: { kind: "alpha" }, needs: [{ key: "a", questions: ["q1", "q2"], answer, sameness: { judgementRef: "s:a", reason: "same" } }, { key: "b", questions: ["q3"], answer: { claims: [] } }] }];
+  assert.deepEqual(connectionDrafts({ pages }).map((d) => [d.questionId, d.answer === answer]), [["q1", true], ["q2", true], ["q3", false]], "a joining question does not carry its need's answer");
+  const judge = (a) => ({ state: "SUPPORTED", centralSupported: true, n: a.claims.length });
+  const keyToNeed = new Map([["a", "need:a"], ["b", "need:b"]]);
+  const lost = [{ record_type: "planning_need", needId: "need:a", answer: { state: "UNKNOWN", centralSupported: false } }];
+  const r = needsToRestate({ pages, stored: lost, keyToNeed, judge, subject: "s", on: "2026-09-01" });
+  assert.deepEqual(r.map((x) => [x.record_type, x.needId, x.answer.centralSupported, x.recorded_at, x.combination.kind]), [["planning_need", "need:a", true, "2026-09-01T00:00:00Z", "alpha"]], "a need with no claims was restated, or the lost one was not");
+  assert.deepEqual(needsToRestate({ pages, stored: [...lost, { record_type: "planning_need", needId: "need:a", answer: judge(answer) }], keyToNeed, judge, subject: "s", on: "2026-09-01" }), [], "a need whose latest record holds its answer was restated");
+});
+
+test("CONVERSION · FIRING CONTROL (RR-256): a price is converted only from a dated, sourced rate, computed here and marked as a conversion; a stale rate, or an amount that is not in the claim, shows nothing", () => {
+  const items = [built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs AB$500 everywhere." })])];
+  const rate = { claimId: "n1-1", shown: "AB$500", amount: 500, from: "ABD", to: "XTS", rate: 2.5, rateDate: "2026-09-01", source: "A Central Bank — its rate sheet", link: "https://bank.invalid/rates", staleAfterDays: 7 };
+  const p = joined(items, { ratesFor: () => [rate], on: "2026-09-03" })[0];
+  assert.deepEqual(p.conversions.map((c) => [c.amount, c.text]), [[1250, `AB$500 ≈ XTS 1,250 at the 2026-09-01 exchange rate (1 ABD = XTS 2.5). ${STRUCTURE.conversion}.`]]);
+  assert.ok(p.html.includes("≈ XTS 1,250") && p.html.includes(`${STRUCTURE.source}: A Central Bank — its rate sheet`) && p.html.includes("https://bank.invalid/rates"));
+  assert.equal(p.checks.conversionMarked.state, "PASS");
+  assert.equal(faqInPage(p.html)[0].answer, "It costs AB$500 everywhere.", "the conversion entered the answer's FAQ data");
+  const stale = joined(items, { ratesFor: () => [rate], on: "2026-09-20" })[0];
+  assert.deepEqual([stale.conversions.length, stale.conversionsRefused.map((r) => r.code), stale.html.includes("≈ XTS"), stale.checks.conversionMarked.state], [0, [REFUSAL.STALE_RATE], false, "FAIL"], "a stale rate was shown");
+  for (const bad of [{ shown: "AB$600" }, { rate: 0 }, { rateDate: "last week" }, { source: "" }, { link: "http://bank.invalid" }, { staleAfterDays: 0 }]) assert.deepEqual(conversions({ rates: [{ ...rate, ...bad }], items: p.itemList, on: "2026-09-03" }).refused.map((r) => r.code), [REFUSAL.CONVERSION], JSON.stringify(bad));
+  assert.equal(joined(items)[0].checks.conversionMarked.state, "NOT MEASURED");
 });
 
 /* ================= REAL ================= */
@@ -267,8 +308,14 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     for (const u of p.unanswered) for (const w of u.wordings) assert.ok(!p.html.includes(w), `${p.value}: an unanswered need is on the page`);
     /* the title law: no search phrase is recorded for these pages, so nothing was composed and the gate says so; the title is traced to recorded questions */
     const recorded = new Map(p.itemList.flatMap((it) => it.questions.map((q) => [`recorded-question:${q.questionId}`, q.wording])));
-    assert.deepEqual([p.titleComposed, p.checks.titleFromSearchPhrases.state, p.checks.titleFromRecords.state], [false, "NOT MEASURED", "PASS"]);
-    assert.deepEqual(p.titleTrace.map((t) => recorded.get(t.from)), p.titleTrace.map((t) => t.part), `${p.value}: a title part is not the recorded question its trace names`);
+    /* RR-256: the owner's recorded search phrases — the title is COMPOSED from them, every word traced, the year a date fact */
+    const phrases = JSON.parse(readFileSync(join(dir, "search-phrases.json"), "utf8")).filter((x) => x.page === p.value);
+    assert.ok(phrases.length > 0 && phrases.every((x) => x.source && x.caveat), `${p.value}: no recorded search phrase, or one without its source and caveat`);
+    assert.deepEqual([p.titleComposed, p.checks.titleFromSearchPhrases.state, p.checks.titleFromRecords.state], [true, "PASS", "PASS"]);
+    assert.deepEqual(titleWordsTraced({ title: p.title, phrases, lastChecked: p.lastChecked }), [], `${p.value}: a title word has no recorded source`);
+    for (const t of p.titleTrace) assert.ok(t.from.startsWith("date-fact:") ? p.lastChecked.startsWith(t.part) : phrases.some((x) => `search-phrase:${x.phraseId}` === t.from && x.text === t.phrase), `${p.value}: a title part's trace names no recorded phrase`);
+    for (const it of p.itemList) if (it.heading.searchPhrase) assert.ok(phrases.some((x) => x.phraseId === it.heading.searchPhrase && x.text === it.heading.wording));
+    void recorded;
     for (const c of p.keyFacts) assert.ok(p.itemList.some((it) => it.claims.some((x) => x.claimId === c.claimId && x.text.includes(c.value))), `${p.value}: a key fact is not in its recorded claim`);
     for (const it of p.itemList) {
       assert.ok(it.claims.length > 0 && it.claims.every((c) => c.text && c.source && /^https:\/\//.test(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn)), `${p.value}: an item's claim lacks its statement, source, link or date`);

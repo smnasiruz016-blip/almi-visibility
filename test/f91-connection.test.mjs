@@ -356,7 +356,8 @@ test("REAL · every declared subject in the real data root: admitted public ques
   /* RR-254 (restated, re-measured): the rebuilt batch rr254-test-pages-2026-10-12 adds 14 admitted observed questions and 37 connections —
    * 27 and 68 across the subject's two test batches. */
   assert.equal(out.reduce((n, x) => n + x.admittedQuestions, 0), 27, "the real store's admitted public questions moved — re-measure, never assume");
-  assert.equal(out.reduce((n, x) => n + x.connections, 0), 68);
+  /* RR-256 (restated, re-measured): 26 more connections — the owner's Google observations, recorded as research-derived questions — 94 */
+  assert.equal(out.reduce((n, x) => n + x.connections, 0), 94);
   for (const x of out.filter((y) => y.numbers !== NOT_MEASURED)) assert.deepEqual([x.numbers.verified, ...Object.values(x.numbers.needed)], [NOT_MEASURED, NOT_MEASURED, NOT_MEASURED]);
 });
 

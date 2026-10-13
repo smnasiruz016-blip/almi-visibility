@@ -10,7 +10,7 @@
  * Its inputs are read from the batch itself, by fixed name (as bin/research-derived-intake.mjs reads its own): page-drafts.json, reviews.json
  * and, where filed, rationale-reviews.json (the recorded substance reviews F36 asks for when two items' reasons overlap, by need key),
  * search-phrases.json (the recorded search phrases a title may be composed from — the title law) and key-facts.json (recorded values, each
- * inside the recorded claim it names). The page is built under the owner's standing PAGE LAW (RR-255, src/page/joined-page.mjs): it wears
+ * inside the recorded claim it names) and conversion-rates.json (a dated, sourced exchange-rate fact for a recorded price; stale rates are not shown). The page is built under the owner's standing PAGE LAW (RR-255, src/page/joined-page.mjs): it wears
  * the client's own design, read from the client's questionnaire.
  *
  * In one governed run, from stored records only (nothing fetched):
@@ -41,7 +41,8 @@ import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { readProductPlan } from "../src/page/page-opportunities-reader.mjs";
-import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
+import { connectQuestions, coverageRecords, CONNECTION, NEED } from "../src/page/demand-connection.mjs";
+import { answerSupport } from "../src/page/answer-support.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
 import { renderCompiledDraft } from "../src/page/draft-render.mjs";
 import { compiledSlug } from "../src/page/spec-compiler.mjs";
@@ -50,7 +51,7 @@ import { overturnedIds } from "../src/research/meaning-judgement.mjs";
 import { readProductQuestionnaire } from "../src/questionnaire/product-questionnaire-reader.mjs";
 import { designOf } from "../src/questionnaire/product-questionnaire.mjs";
 import { testException, parseExceptionRecord } from "../src/page/test-exception.mjs";
-import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, valueOf } from "../src/page/joined-page.mjs";
+import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, valueOf, needsToRestate } from "../src/page/joined-page.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -107,6 +108,14 @@ const kept = (g) => g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTE
 if (!permission.mayWrite) { console.log("  NOT WRITTEN — no --confirm: nothing kept, nothing built"); process.exit(0); }
 if (c.records.length) { const g = append(c.records, file, "APPEND_PLANNING_DEMAND"); if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the connections did NOT persist`); process.exit(1); } }
 
+/* RR-256: a need whose latest stored record lost its draft's answer is restated — F91's own record, F91's own answer rule, appended */
+{
+  const now = held();
+  const needNow = new Map(now.filter((r) => r?.record_type === CONNECTION).map((r) => [r.questionId, r.needId]));
+  const restate = needsToRestate({ pages: resolved.pages, stored: now, keyToNeed: new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.key, needNow.get(n.questions[0]) ?? null]))), judge: (a) => answerSupport(a, { officialSites }), subject: SUBJECT, on: ON, recordType: NEED });
+  console.log(`  needs restated   ${restate.length} (a need's stored record without its draft's answer)`);
+  if (restate.length) { const g = append(restate, file, "APPEND_PLANNING_DEMAND"); if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the restated needs did NOT persist`); process.exit(1); } }
+}
 /* 4 · the exception's coverage, in memory only — never stored */
 const stored = held();
 const overlay = coverageRecords({ subject: SUBJECT, rows: stored, tenantId: SCOPE.tenantId, population: X.population, judgements: [], on: ON, overturned });
@@ -122,7 +131,7 @@ const rationaleReviews = (Array.isArray(rationaleIn) ? rationaleIn : []).map((r)
 const G = decideGroupedNeeds({ tenantId: SCOPE.tenantId, product: { ...product, pageSpecs: {} }, population: X.population, planningRows, overturned, duplicationReviews, rationaleReviews });
 const byClass = G.groupedNeeds.reduce((m, d) => { const k = d.decision === "CHOSEN" ? (d.actions ?? []).map((a) => a.action).join("+") : `${d.class ?? d.decision}`; m[k] = (m[k] ?? 0) + 1; return m; }, {});
 console.log(`  F35 decisions    ${G.groupedNeeds.length} need(s): ${Object.entries(byClass).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"} · reviews read ${duplicationReviews.length} · rationale reviews read ${rationaleReviews.length} · compiled for construction ${G.compiled.forConstruction.length} · compile refusals ${G.compiled.refusals.length}`);
-for (const d of G.groupedNeeds.filter((x) => x.decision !== "CHOSEN")) console.log(`    not chosen     ${(d.missing ?? []).join(" | ").slice(0, 200)}`);
+{ const keyOf = new Map([...keyToNeed].map(([k, v]) => [v, k])); for (const d of G.groupedNeeds.filter((x) => x.decision !== "CHOSEN")) console.log(`    not chosen     ${keyOf.get(d.subject.needId) ?? d.subject.needId} — ${(d.missing ?? []).join(" | ").slice(0, 180)}`); }
 
 /* 6 · JOIN, render, gate table, write */
 const filed = await readProductQuestionnaire(product);
@@ -130,8 +139,8 @@ const approved = filed.claims;
 /* page law 1: the client's own design, as its questionnaire files it — none filed is none, never a default look */
 const design = filed.state === "READ" ? designOf(filed.questionnaire) : null;
 const list = (name) => { const v = json(name); return Array.isArray(v) ? v : []; };
-const phrases = list("search-phrases.json"), keyFacts = list("key-facts.json");
-console.log(`  page law inputs  client design ${design ? `filed (${design.basis})` : "NOT FILED"} · recorded search phrases ${phrases.length} · recorded key facts ${keyFacts.length}`);
+const phrases = list("search-phrases.json"), keyFacts = list("key-facts.json"), rates = list("conversion-rates.json");
+console.log(`  page law inputs  client design ${design ? `filed (${design.basis})` : "NOT FILED"} · recorded search phrases ${phrases.length} · recorded key facts ${keyFacts.length} · recorded conversion rates ${rates.length}`);
 const needToKey = new Map([...keyToNeed].map(([k, v]) => [v, k]));
 const helpOf = new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.key, n.productAnswers ?? []])));
 const questions = new Map(stored.filter((r) => r?.record_type === CONNECTION).map((r) => [r.questionId, r]));
@@ -142,7 +151,7 @@ const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map
 const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
 const pages = joinPages({ construction: G.compiled.forConstruction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId,
-  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value),
+  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
   statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
 for (const p of pages) {

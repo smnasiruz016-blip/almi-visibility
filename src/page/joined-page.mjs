@@ -31,20 +31,22 @@ import { PROMISE, CHECK } from "./draft-render.mjs";
 export const JOINED_RECORD = "joined_page_draft";
 export const CANCELLATION_RECORD = "same_need_cancellation";
 export const SURVIVOR_RULE = "of two whole pages serving the same need, the page with more recorded questions survives; on a tie, the page whose value sorts first";
-export const TITLE_TOPICS = 3;
+export const TITLE_TOPICS = 4;
 export const PRODUCT_STATEMENT_LABEL = "THE PRODUCT'S OWN STATEMENT — owner-approved; self-sourced, not independently verified";
 /** What a tier is called IN THE RECORD. None of these words is ever written into the visible page (law 7). */
 export const TIER_WORDS = Object.freeze({ OBSERVED: "OBSERVED — seen on an opened public page", "RESEARCH-DERIVED": "INFERRED — research-derived; nobody is shown to have asked it" });
 /** Law 7: words of the record that must never be visible. Matched as whole words, case-sensitive where they are record codes. */
 export const RECORD_LABELS = /\b(OBSERVED|INFERRED|RESEARCH-DERIVED|RESPONSIBLE BODY|SECONDARY|SELF-SOURCED|UNKNOWN|UNVERIFIED|NOT MEASURED|PASS|FAIL)\b|self-sourced|not independently verified|owner-approved/;
 /** The page's own structural words. They are declared here, not composed: a section needs a name, and none of them states a fact. */
-export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked" });
+export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "A conversion, not a price set by the source" });
 export const REFUSAL = Object.freeze({
   JUDGEMENT: "SAME_NEED_JUDGEMENT_NAMES_NO_RECORDED_JUDGEMENT_OR_TWO_KNOWN_NEEDS",
   SAME_PAGE: "SAME_NEED_JUDGEMENT_WITHIN_ONE_PAGE_IS_A_SAMENESS_DRAFT_NOT_A_CANCELLATION",
   NOT_APPROVED: "PRODUCT_STATEMENT_IS_NOT_AN_APPROVED_ANSWER",
   NO_SITE: "PRODUCT_DECLARES_NO_OFFICIAL_SITE_TO_LINK",
   KEY_FACT: "KEY_FACT_VALUE_IS_NOT_IN_ITS_RECORDED_CLAIM",
+  CONVERSION: "CONVERSION_WITHOUT_ITS_AMOUNT_IN_THE_CLAIM_OR_ITS_DATED_SOURCED_RATE",
+  STALE_RATE: "CONVERSION_RATE_IS_STALE_AND_MUST_BE_REFRESHED",
 });
 
 const present = (v) => typeof v === "string" && v.trim() !== "";
@@ -108,6 +110,8 @@ export function samePagePairs({ pages = [], sameNeed = [] }) {
 /**
  * The connection drafts (F91, src/page/demand-connection.mjs) of the resolved pages: a need's first question carries its combination and
  * answer; every other question of the need — its own, or one moved in from a cancelled page — joins it by a recorded sameness judgement.
+ * 🔴 RR-256: a joining question carries the need's SAME answer too. F91 writes a need's record from the drafts of the run that touches
+ * it; a question joined in a later run with no answer would restate the need with none (found on the real batch: 9 answered needs lost theirs and were restated).
  */
 export function connectionDrafts(resolved) {
   const drafts = [];
@@ -116,10 +120,30 @@ export function connectionDrafts(resolved) {
     drafts.push({ questionId: lead, combination: p.combination, answer: n.answer, ...(n.sections ? { sections: n.sections } : {}) });
     for (const q of rest) {
       const moved = (n.movedIn ?? []).find((m) => m.questionId === q);
-      drafts.push({ questionId: q, combination: p.combination, sameAs: { questionId: lead, judgementRef: moved ? moved.judgementRef : n.sameness?.judgementRef, reason: moved ? "moved from a cancelled same-need page (Specification Amendment 6)" : n.sameness?.reason } });
+      drafts.push({ questionId: q, combination: p.combination, answer: n.answer, sameAs: { questionId: lead, judgementRef: moved ? moved.judgementRef : n.sameness?.judgementRef, reason: moved ? "moved from a cancelled same-need page (Specification Amendment 6)" : n.sameness?.reason } });
     }
   }
   return drafts;
+}
+
+/**
+ * RR-256 · the need records to RESTATE: a proposed need whose latest stored record holds no supported answer although its draft carries
+ * claims. Each is F91's own need record, judged by F91's own answer rule (handed in), appended — never an edit of a stored row.
+ * @returns {object[]} planning_need records
+ */
+export function needsToRestate({ pages = [], stored = [], keyToNeed = new Map(), judge, subject, on, recordType = "planning_need" }) {
+  const latest = new Map();
+  for (const r of stored) if (r?.record_type === recordType && present(r.needId)) latest.set(r.needId, r);
+  const out = [];
+  for (const p of pages) for (const n of p.needs) {
+    const needId = keyToNeed.get(n.key);
+    if (!needId || !Array.isArray(n.answer?.claims) || n.answer.claims.length === 0) continue;
+    const answer = judge(n.answer);
+    if (JSON.stringify(latest.get(needId)?.answer ?? null) === JSON.stringify(answer)) continue;
+    out.push(Object.freeze({ record_type: recordType, measurement_key: `${recordType}:${hash([needId, answer, on, "restated"])}`, recorded_at: `${on}T00:00:00Z`, subject, needId, combination: Object.freeze({ ...p.combination }), answer, sections: Object.freeze([]),
+      restated: "the need's latest stored record did not hold its draft's answer (RR-256)" }));
+  }
+  return out;
 }
 
 /** The product's own statements for one need: only approved answers, word for word; anything else is refused by name, never printed. */
@@ -137,9 +161,10 @@ export function productStatements({ answerIds = [], approved = [], officialSite 
   return Object.freeze({ shown: Object.freeze(shown), refused: Object.freeze(refused) });
 }
 
-/** A need's questions in the order the page shows them: OBSERVED first, then the rest; each tier by question id. */
-export function orderedQuestions(questions) {
-  const rank = (q) => (q.tier === "OBSERVED" ? 0 : 1);
+/** A need's questions in the order the page shows them: a question that is itself a RECORDED SEARCH PHRASE first (the words people search,
+ * RR-256), then OBSERVED questions, then the rest; each group by question id. */
+export function orderedQuestions(questions, searched = new Set()) {
+  const rank = (q) => (searched.has(q.wording) ? 0 : q.tier === "OBSERVED" ? 1 : 2);
   return [...questions].sort((a, b) => rank(a) - rank(b) || (a.questionId < b.questionId ? -1 : a.questionId > b.questionId ? 1 : 0));
 }
 
@@ -150,33 +175,47 @@ const titleCase = (s, capitals = new Set()) => String(s).trim().split(/\s+/).map
 export const capitalsIn = (texts) => new Set(texts.flatMap((t) => String(t ?? "").match(/\b[A-Z]{2,6}\b/g) ?? []));
 const tokens = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
 
+/** The words of a recorded phrase a title part uses: `use` when given — and then every word of it must be a word of THAT phrase, in the
+ * phrase's own order — else the whole phrase. A `use` that is not inside its phrase yields null: nothing is composed from it. */
+export function wordsUsed(phrase) {
+  if (!present(phrase?.use)) return present(phrase?.text) ? phrase.text.trim() : null;
+  const have = tokens(phrase.text), want = tokens(phrase.use);
+  let at = 0;
+  for (const w of want) { const i = have.indexOf(w, at); if (i < 0) return null; at = i + 1; }
+  return want.length ? phrase.use.trim() : null;
+}
+
 /**
  * THE TITLE LAW (b) · COMPOSE a short title from RECORDED SEARCH PHRASES, or compose nothing.
  *   head     the page's recorded head phrase (role HEAD) — the words people search for the page as a whole;
  *   topics   up to TITLE_TOPICS recorded topic phrases (role TOPIC), in the order of the page's items they are recorded for;
- *   year     a DATE FACT: the year of the day the page's sources were last read.
- * Shape: "<Head> <year>: <Topic>, <Topic> & <Topic>". Every word is a word of a recorded phrase, or the year; the trace says which.
- * @param {{ phrases: { phraseId: string, text: string, role: "HEAD"|"TOPIC", need?: string }[], needOrder: string[], lastChecked: string|null }} input
+ *   tail     at most one recorded phrase closing the title (role TAIL);
+ *   year     a DATE FACT, written only when the head phrase's record asks for it: the year of the day the sources were last read.
+ * A part may use only SOME words of its phrase (`use`), in the phrase's own order — never a word the phrase does not hold.
+ * Shape: "<Head> <year>: <Topic>, <Topic> & <Topic> <Tail>". The trace says which phrase every part came from.
  * @returns {{ title: string, trace: object[] } | { title: null, missing: string }}
  */
 export function composeTitle({ phrases = [], needOrder = [], lastChecked = null, capitals = new Set() }) {
-  const usable = phrases.filter((p) => present(p?.phraseId) && present(p?.text));
+  const usable = phrases.filter((p) => present(p?.phraseId) && present(p?.text) && wordsUsed(p) !== null);
   const head = usable.find((p) => p.role === "HEAD");
   if (!head) return Object.freeze({ title: null, missing: "no recorded search phrase names this page as a whole (role HEAD) — nothing is composed" });
   const place = (p) => { const i = needOrder.indexOf(p.need); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
   const topics = usable.filter((p) => p.role === "TOPIC").sort((a, b) => place(a) - place(b) || (a.phraseId < b.phraseId ? -1 : 1)).slice(0, TITLE_TOPICS);
-  const year = /^\d{4}-\d{2}-\d{2}$/.test(lastChecked ?? "") ? lastChecked.slice(0, 4) : null;
-  const list = topics.map((t) => titleCase(t.text, capitals));
-  const tail = list.length > 1 ? `${list.slice(0, -1).join(", ")} & ${list.at(-1)}` : list[0] ?? "";
-  const title = `${titleCase(head.text, capitals)}${year ? ` ${year}` : ""}${tail ? `: ${tail}` : ""}`;
-  const trace = [Object.freeze({ part: titleCase(head.text, capitals), from: `search-phrase:${head.phraseId}` }), ...(year ? [Object.freeze({ part: year, from: `date-fact:last-checked:${lastChecked}` })] : []),
-    ...topics.map((t) => Object.freeze({ part: titleCase(t.text, capitals), from: `search-phrase:${t.phraseId}` }))];
+  const tailPhrase = usable.find((p) => p.role === "TAIL") ?? null;
+  const year = head.withYear === true && /^\d{4}-\d{2}-\d{2}$/.test(lastChecked ?? "") ? lastChecked.slice(0, 4) : null;
+  const say = (p) => titleCase(wordsUsed(p), capitals);
+  const list = topics.map(say);
+  const joined = list.length > 1 ? `${list.slice(0, -1).join(", ")} & ${list.at(-1)}` : list[0] ?? "";
+  const tail = tailPhrase ? wordsUsed(tailPhrase).split(/\s+/).map((w) => (capitals.has(w.toUpperCase()) ? w.toUpperCase() : SMALL.has(w.toLowerCase()) ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1))).join(" ") : "";
+  const title = `${say(head)}${year ? ` ${year}` : ""}${joined ? `: ${joined}` : ""}${tail ? `${joined ? " " : ": "}${tail}` : ""}`;
+  const part = (p, text) => Object.freeze({ part: text, from: `search-phrase:${p.phraseId}`, phrase: p.text });
+  const trace = [part(head, say(head)), ...(year ? [Object.freeze({ part: year, from: `date-fact:last-checked:${lastChecked}` })] : []), ...topics.map((t) => part(t, say(t))), ...(tailPhrase ? [part(tailPhrase, tail)] : [])];
   return Object.freeze({ title, trace: Object.freeze(trace) });
 }
 
 /** Every word of a composed title is a word of a recorded search phrase, or the year of the date fact. */
 export function titleWordsTraced({ title, phrases = [], lastChecked = null }) {
-  const allowed = new Set([...phrases.flatMap((p) => tokens(p.text)), ...(lastChecked ? [lastChecked.slice(0, 4)] : [])]);
+  const allowed = new Set([...phrases.filter((p) => ["HEAD", "TOPIC", "TAIL"].includes(p.role)).flatMap((p) => tokens(wordsUsed(p) ?? "")), ...(lastChecked ? [lastChecked.slice(0, 4)] : [])]);
   return tokens(title).filter((w) => !allowed.has(w));
 }
 
@@ -191,6 +230,28 @@ export function keyFactCards({ facts = [], items = [] }) {
     cards.push(Object.freeze({ claimId: c.claimId, needId: c.needId, label: c.question, value: f.value.trim(), source: c.source, link: c.link, readOn: c.readOn }));
   }
   return Object.freeze({ cards: Object.freeze(cards), refused: Object.freeze(refused) });
+}
+
+/**
+ * RR-256 · A DATED CONVERSION beside a recorded price: "≈ <to> <amount> at the <date> exchange rate", from ONE recorded rate fact — its rate,
+ * its date, its source's name and link. It is computed here, never typed in. The amount converted must stand in the recorded claim it
+ * names; a rate older than its own stated shelf life on the run's date is STALE and nothing is shown (it must be refreshed).
+ */
+export function conversions({ rates = [], items = [], on }) {
+  const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId }])));
+  const shown = [], refused = [];
+  const day = (d) => Date.parse(`${d}T00:00:00Z`);
+  for (const r of rates) {
+    const c = claims.get(r?.claimId);
+    const ok = c && Number.isFinite(r.amount) && r.amount > 0 && Number.isFinite(r.rate) && r.rate > 0 && present(r.from) && present(r.to) && present(r.shown) && String(c.text ?? "").includes(r.shown)
+      && /^\d{4}-\d{2}-\d{2}$/.test(r.rateDate ?? "") && present(r.source) && /^https:\/\//.test(r.link ?? "") && Number.isInteger(r.staleAfterDays) && r.staleAfterDays > 0;
+    if (!ok) { refused.push(Object.freeze({ claimId: r?.claimId ?? null, code: REFUSAL.CONVERSION })); continue; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(on ?? "") || (day(on) - day(r.rateDate)) / 86400000 > r.staleAfterDays) { refused.push(Object.freeze({ claimId: r.claimId, code: REFUSAL.STALE_RATE })); continue; }
+    const amount = Math.round(r.amount * r.rate);
+    shown.push(Object.freeze({ claimId: c.claimId, needId: c.needId, from: r.from, to: r.to, amount, rate: r.rate, rateDate: r.rateDate, source: r.source, link: r.link,
+      text: `${r.shown} ≈ ${r.to} ${amount.toLocaleString("en-US")} at the ${r.rateDate} exchange rate (1 ${r.from} = ${r.to} ${r.rate}). ${STRUCTURE.conversion}.` }));
+  }
+  return Object.freeze({ shown: Object.freeze(shown), refused: Object.freeze(refused) });
 }
 
 /** Law 6 · the FAQPage data: exactly the visible questions and the visible answer text of each item. */
@@ -211,7 +272,7 @@ export function faqOf(items) {
  *   needKeyOf      a need's recorded key (what phrases and key facts name)
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], needKeyOf = (id) => id }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], on = null, needKeyOf = (id) => id }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -223,17 +284,19 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
   const pages = [];
   for (const [candidate, list] of [...byCandidate].sort(([a], [b]) => (a < b ? -1 : 1))) {
     let value; try { value = JSON.parse(candidate).map(([, v]) => String(v)).sort().join("+"); } catch { continue; }
+    const phrases = [...phrasesFor(value)];
+    /* a question that IS a recorded search phrase leads its item (RR-256) */
+    const searched = new Set(phrases.map((p) => p?.text).filter(present));
     const items = list.sort((a, b) => orderOf(a.spec.subject) - orderOf(b.spec.subject) || (a.spec.subject < b.spec.subject ? -1 : 1)).map(({ spec, decision }) => {
       const draft = renderNeed({ spec, decision });
-      const qs = orderedQuestions(spec.sections.map((s) => { const q = questions.get(s.questionId) ?? {}; return Object.freeze({ questionId: s.questionId, wording: s.heading, tier: s.tier, country: q.country ?? null, language: q.language ?? null }); }));
+      const qs = orderedQuestions(spec.sections.map((s) => { const q = questions.get(s.questionId) ?? {}; return Object.freeze({ questionId: s.questionId, wording: s.heading, tier: s.tier, country: q.country ?? null, language: q.language ?? null }); }), searched);
       const st = statementsFor(spec.subject);
-      return Object.freeze({ needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, questionId: qs[0].questionId, tier: qs[0].tier }), questions: Object.freeze(qs), claims: spec.answer.labels, unknown: spec.answer.unknown, answerJudged: spec.answer.state,
+      return Object.freeze({ needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: spec.answer.labels, unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
         needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });
     const lastChecked = items.flatMap((it) => it.claims.map((c) => c.readOn)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "")).sort().at(-1) ?? null;
-    const phrases = [...phrasesFor(value)];
-    const capitals = capitalsIn(items.flatMap((it) => [...it.questions.map((q) => q.wording), ...it.claims.map((c) => c.text)]));
+    const capitals = capitalsIn([...items.flatMap((it) => [...it.questions.map((q) => q.wording), ...it.claims.map((c) => c.text)]), ...phrases.map((p) => p?.text)]);
     const composed = composeTitle({ phrases, needOrder: items.map((it) => it.needKey), lastChecked, capitals });
     /* with no recorded search phrase NOTHING is composed: the title is then the first recorded questions, observed first, as before */
     const first = items.slice(0, TITLE_TOPICS);
@@ -241,15 +304,16 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const title = composed.title ?? fallback.map((h) => h.wording).join(" · ");
     const titleTrace = composed.title ? composed.trace : Object.freeze(fallback.map((h) => Object.freeze({ part: h.wording, from: `recorded-question:${h.questionId}` })));
     const kf = keyFactCards({ facts: keyFactsFor(value), items });
+    const cv = conversions({ rates: ratesFor(value), items, on });
     const unanswered = Object.freeze([...unansweredFor(value)]);
     const faq = faqOf(items);
     const intro = Object.freeze([present(productLine) ? productLine.trim() : null, `${items.length} question${items.length === 1 ? "" : "s"} answered below, each with its source.`].filter(Boolean));
-    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked });
+    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown });
     const trace = items.flatMap((it) => [...it.claims.map((c) => Object.freeze({ needId: it.needId, claimId: c.claimId, label: c.label, source: c.source, link: c.link, readOn: c.readOn })),
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
-    const checks = joinedChecks({ items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq });
+    const checks = joinedChecks({ items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused });
     const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp };
-    pages.push(Object.freeze({ record_type: JOINED_RECORD, measurement_key: `${JOINED_RECORD}:${hash([value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
+    pages.push(Object.freeze({ record_type: JOINED_RECORD, measurement_key: `${JOINED_RECORD}:${hash([value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, conversions: cv.shown, conversionsRefused: cv.refused, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
   return Object.freeze(pages);
 }
@@ -262,7 +326,7 @@ export function faqInPage(html) {
 }
 
 /** The joined page's OWN measurable checks. A check whose input is not recorded is NOT MEASURED; none passes by default. */
-export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [] }) {
+export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [] }) {
   const state = (ok, why) => (ok ? Object.freeze({ state: CHECK.PASS }) : Object.freeze({ state: CHECK.FAIL, why }));
   const claims = items.flatMap((it) => it.claims);
   const recorded = new Set(items.flatMap((it) => it.questions.map((q) => q.wording)));
@@ -280,6 +344,8 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
     law6FaqMatchesVisible: state(Array.isArray(inPage) && inPage.length === faq.length && faq.every((f, i) => inPage[i].question === f.question && inPage[i].answer === f.answer && html.includes(esc(f.question)) && f.answer.length > 0), "the FAQ structured data is not exactly the visible questions and answers"),
     law7NoRecordLabels: state(!RECORD_LABELS.test(seen), "a record label is visible on the page"),
     law8UnansweredNotShown: state(unanswered.every((u) => (u.wordings ?? []).every((w) => !html.includes(esc(w)))), "an unanswered need is written into the page"),
+    conversionMarked: converted.length === 0 && conversionsRefused.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no conversion rate is recorded for this page" })
+      : state(conversionsRefused.length === 0 && converted.every((c) => html.includes(esc(c.text)) && html.includes(esc(c.source)) && c.text.includes(STRUCTURE.conversion) && c.text.includes(c.rateDate)), conversionsRefused.length ? `a conversion is not shown: ${conversionsRefused.map((r) => r.code).join(", ")}` : "a conversion is shown without its rate, its date, its source or its mark"),
     titleFromSearchPhrases: composed ? state(untraced.length === 0 && titleTrace.length > 0, `title word(s) with no recorded source: ${untraced.join(", ")}`) : Object.freeze({ state: CHECK.NOT_MEASURED, why: titleMissing ?? "no recorded search phrase" }),
     titleFromRecords: state(present(title) && titleTrace.length > 0 && (composed || titleTrace.every((t) => recorded.has(t.part))), "the title is not made of recorded phrases or recorded questions"),
     /* ── what was already required ── */
@@ -287,7 +353,7 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
     everyItemAnswered: state(items.length > 0 && items.every((it) => it.claims.some((c) => c.central !== false && present(c.text))), "an item has no supported central statement to answer its questions"),
     everyClaimSourced: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "")), "a written claim lacks its source's name, link or the date it was read"),
     ownWording: state(items.every((it) => it.questions.every((q) => present(q.wording) && html.includes(esc(q.wording)))), "a question is not shown in its own recorded wording"),
-    headingsFromQuestions: state(items.every((it) => recorded.has(it.heading?.wording) && it.questions[0]?.questionId === it.heading?.questionId && (it.heading.tier === "OBSERVED" || it.questions.every((q) => q.tier !== "OBSERVED"))), "a heading is not a recorded question of its item, or an observed question was passed over"),
+    headingsFromQuestions: state(items.every((it) => recorded.has(it.heading?.wording) && it.questions[0]?.questionId === it.heading?.questionId && (present(it.heading.searchPhrase) || it.heading.tier === "OBSERVED" || it.questions.every((q) => q.tier !== "OBSERVED"))), "a heading is not a recorded question of its item, or an observed question was passed over"),
     stamped: state(html.split(esc(stamp)).length - 1 >= 2, "the page does not say, top and bottom, what it is"),
     noPromise: state(!PROMISE.test(seen), "the page promises ranking, indexing or citation"),
     /* F37's own measurable checks, per need, aggregated — unchanged, never re-decided here */
@@ -331,7 +397,7 @@ function styleOf(design) {
  * Deterministic HTML under the page law. Every sentence of fact is a recorded claim's own text or an approved answer's own statement;
  * the questions are recorded questions; the brand, navigation, call to action and footer are the client's own filed design.
  */
-export function renderJoined({ title, stamp, items, design = null, intro = [], cards = [], faq = faqOf(items), lastChecked = null }) {
+export function renderJoined({ title, stamp, items, design = null, intro = [], cards = [], faq = faqOf(items), lastChecked = null, converted = [] }) {
   const site = design?.siteAddress ?? null;
   const link = (href) => esc(absolute(site, href) ?? "#");
   const cta = present(design?.cta?.label) && present(design?.cta?.href) ? `<a class="cta" href="${link(design.cta.href)}">${esc(design.cta.label)}</a>` : "";
@@ -342,7 +408,8 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const item = (it) => [
     `<details data-need-id="${esc(it.needId)}"${it === items[0] ? " open" : ""}>`,
     `<summary>${esc(it.heading.wording)}</summary>`,
-    ...it.claims.filter((c) => present(c.text)).map((c) => `<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`),
+    ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
+      ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} <a class="src" href="${esc(v.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(v.source)}</a></p>`)]),
     it.questions.length > 1 ? `<p class="also">${STRUCTURE.alsoAsked}: ${it.questions.slice(1).map((q) => esc(q.wording)).join(" · ")}</p>` : "",
     ...it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`),
     `</details>`,

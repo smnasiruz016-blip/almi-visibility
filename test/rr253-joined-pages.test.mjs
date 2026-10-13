@@ -302,6 +302,9 @@ test("HEADER AND LOGOS · FIRING CONTROL (RR-258): the company logo file and the
   assert.deepEqual(nav.map((n) => head.indexOf(`>${n.label}</a>`)).every((x, k, a) => x > 0 && (k === 0 || x > a[k - 1])), true, "the navigation is not in the filed order");
   assert.ok(head.includes('<a href="https://client.invalid/in">Sign in</a>') && head.includes('<a class="cta" href="https://client.invalid/start">Start now</a>'));
   assert.deepEqual([p.assets, assetsOf(design), assetsOf({ ...design, company: undefined }), assetsOf({ ...design, logo: { ...design.logo, image: { ...GROUP_LOGO, file: "design/product.svg" } } }).map((a) => a.name)], [[{ name: "assets/group-logo.png", file: "design/group-logo.png", sha256: "ab".repeat(32) }], [{ name: "assets/group-logo.png", file: "design/group-logo.png", sha256: "ab".repeat(32) }], [], ["assets/group-logo.png", "assets/product.svg"]]);
+  /* the same page with another logo FILE (other bytes) is another draft: its record key moves although its HTML does not */
+  const other = joined(items, { design: { ...design, company: { ...design.company, logo: { ...GROUP_LOGO, sha256: "cd".repeat(32) } } } })[0];
+  assert.deepEqual([other.html === p.html, other.measurement_key === p.measurement_key, joined(items, { design })[0].measurement_key === p.measurement_key], [true, false, true]);
   const why = (d, html = null) => { const q = joined(items, { design: d })[0]; return (html ? joinedChecks({ items: q.itemList, html: html(q.html), stamp: STAMP, design: d }) : q.checks).headerAndLogos; };
   assert.match(why({ ...design, company: undefined }).why, /company logo/);
   assert.match(why(design, (h) => h.replace(`${ASSET_FOLDER}/group-logo.png`, "x.png")).why, /company logo/);

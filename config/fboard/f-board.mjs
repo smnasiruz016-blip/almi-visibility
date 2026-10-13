@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F11_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3278,6 +3278,53 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr216-sabotage-2026-10-08T0359.txt (sha256 bd604420…): 35 of 35 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass found S06 NOT PROVED (T92-C2's alt census did not see a planted regex literal) — the census now refuses any alt in F92's code but F26's own field names, S06 re-practised before the real pass",
         historicalReuse: "no historical row maps to F92 (crosswalk NEW, no module or test). Reused read-only: F26's assessPage and scannable (alt presence and decorative claims, per image), F48's discoverBlocks (which blocks are valid), F31's population and partition, the sitemap capture's records, F37's render; none changed (C7 pins their bytes at base dcd9450e)",
         declaredLimit: "no image or video file is fetched or stored, so truthfulness and adequacy are NOT MEASURED until a registered provider's recorded call (F40's law) judges recorded media; sitemap media are NOT MEASURED until a capture records media entries; a recommendation needs a recorded need naming a media format (none exists); media a script or a style inserts is NOT MEASURED; video hosts and description markers are declared lists; no draft, brief or head shows F92's findings (their own amendments)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F11 · Keyword and search-language discovery. RR-259: its first acceptance, approved by the owner as drafted and frozen ALONE
+   * (_handoffs d941e18) before any F11 code; then its implementation begins. Its history was empty (crosswalk: no rows, commits,
+   * modules or tests), so the freeze-history rule pinned nothing. */
+  F11: Object.freeze({
+    featureId: "F11",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-13", ruling: F11_ORIGINAL.ruling, contractSha256: F11_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F11",
+        on: "2026-10-13",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F11_ORIGINAL.ruling.sha256, contract: F11_ORIGINAL.contractSha256 }),
+        branch: "rr259-f11-search-language",
+        baseSha: "567fa92d829836732219a702971ccd3e47d65235",
+        baseCiRun: "38343407040",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-259.md", commit: "d5dd94bdcb89e3ca957ccdbbfcf2adb7ca5ea7de", sha256: "f56111a0218963f3f8cab80c364f90bca9be17d7409bd8c5764dd0d1d4739ebe" }),
+      }),
+      /* RR-259: F11 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED; sources (a) and (e) on the REAL
+       * population, (b) on the stored pull, every source on fixtures; the live parts of (b), (c) and (d) NOT MEASURED, each with its owner
+       * step named, as the acceptance allows. Recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F11",
+        population: "REAL",
+        on: "2026-10-13",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F11_ORIGINAL.ruling.sha256, contract: F11_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL, for the declared product, stored in its private research batch and read by the REAL tests (counts only): 260 phrases held once each — source (a) 186 from the live run of 13 October 2026 in the owner's own browser (26 searches of the day's cap of 30, no captcha and no unusual-traffic page; 4 runs: 2 ACCEPTED with a shortest pause of 23.0 s against the declared 20 s, 2 REFUSED and kept as records with no phrase — one for a pause shorter than declared, one for an incomplete run record, both tooling faults of the run itself); source (e) 73, the phrases a person saw (RR-256), verbatim; source (b) 1, the one query row of this tenant's partition of the stored Search Console pull. Every phrase carries its kinds by the declared lists (0 UNCLASSIFIED on the real phrases; fixtures prove UNCLASSIFIED) and stands in exactly one of 20 groups: 231 in a need, 29 in NO NEED YET; 2 needs are proposed by the grouping and are not pages. FIXTURES for every source and clause, including (c), (d) and (f), which hold no real phrase.",
+        proofs: "test/f11-search-phrases.test.mjs: the C1 (three), C2 (two), C3, C4, C5, C6 and [ALL] firing controls and census, and the two REAL tests",
+        sabotage: "runs/audit/f11-sabotage-2026-10-13T0513-2.txt (sha256 4568f8de…): 51 of 51 proved (one per FAILURE limb of C1–C6 and [ALL]), residue 0, production trail unchanged; the practice pass (…T0513.txt) found S34 NOT PROVED — a guard the declared-variant rule already made dead; the dead guard was removed and the limb retargeted to the rule that decides, before the real pass",
+        historicalReuse: "no historical row maps to F11 (crosswalk NEW). Reused read-only: F02's partition decision and F81's partition reader for the stored Search Console pull (decidePartition, clientObservations) — neither changed. The earlier owned-half module src/discovery/search-language.mjs is not part of this acceptance and is unchanged",
+        declaredLimit: "the engine fetches nothing: source (a) is what the client's own AI hands in, and the pace of a run is judged from its own record, not observed by the engine; the live parts of (b) a fresh Search Console pull, (c) Bing keyword research and (d) a Keyword Planner file are NOT MEASURED — no hand-in exists — each with the owner's step named; (f) holds no real suggestion; kinds are decided by stated word rules over declared lists, not by meaning; the grouping is a recorded judgement of the research agent, not a measurement; phrases seen from one place in one browser are a sample, never a census, and never a volume",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

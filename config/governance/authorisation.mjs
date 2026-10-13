@@ -164,6 +164,10 @@ export const ACTIONS = Object.freeze({
     /* RR-253 (12 Oct 2026): the joined TEST page drafts and their same-need cancellations (bin/build-joined-pages.mjs) — kept in the
      * research batch's own joined-pages store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_JOINED_TEST_PAGES",
+    /* RR-259 (13 Oct 2026): F11 — the phrase records, the run records of the client-AI source, the need groups and each source's status
+     * (bin/search-phrases.mjs), kept in the research batch's own search-phrases store, the same family and resource class; a
+     * classification only, granting no permission. */
+    "APPEND_SEARCH_PHRASES",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

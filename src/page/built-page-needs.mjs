@@ -16,6 +16,7 @@ import { createHash } from "node:crypto";
 import { DECISIONS, REVIEW_FLAG, DECISION_LABEL, NEVER_A_DECISION_LABEL, SCORE_FIELDS, SURVIVOR_STEPS, PUBLICATION, PUBLISHED_FIELDS, SECTION, VERDICTS, MIN_PAGES } from "../../config/page/built-page-needs.mjs";
 import { JOINED_RECORD, STRUCTURE, escapeText } from "./joined-page.mjs";
 import { STAMP } from "./test-exception.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 export const DECISION_RECORD = "built_page_pair_decision";
 export const CANCEL_RECORD = "built_page_cancellation";
@@ -154,7 +155,8 @@ export function decidePairs({ pages = [], needRecords = [], on, hint = null }) {
   const index = needIndex(needRecords);
   for (let i = 0; i < live.length; i += 1) for (let k = i + 1; k < live.length; k += 1) {
     const [a, b] = [live[i], live[k]];
-    if (a.tenantId !== b.tenantId) { refused.push(Object.freeze({ code: REFUSAL.CROSS_TENANT, pages: Object.freeze([a.pageId, b.pageId]) })); continue; }
+    /* whether two pages are one tenant's is not decided here: it is F02's one decision (src/tenancy/scope.mjs) */
+    if (!decideResolvedTenants(a.tenantId, b.tenantId).allowed) { refused.push(Object.freeze({ code: REFUSAL.CROSS_TENANT, pages: Object.freeze([a.pageId, b.pageId]) })); continue; }
     const [na, nb] = [needsOfPage(a, index), needsOfPage(b, index)];
     const side = (p, n) => Object.freeze({ pageId: p.pageId, build: p.build, audience: p.audience, needs: Object.freeze([...n.needs.keys()].sort()), needRecords: Object.freeze([...new Set([...n.needs.values()].map((x) => x.record))].sort()) });
     const base = { tenantId: a.tenantId, pages: Object.freeze([a.pageId, b.pageId]), label: DECISION_LABEL };

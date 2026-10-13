@@ -41,7 +41,7 @@ const SABOTAGES = [
   ["T15", "C4 a CANNOT DECIDE pair does not name its missing fact", M, "decision: DECISIONS.CANNOT, missing, reason:", "decision: DECISIONS.CANNOT, reason:", C4],
   ["T16", "C4 a page with no need is compared as if it had one", M, ": !na.needs.size || !nb.needs.size ? MISSING.NO_NEED : null;", ": null;", C4],
   ["T17", "C4 a pair is decided with no need record stored", M, "const missing = !index.records ? MISSING.NO_RECORDS :", "const missing = false ? MISSING.NO_RECORDS :", C4],
-  ["T18", "C4 pages of different tenants are compared", M, "    if (a.tenantId !== b.tenantId) { refused.push(Object.freeze({ code: REFUSAL.CROSS_TENANT, pages: Object.freeze([a.pageId, b.pageId]) })); continue; }\n", "", C4],
+  ["T18", "C4 pages of different tenants are compared", M, "    if (!decideResolvedTenants(a.tenantId, b.tenantId).allowed) { refused.push(Object.freeze({ code: REFUSAL.CROSS_TENANT, pages: Object.freeze([a.pageId, b.pageId]) })); continue; }\n", "", C4],
   ["T19", "C4 a page without its tenant is compared", M, "    if (!present(p.tenantId)) { refused.push(Object.freeze({ code: REFUSAL.NO_TENANT, pageId: p.pageId })); continue; }\n", "", C4],
   ["T20", "C4 a decision is recorded without its reason", M, "decision: same ? DECISIONS.SAME : DECISIONS.DIFFERENT, sharedNeeds: Object.freeze(shared), reason,", "decision: same ? DECISIONS.SAME : DECISIONS.DIFFERENT, sharedNeeds: Object.freeze(shared),", C4],
   ["T21", "C4 a decision is labelled OBSERVED", CFG, "export const DECISION_LABEL = \"INFERRED\";", "export const DECISION_LABEL = \"OBSERVED\";", C4],

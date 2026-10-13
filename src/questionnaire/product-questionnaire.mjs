@@ -24,6 +24,12 @@
  * owner approves them in plain words before they become evidence"). A PENDING or REJECTED answer yields nothing — not a
  * weaker claim, nothing.
  *
+ * ── THE CLIENT'S DESIGN (the owner's standing page law, RR-255, clause 1) ──
+ * "The client supplies it in the intake questionnaire (logo, colours, fonts, site address), or AlmiVisibility reads it from the client's
+ * site (read-only)." A questionnaire may carry ONE `design`: the client's site address, brand name, logo, colours, fonts, card shape,
+ * navigation, call to action and footer — and how it was obtained (the client wrote it, or it was read from the client's own site or code,
+ * naming what was read). A design is how a page LOOKS. It is never an answer, never a capability record and never evidence of anything.
+ *
  * 🔴 NO CLIENT KNOWLEDGE. Nothing here names a client, product, host or tenant. A client's words live only in its answers.
  */
 import { findSecrets } from "../intake/secrets.mjs";
@@ -54,7 +60,14 @@ export const BASES = Object.freeze({
 export const INFERRED_FROM_KINDS = Object.freeze(["CODE", "PUBLIC_SITE"]);
 export const APPROVAL_STATES = Object.freeze(["PENDING", "APPROVED", "REJECTED"]);
 
-export const TOP_LEVEL_FIELDS = Object.freeze(["schemaVersion", "contractId", "questionnaireId", "tenantId", "productId", "submittedBy", "submittedOn", "answers"]);
+export const TOP_LEVEL_FIELDS = Object.freeze(["schemaVersion", "contractId", "questionnaireId", "tenantId", "productId", "submittedBy", "submittedOn", "answers", "design"]);
+/** RR-255 · the design fields, and how a design may have been obtained. Deny by default: an unknown field is a fault. */
+export const DESIGN_FIELDS = Object.freeze(["siteAddress", "brandName", "productLine", "logo", "colours", "fonts", "card", "nav", "cta", "footer", "basis", "readFrom"]);
+export const DESIGN_COLOURS = Object.freeze(["background", "surface", "border", "primary", "primaryDeep", "accent", "ink", "text", "muted", "footerBackground", "footerAccent", "onDark"]);
+export const DESIGN_BASES = Object.freeze({
+  CLIENT_DECLARED: "the client filed this design itself",
+  READ_FROM_CLIENT_SITE: "read, read-only, from the client's own public site or its own code; the client has not yet filed it",
+});
 export const ANSWER_FIELDS = Object.freeze(["answerId", "section", "statement", "value", "basis", "inferredFrom", "approval"]);
 
 /** LAW-BOUND-1: the one bound on the answers one questionnaire may hold. */
@@ -63,6 +76,7 @@ export const MAX_ANSWERS = 500;
 const ID = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const COMMIT = /^[0-9a-f]{40}$/;
+const HEX = /^#[0-9a-fA-F]{3,8}$/;
 const text = (v) => typeof v === "string" && v.trim() !== "";
 const plain = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
@@ -118,8 +132,45 @@ export function validateQuestionnaire(q) {
       if (!(plain(p.record) && text(p.record.repo) && text(p.record.path) && typeof p.record.commit === "string" && COMMIT.test(p.record.commit))) push("APPROVAL_WITHOUT_ITS_COMMITTED_RECORD", `${at}.approval.record`);
     }
   });
+  if (q.design !== undefined) for (const fault of validateDesign(q.design)) push(fault.code, fault.path);
   for (const s of findSecrets(q)) push("SECRET_SHAPED_VALUE", s.path ?? "$");
   return { valid: faults.length === 0, faults };
+}
+
+/**
+ * RR-255 · validate one design. Returns faults (code + path), never the client's wording. A site address is an https origin; a colour is a
+ * hex colour; the logo, fonts, navigation, call to action and footer are plain text and links — nothing here is markup or a script.
+ */
+export function validateDesign(d, at = "$.design") {
+  const faults = [];
+  const push = (code, path) => faults.push({ code, path });
+  if (!plain(d)) return [{ code: "DESIGN_NOT_AN_OBJECT", path: at }];
+  for (const k of Object.keys(d)) if (!DESIGN_FIELDS.includes(k)) push("UNKNOWN_FIELD", `${at}.${k}`);
+  let origin = null; try { const u = new URL(d.siteAddress); origin = u.protocol === "https:" ? u.origin : null; } catch { origin = null; }
+  if (!origin) push("DESIGN_SITE_ADDRESS_NOT_AN_HTTPS_ADDRESS", `${at}.siteAddress`);
+  if (!text(d.brandName)) push("DESIGN_BRAND_NAME_ABSENT", `${at}.brandName`);
+  if (d.productLine !== undefined && !text(d.productLine)) push("DESIGN_PRODUCT_LINE_EMPTY", `${at}.productLine`);
+  if (!plain(d.logo) || !text(d.logo.wordmark) || (d.logo.mark !== undefined && !text(d.logo.mark))) push("DESIGN_LOGO_ABSENT_OR_MALFORMED", `${at}.logo`);
+  if (!plain(d.colours)) push("DESIGN_COLOURS_ABSENT", `${at}.colours`);
+  else {
+    for (const k of Object.keys(d.colours)) if (!DESIGN_COLOURS.includes(k)) push("UNKNOWN_FIELD", `${at}.colours.${k}`);
+    for (const k of ["background", "primary", "ink", "text"]) if (!HEX.test(d.colours[k] ?? "")) push("DESIGN_COLOUR_ABSENT_OR_NOT_HEX", `${at}.colours.${k}`);
+    for (const [k, v] of Object.entries(d.colours)) if (DESIGN_COLOURS.includes(k) && !HEX.test(v ?? "")) push("DESIGN_COLOUR_ABSENT_OR_NOT_HEX", `${at}.colours.${k}`);
+  }
+  if (!plain(d.fonts) || !text(d.fonts.body) || /[<>{};]/.test(d.fonts.body)) push("DESIGN_FONT_ABSENT_OR_MALFORMED", `${at}.fonts.body`);
+  if (d.card !== undefined && !(plain(d.card) && /^\d{1,2}px$/.test(d.card.radius ?? ""))) push("DESIGN_CARD_MALFORMED", `${at}.card`);
+  const linkOk = (l) => plain(l) && text(l.label) && text(l.href) && !/^\s*(javascript|data):/i.test(l.href);
+  if (!Array.isArray(d.nav) || !d.nav.every(linkOk)) push("DESIGN_NAVIGATION_MALFORMED", `${at}.nav`);
+  if (!linkOk(d.cta)) push("DESIGN_CALL_TO_ACTION_ABSENT_OR_MALFORMED", `${at}.cta`);
+  if (!plain(d.footer) || !Array.isArray(d.footer.columns) || !d.footer.columns.every((c) => plain(c) && text(c.title) && Array.isArray(c.links) && c.links.every(linkOk)) || (d.footer.notice !== undefined && !text(d.footer.notice))) push("DESIGN_FOOTER_MALFORMED", `${at}.footer`);
+  if (!Object.hasOwn(DESIGN_BASES, d.basis ?? "")) push("DESIGN_BASIS_UNKNOWN", `${at}.basis`);
+  if (d.basis === "READ_FROM_CLIENT_SITE" && !(Array.isArray(d.readFrom) && d.readFrom.length > 0 && d.readFrom.every((r) => plain(r) && INFERRED_FROM_KINDS.includes(r.kind) && text(r.ref)))) push("DESIGN_READ_WITHOUT_ITS_SOURCE", `${at}.readFrom`);
+  return faults;
+}
+
+/** The questionnaire's design, or null: only a design of a VALID questionnaire is handed on. */
+export function designOf(q) {
+  return validateQuestionnaire(q).valid && plain(q.design) ? q.design : null;
 }
 
 /** Is this answer evidence? Only an APPROVED answer of a VALID questionnaire is; the caller validates first. */

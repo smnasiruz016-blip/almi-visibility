@@ -107,7 +107,7 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F10_ACCEPTANCE_2026-09-26.md", loader: "authority register (CURRENT record) — the original F10 acceptance, amended by Amendment 1" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F10_ACCEPTANCE_AMENDMENT_1_2026-09-26.md", loader: "authority register (CURRENT record) — Amendment 1, amended by Amendment 2" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F10_ACCEPTANCE_AMENDMENT_2_2026-09-27.md", loader: "authority register (CURRENT record) — Amendment 2, amended by Amendment 3" }),
-  Object.freeze({ repo: "governance", path: "AlmiVisibility_F10_ACCEPTANCE_AMENDMENT_3_2026-09-28.md", loader: "F-board acceptance F10" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F10_ACCEPTANCE_AMENDMENT_3_2026-09-28.md", loader: "authority register (CURRENT record) — Amendment 3, amended by Amendment 4" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-27_PR171_AUDIT_INCIDENT_RECONCILE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-27_FINISH_F10_ON_FROZEN_CONTRACT.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-27_FINISH_F10_CONTINUE_AFTER_171_MERGE.md", loader: "authority register (CURRENT record)" }),
@@ -423,6 +423,14 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_1_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 1)" }),
+  /* RR-261 (13 Oct 2026): the 6 CURRENT records admitted by the migration at _handoffs c063d3b: the owner's two answers to the F12 sample, the
+   * RR-261 command, his page-content direction for the practice needs, his approval of F10's Amendment 4 with one addition, and the Amendment. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-260_F12_SAMPLE_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-260_F12_SAMPLE_FINAL_ANSWERS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-261.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-261_PRACTICE_NEEDS_LEAD_WITH_OWN_PRACTICE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-261_APPROVE_F10_AMENDMENT_4_WITH_REVIEW_FLAG.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F10_ACCEPTANCE_AMENDMENT_4_2026-10-13.md", loader: "F-board acceptance F10 (Amendment 4)" }),
   /* RR-260 (13 Oct 2026): the 5 CURRENT records admitted by the migration at _handoffs d960fa8: the command, the owner's answers on
    * the two proposed needs and FAST MODE F10, his ruling on F12, his approval of the F12 draft with C3 corrected, and F12's first Acceptance. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-260.md", loader: "authority register (CURRENT record)" }),

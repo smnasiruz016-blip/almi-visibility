@@ -23,6 +23,9 @@
  *   question; every fact shows its source and the day THAT fact was checked, and has a recorded recheck interval; one question lives
  *   under one need; the answers are plain HTML text; the business is identified and its own claims are set apart; nothing reads as an
  *   instruction to a machine.
+ * HEADER AND LOGOS (RR-258, AlmiVisibility_OWNER_RULING_2026-10-13_RR-258_HEADER_AND_LOGOS.md): every page shows the client's COMPANY
+ *   logo and the PRODUCT's logo/name in the header, and the client's FULL header navigation and footer — every item, the same order, the
+ *   same links. A logo is the client's own FILE, shown as it is (assetsOf names the file the page needs); it is never drawn here.
  * THE HEADING RULE (RR-257 A2): where a need has a full recorded QUESTION, the question is the heading; otherwise the recorded phrase,
  *   the same words in title case. A raw lower-case phrase is never a heading.
  * THE TITLE LAW: the engine may COMPOSE a short title from RECORDED SEARCH PHRASES; every word must trace to a recorded search phrase or
@@ -366,7 +369,7 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
     const checks = joinedChecks({ items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
     const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp };
-    pages.push(Object.freeze({ record_type: JOINED_RECORD, measurement_key: `${JOINED_RECORD}:${hash([value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
+    pages.push(Object.freeze({ record_type: JOINED_RECORD, measurement_key: `${JOINED_RECORD}:${hash([value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
   return Object.freeze(pages);
 }
@@ -418,6 +421,20 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
   return Object.freeze({
     /* ── the page law, clause by clause ── */
     law1ClientDesign: state(Boolean(design) && present(design.brandName) && present(design.colours?.primary) && present(design.fonts?.body) && html.includes(esc(design.brandName)) && html.includes(design.colours.primary), "the page does not carry the client's own filed design"),
+    /* RR-258 · the company logo and the product logo/name in the header; the client's full navigation and footer, in the filed order */
+    headerAndLogos: (() => {
+      const head = /<header[\s\S]*?<\/header>/.exec(html)?.[0] ?? "", foot = /<footer[\s\S]*?<\/footer>/.exec(html)?.[0] ?? "";
+      const site = design?.siteAddress ?? null;
+      const at = (part, l, from) => part.indexOf(`<a href="${esc(absolute(site, l.href) ?? "#")}">${esc(l.label)}</a>`, from);
+      const inOrder = (part, links) => { let from = 0; for (const l of links) { const i = at(part, l, from); if (i < 0) return false; from = i + 1; } return true; };
+      const co = design?.company, missing = [];
+      if (!(present(co?.name) && present(co?.logo?.file) && head.includes(`<img src="${esc(assetName(co.logo.file))}" alt="${esc(co.logo.alt)}"`))) missing.push("the company logo is not in the header");
+      if (!(present(design?.logo?.wordmark) && head.includes(`<span>${esc(design.logo.wordmark)}</span></a>`) && (!present(design?.logo?.image?.file) || head.includes(`<img src="${esc(assetName(design.logo.image.file))}"`)))) missing.push("the product logo or name is not in the header");
+      if (!(Array.isArray(design?.nav) && design.nav.length > 0 && inOrder(head, design.nav))) missing.push("the header navigation is not the client's full navigation, in its order");
+      if (!inOrder(head, design?.actions ?? [])) missing.push("a header action of the client's site is missing");
+      if (!((design?.footer?.columns ?? []).length > 0 && design.footer.columns.every((col) => foot.includes(esc(col.title)) && inOrder(foot, col.links ?? [])))) missing.push("the footer is not the client's full footer");
+      return state(missing.length === 0, missing.join("; "));
+    })(),
     law2Hero: state(/<h1[ >]/.test(html) && html.includes(esc(title)) && intro.length === 2 && intro.every((l) => html.includes(esc(l))) && present(design?.cta?.label) && present(design?.cta?.href) && html.includes(esc(design.cta.label)), "the hero lacks its H1, its two-line intro or the client's call-to-action button"),
     law3KeyFacts: cards.length === 0 && cardsRefused.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no key fact is recorded for this page" }) : state(cardsRefused.length === 0 && cards.every((c) => html.includes(esc(c.value)) && present(c.link) && present(c.source)), "a key-fact card shows a value that is not in its recorded claim, or lacks its source link"),
     law4QuestionsAndAnswers: state(items.length > 0 && /<details/.test(html) && items.every((it) => html.includes(esc(shownOf(it))) && it.claims.every((c) => html.includes(`${STRUCTURE.source}: ${esc(c.source)}`))) && present(lastChecked) && html.includes(`${STRUCTURE.lastChecked}: ${lastChecked}`), "a question, its answer's source link or the last-checked line is missing"),
@@ -462,6 +479,21 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
   });
 }
 
+/** Where a page looks for a file it shows: beside the page, under this folder. */
+export const ASSET_FOLDER = "assets";
+const assetName = (file) => `${ASSET_FOLDER}/${String(file).split("/").at(-1)}`;
+/** The files a page built with this design must be served with: the company logo and, when the product has one, the product logo. */
+export function assetsOf(design) {
+  return Object.freeze([design?.company?.logo, design?.logo?.image].filter((l) => present(l?.file)).map((l) => Object.freeze({ name: assetName(l.file), file: l.file, sha256: l.sha256 })));
+}
+/** A logo file shown at a given height. With a recorded focus box the picture's empty margin is cropped by the frame — the file itself
+ * is shown unchanged, at one scale. */
+function logoImage(l, height) {
+  const f = l.focus ?? { x: 0, y: 0, w: l.width, h: l.height };
+  const k = height / f.h, r = (n) => Math.round(n * k * 100) / 100;
+  return `<span class="logo-file" style="width:${r(f.w)}px;height:${r(f.h)}px"><img src="${esc(assetName(l.file))}" alt="${esc(l.alt)}" width="${l.width}" height="${l.height}" style="width:${r(l.width)}px;height:${r(l.height)}px;left:${-r(f.x)}px;top:${-r(f.y)}px"></span>`;
+}
+
 const colour = (v, fallback) => (/^#[0-9a-fA-F]{3,8}$/.test(v ?? "") ? v : fallback);
 const fontStack = (v) => (present(v) && !/[<>{};]/.test(v) ? v : "system-ui, sans-serif");
 const absolute = (site, href) => { try { return new URL(href, site).href; } catch { return null; } };
@@ -474,9 +506,11 @@ function styleOf(design) {
   const radius = /^\d{1,2}px$/.test(design?.card?.radius ?? "") ? design.card.radius : "12px";
   return `*{box-sizing:border-box}body{margin:0;background:${v.bg};color:${v.text};font:17px/1.6 ${fontStack(design?.fonts?.body)}}a{color:${v.accent}}`
     + `.stamp{margin:0;padding:9px 16px;background:#b42318;color:#fff;font-weight:700;font-size:13px;letter-spacing:.05em;text-align:center}`
-    + `.site-head{border-bottom:1px solid ${v.line};background:${v.bg}}.bar{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}`
+    + `.site-head{border-bottom:1px solid ${v.line};background:${v.bg}}.bar{max-width:1280px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}`
     + `.brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:${v.ink};font-weight:600;font-size:20px}.mark{display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:8px;background:${v.primary};color:#fff;font-weight:700}`
-    + `nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap}nav a{color:${v.ink};font-weight:600;text-decoration:none}`
+    + `.brands{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.company{display:inline-flex}.logo-file{display:inline-block;position:relative;overflow:hidden;flex:none}.logo-file img{position:absolute;max-width:none}`
+    + `.head-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:1;min-width:260px}.acts{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.acts a{color:${v.ink};font-weight:600;text-decoration:none}`
+    + `nav{display:flex;align-items:center;justify-content:flex-end;gap:4px 12px;flex-wrap:wrap}nav a{color:${v.ink};font-weight:500;font-size:14px;text-decoration:none}nav a:hover,.acts a:hover{color:${v.primaryDeep}}`
     + `.cta{display:inline-block;background:${v.primary};color:${v.ink};font-weight:600;text-decoration:none;padding:10px 22px;border-radius:9999px}.cta:hover{background:${v.primaryDeep}}`
     + `main{max-width:860px;margin:0 auto;padding:8px 20px 56px}.hero{padding:40px 0 28px}h1{margin:0 0 12px;color:${v.ink};font-size:34px;line-height:1.2}.hero p{margin:0 0 6px;font-size:18px}.hero .cta{margin-top:16px;font-size:16px;padding:13px 28px}`
     + `h2{color:${v.ink};font-size:24px;margin:36px 0 14px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:0;padding:0;list-style:none}`
@@ -497,8 +531,12 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const site = design?.siteAddress ?? null;
   const link = (href) => esc(absolute(site, href) ?? "#");
   const cta = present(design?.cta?.label) && present(design?.cta?.href) ? `<a class="cta" href="${link(design.cta.href)}">${esc(design.cta.label)}</a>` : "";
-  const header = design ? `<header class="site-head"><div class="bar"><a class="brand" href="${link("/")}">${present(design.logo?.mark) ? `<span class="mark" aria-hidden="true">${esc(design.logo.mark)}</span>` : ""}<span>${esc(design.logo?.wordmark ?? design.brandName ?? "")}</span></a>`
-    + `<nav>${(design.nav ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}${cta}</nav></div></header>` : "";
+  const co = design?.company;
+  const company = present(co?.logo?.file) ? `<a class="company" href="${esc(co.href ?? "#")}" aria-label="${esc(co.name)}">${logoImage(co.logo, 56)}</a>` : "";
+  const product = design ? `<a class="brand" href="${link("/")}">${present(design.logo?.image?.file) ? logoImage(design.logo.image, 36) : present(design.logo?.mark) ? `<span class="mark" aria-hidden="true">${esc(design.logo.mark)}</span>` : ""}<span>${esc(design.logo?.wordmark ?? design.brandName ?? "")}</span></a>` : "";
+  const header = design ? `<header class="site-head"><div class="bar"><div class="brands">${company}${product}</div>`
+    + `<div class="head-right"><div class="acts">${(design.actions ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}${cta}</div>`
+    + `<nav aria-label="${esc(co?.name ?? design.brandName ?? "Site")}">${(design.nav ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}</nav></div></div></header>` : "";
   const footer = design ? `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>` : "";
   const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
   const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a></td>`).join("")}</tr>`).join("")}</tbody></table>`;

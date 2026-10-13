@@ -62,7 +62,15 @@ export const APPROVAL_STATES = Object.freeze(["PENDING", "APPROVED", "REJECTED"]
 
 export const TOP_LEVEL_FIELDS = Object.freeze(["schemaVersion", "contractId", "questionnaireId", "tenantId", "productId", "submittedBy", "submittedOn", "answers", "design"]);
 /** RR-255 · the design fields, and how a design may have been obtained. Deny by default: an unknown field is a fault. */
-export const DESIGN_FIELDS = Object.freeze(["siteAddress", "brandName", "productLine", "logo", "colours", "fonts", "card", "nav", "cta", "footer", "basis", "readFrom"]);
+export const DESIGN_FIELDS = Object.freeze(["siteAddress", "brandName", "productLine", "company", "logo", "colours", "fonts", "card", "nav", "actions", "cta", "footer", "basis", "readFrom", "provenance"]);
+/** RR-258 (the owner's standing ruling on header and logos): the parts of a design whose origin is recorded one by one — FILED by the
+ * client, or READ from the client's live site. */
+export const DESIGN_PARTS = Object.freeze(["company", "logo", "nav", "actions", "cta", "footer", "colours", "fonts"]);
+const LOGO_FILE = /^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._/-]*\.(png|svg|webp|jpg|jpeg)$/;
+/** A logo FILE as the client holds it: its path under the client's own root, its bytes' sha256, its size, and (optionally) the box of the
+ * picture that holds the mark. The engine never draws, redraws or edits a logo — it shows the file. */
+const logoFileOk = (l) => plain(l) && LOGO_FILE.test(l.file ?? "") && text(l.alt) && /^[0-9a-f]{64}$/.test(l.sha256 ?? "") && Number.isInteger(l.width) && l.width > 0 && Number.isInteger(l.height) && l.height > 0
+  && (l.focus === undefined || (plain(l.focus) && ["x", "y", "w", "h"].every((k) => Number.isInteger(l.focus[k]) && l.focus[k] >= 0) && l.focus.w > 0 && l.focus.h > 0 && l.focus.x + l.focus.w <= l.width && l.focus.y + l.focus.h <= l.height));
 export const DESIGN_COLOURS = Object.freeze(["background", "surface", "border", "primary", "primaryDeep", "accent", "ink", "text", "muted", "footerBackground", "footerAccent", "onDark"]);
 export const DESIGN_BASES = Object.freeze({
   CLIENT_DECLARED: "the client filed this design itself",
@@ -150,7 +158,8 @@ export function validateDesign(d, at = "$.design") {
   if (!origin) push("DESIGN_SITE_ADDRESS_NOT_AN_HTTPS_ADDRESS", `${at}.siteAddress`);
   if (!text(d.brandName)) push("DESIGN_BRAND_NAME_ABSENT", `${at}.brandName`);
   if (d.productLine !== undefined && !text(d.productLine)) push("DESIGN_PRODUCT_LINE_EMPTY", `${at}.productLine`);
-  if (!plain(d.logo) || !text(d.logo.wordmark) || (d.logo.mark !== undefined && !text(d.logo.mark))) push("DESIGN_LOGO_ABSENT_OR_MALFORMED", `${at}.logo`);
+  if (!plain(d.logo) || !text(d.logo.wordmark) || (d.logo.mark !== undefined && !text(d.logo.mark)) || (d.logo.image !== undefined && !logoFileOk(d.logo.image))) push("DESIGN_LOGO_ABSENT_OR_MALFORMED", `${at}.logo`);
+  if (d.company !== undefined && !(plain(d.company) && text(d.company.name) && logoFileOk(d.company.logo) && (d.company.href === undefined || (text(d.company.href) && /^https:\/\//.test(d.company.href))))) push("DESIGN_COMPANY_MALFORMED", `${at}.company`);
   if (!plain(d.colours)) push("DESIGN_COLOURS_ABSENT", `${at}.colours`);
   else {
     for (const k of Object.keys(d.colours)) if (!DESIGN_COLOURS.includes(k)) push("UNKNOWN_FIELD", `${at}.colours.${k}`);
@@ -162,6 +171,8 @@ export function validateDesign(d, at = "$.design") {
   const linkOk = (l) => plain(l) && text(l.label) && text(l.href) && !/^\s*(javascript|data):/i.test(l.href);
   if (!Array.isArray(d.nav) || !d.nav.every(linkOk)) push("DESIGN_NAVIGATION_MALFORMED", `${at}.nav`);
   if (!linkOk(d.cta)) push("DESIGN_CALL_TO_ACTION_ABSENT_OR_MALFORMED", `${at}.cta`);
+  if (d.actions !== undefined && !(Array.isArray(d.actions) && d.actions.every(linkOk))) push("DESIGN_ACTIONS_MALFORMED", `${at}.actions`);
+  if (d.provenance !== undefined && !(plain(d.provenance) && Object.entries(d.provenance).every(([k, v]) => DESIGN_PARTS.includes(k) && Object.hasOwn(DESIGN_BASES, v ?? "")))) push("DESIGN_PROVENANCE_MALFORMED", `${at}.provenance`);
   if (!plain(d.footer) || !Array.isArray(d.footer.columns) || !d.footer.columns.every((c) => plain(c) && text(c.title) && Array.isArray(c.links) && c.links.every(linkOk)) || (d.footer.notice !== undefined && !text(d.footer.notice))) push("DESIGN_FOOTER_MALFORMED", `${at}.footer`);
   if (!Object.hasOwn(DESIGN_BASES, d.basis ?? "")) push("DESIGN_BASIS_UNKNOWN", `${at}.basis`);
   if (d.basis === "READ_FROM_CLIENT_SITE" && !(Array.isArray(d.readFrom) && d.readFrom.length > 0 && d.readFrom.every((r) => plain(r) && INFERRED_FROM_KINDS.includes(r.kind) && text(r.ref)))) push("DESIGN_READ_WITHOUT_ITS_SOURCE", `${at}.readFrom`);

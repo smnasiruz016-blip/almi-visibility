@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
+import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, assetsOf, ASSET_FOLDER, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
 import { testException, parseExceptionRecord, STAMP } from "../src/page/test-exception.mjs";
 import { CHECK } from "../src/page/draft-render.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
@@ -134,13 +134,16 @@ const built = (needId, candidate, wordings, labels = [label(`${needId}-1`)]) => 
 const OBS = "OBSERVED", INF = "RESEARCH-DERIVED";
 const passing = () => ({ state: "RENDERED", checks: { directAnswer: { state: CHECK.PASS }, everyClaimSourced: { state: CHECK.PASS }, headingsMatch: { state: CHECK.PASS }, internalLinks: { state: CHECK.NOT_MEASURED }, technical: { state: CHECK.NOT_MEASURED }, markup: { state: CHECK.PASS } } });
 /* a neutral client design, as a questionnaire would file it */
+const GROUP_LOGO = { file: "design/group-logo.png", alt: "Standin Group", sha256: "ab".repeat(32), width: 300, height: 200, focus: { x: 60, y: 50, w: 180, h: 100 } };
 const DESIGN = { siteAddress: "https://client.invalid", brandName: "Standin", productLine: "Standin — a stand-in product line.", logo: { mark: "S", wordmark: "Standin" },
+  company: { name: "Standin Group", href: "https://group.invalid/", logo: GROUP_LOGO }, actions: [{ label: "Sign in", href: "/in" }],
   colours: { background: "#FFFEF0", surface: "#FFFFFF", border: "#EEDDCC", primary: "#AA3322", ink: "#111122", text: "#333344", muted: "#555566", footerBackground: "#101010", footerAccent: "#CCAA55", onDark: "#FAFAFA" },
   fonts: { body: "Verdana, sans-serif" }, card: { radius: "14px" }, nav: [{ label: "Try it", href: "/try" }], cta: { label: "Start now", href: "/start" },
   footer: { columns: [{ title: "Company", links: [{ label: "About", href: "https://client.invalid/about" }, { label: "Contact", href: "https://client.invalid/contact" }] }], notice: "© Standin." }, basis: "CLIENT_DECLARED" };
 /* every fixture fact has a recorded recheck interval and is read inside it (RR-257 B4) */
 const joined = (construction, over = {}) => joinPages({ construction, renderNeed: passing, stamp: STAMP, design: DESIGN, productLine: DESIGN.productLine, recheckOf: () => 30, on: "2026-09-03", ...over });
 /* b7Trust is left to its own firing controls (COMPARISON, AI-SEARCH PAGE LAW): these older fixtures record no comparison table */
+const present = (v) => typeof v === "string" && v.trim() !== "";
 const failed = (p) => Object.entries(p.checks).filter(([k, v]) => v.state === "FAIL" && k !== "b7Trust").map(([k]) => k);
 const LAWS = ["law1ClientDesign", "law2Hero", "law3KeyFacts", "law4QuestionsAndAnswers", "law5ProductCards", "law6FaqMatchesVisible", "law7NoRecordLabels", "law8UnansweredNotShown"];
 
@@ -155,7 +158,9 @@ test("JOIN · FIRING CONTROL: one page per page candidate, every chosen need on 
   assert.equal(a.html.split(STAMP).length - 1, 2, "the page does not say, top and bottom, what it is");
   assert.match(a.html, /<meta name="robots" content="noindex, nofollow">/);
   assert.deepEqual([a.html.split("<script").length - 1, a.html.split('<script type="application/ld+json">').length - 1], [1, 1], "the page runs a script");
-  assert.doesNotMatch(a.html, /<link |<img |<iframe|@import|url\(/, "the page loads something from outside itself");
+  /* RR-258: the only file a page shows is the client's own logo file, served beside it — nothing from another host */
+  assert.doesNotMatch(a.html, /<link |<iframe|@import|url\(/, "the page loads something from outside itself");
+  assert.ok((a.html.match(/<img [^>]*>/g) ?? []).every((t) => t.startsWith(`<img src="${ASSET_FOLDER}/`)), "the page shows a picture that is not one of its own filed assets");
   assert.deepEqual(a.trace.map((t) => [t.needId, t.claimId, t.label, t.source, t.link, t.readOn]), [["n2", "n2-1", "RESPONSIBLE BODY", "A Body — its page", "https://body.invalid/p", "2026-09-01"], ["n1", "n1-1", "RESPONSIBLE BODY", "A Body — its page", "https://body.invalid/p", "2026-09-01"]], "the record lost a label");
   assert.deepEqual(joined([]), [], "a page was built from no chosen need");
   assert.throws(() => joinPages({ construction: [built("n1", "alpha", [["q?", OBS]])], renderNeed: passing, stamp: "" }), /stamp/);
@@ -284,6 +289,30 @@ test("CONVERSION · FIRING CONTROL (RR-256, RR-257 A1): a price is converted thr
   assert.equal(joined(items)[0].checks.conversionMarked.state, "NOT MEASURED");
 });
 
+test("HEADER AND LOGOS · FIRING CONTROL (RR-258): the company logo file and the product logo/name stand in the header with the client's full navigation, in its order, and its full footer — each part fails alone", () => {
+  const nav = [{ label: "Home", href: "https://group.invalid/" }, { label: "Books", href: "https://group.invalid/books/" }, { label: "Other product", href: "https://other.client.invalid/" }, { label: "Contact", href: "https://group.invalid/contact/" }];
+  const design = { ...DESIGN, nav, footer: { columns: [{ title: "Group", links: [nav[0], nav[1]] }, { title: "Legal", links: [nav[3], { label: "Privacy", href: "https://group.invalid/privacy/" }] }], notice: "© Standin Group." } };
+  const items = [built("n1", "alpha", [["How much does it cost?", OBS]])];
+  const p = joined(items, { design })[0];
+  assert.equal(p.checks.headerAndLogos.state, "PASS", p.checks.headerAndLogos.why);
+  const head = /<header[\s\S]*?<\/header>/.exec(p.html)[0];
+  /* the company logo is the client's FILE, shown at one scale inside a frame — never drawn; then the product's mark and name */
+  assert.ok(head.includes(`<a class="company" href="https://group.invalid/" aria-label="Standin Group"><span class="logo-file" style="width:100.8px;height:56px"><img src="${ASSET_FOLDER}/group-logo.png" alt="Standin Group" width="300" height="200" style="width:168px;height:112px;left:-33.6px;top:-28px"></span></a>`), head.slice(0, 700));
+  assert.ok(head.indexOf('class="company"') < head.indexOf('class="brand"') && head.includes('<span class="mark" aria-hidden="true">S</span><span>Standin</span>') && !/<svg|<canvas/.test(p.html));
+  assert.deepEqual(nav.map((n) => head.indexOf(`>${n.label}</a>`)).every((x, k, a) => x > 0 && (k === 0 || x > a[k - 1])), true, "the navigation is not in the filed order");
+  assert.ok(head.includes('<a href="https://client.invalid/in">Sign in</a>') && head.includes('<a class="cta" href="https://client.invalid/start">Start now</a>'));
+  assert.deepEqual([p.assets, assetsOf(design), assetsOf({ ...design, company: undefined }), assetsOf({ ...design, logo: { ...design.logo, image: { ...GROUP_LOGO, file: "design/product.svg" } } }).map((a) => a.name)], [[{ name: "assets/group-logo.png", file: "design/group-logo.png", sha256: "ab".repeat(32) }], [{ name: "assets/group-logo.png", file: "design/group-logo.png", sha256: "ab".repeat(32) }], [], ["assets/group-logo.png", "assets/product.svg"]]);
+  const why = (d, html = null) => { const q = joined(items, { design: d })[0]; return (html ? joinedChecks({ items: q.itemList, html: html(q.html), stamp: STAMP, design: d }) : q.checks).headerAndLogos; };
+  assert.match(why({ ...design, company: undefined }).why, /company logo/);
+  assert.match(why(design, (h) => h.replace(`${ASSET_FOLDER}/group-logo.png`, "x.png")).why, /company logo/);
+  assert.match(why(design, (h) => h.replace("<span>Standin</span>", "<span></span>")).why, /product logo or name/);
+  assert.match(why(design, (h) => h.replace('<a href="https://group.invalid/books/">Books</a>', "")).why, /header navigation/, "a reduced navigation passed");
+  assert.match(why(design, (h) => { const a = '<a href="https://group.invalid/">Home</a>', b = '<a href="https://group.invalid/books/">Books</a>'; const i = h.indexOf(a + b); return h.slice(0, i) + b + a + h.slice(i + a.length + b.length); }).why, /header navigation/, "a reordered navigation passed");
+  assert.match(why(design, (h) => h.replace('<a href="https://client.invalid/in">Sign in</a>', "")).why, /header action/);
+  assert.match(why(design, (h) => h.replace('<li><a href="https://group.invalid/privacy/">Privacy</a></li>', "")).why, /footer/);
+  assert.match(why({ ...design, nav: [] }).why, /header navigation/);
+});
+
 test("HEADINGS · FIRING CONTROL (RR-257 A2): a full recorded question is the heading; with none, the recorded phrase in title case, the same words; a raw lower-case phrase is never a heading", () => {
   assert.deepEqual([isQuestion("How much?"), isQuestion("widget fee in atlantis"), headingShown("widget fee in atlantis", new Set(["XTS"])), headingShown("fees in xts", new Set(["XTS"])), headingShown("kitna hai?")], [true, false, "Widget Fee in Atlantis", "Fees in XTS", "kitna hai?"]);
   const phrases = [{ phraseId: "p1", text: "widget fee in atlantis" }, { phraseId: "p2", text: "widget atlantis dates" }];
@@ -377,6 +406,16 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     assert.deepEqual(LAWS.map((k) => p.checks[k].state), LAWS.map(() => "PASS"), `${p.value}: a clause of the page law does not hold`);
     assert.ok(p.html.includes(filed.questionnaire.design.brandName) && p.html.includes(filed.questionnaire.design.colours.primary) && p.html.includes(filed.questionnaire.design.cta.label), `${p.value}: the page does not wear the client's filed design`);
     assert.deepEqual(faqInPage(p.html), p.itemList.map((it) => ({ question: it.heading.shown, answer: it.claims.map((c) => c.text.trim()).join(" ") })), `${p.value}: the FAQ data is not the visible Q&A`);
+    /* RR-258 · the company logo FILE and the product name in the header; the client's full navigation and footer, as filed; the logo's
+       bytes are the filed bytes (sha256 re-derived here from the client's own folder) */
+    const design = filed.questionnaire.design;
+    assert.equal(p.checks.headerAndLogos.state, "PASS", `${p.value}: ${p.checks.headerAndLogos.why}`);
+    assert.deepEqual(p.assets, assetsOf(design));
+    assert.ok(p.assets.length >= 1 && design.nav.length > 2 && present(design.company?.name), `${p.value}: no company logo, or a reduced navigation`);
+    for (const a of p.assets) assert.equal(createHash("sha256").update(readFileSync(join(dir, "..", "..", "almi-oet", a.file))).digest("hex"), a.sha256, `${p.value}: the logo file's bytes are not the filed bytes`);
+    const head = /<header[\s\S]*?<\/header>/.exec(p.html)[0];
+    assert.deepEqual(design.nav.map((n) => head.includes(`<a href="${n.href}">${n.label}</a>`)), design.nav.map(() => true), `${p.value}: a navigation item of the client's header is missing`);
+    assert.ok(Object.values(design.provenance ?? {}).length > 0, `${p.value}: the design does not say which parts were read and which filed`);
     /* RR-257 · the AI-search page law, B2 to B8, holds on the real drafts as far as an unpublished page is measured; what cannot be measured is named */
     const BLAW = ["b2TitlePromisesOnlyWhatThePageHolds", "b3DirectAnswerFirst", "b4SourcedCheckedAndRecheckable", "b5OneNeedPerWording", "b6Technical", "b7Trust", "b8NoInstructionToMachines"];
     assert.deepEqual(BLAW.map((k) => p.checks[k].state), BLAW.map(() => "PASS"), `${p.value}: ${JSON.stringify(BLAW.map((k) => p.checks[k].why).filter(Boolean))}`);

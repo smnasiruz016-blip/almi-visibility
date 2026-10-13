@@ -188,7 +188,10 @@ export function clusterInputs({ inputs = [], unread = [], grouping = null, on })
   const at = `${on}T00:00:00Z`;
   const sorted = (m) => Object.freeze([...(m ?? [])].sort((a, b) => (a.inputId < b.inputId ? -1 : 1)));
   const record = (place, body, m) => {
-    const id = hash([place, body.need ?? body.wording ?? null, m.map((x) => x.inputId)]);
+    /* the key covers ALL the record says — its place, its whole body (title, reason, maker, label, country parts, the fact it differs by)
+     * and its members: a corrected need is a NEW record. A store that keeps a record by its key would otherwise keep the old country
+     * part or the old reason under the corrected need's key (RR-260: the owner's correction to a country part was not stored). */
+    const id = hash([place, body, m.map((x) => x.inputId)]);
     return Object.freeze({ record_type: CLUSTER_RECORD, measurement_key: `${CLUSTER_RECORD}:${id}`, cluster_id: id, recorded_at: at, place, ...body, wordings: new Set(m.map((x) => clean(x.wording))).size, inputs: m.length, members: m });
   };
   const records = [];

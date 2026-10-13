@@ -58,6 +58,7 @@ const SABOTAGES = [
   ["S30", "C3 a page-level decision on a need is accepted", M, "    if (holdsAny(n, PAGE_FIELDS)) no(REFUSAL.PAGE, where);\n", "", C3],
   ["S31", "C3 a page-level decision on the grouping is accepted", M, "no(PAGE_FIELDS.includes(k) ? REFUSAL.PAGE :", "no(false ? REFUSAL.PAGE :", C3],
   ["S32", "C3 an audience page field is dropped from the declared list", CFG, "\"separatePage\", \"audiencePage\", \"pageCandidate\",", "\"separatePage\", \"pageCandidate\",", C3],
+  ["S65", "C3 a corrected country part, fact or reason keeps the old record's key (the store would keep the old record)", M, "    const id = hash([place, body, m.map((x) => x.inputId)]);", "    const id = hash([place, body.need ?? body.wording ?? null, m.map((x) => x.inputId)]);", C3],
   ["S33", "C4 a need without its reason is accepted", M, "    if (!present(n.reason)) no(REFUSAL.REASON, where);\n", "", C4],
   ["S34", "C4 a decision without its maker is accepted", M, "|| !present(d.name)) { no(REFUSAL.MAKER, where); return null; }", "|| !present(d.name)) { return null; }", C4],
   ["S35", "C4 a decision without its date is accepted", M, "  if (!isDay(d.on)) no(REFUSAL.DATE, where);\n", "", C4],

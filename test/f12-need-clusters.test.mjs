@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
+import { RESIGHTING_TYPE } from "../src/evidence/store.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { inputsOf, cleanerOf, clusterInputs, clusterFaults, countsOf, sampleItems, ownerSampleVerdict, realPopulation, rowVerdict, REFUSAL, CLUSTER_RECORD, SAMPLE_RECORD, PLACES, JOINS, MAKERS, SAMPLE } from "../src/discovery/need-clusters.mjs";
 
@@ -131,6 +132,12 @@ test("C3 · FIRING CONTROL: a country that changes the verified answer stays INS
   assert.deepEqual(codes(needsWith({}, { differsFrom: { need: "cost", by: "TRADE", fact: { statement: "it differs" } } })), [REFUSAL.SPLIT_FACT]);
   assert.deepEqual(codes(needsWith({}, { differsFrom: { need: "cost", fact: FACT } })), [REFUSAL.SPLIT_FACT]);
   assert.deepEqual(codes(needsWith({}, { differsFrom: { need: "no such need", by: "TRADE", fact: FACT } })), [REFUSAL.SPLIT_FACT]);
+  /* a corrected need is a NEW record: a changed country part, a changed fact or a changed reason never hides under the old record's key */
+  assert.equal(byNeed(run(), "licence").measurement_key, licence.measurement_key);
+  const other = { statement: "the licence fee in Atlantis is set by its harbour office", reference: "facts.json#atlantis-2" };
+  assert.notEqual(byNeed(run(needsWith({}, { countryParts: [{ country: "Atlantis", fact: other, wordings: ["widget licence in atlantis"] }] })), "licence").measurement_key, licence.measurement_key, "a corrected country part kept the old record's key");
+  assert.notEqual(byNeed(run(needsWith({}, { reason: "every wording asks which licence a fitter must hold" })), "licence").measurement_key, licence.measurement_key, "a corrected reason kept the old record's key");
+  assert.notEqual(byNeed(kept, "licence").measurement_key, licence.measurement_key, "a need that now names the fact it differs by kept the old record's key");
   /* which audience gets a page is not decided here */
   for (const f of ["page", "pages", "separatePage", "audiencePage", "pageCandidate", "url", "slug"]) {
     assert.deepEqual(codes(needsWith({ [f]: "fitters" })), [REFUSAL.PAGE], f);
@@ -280,6 +287,9 @@ test("[ALL] · FIRING CONTROL: the row is PROVED only when C1 to C7 are each PRO
 const BATCH = "rr254-test-pages-2026-10-12";
 const realDir = () => join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
 const jsonl = (name) => readFileSync(join(realDir(), name), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+/* the need store as F12 holds it: a later run that hands the store a record it already holds leaves a re-sighting line (the store's
+ * own mark, same key, no content) — that line is the store's, not a need record, and it never stands in for the record it re-sights */
+const held = () => jsonl("need-clusters.jsonl").filter((x) => x.record_type !== RESIGHTING_TYPE);
 const json = (name) => (existsSync(join(realDir(), name)) ? JSON.parse(readFileSync(join(realDir(), name), "utf8")) : null);
 const realRun = () => {
   const i = inputsOf({ phrases: jsonl("search-phrases.jsonl"), publicQuestions: jsonl("questions.jsonl"), derivedQuestions: jsonl("research-derived-questions.jsonl") });
@@ -294,7 +304,8 @@ test("REAL · C1 C2 C4 C5 C6 · the declared product's stored phrases and record
   assert.deepEqual(clusterFaults({ records: r.records, inputs: r.given }), []);
   assert.equal(r.counts.inNeed + r.counts.navigational + r.counts.noNeedYet, r.given.length, "a real input is in no place, or in two");
   /* the store holds every record the recorded grouping gives today, byte for byte (an earlier grouping's records stay in the store; they are history) */
-  const stored = new Map(jsonl("need-clusters.jsonl").map((x) => [x.measurement_key, x]));
+  const stored = new Map(held().map((x) => [x.measurement_key, x]));
+  assert.ok(jsonl("need-clusters.jsonl").filter((x) => x.record_type === RESIGHTING_TYPE).every((x) => stored.has(x.measurement_key)), "a re-sighting in the need store re-sights no record held there");
   for (const x of r.records) assert.deepEqual(stored.get(x.measurement_key), JSON.parse(JSON.stringify(x)), "a need record of the recorded grouping is not in the store as derived");
   assert.ok([...stored.values()].every((x) => [CLUSTER_RECORD, SAMPLE_RECORD].includes(x.record_type) && evidenceStateOf(x).state === "INFERRED"), "the need store holds a record that is not F12's — or a page");
   const needs = r.records.filter((x) => x.place === PLACES.NEED);
@@ -323,7 +334,7 @@ test("REAL · C3 C7 [ALL] · countries stay inside their need with their fact; a
   const V = ownerSampleVerdict({ items: S.items, answers, on: "2026-10-13" });
   assert.notEqual(V.state, "REFUSED", `the owner's recorded answers do not pass: ${V.refused.map((x) => x.code).join(", ")}`);
   if (V.state === "PASSED") {
-    const stored = new Map(jsonl("need-clusters.jsonl").map((x) => [x.measurement_key, x]));
+    const stored = new Map(held().map((x) => [x.measurement_key, x]));
     for (const a of V.records) assert.deepEqual(stored.get(a.measurement_key), JSON.parse(JSON.stringify(a)), "an owner's answer is not in the store as recorded");
   }
   const population = realPopulation({ counts: r.counts, faults: clusterFaults({ records: r.records, inputs: r.given }) });

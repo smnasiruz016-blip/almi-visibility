@@ -146,6 +146,38 @@ test("THE ENTRY POINT: in a declared world it prints each answer in plain words 
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
 });
 
+/* ================= RR-255 · the client's design (page law 1) ================= */
+
+test("DESIGN · FIRING CONTROL (RR-255): a questionnaire may carry the client's design; each malformed part is a fault by name; a design is never an answer or a claim", async () => {
+  const { validateDesign, designOf, validateQuestionnaire, capabilityClaimsOf, DESIGN_FIELDS } = await import("../src/questionnaire/product-questionnaire.mjs");
+  const design = { siteAddress: "https://client.invalid", brandName: "Standin", productLine: "A stand-in line.", logo: { mark: "S", wordmark: "Standin" }, colours: { background: "#FFFFFF", primary: "#AA3322", ink: "#111111", text: "#333333" },
+    fonts: { body: "Verdana, sans-serif" }, card: { radius: "12px" }, nav: [{ label: "Try", href: "/try" }], cta: { label: "Start", href: "/start" }, footer: { columns: [{ title: "Company", links: [{ label: "About", href: "/about" }] }], notice: "© Standin." }, basis: "CLIENT_DECLARED" };
+  assert.deepEqual(validateDesign(design), []);
+  for (const k of Object.keys(design)) assert.ok(DESIGN_FIELDS.includes(k));
+  const cases = [
+    [{ siteAddress: "http://client.invalid" }, "DESIGN_SITE_ADDRESS_NOT_AN_HTTPS_ADDRESS"], [{ brandName: "" }, "DESIGN_BRAND_NAME_ABSENT"], [{ logo: { mark: "S" } }, "DESIGN_LOGO_ABSENT_OR_MALFORMED"],
+    [{ colours: { ...design.colours, primary: "red" } }, "DESIGN_COLOUR_ABSENT_OR_NOT_HEX"], [{ colours: { ...design.colours, glow: "#FFFFFF" } }, "UNKNOWN_FIELD"], [{ fonts: { body: "x;}</style>" } }, "DESIGN_FONT_ABSENT_OR_MALFORMED"],
+    [{ card: { radius: "big" } }, "DESIGN_CARD_MALFORMED"], [{ nav: [{ label: "x", href: "javascript:alert(1)" }] }, "DESIGN_NAVIGATION_MALFORMED"], [{ cta: { label: "", href: "/start" } }, "DESIGN_CALL_TO_ACTION_ABSENT_OR_MALFORMED"],
+    [{ footer: { columns: [{ title: "", links: [] }] } }, "DESIGN_FOOTER_MALFORMED"], [{ basis: "GUESSED" }, "DESIGN_BASIS_UNKNOWN"], [{ basis: "READ_FROM_CLIENT_SITE" }, "DESIGN_READ_WITHOUT_ITS_SOURCE"], [{ script: "x" }, "UNKNOWN_FIELD"],
+  ];
+  for (const [over, code] of cases) assert.ok(validateDesign({ ...design, ...over }).some((x) => x.code === code), `${code} did not fire`);
+  assert.deepEqual(validateDesign({ ...design, basis: "READ_FROM_CLIENT_SITE", readFrom: [{ kind: "CODE", ref: "repo:file" }] }), []);
+  const q = { schemaVersion: 1, contractId: "product-questionnaire/1", questionnaireId: "q-one", tenantId: `tenant:${"5e1f".repeat(8)}`, productId: "prod-one", submittedBy: "actor:t", submittedOn: "2026-09-28", answers: [], design };
+  assert.deepEqual([validateQuestionnaire(q).valid, designOf(q)?.brandName, capabilityClaimsOf(q).claims.length], [true, "Standin", 0], "a design became a claim, or a valid design was not handed on");
+  assert.deepEqual([validateQuestionnaire({ ...q, design: { ...design, cta: undefined } }).valid, designOf({ ...q, design: { ...design, cta: undefined } })], [false, null], "a malformed design was handed on");
+});
+
+test("DESIGN · REAL: the declared product's questionnaire files a valid design, names how it was obtained, and yields no extra record for it", async () => {
+  const { designOf, DESIGN_BASES } = await import("../src/questionnaire/product-questionnaire.mjs");
+  const product = await productFromArgv(["node", "x", "--product=almi-oet"], { scope: censusSubjectScope("almi-oet") });
+  const r = await readProductQuestionnaire(product);
+  const d = designOf(r.questionnaire);
+  assert.ok(d, "the declared product files no valid design");
+  assert.ok(Object.hasOwn(DESIGN_BASES, d.basis) && (d.basis !== "READ_FROM_CLIENT_SITE" || d.readFrom.length > 0));
+  assert.equal(r.claims.length, r.approved, "the design added a record");
+  console.log(`  REAL (count-only, the declared product's design): ${JSON.stringify({ basis: d.basis, readFrom: (d.readFrom ?? []).length, colours: Object.keys(d.colours).length, nav: d.nav.length, footerColumns: d.footer.columns.length })}`);
+});
+
 test("the production trail was not written by this file", () => {
   assert.equal(trailSha(), TRAIL_BEFORE);
 });

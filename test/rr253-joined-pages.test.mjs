@@ -1,7 +1,9 @@
 /**
  * RR-253 / RR-254 · THE JOINED TEST PAGES (the owner's page shape, `_handoffs` …RR-253_ANSWERS_TO_THE_BUILD_STOP.md; Specification Amendment 6
  * as the owner clarified it, …OWNER_CLARIFICATION_2026-10-12_RR-254_SPECIFICATION_AMENDMENT_6_WHOLE_PAGES_ONLY.md: cancel-and-move applies
- * to WHOLE pages only, a shared question stays on each page; the title and headings are chosen from the recorded questions).
+ * to WHOLE pages only, a shared question stays on each page) and the owner's STANDING PAGE LAW and TITLE LAW (RR-255: the client's own design,
+ * hero, key-fact cards, expand/collapse Q&A with sources, product cards, FAQPage data equal to the visible Q&A, no record label visible, no
+ * unanswered need shown; a title composed only from recorded search phrases).
  *
  * Fixtures DRIVE the rules (neutral stand-ins, hand-counted). The REAL test reads the declared product's own built drafts from its research
  * batch and reports counts only. Nothing is fetched; the production trail is not written (last test). These pages are evidence for no row.
@@ -13,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL } from "../src/page/joined-page.mjs";
+import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, capitalsIn, keyFactCards, faqOf, faqInPage, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
 import { testException, parseExceptionRecord, STAMP } from "../src/page/test-exception.mjs";
 import { CHECK } from "../src/page/draft-render.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
@@ -131,99 +133,155 @@ const built = (needId, candidate, wordings, labels = [label(`${needId}-1`)]) => 
   spec: { subject: needId, basis: { pageCandidate: JSON.stringify([["kind", candidate]]) }, sections: wordings.map(([w, tier], i) => ({ questionId: `${needId}-q${i}`, heading: w, tier })), countrySections: [], answer: { state: "SUPPORTED", labels, unknown: [] } } });
 const OBS = "OBSERVED", INF = "RESEARCH-DERIVED";
 const passing = () => ({ state: "RENDERED", checks: { directAnswer: { state: CHECK.PASS }, everyClaimSourced: { state: CHECK.PASS }, headingsMatch: { state: CHECK.PASS }, internalLinks: { state: CHECK.NOT_MEASURED }, technical: { state: CHECK.NOT_MEASURED }, markup: { state: CHECK.PASS } } });
-const joined = (construction, over = {}) => joinPages({ construction, renderNeed: passing, stamp: STAMP, ...over });
+/* a neutral client design, as a questionnaire would file it */
+const DESIGN = { siteAddress: "https://client.invalid", brandName: "Standin", productLine: "Standin — a stand-in product line.", logo: { mark: "S", wordmark: "Standin" },
+  colours: { background: "#FFFEF0", surface: "#FFFFFF", border: "#EEDDCC", primary: "#AA3322", ink: "#111122", text: "#333344", muted: "#555566", footerBackground: "#101010", footerAccent: "#CCAA55", onDark: "#FAFAFA" },
+  fonts: { body: "Verdana, sans-serif" }, card: { radius: "14px" }, nav: [{ label: "Try it", href: "/try" }], cta: { label: "Start now", href: "/start" },
+  footer: { columns: [{ title: "Company", links: [{ label: "About", href: "https://client.invalid/about" }] }], notice: "© Standin." }, basis: "CLIENT_DECLARED" };
+const joined = (construction, over = {}) => joinPages({ construction, renderNeed: passing, stamp: STAMP, design: DESIGN, productLine: DESIGN.productLine, ...over });
+const failed = (p) => Object.entries(p.checks).filter(([, v]) => v.state === "FAIL").map(([k]) => k);
+const LAWS = ["law1ClientDesign", "law2Hero", "law3KeyFacts", "law4QuestionsAndAnswers", "law5ProductCards", "law6FaqMatchesVisible", "law7NoRecordLabels", "law8UnansweredNotShown"];
 
 test("JOIN · FIRING CONTROL: one page per page candidate, every chosen need on it as ONE item with its own questions and its own answer, in the order handed in; nothing chosen, nothing built", () => {
   const order = { n2: 0, n1: 1, n3: 0 };
   const pages = joined([built("n1", "alpha", [["how much is it", INF], ["How much does it cost?", OBS]]), built("n2", "alpha", [["Where is it?", OBS]]), built("n3", "beta", [["how long is it", INF]])], { orderOf: (id) => order[id] });
-  assert.deepEqual(pages.map((p) => [p.record_type, p.value, p.items, p.questions]), [[JOINED_RECORD, "alpha", 2, 3], [JOINED_RECORD, "beta", 1, 1]]);
+  assert.deepEqual(pages.map((p) => [p.record_type, p.value, p.items, p.questions, p.faqCount]), [[JOINED_RECORD, "alpha", 2, 3, 2], [JOINED_RECORD, "beta", 1, 1, 1]]);
   const a = pages[0];
   assert.deepEqual(a.itemList.map((it) => [it.needId, it.questions.map((q) => q.wording), it.claims.map((c) => c.claimId)]), [["n2", ["Where is it?"], ["n2-1"]], ["n1", ["How much does it cost?", "how much is it"], ["n1-1"]]]);
-  for (const w of ["How much does it cost?", "how much is it", "Where is it?", "Statement n1-1.", "A Body — its page", "https://body.invalid/p", "read 2026-09-01", TIER_WORDS.OBSERVED, TIER_WORDS["RESEARCH-DERIVED"]]) assert.ok(a.html.includes(w), `the page does not show: ${w}`);
+  for (const w of ["How much does it cost?", "how much is it", "Where is it?", "Statement n1-1.", `${STRUCTURE.source}: A Body — its page`, "https://body.invalid/p", `${STRUCTURE.lastChecked}: 2026-09-01`]) assert.ok(a.html.includes(w), `the page does not show: ${w}`);
   assert.ok(!a.html.includes("how long is it"), "another page's need is on this page");
   assert.equal(a.html.split(STAMP).length - 1, 2, "the page does not say, top and bottom, what it is");
   assert.match(a.html, /<meta name="robots" content="noindex, nofollow">/);
-  assert.match(a.html, /<style>[^<]+<\/style>/, "the page has no layout of its own");
-  assert.doesNotMatch(a.html, /<script|<link |src=|@import|url\(/, "the page loads something from outside itself");
-  assert.deepEqual(a.trace.map((t) => [t.needId, t.claimId, t.source, t.link, t.readOn]), [["n2", "n2-1", "A Body — its page", "https://body.invalid/p", "2026-09-01"], ["n1", "n1-1", "A Body — its page", "https://body.invalid/p", "2026-09-01"]]);
+  assert.deepEqual([a.html.split("<script").length - 1, a.html.split('<script type="application/ld+json">').length - 1], [1, 1], "the page runs a script");
+  assert.doesNotMatch(a.html, /<link |<img |<iframe|@import|url\(/, "the page loads something from outside itself");
+  assert.deepEqual(a.trace.map((t) => [t.needId, t.claimId, t.label, t.source, t.link, t.readOn]), [["n2", "n2-1", "RESPONSIBLE BODY", "A Body — its page", "https://body.invalid/p", "2026-09-01"], ["n1", "n1-1", "RESPONSIBLE BODY", "A Body — its page", "https://body.invalid/p", "2026-09-01"]], "the record lost a label");
   assert.deepEqual(joined([]), [], "a page was built from no chosen need");
   assert.throws(() => joinPages({ construction: [built("n1", "alpha", [["q?", OBS]])], renderNeed: passing, stamp: "" }), /stamp/);
 });
 
-test("WORDING · FIRING CONTROL (RR-254): every heading and the title are recorded questions — an OBSERVED question is chosen before an inferred one, and each is traced", () => {
-  assert.deepEqual(orderedQuestions([{ questionId: "a", tier: INF }, { questionId: "c", tier: OBS }, { questionId: "b", tier: OBS }]).map((q) => q.questionId), ["b", "c", "a"]);
-  const p = joined([built("n1", "alpha", [["how much is it", INF], ["How much does it cost?", OBS]]), built("n2", "alpha", [["where do i sit it", INF]]), built("n3", "alpha", [["When is it held?", OBS]]), built("n4", "alpha", [["Is it hard?", OBS]])], { orderOf: (id) => Number(id.slice(1)) })[0];
-  assert.deepEqual(p.itemList.map((it) => [it.heading.wording, it.heading.tier, it.heading.questionId]), [["How much does it cost?", OBS, "n1-q1"], ["where do i sit it", INF, "n2-q0"], ["When is it held?", OBS, "n3-q0"], ["Is it hard?", OBS, "n4-q0"]]);
-  /* the title: the observed headings among the first three items — never a fourth item's, never a written one */
-  assert.equal(p.title, "How much does it cost? · When is it held?");
-  assert.deepEqual(p.titleFrom, ["n1-q1", "n3-q0"]);
-  assert.match(p.html, /<h1>How much does it cost\? · When is it held\?<\/h1>/);
-  assert.match(p.html, /<h2>How much does it cost\? <span class="tier">/);
-  /* with no observed question among the first items, the title is still recorded questions */
-  const inferred = joined([built("n1", "alpha", [["how much is it", INF]]), built("n2", "alpha", [["where is it", INF]])], { orderOf: (id) => Number(id.slice(1)) })[0];
-  assert.equal(inferred.title, "how much is it · where is it");
-  assert.deepEqual([p.checks.headingsFromQuestions.state, p.checks.titleFromQuestions.state], ["PASS", "PASS"]);
-  const items = p.itemList;
-  assert.equal(joinedChecks({ items, html: p.html, stamp: STAMP, title: "A written title", titleFrom: [{ wording: "A written title" }] }).titleFromQuestions.state, "FAIL", "a title that is no recorded question passed");
-  assert.equal(joinedChecks({ items: items.map((it, i) => (i === 0 ? { ...it, heading: { ...it.questions[1] }, questions: [it.questions[1], it.questions[0]] } : it)), html: p.html, stamp: STAMP, title: p.title, titleFrom: [p.itemList[0].heading, p.itemList[2].heading] }).headingsFromQuestions.state, "FAIL", "an observed question was passed over for a heading");
+test("PAGE LAW · FIRING CONTROL: a page built with the client's design, a hero, cards, expand/collapse Q&A, product cards and matching FAQ data passes all eight clauses — and each clause fails alone", () => {
+  const two = [built("n1", "alpha", [["how much is it", INF], ["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })]), built("n2", "alpha", [["Where is it?", OBS]])];
+  const product = { shown: [{ answerId: "does-x", text: "It does x.", label: PRODUCT_STATEMENT_LABEL, source: "Standin's own statement (owner-approved, 2026-09-01)", link: "https://client.invalid", approvalRecord: "r@a" }], refused: [] };
+  const opts = { orderOf: (id) => Number(id.slice(1)), keyFactsFor: () => [{ claimId: "n1-1", value: "5 XTS" }], statementsFor: (id) => (id === "n1" ? product : { shown: [], refused: [] }), unansweredFor: () => [{ need: "n9", questions: 1, wordings: ["Is it open at night?"], why: "the central answer is unsupported" }] };
+  const p = joined(two, opts)[0];
+  assert.deepEqual(LAWS.map((k) => p.checks[k].state), LAWS.map(() => "PASS"), JSON.stringify(p.checks));
+  /* 1 design · 2 hero · 3 cards · 4 Q&A · 5 product cards */
+  for (const w of ["Standin", "#AA3322", "Verdana, sans-serif", "https://client.invalid/try", "Try it", "© Standin.", "<h1>", "Standin — a stand-in product line.", "2 questions answered below, each with its source.", '<a class="cta" href="https://client.invalid/start">Start now</a>',
+    '<span class="v">5 XTS</span>', "<details", "<summary>How much does it cost?</summary>", `${STRUCTURE.alsoAsked}: how much is it`, '<div class="product" data-answer-id="does-x"><p>It does x.</p><a class="cta"']) assert.ok(p.html.includes(w), `missing on the page: ${w}`);
+  assert.deepEqual(p.keyFacts.map((c) => [c.label, c.value, c.source, c.link]), [["How much does it cost?", "5 XTS", "A Body — its page", "https://body.invalid/p"]]);
+  /* 6 · the FAQ data IS the visible Q&A */
+  assert.deepEqual(faqInPage(p.html), [{ question: "How much does it cost?", answer: "It costs 5 XTS a month." }, { question: "Where is it?", answer: "Statement n2-1." }]);
+  assert.deepEqual(faqInPage(p.html), faqOf(p.itemList).map((x) => ({ ...x })));
+  /* 7 · no record label is visible: not the tier words, not the source label, not the product statement's record label */
+  const seen = p.html.replace(/<(script|style)[\s\S]*?<\/\1>/g, " ").replace(/<[^>]+>/g, " ");
+  for (const w of [TIER_WORDS.OBSERVED, TIER_WORDS["RESEARCH-DERIVED"], "RESPONSIBLE BODY", "owner-approved", "self-sourced"]) assert.ok(!seen.includes(w), `a record label is visible: ${w}`);
+  assert.equal(RECORD_LABELS.test(seen), false);
+  /* 8 · the unanswered need is in the record by name, never on the page */
+  assert.deepEqual([p.unanswered.map((u) => u.need), p.html.includes("Is it open at night?"), failed(p)], [["n9"], false, ["everyNeedAnswered"]]);
+  /* each clause fails alone */
+  assert.deepEqual(failed(joined(two, { ...opts, unansweredFor: () => [], design: null })[0]).filter((k) => k.startsWith("law")), ["law1ClientDesign", "law2Hero", "law5ProductCards"], "a page with no client design passed the design, hero or product-card clause");
+  assert.deepEqual(failed(joined(two, { ...opts, unansweredFor: () => [], design: { ...DESIGN, cta: undefined } })[0]).filter((k) => k.startsWith("law")), ["law2Hero", "law5ProductCards"]);
+  assert.deepEqual(failed(joined(two, { ...opts, unansweredFor: () => [], keyFactsFor: () => [{ claimId: "n1-1", value: "6 XTS" }] })[0]), ["law3KeyFacts"], "a card value that is not in its recorded claim passed");
+  assert.equal(joined(two, { ...opts, keyFactsFor: () => [] })[0].checks.law3KeyFacts.state, "NOT MEASURED");
+  assert.deepEqual(failed(joined(two, { ...opts, unansweredFor: () => [], statementsFor: () => ({ shown: [], refused: [{ answerId: "x", code: REFUSAL.NOT_APPROVED }] }) })[0]), ["law5ProductCards"]);
+  const base = { items: p.itemList, stamp: STAMP, title: p.title, titleTrace: p.titleTrace, lastChecked: p.lastChecked, design: DESIGN, intro: ["Standin — a stand-in product line.", "2 questions answered below, each with its source."], cards: p.keyFacts, faq: faqOf(p.itemList) };
+  const only = (html, over = {}) => Object.entries(joinedChecks({ ...base, html, ...over })).filter(([k, v]) => k.startsWith("law") && v.state === "FAIL").map(([k]) => k);
+  assert.deepEqual(only(p.html), []);
+  assert.deepEqual(only(p.html.replace(`${STRUCTURE.lastChecked}: 2026-09-01`, "")), ["law4QuestionsAndAnswers"]);
+  assert.deepEqual(only(p.html.replace('"text":"It costs 5 XTS a month."', '"text":"It costs 4 XTS a month."')), ["law6FaqMatchesVisible"], "FAQ data that differs from the visible answer passed");
+  assert.deepEqual(only(p.html.replace("<summary>Where is it?</summary>", "<summary>Where is it?</summary><p>RESPONSIBLE BODY</p>")), ["law7NoRecordLabels"]);
+  assert.deepEqual(only(p.html.replace("</main>", "<p>Is it open at night?</p></main>"), { unanswered: [{ need: "n9", wordings: ["Is it open at night?"] }] }), ["law8UnansweredNotShown"]);
 });
 
-test("GATES · FIRING CONTROL: each of the joined page's own checks fails for its own reason and no other; an unanswered need fails the page; what has no judge is NOT MEASURED, never passed", () => {
-  const good = joined([built("n1", "alpha", [["How much is it?", OBS]])])[0];
-  const states = (p) => Object.fromEntries(Object.entries(p.checks).map(([k, v]) => [k, v.state]));
-  assert.deepEqual(states(good), { everyNeedAnswered: "PASS", everyItemAnswered: "PASS", everyClaimSourced: "PASS", ownWording: "PASS", headingsFromQuestions: "PASS", titleFromQuestions: "PASS", tierShown: "PASS", productStatementsApproved: "PASS", stamped: "PASS", noPromise: "PASS",
-    needDirectAnswer: "PASS", needEveryClaimSourced: "PASS", needHeadingsMatch: "PASS", internalLinks: "NOT MEASURED", technical: "NOT MEASURED", engaging: "NOT MEASURED", acceptableToSearchAndAnswerEngines: "NOT MEASURED" });
-  const failing = (construction, over) => Object.entries(states(joined(construction, over)[0])).filter(([, st]) => st === "FAIL").map(([k]) => k);
+test("TITLE LAW · FIRING CONTROL: a title is COMPOSED only from recorded search phrases and the date fact, every word traced; with no phrase nothing is composed", () => {
+  const phrases = [{ phraseId: "p1", text: "widget for makers in atlantis", role: "HEAD" }, { phraseId: "p3", text: "abc score", role: "TOPIC", need: "k3" }, { phraseId: "p2", text: "price", role: "TOPIC", need: "k1" }, { phraseId: "p4", text: "test centres", role: "TOPIC", need: "k2" }, { phraseId: "p5", text: "opening hours", role: "TOPIC", need: "k4" }];
+  const c = composeTitle({ phrases, needOrder: ["k1", "k2", "k3", "k4"], lastChecked: "2026-09-01", capitals: capitalsIn(["What ABC score is needed?"]) });
+  assert.equal(c.title, "Widget for Makers in Atlantis 2026: Price, Test Centres & ABC Score");
+  assert.deepEqual(c.trace.map((t) => [t.part, t.from]), [["Widget for Makers in Atlantis", "search-phrase:p1"], ["2026", "date-fact:last-checked:2026-09-01"], ["Price", "search-phrase:p2"], ["Test Centres", "search-phrase:p4"], ["ABC Score", "search-phrase:p3"]]);
+  assert.deepEqual(titleWordsTraced({ title: c.title, phrases, lastChecked: "2026-09-01" }), []);
+  assert.deepEqual(titleWordsTraced({ title: `${c.title} Guaranteed`, phrases, lastChecked: "2026-09-01" }), ["guaranteed"], "CONTROL: a word no record holds must be seen");
+  assert.deepEqual(titleWordsTraced({ title: c.title, phrases, lastChecked: null }), ["2026"], "the year passed without its date fact");
+  const none = composeTitle({ phrases: phrases.filter((p) => p.role !== "HEAD"), needOrder: [], lastChecked: "2026-09-01" });
+  assert.deepEqual([none.title, /nothing is composed/.test(none.missing)], [null, true]);
+  /* on a page: composed when a HEAD phrase is recorded for it, and the gate says so; otherwise recorded questions, the gate NOT MEASURED */
+  const items = [built("n1", "alpha", [["How much does it cost?", OBS]]), built("n2", "alpha", [["Where is it?", OBS]])];
+  const withPhrases = joined(items, { orderOf: (id) => Number(id.slice(1)), needKeyOf: (id) => ({ n1: "k1", n2: "k2" })[id], phrasesFor: () => phrases })[0];
+  assert.deepEqual([withPhrases.title, withPhrases.titleComposed, withPhrases.checks.titleFromSearchPhrases.state, withPhrases.checks.titleFromRecords.state], ["Widget for Makers in Atlantis 2026: Price, Test Centres & Abc Score", true, "PASS", "PASS"]);
+  assert.match(withPhrases.html, /<h1>Widget for Makers in Atlantis 2026: Price, Test Centres &amp; Abc Score<\/h1>/);
+  const without = joined(items, { orderOf: (id) => Number(id.slice(1)) })[0];
+  assert.deepEqual([without.title, without.titleComposed, without.checks.titleFromSearchPhrases.state, without.titleTrace.map((t) => t.from)], ["How much does it cost? · Where is it?", false, "NOT MEASURED", ["recorded-question:n1-q0", "recorded-question:n2-q0"]]);
+  assert.equal(joinedChecks({ items: without.itemList, html: without.html, stamp: STAMP, title: "A written title", titleTrace: [{ part: "A written title", from: "nowhere" }] }).titleFromRecords.state, "FAIL", "a title that is no recorded phrase or question passed");
+  assert.equal(joinedChecks({ items: without.itemList, html: without.html, stamp: STAMP, title: "Widget Guaranteed", titleTrace: [{ part: "Widget", from: "search-phrase:p1" }], composed: true, phrases }).titleFromSearchPhrases.state, "FAIL", "a composed title with an untraced word passed");
+});
+
+test("WORDING and KEY FACTS · FIRING CONTROL: a heading is a recorded question, an OBSERVED one before an inferred one; a card's value must stand inside its recorded claim", () => {
+  assert.deepEqual(orderedQuestions([{ questionId: "a", tier: INF }, { questionId: "c", tier: OBS }, { questionId: "b", tier: OBS }]).map((q) => q.questionId), ["b", "c", "a"]);
+  const p = joined([built("n1", "alpha", [["how much is it", INF], ["How much does it cost?", OBS]]), built("n2", "alpha", [["where do i sit it", INF]])], { orderOf: (id) => Number(id.slice(1)) })[0];
+  assert.deepEqual(p.itemList.map((it) => [it.heading.wording, it.heading.tier, it.heading.questionId]), [["How much does it cost?", OBS, "n1-q1"], ["where do i sit it", INF, "n2-q0"]]);
+  assert.equal(p.checks.headingsFromQuestions.state, "PASS");
+  assert.equal(joinedChecks({ items: p.itemList.map((it, i) => (i === 0 ? { ...it, heading: { ...it.questions[1] }, questions: [it.questions[1], it.questions[0]] } : it)), html: p.html, stamp: STAMP }).headingsFromQuestions.state, "FAIL", "an observed question was passed over for a heading");
+  const k = keyFactCards({ facts: [{ claimId: "n1-1", value: "Statement" }, { claimId: "n1-1", value: "42" }, { claimId: "nope", value: "x" }, { claimId: "n2-1", value: "" }], items: p.itemList });
+  assert.deepEqual([k.cards.map((c) => [c.claimId, c.label, c.value]), k.refused.map((r) => r.code)], [[["n1-1", "How much does it cost?", "Statement"]], [REFUSAL.KEY_FACT, REFUSAL.KEY_FACT, REFUSAL.KEY_FACT]]);
+});
+
+test("GATES · FIRING CONTROL: each older check still fails for its own reason and no other; what has no judge is NOT MEASURED, never passed", () => {
   const one = (labels) => [built("n1", "alpha", [["q?", OBS]], labels)];
-  assert.deepEqual(failing(one([label("c", { link: "" })])), ["everyClaimSourced"]);
-  assert.deepEqual(failing(one([label("c", { readOn: "last week" })])), ["everyClaimSourced"]);
-  assert.deepEqual(failing(one([label("c", { central: false })])), ["everyItemAnswered"]);
-  assert.deepEqual(failing(one([label("c", { text: "This page will rank first on search." })])), ["noPromise"]);
-  assert.deepEqual(failing(one(), { statementsFor: () => ({ shown: [], refused: [{ answerId: "x", code: REFUSAL.NOT_APPROVED }] }) }), ["productStatementsApproved"]);
-  assert.deepEqual(failing(one(), { renderNeed: () => ({ state: "RENDERED", checks: { ...passing().checks, headingsMatch: { state: CHECK.FAIL } } }) }), ["needHeadingsMatch"]);
-  const unanswered = joined(one(), { unansweredFor: () => [{ need: "n9", questions: 1, why: "the central answer is unsupported" }] })[0];
-  assert.deepEqual([Object.entries(states(unanswered)).filter(([, st]) => st === "FAIL").map(([k]) => k), unanswered.unanswered.map((u) => u.need)], [["everyNeedAnswered"], ["n9"]]);
-  assert.ok(!unanswered.html.includes("n9"), "an unanswered need was written into the page");
-  const items = good.itemList;
-  assert.equal(joinedChecks({ items, html: renderJoined({ title: "t", stamp: STAMP, items }).replace(STAMP, "x"), stamp: STAMP }).stamped.state, "FAIL");
-  assert.equal(joinedChecks({ items: items.map((it) => ({ ...it, questions: it.questions.map((q) => ({ ...q, tier: "GUESSED" })) })), html: good.html, stamp: STAMP }).tierShown.state, "FAIL");
+  assert.deepEqual(failed(joined(one())[0]), []);
+  assert.deepEqual(failed(joined(one([label("c", { link: "" })]))[0]), ["everyClaimSourced"]);
+  assert.deepEqual(failed(joined(one([label("c", { readOn: "last week" })]))[0]), ["law4QuestionsAndAnswers", "everyClaimSourced"]);
+  assert.deepEqual(failed(joined(one([label("c", { central: false })]))[0]), ["everyItemAnswered"]);
+  assert.deepEqual(failed(joined(one([label("c", { text: "This page will rank first on search." })]))[0]), ["noPromise"]);
+  assert.deepEqual(failed(joined(one(), { renderNeed: () => ({ state: "RENDERED", checks: { ...passing().checks, headingsMatch: { state: CHECK.FAIL } } }) })[0]), ["needHeadingsMatch"]);
+  const good = joined(one())[0];
+  for (const k of ["internalLinks", "technical", "engaging", "acceptableToSearchAndAnswerEngines", "titleFromSearchPhrases", "law3KeyFacts"]) assert.equal(good.checks[k].state, "NOT MEASURED", k);
+  assert.equal(joinedChecks({ items: good.itemList, html: renderJoined({ title: "t", stamp: STAMP, items: good.itemList }).replace(STAMP, "x"), stamp: STAMP }).stamped.state, "FAIL");
 });
 
 /* ================= REAL ================= */
 
-test("REAL · the declared product's rebuilt test drafts (RR-254): stamped, in the private research batch only, every claim sourced, shared questions on each page, wording from the questions, unanswered needs named", async () => {
+test("REAL · the declared product's test drafts rebuilt under the page law (RR-255): all eight clauses hold, the FAQ data is the visible Q&A, no record label is visible, the title is traced, unanswered needs stay in the record", async () => {
   const BATCH = "rr254-test-pages-2026-10-12";
   const dir = join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
   const file = join(dir, "joined-pages.jsonl");
   assert.ok(existsSync(file), "the built drafts are not in the research batch");
   assert.ok(!dir.replace(/\\/g, "/").startsWith(REPO.replace(/\\/g, "/")), "the built drafts live inside the engine repository");
   const rows = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  const pages = rows.filter((r) => r.record_type === JOINED_RECORD), cancels = rows.filter((r) => r.record_type === CANCELLATION_RECORD);
+  /* the batch keeps every build; the LATEST draft of each page value is the page */
+  const pages = [...new Map(rows.filter((r) => r.record_type === JOINED_RECORD).map((r) => [r.value, r])).values()];
+  const cancels = rows.filter((r) => r.record_type === CANCELLATION_RECORD);
   assert.ok(pages.length > 0, "EMPTY real population");
   const product = await productFromArgv(["node", "x", "--product=almi-oet"], { scope: censusSubjectScope("almi-oet") });
-  const approved = new Set((await readProductQuestionnaire(product)).claims.map((c) => c.capabilityId));
+  const filed = await readProductQuestionnaire(product);
+  const approved = new Set(filed.claims.map((c) => c.capabilityId));
   const proposed = JSON.parse(readFileSync(join(dir, "page-drafts.json"), "utf8"));
   for (const p of pages) {
     assert.equal(p.stamp, STAMP);
     assert.equal(p.html.split(STAMP).length - 1, 2);
     assert.match(p.exception.record.commit, /^[0-9a-f]{40}$/);
-    assert.ok(p.items > 0 && p.itemList.length === p.items);
-    const recorded = new Set(p.itemList.flatMap((it) => it.questions.map((q) => q.wording)));
-    assert.ok(p.title.split(" · ").every((w) => recorded.has(w)), `${p.value}: the title is not made of recorded questions`);
+    assert.ok(p.items > 0 && p.itemList.length === p.items && p.faqCount === p.items);
+    assert.deepEqual(LAWS.map((k) => p.checks[k].state), LAWS.map(() => "PASS"), `${p.value}: a clause of the page law does not hold`);
+    assert.ok(p.html.includes(filed.questionnaire.design.brandName) && p.html.includes(filed.questionnaire.design.colours.primary) && p.html.includes(filed.questionnaire.design.cta.label), `${p.value}: the page does not wear the client's filed design`);
+    assert.deepEqual(faqInPage(p.html), p.itemList.map((it) => ({ question: it.heading.wording, answer: it.claims.map((c) => c.text.trim()).join(" ") })), `${p.value}: the FAQ data is not the visible Q&A`);
+    const seen = p.html.replace(/<(script|style)[\s\S]*?<\/\1>/g, " ").replace(/<[^>]+>/g, " ");
+    assert.equal(RECORD_LABELS.test(seen), false, `${p.value}: a record label is visible`);
+    for (const u of p.unanswered) for (const w of u.wordings) assert.ok(!p.html.includes(w), `${p.value}: an unanswered need is on the page`);
+    /* the title law: no search phrase is recorded for these pages, so nothing was composed and the gate says so; the title is traced to recorded questions */
+    const recorded = new Map(p.itemList.flatMap((it) => it.questions.map((q) => [`recorded-question:${q.questionId}`, q.wording])));
+    assert.deepEqual([p.titleComposed, p.checks.titleFromSearchPhrases.state, p.checks.titleFromRecords.state], [false, "NOT MEASURED", "PASS"]);
+    assert.deepEqual(p.titleTrace.map((t) => recorded.get(t.from)), p.titleTrace.map((t) => t.part), `${p.value}: a title part is not the recorded question its trace names`);
+    for (const c of p.keyFacts) assert.ok(p.itemList.some((it) => it.claims.some((x) => x.claimId === c.claimId && x.text.includes(c.value))), `${p.value}: a key fact is not in its recorded claim`);
     for (const it of p.itemList) {
-      assert.ok(recorded.has(it.heading.wording) && (it.heading.tier === "OBSERVED" || it.questions.every((q) => q.tier !== "OBSERVED")), `${p.value}: a heading is not a recorded question, or an observed one was passed over`);
       assert.ok(it.claims.length > 0 && it.claims.every((c) => c.text && c.source && /^https:\/\//.test(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn)), `${p.value}: an item's claim lacks its statement, source, link or date`);
       assert.ok(it.statements.every((st) => approved.has(st.answerId)), `${p.value}: a product statement is not an approved answer today`);
     }
-    /* the only gate that may fail is "every need answered" — and exactly when the page names an unanswered need */
-    assert.deepEqual(Object.entries(p.checks).filter(([, v]) => v.state === "FAIL").map(([k]) => k), p.unanswered.length ? ["everyNeedAnswered"] : [], `${p.value}: a gate fails`);
+    /* the only gate that may fail is "every need answered" — and exactly when the record names an unanswered need */
+    assert.deepEqual(failed(p), p.unanswered.length ? ["everyNeedAnswered"] : [], `${p.value}: a gate fails`);
     for (const k of ["engaging", "acceptableToSearchAndAnswerEngines"]) assert.equal(p.checks[k].state, "NOT MEASURED");
   }
   const live = cancelSamePages(proposed);
   assert.deepEqual([cancels.length, live.cancellations.length, live.cancelledPages.length], [0, 0, 0], "a page was cancelled although no two whole pages serve the same need");
   assert.ok(live.shared.length > 0, "no shared question: the owner's clarification is not exercised on the real pages");
-  for (const sh of live.shared) assert.notEqual(sh.on[0], sh.on[1]);
-  console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, words: p.wordCount, unanswered: p.unanswered.length, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: Object.values(p.checks).filter((v) => v.state === "FAIL").length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), sharedQuestionPairs: live.shared.length, cancellations: cancels.length })}`);
+  console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, faq: p.faqCount, keyFacts: p.keyFacts.length, words: p.wordCount, unanswered: p.unanswered.length, titleComposed: p.titleComposed, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: failed(p).length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), sharedQuestionPairs: live.shared.length, cancellations: cancels.length })}`);
 });
 
 /* ================= the entry point and its census ================= */

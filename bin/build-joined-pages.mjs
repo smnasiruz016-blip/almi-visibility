@@ -8,7 +8,10 @@
  *        --test-exception=<repo>:<path>@<commit> [--confirm]
  *
  * Its inputs are read from the batch itself, by fixed name (as bin/research-derived-intake.mjs reads its own): page-drafts.json, reviews.json
- * and, where one is filed, rationale-reviews.json (the recorded substance reviews F36 asks for when two items' reasons overlap, by need key).
+ * and, where filed, rationale-reviews.json (the recorded substance reviews F36 asks for when two items' reasons overlap, by need key),
+ * search-phrases.json (the recorded search phrases a title may be composed from — the title law) and key-facts.json (recorded values, each
+ * inside the recorded claim it names). The page is built under the owner's standing PAGE LAW (RR-255, src/page/joined-page.mjs): it wears
+ * the client's own design, read from the client's questionnaire.
  *
  * In one governed run, from stored records only (nothing fetched):
  *   1  the proposed pages (page-drafts.json): each a page candidate with its needs, their admitted questions and each need's answer claims;
@@ -45,6 +48,7 @@ import { compiledSlug } from "../src/page/spec-compiler.mjs";
 import { RESEARCH_DERIVED_RECORD, ASSESSMENT_RECORD } from "../src/research/research-derived.mjs";
 import { overturnedIds } from "../src/research/meaning-judgement.mjs";
 import { readProductQuestionnaire } from "../src/questionnaire/product-questionnaire-reader.mjs";
+import { designOf } from "../src/questionnaire/product-questionnaire.mjs";
 import { testException, parseExceptionRecord } from "../src/page/test-exception.mjs";
 import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, valueOf } from "../src/page/joined-page.mjs";
 
@@ -121,7 +125,13 @@ console.log(`  F35 decisions    ${G.groupedNeeds.length} need(s): ${Object.entri
 for (const d of G.groupedNeeds.filter((x) => x.decision !== "CHOSEN")) console.log(`    not chosen     ${(d.missing ?? []).join(" | ").slice(0, 200)}`);
 
 /* 6 · JOIN, render, gate table, write */
-const approved = (await readProductQuestionnaire(product)).claims;
+const filed = await readProductQuestionnaire(product);
+const approved = filed.claims;
+/* page law 1: the client's own design, as its questionnaire files it — none filed is none, never a default look */
+const design = filed.state === "READ" ? designOf(filed.questionnaire) : null;
+const list = (name) => { const v = json(name); return Array.isArray(v) ? v : []; };
+const phrases = list("search-phrases.json"), keyFacts = list("key-facts.json");
+console.log(`  page law inputs  client design ${design ? `filed (${design.basis})` : "NOT FILED"} · recorded search phrases ${phrases.length} · recorded key facts ${keyFacts.length}`);
 const needToKey = new Map([...keyToNeed].map(([k, v]) => [v, k]));
 const helpOf = new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.key, n.productAnswers ?? []])));
 const questions = new Map(stored.filter((r) => r?.record_type === CONNECTION).map((r) => [r.questionId, r]));
@@ -129,14 +139,16 @@ const questions = new Map(stored.filter((r) => r?.record_type === CONNECTION).ma
 const order = new Map(resolved.pages.flatMap((p) => p.needs.map((n, i) => [keyToNeed.get(n.key), i])));
 const chosen = new Set(G.compiled.forConstruction.map((c) => c.spec?.subject));
 const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map((d) => [d.subject.needId, (d.missing ?? []).join(" | ")]));
-const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
+const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
 const pages = joinPages({ construction: G.compiled.forConstruction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
+  design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId,
+  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value),
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
   statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
 for (const p of pages) {
   const states = Object.entries(p.checks).map(([k, v]) => `${k} ${v.state}`);
   const n = (s) => Object.values(p.checks).filter((v) => v.state === s).length;
-  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), ${p.wordCount} word(s) · unanswered need(s) ${p.unanswered.length} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
+  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), FAQ ${p.faqCount}, key facts ${p.keyFacts.length}, ${p.wordCount} word(s) · title ${p.titleComposed ? "COMPOSED from search phrases" : "from recorded questions (no search phrase recorded)"} · unanswered need(s) ${p.unanswered.length} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
   console.log(`    ${states.join(" · ")}`);
 }
 const out = [...resolved.cancellations.map((x) => ({ ...x, measurement_key: `${x.record_type}:${x.cancelledPage}:${x.cancelledNeed}:${x.survivorNeed}`, recorded_at: `${ON}T00:00:00Z`, subject: SUBJECT, stamp: X.stamp })),

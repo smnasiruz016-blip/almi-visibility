@@ -3288,7 +3288,7 @@ export const DECLARED = Object.freeze({
   F11: Object.freeze({
     featureId: "F11",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-13", ruling: F11_ORIGINAL.ruling, contractSha256: F11_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -3305,6 +3305,27 @@ export const DECLARED = Object.freeze({
         baseCiRun: "38343407040",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-259.md", commit: "d5dd94bdcb89e3ca957ccdbbfcf2adb7ca5ea7de", sha256: "f56111a0218963f3f8cab80c364f90bca9be17d7409bd8c5764dd0d1d4739ebe" }),
+      }),
+      /* RR-259: F11 PROVED — every clause of its frozen acceptance PROVED and every sabotage PROVED; sources (a) and (e) on the REAL
+       * population, (b) on the stored pull, every source on fixtures; the live parts of (b), (c) and (d) NOT MEASURED, each with its owner
+       * step named, as the acceptance allows. Recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F11",
+        population: "REAL",
+        on: "2026-10-13",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F11_ORIGINAL.ruling.sha256, contract: F11_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL, for the declared product, stored in its private research batch and read by the REAL tests (counts only): 260 phrases held once each — source (a) 186 from the live run of 13 October 2026 in the owner's own browser (26 searches of the day's cap of 30, no captcha and no unusual-traffic page; 4 runs: 2 ACCEPTED with a shortest pause of 23.0 s against the declared 20 s, 2 REFUSED and kept as records with no phrase — one for a pause shorter than declared, one for an incomplete run record, both tooling faults of the run itself); source (e) 73, the phrases a person saw (RR-256), verbatim; source (b) 1, the one query row of this tenant's partition of the stored Search Console pull. Every phrase carries its kinds by the declared lists (0 UNCLASSIFIED on the real phrases; fixtures prove UNCLASSIFIED) and stands in exactly one of 20 groups: 231 in a need, 29 in NO NEED YET; 2 needs are proposed by the grouping and are not pages. FIXTURES for every source and clause, including (c), (d) and (f), which hold no real phrase.",
+        proofs: "test/f11-search-phrases.test.mjs: the C1 (three), C2 (two), C3, C4, C5, C6 and [ALL] firing controls and census, and the two REAL tests",
+        sabotage: "runs/audit/f11-sabotage-2026-10-13T0513-2.txt (sha256 4568f8de…): 51 of 51 proved (one per FAILURE limb of C1–C6 and [ALL]), residue 0, production trail unchanged; the practice pass (…T0513.txt) found S34 NOT PROVED — a guard the declared-variant rule already made dead; the dead guard was removed and the limb retargeted to the rule that decides, before the real pass",
+        historicalReuse: "no historical row maps to F11 (crosswalk NEW). Reused read-only: F02's partition decision and F81's partition reader for the stored Search Console pull (decidePartition, clientObservations) — neither changed. The earlier owned-half module src/discovery/search-language.mjs is not part of this acceptance and is unchanged",
+        declaredLimit: "the engine fetches nothing: source (a) is what the client's own AI hands in, and the pace of a run is judged from its own record, not observed by the engine; the live parts of (b) a fresh Search Console pull, (c) Bing keyword research and (d) a Keyword Planner file are NOT MEASURED — no hand-in exists — each with the owner's step named; (f) holds no real suggestion; kinds are decided by stated word rules over declared lists, not by meaning; the grouping is a recorded judgement of the research agent, not a measurement; phrases seen from one place in one browser are a sample, never a census, and never a volume",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

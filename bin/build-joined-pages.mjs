@@ -139,8 +139,8 @@ const approved = filed.claims;
 /* page law 1: the client's own design, as its questionnaire files it — none filed is none, never a default look */
 const design = filed.state === "READ" ? designOf(filed.questionnaire) : null;
 const list = (name) => { const v = json(name); return Array.isArray(v) ? v : []; };
-const phrases = list("search-phrases.json"), keyFacts = list("key-facts.json"), rates = list("conversion-rates.json");
-console.log(`  page law inputs  client design ${design ? `filed (${design.basis})` : "NOT FILED"} · recorded search phrases ${phrases.length} · recorded key facts ${keyFacts.length} · recorded conversion rates ${rates.length}`);
+const phrases = list("search-phrases.json"), keyFacts = list("key-facts.json"), rates = list("conversion-rates.json"), comparisons = list("comparisons.json"), intervals = new Map(list("recheck-intervals.json").map((r) => [r?.claimId, r?.recheckDays]));
+console.log(`  page law inputs  client design ${design ? `filed (${design.basis})` : "NOT FILED"} · recorded search phrases ${phrases.length} · recorded key facts ${keyFacts.length} · recorded conversions ${rates.length} · recorded comparison tables ${comparisons.length} · recorded recheck intervals ${intervals.size}`);
 const needToKey = new Map([...keyToNeed].map(([k, v]) => [v, k]));
 const helpOf = new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.key, n.productAnswers ?? []])));
 const questions = new Map(stored.filter((r) => r?.record_type === CONNECTION).map((r) => [r.questionId, r]));
@@ -151,7 +151,7 @@ const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map
 const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
 const pages = joinPages({ construction: G.compiled.forConstruction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId,
-  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), on: ON,
+  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
   statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
 for (const p of pages) {

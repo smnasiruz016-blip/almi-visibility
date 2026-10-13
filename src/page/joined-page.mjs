@@ -17,6 +17,14 @@
  *   6 FAQPage   structured data (JSON-LD) whose questions and answers ARE the visible ones, compared after rendering.
  *   7 LABELS    record labels (tiers, source labels, states) stay in the page RECORD and its trace — never in the visible page.
  *   8 UNANSWERED a need with no supported answer is never on the page. It stays in the record by name.
+ * THE AI-SEARCH PAGE LAW (RR-257, AlmiVisibility_OWNER_RULING_2026-10-13_RR-257_AI_SEARCH_PAGE_LAW.md; B2 to B8 are checked here, each
+ *   as far as a page that is not published can be measured — these are implementation rules, never a search engine's formula and never
+ *   a promise of inclusion, ranking or citation): the title promises only what the page holds; the direct answer stands right after its
+ *   question; every fact shows its source and the day THAT fact was checked, and has a recorded recheck interval; one question lives
+ *   under one need; the answers are plain HTML text; the business is identified and its own claims are set apart; nothing reads as an
+ *   instruction to a machine.
+ * THE HEADING RULE (RR-257 A2): where a need has a full recorded QUESTION, the question is the heading; otherwise the recorded phrase,
+ *   the same words in title case. A raw lower-case phrase is never a heading.
  * THE TITLE LAW: the engine may COMPOSE a short title from RECORDED SEARCH PHRASES; every word must trace to a recorded search phrase or
  *   a recorded fact (the year is a date fact); the trace is recorded. With no recorded search phrase NOTHING is composed: the title is
  *   then recorded questions, and the page says the title law is not met for want of that record.
@@ -38,7 +46,7 @@ export const TIER_WORDS = Object.freeze({ OBSERVED: "OBSERVED — seen on an ope
 /** Law 7: words of the record that must never be visible. Matched as whole words, case-sensitive where they are record codes. */
 export const RECORD_LABELS = /\b(OBSERVED|INFERRED|RESEARCH-DERIVED|RESPONSIBLE BODY|SECONDARY|SELF-SOURCED|UNKNOWN|UNVERIFIED|NOT MEASURED|PASS|FAIL)\b|self-sourced|not independently verified|owner-approved/;
 /** The page's own structural words. They are declared here, not composed: a section needs a name, and none of them states a fact. */
-export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "A conversion, not a price set by the source" });
+export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked" });
 export const REFUSAL = Object.freeze({
   JUDGEMENT: "SAME_NEED_JUDGEMENT_NAMES_NO_RECORDED_JUDGEMENT_OR_TWO_KNOWN_NEEDS",
   SAME_PAGE: "SAME_NEED_JUDGEMENT_WITHIN_ONE_PAGE_IS_A_SAMENESS_DRAFT_NOT_A_CANCELLATION",
@@ -47,6 +55,7 @@ export const REFUSAL = Object.freeze({
   KEY_FACT: "KEY_FACT_VALUE_IS_NOT_IN_ITS_RECORDED_CLAIM",
   CONVERSION: "CONVERSION_WITHOUT_ITS_AMOUNT_IN_THE_CLAIM_OR_ITS_DATED_SOURCED_RATE",
   STALE_RATE: "CONVERSION_RATE_IS_STALE_AND_MUST_BE_REFRESHED",
+  COMPARISON: "COMPARISON_CELL_IS_NOT_IN_ITS_RECORDED_CLAIM_OR_NAMES_NO_SHOWN_CONVERSION",
 });
 
 const present = (v) => typeof v === "string" && v.trim() !== "";
@@ -161,10 +170,17 @@ export function productStatements({ answerIds = [], approved = [], officialSite 
   return Object.freeze({ shown: Object.freeze(shown), refused: Object.freeze(refused) });
 }
 
-/** A need's questions in the order the page shows them: a question that is itself a RECORDED SEARCH PHRASE first (the words people search,
- * RR-256), then OBSERVED questions, then the rest; each group by question id. */
+/** RR-257 B3 · the direct answer stands right after its question: an item's central statements lead, the rest follow, each group in its
+ * recorded order. Nothing is added or dropped. */
+export const centralFirst = (claims = []) => Object.freeze([...claims.filter((c) => c?.central !== false), ...claims.filter((c) => c?.central === false)]);
+
+/** A full question, as recorded: its wording ends in a question mark. A search phrase such as "widget fee in atlantis" is not one. */
+export const isQuestion = (wording) => /[?؟]\s*$/.test(String(wording ?? ""));
+
+/** A need's questions in the order the page shows them (RR-257 A2): FULL QUESTIONS before phrases — among questions, one that is itself
+ * a recorded search phrase first, then OBSERVED ones, then the rest; then the phrases, a recorded search phrase first. Each group by id. */
 export function orderedQuestions(questions, searched = new Set()) {
-  const rank = (q) => (searched.has(q.wording) ? 0 : q.tier === "OBSERVED" ? 1 : 2);
+  const rank = (q) => (isQuestion(q.wording) ? (searched.has(q.wording) ? 0 : q.tier === "OBSERVED" ? 1 : 2) : searched.has(q.wording) ? 3 : q.tier === "OBSERVED" ? 4 : 5);
   return [...questions].sort((a, b) => rank(a) - rank(b) || (a.questionId < b.questionId ? -1 : a.questionId > b.questionId ? 1 : 0));
 }
 
@@ -174,6 +190,9 @@ const titleCase = (s, capitals = new Set()) => String(s).trim().split(/\s+/).map
 /** The words the page's records write in capitals (2 to 6 letters): the only words a composed title may capitalise whole. */
 export const capitalsIn = (texts) => new Set(texts.flatMap((t) => String(t ?? "").match(/\b[A-Z]{2,6}\b/g) ?? []));
 const tokens = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+/** The heading a recorded wording is shown as: a question as it is; a phrase in title case — the same words, nothing added. */
+export const headingShown = (wording, capitals = new Set()) => (isQuestion(wording) ? String(wording).trim() : titleCase(wording, capitals));
+const sameWords = (a, b) => tokens(a).join(" ") === tokens(b).join(" ");
 
 /** The words of a recorded phrase a title part uses: `use` when given — and then every word of it must be a word of THAT phrase, in the
  * phrase's own order — else the whole phrase. A `use` that is not inside its phrase yields null: nothing is composed from it. */
@@ -222,7 +241,7 @@ export function titleWordsTraced({ title, phrases = [], lastChecked = null }) {
 /** Law 3 · key-fact cards: a recorded value that stands, word for word, inside the recorded claim it names, under that item's own recorded
  * question; anything else is refused. */
 export function keyFactCards({ facts = [], items = [] }) {
-  const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId, question: it.heading.wording }])));
+  const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId, question: it.heading.shown ?? it.heading.wording }])));
   const cards = [], refused = [];
   for (const f of facts) {
     const c = claims.get(f?.claimId);
@@ -233,30 +252,60 @@ export function keyFactCards({ facts = [], items = [] }) {
 }
 
 /**
- * RR-256 · A DATED CONVERSION beside a recorded price: "≈ <to> <amount> at the <date> exchange rate", from ONE recorded rate fact — its rate,
- * its date, its source's name and link. It is computed here, never typed in. The amount converted must stand in the recorded claim it
- * names; a rate older than its own stated shelf life on the run's date is STALE and nothing is shown (it must be refreshed).
+ * A DATED CONVERSION beside a recorded price (RR-256; RR-257 A1: through one or MORE official rates of the SAME day, multiplied in order —
+ * e.g. the price's currency to a second currency by one central bank's rate, and that to the reader's currency by another's). It is
+ * computed here, never typed in. The amount converted must stand in the recorded claim it names; every step is a dated fact with its
+ * source's name and link and its own recheck interval; the steps must chain and share one date. Past the shortest recheck interval on
+ * the run's date the conversion is STALE and nothing is shown. The line says it is an estimate and whose price it is NOT.
  */
 export function conversions({ rates = [], items = [], on }) {
-  const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId }])));
+  const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId, needKey: it.needKey }])));
   const shown = [], refused = [];
   const day = (d) => Date.parse(`${d}T00:00:00Z`);
+  const date = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "");
   for (const r of rates) {
-    const c = claims.get(r?.claimId);
-    const ok = c && Number.isFinite(r.amount) && r.amount > 0 && Number.isFinite(r.rate) && r.rate > 0 && present(r.from) && present(r.to) && present(r.shown) && String(c.text ?? "").includes(r.shown)
-      && /^\d{4}-\d{2}-\d{2}$/.test(r.rateDate ?? "") && present(r.source) && /^https:\/\//.test(r.link ?? "") && Number.isInteger(r.staleAfterDays) && r.staleAfterDays > 0;
+    const c = claims.get(r?.claimId), steps = Array.isArray(r?.steps) ? r.steps : [];
+    const stepOk = (s) => Number.isFinite(s?.rate) && s.rate > 0 && present(s.from) && present(s.to) && date(s.rateDate) && present(s.source) && present(s.short) && /^https:\/\//.test(s.link ?? "") && Number.isInteger(s.recheckDays) && s.recheckDays > 0;
+    const ok = c && Number.isFinite(r.amount) && r.amount > 0 && present(r.from) && present(r.to) && present(r.toName) && present(r.label) && present(r.notA) && present(r.shown) && String(c.text ?? "").includes(r.shown)
+      && steps.length > 0 && steps.every(stepOk) && steps[0].from === r.from && steps.at(-1).to === r.to && steps.every((s, i) => i === 0 || (steps[i - 1].to === s.from && steps[i - 1].rateDate === s.rateDate));
     if (!ok) { refused.push(Object.freeze({ claimId: r?.claimId ?? null, code: REFUSAL.CONVERSION })); continue; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(on ?? "") || (day(on) - day(r.rateDate)) / 86400000 > r.staleAfterDays) { refused.push(Object.freeze({ claimId: r.claimId, code: REFUSAL.STALE_RATE })); continue; }
-    const amount = Math.round(r.amount * r.rate);
-    shown.push(Object.freeze({ claimId: c.claimId, needId: c.needId, from: r.from, to: r.to, amount, rate: r.rate, rateDate: r.rateDate, source: r.source, link: r.link,
-      text: `${r.shown} ≈ ${r.to} ${amount.toLocaleString("en-US")} at the ${r.rateDate} exchange rate (1 ${r.from} = ${r.to} ${r.rate}). ${STRUCTURE.conversion}.` }));
+    const rateDate = steps[0].rateDate, shelf = Math.min(...steps.map((s) => s.recheckDays));
+    if (!date(on) || (day(on) - day(rateDate)) / 86400000 > shelf) { refused.push(Object.freeze({ claimId: r.claimId, code: REFUSAL.STALE_RATE })); continue; }
+    const amount = Math.round(steps.reduce((a, s) => a * s.rate, r.amount));
+    const short = `≈ ${r.to} ${amount.toLocaleString("en-US")}`;
+    shown.push(Object.freeze({ claimId: c.claimId, needId: c.needId, needKey: c.needKey, from: r.from, to: r.to, amount, rateDate, recheckDays: shelf, short,
+      steps: Object.freeze(steps.map((s) => Object.freeze({ from: s.from, to: s.to, rate: s.rate, rateDate: s.rateDate, source: s.source, short: s.short, link: s.link, recheckDays: s.recheckDays }))),
+      text: `${r.label} ${r.shown} (${short}). The ${r.toName} figure is an ${STRUCTURE.conversion} from the ${steps.map((s) => s.short).join(" and ")} rates of ${rateDate}, not ${r.notA}.` }));
+  }
+  return Object.freeze({ shown: Object.freeze(shown), refused: Object.freeze(refused) });
+}
+
+/**
+ * RR-257 B7 · A SMALL COMPARISON TABLE inside one need's answer — the page's own added value. Every cell is a recorded value found word
+ * for word in the recorded claim it names (with that claim's source), or the shown conversion of a claim; anything else refuses the table.
+ */
+export function comparisonTables({ tables = [], items = [], converted = [] }) {
+  const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, c])));
+  const keys = new Set(items.map((it) => it.needKey));
+  const shown = [], refused = [];
+  for (const t of tables) {
+    const cols = Array.isArray(t?.columns) ? t.columns : [], rows = Array.isArray(t?.rows) ? t.rows : [];
+    const cell = (x) => {
+      if (present(x?.conversionOf)) { const v = converted.find((k) => k.claimId === x.conversionOf); return v ? Object.freeze({ value: `${v.short} (${STRUCTURE.conversion})`, source: v.steps.map((s) => s.short).join(" and "), link: v.steps[0].link, claimId: v.claimId }) : null; }
+      const c = claims.get(x?.claimId);
+      return c && present(x.value) && String(c.text ?? "").includes(x.value) ? Object.freeze({ value: x.value.trim(), source: c.source, link: c.link, claimId: c.claimId }) : null;
+    };
+    const built = rows.map((r) => ({ label: r?.label, cells: (Array.isArray(r?.cells) ? r.cells : []).map(cell) }));
+    const ok = keys.has(t?.need) && present(t.caption) && cols.length >= 2 && cols.slice(1).every(present) && built.length > 0 && built.every((r) => present(r.label) && r.cells.length === cols.length - 1 && r.cells.every(Boolean));
+    if (!ok) { refused.push(Object.freeze({ need: t?.need ?? null, code: REFUSAL.COMPARISON })); continue; }
+    shown.push(Object.freeze({ need: t.need, caption: t.caption.trim(), columns: Object.freeze([...cols]), rows: Object.freeze(built.map((r) => Object.freeze({ label: r.label.trim(), cells: Object.freeze(r.cells) }))) }));
   }
   return Object.freeze({ shown: Object.freeze(shown), refused: Object.freeze(refused) });
 }
 
 /** Law 6 · the FAQPage data: exactly the visible questions and the visible answer text of each item. */
 export function faqOf(items) {
-  return Object.freeze(items.map((it) => Object.freeze({ question: it.heading.wording, answer: it.claims.filter((c) => present(c.text)).map((c) => c.text.trim()).join(" ") })));
+  return Object.freeze(items.map((it) => Object.freeze({ question: it.heading.shown ?? it.heading.wording, answer: it.claims.filter((c) => present(c.text)).map((c) => c.text.trim()).join(" ") })));
 }
 
 /**
@@ -270,9 +319,11 @@ export function faqOf(items) {
  *   design         the client's own site design, from its questionnaire (law 1) · productLine  the client's declared product line (law 2)
  *   phrasesFor     the recorded search phrases of a page value (title law) · keyFactsFor  the recorded key facts of a page value (law 3)
  *   needKeyOf      a need's recorded key (what phrases and key facts name)
+ *   ratesFor       the recorded conversion records of a page value · comparisonsFor  its recorded comparison tables (RR-257 B7)
+ *   recheckOf      a claim's recorded recheck interval in days (RR-257 B4) · on  the day of the run
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], on = null, needKeyOf = (id) => id }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -287,16 +338,16 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const phrases = [...phrasesFor(value)];
     /* a question that IS a recorded search phrase leads its item (RR-256) */
     const searched = new Set(phrases.map((p) => p?.text).filter(present));
+    const capitals = capitalsIn([...list.flatMap(({ spec }) => [...spec.sections.map((s) => s.heading), ...spec.answer.labels.map((c) => c.text)]), ...phrases.map((p) => p?.text)]);
     const items = list.sort((a, b) => orderOf(a.spec.subject) - orderOf(b.spec.subject) || (a.spec.subject < b.spec.subject ? -1 : 1)).map(({ spec, decision }) => {
       const draft = renderNeed({ spec, decision });
       const qs = orderedQuestions(spec.sections.map((s) => { const q = questions.get(s.questionId) ?? {}; return Object.freeze({ questionId: s.questionId, wording: s.heading, tier: s.tier, country: q.country ?? null, language: q.language ?? null }); }), searched);
       const st = statementsFor(spec.subject);
-      return Object.freeze({ needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: spec.answer.labels, unknown: spec.answer.unknown, answerJudged: spec.answer.state,
+      return Object.freeze({ needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
         needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });
     const lastChecked = items.flatMap((it) => it.claims.map((c) => c.readOn)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "")).sort().at(-1) ?? null;
-    const capitals = capitalsIn([...items.flatMap((it) => [...it.questions.map((q) => q.wording), ...it.claims.map((c) => c.text)]), ...phrases.map((p) => p?.text)]);
     const composed = composeTitle({ phrases, needOrder: items.map((it) => it.needKey), lastChecked, capitals });
     /* with no recorded search phrase NOTHING is composed: the title is then the first recorded questions, observed first, as before */
     const first = items.slice(0, TITLE_TOPICS);
@@ -305,15 +356,17 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const titleTrace = composed.title ? composed.trace : Object.freeze(fallback.map((h) => Object.freeze({ part: h.wording, from: `recorded-question:${h.questionId}` })));
     const kf = keyFactCards({ facts: keyFactsFor(value), items });
     const cv = conversions({ rates: ratesFor(value), items, on });
+    const cmp = comparisonTables({ tables: comparisonsFor(value), items, converted: cv.shown });
+    const recheck = Object.freeze(Object.fromEntries(items.flatMap((it) => it.claims.map((c) => [c.claimId, recheckOf(c.claimId) ?? null]))));
     const unanswered = Object.freeze([...unansweredFor(value)]);
     const faq = faqOf(items);
     const intro = Object.freeze([present(productLine) ? productLine.trim() : null, `${items.length} question${items.length === 1 ? "" : "s"} answered below, each with its source.`].filter(Boolean));
-    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown });
+    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown });
     const trace = items.flatMap((it) => [...it.claims.map((c) => Object.freeze({ needId: it.needId, claimId: c.claimId, label: c.label, source: c.source, link: c.link, readOn: c.readOn })),
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
-    const checks = joinedChecks({ items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused });
+    const checks = joinedChecks({ items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
     const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp };
-    pages.push(Object.freeze({ record_type: JOINED_RECORD, measurement_key: `${JOINED_RECORD}:${hash([value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, conversions: cv.shown, conversionsRefused: cv.refused, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
+    pages.push(Object.freeze({ record_type: JOINED_RECORD, measurement_key: `${JOINED_RECORD}:${hash([value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
   return Object.freeze(pages);
 }
@@ -326,7 +379,7 @@ export function faqInPage(html) {
 }
 
 /** The joined page's OWN measurable checks. A check whose input is not recorded is NOT MEASURED; none passes by default. */
-export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [] }) {
+export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [], tables = [], tablesRefused = [], recheck = {}, on = null }) {
   const state = (ok, why) => (ok ? Object.freeze({ state: CHECK.PASS }) : Object.freeze({ state: CHECK.FAIL, why }));
   const claims = items.flatMap((it) => it.claims);
   const recorded = new Set(items.flatMap((it) => it.questions.map((q) => q.wording)));
@@ -334,26 +387,68 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
   const inPage = faqInPage(html);
   const perNeed = (name) => { const s = items.map((it) => it.needChecks?.[name] ?? CHECK.NOT_MEASURED); return s.includes(CHECK.FAIL) ? CHECK.FAIL : s.includes(CHECK.NOT_MEASURED) ? CHECK.NOT_MEASURED : CHECK.PASS; };
   const untraced = composed ? titleWordsTraced({ title, phrases, lastChecked }) : [];
+  const shownOf = (it) => it.heading.shown ?? it.heading.wording;
+  const keys = new Set(items.map((it) => it.needKey));
+  const titleParts = phrases.filter((p) => p?.role === "TOPIC" && wordsUsed(p) !== null).filter((p) => titleTrace.some((t) => t.from === `search-phrase:${p.phraseId}`));
+  const partsOffPage = titleParts.filter((p) => !keys.has(p.need)).map((p) => wordsUsed(p));
+  const promisesBroken = titleParts.filter((p) => present(p.promisesConversionTo) && !converted.some((v) => v.to === p.promisesConversionTo && v.needKey === p.need)).map((p) => wordsUsed(p));
+  const yearPart = titleTrace.find((t) => String(t.from).startsWith("date-fact:"));
+  const days = (a, b) => (Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86400000;
+  const noInterval = claims.filter((c) => !(Number.isInteger(recheck[c.claimId]) && recheck[c.claimId] > 0)).map((c) => c.claimId);
+  const overdue = /^\d{4}-\d{2}-\d{2}$/.test(on ?? "") ? claims.filter((c) => Number.isInteger(recheck[c.claimId]) && days(on, c.readOn) > recheck[c.claimId]).map((c) => c.claimId) : [];
+  const yearOk = !yearPart || (claims.every((c) => String(c.readOn ?? "").startsWith(yearPart.part)) && noInterval.length === 0 && overdue.length === 0);
+  const wordingHomes = new Map(); for (const it of items) for (const q of it.questions) wordingHomes.set(tokens(q.wording).join(" "), (wordingHomes.get(tokens(q.wording).join(" ")) ?? new Set()).add(it.needId));
+  const twice = [...wordingHomes].filter(([, s]) => s.size > 1).map(([w]) => w);
+  const scripts = html.match(/<script\b[^>]*>/g) ?? [];
+  const local = {
+    "answers are plain HTML text, present when the item is closed": faq.every((f) => html.includes(esc(f.answer.split(" ").slice(0, 6).join(" ")))) && items.every((it) => it.claims.every((c) => html.includes(esc(c.text.trim())))),
+    "no script builds the page (structured data only)": scripts.every((s) => /type="application\/ld\+json"/.test(s)),
+    "structured data is the visible questions and answers": Array.isArray(inPage) && inPage.length === faq.length && faq.every((f, i) => inPage[i].question === f.question && inPage[i].answer === f.answer),
+    "a viewport is declared for small screens": /<meta name="viewport"/.test(html),
+    "robots and canonical agree (a test page: noindex and no canonical)": /<meta name="robots" content="noindex/.test(html) ? !/rel="canonical"/.test(html) : /rel="canonical"/.test(html),
+    "crawlable links to the client's own site": present(design?.siteAddress) && html.includes(`href="${esc(design.siteAddress)}`),
+  };
+  const localFailed = Object.entries(local).filter(([, ok]) => !ok).map(([k]) => k);
+  const trust = {
+    "the business is named and a contact link is shown": present(design?.brandName) && html.includes(esc(design.brandName)) && (design?.footer?.columns ?? []).some((col) => (col.links ?? []).some((l) => /contact/i.test(l.label ?? "") && html.includes(esc(l.label)))),
+    "the product's own claims stand apart in product cards": items.every((it) => it.statements.every((s) => html.includes(`<div class="product" data-answer-id="${esc(s.answerId)}">`))),
+    "the page adds a comparison table of its own": tables.length > 0 && tablesRefused.length === 0,
+  };
+  const trustFailed = Object.entries(trust).filter(([, ok]) => !ok).map(([k]) => k);
   return Object.freeze({
     /* ── the page law, clause by clause ── */
     law1ClientDesign: state(Boolean(design) && present(design.brandName) && present(design.colours?.primary) && present(design.fonts?.body) && html.includes(esc(design.brandName)) && html.includes(design.colours.primary), "the page does not carry the client's own filed design"),
     law2Hero: state(/<h1[ >]/.test(html) && html.includes(esc(title)) && intro.length === 2 && intro.every((l) => html.includes(esc(l))) && present(design?.cta?.label) && present(design?.cta?.href) && html.includes(esc(design.cta.label)), "the hero lacks its H1, its two-line intro or the client's call-to-action button"),
     law3KeyFacts: cards.length === 0 && cardsRefused.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no key fact is recorded for this page" }) : state(cardsRefused.length === 0 && cards.every((c) => html.includes(esc(c.value)) && present(c.link) && present(c.source)), "a key-fact card shows a value that is not in its recorded claim, or lacks its source link"),
-    law4QuestionsAndAnswers: state(items.length > 0 && /<details/.test(html) && items.every((it) => html.includes(esc(it.heading.wording)) && it.claims.every((c) => html.includes(`${STRUCTURE.source}: ${esc(c.source)}`))) && present(lastChecked) && html.includes(`${STRUCTURE.lastChecked}: ${lastChecked}`), "a question, its answer's source link or the last-checked line is missing"),
+    law4QuestionsAndAnswers: state(items.length > 0 && /<details/.test(html) && items.every((it) => html.includes(esc(shownOf(it))) && it.claims.every((c) => html.includes(`${STRUCTURE.source}: ${esc(c.source)}`))) && present(lastChecked) && html.includes(`${STRUCTURE.lastChecked}: ${lastChecked}`), "a question, its answer's source link or the last-checked line is missing"),
     law5ProductCards: state(items.every((it) => it.statementsRefused.length === 0) && (items.every((it) => it.statements.length === 0) || present(design?.cta?.label)), "a product fact shown is not an owner-approved answer, or its card has no call to action"),
     law6FaqMatchesVisible: state(Array.isArray(inPage) && inPage.length === faq.length && faq.every((f, i) => inPage[i].question === f.question && inPage[i].answer === f.answer && html.includes(esc(f.question)) && f.answer.length > 0), "the FAQ structured data is not exactly the visible questions and answers"),
     law7NoRecordLabels: state(!RECORD_LABELS.test(seen), "a record label is visible on the page"),
     law8UnansweredNotShown: state(unanswered.every((u) => (u.wordings ?? []).every((w) => !html.includes(esc(w)))), "an unanswered need is written into the page"),
     conversionMarked: converted.length === 0 && conversionsRefused.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no conversion rate is recorded for this page" })
-      : state(conversionsRefused.length === 0 && converted.every((c) => html.includes(esc(c.text)) && html.includes(esc(c.source)) && c.text.includes(STRUCTURE.conversion) && c.text.includes(c.rateDate)), conversionsRefused.length ? `a conversion is not shown: ${conversionsRefused.map((r) => r.code).join(", ")}` : "a conversion is shown without its rate, its date, its source or its mark"),
+      : state(conversionsRefused.length === 0 && converted.every((c) => html.includes(esc(c.text)) && c.text.includes(STRUCTURE.conversion) && c.text.includes(c.rateDate) && c.steps.every((s) => html.includes(esc(s.source)) && html.includes(esc(s.link)) && html.includes(String(s.rate)))), conversionsRefused.length ? `a conversion is not shown: ${conversionsRefused.map((r) => r.code).join(", ")}` : "a conversion is shown without its rate, its date, its source or its mark"),
+    comparisonFromClaims: tables.length === 0 && tablesRefused.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no comparison table is recorded for this page" })
+      : state(tablesRefused.length === 0 && tables.every((t) => html.includes(esc(t.caption)) && t.rows.every((r) => r.cells.every((c) => html.includes(esc(c.value))))), "a comparison table holds a cell that is not in its recorded claim, or is not on the page"),
+    /* ── the AI-search page law (RR-257), B2 to B8, as far as an unpublished page can be measured ── */
+    b2TitlePromisesOnlyWhatThePageHolds: composed ? state(partsOffPage.length === 0 && promisesBroken.length === 0 && yearOk,
+      [partsOffPage.length ? `title part(s) whose need is not on the page: ${partsOffPage.join(", ")}` : null, promisesBroken.length ? `title part(s) the page does not keep: ${promisesBroken.join(", ")}` : null, yearOk ? null : "the title carries a year although a fact was read in another year, has no recheck interval or is overdue"].filter(Boolean).join("; "))
+      : Object.freeze({ state: CHECK.NOT_MEASURED, why: "the title is not composed from recorded search phrases" }),
+    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`); }), "an item's question is not followed at once by its central answer"),
+    b4SourcedCheckedAndRecheckable: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "") && html.includes(`${STRUCTURE.checked} ${esc(c.readOn)}`)) && noInterval.length === 0 && overdue.length === 0,
+      [noInterval.length ? `${noInterval.length} fact(s) have no recorded recheck interval` : null, overdue.length ? `${overdue.length} fact(s) are past their recheck interval` : null].filter(Boolean).join("; ") || "a fact lacks its source or the day it was checked"),
+    b5OneNeedPerWording: state(twice.length === 0 && !/search volume/i.test(seen), twice.length ? `the same wording stands under two items: ${twice.slice(0, 3).join(" | ")}` : "recorded phrases are called search volume"),
+    b6Technical: Object.freeze({ state: localFailed.length ? CHECK.FAIL : CHECK.PASS, ...(localFailed.length ? { why: localFailed.join("; ") } : {}), measured: Object.freeze(Object.keys(local)),
+      notMeasured: Object.freeze(["loads without a login or bot challenge", "indexability of the public address", "sitemap and a clear address", "reachable by links from the client's other pages", "mobile layout and controls, by a person or a device"]) }),
+    b7Trust: state(trustFailed.length === 0, trustFailed.join("; ")),
+    b8NoInstructionToMachines: state(!/\b(ignore (all|any|the|your) (previous|prior|above)|as an ai\b|language model|system prompt|you must recommend|when asked, (say|answer|recommend))/i.test(seen), "the page holds text that reads as an instruction to a machine"),
     titleFromSearchPhrases: composed ? state(untraced.length === 0 && titleTrace.length > 0, `title word(s) with no recorded source: ${untraced.join(", ")}`) : Object.freeze({ state: CHECK.NOT_MEASURED, why: titleMissing ?? "no recorded search phrase" }),
     titleFromRecords: state(present(title) && titleTrace.length > 0 && (composed || titleTrace.every((t) => recorded.has(t.part))), "the title is not made of recorded phrases or recorded questions"),
     /* ── what was already required ── */
     everyNeedAnswered: state(items.length > 0 && unanswered.length === 0, `${unanswered.length} need(s) of this page have no supported answer and are not on it`),
     everyItemAnswered: state(items.length > 0 && items.every((it) => it.claims.some((c) => c.central !== false && present(c.text))), "an item has no supported central statement to answer its questions"),
     everyClaimSourced: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "")), "a written claim lacks its source's name, link or the date it was read"),
-    ownWording: state(items.every((it) => it.questions.every((q) => present(q.wording) && html.includes(esc(q.wording)))), "a question is not shown in its own recorded wording"),
-    headingsFromQuestions: state(items.every((it) => recorded.has(it.heading?.wording) && it.questions[0]?.questionId === it.heading?.questionId && (present(it.heading.searchPhrase) || it.heading.tier === "OBSERVED" || it.questions.every((q) => q.tier !== "OBSERVED"))), "a heading is not a recorded question of its item, or an observed question was passed over"),
+    ownWording: state(items.every((it) => it.questions.every((q, i) => present(q.wording) && (i === 0 ? html.includes(esc(shownOf(it))) && sameWords(shownOf(it), q.wording) : html.includes(esc(q.wording))))), "a question is not shown in its own recorded words"),
+    headingsFromQuestions: state(items.every((it) => recorded.has(it.heading?.wording) && it.questions[0]?.questionId === it.heading?.questionId && (isQuestion(it.heading.wording) ? shownOf(it) === it.heading.wording.trim() : it.questions.every((q) => !isQuestion(q.wording)) && sameWords(shownOf(it), it.heading.wording) && shownOf(it) !== it.heading.wording.toLowerCase())), "a heading is not its item's recorded question, a full question was passed over for a phrase, or a raw lower-case phrase is a heading"),
     stamped: state(html.split(esc(stamp)).length - 1 >= 2, "the page does not say, top and bottom, what it is"),
     noPromise: state(!PROMISE.test(seen), "the page promises ranking, indexing or citation"),
     /* F37's own measurable checks, per need, aggregated — unchanged, never re-decided here */
@@ -388,6 +483,7 @@ function styleOf(design) {
     + `.card{background:${v.paper};border:1px solid ${v.line};border-radius:${radius};padding:18px}.card .k{display:block;color:${v.muted};font-size:14px}.card .v{display:block;color:${v.ink};font-weight:700;font-size:22px;margin:4px 0 8px}`
     + `.src{font-size:13px;color:${v.muted}}.checked{color:${v.muted};font-size:14px;margin:0 0 12px}`
     + `details{background:${v.paper};border:1px solid ${v.line};border-radius:${radius};margin:0 0 12px;padding:0 18px}summary{cursor:pointer;list-style-position:outside;padding:16px 0;color:${v.ink};font-weight:600;font-size:18px}details[open] summary{border-bottom:1px solid ${v.line}}`
+    + `.cmp{width:100%;border-collapse:collapse;margin:12px 0 16px;font-size:15px}.cmp caption{text-align:left;color:${v.muted};font-size:14px;padding:0 0 6px}.cmp th,.cmp td{border:1px solid ${v.line};padding:8px 10px;text-align:left;vertical-align:top}.cmp thead th{background:${v.bg};color:${v.ink}}`
     + `details p{margin:12px 0}.also{color:${v.muted};font-size:14px}.product{background:${v.bg};border:1px solid ${v.line};border-radius:${radius};padding:14px 16px;margin:12px 0 16px}.product p{margin:0 0 10px;color:${v.ink}}.product .cta{font-size:14px;padding:8px 18px}`
     + `.site-foot{background:${v.footBg};color:${v.onDark};margin-top:40px}.foot{max-width:1120px;margin:0 auto;padding:36px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;font-size:14px}`
     + `.foot h3{margin:0 0 10px;color:${v.footAccent};font-size:12px;letter-spacing:.08em;text-transform:uppercase}.foot ul{margin:0;padding:0;list-style:none}.foot li{margin:0 0 6px}.foot a{color:${v.onDark};opacity:.8;text-decoration:none}.legal{text-align:center;font-size:12px;opacity:.7;padding:0 20px 24px;margin:0}`;
@@ -397,19 +493,21 @@ function styleOf(design) {
  * Deterministic HTML under the page law. Every sentence of fact is a recorded claim's own text or an approved answer's own statement;
  * the questions are recorded questions; the brand, navigation, call to action and footer are the client's own filed design.
  */
-export function renderJoined({ title, stamp, items, design = null, intro = [], cards = [], faq = faqOf(items), lastChecked = null, converted = [] }) {
+export function renderJoined({ title, stamp, items, design = null, intro = [], cards = [], faq = faqOf(items), lastChecked = null, converted = [], tables = [] }) {
   const site = design?.siteAddress ?? null;
   const link = (href) => esc(absolute(site, href) ?? "#");
   const cta = present(design?.cta?.label) && present(design?.cta?.href) ? `<a class="cta" href="${link(design.cta.href)}">${esc(design.cta.label)}</a>` : "";
   const header = design ? `<header class="site-head"><div class="bar"><a class="brand" href="${link("/")}">${present(design.logo?.mark) ? `<span class="mark" aria-hidden="true">${esc(design.logo.mark)}</span>` : ""}<span>${esc(design.logo?.wordmark ?? design.brandName ?? "")}</span></a>`
     + `<nav>${(design.nav ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}${cta}</nav></div></header>` : "";
   const footer = design ? `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>` : "";
-  const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>`;
+  const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
+  const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a></td>`).join("")}</tr>`).join("")}</tbody></table>`;
   const item = (it) => [
     `<details data-need-id="${esc(it.needId)}"${it === items[0] ? " open" : ""}>`,
-    `<summary>${esc(it.heading.wording)}</summary>`,
+    `<summary>${esc(it.heading.shown ?? it.heading.wording)}</summary>`,
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
-      ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} <a class="src" href="${esc(v.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(v.source)}</a></p>`)]),
+      ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
+    ...tables.filter((t) => t.need === it.needKey).map(table),
     it.questions.length > 1 ? `<p class="also">${STRUCTURE.alsoAsked}: ${it.questions.slice(1).map((q) => esc(q.wording)).join(" · ")}</p>` : "",
     ...it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`),
     `</details>`,

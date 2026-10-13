@@ -423,6 +423,13 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_1_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 1)" }),
+  /* RR-260 (13 Oct 2026): the 5 CURRENT records admitted by the migration at _handoffs d960fa8: the command, the owner's answers on
+   * the two proposed needs and FAST MODE F10, his ruling on F12, his approval of the F12 draft with C3 corrected, and F12's first Acceptance. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-260.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-260_PROPOSED_NEEDS_F10_AND_PARKED_SOURCES.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-13_RR-260_F12_GROUPING_BY_MEANING.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-260_APPROVE_F12_ACCEPTANCE_C3_CORRECTED.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F12_ACCEPTANCE_2026-10-13.md", loader: "F-board acceptance F12" }),
   /* RR-259 (13 Oct 2026): the 21 CURRENT records admitted by the migration at _handoffs d941e18 — the first migration since RR-251: the
    * command, decision, clarification and ruling records of RR-252 to RR-259 (among them the owner's three standing page rulings — the
    * page law, the AI-search page law, header and logos — and his ruling on F11's sources and rules), and F11's first Acceptance. */

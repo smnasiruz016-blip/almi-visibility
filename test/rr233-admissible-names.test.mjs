@@ -108,7 +108,8 @@ NEAR({
  * admits (the owner's approval of it: the RR-251 decision record). The two RR-233 rules now admit exactly three records. */
 test("N4 · the admitted set is unchanged: 432 corpus records by the same rule; no earlier admission moves; the committed prefix names stay out", () => {
   /* RR-259 (re-measured): 432 -> 453 — the first migration since RR-251 admitted the 21 records of RR-252 to RR-259 (_handoffs d941e18) */
-  assert.equal(AUTHORITY_CORPUS.length, 453, "the corpus population moved — re-measure");
+  /* RR-260 (re-measured): 453 -> 458 — the 5 records of RR-260 (_handoffs d960fa8) */
+  assert.equal(AUTHORITY_CORPUS.length, 458, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;

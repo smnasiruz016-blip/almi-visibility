@@ -168,6 +168,10 @@ export const ACTIONS = Object.freeze({
      * (bin/search-phrases.mjs), kept in the research batch's own search-phrases store, the same family and resource class; a
      * classification only, granting no permission. */
     "APPEND_SEARCH_PHRASES",
+    /* RR-260 (13 Oct 2026): F12 — the need records, the navigational wordings, "no need yet" and the owner's sample answers
+     * (bin/need-clusters.mjs), kept in the research batch's own need-clusters store, the same family and resource class; a
+     * classification only, granting no permission. */
+    "APPEND_NEED_CLUSTERS",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

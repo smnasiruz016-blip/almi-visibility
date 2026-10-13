@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F11_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3325,6 +3325,52 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f11-sabotage-2026-10-13T0513-2.txt (sha256 4568f8de…): 51 of 51 proved (one per FAILURE limb of C1–C6 and [ALL]), residue 0, production trail unchanged; the practice pass (…T0513.txt) found S34 NOT PROVED — a guard the declared-variant rule already made dead; the dead guard was removed and the limb retargeted to the rule that decides, before the real pass",
         historicalReuse: "no historical row maps to F11 (crosswalk NEW). Reused read-only: F02's partition decision and F81's partition reader for the stored Search Console pull (decidePartition, clientObservations) — neither changed. The earlier owned-half module src/discovery/search-language.mjs is not part of this acceptance and is unchanged",
         declaredLimit: "the engine fetches nothing: source (a) is what the client's own AI hands in, and the pace of a run is judged from its own record, not observed by the engine; the live parts of (b) a fresh Search Console pull, (c) Bing keyword research and (d) a Keyword Planner file are NOT MEASURED — no hand-in exists — each with the owner's step named; (f) holds no real suggestion; kinds are decided by stated word rules over declared lists, not by meaning; the grouping is a recorded judgement of the research agent, not a measurement; phrases seen from one place in one browser are a sample, never a census, and never a volume",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F12 · Intent and question clustering. RR-260: its first acceptance, approved by the owner with C3 corrected and frozen ALONE
+   * (_handoffs d960fa8) before any F12 code; then its implementation begins. */
+  F12: Object.freeze({
+    featureId: "F12",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-13", ruling: F12_ORIGINAL.ruling, contractSha256: F12_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F12",
+        on: "2026-10-13",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F12_ORIGINAL.ruling.sha256, contract: F12_ORIGINAL.contractSha256 }),
+        branch: "rr260-f12-intent-clustering",
+        baseSha: "65091b389a3cbc41eb1fc07a305b201e330754ec",
+        baseCiRun: "38363197039",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-260.md", commit: "07b1ba4645962265ab1d16862ccf61a9ccaaa9b9", sha256: "b80145c07165e1333993c6f8ea0f79df115800d6b9950a4b39509140f5a68ebe" }),
+      }),
+      /* RR-260: F12 PROVED — every clause of its frozen acceptance PROVED, every sabotage PROVED, the real population COMPLETE and the
+       * owner's ten-item sample PASSED on his own recorded answers (one NO, corrected and answered again). Recorded through the board
+       * route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F12",
+        population: "REAL",
+        on: "2026-10-13",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F12_ORIGINAL.ruling.sha256, contract: F12_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "REAL, for the declared product, stored in its private research batch and read by the REAL tests (counts only): 323 inputs read (260 stored phrases and 63 recorded questions; none unread), each in exactly one place — 275 in a need, 13 navigational (6 wordings, by the owner's answer) and 35 in no need yet; 28 needs, every one holding an input, every one the research agent's grouping and labelled INFERRED; 258 joins by a recorded judgement and 17 by identity after the declared clean-up; 5 needs hold country parts inside them (7 parts, each with its country and its fact); 4 needs differ from another by a named fact. The owner's ten-item sample: first shown on 13 October 2026 and answered 9 yes and 1 no (stored against the items as shown, the no with its correction); both corrections made in the recorded grouping (25 needs became 28) and run again on the same 323; the corrected items answered yes by the owner; the sample as it stands PASSED with 10 yes, stored. FIXTURES for every clause.",
+        proofs: "test/f12-need-clusters.test.mjs: the C1, C2, C3, C4, C5 and C7 firing controls, the C6 census, the [ALL] firing control and the two REAL tests",
+        sabotage: "runs/audit/f12-sabotage-2026-10-13T1631.txt (sha256 21b2f627…): 65 of 65 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass (runs/audit/f12-sabotage-2026-10-13T1425.txt) proved 64 of 64 before limb S65 was added for the record-key defect found on the owner's correction",
+        historicalReuse: "no historical row maps to F12 (crosswalk NEW). The historical Row-5 clustering module (src/discovery/intent-clusters.mjs) joins by a similarity score; it is not used by F12, is unchanged, and is recorded by the owner's instruction as proof debt PD-003 (legacy, conflicts with C2, to retire later)",
+        declaredLimit: "the engine judges no meaning and fetches nothing: the grouping is a recorded judgement (here the research agent's, INFERRED) and the engine only holds it to the acceptance's rules; the owner checked ten needs and the three split from one of them, not all 28; a need's country part and the fact a need differs by are named by the grouping, and the engine checks that a statement and a reference are present, not that the fact is true; one need holds only 2 wordings, accepted by the owner in his own words; a need is not a page and no page is decided",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

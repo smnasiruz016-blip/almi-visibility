@@ -320,6 +320,13 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
   /* RR-188: F41 Acceptance Amendment 2's EXPECTED (frozen by its hash, _handoffs fc3555d) carries Amendment 1's EXPECTED word for word, and
    * so the same RR-177 words, plus C9; the frozen words, copied byte for byte and pinned by contractSha256; this pin is that one line. */
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "597a8b2fe968ddf72efac4e72f431a4386b937afbd52135d81da9cb0cd5d8864", why: "F41 Amendment 2's frozen acceptance, EXPECTED (Amendment 1's text, with RR-177's ruling named in C8, plus C9; fc3555d)" }),
+  /* RR-260: F12's frozen acceptance (_handoffs d960fa8) carries the owner's own words — his correction of C3 names a searcher's line of
+   * work as one thing that may change a verified answer — in the clauses below, copied byte for byte and pinned by contractSha256. The
+   * same declared blind spot as the pins above, bounded the same way: by exact sha256 only, 4 line(s), one file. */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "4927b1dd21fe15c71cbba8ada0a9741e507f14c9f64cfb7cf49295fa821d8303", why: "F12's frozen acceptance, INPUT (the owner's words, d960fa8)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "d4a6e23673929c04c8a2a74213f8455f16e53907b98b9cd1bd6ced341674600a", why: "F12's frozen acceptance, EXPECTED (the owner's words, d960fa8)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "4ba4289207c4d042d2caef226c7a08c1b6ccef22755794268d5115c249965baf", why: "F12's frozen acceptance, FAILURE (the owner's words, d960fa8)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "97cd15d83ce5d1c3496bc9cd3a1ac521eee49150c614d6437078d0d311e997ac", why: "F12's frozen acceptance, EVIDENCE (the owner's words, d960fa8)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

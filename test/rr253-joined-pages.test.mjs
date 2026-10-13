@@ -1,7 +1,7 @@
 /**
- * RR-253 / RR-254 · THE JOINED TEST PAGES (the owner's page shape, `_handoffs` …RR-253_ANSWERS_TO_THE_BUILD_STOP.md; Specification Amendment 6
- * as the owner clarified it, …OWNER_CLARIFICATION_2026-10-12_RR-254_SPECIFICATION_AMENDMENT_6_WHOLE_PAGES_ONLY.md: cancel-and-move applies
- * to WHOLE pages only, a shared question stays on each page) and the owner's STANDING PAGE LAW and TITLE LAW (RR-255: the client's own design,
+ * RR-253 / RR-254 · THE JOINED TEST PAGES (the owner's page shape, `_handoffs` …RR-253_ANSWERS_TO_THE_BUILD_STOP.md). 🔴 RR-262: the page
+ * builder cancels NO page — its earlier build-time step is retired; two pages serving the same need are decided once, over built pages, by
+ * F10 (Acceptance Amendment 4; test/f10-built-pages.test.mjs proves that a rebuild honours the stored decisions). Also here: the owner's STANDING PAGE LAW and TITLE LAW (RR-255: the client's own design,
  * hero, key-fact cards, expand/collapse Q&A with sources, product cards, FAQPage data equal to the visible Q&A, no record label visible, no
  * unanswered need shown; a title composed only from recorded search phrases).
  *
@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { cancelSamePages, samePagePairs, connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, assetsOf, ASSET_FOLDER, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, SURVIVOR_RULE, REFUSAL, JOINED_RECORD, CANCELLATION_RECORD, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
+import { connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, assetsOf, ASSET_FOLDER, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, REFUSAL, JOINED_RECORD, LEAD, LEAD_SOURCED_LINES, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
 import { testException, parseExceptionRecord, STAMP } from "../src/page/test-exception.mjs";
 import { CHECK } from "../src/page/draft-render.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
@@ -33,69 +33,19 @@ const TRAIL_BEFORE = trailSha();
 
 const need = (key, questions) => ({ key, questions, answer: { claims: [] }, sameness: { judgementRef: `s:${key}`, reason: "same in other words" } });
 const judged = (a, b) => ({ needs: [a, b], judgementRef: `j:${a}|${b}`, reason: "both ask the same thing" });
-/* two pages that share ONE question (cost) and each hold a need of their own */
-const sharing = () => ({ pages: [
-  { combination: { kind: "alpha" }, needs: [need("a-cost", ["q1", "q2"]), need("a-only", ["q3"])] },
-  { combination: { kind: "beta" }, needs: [need("b-cost", ["q4"]), need("b-only", ["q5"])] },
-], sameNeed: [judged("a-cost", "b-cost")] });
-/* two WHOLE pages serving the same need: every need of each has a recorded same-need partner on the other */
-const whole = () => ({ pages: [
+/* two proposed pages, each with a need of two questions and a need of one */
+const two = () => ({ pages: [
   { combination: { kind: "alpha" }, needs: [need("a-cost", ["q1", "q2"]), need("a-time", ["q3"])] },
   { combination: { kind: "beta" }, needs: [need("b-cost", ["q4"]), need("b-time", ["q5"])] },
 ], sameNeed: [judged("a-cost", "b-cost"), judged("b-time", "a-time")] });
 
-/* ================= Specification Amendment 6, as clarified — whole pages only ================= */
-
-test("SA6 · FIRING CONTROL: a planted duplicate PAGE is caught and cancelled whole — its questions move into the survivor's items, and no same-need page pair is left", () => {
-  const proposed = whole();
-  assert.deepEqual(samePagePairs(proposed), [["beta", "alpha"]], "CONTROL: before the run the planted duplicate page must be seen");
-  const r = cancelSamePages(proposed);
-  assert.deepEqual([r.cancelledPages, r.pages.map((p) => p.combination.kind)], [["beta"], ["alpha"]]);
-  assert.deepEqual(r.cancellations.map((c) => [c.record_type, c.cancelledPage, c.survivorPage, c.cancelledNeed, c.survivorNeed, [...c.movedQuestions], c.rule]),
-    [[CANCELLATION_RECORD, "beta", "alpha", "b-cost", "a-cost", ["q4"], SURVIVOR_RULE], [CANCELLATION_RECORD, "beta", "alpha", "b-time", "a-time", ["q5"], SURVIVOR_RULE]]);
-  assert.deepEqual(r.pages[0].needs.map((n) => [n.key, n.questions]), [["a-cost", ["q1", "q2", "q4"]], ["a-time", ["q3", "q5"]]]);
-  assert.deepEqual(samePagePairs({ pages: r.pages, sameNeed: proposed.sameNeed }), [], "a same-need page pair is still there after the run");
-  /* with NO recorded judgement nothing is cancelled — sameness is never guessed */
-  const none = cancelSamePages({ ...whole(), sameNeed: [] });
-  assert.deepEqual([none.cancelledPages.length, none.pages.length], [0, 2]);
-});
-
-test("SA6 · FIRING CONTROL (the owner's clarification): a question SHARED by two pages stays on EACH page — counted, never cancelled, never moved", () => {
-  const r = cancelSamePages(sharing());
-  assert.deepEqual([r.cancellations.length, r.cancelledPages.length], [0, 0], "a shared question was cancelled");
-  assert.deepEqual(r.pages.map((p) => p.needs.map((n) => [n.key, n.questions])), [[["a-cost", ["q1", "q2"]], ["a-only", ["q3"]]], [["b-cost", ["q4"]], ["b-only", ["q5"]]]], "a shared question was moved");
-  assert.deepEqual(r.shared.map((x) => [[...x.needs], [...x.on]]), [[["a-cost", "b-cost"], ["alpha", "beta"]]]);
-  /* one need of one page left unpaired is enough: the pages are not wholly the same */
-  const almost = whole(); almost.pages[1].needs.push(need("b-extra", ["q9"]));
-  assert.deepEqual([cancelSamePages(almost).cancelledPages.length, cancelSamePages(almost).shared.length], [0, 2], "two pages that are not wholly the same were treated as one");
-});
-
-test("SA6 · the survivor rule, exactly as declared: the page with more recorded questions; on a tie the page value that sorts first", () => {
-  const tie = { pages: [{ combination: { kind: "beta" }, needs: [need("b", ["q2"])] }, { combination: { kind: "alpha" }, needs: [need("a", ["q1"])] }], sameNeed: [judged("b", "a")] };
-  assert.deepEqual(cancelSamePages(tie).cancelledPages, ["beta"], "a tie did not go to the page value that sorts first");
-  const more = { pages: [{ combination: { kind: "alpha" }, needs: [need("a", ["q1"])] }, { combination: { kind: "beta" }, needs: [need("b", ["q2", "q3"])] }], sameNeed: [judged("a", "b")] };
-  assert.deepEqual(cancelSamePages(more).cancelledPages, ["alpha"], "the page with more recorded questions did not survive");
-});
-
-test("SA6 · a judgement that names no recorded judgement, an unknown need, or two needs of ONE page is refused by name and cancels nothing", () => {
-  const cases = [
-    [{ needs: ["a-cost", "nope"], judgementRef: "j", reason: "r" }, REFUSAL.JUDGEMENT],
-    [{ needs: ["a-cost", "b-cost"], judgementRef: "", reason: "r" }, REFUSAL.JUDGEMENT],
-    [{ needs: ["a-cost", "b-cost"], judgementRef: "j", reason: "" }, REFUSAL.JUDGEMENT],
-    [{ needs: ["a-cost", "a-only"], judgementRef: "j", reason: "r" }, REFUSAL.SAME_PAGE],
-  ];
-  for (const [j, code] of cases) {
-    const r = cancelSamePages({ ...sharing(), sameNeed: [j] });
-    assert.deepEqual([r.cancellations.length, r.shared.length, r.refused.map((x) => x.code)], [0, 0, [code]]);
-  }
-});
-
-test("SA6 · the connection drafts: a need's first question carries its page candidate and answer; every other question joins it by a recorded judgement", () => {
-  const d = connectionDrafts(cancelSamePages(whole()));
+test("the connection drafts: a need's first question carries its page candidate and answer; every other question joins it by the need's own recorded judgement", () => {
+  const d = connectionDrafts(two());
   assert.deepEqual(d.map((x) => [x.questionId, x.combination.kind, x.sameAs?.questionId ?? null, x.sameAs?.judgementRef ?? null]),
-    [["q1", "alpha", null, null], ["q2", "alpha", "q1", "s:a-cost"], ["q4", "alpha", "q1", "j:a-cost|b-cost"], ["q3", "alpha", null, null], ["q5", "alpha", "q3", "j:b-time|a-time"]]);
-  const kept = connectionDrafts(cancelSamePages(sharing()));
-  assert.deepEqual(kept.map((x) => [x.questionId, x.combination.kind]), [["q1", "alpha"], ["q2", "alpha"], ["q3", "alpha"], ["q4", "beta"], ["q5", "beta"]], "a shared question left its own page");
+    [["q1", "alpha", null, null], ["q2", "alpha", "q1", "s:a-cost"], ["q3", "alpha", null, null], ["q4", "beta", null, null], ["q5", "beta", null, null]]);
+  /* RR-262: two pages a recorded judgement calls the same need, whole — at build time every question stays on its own page (the one
+   * rule about such pages is F10's, over built pages: test/f10-built-pages.test.mjs) */
+  assert.deepEqual(d.map((x) => [x.questionId, x.combination.kind]), [["q1", "alpha"], ["q2", "alpha"], ["q3", "alpha"], ["q4", "beta"], ["q5", "beta"]], "a question left its own page at build time");
 });
 
 /* ================= the product's own statements ================= */
@@ -198,6 +148,45 @@ test("PAGE LAW · FIRING CONTROL: a page built with the client's design, a hero,
   assert.deepEqual(only(p.html.replace('"text":"It costs 5 XTS a month."', '"text":"It costs 4 XTS a month."')), ["law6FaqMatchesVisible"], "FAQ data that differs from the visible answer passed");
   assert.deepEqual(only(p.html.replace("<summary>Where is it?</summary>", "<summary>Where is it?</summary><p>RESPONSIBLE BODY</p>")), ["law7NoRecordLabels"]);
   assert.deepEqual(only(p.html.replace("</main>", "<p>Is it open at night?</p></main>"), { unanswered: [{ need: "n9", wordings: ["Is it open at night?"] }] }), ["law8UnansweredNotShown"]);
+});
+
+test("LEAD · FIRING CONTROL (RR-262, the owner's page-content decision): a need RECORDED to lead with the product's own statements shows its product cards with the call to action right after its question, then ONE sourced line — and each fault fails the page's own check for its own reason", () => {
+  const card = (id, text) => ({ answerId: id, text, label: PRODUCT_STATEMENT_LABEL, source: "Standin's own statement (owner-approved, 2026-09-01)", link: "https://client.invalid", approvalRecord: "r@a" });
+  const product = { shown: [card("does-x", "It does x."), card("does-y", "It does y.")], refused: [] };
+  const needs = (labels = [label("n1-1", { text: "The body offers free samples." })]) => [built("n1", "alpha", [["Where can I practise?", OBS]], labels), built("n2", "alpha", [["Where is it?", OBS]])];
+  const opts = { orderOf: (id) => Number(id.slice(1)), statementsFor: (id) => (id === "n1" ? product : { shown: [], refused: [] }), leadOf: (id) => (id === "n1" ? LEAD.PRODUCT : null) };
+  const p = joined(needs(), opts)[0];
+  assert.deepEqual([p.checks.productLedNeeds.state, p.checks.b3DirectAnswerFirst.state, p.checks.law5ProductCards.state, p.checks.law6FaqMatchesVisible.state], ["PASS", "PASS", "PASS", "PASS"], JSON.stringify(p.checks.productLedNeeds));
+  assert.deepEqual(p.itemList.map((it) => [it.needId, it.lead ?? null, Object.hasOwn(it, "leadAsked")]), [["n1", LEAD.PRODUCT, true], ["n2", null, false]]);
+  /* the order on the page: question, the product cards (each with the client's call to action), then the one sourced line */
+  const at = (w) => p.html.indexOf(w);
+  const order = ["<summary>Where can I practise?</summary>\n<div class=\"product\" data-answer-id=\"does-x\"><p>It does x.</p><a class=\"cta\" href=\"https://client.invalid/start\">Start now</a></div>", "<div class=\"product\" data-answer-id=\"does-y\">", "<p data-claim-id=\"n1-1\">The body offers free samples."];
+  assert.ok(order.every((w) => at(w) >= 0) && at(order[0]) < at(order[1]) && at(order[1]) < at(order[2]), "the product cards do not stand before the sourced line, right after the question");
+  assert.equal(LEAD_SOURCED_LINES, 1);
+  /* the structured data stays the sourced answer: the product's own statement is never written into it */
+  assert.deepEqual(faqInPage(p.html)[0], { question: "Where can I practise?", answer: "The body offers free samples." });
+  /* CONTROL: without the record, the same need shows its sourced answer first and its cards last — and the check measures nothing */
+  const plain = joined(needs(), { ...opts, leadOf: () => null })[0];
+  assert.ok(plain.html.includes("<summary>Where can I practise?</summary>\n<p data-claim-id=\"n1-1\">") && plain.html.indexOf("data-claim-id=\"n1-1\"") < plain.html.indexOf("data-answer-id=\"does-x\""));
+  assert.deepEqual([plain.checks.productLedNeeds.state, plain.checks.b3DirectAnswerFirst.state], ["NOT MEASURED", "PASS"]);
+  /* each fault, alone */
+  const why = (page) => [page.checks.productLedNeeds.state, page.checks.productLedNeeds.why ?? ""];
+  const twoLines = joined(needs([label("n1-1", { text: "The body offers free samples." }), label("n1-2", { text: "It also sells books.", central: false })]), opts)[0];
+  assert.deepEqual([why(twoLines)[0], /2 sourced line\(s\)/.test(why(twoLines)[1])], ["FAIL", true], "two sourced lines after the product cards passed");
+  const twoSentences = joined(needs([label("n1-1", { text: "The body offers free samples. They are all alike." })]), opts)[0];
+  assert.deepEqual([why(twoSentences)[0], /not a single sentence/.test(why(twoSentences)[1])], ["FAIL", true], "a line of two sentences passed as one short line");
+  const noStatement = joined(needs(), { ...opts, statementsFor: () => ({ shown: [], refused: [] }) })[0];
+  assert.deepEqual([why(noStatement)[0], /no approved statement is there to lead with/.test(why(noStatement)[1]), noStatement.itemList[0].lead], ["FAIL", true, null], "a need led with no approved statement");
+  const notApproved = joined(needs(), { ...opts, statementsFor: (id) => (id === "n1" ? { shown: product.shown, refused: [{ answerId: "x", code: REFUSAL.NOT_APPROVED }] } : { shown: [], refused: [] }) })[0];
+  assert.deepEqual([why(notApproved)[0], /not an approved answer/.test(why(notApproved)[1])], ["FAIL", true]);
+  const unknownLead = joined(needs(), { ...opts, leadOf: (id) => (id === "n1" ? "A_RIVAL_IS_WORSE" : null) })[0];
+  assert.deepEqual([why(unknownLead)[0], /not one this page grants/.test(why(unknownLead)[1]), unknownLead.itemList[0].lead], ["FAIL", true, null], "an unknown recorded lead was granted");
+  const noCta = joined(needs(), { ...opts, design: { ...DESIGN, cta: undefined } })[0];
+  assert.deepEqual([why(noCta)[0], /no call to action/.test(why(noCta)[1])], ["FAIL", true]);
+  /* the card moved back behind the sourced line: the check and the direct-answer clause both see it */
+  const moved = p.html.replace(order[0], "<summary>Where can I practise?</summary>");
+  const checks = joinedChecks({ items: p.itemList, html: moved, stamp: STAMP, title: p.title, titleTrace: p.titleTrace, lastChecked: p.lastChecked, design: DESIGN, intro: [DESIGN.productLine, "2 questions answered below, each with its source."], faq: faqOf(p.itemList), recheck: p.recheck, on: "2026-09-03" });
+  assert.deepEqual([checks.productLedNeeds.state, checks.b3DirectAnswerFirst.state], ["FAIL", "FAIL"], "a product card that does not lead passed");
 });
 
 test("TITLE LAW · FIRING CONTROL: a title is COMPOSED only from recorded search phrases and the date fact, every word traced; with no phrase nothing is composed", () => {
@@ -395,7 +384,8 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
   const rows = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   /* the batch keeps every build; the LATEST draft of each page value is the page */
   const pages = [...new Map(rows.filter((r) => r.record_type === JOINED_RECORD).map((r) => [r.value, r])).values()];
-  const cancels = rows.filter((r) => r.record_type === CANCELLATION_RECORD);
+  /* RR-262: the retired build-time step's record type — none was ever stored for these pages, and none may appear */
+  const cancels = rows.filter((r) => r.record_type === "same_need_cancellation");
   assert.ok(pages.length > 0, "EMPTY real population");
   const product = await productFromArgv(["node", "x", "--product=almi-oet"], { scope: censusSubjectScope("almi-oet") });
   const filed = await readProductQuestionnaire(product);
@@ -460,10 +450,19 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     assert.deepEqual(failed(p), p.unanswered.length ? ["everyNeedAnswered"] : [], `${p.value}: a gate fails`);
     for (const k of ["engaging", "acceptableToSearchAndAnswerEngines"]) assert.equal(p.checks[k].state, "NOT MEASURED");
   }
-  const live = cancelSamePages(proposed);
-  assert.deepEqual([cancels.length, live.cancellations.length, live.cancelledPages.length], [0, 0, 0], "a page was cancelled although no two whole pages serve the same need");
-  assert.ok(live.shared.length > 0, "no shared question: the owner's clarification is not exercised on the real pages");
-  console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, faq: p.faqCount, keyFacts: p.keyFacts.length, words: p.wordCount, unanswered: p.unanswered.length, titleComposed: p.titleComposed, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: failed(p).length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), sharedQuestionPairs: live.shared.length, cancellations: cancels.length })}`);
+  assert.equal(cancels.length, 0, "a record of the retired build-time cancel step is in the page store");
+  assert.deepEqual(pages.map((p) => p.value).sort(), proposed.pages.map((p) => Object.values(p.combination).map(String).sort().join("+")).sort(), "a proposed page is not built, or a built page is not proposed");
+  /* RR-262 · the owner's page-content decision: every need recorded to lead with the product's own statements does, on the built page */
+  const ledKeys = proposed.pages.flatMap((p) => p.needs.filter((n) => n.lead).map((n) => n.key));
+  const led = pages.flatMap((p) => p.itemList.filter((it) => Object.hasOwn(it, "leadAsked")).map((it) => ({ p, it })));
+  assert.deepEqual(led.map((x) => x.it.needKey).sort(), [...ledKeys].sort(), "a need recorded to lead with the product's own statements is not built so (rebuild the pages)");
+  for (const { p, it } of led) {
+    assert.deepEqual([it.lead, p.checks.productLedNeeds.state, it.claims.length, it.statements.length > 0, it.statements.every((st) => approved.has(st.answerId))], [LEAD.PRODUCT, "PASS", LEAD_SOURCED_LINES, true, true], `${p.value}: ${p.checks.productLedNeeds.why ?? ""}`);
+    assert.ok(p.html.includes(`<summary>${it.heading.shown.replace(/&/g, "&amp;")}</summary>\n<div class="product" data-answer-id="${it.statements[0].answerId}">`), `${p.value}: the product card does not stand right after the question`);
+    assert.ok(p.html.indexOf(`data-answer-id="${it.statements.at(-1).answerId}"`, p.html.indexOf(`data-need-id="${it.needId}"`)) < p.html.indexOf(`data-claim-id="${it.claims[0].claimId}"`), `${p.value}: the sourced line stands before a product card`);
+  }
+  const live = { shared: { length: (proposed.sameNeed ?? []).length } };
+  console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, faq: p.faqCount, keyFacts: p.keyFacts.length, words: p.wordCount, unanswered: p.unanswered.length, titleComposed: p.titleComposed, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: failed(p).length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), ledNeeds: led.length, recordedJudgementsNoLongerRead: live.shared.length, retiredCancellationRecords: cancels.length })}`);
 });
 
 /* ================= the entry point and its census ================= */

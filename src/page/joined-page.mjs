@@ -32,7 +32,13 @@
  *   a recorded fact (the year is a date fact); the trace is recorded. With no recorded search phrase NOTHING is composed: the title is
  *   then recorded questions, and the page says the title law is not met for want of that record.
  *
- * Also kept: CANCEL AND MOVE on WHOLE pages only (cancelSamePages; a shared question stays on each page); a need F35 did not choose is
+ * THE LEAD (RR-262; the owner's page-content decision of RR-261): a need recorded to LEAD WITH THE PRODUCT'S OWN STATEMENTS shows its
+ *   product cards — owner-approved answers, each with the call to action — right after its question, then ONE sourced line: one recorded
+ *   claim of one sentence, with its source. Which need leads so is recorded with the need; it is never decided here.
+ *
+ * 🔴 NO PAGE IS CANCELLED HERE (RR-262). Whether two pages serve the same need is decided once, over BUILT pages, by F10
+ * (src/page/built-page-needs.mjs, Acceptance Amendment 4) and stored; a rebuild honours the stored records
+ * (src/page/stored-page-decisions.mjs). The earlier build-time step of this module is retired. A need F35 did not choose is
  * never joined. 🔴 A joined page is a rendered DRAFT with its gate table — never an accepted page; publication is never this module's act.
  * 🔴 There is no word-count target. 🔴 Names no product, tenant, host, dimension or value.
  */
@@ -40,8 +46,10 @@ import { createHash } from "node:crypto";
 import { PROMISE, CHECK } from "./draft-render.mjs";
 
 export const JOINED_RECORD = "joined_page_draft";
-export const CANCELLATION_RECORD = "same_need_cancellation";
-export const SURVIVOR_RULE = "of two whole pages serving the same need, the page with more recorded questions survives; on a tie, the page whose value sorts first";
+/** What a need may be recorded to lead with. Any other recorded value is granted nothing and fails the page's own check. */
+export const LEAD = Object.freeze({ PRODUCT: "PRODUCT_STATEMENTS" });
+/** How many sourced lines follow the product cards in an item that leads with them: one recorded claim of one sentence. */
+export const LEAD_SOURCED_LINES = 1;
 export const TITLE_TOPICS = 4;
 export const PRODUCT_STATEMENT_LABEL = "THE PRODUCT'S OWN STATEMENT — owner-approved; self-sourced, not independently verified";
 /** What a tier is called IN THE RECORD. None of these words is ever written into the visible page (law 7). */
@@ -51,8 +59,6 @@ export const RECORD_LABELS = /\b(OBSERVED|INFERRED|RESEARCH-DERIVED|RESPONSIBLE 
 /** The page's own structural words. They are declared here, not composed: a section needs a name, and none of them states a fact. */
 export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked" });
 export const REFUSAL = Object.freeze({
-  JUDGEMENT: "SAME_NEED_JUDGEMENT_NAMES_NO_RECORDED_JUDGEMENT_OR_TWO_KNOWN_NEEDS",
-  SAME_PAGE: "SAME_NEED_JUDGEMENT_WITHIN_ONE_PAGE_IS_A_SAMENESS_DRAFT_NOT_A_CANCELLATION",
   NOT_APPROVED: "PRODUCT_STATEMENT_IS_NOT_AN_APPROVED_ANSWER",
   NO_SITE: "PRODUCT_DECLARES_NO_OFFICIAL_SITE_TO_LINK",
   KEY_FACT: "KEY_FACT_VALUE_IS_NOT_IN_ITS_RECORDED_CLAIM",
@@ -69,73 +75,21 @@ export const escapeText = esc;
 const words = (text) => String(text).split(/\s+/).filter(Boolean).length;
 const visibleText = (html) => html.replace(/<(script|style)[\s\S]*?<\/\1>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"");
 export const valueOf = (combination) => Object.values(combination ?? {}).map(String).sort().join("+");
+/** The page value a compiled need's recorded page candidate names — the same value valueOf gives its combination — or null. */
+export const candidateValue = (candidate) => { try { return JSON.parse(candidate).map(([, v]) => String(v)).sort().join("+"); } catch { return null; } };
 
 /**
- * Specification Amendment 6 · CANCEL AND MOVE — WHOLE PAGES ONLY (the owner's clarification, RR-254).
- * Two pages serve the same need when EVERY need of each is named, by a recorded judgement, as the same need as a need of the other.
- * A judgement that joins two needs of two pages which are NOT wholly the same is a SHARED question: both needs stay where they are.
- * @returns {{ pages: object[], cancelledPages: string[], cancellations: object[], shared: object[], refused: object[] }}
- */
-export function cancelSamePages({ pages = [], sameNeed = [] }) {
-  const out = pages.map((p) => ({ ...p, needs: p.needs.map((n) => ({ ...n, questions: [...n.questions], movedIn: [] })) }));
-  const where = (key) => { for (const p of out) { const n = p.needs.find((x) => x.key === key); if (n) return { page: p, need: n }; } return null; };
-  const refused = [], joins = [];
-  for (const j of sameNeed) {
-    const [a, b] = (Array.isArray(j?.needs) ? j.needs : []).map(where);
-    if (!a || !b || a.need === b.need || !present(j.judgementRef) || !present(j.reason)) { refused.push(Object.freeze({ needs: j?.needs ?? null, code: REFUSAL.JUDGEMENT })); continue; }
-    if (a.page === b.page) { refused.push(Object.freeze({ needs: j.needs, code: REFUSAL.SAME_PAGE })); continue; }
-    joins.push({ a, b, j });
-  }
-  const questionsOf = (p) => p.needs.reduce((n, x) => n + x.questions.length, 0);
-  const cancelled = new Set(), cancellations = [];
-  for (let i = 0; i < out.length; i += 1) for (let k = i + 1; k < out.length; k += 1) {
-    const [P, Q] = [out[i], out[k]];
-    if (cancelled.has(P) || cancelled.has(Q)) continue;
-    const between = joins.filter(({ a, b }) => (a.page === P && b.page === Q) || (a.page === Q && b.page === P));
-    const partner = (need) => between.find(({ a, b }) => a.need === need || b.need === need);
-    /* WHOLE pages: every need of each has a recorded same-need partner on the other */
-    if (!P.needs.length || !Q.needs.length || !P.needs.every(partner) || !Q.needs.every(partner)) continue;
-    const rank = (p) => [-questionsOf(p), valueOf(p.combination)];
-    const [survivor, loser] = [P, Q].sort((x, y) => { const rx = rank(x), ry = rank(y); for (let r = 0; r < rx.length; r += 1) if (rx[r] !== ry[r]) return rx[r] < ry[r] ? -1 : 1; return 0; });
-    for (const need of loser.needs) {
-      const { a, b, j } = partner(need);
-      const into = a.need === need ? b.need : a.need;
-      const moved = [...need.questions];
-      into.questions.push(...moved);
-      into.movedIn.push(...moved.map((questionId) => Object.freeze({ questionId, from: valueOf(loser.combination), judgementRef: j.judgementRef })));
-      cancellations.push(Object.freeze({ record_type: CANCELLATION_RECORD, cancelledPage: valueOf(loser.combination), survivorPage: valueOf(survivor.combination), cancelledNeed: need.key, survivorNeed: into.key,
-        movedQuestions: Object.freeze(moved), judgementRef: j.judgementRef, reason: j.reason.trim(), rule: SURVIVOR_RULE }));
-    }
-    cancelled.add(loser);
-  }
-  const kept = out.filter((p) => !cancelled.has(p));
-  const on = new Map(kept.flatMap((p) => p.needs.map((n) => [n.key, valueOf(p.combination)])));
-  /* a shared question on two pages that are not wholly the same: reported, never cancelled */
-  const shared = joins.filter(({ j }) => on.has(j.needs[0]) && on.has(j.needs[1])).map(({ j }) => Object.freeze({ needs: Object.freeze([...j.needs]), on: Object.freeze([on.get(j.needs[0]), on.get(j.needs[1])]), judgementRef: j.judgementRef }));
-  return Object.freeze({ pages: Object.freeze(kept), cancelledPages: Object.freeze([...cancelled].map((p) => valueOf(p.combination))), cancellations: Object.freeze(cancellations), shared: Object.freeze(shared), refused: Object.freeze(refused) });
-}
-
-/** After cancelSamePages: the pairs of WHOLE pages that still serve the same need. The proof Amendment 6 asks for is that this is empty. */
-export function samePagePairs({ pages = [], sameNeed = [] }) {
-  const r = cancelSamePages({ pages, sameNeed });
-  return [...new Set(r.cancellations.map((c) => `${c.cancelledPage}|${c.survivorPage}`))].map((s) => Object.freeze(s.split("|")));
-}
-
-/**
- * The connection drafts (F91, src/page/demand-connection.mjs) of the resolved pages: a need's first question carries its combination and
- * answer; every other question of the need — its own, or one moved in from a cancelled page — joins it by a recorded sameness judgement.
+ * The connection drafts (F91, src/page/demand-connection.mjs) of the proposed pages: a need's first question carries its combination and
+ * answer; every other question of the need joins it by the need's own recorded sameness judgement.
  * 🔴 RR-256: a joining question carries the need's SAME answer too. F91 writes a need's record from the drafts of the run that touches
  * it; a question joined in a later run with no answer would restate the need with none (found on the real batch: 9 answered needs lost theirs and were restated).
  */
-export function connectionDrafts(resolved) {
+export function connectionDrafts(proposed) {
   const drafts = [];
-  for (const p of resolved.pages) for (const n of p.needs) {
+  for (const p of proposed.pages) for (const n of p.needs) {
     const [lead, ...rest] = n.questions;
     drafts.push({ questionId: lead, combination: p.combination, answer: n.answer, ...(n.sections ? { sections: n.sections } : {}) });
-    for (const q of rest) {
-      const moved = (n.movedIn ?? []).find((m) => m.questionId === q);
-      drafts.push({ questionId: q, combination: p.combination, answer: n.answer, sameAs: { questionId: lead, judgementRef: moved ? moved.judgementRef : n.sameness?.judgementRef, reason: moved ? "moved from a cancelled same-need page (Specification Amendment 6)" : n.sameness?.reason } });
-    }
+    for (const q of rest) drafts.push({ questionId: q, combination: p.combination, answer: n.answer, sameAs: { questionId: lead, judgementRef: n.sameness?.judgementRef, reason: n.sameness?.reason } });
   }
   return drafts;
 }
@@ -326,9 +280,10 @@ export function faqOf(items) {
  *   needKeyOf      a need's recorded key (what phrases and key facts name)
  *   ratesFor       the recorded conversion records of a page value · comparisonsFor  its recorded comparison tables (RR-257 B7)
  *   recheckOf      a claim's recorded recheck interval in days (RR-257 B4) · on  the day of the run
+ *   leadOf         what a need is RECORDED to lead with (LEAD), or null (RR-262)
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -339,7 +294,8 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
   }
   const pages = [];
   for (const [candidate, list] of [...byCandidate].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    let value; try { value = JSON.parse(candidate).map(([, v]) => String(v)).sort().join("+"); } catch { continue; }
+    const value = candidateValue(candidate);
+    if (value === null) continue;
     const phrases = [...phrasesFor(value)];
     /* a question that IS a recorded search phrase leads its item (RR-256) */
     const searched = new Set(phrases.map((p) => p?.text).filter(present));
@@ -348,7 +304,9 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       const draft = renderNeed({ spec, decision });
       const qs = orderedQuestions(spec.sections.map((s) => { const q = questions.get(s.questionId) ?? {}; return Object.freeze({ questionId: s.questionId, wording: s.heading, tier: s.tier, country: q.country ?? null, language: q.language ?? null }); }), searched);
       const st = statementsFor(spec.subject);
-      return Object.freeze({ needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
+      /* RR-262: the lead is granted only as recorded, and only when an approved statement is there to lead with */
+      const asked = leadOf(spec.subject) ?? null;
+      return Object.freeze({ ...(asked !== null ? { leadAsked: asked, lead: asked === LEAD.PRODUCT && st.shown.length > 0 ? LEAD.PRODUCT : null } : {}), needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
         needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });
@@ -421,6 +379,18 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
     "the page adds a comparison table of its own": tables.length > 0 && tablesRefused.length === 0,
   };
   const trustFailed = Object.entries(trust).filter(([, ok]) => !ok).map(([k]) => k);
+  /* RR-262 · an item that leads with the product's own statements: its first product card stands right after its question */
+  const led = (it) => it.lead === LEAD.PRODUCT;
+  const ledFirst = (it) => it.statements.length > 0 && html.includes(`<summary>${esc(shownOf(it))}</summary>\n<div class="product" data-answer-id="${esc(it.statements[0].answerId)}">`);
+  const oneSentence = (t) => (String(t).trim().match(/[.!?](?=\s|$)/g) ?? []).length === 1 && /[.!?]$/.test(String(t).trim());
+  const leadAsked = items.filter((it) => Object.hasOwn(it, "leadAsked"));
+  const leadFaults = leadAsked.flatMap((it) => { const lines = it.claims.filter((c) => present(c.text)); return [
+    led(it) ? null : `${it.needKey}: the lead recorded is not one this page grants, or no approved statement is there to lead with`,
+    led(it) && !ledFirst(it) ? `${it.needKey}: the product card does not stand right after the question` : null,
+    it.statementsRefused.length ? `${it.needKey}: a statement it leads with is not an approved answer` : null,
+    present(design?.cta?.label) && present(design?.cta?.href) ? null : `${it.needKey}: the product card has no call to action`,
+    lines.length === LEAD_SOURCED_LINES && lines.every((c) => oneSentence(c.text) && present(c.source) && present(c.link)) ? null : `${it.needKey}: after the product cards stand ${lines.length} sourced line(s), or one that is not a single sentence with its source — ${LEAD_SOURCED_LINES} is recorded`,
+  ].filter(Boolean); });
   return Object.freeze({
     /* ── the page law, clause by clause ── */
     law1ClientDesign: state(Boolean(design) && present(design.brandName) && present(design.colours?.primary) && present(design.fonts?.body) && html.includes(esc(design.brandName)) && html.includes(design.colours.primary), "the page does not carry the client's own filed design"),
@@ -453,7 +423,9 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
     b2TitlePromisesOnlyWhatThePageHolds: composed ? state(partsOffPage.length === 0 && promisesBroken.length === 0 && yearOk,
       [partsOffPage.length ? `title part(s) whose need is not on the page: ${partsOffPage.join(", ")}` : null, promisesBroken.length ? `title part(s) the page does not keep: ${promisesBroken.join(", ")}` : null, yearOk ? null : "the title carries a year although a fact was read in another year, has no recheck interval or is overdue"].filter(Boolean).join("; "))
       : Object.freeze({ state: CHECK.NOT_MEASURED, why: "the title is not composed from recorded search phrases" }),
-    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`); }), "an item's question is not followed at once by its central answer"),
+    /* RR-262: in an item recorded to lead with the product's own statements, what follows the question at once is its first product card; its central sourced statement is still required */
+    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && (led(it) ? ledFirst(it) : html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`)); }), "an item's question is not followed at once by its central answer"),
+    productLedNeeds: leadAsked.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no need of this page is recorded to lead with the product's own statements" }) : state(leadFaults.length === 0, leadFaults.join("; ")),
     b4SourcedCheckedAndRecheckable: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "") && html.includes(`${STRUCTURE.checked} ${esc(c.readOn)}`)) && noInterval.length === 0 && overdue.length === 0,
       [noInterval.length ? `${noInterval.length} fact(s) have no recorded recheck interval` : null, overdue.length ? `${overdue.length} fact(s) are past their recheck interval` : null].filter(Boolean).join("; ") || "a fact lacks its source or the day it was checked"),
     b5OneNeedPerWording: state(twice.length === 0 && !/search volume/i.test(seen), twice.length ? `the same wording stands under two items: ${twice.slice(0, 3).join(" | ")}` : "recorded phrases are called search volume"),
@@ -543,14 +515,17 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const footer = design ? `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>` : "";
   const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
   const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a></td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const productCards = (it) => it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`);
   const item = (it) => [
     `<details data-need-id="${esc(it.needId)}"${it === items[0] ? " open" : ""}>`,
     `<summary>${esc(it.heading.shown ?? it.heading.wording)}</summary>`,
+    /* RR-262: an item recorded to lead with the product's own statements shows its product cards first, then its one sourced line */
+    ...(it.lead === LEAD.PRODUCT ? productCards(it) : []),
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
       ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
     ...tables.filter((t) => t.need === it.needKey).map(table),
     it.questions.length > 1 ? `<p class="also">${STRUCTURE.alsoAsked}: ${it.questions.slice(1).map((q) => esc(q.wording)).join(" · ")}</p>` : "",
-    ...it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`),
+    ...(it.lead === LEAD.PRODUCT ? [] : productCards(it)),
     `</details>`,
   ].filter(Boolean).join("\n");
   const ld = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.question, acceptedAnswer: { "@type": "Answer", text: f.answer } })) }).replace(/</g, "\\u003c");

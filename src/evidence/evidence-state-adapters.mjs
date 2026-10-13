@@ -76,6 +76,11 @@ const DERIVED_TYPES = Object.freeze({
   cost_entry: { inputs: (r) => (present(r.run_ref) ? [`cost-input:${h16(r.run_ref)}`] : []), at: (r) => r.recorded_at, method: "cost-entry-from-run-counts" },
   /* RR-253: a joined TEST page draft (src/page/joined-page.mjs) is DERIVED from the needs F35 chose — INFERRED, its inputs those needs; a
    * same-need cancellation (Specification Amendment 6) is derived from the one recorded judgement it names. Neither is an observation. */
+  /* RR-259 · F11: what is derived from the phrase records — a run's record, a need group, a source's status. The phrases themselves are
+   * placed by their own rule below (ofSearchPhrase): OBSERVED or INFERRED by their SOURCE alone. */
+  search_phrase_run: { inputs: (r) => (present(r.run_id) ? [`phrase-source:${h16(r.source ?? "")}`] : []), at: (r) => r.recorded_at, method: "client-ai-run-record-judged-against-the-declared-pace" },
+  search_phrase_group: { inputs: (r) => (Array.isArray(r.phraseIds) ? r.phraseIds.map((id) => `search_phrase:${id}`) : []), at: (r) => r.recorded_at, method: "equivalent-wording-grouped-into-one-need" },
+  search_phrase_source_status: { inputs: (r) => (present(r.source) ? [`phrase-source:${h16(r.source)}`] : []), at: (r) => r.recorded_at, method: "source-status-from-what-was-handed-in" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
   same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our
@@ -144,6 +149,24 @@ function ofPublicQuestion(r) {
   }
   if (v.kind === "CLIENT_CLAIM") return place(`${rule}.client-claim`, "UNKNOWN", { checkId: `public_question:${r.question_id}`, insufficiency: "FIRST_PARTY_CLAIM_NOT_EVIDENCE" });
   return unmapped(`a public question of kind ${v.kind ?? "(none)"} has no declared placement`, rule);
+}
+
+/**
+ * 🔴 RR-259 · F11 — a `search_phrase` record (src/discovery/search-phrase-sources.mjs), placed by its SOURCE'S label and nothing else:
+ *   OBSERVED                 seen on a search engine by the client's own AI or by a person, or the client's own Search Console query
+ *   THE SOURCE'S OWN REPORT  a tool's ideas (Bing keyword research, a Keyword Planner file) — INFERRED, its source its one input
+ *   INFERRED                 an AI's suggestion — INFERRED, never OBSERVED
+ * A record missing its id, its time or its source, or carrying any other label, is UNMAPPED — never placed by default.
+ */
+function ofSearchPhrase(r) {
+  const rule = "search_phrase";
+  if (!present(r.phrase_id)) return unmapped("a search phrase with no phrase_id cannot be referenced", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a search phrase with no recorded time has no time", rule);
+  if (!present(r.source)) return unmapped("a search phrase names no source", rule);
+  if (r.label === "OBSERVED") return place(`${rule}.observed`, "OBSERVED", { evidenceRef: `search_phrase:${r.phrase_id}`, sourceId: r.source, observedAt: r.recorded_at });
+  if (r.label === "THE SOURCE'S OWN REPORT") return place(`${rule}.source-report`, "INFERRED", { inputRefs: [`source:${h16(r.source)}`], method: "source-reported-keyword-idea", computedAt: r.recorded_at });
+  if (r.label === "INFERRED") return place(`${rule}.inferred`, "INFERRED", { inputRefs: [`source:${h16(r.source)}`], method: "ai-suggested-phrase", computedAt: r.recorded_at });
+  return unmapped(`a search phrase labelled ${r.label ?? "(none)"} has no declared placement`, rule);
 }
 
 /**
@@ -395,6 +418,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "page_body": return ofPageBody(record);
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);
+    case "search_phrase": return ofSearchPhrase(record);
     case "research_lead": return ofResearchLead(record);
     case "held_for_judgement": return ofHeld(record);
     case "meaning_judgement": return ofMeaningJudgement(record);

@@ -3334,7 +3334,7 @@ export const DECLARED = Object.freeze({
   F12: Object.freeze({
     featureId: "F12",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-13", ruling: F12_ORIGINAL.ruling, contractSha256: F12_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -3351,6 +3351,27 @@ export const DECLARED = Object.freeze({
         baseCiRun: "38363197039",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-260.md", commit: "07b1ba4645962265ab1d16862ccf61a9ccaaa9b9", sha256: "b80145c07165e1333993c6f8ea0f79df115800d6b9950a4b39509140f5a68ebe" }),
+      }),
+      /* RR-260: F12 PROVED — every clause of its frozen acceptance PROVED, every sabotage PROVED, the real population COMPLETE and the
+       * owner's ten-item sample PASSED on his own recorded answers (one NO, corrected and answered again). Recorded through the board
+       * route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F12",
+        population: "REAL",
+        on: "2026-10-13",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F12_ORIGINAL.ruling.sha256, contract: F12_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "REAL, for the declared product, stored in its private research batch and read by the REAL tests (counts only): 323 inputs read (260 stored phrases and 63 recorded questions; none unread), each in exactly one place — 275 in a need, 13 navigational (6 wordings, by the owner's answer) and 35 in no need yet; 28 needs, every one holding an input, every one the research agent's grouping and labelled INFERRED; 258 joins by a recorded judgement and 17 by identity after the declared clean-up; 5 needs hold country parts inside them (7 parts, each with its country and its fact); 4 needs differ from another by a named fact. The owner's ten-item sample: first shown on 13 October 2026 and answered 9 yes and 1 no (stored against the items as shown, the no with its correction); both corrections made in the recorded grouping (25 needs became 28) and run again on the same 323; the corrected items answered yes by the owner; the sample as it stands PASSED with 10 yes, stored. FIXTURES for every clause.",
+        proofs: "test/f12-need-clusters.test.mjs: the C1, C2, C3, C4, C5 and C7 firing controls, the C6 census, the [ALL] firing control and the two REAL tests",
+        sabotage: "runs/audit/f12-sabotage-2026-10-13T1631.txt (sha256 21b2f627…): 65 of 65 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass (runs/audit/f12-sabotage-2026-10-13T1425.txt) proved 64 of 64 before limb S65 was added for the record-key defect found on the owner's correction",
+        historicalReuse: "no historical row maps to F12 (crosswalk NEW). The historical Row-5 clustering module (src/discovery/intent-clusters.mjs) joins by a similarity score; it is not used by F12, is unchanged, and is recorded by the owner's instruction as proof debt PD-003 (legacy, conflicts with C2, to retire later)",
+        declaredLimit: "the engine judges no meaning and fetches nothing: the grouping is a recorded judgement (here the research agent's, INFERRED) and the engine only holds it to the acceptance's rules; the owner checked ten needs and the three split from one of them, not all 28; a need's country part and the fact a need differs by are named by the grouping, and the engine checks that a statement and a reference are present, not that the fact is true; one need holds only 2 wordings, accepted by the owner in his own words; a need is not a page and no page is decided",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

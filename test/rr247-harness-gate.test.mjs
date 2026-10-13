@@ -5,7 +5,7 @@
  * under test/. Three times that put live sabotages into src. The population here is found by BEHAVIOUR, not by name: a file is in it
  * if, run bare, it tries to write, spawn or reach the network (test/support/bare-run-census-preload.mjs refuses and logs each try).
  *
- *   HG-1  the gated population: every sabotage harness and every census-found writer imports the gate FIRST — 127 files (RR-247; RR-248 +1; RR-259 +1; RR-260 +1)
+ *   HG-1  the gated population: every sabotage harness and every census-found writer imports the gate FIRST — 128 files (RR-247; RR-248 +1; RR-259 +1; RR-260 +1; RR-261 +1)
  *   HG-2  BEHAVIOUR: every other file a bare run discovers, run bare, tries no write, no spawn and no network — except a PRODUCTION
  *         entry point, which is not a helper and is never gated: F02 governs it (test/f02-tenant-isolation.test.mjs L3: no tenant →
  *         exit 3, nothing read, the trail does not move), and run bare it may touch the confined test store and nothing else
@@ -62,13 +62,14 @@ const WRITERS = ["test/helpers/f06-correction-section-a.mjs", "test/helpers/f08-
 const ENTRY_POINTS = new Set(productionEntryPoints());
 const CONFINED = new RegExp(`^CENSUS would-[\\w.:]+ ${TEST_SCRATCH_AUDIT_ROOT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/run-[\\w-]+/`);
 
-test("HG-1 · every sabotage harness and every census-found writer imports the gate FIRST — 127 files", () => {
+test("HG-1 · every sabotage harness and every census-found writer imports the gate FIRST — 128 files", () => {
   assert.ok(discovered.length >= 400 && outsideSuite.length >= 140, `the discovered population is too small to be the repository (${discovered.length}/${outsideSuite.length})`);
   const harnesses = outsideSuite.filter((f) => /sabotage/.test(f));
   assert.ok(harnesses.length >= 118, `${harnesses.length} sabotage harnesses`);
   assert.deepEqual(harnesses.filter((f) => !isGated(f)), [], "a sabotage harness does not import the gate first");
   assert.deepEqual(WRITERS.filter((f) => !isGated(f)), [], "a census-found writer does not import the gate first");
-  assert.equal(gated.length, 127, "the gated population moved — a new harness or writer must import the gate, and this census is restated by name"); /* RR-247: 118 harnesses (rr247-sabotage.mjs included) + 5 census-found writers + the clone proof; RR-248: + rr248-sabotage.mjs (the freshness check's sabotage harness) = 125; RR-259: + f11-sabotage.mjs (F11's sabotage harness) = 126; RR-260: + f12-sabotage.mjs (F12's sabotage harness) = 127 */
+  /* RR-261: + f10-built-pages-sabotage.mjs (F10 Acceptance Amendment 4's sabotage harness) = 128 */
+  assert.equal(gated.length, 128, "the gated population moved — a new harness or writer must import the gate, and this census is restated by name"); /* RR-247: 118 harnesses (rr247-sabotage.mjs included) + 5 census-found writers + the clone proof; RR-248: + rr248-sabotage.mjs (the freshness check's sabotage harness) = 125; RR-259: + f11-sabotage.mjs (F11's sabotage harness) = 126; RR-260: + f12-sabotage.mjs (F12's sabotage harness) = 127 */
 });
 
 test("HG-2 · BEHAVIOUR: every other file a bare `node --test` discovers, run bare, tries no write, no spawn and no network (a production entry point: the confined test store only)", () => {
@@ -85,7 +86,7 @@ test("HG-2 · BEHAVIOUR: every other file a bare `node --test` discovers, run ba
 });
 
 test("HG-3 · every gated file, run bare, stops at the gate: exit 2, the flag named, nothing tried", () => {
-  assert.equal(gated.length, 127);
+  assert.equal(gated.length, 128);
   const wrong = [];
   for (const f of gated) {
     const r = bare(f);

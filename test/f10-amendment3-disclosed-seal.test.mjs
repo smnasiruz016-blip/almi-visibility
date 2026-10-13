@@ -20,7 +20,7 @@ import { spawnSync } from "node:child_process";
 import { buildBoard, boardErrors } from "../src/fboard/board.mjs";
 import { CAPABILITIES } from "../config/fboard/capabilities.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
-import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
+import { ACCEPTANCES, F10_AMENDMENT_3 } from "../config/fboard/acceptances.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
 import { DISCLOSED_SEALS, DISCLOSED_POPULATION_AGREEMENT } from "../config/fboard/disclosed-seals.mjs";
@@ -33,14 +33,17 @@ const PROD = () => ["audit-trail/events.jsonl", "audit-trail/head.json"].map((p)
 const ctx = { capabilities: CAPABILITIES, acceptances: ACCEPTANCES, authority: { records: AUTHORITY_CORPUS, now: CORPUS_PROVENANCE.now } };
 const codes = (errs) => errs.map((e) => `${e.code}:${e.id}`);
 /* A board that CLAIMS F10 passed, with a REAL verification event so that no other check is what fires. */
-const claimed = () => buildBoard(CAPABILITIES, DECLARED).map((r) => (r.featureId === "F10" ? { ...r, state: "VERIFIED-PASS", events: [...r.events, { kind: "VERIFIED", featureId: "F10", population: "REAL", on: "2026-09-28", from: "IN-PROGRESS", to: "VERIFIED-PASS" }] } : r));
+const claimed = () => buildBoard(CAPABILITIES, DECLARED).map((r) => (r.featureId === "F10" ? { ...r, state: "VERIFIED-PASS", events: [...r.events, { kind: "VERIFIED", featureId: "F10", population: "REAL", on: "2026-09-28", from: "IN-PROGRESS", to: "VERIFIED-PASS", proofs: `a scoring run on ${DISCLOSED_SEALS[0].sets[0].id}` }] } : r));
 
 test("D1 · the board REFUSES F10 VERIFIED-PASS on the disclosed seal — silent without the disclosure, after a re-registration, and on the real board", () => {
   assert.ok(codes(boardErrors(claimed(), ctx)).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "a pass on the disclosed seal was not refused");
   assert.ok(!codes(boardErrors(claimed(), { ...ctx, disclosedSeals: [] })).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "CONTROL: the check fired with no disclosure");
   const reRegistered = EVIDENCE_ROLE_REGISTRY.map((e) => (DISCLOSED_SEALS[0].sets.some((s) => s.id === e.id) ? { ...e, contentHash: "f".repeat(64) } : e));
   assert.ok(!codes(boardErrors(claimed(), { ...ctx, registry: reRegistered })).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "CONTROL: a different (re-registered) seal is not this disclosure");
-  assert.deepEqual(boardErrors(buildBoard(CAPABILITIES, DECLARED), ctx), [], "CONTROL: the real board, F10 IN-PROGRESS, is clean");
+  /* RR-261 (F10 Acceptance Amendment 4, C7): the refusal is of a pass whose RECORDED EVIDENCE NAMES the seal — a pass on other evidence is not refused by a seal it never reads */
+  const elsewhere = claimed().map((r) => (r.featureId === "F10" ? { ...r, events: r.events.map((e) => (e.kind === "VERIFIED" ? { ...e, proofs: "the built pages" } : e)) } : r));
+  assert.ok(!codes(boardErrors(elsewhere, ctx)).includes("VERIFIED_ON_DISCLOSED_SEAL:F10"), "CONTROL: a pass whose evidence names no seal was refused");
+  assert.deepEqual(boardErrors(buildBoard(CAPABILITIES, DECLARED), ctx), [], "CONTROL: the real board is clean");
 });
 
 test("D2 · the class and the store are decided by id AND commitment only", () => {
@@ -92,5 +95,9 @@ test("D4 · the REAL registered seal is the listed disclosed seal, by id and com
   const listed = DISCLOSED_SEALS.flatMap((d) => d.sets.map((s) => `${s.id}@${s.contentHash}`)).sort();
   const registered = EVIDENCE_ROLE_REGISTRY.filter((e) => disclosureOf(e, DISCLOSED_SEALS)).map((e) => `${e.id}@${e.contentHash}`).sort();
   assert.deepEqual(registered, listed, "the disclosure does not name exactly the registered seal");
-  assert.deepEqual(DISCLOSED_SEALS.map((d) => [d.featureId, d.evidenceClass, d.authority.contractSha256]), [["F10", "DISCLOSED_POPULATION_AGREEMENT", ACCEPTANCES.F10.contractSha256]], "the disclosure is not backed by F10's CURRENT acceptance");
+  assert.deepEqual(DISCLOSED_SEALS.map((d) => [d.featureId, d.evidenceClass, d.authority.contractSha256]), [["F10", "DISCLOSED_POPULATION_AGREEMENT", F10_AMENDMENT_3.contractSha256]], "the disclosure is not backed by the amendment that disclosed the seal");
+  /* RR-261: F10's CURRENT acceptance is Amendment 4. It amends the disclosing amendment directly and keeps the seal DISCLOSED in its own
+   * words (C7) — the disclosure did not lapse when the acceptance moved on. */
+  assert.deepEqual([ACCEPTANCES.F10.amends.contractSha256, ACCEPTANCES.F10.amends.ruling.sha256], [F10_AMENDMENT_3.contractSha256, F10_AMENDMENT_3.ruling.sha256], "F10's CURRENT acceptance does not amend the disclosing amendment");
+  assert.match(ACCEPTANCES.F10.expected, /it stays DISCLOSED; the membership-blind evidence class stays PERMANENTLY UNAVAILABLE for it/, "F10's CURRENT acceptance no longer keeps the seal DISCLOSED");
 });

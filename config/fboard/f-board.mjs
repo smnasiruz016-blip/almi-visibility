@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -302,7 +302,7 @@ export const DECLARED = Object.freeze({
   F10: Object.freeze({
     featureId: "F10",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-26", ruling: F10_ORIGINAL.ruling, contractSha256: F10_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -327,7 +327,31 @@ export const DECLARED = Object.freeze({
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-27", ruling: F10_AMENDMENT_2.ruling, contractSha256: F10_AMENDMENT_2.contractSha256, amends: F10_AMENDMENT_2.amends }),
       /* F10 Amendment 3 (28 Sep 2026, 9c8b9f7): C3 only — this seal is DISCLOSED; the membership-blind class is permanently unavailable
        * for it. NO board movement — F10 stays IN-PROGRESS. */
-      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-28", ruling: ACCEPTANCES.F10.ruling, contractSha256: ACCEPTANCES.F10.contractSha256, amends: ACCEPTANCES.F10.amends }),
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-09-28", ruling: F10_AMENDMENT_3.ruling, contractSha256: F10_AMENDMENT_3.contractSha256, amends: F10_AMENDMENT_3.amends }),
+      /* F10 Amendment 4 (13 Oct 2026, c063d3b, RR-261): F10 is proved on the built pages — C3 to C7 replaced, the labelled set, the
+       * agreement bar and the follow-up proof removed by the owner's order. NO board movement — F10 stays IN-PROGRESS. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F10", on: "2026-10-13", ruling: F10_AMENDMENT_4.ruling, contractSha256: F10_AMENDMENT_4.contractSha256, amends: F10_AMENDMENT_4.amends }),
+      /* RR-261: F10 PROVED under its Acceptance Amendment 4 — every clause PROVED and every sabotage PROVED, on the pages the engine has
+       * built and the stored need records; no evidence is drawn from the old labelled set, which this event does not name. Recorded
+       * through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F10",
+        population: "REAL",
+        on: "2026-10-13",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F10_AMENDMENT_4.ruling.sha256, contract: F10_AMENDMENT_4.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "REAL, for the declared product, read by the REAL tests (counts only). C3, C4, C6: 2 built pages, both recorded as not yet published, each with one question-and-answer section and every question in its recorded wording; 35 need records of the grouping as it stands, each found in the need store; 1 pair, decided DIFFERENT NEED from those records (the two pages share some needs and each serves needs the other does not); 0 SAME NEED, 0 flagged REVIEW, 0 CANNOT DECIDE; nothing cancelled; the decision stored. C5, C6: a deliberately planted duplicate of a real built page, run by the production path in a scratch copy of the product's records with a confined audit store, was caught and cancelled — the real page survived by the step EARLIER BUILD (the first two steps tied), the plant's 48 questions were moved, 9 of them into the survivor's question-and-answer section and 39 already held; a deliberately planted subset page with the same declared audience came out REVIEW (5 needs shared, 14 only the larger page serves) and was not cancelled; the product's own store unchanged by hash; both plants removed. C1, C2: the existing REAL tests of the partition accounting and of the discovery mechanism, run again. THIN, stated: two pages are one pair; the real population held no duplicate, so cancel-and-move is proved on the real pages only through the plant. FIXTURES for every clause.",
+        proofs: "test/f10-built-pages.test.mjs: the C3, C4, C4 REVIEW, C5, C5 SURVIVOR and C6 firing controls, the C5 C6 production-path test, the C7 census and the two REAL tests; test/f10-human-question-discovery.test.mjs: the C1, C2 and C8 tests, unchanged in what they prove",
+        sabotage: "runs/audit/f10-built-pages-sabotage-2026-10-13T2013.txt (sha256 8d1edc18…): 69 of 69 proved (one per FAILURE limb of C3 to C7 and of the REVIEW addition), residue 0, production trail unchanged, on the final code; the practice pass (…T1939.txt) and an earlier whole pass (…T1945.txt) each proved 69 of 69 before one line — whether two pages are one tenant's — was routed through the one tenant decision. The row's earlier harnesses, run again: f10-sabotage 23 of 23, f10-selection-sabotage 17 of 17, f10-c7-sabotage 24 of 24, each with residue 0 and the production trail untouched",
+        historicalReuse: "the discovery mechanism, the partition reader and their proofs (C1, C2, C8) are F10's own earlier work, unchanged. The page builder's earlier build-time step (src/page/joined-page.mjs cancelSamePages) decides on proposed pages by another recorded judgement and another survivor rule; it is not part of this proof and is unchanged — recorded as proof debt",
+        declaredLimit: "the engine judges no meaning: a pair is decided from the stored need records, which are a recorded grouping (INFERRED); the real population is two pages and held no duplicate; a page's publication state is read from the page record's own stamp; a heading may be shown in title case while the record keeps the original wording; the survivor's new build carries the moved questions in its question-and-answer section, and the page builder does not yet read a stored cancellation, so a later rebuild would build the cancelled page again until it does; after Amendment 4 no clause measures how far the mechanism's classes or its follow-up proposals agree with a human judge",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   F05: Object.freeze({

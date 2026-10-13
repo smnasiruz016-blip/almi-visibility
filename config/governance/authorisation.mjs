@@ -172,6 +172,10 @@ export const ACTIONS = Object.freeze({
      * (bin/need-clusters.mjs), kept in the research batch's own need-clusters store, the same family and resource class; a
      * classification only, granting no permission. */
     "APPEND_NEED_CLUSTERS",
+    /* RR-261 (13 Oct 2026): F10 — the pair decisions, cancellations and moved questions of the built pages, and the new build of a
+     * survivor (bin/built-page-needs.mjs), kept in the research batch's own stores, the same family and resource class; a classification
+     * only, granting no permission. */
+    "APPEND_BUILT_PAGE_NEEDS",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

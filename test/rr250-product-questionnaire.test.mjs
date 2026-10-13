@@ -167,6 +167,23 @@ test("DESIGN · FIRING CONTROL (RR-255): a questionnaire may carry the client's 
   assert.deepEqual([validateQuestionnaire({ ...q, design: { ...design, cta: undefined } }).valid, designOf({ ...q, design: { ...design, cta: undefined } })], [false, null], "a malformed design was handed on");
 });
 
+test("DESIGN · FIRING CONTROL (RR-258): a design may carry the company with its logo FILE, a product logo file, the header actions, and which parts were filed and which read — each malformed part is a fault by name", async () => {
+  const { validateDesign, DESIGN_FIELDS, DESIGN_PARTS } = await import("../src/questionnaire/product-questionnaire.mjs");
+  const logo = { file: "design/group-logo.png", alt: "Group", sha256: "ab".repeat(32), width: 300, height: 200, focus: { x: 60, y: 50, w: 180, h: 100 } };
+  const design = { siteAddress: "https://client.invalid", brandName: "Standin", logo: { mark: "S", wordmark: "Standin", image: { ...logo, file: "design/product.svg" } }, company: { name: "Group", href: "https://group.invalid/", logo }, colours: { background: "#FFFFFF", primary: "#AA3322", ink: "#111111", text: "#333333" },
+    fonts: { body: "Verdana, sans-serif" }, nav: [{ label: "Home", href: "https://group.invalid/" }], actions: [{ label: "Sign in", href: "/in" }], cta: { label: "Start", href: "/start" }, footer: { columns: [{ title: "Group", links: [{ label: "Home", href: "https://group.invalid/" }] }] },
+    basis: "READ_FROM_CLIENT_SITE", readFrom: [{ kind: "CODE", ref: "repo:file" }], provenance: { company: "READ_FROM_CLIENT_SITE", nav: "READ_FROM_CLIENT_SITE", colours: "CLIENT_DECLARED" } };
+  assert.deepEqual(validateDesign(design), []);
+  for (const k of Object.keys(design)) assert.ok(DESIGN_FIELDS.includes(k), k);
+  for (const k of Object.keys(design.provenance)) assert.ok(DESIGN_PARTS.includes(k), k);
+  const co = (over) => ({ company: { ...design.company, logo: { ...logo, ...over } } });
+  const cases = [[co({ file: "../outside.png" }), "DESIGN_COMPANY_MALFORMED"], [co({ file: "design/logo.exe" }), "DESIGN_COMPANY_MALFORMED"], [co({ sha256: "abc" }), "DESIGN_COMPANY_MALFORMED"], [co({ alt: "" }), "DESIGN_COMPANY_MALFORMED"], [co({ width: 0 }), "DESIGN_COMPANY_MALFORMED"],
+    [co({ focus: { x: 200, y: 50, w: 180, h: 100 } }), "DESIGN_COMPANY_MALFORMED"], [{ company: { ...design.company, name: "" } }, "DESIGN_COMPANY_MALFORMED"], [{ company: { ...design.company, href: "http://group.invalid/" } }, "DESIGN_COMPANY_MALFORMED"],
+    [{ logo: { ...design.logo, image: { ...logo, sha256: "" } } }, "DESIGN_LOGO_ABSENT_OR_MALFORMED"], [{ actions: [{ label: "x", href: "javascript:alert(1)" }] }, "DESIGN_ACTIONS_MALFORMED"], [{ actions: "Sign in" }, "DESIGN_ACTIONS_MALFORMED"],
+    [{ provenance: { nav: "GUESSED" } }, "DESIGN_PROVENANCE_MALFORMED"], [{ provenance: { mood: "CLIENT_DECLARED" } }, "DESIGN_PROVENANCE_MALFORMED"]];
+  for (const [over, code] of cases) assert.ok(validateDesign({ ...design, ...over }).some((x) => x.code === code), `${code} did not fire for ${JSON.stringify(over).slice(0, 90)}`);
+});
+
 test("DESIGN · REAL: the declared product's questionnaire files a valid design, names how it was obtained, and yields no extra record for it", async () => {
   const { designOf, DESIGN_BASES } = await import("../src/questionnaire/product-questionnaire.mjs");
   const product = await productFromArgv(["node", "x", "--product=almi-oet"], { scope: censusSubjectScope("almi-oet") });

@@ -81,6 +81,11 @@ const DERIVED_TYPES = Object.freeze({
   search_phrase_run: { inputs: (r) => (present(r.run_id) ? [`phrase-source:${h16(r.source ?? "")}`] : []), at: (r) => r.recorded_at, method: "client-ai-run-record-judged-against-the-declared-pace" },
   search_phrase_group: { inputs: (r) => (Array.isArray(r.phraseIds) ? r.phraseIds.map((id) => `search_phrase:${id}`) : []), at: (r) => r.recorded_at, method: "equivalent-wording-grouped-into-one-need" },
   search_phrase_source_status: { inputs: (r) => (present(r.source) ? [`phrase-source:${h16(r.source)}`] : []), at: (r) => r.recorded_at, method: "source-status-from-what-was-handed-in" },
+  /* RR-260 · F12: a need, a navigational wording or "no need yet" (src/discovery/need-clusters.mjs) is DERIVED from the stored phrases and
+   * recorded questions it holds, by a recorded grouping — never an observation; the owner's answer to a sample item is derived from the
+   * need it answers. */
+  need_cluster: { inputs: (r) => (Array.isArray(r.members) ? r.members.filter((m) => present(m?.inputId)).map((m) => m.inputId) : []), at: (r) => r.recorded_at, method: "wordings-placed-by-a-recorded-grouping" },
+  need_sample_answer: { inputs: (r) => (present(r.need) ? [`need:${h16(r.need)}`] : []), at: (r) => r.recorded_at, method: "owner-answer-to-a-sample-item" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
   same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our

@@ -98,8 +98,10 @@ test("C8-1 · the census: every entry point the F03 census finds opening a conne
   const rows = liveRunCostCensus();
   const f03 = new Set(censusOf(productionFiles().map((file) => ({ file, text: readFileSync(join(REPO, file), "utf8") }))).sites.filter((s) => s.kind === "CONNECTOR").map((s) => s.file));
   assert.deepEqual(rows.map((r) => r.file), [...f03].sort(), "the census population is not the F03 census's connector sites");
-  assert.equal(rows.length, 10, "the population moved — re-measure");
-  assert.equal(rows.reduce((n, r) => n + r.sites, 0), 12);
+  /* RR-263 (re-measured): 10 -> 11 — F23's bounded link-status check (bin/link-status.mjs) opens a connector; metered, its own recorder, its own ledger */
+  assert.equal(rows.length, 11, "the population moved — re-measure");
+  /* RR-263: + 1 connector site, bin/link-status.mjs = 13 */
+  assert.equal(rows.reduce((n, r) => n + r.sites, 0), 13);
   for (const r of rows) assert.deepEqual([r.metered, r.recorder, r.ownLedger], [true, true, true], `${r.file} is not complete`);
   /* FIRING CONTROL: a stand-in entry point that opens a connector bare, records under another name and names the shared ledger */
   const planted = [{ file: "bin/planted.mjs", text: 'const SCOPE = scopedEntryPoint({ entry: "bin/planted.mjs", governed: true, resources: [RESOURCES.connector(S, "PUBLIC_SITE"), RESOURCES.costLedger()] });\nconst RUN_COST = runCost({ entryPoint: "bin/elsewhere.mjs", scope: SCOPE });\nconst C = openConnector({ scope: SCOPE, subjectId: S, kind: "PUBLIC_SITE" });\n' }];

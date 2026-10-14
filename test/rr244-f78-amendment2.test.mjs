@@ -46,6 +46,8 @@ const CONNECTOR_MODE = Object.freeze([
   ["bin/collect-public-questions.mjs", [S, `--research-batch=${BATCH}`]],
   ["bin/crawl.mjs", [`--research-batch=${BATCH}`, S, "--live", "--i-have-the-owners-green"]],
   ["bin/gsc-ingest.mjs", ["--property=sc-domain:fixture-world.invalid", S]],
+  /* RR-263: F23's bounded link-status check (bin/link-status.mjs) — one more connector entry point, measured by the census below */
+  ["bin/link-status.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
   ["bin/mobile-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
   ["bin/quote-match.mjs", [P]],
   ["bin/render-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
@@ -62,6 +64,8 @@ function world(extra = []) {
   const sub = reg.subjects.find((s) => s.subjectId === FIXTURE_SUBJECT);
   sub.members.push({ resourceKind: "RESEARCH_BATCH", resourceRef: BATCH }, { resourceKind: "RESEARCH_BATCH", resourceRef: EVIDENCE });
   sub.connectors.push({ connectorId: "questions", kind: "QUESTION_SOURCE_API", credential: null, reaches: [{ resourceKind: "SITE_ORIGIN", resourceRef: FIXTURE_SUBJECT_ORIGIN }] });
+  /* RR-263: and the link-status check's connector, reaching the batch these runs name */
+  sub.connectors.push({ connectorId: "link-destinations", kind: "LINK_DESTINATIONS", credential: null, reaches: [{ resourceKind: "RESEARCH_BATCH", resourceRef: BATCH }] });
   writeFileSync(join(W.root, "roots.json"), JSON.stringify(reg, null, 2) + "\n");
   const research = reg.stores.find((s) => s.store === "RESEARCH").path;
   for (const b of [BATCH, EVIDENCE]) mkdirSync(join(W.root, research, b), { recursive: true });
@@ -107,6 +111,7 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/collect-public-questions.mjs": ["ALWAYS", ["SEAM", "USAGE"]],
     "bin/crawl.mjs": ["live", ["USAGE", "USAGE", "CONFINEMENT", "CONFINEMENT"]],
     "bin/gsc-ingest.mjs": ['arg("source") === null', []],
+    "bin/link-status.mjs": ["live", ["USAGE"]],
     "bin/mobile-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
     "bin/quote-match.mjs": ["ALWAYS", ["USAGE"]],
     "bin/render-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],

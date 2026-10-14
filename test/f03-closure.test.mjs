@@ -98,7 +98,9 @@ test("F03 · CLOSE · R7 rows · every portability outcome row, printed, reprodu
   t.diagnostic(`F03-R7-WHOLE-POPULATION rows ${wholeRows} · subjects ${declaredSubjectIds(r.roots).length} · tenants ${allTenants.length}`);
   for (const id of declaredSubjectIds(r.roots).filter((x) => productSubjects.has(x))) {
     for (const tn of tenants) rows.push(`${id}|${tn}|SUBJECT|${decideForTenant(r, tn, RESOURCES.subject(id)).outcome}`);
-    for (const c of lookupSubject(r.roots, id).entry.connectors) for (const tn of tenants) rows.push(`${id}|${tn}|${c.kind}|${decideForTenant(r, tn, RESOURCES.connector(id, c.kind)).outcome}`);
+    /* RR-263: the F03-ERA connectors only — F23's link-status connector (kind LINK_DESTINATIONS, added 14 Oct 2026) is in the whole
+     * population reported above, never in this historical pin */
+    for (const c of lookupSubject(r.roots, id).entry.connectors.filter((x) => x.kind !== "LINK_DESTINATIONS")) for (const tn of tenants) rows.push(`${id}|${tn}|${c.kind}|${decideForTenant(r, tn, RESOURCES.connector(id, c.kind)).outcome}`);
   }
   rows.sort();
   // printed with the tenant shortened to a digest — the row identity, never a list of every tenant's id in a log

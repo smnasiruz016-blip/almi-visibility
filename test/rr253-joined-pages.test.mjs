@@ -437,8 +437,14 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     /* the title law: no search phrase is recorded for these pages, so nothing was composed and the gate says so; the title is traced to recorded questions */
     const recorded = new Map(p.itemList.flatMap((it) => it.questions.map((q) => [`recorded-question:${q.questionId}`, q.wording])));
     /* RR-256: the owner's recorded search phrases — the title is COMPOSED from them, every word traced, the year a date fact */
-    const phrases = JSON.parse(readFileSync(join(dir, "search-phrases.json"), "utf8")).filter((x) => x.page === p.value);
-    assert.ok(phrases.length > 0 && phrases.every((x) => x.source && x.caveat), `${p.value}: no recorded search phrase, or one without its source and caveat`);
+    const seenBy = JSON.parse(readFileSync(join(dir, "search-phrases.json"), "utf8")).filter((x) => x.page === p.value);
+    /* RR-264: a title may be planned over the batch's STORED phrase records (F11); the plan names a record by source and wording */
+    const storedF11 = readFileSync(join(dir, "search-phrases.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.record_type === "search_phrase");
+    const planned = (existsSync(join(dir, "title-plans.json")) ? JSON.parse(readFileSync(join(dir, "title-plans.json"), "utf8")) : []).filter((t) => t.page === p.value)
+      .map((t) => { const r = storedF11.find((x) => x.source === t.source && x.phrase === t.phrase); return r ? { phraseId: r.phrase_id, page: t.page, text: r.phrase, source: r.source, label: r.label, role: t.role, use: t.use, need: t.need, withYear: t.withYear } : null; });
+    assert.ok(!planned.includes(null), `${p.value}: a title plan names no stored phrase`);
+    const phrases = [...seenBy, ...planned];
+    assert.ok(phrases.length > 0 && seenBy.every((x) => x.source && x.caveat) && planned.every((x) => x.source && x.label), `${p.value}: no recorded search phrase, or one without its source and caveat (or, planned, its source and label)`);
     assert.deepEqual([p.titleComposed, p.checks.titleFromSearchPhrases.state, p.checks.titleFromRecords.state], [true, "PASS", "PASS"]);
     assert.deepEqual(titleWordsTraced({ title: p.title, phrases, lastChecked: p.lastChecked }), [], `${p.value}: a title word has no recorded source`);
     for (const t of p.titleTrace) assert.ok(t.from.startsWith("date-fact:") ? p.lastChecked.startsWith(t.part) : phrases.some((x) => `search-phrase:${x.phraseId}` === t.from && x.text === t.phrase), `${p.value}: a title part's trace names no recorded phrase`);

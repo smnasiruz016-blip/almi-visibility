@@ -306,7 +306,9 @@ test("REAL · C1 C2 C4 C5 C6 · the declared product's stored phrases and record
   /* the store holds every record the recorded grouping gives today, byte for byte (an earlier grouping's records stay in the store; they are history) */
   const stored = new Map(held().map((x) => [x.measurement_key, x]));
   assert.ok(jsonl("need-clusters.jsonl").filter((x) => x.record_type === RESIGHTING_TYPE).every((x) => stored.has(x.measurement_key)), "a re-sighting in the need store re-sights no record held there");
-  for (const x of r.records) assert.deepEqual(stored.get(x.measurement_key), JSON.parse(JSON.stringify(x)), "a need record of the recorded grouping is not in the store as derived");
+  /* RR-264: a need record is stored ONCE, on the day it was first derived; an unchanged need keeps that day — every other field must match */
+  const undated = (x) => (x ? { ...JSON.parse(JSON.stringify(x)), recorded_at: null } : x);
+  for (const x of r.records) assert.deepEqual(undated(stored.get(x.measurement_key)), undated(x), "a need record of the recorded grouping is not in the store as derived");
   assert.ok([...stored.values()].every((x) => [CLUSTER_RECORD, SAMPLE_RECORD].includes(x.record_type) && evidenceStateOf(x).state === "INFERRED"), "the need store holds a record that is not F12's — or a page");
   const needs = r.records.filter((x) => x.place === PLACES.NEED);
   assert.ok(needs.every((x) => x.reason.trim().length > 20 && Object.hasOwn(MAKERS, x.decidedBy.kind) && x.label === MAKERS[x.decidedBy.kind] && x.label !== "OBSERVED"));

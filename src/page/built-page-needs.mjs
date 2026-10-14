@@ -318,8 +318,11 @@ export function runBuiltPages({ pages = [], needRecords = [], on, hint = null })
  */
 export function storedNeedRecords({ derived = null, stored = [] }) {
   if (!derived || list(derived.refused).length || !list(derived.records).length) return Object.freeze({ refused: "NEED_GROUPING_ABSENT_OR_REFUSED", records: Object.freeze([]) });
-  const held = new Map(list(stored).filter((r) => r?.record_type === NEED_RECORD).map((r) => [r.measurement_key, JSON.stringify(r)]));
-  const absent = derived.records.filter((r) => held.get(r.measurement_key) !== JSON.stringify(r));
+  /* RR-264: the store keeps a need record ONCE, on the day it was first derived (F12 appends only what is new), so a need unchanged since an
+   * earlier run is held under that earlier day. The day is not the record's content: every other field must still match, byte for byte. */
+  const content = (r) => JSON.stringify({ ...r, recorded_at: null });
+  const held = new Map(list(stored).filter((r) => r?.record_type === NEED_RECORD).map((r) => [r.measurement_key, content(r)]));
+  const absent = derived.records.filter((r) => held.get(r.measurement_key) !== content(r));
   if (absent.length) return Object.freeze({ refused: "NEED_RECORDS_NOT_STORED_AS_DERIVED", records: Object.freeze([]), absent: absent.length });
   return Object.freeze({ refused: null, records: Object.freeze([...derived.records]) });
 }

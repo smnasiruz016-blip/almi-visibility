@@ -86,6 +86,13 @@ const proposed = json("page-drafts.json"), reviewsIn = json("reviews.json");
 if (!Array.isArray(proposed?.pages) || !Array.isArray(reviewsIn)) { console.error("🔴 REFUSED — INTAKE_FILE_UNREADABLE: page-drafts.json or reviews.json is not readable in the batch; nothing written"); process.exit(3); }
 const { plan } = await readProductPlan(product);
 const officialSites = Array.isArray(product.officialSites) ? product.officialSites : [];
+/* RR-264: a page's title may also be planned over THIS batch's STORED phrase records (F11, search-phrases.jsonl), each named by its source and
+ * wording in title-plans.json: the words are the stored record's, never the plan's, and a plan that names no stored phrase refuses the run
+ * before anything is written */
+const storedPhrases = rowsOf("search-phrases.jsonl").filter((r) => r?.record_type === "search_phrase");
+const titlePlans = Array.isArray(json("title-plans.json")) ? json("title-plans.json") : [];
+const planned = titlePlans.map((t) => { const r = storedPhrases.find((x) => x.source === t?.source && x.phrase === t?.phrase); return r ? { phraseId: r.phrase_id, page: t.page, text: r.phrase, label: r.label, source: r.source, ...Object.fromEntries(["role", "use", "need", "withYear", "promisesConversionTo"].filter((k) => t[k] !== undefined).map((k) => [k, t[k]])) } : null; });
+if (planned.includes(null)) { console.error(`🔴 REFUSED — TITLE_PLAN_NAMES_NO_STORED_PHRASE: ${planned.filter((p) => p === null).length} title plan(s) name no phrase stored in this batch; nothing written`); process.exit(3); }
 
 console.log(`JOINED TEST PAGES — ${X.stamp} · this subject's product only, from stored records; nothing fetched`);
 console.log(`  exception        ${X.exception.effect} · owner record ${X.exception.record.repo}:${X.exception.record.path}@${X.exception.record.commit.slice(0, 7)} · the declared page specs are set aside with them`);
@@ -146,7 +153,7 @@ const approved = filed.claims;
 /* page law 1: the client's own design, as its questionnaire files it — none filed is none, never a default look */
 const design = filed.state === "READ" ? designOf(filed.questionnaire) : null;
 const list = (name) => { const v = json(name); return Array.isArray(v) ? v : []; };
-const phrases = list("search-phrases.json"), keyFacts = list("key-facts.json"), rates = list("conversion-rates.json"), comparisons = list("comparisons.json"), intervals = new Map(list("recheck-intervals.json").map((r) => [r?.claimId, r?.recheckDays]));
+const phrases = [...list("search-phrases.json"), ...planned], keyFacts = list("key-facts.json"), rates = list("conversion-rates.json"), comparisons = list("comparisons.json"), intervals = new Map(list("recheck-intervals.json").map((r) => [r?.claimId, r?.recheckDays]));
 console.log(`  page law inputs  client design ${design ? `filed (${design.basis})` : "NOT FILED"} · recorded search phrases ${phrases.length} · recorded key facts ${keyFacts.length} · recorded conversions ${rates.length} · recorded comparison tables ${comparisons.length} · recorded recheck intervals ${intervals.size}`);
 const needToKey = new Map([...keyToNeed].map(([k, v]) => [v, k]));
 /* RR-262: what a need is recorded to lead with (the owner's page-content decision), by need key */

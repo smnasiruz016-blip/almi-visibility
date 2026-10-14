@@ -357,7 +357,9 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
   const productId = String(lookupSubject(rootIndexFor(process.env), subject).entry?.members?.find((m) => m.resourceKind === "FACT_REGISTRY")?.resourceRef ?? "").split(":").pop().split("/")[0];
   const x = P.record.exception.record, on = P.record.recorded_at.slice(0, 10);
   /* the check runs on the day of the stored need records (it reads them only as derived on that day); the builder on the pages' own day */
-  const needsDay = rowsIn(real, "need-clusters.jsonl").at(-1).recorded_at.slice(0, 10);
+  const needsDay = realDay(real);
+  const N1 = jsonIn(real, "page-drafts.json").pages.length + 1;
+  const afterP = new Date(Date.parse(P.record.recorded_at) + 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
   const audiences = jsonIn(real, "page-audiences.json"), drafts = jsonIn(real, "page-drafts.json");
   const dimension = Object.keys(drafts.pages[0].combination)[0];
   const needOfQ = (q) => world.ix.byQuestion.get(q)?.need ?? null;
@@ -367,7 +369,7 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
   assert.ok(extra.length > 0, "the plant has no question the survivor lacks — nothing would be moved");
   const itemList = P.record.itemList.map((it) => { const need = it.questions.map((q) => needOfQ(q.questionId)).find(Boolean); const add = extra.filter((q) => needOfQ(q.questionId) === need && !it.questions.some((y) => y.questionId === q.questionId)); extra.splice(0, extra.length, ...extra.filter((q) => !add.includes(q))); return { ...it, questions: [...it.questions, ...add] }; });
   const added = itemList.flatMap((it) => it.questions).filter((q) => !mine.has(q.questionId));
-  const later = { ...P.record, value: "planted-duplicate", measurement_key: `${JOINED_RECORD}:planted-duplicate`, recorded_at: "2026-10-13T23:59:59Z", itemList, questions: P.record.questions + added.length };
+  const later = { ...P.record, value: "planted-duplicate", measurement_key: `${JOINED_RECORD}:planted-duplicate`, recorded_at: afterP, itemList, questions: P.record.questions + added.length };
   /* plant 2 · a test-only copy of the second real page, built EARLIER than it: by the one rule the real page is the one cancelled */
   const earlier = { ...O.record, value: "planted-earlier", measurement_key: `${JOINED_RECORD}:planted-earlier`, recorded_at: "2026-01-01T00:00:00Z" };
 
@@ -389,14 +391,14 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
     /* CONTROL: before any stored cancellation the builder holds nothing back */
     const b0 = A.build();
     assert.equal(b0.status, 0, b0.stdout + b0.stderr);
-    assert.match(b0.stdout, /cancelled page\(s\) not rebuilt 0 of 3 proposed · stored moves 0 · .* · page\(s\) to build 3/);
+    assert.match(b0.stdout, new RegExp(`cancelled page\\(s\\) not rebuilt 0 of ${N1} proposed · stored moves 0 · .* · page\\(s\\) to build ${N1}`));
     const c1 = A.check();
     assert.equal(c1.status, 0, c1.stdout + c1.stderr);
     const cancel = rowsIn(A.dir, "built-page-needs.jsonl").filter((r) => r.record_type === CANCEL_RECORD), moves = rowsIn(A.dir, "built-page-needs.jsonl").filter((r) => r.record_type === MOVE_RECORD);
     assert.deepEqual(cancel.map((r) => [r.cancelledPage, r.survivorPage]), [["planted-duplicate", P.pageId]], "CONTROL: the planted duplicate must have been cancelled by the one rule");
     const b1 = A.build();
     assert.equal(b1.status, 0, b1.stdout + b1.stderr);
-    assert.match(b1.stdout, /cancelled page\(s\) not rebuilt 1 of 3 proposed · stored moves \d+ · .* · page\(s\) to build 2/, "the cancelled page was proposed again");
+    assert.match(b1.stdout, new RegExp(`cancelled page\\(s\\) not rebuilt 1 of ${N1} proposed · stored moves \\d+ · .* · page\\(s\\) to build ${N1 - 1}`), "the cancelled page was proposed again");
     assert.ok(b1.stdout.includes("    not rebuilt    planted-duplicate — cancelled by a stored decision"), b1.stdout);
     assert.deepEqual(builds(A.dir, "planted-duplicate").map((r) => r.measurement_key), [later.measurement_key], "the cancelled page was rebuilt");
     const rebuilt = builds(A.dir, P.pageId).at(-1);
@@ -405,8 +407,8 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
     assert.deepEqual([rebuilt.questions, rebuilt.recorded_at.slice(0, 10), Array.isArray(rebuilt.movedIn) && rebuilt.movedIn.length], [P.record.questions + added.length, on, added.length], "the rebuilt real page does not hold the moved questions");
     assert.ok(added.every((q) => rebuilt.html.toLowerCase().includes(q.wording.toLowerCase().replace(/&/g, "&amp;")) && rebuilt.itemList.some((it) => it.questions.some((y) => y.questionId === q.questionId && y.wording === q.wording))), "a moved question is not in the rebuilt page's question-and-answer section in its own wording");
     const after1 = realWorld(A.dir);
-    assert.deepEqual([after1.sections.faults.length, after1.pages.map((p) => p.pageId).sort()], [0, [P.pageId, O.pageId].sort()]);
-    console.log(`  REAL REBUILD (count-only; a scratch copy, the builder's own entry point): ${JSON.stringify({ proposed: 3, notRebuilt: 1, storedMoves: moves.length, alreadyOnTheRebuiltPage: moves.length - added.length, placedInTheRebuiltPage: added.length, withNoItem: 0 })}`);
+    assert.deepEqual([after1.sections.faults.length, after1.pages.map((p) => p.pageId).sort()], [0, world.pages.map((p) => p.pageId).sort()]);
+    console.log(`  REAL REBUILD (count-only; a scratch copy, the builder's own entry point): ${JSON.stringify({ proposed: N1, notRebuilt: 1, storedMoves: moves.length, alreadyOnTheRebuiltPage: moves.length - added.length, placedInTheRebuiltPage: added.length, withNoItem: 0 })}`);
   } finally { A.W.cleanup(); }
   assert.equal(existsSync(A.W.root), false, "the planted duplicate was not removed");
 
@@ -419,7 +421,7 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
     const had = builds(B.dir, O.pageId).length;
     const b1 = B.build();
     assert.equal(b1.status, 0, b1.stdout + b1.stderr);
-    assert.match(b1.stdout, /cancelled page\(s\) not rebuilt 1 of 3 proposed/);
+    assert.match(b1.stdout, new RegExp(`cancelled page\\(s\\) not rebuilt 1 of ${N1} proposed`));
     assert.match(b1.stdout, /stored decisions \d+ compiled need\(s\) of cancelled page\(s\) held back from the join/, "the cancelled real page's stored needs were not held back from the join");
     assert.ok(b1.stdout.includes(`    not rebuilt    ${O.pageId} — cancelled by a stored decision (survivor planted-earlier, step EARLIER BUILD)`), b1.stdout);
     assert.deepEqual([b1.stdout.includes(`  page ${O.pageId} — `), b1.stdout.includes(`  page ${P.pageId} — `), builds(B.dir, O.pageId).length], [false, true, had], "a page cancelled by a stored decision was rebuilt");
@@ -463,15 +465,18 @@ const realDir = () => join(RESEARCH(), BATCH);
 const subjectOf = (dir) => rowsIn(dir, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD).at(-1)?.subject ?? null;
 const rowsIn = (dir, name) => (existsSync(join(dir, name)) ? readFileSync(join(dir, name), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.record_type !== RESIGHTING_TYPE) : []);
 const jsonIn = (dir, name) => (existsSync(join(dir, name)) ? JSON.parse(readFileSync(join(dir, name), "utf8")) : null);
-const realWorld = (dir) => {
+/* RR-264: the day of the real population is READ from its own stored records — the newest day any of them carries — never fixed */
+const realDay = (dir) => [...rowsIn(dir, "need-clusters.jsonl"), ...rowsIn(dir, "built-page-needs.jsonl"), ...rowsIn(dir, "joined-pages.jsonl")].map((r) => String(r.recorded_at ?? "").slice(0, 10))
+  .concat(Object.values(jsonIn(dir, "page-audiences.json")?.pages ?? {}).map((a) => String(a?.declaredOn ?? ""))).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().at(-1) ?? "2026-10-13";
+const realWorld = (dir, on = realDay(dir)) => {
   const i = inputsOf({ phrases: rowsIn(dir, "search-phrases.jsonl"), publicQuestions: rowsIn(dir, "questions.jsonl"), derivedQuestions: rowsIn(dir, "research-derived-questions.jsonl") });
-  const N = storedNeedRecords({ derived: clusterInputs({ inputs: i.inputs, unread: i.unread, grouping: jsonIn(dir, "need-grouping.json"), on: "2026-10-13" }), stored: rowsIn(dir, "need-clusters.jsonl") });
+  const N = storedNeedRecords({ derived: clusterInputs({ inputs: i.inputs, unread: i.unread, grouping: jsonIn(dir, "need-grouping.json"), on }), stored: rowsIn(dir, "need-clusters.jsonl") });
   /* the tenant is the one the stored decisions were made for (the governed run's own scope); before any run, a stand-in */
   const tenantId = rowsIn(dir, "built-page-needs.jsonl").find((r) => r.record_type === DECISION_RECORD)?.tenantId ?? "tenant:not-yet-run";
   const pages = builtPages({ records: [...rowsIn(dir, "joined-pages.jsonl"), ...rowsIn(dir, "built-page-needs.jsonl")], tenantId, audiences: jsonIn(dir, "page-audiences.json")?.pages ?? {} });
   const ix = needIndex(N.records);
   const recorded = new Map(i.inputs.filter((x) => x.kind === "QUESTION").map((x) => [x.inputId.slice(x.inputId.indexOf(":") + 1), x.wording]));
-  return { N, pages, ix, sections: pageSections({ pages, recorded, needOf: (q) => ix.byQuestion.get(q)?.need ?? null }), run: runBuiltPages({ pages, needRecords: N.records, on: "2026-10-13" }) };
+  return { N, pages, ix, sections: pageSections({ pages, recorded, needOf: (q) => ix.byQuestion.get(q)?.need ?? null }), run: runBuiltPages({ pages, needRecords: N.records, on }) };
 };
 
 test("REAL · C3 C4 C6 · the declared product's built, unpublished pages against its stored need records: every page with one question-and-answer section and its questions in their recorded wording, every pair decided from the need records, zero pairs SAME NEED — and F10 is VERIFIED only on that result, with the decisions stored", () => {
@@ -510,10 +515,11 @@ test("REAL · C5 C6 · a deliberately planted duplicate of a real built page is 
   assert.ok(extra.length > 0, "the plant has no question the survivor lacks — nothing would be moved");
   const itemList = P.record.itemList.map((it) => { const need = it.questions.map((q) => needOfQ(q.questionId)).find(Boolean); const add = extra.filter((q) => needOfQ(q.questionId) === need && !it.questions.some((x) => x.questionId === q.questionId)); extra.splice(0, extra.length, ...extra.filter((q) => !add.includes(q))); return { ...it, questions: [...it.questions, ...add] }; });
   const addedCount = itemList.reduce((n, it) => n + it.questions.length, 0) - P.record.questions;
-  const dup = { ...P.record, value: "planted-duplicate", measurement_key: `${JOINED_RECORD}:planted-duplicate`, recorded_at: "2026-10-13T23:59:59Z", itemList, questions: P.record.questions + addedCount };
+  const ON = realDay(real), afterP = new Date(Date.parse(P.record.recorded_at) + 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const dup = { ...P.record, value: "planted-duplicate", measurement_key: `${JOINED_RECORD}:planted-duplicate`, recorded_at: afterP, itemList, questions: P.record.questions + addedCount };
   /* THE PLANTED SUBSET: a test-only page with the same declared audience as that real page and only some of its needs */
   const some = P.record.itemList.slice(0, Math.max(1, Math.floor(P.record.itemList.length / 3)));
-  const subset = { ...P.record, value: "planted-subset", measurement_key: `${JOINED_RECORD}:planted-subset`, recorded_at: "2026-10-13T23:59:58Z", itemList: some, questions: some.reduce((n, it) => n + it.questions.length, 0) };
+  const subset = { ...P.record, value: "planted-subset", measurement_key: `${JOINED_RECORD}:planted-subset`, recorded_at: afterP, itemList: some, questions: some.reduce((n, it) => n + it.questions.length, 0) };
   const audiences = jsonIn(real, "page-audiences.json");
   assert.ok(audiences?.pages?.[P.pageId]?.audience, "the real page's audience is not declared");
 
@@ -522,7 +528,7 @@ test("REAL · C5 C6 · a deliberately planted duplicate of a real built page is 
     const dir = join(W.root, "research", BATCH);
     appendFileSync(join(dir, "joined-pages.jsonl"), JSON.stringify(plant) + "\n");
     writeFileSync(join(dir, "page-audiences.json"), JSON.stringify({ ...audiences, pages: { ...audiences.pages, [plant.value]: audiences.pages[P.pageId] } }));
-    const r = spawnSync(process.execPath, ["bin/built-page-needs.mjs", ...W.argv([`--subject=${subjectOf(real)}`, `--research-batch=${BATCH}`, "--on=2026-10-13", "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    const r = spawnSync(process.execPath, ["bin/built-page-needs.mjs", ...W.argv([`--subject=${subjectOf(real)}`, `--research-batch=${BATCH}`, `--on=${ON}`, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
     return { W, dir, r };
   };
   /* the duplicate */
@@ -538,7 +544,7 @@ test("REAL · C5 C6 · a deliberately planted duplicate of a real built page is 
     assert.deepEqual([survivor.value, survivor.questions], [P.pageId, P.record.questions + addedCount]);
     assert.ok(moves.filter((m) => !m.alreadyHeld).every((m) => survivor.html.toLowerCase().includes(m.wording.toLowerCase().replace(/&/g, "&amp;"))), "a moved question is not in the survivor's question-and-answer section");
     const after1 = realWorld(D.dir);
-    assert.deepEqual([after1.pages.map((p) => p.pageId).sort(), after1.run.result.counts.same, after1.run.result.verdict, after1.sections.faults.length], [[P.pageId, O.pageId].sort(), 0, VERDICTS.PROVED, 0]);
+    assert.deepEqual([after1.pages.map((p) => p.pageId).sort(), after1.run.result.counts.same, after1.run.result.verdict, after1.sections.faults.length], [world.pages.map((p) => p.pageId).sort(), 0, VERDICTS.PROVED, 0]);
     console.log(`  REAL PLANT (count-only; a scratch copy, the production path): ${JSON.stringify({ caught: cancel.length, survivorIsTheRealPage: cancel[0].survivorPage === P.pageId, decidedByStep: cancel[0].decidedByStep, questionsOfThePlant: moves.length, movedIntoTheSurvivor: addedCount, alreadyHeld: moves.length - addedCount, sameNeedPairsAfter: after1.run.result.counts.same })}`);
   } finally { D.W.cleanup(); }
   assert.equal(existsSync(D.W.root), false, "the planted duplicate was not removed");
@@ -555,6 +561,56 @@ test("REAL · C5 C6 · a deliberately planted duplicate of a real built page is 
   } finally { S.W.cleanup(); }
   assert.equal(existsSync(S.W.root), false, "the planted subset page was not removed");
   assert.deepEqual(FILES.map((f) => sha(readFileSync(join(real, f)))), before, "the product's own store was changed by a plant");
+});
+
+/* ================= RR-264 ================= */
+
+test("NEED RECORDS · FIRING CONTROL (RR-264): a need record the store holds from an EARLIER day is the record derived today — the day is not its content; a record changed in any other field, or absent, is refused", () => {
+  const today = { record_type: "need_cluster", measurement_key: "need_cluster:k1", recorded_at: "2026-10-14T00:00:00Z", need: "fee", reason: "every wording asks the price", members: [{ inputId: "q1" }] };
+  const derived = { refused: [], records: [today] };
+  const earlier = { ...today, recorded_at: "2026-10-13T00:00:00Z" };
+  assert.deepEqual([storedNeedRecords({ derived, stored: [earlier] }).refused, storedNeedRecords({ derived, stored: [today] }).refused], [null, null]);
+  /* CONTROL: every other field still decides — a changed reason, a changed member, a lost record */
+  assert.equal(storedNeedRecords({ derived, stored: [{ ...earlier, reason: "another reason" }] }).refused, "NEED_RECORDS_NOT_STORED_AS_DERIVED");
+  assert.equal(storedNeedRecords({ derived, stored: [{ ...today, members: [{ inputId: "q2" }] }] }).refused, "NEED_RECORDS_NOT_STORED_AS_DERIVED");
+  assert.equal(storedNeedRecords({ derived, stored: [] }).refused, "NEED_RECORDS_NOT_STORED_AS_DERIVED");
+});
+
+test("TITLE PLAN · FIRING CONTROL (RR-264): the builder's own entry point, over a scratch copy — a title plan that names no phrase stored in the batch refuses the run before anything is written; the plans as recorded build, each title part traced to its stored phrase", () => {
+  const real = realDir();
+  const world = realWorld(real);
+  assert.ok(world.pages.length > 0, "EMPTY real population");
+  const P = world.pages[0];
+  const subject = subjectOf(real);
+  const productId = String(lookupSubject(rootIndexFor(process.env), subject).entry?.members?.find((m) => m.resourceKind === "FACT_REGISTRY")?.resourceRef ?? "").split(":").pop().split("/")[0];
+  const x = P.record.exception.record, on = P.record.recorded_at.slice(0, 10);
+  const plans = jsonIn(real, "title-plans.json") ?? [];
+  assert.ok(plans.length > 0, "EMPTY real population: no title plan is recorded");
+  const W = declaredWorld();
+  const dir = join(W.root, "research", BATCH);
+  const build = () => spawnSync(process.execPath, ["bin/build-joined-pages.mjs", ...W.argv([`--subject=${subject}`, `--product=${productId}`, `--research-batch=${BATCH}`, `--on=${on}`, `--test-exception=${x.repo}:${x.path}@${x.commit}`, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+  const STORES = ["joined-pages.jsonl", "planning.jsonl"];
+  try {
+    const before = STORES.map((f) => sha(readFileSync(join(dir, f))));
+    writeFileSync(join(dir, "title-plans.json"), JSON.stringify([...plans, { page: plans[0].page, source: "AI_SUGGESTION", phrase: "a phrase no run ever stored", role: "TOPIC", use: "phrase" }]));
+    const r = build();
+    assert.equal(r.status, 3, r.stdout + r.stderr);
+    assert.match(r.stderr, /TITLE_PLAN_NAMES_NO_STORED_PHRASE: 1 title plan\(s\) name no phrase stored in this batch; nothing written/);
+    assert.deepEqual(STORES.map((f) => sha(readFileSync(join(dir, f)))), before, "a refused title plan let the run write");
+    /* CONTROL: the plans as recorded */
+    writeFileSync(join(dir, "title-plans.json"), JSON.stringify(plans));
+    const ok = build();
+    assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+    const stored = rowsIn(dir, "search-phrases.jsonl").filter((r) => r.record_type === "search_phrase");
+    const latest = [...new Map(rowsIn(dir, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD).map((r) => [r.value, r])).values()];
+    for (const t of plans) {
+      const rec = stored.find((y) => y.source === t.source && y.phrase === t.phrase);
+      const page = latest.find((p) => p.value === t.page);
+      assert.ok(rec && page && page.titleTrace.some((part) => part.from === `search-phrase:${rec.phrase_id}` && part.phrase === rec.phrase), `${t.page}: a planned title part is not traced to its stored phrase`);
+    }
+    console.log(`  TITLE PLAN (count-only; a scratch copy, the builder's own entry point): ${JSON.stringify({ refusedPlans: 1, written: 0, plansTraced: plans.length })}`);
+  } finally { W.cleanup(); }
+  assert.equal(existsSync(W.root), false, "the scratch copy was not removed");
 });
 
 test("the production trail was not written by this file", () => assert.equal(sha(readFileSync(TRAIL)), trailBefore));

@@ -1,7 +1,7 @@
 /**
  * 🔴 F10 · PROVED ON THE BUILT PAGES — ONE SABOTAGE PER FAILURE LIMB (Acceptance Amendment 4, _handoffs c063d3b, C3 to C7 and the
  * owner's REVIEW addition; C8 EVIDENCE; RR-261) — AND ONE PER FAILURE LIMB OF THE REBUILD THAT HONOURS ITS STORED DECISIONS (RR-262:
- * the page builder holds no cancel rule of its own; limbs B01 to B14).
+ * the page builder holds no cancel rule of its own; limbs B01 to B14; RR-264 B15 and B16).
  *
  *   node test/helpers/f10-built-pages-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
@@ -41,6 +41,9 @@ const SABOTAGES = [
   ["B12", "REBUILD the entry point joins a cancelled page's stored needs: the page is rebuilt", BLD, "const pages = joinPages({ construction: joinable.construction,", "const pages = joinPages({ construction: G.compiled.forConstruction,", RP],
   ["B13", "REBUILD the entry point does not put the stored moved questions into the rebuilt survivor", BLD, "const built = pages.map((p) => withStoredMoves({ page: p, decisions: decided }));", "const built = pages.map((p) => ({ record: p, moved: 0, alreadyHeld: 0, placed: 0, noItem: 0 }));", RP],
   ["B14", "ONE RULE a second rule is back in the page builder: it reads a same-need judgement at build time", BLD, "const resolved = proposedAfterDecisions({ pages: proposed.pages, decisions: decided });", "const resolved = proposedAfterDecisions({ pages: proposed.pages.filter((p) => !(proposed.sameNeed ?? []).length || p), decisions: decided });", ONE],
+  /* RR-264: the two guards of the round — a need record stored on an earlier day is the same record only when every other field matches; a title plan that names no stored phrase stops the builder before it writes */
+  ["B15", "RR-264 a need record changed in a field other than its day is read as the stored record", M, "const content = (r) => JSON.stringify({ ...r, recorded_at: null });", "const content = (r) => JSON.stringify({ measurement_key: r.measurement_key });", "NEED RECORDS · FIRING CONTROL (RR-264)"],
+  ["B16", "RR-264 a title plan that names no stored phrase does not stop the builder", BLD, "if (planned.includes(null)) {", "if (false) {", "TITLE PLAN · FIRING CONTROL (RR-264)"],
   ["T01", "C3 a page with no question-and-answer section, or with two, is not counted as a finding", M, "    if (section !== SECTION.PRESENT) faults.push(Object.freeze({ code: `SECTION_${section.replace(/ /g, \"_\")}`, pageId: p.pageId }));\n", "", C3],
   ["T02", "C3 a page with two sections reads as one", M, ": n > 1 ? SECTION.MORE : SECTION.ABSENT;", ": n > 1 ? SECTION.PRESENT : SECTION.ABSENT;", C3],
   ["T03", "C3 a question's original wording is changed and not seen", M, "      if (recorded.has(q.questionId) && recorded.get(q.questionId) !== q.wording) faults.push(", "      if (false) faults.push(", C3],
@@ -112,6 +115,10 @@ const SABOTAGES = [
   ["Y06", "C7 the built-pages check holds a similarity measure", M, "const isDay = (d) => typeof d === \"string\"", "const cosineSimilarity = () => 0;\nconst isDay = (d) => typeof d === \"string\"", C7],
 ];
 
+/* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */
+const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
+if (ONLY !== null && !SABOTAGES.some((x) => x[0] === ONLY)) { console.error(`no limb ${ONLY}`); process.exit(2); }
+const RUN = ONLY === null ? SABOTAGES : SABOTAGES.filter((x) => x[0] === ONLY);
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];
 const originals = new Map(files.map((p) => [p, read(p)]));
 const restoreAll = () => { for (const [p, b] of originals) if (!read(p).equals(b)) writeFileSync(join(REPO, p), b); };
@@ -129,7 +136,7 @@ const lines = [
 ];
 console.log(lines.join("\n"));
 let proved = 0;
-for (const [id, limb, file, from, to, expect] of SABOTAGES) {
+for (const [id, limb, file, from, to, expect] of RUN) {
   const orig = originals.get(file);
   const text = orig.toString("utf8");
   if (occurrences(text, from) !== 1) { lines.push(`${id} ${limb} ${file}: SPAN NOT FOUND EXACTLY ONCE — NOT PROVED`); console.log(lines.at(-1)); continue; }
@@ -154,6 +161,6 @@ for (const [id, limb, file, from, to, expect] of SABOTAGES) {
 }
 const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
-lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
+lines.push("", `proved ${proved} of ${RUN.length}${ONLY === null ? "" : ` (--only=${ONLY}; ${SABOTAGES.length} limbs in all)`} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
 console.log(`evidence written: ${writeEvidenceOnce(REPO, "f10-built-pages-sabotage", lines.join("\n") + "\n")}`);

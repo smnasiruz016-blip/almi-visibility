@@ -356,6 +356,8 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
   const subject = subjectOf(real);
   const productId = String(lookupSubject(rootIndexFor(process.env), subject).entry?.members?.find((m) => m.resourceKind === "FACT_REGISTRY")?.resourceRef ?? "").split(":").pop().split("/")[0];
   const x = P.record.exception.record, on = P.record.recorded_at.slice(0, 10);
+  /* the check runs on the day of the stored need records (it reads them only as derived on that day); the builder on the pages' own day */
+  const needsDay = rowsIn(real, "need-clusters.jsonl").at(-1).recorded_at.slice(0, 10);
   const audiences = jsonIn(real, "page-audiences.json"), drafts = jsonIn(real, "page-drafts.json");
   const dimension = Object.keys(drafts.pages[0].combination)[0];
   const needOfQ = (q) => world.ix.byQuestion.get(q)?.need ?? null;
@@ -376,9 +378,9 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
     writeFileSync(join(dir, "page-audiences.json"), JSON.stringify({ ...audiences, pages: { ...audiences.pages, [plant.value]: audiences.pages[like.pageId] } }));
     /* the planted page is proposed too, with nothing to connect: whether it is proposed is what is measured */
     writeFileSync(join(dir, "page-drafts.json"), JSON.stringify({ ...drafts, pages: [...drafts.pages, { combination: { [dimension]: plant.value }, needs: [] }] }));
-    const go = (bin, ...args) => spawnSync(process.execPath, [bin, ...W.argv([`--subject=${subject}`, `--research-batch=${BATCH}`, `--on=${on}`, ...args, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
-    const build = () => go("bin/build-joined-pages.mjs", `--product=${productId}`, `--test-exception=${x.repo}:${x.path}@${x.commit}`);
-    return { W, dir, build, check: () => go("bin/built-page-needs.mjs") };
+    const go = (bin, day, ...args) => spawnSync(process.execPath, [bin, ...W.argv([`--subject=${subject}`, `--research-batch=${BATCH}`, `--on=${day}`, ...args, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    const build = () => go("bin/build-joined-pages.mjs", on, `--product=${productId}`, `--test-exception=${x.repo}:${x.path}@${x.commit}`);
+    return { W, dir, build, check: () => go("bin/built-page-needs.mjs", needsDay) };
   };
   const builds = (dir, value) => rowsIn(dir, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD && r.value === value);
 

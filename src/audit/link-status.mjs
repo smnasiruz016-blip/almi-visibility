@@ -7,17 +7,20 @@
  *                       requested reuses that answer)
  *   PACED               at least the declared interval between two request STARTS to one host, on a monotonic clock, rechecked after
  *                       every wait
- *   ROBOTS              each host's robots file is read first and respected; a file that cannot be read fails closed
+ *   ROBOTS              each host's robots file is read first and respected, as RFC 9309 has it: a 4xx answer (a 404 among them) means no
+ *                       restriction; a 5xx, a timeout or an unreachable host means every address is disallowed (fails closed); a redirect
+ *                       this check does not follow is treated the same way. The robots answer's status is recorded with each observation
  *   LIMIT               at most the declared number of requests in one run — robots files and hops count; and NO request at all when the
  *                       distinct addresses outnumber it
- *   REFUSED ≠ BROKEN    disallowed, rate-limited, challenged, timed out, or left over at the limit → NOT MEASURED with its reason
+ *   REFUSED ≠ BROKEN    disallowed, rate-limited, challenged, access refused (401, 403, 407), timed out, or left over at the limit →
+ *                       NOT MEASURED with its reason
  * Nothing is sent but a GET with the engine's own user agent; no body is kept unless a caller asks for one address's body (a client's own
  * live page). PURE of the outside world: the fetch, the sleep and the clock are handed in. It names no client, host or product.
  */
 import { createHash } from "node:crypto";
 import { parseRobots, isAllowedByRules, USER_AGENT } from "../crawl/robots.mjs";
 import { STATE, LINK_STATUS_RECORD, linksOf } from "./page-links.mjs";
-import { LINK_CHECK, NOT_MEASURED_REASON, CHALLENGE_HEADERS } from "../../config/audit/link-rules.mjs";
+import { LINK_CHECK, NOT_MEASURED_REASON, CHALLENGE_HEADERS, ACCESS_REFUSED_STATUSES } from "../../config/audit/link-rules.mjs";
 
 export const LIVE_READ_RECORD = "live_page_read";
 export const REFUSAL = Object.freeze({ TOO_MANY: "DISTINCT_ADDRESSES_OUTNUMBER_THE_REQUEST_LIMIT", NOT_PLANNED: "ADDRESS_IS_NOT_A_LINK_TARGET_A_HOP_OR_A_ROBOTS_FILE" });
@@ -74,11 +77,12 @@ export async function checkLinks({ urls = [], fetchImpl, sleep, clock, limits = 
       planned.add(`robots:${origin}`);
       try {
         const res = await send(`${origin}/robots.txt`, "robots");
-        if (res.status === 404 || res.status === 410) entry = { rules: [] };
-        else if (res.status === 429) entry = { reason: NOT_MEASURED_REASON.RATE_LIMITED };
-        else if (!res.ok) entry = { reason: NOT_MEASURED_REASON.ROBOTS_UNKNOWN };
-        else entry = { rules: parseRobots(await res.text(), userAgent) };
-      } catch (e) { if (e?.message === REFUSAL.NOT_PLANNED) throw e; entry = { reason: NOT_MEASURED_REASON.ROBOTS_UNKNOWN }; }
+        /* RFC 9309 §2.3.1.3: a robots file that is UNAVAILABLE (4xx, a 404 among them) places no restriction */
+        if (res.status >= 400 && res.status < 500) entry = { rules: [], status: res.status };
+        else if (res.ok) entry = { rules: parseRobots(await res.text(), userAgent), status: res.status };
+        /* RFC 9309 §2.3.1.4: UNREACHABLE (5xx) — every address is disallowed; so is a redirect this check does not follow */
+        else entry = { reason: NOT_MEASURED_REASON.ROBOTS_UNKNOWN, status: res.status };
+      } catch (e) { if (e?.message === REFUSAL.NOT_PLANNED) throw e; entry = { reason: NOT_MEASURED_REASON.ROBOTS_UNKNOWN, status: null }; }
     }
     /* a robots answer left over at the limit is not remembered as the host's answer */
     if (entry.reason !== NOT_MEASURED_REASON.REQUEST_LIMIT) robots.set(origin, entry);
@@ -100,6 +104,7 @@ export async function checkLinks({ urls = [], fetchImpl, sleep, clock, limits = 
           const res = await send(url, "page");
           if (res.status === 429) a = { status: 429, reason: NOT_MEASURED_REASON.RATE_LIMITED };
           else if (challenged(res)) a = { status: res.status, reason: NOT_MEASURED_REASON.CHALLENGED };
+          else if (ACCESS_REFUSED_STATUSES.includes(res.status)) a = { status: res.status, reason: NOT_MEASURED_REASON.ACCESS_REFUSED };
           else a = { status: res.status, location: res.headers?.get?.("location") ?? null, reason: null };
           if (bodiesFor.has(url) && res.status >= 200 && res.status < 300 && a.reason === null) bodies.set(url, await res.text());
           else await res.body?.cancel?.().catch(() => {});
@@ -133,14 +138,14 @@ export async function checkLinks({ urls = [], fetchImpl, sleep, clock, limits = 
       else reason = NOT_MEASURED_REASON.NO_STATUS;
       break;
     }
-    observations.push(Object.freeze({ url, state: reason ? STATE.NOT_MEASURED : state, reason, finalStatus, hops: chain.length, chain: Object.freeze([...chain]), finalUrl: cur }));
+    observations.push(Object.freeze({ url, state: reason ? STATE.NOT_MEASURED : state, reason, finalStatus, hops: chain.length, chain: Object.freeze([...chain]), finalUrl: cur, robotsStatus: robots.get(originOf(url))?.status ?? null }));
   }
   return out({ requests, observations: Object.freeze(observations), bodies, log: Object.freeze(log) });
 }
 
 /** The stored record of one observation. Its key covers the whole observation and the day, so a later check is a new record. */
 export function observationRecord({ observation, tenantId, on, run }) {
-  const body = { tenantId, url: observation.url, state: observation.state, reason: observation.reason ?? null, finalStatus: observation.finalStatus ?? null, hops: observation.hops, chain: observation.chain, finalUrl: observation.finalUrl, method: LINK_CHECK.method, checkedOn: on, run };
+  const body = { tenantId, url: observation.url, state: observation.state, reason: observation.reason ?? null, finalStatus: observation.finalStatus ?? null, hops: observation.hops, chain: observation.chain, finalUrl: observation.finalUrl, robotsStatus: observation.robotsStatus ?? null, method: LINK_CHECK.method, checkedOn: on, run };
   const id = hash(body);
   return Object.freeze({ record_type: LINK_STATUS_RECORD, measurement_key: `${LINK_STATUS_RECORD}:${id}`, observation_id: id, recorded_at: `${on}T00:00:00Z`, ...body });
 }

@@ -25,13 +25,18 @@ export const WEAK = Object.freeze({ EMPTY_NAME: "EMPTY NAME", IMAGE_NO_ALT: "IMA
 /** C8 · the bounds of one run of the link-status check. */
 export const LINK_CHECK = Object.freeze({ maxRequests: 100, sameHostIntervalMs: 2000, maxHops: 5, timeoutMs: 15000, method: "GET" });
 
-/** C2, C8 · why a destination is NOT MEASURED. A refused request is never BROKEN. */
+/** C2, C8 · why a destination is NOT MEASURED. A refused request is never BROKEN. "ROBOTS FILE COULD NOT BE READ" is the robots file
+ * UNAVAILABLE in RFC 9309's sense (a 5xx, a timeout, an unreachable host, or a redirect this check does not follow): the host is treated
+ * as disallowing every address. */
+export const ACCESS_REFUSED_STATUSES = Object.freeze([401, 403, 407]);
 export const NOT_MEASURED_REASON = Object.freeze({
   NEVER_CHECKED: "NO RECORDED OBSERVATION",
   ROBOTS_DISALLOWED: "DISALLOWED BY ROBOTS",
   ROBOTS_UNKNOWN: "ROBOTS FILE COULD NOT BE READ",
   RATE_LIMITED: "RATE LIMITED",
   CHALLENGED: "CHALLENGED",
+  /* RR-263 (beta-g, 14 Oct 2026): a 401, 403 or 407 answer refuses access — the destination is not shown to be broken */
+  ACCESS_REFUSED: "ACCESS REFUSED",
   TIMEOUT: "TIMED OUT",
   NETWORK_ERROR: "NO ANSWER",
   REQUEST_LIMIT: "REQUEST LIMIT REACHED",

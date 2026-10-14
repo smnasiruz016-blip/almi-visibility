@@ -241,7 +241,7 @@ const net = (routes = {}) => {
 const check = (urls, routes, more = {}) => { const n = net(routes); return checkLinks({ urls, fetchImpl: n.fetchImpl, sleep: n.sleep, clock: n.clock, ...more }).then((run) => ({ run, calls: n.calls })); };
 const stateOf = (run, url) => { const o = run.observations.find((x) => x.url === url); return [o.state, o.reason, o.hops]; };
 
-test("C8 · FIRING CONTROL: the check requests only the link targets, the hops their redirects name and each host's robots file — one GET for each distinct address, never twice; at least the declared interval between two requests to one host; robots respected; a chain is followed hop by hop and its length recorded; a refused request is NOT MEASURED with its reason, never broken", async () => {
+test("C8 · FIRING CONTROL: the check requests only the link targets, the hops their redirects name and each host's robots file — one GET for each distinct address, never twice; at least the declared interval between two requests to one host; robots respected; a chain is followed hop by hop and its length recorded; a refused request — access refused (401, 403, 407) among them — is NOT MEASURED with its reason, never broken; a robots file answered 4xx places no restriction and one answered 5xx, timed out or unreachable disallows (RFC 9309)", async () => {
   const A = "https://a.invalid", B = "https://b.invalid";
   const urls = [`${A}/1`, `${A}/2`, `${A}/3`, `${B}/x`, `${B}/y`, "https://c.invalid/p", "https://d.invalid/q", "https://e.invalid/r", "https://f.invalid/s", "https://g.invalid/t", "https://h.invalid/u", "https://i.invalid/v", "https://j.invalid/long"];
   const routes = {
@@ -268,6 +268,16 @@ test("C8 · FIRING CONTROL: the check requests only the link targets, the hops t
   const pacing = pacingOf(run.log);
   assert.deepEqual([pacing.underTheInterval, pacing.smallestGapMs >= LINK_CHECK.sameHostIntervalMs, pacing.gaps > 5], [0, true, true]);
   assert.equal(challenged({ headers: { get: () => null } }), false);
+  /* RR-263 (beta-g): 401, 403 and 407 refuse access — NOT MEASURED, never BROKEN; a challenge is still named as one */
+  const refused = await check(["https://k.invalid/a", "https://k.invalid/b", "https://k.invalid/c", "https://k.invalid/d"], { "https://k.invalid/a": { status: 401 }, "https://k.invalid/b": { status: 403 }, "https://k.invalid/c": { status: 407 }, "https://k.invalid/d": { status: 404 } });
+  assert.deepEqual(["a", "b", "c", "d"].map((p) => stateOf(refused.run, `https://k.invalid/${p}`)), [[STATE.NOT_MEASURED, NOT_MEASURED_REASON.ACCESS_REFUSED, 0], [STATE.NOT_MEASURED, NOT_MEASURED_REASON.ACCESS_REFUSED, 0], [STATE.NOT_MEASURED, NOT_MEASURED_REASON.ACCESS_REFUSED, 0], [STATE.BROKEN, null, 0]], "a refusal of access was called broken, or a 404 was not");
+  /* RFC 9309: a robots file answered 4xx places no restriction — the address IS checked; 5xx, a timeout or an unreachable host disallow every address */
+  const R4 = await check(["https://r1.invalid/p", "https://r2.invalid/p", "https://r3.invalid/p", "https://r5.invalid/p", "https://rt.invalid/p", "https://ru.invalid/p", "https://rr.invalid/p"], {
+    "https://r1.invalid/robots.txt": { status: 401 }, "https://r2.invalid/robots.txt": { status: 403 }, "https://r3.invalid/robots.txt": { status: 429 }, "https://r5.invalid/robots.txt": { status: 503 },
+    "https://rt.invalid/robots.txt": { fail: "AbortError" }, "https://ru.invalid/robots.txt": { fail: "TypeError" }, "https://rr.invalid/robots.txt": { status: 301, headers: { location: "/elsewhere" } } });
+  assert.deepEqual(["r1", "r2", "r3"].map((h) => [stateOf(R4.run, `https://${h}.invalid/p`)[0], R4.calls.some((c) => c.url === `https://${h}.invalid/p`)]), [[STATE.WORKING, true], [STATE.WORKING, true], [STATE.WORKING, true]], "a robots file answered 4xx was taken as a restriction");
+  assert.deepEqual(["r5", "rt", "ru", "rr"].map((h) => [...stateOf(R4.run, `https://${h}.invalid/p`).slice(0, 2), R4.calls.some((c) => c.url === `https://${h}.invalid/p`)]), ["r5", "rt", "ru", "rr"].map(() => [STATE.NOT_MEASURED, NOT_MEASURED_REASON.ROBOTS_UNKNOWN, false]), "an unavailable robots file was taken as permission");
+  assert.deepEqual(R4.run.observations.map((o) => o.robotsStatus), [401, 403, 429, 503, null, null, 301], "the robots answer's status is not recorded with the observation");
   /* the body of a client's own live page is kept only when asked for; nothing else is */
   const kept = await check([`${A}/live`, `${A}/other`], { [`${A}/live`]: { status: 200, body: doc(a("/x")) }, [`${A}/other`]: { status: 200, body: "not kept" } }, { bodiesFor: new Set([`${A}/live`]) });
   assert.deepEqual([[...kept.run.bodies.keys()], kept.run.bodies.get(`${A}/live`).includes("<a href")], [[`${A}/live`], true]);

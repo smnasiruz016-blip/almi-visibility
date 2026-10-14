@@ -1,6 +1,7 @@
 /**
  * 🔴 F10 · PROVED ON THE BUILT PAGES — ONE SABOTAGE PER FAILURE LIMB (Acceptance Amendment 4, _handoffs c063d3b, C3 to C7 and the
- * owner's REVIEW addition; C8 EVIDENCE; RR-261).
+ * owner's REVIEW addition; C8 EVIDENCE; RR-261) — AND ONE PER FAILURE LIMB OF THE REBUILD THAT HONOURS ITS STORED DECISIONS (RR-262:
+ * the page builder holds no cancel rule of its own; limbs B01 to B14).
  *
  *   node test/helpers/f10-built-pages-sabotage.mjs --deliberate      NOT part of `npm test` (test/*.test.mjs only)
  *
@@ -18,14 +19,28 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const M = "src/page/built-page-needs.mjs", CFG = "config/page/built-page-needs.mjs", BIN = "bin/built-page-needs.mjs", BOARD = "src/fboard/board.mjs", ADP = "src/evidence/evidence-state-adapters.mjs";
+const M = "src/page/built-page-needs.mjs", CFG = "config/page/built-page-needs.mjs", BIN = "bin/built-page-needs.mjs", BOARD = "src/fboard/board.mjs", ADP = "src/evidence/evidence-state-adapters.mjs", SD = "src/page/stored-page-decisions.mjs", BLD = "bin/build-joined-pages.mjs";
 const T = ["test/f10-built-pages.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
-const C3 = "C3 · FIRING CONTROL", C4 = "C4 · FIRING CONTROL", RV = "C4 · REVIEW · FIRING CONTROL", C5 = "C5 · FIRING CONTROL", SV = "C5 · SURVIVOR · FIRING CONTROL", C6 = "C6 · FIRING CONTROL", PP = "C5 C6 · PRODUCTION PATH", C7 = "C7 · CENSUS";
+const C3 = "C3 · FIRING CONTROL", C4 = "C4 · FIRING CONTROL", RV = "C4 · REVIEW · FIRING CONTROL", C5 = "C5 · FIRING CONTROL", SV = "C5 · SURVIVOR · FIRING CONTROL", C6 = "C6 · FIRING CONTROL", PP = "C5 C6 · PRODUCTION PATH", C7 = "C7 · CENSUS", RB = "REBUILD · FIRING CONTROL", RP = "REBUILD · PRODUCTION PATH", ONE = "ONE RULE · FIRING CONTROL";
 
 const SABOTAGES = [
+  ["B01", "REBUILD a page a stored cancellation names is proposed again", SD, "    if (c) notBuilt.push(", "    if (false) notBuilt.push(", RB],
+  ["B02", "REBUILD a need the planning store still holds for a cancelled page is joined into it again", SD, "(decisions?.cancelled?.has(candidateValue(c?.spec?.basis?.pageCandidate)) ? heldBack : kept).push(c);", "(false ? heldBack : kept).push(c);", RB],
+  ["B03", "REBUILD a stored moved question is not put back into the rebuilt survivor", SD, "const record = place.length ? withMoved(", "const record = false ? withMoved(", RB],
+  ["B04", "REBUILD a question the rebuilt page already holds is put in a second time", SD, "const due = mine.filter((m) => !held.has(m.questionId));", "const due = mine;", RB],
+  ["B05", "REBUILD a moved question whose item is not on the rebuilt page is not counted", SD, "const place = due.filter((m) => items.has(m.intoItem));", "const place = due;", RB],
+  ["B06", "REBUILD another tenant's stored decisions are read", SD, " && decideResolvedTenants(r.tenantId, tenantId).allowed);", ");", RB],
+  ["B07", "REBUILD a REVIEW pair is not listed for the owner", SD, "(d.flag === REVIEW_FLAG || d.decision === DECISIONS.CANNOT))", "(d.decision === DECISIONS.CANNOT))", RB],
+  ["B08", "REBUILD a CANNOT DECIDE pair is not listed for the owner", SD, "(d.flag === REVIEW_FLAG || d.decision === DECISIONS.CANNOT))", "(d.flag === REVIEW_FLAG))", RB],
+  ["B09", "REBUILD a pair with a cancelled page is still listed", SD, "d.pages.every((p) => !cancelled.has(p)) && ", "", RB],
+  ["B10", "REBUILD the entry point does not read the stored decisions", BLD, "const decided = storedDecisions({ records: rowsOf(\"built-page-needs.jsonl\"), tenantId: SCOPE.tenantId });", "const decided = storedDecisions({ records: [], tenantId: SCOPE.tenantId });", RP],
+  ["B11", "REBUILD the entry point proposes a cancelled page again", BLD, "const resolved = proposedAfterDecisions({ pages: proposed.pages, decisions: decided });", "const resolved = { pages: proposed.pages, notBuilt: [] };", RP],
+  ["B12", "REBUILD the entry point joins a cancelled page's stored needs: the page is rebuilt", BLD, "const pages = joinPages({ construction: joinable.construction,", "const pages = joinPages({ construction: G.compiled.forConstruction,", RP],
+  ["B13", "REBUILD the entry point does not put the stored moved questions into the rebuilt survivor", BLD, "const built = pages.map((p) => withStoredMoves({ page: p, decisions: decided }));", "const built = pages.map((p) => ({ record: p, moved: 0, alreadyHeld: 0, placed: 0, noItem: 0 }));", RP],
+  ["B14", "ONE RULE a second rule is back in the page builder: it reads a same-need judgement at build time", BLD, "const resolved = proposedAfterDecisions({ pages: proposed.pages, decisions: decided });", "const resolved = proposedAfterDecisions({ pages: proposed.pages.filter((p) => !(proposed.sameNeed ?? []).length || p), decisions: decided });", ONE],
   ["T01", "C3 a page with no question-and-answer section, or with two, is not counted as a finding", M, "    if (section !== SECTION.PRESENT) faults.push(Object.freeze({ code: `SECTION_${section.replace(/ /g, \"_\")}`, pageId: p.pageId }));\n", "", C3],
   ["T02", "C3 a page with two sections reads as one", M, ": n > 1 ? SECTION.MORE : SECTION.ABSENT;", ": n > 1 ? SECTION.PRESENT : SECTION.ABSENT;", C3],
   ["T03", "C3 a question's original wording is changed and not seen", M, "      if (recorded.has(q.questionId) && recorded.get(q.questionId) !== q.wording) faults.push(", "      if (false) faults.push(", C3],

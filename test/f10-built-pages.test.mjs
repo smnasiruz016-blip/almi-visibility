@@ -5,6 +5,10 @@
  * confined audit store; and the REAL tests: the declared product's own built pages against its stored need records (counts only), a
  * deliberately planted duplicate caught and cancelled by the production path, and a deliberately planted subset page recorded REVIEW and
  * never cancelled — both in a scratch copy of the product's records, never in its own store. The production trail is not written.
+ *
+ * RR-262 · ONE CANCEL RULE: the page builder decides nothing about two pages that serve the same need — it reads the stored decisions
+ * of this check and honours them on a rebuild (REBUILD · FIRING CONTROL, on constructed pages; REBUILD · PRODUCTION PATH, the builder's
+ * own entry point over a scratch copy of the product's records with a planted cancellation).
  */
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
@@ -15,7 +19,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
-import { lookupStore } from "../src/tenancy/root-registry.mjs";
+import { lookupStore, lookupSubject } from "../src/tenancy/root-registry.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
 import { RESIGHTING_TYPE } from "../src/evidence/store.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
@@ -27,16 +31,20 @@ import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.
 import { buildBoard, boardErrors } from "../src/fboard/board.mjs";
 import { inputsOf, clusterInputs } from "../src/discovery/need-clusters.mjs";
 import { renderJoined, JOINED_RECORD, STRUCTURE } from "../src/page/joined-page.mjs";
+import * as BUILDER_MODULE from "../src/page/joined-page.mjs";
 import { STAMP } from "../src/page/test-exception.mjs";
 import { builtPages, pageSections, needIndex, needsOfPage, decidePairs, survivorOf, cancelAndMove, pagesVerdict, runBuiltPages, storedNeedRecords, rowResult, questionsOf, publicationOf,
   REFUSAL, MISSING, DECISION_RECORD, CANCEL_RECORD, MOVE_RECORD, DECISIONS, REVIEW_FLAG, DECISION_LABEL, SURVIVOR_STEPS, PUBLICATION, SECTION, VERDICTS } from "../src/page/built-page-needs.mjs";
+import { storedDecisions, proposedAfterDecisions, constructionAfterDecisions, withStoredMoves } from "../src/page/stored-page-decisions.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const trailBefore = sha(readFileSync(TRAIL));
-const CODE = ["src/page/built-page-needs.mjs", "bin/built-page-needs.mjs", "config/page/built-page-needs.mjs"];
+const CODE = ["src/page/built-page-needs.mjs", "bin/built-page-needs.mjs", "config/page/built-page-needs.mjs", "src/page/stored-page-decisions.mjs"];
+/* RR-262: the page builder's own files — they hold no rule about two pages that serve the same need */
+const BUILDER = ["src/page/joined-page.mjs", "bin/build-joined-pages.mjs", "src/page/stored-page-decisions.mjs"];
 const text = (p) => readFileSync(join(REPO, p), "utf8");
 const running = (p) => text(p).replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
 
@@ -269,6 +277,154 @@ test("C5 C6 · PRODUCTION PATH: the entry point, in a scratch world with a confi
   assert.equal(second.status, 0, second.stdout + second.stderr);
   assert.match(second.stdout, /cancelled {8}0 page\(s\)/);
   assert.deepEqual([read("built-page-needs.jsonl").filter((r) => r.record_type === CANCEL_RECORD).length, read("joined-pages.jsonl").length], [1, 4]);
+  assert.equal(sha(readFileSync(TRAIL)), trailBefore, "the production trail was written by a scratch run");
+});
+
+/* ================= RR-262 · a rebuild honours the stored decisions ================= */
+
+test("ONE RULE · FIRING CONTROL (RR-262): the page builder's module, its entry point and the reader of the stored decisions hold no cancel step, no survivor rule and no read of a same-need judgement — a planted one is caught; the entry point reads the stored decisions and joins only what they leave", () => {
+  const RETIRED = ["cancelSamePages", "samePagePairs", "SURVIVOR_RULE", "CANCELLATION_RECORD"];
+  assert.deepEqual(RETIRED.filter((name) => name in BUILDER_MODULE), [], "a retired export of the build-time cancel step is back");
+  const holdsARule = (src) => /sameNeed|cancelSamePages|samePagePairs|SURVIVOR_RULE|SURVIVOR_STEPS|survivorOf|cancelAndMove|decidePairs|same_need_cancellation|audienceWords|sourcedNeeds|builtAt/.test(src);
+  for (const file of BUILDER) assert.equal(holdsARule(running(file)), false, `${file} holds a rule of its own about two pages that serve the same need`);
+  assert.equal(holdsARule(`${running(BUILDER[1])}\nconst resolved = cancelSamePages(proposed);`), true, "CONTROL: a planted build-time cancel step is not caught");
+  assert.equal(holdsARule(`${running(BUILDER[2])}\nconst judged = proposed.sameNeed;`), true, "CONTROL: a planted read of a same-need judgement is not caught");
+  assert.equal(holdsARule(`${running(BUILDER[2])}\nconst keep = survivorOf({ a, b });`), true, "CONTROL: a planted survivor rule is not caught");
+  /* the entry point reads the stored decisions of this check, proposes and joins only what they leave, and places the stored moves */
+  const bin = running(BUILDER[1]);
+  for (const call of ["storedDecisions({ records: rowsOf(\"built-page-needs.jsonl\"), tenantId: SCOPE.tenantId })", "proposedAfterDecisions({ pages: proposed.pages, decisions: decided })", "constructionAfterDecisions({ construction: G.compiled.forConstruction, decisions: decided })", "joinPages({ construction: joinable.construction,", "withStoredMoves({ page: p, decisions: decided })"]) assert.ok(bin.includes(call), `the entry point does not call: ${call}`);
+});
+
+test("REBUILD · FIRING CONTROL (RR-262): the page builder reads the stored decisions and decides nothing — a page a stored cancellation names is not proposed again, every question its stored moves carried stands in the rebuilt survivor once and in its own wording, a REVIEW pair and a CANNOT DECIDE pair are built as they are and listed, and another tenant's records are not read", () => {
+  const a = page("alpha", FULL), b = page("beta", [["i-cost", ["q2", "q1"]], ["i-licence", ["q4"]]], { at: `${DAY}T05:00:00Z` }), c = page("gamma", [["i-book", ["q5"]]]);
+  const r = run([a, b, c]);
+  assert.deepEqual(r.cancellations.map((x) => [x.cancelledPage, x.survivorPage]), [["beta", "alpha"]], "CONTROL: the constructed duplicate must have been cancelled by the one rule");
+  const stored = [...r.decisions, ...r.cancellations, ...r.moves];
+  const D = storedDecisions({ records: stored, tenantId: T });
+  assert.deepEqual([[...D.cancelled.keys()], D.moves.map((m) => m.questionId), D.listed.length], [["beta"], ["q2", "q1", "q4"], 0]);
+  /* the cancelled page is not proposed again; every other proposed page is, unchanged */
+  const proposed = ["alpha", "beta", "gamma"].map((kind) => ({ combination: { kind }, needs: [{ key: `${kind}-need`, questions: ["q1"] }] }));
+  const P = proposedAfterDecisions({ pages: proposed, decisions: D });
+  assert.deepEqual([P.pages.map((p) => p.combination.kind), P.notBuilt.map((x) => [x.page, x.survivorPage, x.decidedByStep, x.cancellation])], [["alpha", "gamma"], [["beta", "alpha", "EARLIER BUILD", r.cancellations[0].measurement_key]]], "a cancelled page was proposed again, or a standing page was not");
+  assert.ok(P.pages[0] === proposed[0] && P.pages[1] === proposed[2], "a proposed page was changed");
+  /* the planning store still holds the cancelled page's needs: none of them is joined into a page again */
+  const compiled = [["n1", "alpha"], ["n2", "beta"], ["n3", "beta"], ["n4", "gamma"]].map(([subject, kind]) => ({ spec: { subject, basis: { pageCandidate: JSON.stringify([["kind", kind]]) } } }));
+  const J = constructionAfterDecisions({ construction: compiled, decisions: D });
+  assert.deepEqual([J.construction.map((x) => x.spec.subject), J.heldBack], [["n1", "n4"], 2], "a need of a cancelled page would be joined into it again");
+  assert.deepEqual([constructionAfterDecisions({ construction: compiled, decisions: storedDecisions({ records: [], tenantId: T }) }).construction.length, constructionAfterDecisions({ construction: compiled, decisions: storedDecisions({ records: [], tenantId: T }) }).heldBack], [4, 0], "CONTROL: with no stored record every compiled need is joined");
+  /* CONTROL: with no stored record every proposed page is proposed, unchanged */
+  const none = proposedAfterDecisions({ pages: proposed, decisions: storedDecisions({ records: [], tenantId: T }) });
+  assert.deepEqual([none.pages.length, none.notBuilt.length, none.pages.every((p, i) => p === proposed[i])], [3, 0, true]);
+  /* the survivor, built afresh as the builder joins it, holds only its own questions — the stored moves put the rest back */
+  const fresh = page("alpha", FULL, { build: 2 });
+  assert.deepEqual(questionsOf({ record: fresh }).map((q) => q.questionId), ["q1", "q3"], "CONTROL: the fresh build must lack the moved questions");
+  const w = withStoredMoves({ page: fresh, decisions: D });
+  assert.deepEqual([w.moved, w.alreadyHeld, w.placed, w.noItem], [3, 1, 2, 0]);
+  assert.deepEqual([questionsOf({ record: w.record }).map((q) => [q.questionId, q.wording]), w.record.questions, w.record.html.split(Q.q1).length, w.record.html.includes(Q.q2), w.record.html.includes(Q.q4)],
+    [[["q1", Q.q1], ["q2", Q.q2], ["q3", Q.q3], ["q4", Q.q4]], 4, fresh.html.split(Q.q1).length, true, true], "a moved question is not in the rebuilt survivor's question-and-answer section, once and in its own wording");
+  assert.equal(w.record.html, r.rebuilt[0].html, "the rebuilt survivor is not the page the cancellation itself produced");
+  assert.equal(pageSections({ pages: pagesOf([w.record]), recorded: new Map(Object.entries(Q)) }).faults.length, 0);
+  assert.notEqual(w.record.measurement_key, fresh.measurement_key);
+  /* a second rebuild over that page places nothing twice; a page no move names is handed back as it is */
+  const again = withStoredMoves({ page: w.record, decisions: D });
+  assert.deepEqual([again.placed, again.alreadyHeld, again.record === w.record], [0, 3, true]);
+  assert.deepEqual([withStoredMoves({ page: c, decisions: D }).record === c, withStoredMoves({ page: c, decisions: D }).moved], [true, 0]);
+  /* a move whose item is not on the rebuilt page is counted — never dropped silently, never put under another need */
+  const thin = withStoredMoves({ page: page("alpha", [["i-cost", ["q1"]]], { build: 3 }), decisions: D });
+  assert.deepEqual([thin.placed, thin.noItem, thin.record.html.includes(Q.q2), thin.record.html.includes(Q.q4)], [1, 1, true, false]);
+  /* another tenant's stored records, and records that name no tenant, are not read */
+  assert.deepEqual([storedDecisions({ records: stored, tenantId: "tenant:fixture-b" }).cancelled.size, storedDecisions({ records: stored.map(({ tenantId, ...x }) => x), tenantId: T }).cancelled.size, storedDecisions({ records: stored, tenantId: null }).moves.length], [0, 0, 0]);
+  /* REVIEW and CANNOT DECIDE: built as they are, listed for the owner, nothing cancelled and nothing moved */
+  const small = page("delta", [["i-cost", ["q2"]]]), odd = page("epsilon", [["i-odd", ["q-in-no-need-record"]]]);
+  const rv = run([a, small, odd], AUD({ alpha: ["fitters", ["fitters"]], delta: ["fitters", ["fitters"]] }));
+  const L = storedDecisions({ records: [...rv.decisions, ...rv.cancellations, ...rv.moves], tenantId: T });
+  assert.deepEqual([L.cancelled.size, L.moves.length, L.listed.map((x) => [[...x.pages].sort().join("|"), x.as]).sort()], [0, 0, [["alpha|delta", REVIEW_FLAG], ["alpha|epsilon", DECISIONS.CANNOT], ["delta|epsilon", DECISIONS.CANNOT]]]);
+  assert.ok(L.listed.every((x) => typeof x.why === "string" && x.why !== "" && typeof x.decision === "string" && x.decision !== ""), "a listed pair lacks its reason or its stored decision");
+  const three = ["alpha", "delta", "epsilon"].map((kind) => ({ combination: { kind }, needs: [] }));
+  assert.deepEqual([proposedAfterDecisions({ pages: three, decisions: L }).pages.length, proposedAfterDecisions({ pages: three, decisions: L }).notBuilt.length, withStoredMoves({ page: small, decisions: L }).record === small], [3, 0, true], "a REVIEW or CANNOT DECIDE pair changed what is built");
+  /* a pair of which one page is cancelled is no longer listed */
+  assert.equal(storedDecisions({ records: [...rv.decisions, { ...r.cancellations[0], cancelledPage: "delta" }], tenantId: T }).listed.filter((x) => x.pages.includes("delta")).length, 0);
+});
+
+test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a scratch copy of the declared product's records — a planted duplicate cancelled by the one rule is not proposed again and its moved questions stand in the rebuilt real page; a real page cancelled by a planted earlier page is NOT rebuilt; before any stored cancellation nothing is held back; the product's own store is unchanged and the plants are removed", () => {
+  const real = realDir();
+  const FILES = ["joined-pages.jsonl", "built-page-needs.jsonl", "need-clusters.jsonl", "page-drafts.json", "planning.jsonl"].filter((f) => existsSync(join(real, f)));
+  const before = FILES.map((f) => sha(readFileSync(join(real, f))));
+  const world = realWorld(real);
+  assert.ok(world.pages.length >= 2, "EMPTY real population: fewer than two built pages");
+  const [P, O] = [world.pages[0], world.pages[1]];
+  const subject = subjectOf(real);
+  const productId = String(lookupSubject(rootIndexFor(process.env), subject).entry?.members?.find((m) => m.resourceKind === "FACT_REGISTRY")?.resourceRef ?? "").split(":").pop().split("/")[0];
+  const x = P.record.exception.record, on = P.record.recorded_at.slice(0, 10);
+  const audiences = jsonIn(real, "page-audiences.json"), drafts = jsonIn(real, "page-drafts.json");
+  const dimension = Object.keys(drafts.pages[0].combination)[0];
+  const needOfQ = (q) => world.ix.byQuestion.get(q)?.need ?? null;
+  /* plant 1 · a later test-only copy of the first real page that also holds, under the needs both real pages share, the other page's questions */
+  const mine = new Set(questionsOf(P).map((q) => q.questionId));
+  const extra = (O.record.itemList ?? []).flatMap((it) => it.questions).filter((q) => !mine.has(q.questionId) && needsOfPage(P, world.ix).needs.has(needOfQ(q.questionId)));
+  assert.ok(extra.length > 0, "the plant has no question the survivor lacks — nothing would be moved");
+  const itemList = P.record.itemList.map((it) => { const need = it.questions.map((q) => needOfQ(q.questionId)).find(Boolean); const add = extra.filter((q) => needOfQ(q.questionId) === need && !it.questions.some((y) => y.questionId === q.questionId)); extra.splice(0, extra.length, ...extra.filter((q) => !add.includes(q))); return { ...it, questions: [...it.questions, ...add] }; });
+  const added = itemList.flatMap((it) => it.questions).filter((q) => !mine.has(q.questionId));
+  const later = { ...P.record, value: "planted-duplicate", measurement_key: `${JOINED_RECORD}:planted-duplicate`, recorded_at: "2026-10-13T23:59:59Z", itemList, questions: P.record.questions + added.length };
+  /* plant 2 · a test-only copy of the second real page, built EARLIER than it: by the one rule the real page is the one cancelled */
+  const earlier = { ...O.record, value: "planted-earlier", measurement_key: `${JOINED_RECORD}:planted-earlier`, recorded_at: "2026-01-01T00:00:00Z" };
+
+  const scratch = (plant, like) => {
+    const W = declaredWorld();
+    const dir = join(W.root, "research", BATCH);
+    appendFileSync(join(dir, "joined-pages.jsonl"), JSON.stringify(plant) + "\n");
+    writeFileSync(join(dir, "page-audiences.json"), JSON.stringify({ ...audiences, pages: { ...audiences.pages, [plant.value]: audiences.pages[like.pageId] } }));
+    /* the planted page is proposed too, with nothing to connect: whether it is proposed is what is measured */
+    writeFileSync(join(dir, "page-drafts.json"), JSON.stringify({ ...drafts, pages: [...drafts.pages, { combination: { [dimension]: plant.value }, needs: [] }] }));
+    const go = (bin, ...args) => spawnSync(process.execPath, [bin, ...W.argv([`--subject=${subject}`, `--research-batch=${BATCH}`, `--on=${on}`, ...args, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    const build = () => go("bin/build-joined-pages.mjs", `--product=${productId}`, `--test-exception=${x.repo}:${x.path}@${x.commit}`);
+    return { W, dir, build, check: () => go("bin/built-page-needs.mjs") };
+  };
+  const builds = (dir, value) => rowsIn(dir, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD && r.value === value);
+
+  const A = scratch(later, P);
+  try {
+    /* CONTROL: before any stored cancellation the builder holds nothing back */
+    const b0 = A.build();
+    assert.equal(b0.status, 0, b0.stdout + b0.stderr);
+    assert.match(b0.stdout, /cancelled page\(s\) not rebuilt 0 of 3 proposed · stored moves 0 · .* · page\(s\) to build 3/);
+    const c1 = A.check();
+    assert.equal(c1.status, 0, c1.stdout + c1.stderr);
+    const cancel = rowsIn(A.dir, "built-page-needs.jsonl").filter((r) => r.record_type === CANCEL_RECORD), moves = rowsIn(A.dir, "built-page-needs.jsonl").filter((r) => r.record_type === MOVE_RECORD);
+    assert.deepEqual(cancel.map((r) => [r.cancelledPage, r.survivorPage]), [["planted-duplicate", P.pageId]], "CONTROL: the planted duplicate must have been cancelled by the one rule");
+    const b1 = A.build();
+    assert.equal(b1.status, 0, b1.stdout + b1.stderr);
+    assert.match(b1.stdout, /cancelled page\(s\) not rebuilt 1 of 3 proposed · stored moves \d+ · .* · page\(s\) to build 2/, "the cancelled page was proposed again");
+    assert.ok(b1.stdout.includes("    not rebuilt    planted-duplicate — cancelled by a stored decision"), b1.stdout);
+    assert.deepEqual(builds(A.dir, "planted-duplicate").map((r) => r.measurement_key), [later.measurement_key], "the cancelled page was rebuilt");
+    const rebuilt = builds(A.dir, P.pageId).at(-1);
+    assert.deepEqual([moves.length, moves.filter((m) => !m.alreadyHeld).length], [later.questions, added.length]);
+    assert.ok(b1.stdout.includes(`  page ${P.pageId} — stored moves ${moves.length}: already on the rebuilt page ${moves.length - added.length} · placed ${added.length} · with no item on the rebuilt page 0`), b1.stdout);
+    assert.deepEqual([rebuilt.questions, rebuilt.recorded_at.slice(0, 10), Array.isArray(rebuilt.movedIn) && rebuilt.movedIn.length], [P.record.questions + added.length, on, added.length], "the rebuilt real page does not hold the moved questions");
+    assert.ok(added.every((q) => rebuilt.html.toLowerCase().includes(q.wording.toLowerCase().replace(/&/g, "&amp;")) && rebuilt.itemList.some((it) => it.questions.some((y) => y.questionId === q.questionId && y.wording === q.wording))), "a moved question is not in the rebuilt page's question-and-answer section in its own wording");
+    const after1 = realWorld(A.dir);
+    assert.deepEqual([after1.sections.faults.length, after1.pages.map((p) => p.pageId).sort()], [0, [P.pageId, O.pageId].sort()]);
+    console.log(`  REAL REBUILD (count-only; a scratch copy, the builder's own entry point): ${JSON.stringify({ proposed: 3, notRebuilt: 1, storedMoves: moves.length, alreadyOnTheRebuiltPage: moves.length - added.length, placedInTheRebuiltPage: added.length, withNoItem: 0 })}`);
+  } finally { A.W.cleanup(); }
+  assert.equal(existsSync(A.W.root), false, "the planted duplicate was not removed");
+
+  const B = scratch(earlier, O);
+  try {
+    const c1 = B.check();
+    assert.equal(c1.status, 0, c1.stdout + c1.stderr);
+    const cancel = rowsIn(B.dir, "built-page-needs.jsonl").filter((r) => r.record_type === CANCEL_RECORD);
+    assert.deepEqual(cancel.map((r) => [r.cancelledPage, r.survivorPage, r.decidedByStep]), [[O.pageId, "planted-earlier", "EARLIER BUILD"]], "CONTROL: the real page must have been cancelled by the one rule");
+    const had = builds(B.dir, O.pageId).length;
+    const b1 = B.build();
+    assert.equal(b1.status, 0, b1.stdout + b1.stderr);
+    assert.match(b1.stdout, /cancelled page\(s\) not rebuilt 1 of 3 proposed/);
+    assert.match(b1.stdout, /stored decisions \d+ compiled need\(s\) of cancelled page\(s\) held back from the join/, "the cancelled real page's stored needs were not held back from the join");
+    assert.ok(b1.stdout.includes(`    not rebuilt    ${O.pageId} — cancelled by a stored decision (survivor planted-earlier, step EARLIER BUILD)`), b1.stdout);
+    assert.deepEqual([b1.stdout.includes(`  page ${O.pageId} — `), b1.stdout.includes(`  page ${P.pageId} — `), builds(B.dir, O.pageId).length], [false, true, had], "a page cancelled by a stored decision was rebuilt");
+    console.log(`  REAL REBUILD (count-only; a scratch copy): ${JSON.stringify({ realPageCancelledByAPlantedEarlierPage: 1, rebuiltAfterwards: 0, otherRealPageBuilt: 1 })}`);
+  } finally { B.W.cleanup(); }
+  assert.equal(existsSync(B.W.root), false, "the planted earlier page was not removed");
+  assert.deepEqual(FILES.map((f) => sha(readFileSync(join(real, f)))), before, "the product's own store was changed by a plant");
   assert.equal(sha(readFileSync(TRAIL)), trailBefore, "the production trail was written by a scratch run");
 });
 

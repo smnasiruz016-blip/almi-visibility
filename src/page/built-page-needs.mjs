@@ -210,8 +210,9 @@ export function survivorOf({ a, b, sharedNeeds = [], index, on }) {
   return Object.freeze({ survivor: null, cancelled: null, step: null, counts: Object.freeze(read), wordings: wordings.length, missing: MISSING.TIE });
 }
 
-/** The survivor's page with the moved questions in its question-and-answer section: each under the item of its own need, wording unchanged. */
-function withMoved(page, moves) {
+/** The survivor's page with the moved questions in its question-and-answer section: each under the item of its own need, wording unchanged.
+ * Exported for the page builder's rebuild (src/page/stored-page-decisions.mjs), which places stored moves by this one function. */
+export function withMoved(page, moves) {
   const also = `<p class="also">${STRUCTURE.alsoAsked}: `;
   let html = String(page.record.html);
   const itemList = list(page.record.itemList).map((it) => {
@@ -224,7 +225,8 @@ function withMoved(page, moves) {
       const line = `${also}${questions.slice(1).map((q) => escapeText(q.wording)).join(" · ")}</p>`;
       const had = block.indexOf(also);
       if (had >= 0) block = block.slice(0, had) + line + block.slice(block.indexOf("</p>", had) + 4);
-      else { const product = block.indexOf(`<div class="product"`); block = product >= 0 ? `${block.slice(0, product)}${line}\n${block.slice(product)}` : `${block}${line}\n`; }
+      /* the line stands before the item's product cards — except in an item that leads with them (RR-262), where it closes the item */
+      else { const product = it.lead ? -1 : block.indexOf(`<div class="product"`); block = product >= 0 ? `${block.slice(0, product)}${line}\n${block.slice(product)}` : `${block}${line}\n`; }
       html = html.slice(0, from) + block + html.slice(to);
     }
     return Object.freeze({ ...it, questions });

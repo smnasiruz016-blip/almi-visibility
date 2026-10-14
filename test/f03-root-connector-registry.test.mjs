@@ -24,7 +24,7 @@ import { createTenantResolver, rootIndexFor, RESOURCE_KINDS } from "../src/tenan
 import { readRootIndex, lookupSubject, lookupStore, lookupConnector, validateRegistry, declaredSubjectIds, REGISTRY_FILE } from "../src/tenancy/root-registry.mjs";
 import { decideForTenant, resolveSide, isGenuineDecision, scopeRefusalEvent, scopeResolutionEvent } from "../src/tenancy/scope.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
-import { openConnector, ConnectorRefused, NO_REQUEST_FETCH } from "../src/tenancy/connectors.mjs";
+import { openConnector, ConnectorRefused, NO_REQUEST_FETCH, pacedRelease, pacingRecord, PACE_FLOOR_MS } from "../src/tenancy/connectors.mjs";
 import { subjectIndex, resolveSubject, importSubjectModule, subjectRoots, SUBJECT_ROOTS_ENV } from "../src/subject-roots.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
 import { decideScopedRun } from "../src/governance/scoped-entry.mjs";
@@ -202,6 +202,48 @@ test("F03 · C2b · a connector is constructed only on a genuine decision; a dry
   const c = openConnector({ scope: run([ok], [openAuth(t, id, "CITED_SOURCES")]), subjectId: id, kind: "CITED_SOURCES" });
   assert.equal(c.kind, "CITED_SOURCES");
   assert.equal(typeof c.fetch, "function");
+});
+
+/* ================= RR-265 · THE ONE PACED PATH ================= */
+
+test("F03 · C10a · PACED PATH · FIRING CONTROL (RR-265): a second request to one host inside the gap WAITS until the gap has passed — 2 s at the least, a route's declared longer gap honoured; another host and this machine are not held", async () => {
+  let t = 0; const slept = [];
+  const clock = { now: () => t, sleep: async (ms) => { slept.push(ms); t += ms; }, hosts: new Map(), counts: { released: 0, waited: 0, waitedMs: 0 } };
+  assert.equal(PACE_FLOOR_MS, 2000);
+  assert.equal(await pacedRelease("https://one.invalid/a", 0, clock), 0, "the first request to a host waits");
+  t += 500;
+  assert.equal(await pacedRelease("https://one.invalid/b", 0, clock), 1500, "the second request to one host was released before the gap");
+  assert.equal(await pacedRelease("https://two.invalid/a", 0, clock), 0, "another host was held by this host's gap");
+  assert.equal(await pacedRelease("https://one.invalid/c", 5000, clock), 5000, "a route's declared longer gap was not honoured");
+  assert.equal(await pacedRelease("https://one.invalid/d", 1000, clock), 2000, "a declared gap shorter than the floor lowered the floor");
+  assert.deepEqual([await pacedRelease("http://127.0.0.1:9/x", 0, clock), await pacedRelease("http://127.0.0.1:9/y", 0, clock)], [0, 0], "this machine is paced as if outbound");
+  /* concurrent asks to one host are released one at a time, in order, each a full gap apart */
+  const order = [];
+  await Promise.all(["p", "q", "r"].map((x) => pacedRelease(`https://three.invalid/${x}`, 0, clock).then((w) => order.push([x, w]))));
+  assert.deepEqual(order, [["p", 0], ["q", 2000], ["r", 2000]], "concurrent requests to one host were not released one at a time, a full gap apart");
+  assert.deepEqual([clock.counts.released, clock.counts.waited], [8, 5]);
+  await assert.rejects(() => pacedRelease("not a url", 0, clock), (e) => e.code === "NOT_A_URL");
+});
+
+test("F03 · C10b · PACED PATH · THE CONNECTOR (RR-265): an opened connector's every request passes the paced release — two requests to one host arrive at least 2 s apart on the real clock; the wait is recorded; nothing leaves this machine", async () => {
+  const [id] = EXTERNAL;
+  const t = ownTenant(REAL, id);
+  const ok = decideForTenant(REAL, t, RESOURCES.connector(id, "CITED_SOURCES"));
+  const c = openConnector({ scope: run([ok], [openAuth(t, id, "CITED_SOURCES")]), subjectId: id, kind: "CITED_SOURCES" });
+  const real = globalThis.fetch, arrived = [];
+  globalThis.fetch = async (url) => { arrived.push(performance.now()); return new Response("ok", { status: 200 }); };
+  const before = pacingRecord();
+  try {
+    await c.fetch("https://paced-c10b.invalid/one");
+    await c.fetch("https://paced-c10b.invalid/two");
+  } finally { globalThis.fetch = real; }
+  assert.equal(arrived.length, 2);
+  assert.ok(arrived[1] - arrived[0] >= PACE_FLOOR_MS - 5, `two requests to one host arrived ${Math.round(arrived[1] - arrived[0])} ms apart — the connector's fetch bypassed the paced release`);
+  const after = pacingRecord();
+  assert.deepEqual([after.released - before.released, after.waited - before.waited], [2, 1], "the connector's requests were not counted by the paced path");
+  /* the one call site of the global fetch in the connector module is behind the paced release */
+  const running = readFileSync(join(REPO, "src/tenancy/connectors.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  assert.deepEqual([running.split("globalThis.fetch(").length - 1, /pacedRelease\(url, declaredGapOf\(l\.connector\)\)\.then\(\(\) => globalThis\.fetch\(url, init\)\)/.test(running)], [1, true], "the global fetch is reached other than through the paced release");
 });
 
 test("F03 · C2c · census: every root-locating, subject-reading and connection-constructing site resolves first — 0 BYPASS, and the zero FIRES", () => {

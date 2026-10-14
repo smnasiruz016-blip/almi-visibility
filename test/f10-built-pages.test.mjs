@@ -576,6 +576,29 @@ test("NEED RECORDS · FIRING CONTROL (RR-264): a need record the store holds fro
   assert.equal(storedNeedRecords({ derived, stored: [] }).refused, "NEED_RECORDS_NOT_STORED_AS_DERIVED");
 });
 
+test("TO THE POINT · THE BUILDER REFUSES (RR-265): over a scratch copy, through the builder's own entry point — a declared filler phrase that stands in an answer fails the build, named, and no page is written", () => {
+  const real = realDir();
+  const world = realWorld(real);
+  assert.ok(world.pages.length > 0, "EMPTY real population");
+  const P = world.pages[0];
+  const subject = subjectOf(real);
+  const productId = String(lookupSubject(rootIndexFor(process.env), subject).entry?.members?.find((m) => m.resourceKind === "FACT_REGISTRY")?.resourceRef ?? "").split(":").pop().split("/")[0];
+  const x = P.record.exception.record, on = P.record.recorded_at.slice(0, 10);
+  /* a phrase that stands in a real sourced line of the first page, declared as filler for this run only */
+  const phrase = P.record.itemList.flatMap((it) => it.claims.map((c) => c.text)).find((t) => t && t.split(/\s+/).length >= 3).split(/\s+/).slice(0, 3).join(" ");
+  const W = declaredWorld();
+  const dir = join(W.root, "research", BATCH);
+  try {
+    const before = sha(readFileSync(join(dir, "joined-pages.jsonl")));
+    writeFileSync(join(dir, "page-filler-phrases.json"), JSON.stringify([phrase]));
+    const r = spawnSync(process.execPath, ["bin/build-joined-pages.mjs", ...W.argv([`--subject=${subject}`, `--product=${productId}`, `--research-batch=${BATCH}`, `--on=${on}`, `--test-exception=${x.repo}:${x.path}@${x.commit}`, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    assert.equal(r.status, 3, r.stdout + r.stderr);
+    assert.ok(r.stderr.includes("NOT_TO_THE_POINT") && r.stderr.toLowerCase().includes(`filler phrase(s): "${phrase.toLowerCase()}"`), `the filler phrase was not named: ${r.stderr}`);
+    assert.equal(sha(readFileSync(join(dir, "joined-pages.jsonl"))), before, "a page was written although an answer is not to the point");
+  } finally { W.cleanup(); }
+  assert.equal(existsSync(W.root), false, "the scratch copy was not removed");
+});
+
 test("TITLE PLAN · FIRING CONTROL (RR-264): the builder's own entry point, over a scratch copy — a title plan that names no phrase stored in the batch refuses the run before anything is written; the plans as recorded build, each title part traced to its stored phrase", () => {
   const real = realDir();
   const world = realWorld(real);

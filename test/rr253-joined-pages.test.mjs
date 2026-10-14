@@ -97,6 +97,41 @@ const present = (v) => typeof v === "string" && v.trim() !== "";
 const failed = (p) => Object.entries(p.checks).filter(([k, v]) => v.state === "FAIL" && k !== "b7Trust").map(([k]) => k);
 const LAWS = ["law1ClientDesign", "law2Hero", "law3KeyFacts", "law4QuestionsAndAnswers", "law5ProductCards", "law6FaqMatchesVisible", "law7NoRecordLabels", "law8UnansweredNotShown"];
 
+/* ================= RR-265 ================= */
+
+test("TO THE POINT · FIRING CONTROL (RR-265): an answer opens with ONE short sentence and every sourced line is one short sentence; a declared filler phrase fails, named — each fault alone", () => {
+  const two = [built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })]), built("n2", "alpha", [["Where is it?", OBS]])];
+  const ok = joined(two)[0];
+  assert.equal(ok.checks.toThePoint.state, "PASS", ok.checks.toThePoint.why);
+  const filler = joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It is important to note that it costs 5 XTS a month." })])], { fillerPhrases: ["It is important to note"] })[0];
+  assert.deepEqual([filler.checks.toThePoint.state, /filler phrase\(s\): "it is important to note" \(n1\)/.test(filler.checks.toThePoint.why)], ["FAIL", true], "a declared filler phrase passed, or was not named");
+  assert.equal(joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It is important to note that it costs 5 XTS a month." })])])[0].checks.toThePoint.state, "PASS", "a phrase no list declares was refused");
+  const twoSentences = joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month. The price is listed in XTS." })])])[0];
+  assert.deepEqual([twoSentences.checks.toThePoint.state, /an answer opens with more than one short sentence: n1/.test(twoSentences.checks.toThePoint.why), /a sourced line is not one short sentence: n1-1/.test(twoSentences.checks.toThePoint.why)], ["FAIL", true, true]);
+  const long = joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." }), label("n1-2", { text: `It ${"is very ".repeat(15)}cheap.` })])])[0];
+  assert.deepEqual([long.checks.toThePoint.state, /a sourced line is not one short sentence: n1-2/.test(long.checks.toThePoint.why), /opens with/.test(long.checks.toThePoint.why)], ["FAIL", true, false], "a sourced line over the word limit passed, or the opening was blamed");
+});
+
+test("GENERAL VIEW · FIRING CONTROL (RR-265): a general view stands after two sourced sentences, labelled where it stands, never in the FAQ data, attributing no view to people, counted apart — each fault fails alone", () => {
+  const view = { text: "Which test feels harder depends on the candidate's own strengths.", source: "the client's own AI research (14 Oct 2026)" };
+  const need = (labels) => [built("n1", "alpha", [["Is it harder than the other one?", INF]], labels)];
+  const two = [label("n1-1", { text: "No official body ranks one as harder." }), label("n1-2", { text: "One uses work topics; the other uses general topics." })];
+  const p = joined(need(two), { generalViewOf: (id) => (id === "n1" ? view : null) })[0];
+  assert.equal(p.checks.generalViewLabelled.state, "PASS", p.checks.generalViewLabelled.why);
+  assert.ok(p.html.includes(`<p class="general-view" data-answer-kind="GENERAL_VIEW"><strong>${STRUCTURE.generalView}:</strong> ${view.text}`), "the general view is not labelled where it stands");
+  assert.deepEqual(faqInPage(p.html), [{ question: "Is it harder than the other one?", answer: "No official body ranks one as harder. One uses work topics; the other uses general topics." }], "the general view stands in the FAQ data");
+  assert.deepEqual([p.generalViews, p.itemList[0].answerKind, p.itemList[0].generalView.label], [1, "GENERAL_VIEW", "INFERRED"]);
+  assert.ok(p.html.indexOf("No official body") < p.html.indexOf(STRUCTURE.generalView) && p.html.indexOf("general topics") < p.html.indexOf(STRUCTURE.generalView), "the general view does not follow the sourced sentences");
+  assert.equal(joined(need(two))[0].checks.generalViewLabelled.state, "NOT MEASURED");
+  assert.equal(joined(need(two))[0].generalViews, undefined, "a page with no general view counts one");
+  /* each fault alone */
+  assert.equal(joined(need([two[0]]), { generalViewOf: () => view })[0].checks.generalViewLabelled.state, "FAIL", "a general view with one sourced sentence passed");
+  assert.equal(joined(need(two), { generalViewOf: () => ({ ...view, text: "Most candidates say it is harder." }) })[0].checks.generalViewLabelled.state, "FAIL", "a general view that attributes a view to people passed");
+  const base = { items: p.itemList, stamp: STAMP, title: p.title, titleTrace: p.titleTrace, lastChecked: p.lastChecked, design: DESIGN, faq: faqOf(p.itemList) };
+  assert.equal(joinedChecks({ ...base, html: p.html.replace(`<strong>${STRUCTURE.generalView}:</strong> `, "") }).generalViewLabelled.state, "FAIL", "an unlabelled general view passed");
+  assert.equal(joinedChecks({ ...base, html: p.html, faq: [{ question: "Is it harder than the other one?", answer: `No official body ranks one as harder. ${view.text}` }] }).generalViewLabelled.state, "FAIL", "a general view in the FAQ data passed");
+});
+
 test("JOIN · FIRING CONTROL: one page per page candidate, every chosen need on it as ONE item with its own questions and its own answer, in the order handed in; nothing chosen, nothing built", () => {
   const order = { n2: 0, n1: 1, n3: 0 };
   const pages = joined([built("n1", "alpha", [["how much is it", INF], ["How much does it cost?", OBS]]), built("n2", "alpha", [["Where is it?", OBS]]), built("n3", "beta", [["how long is it", INF]])], { orderOf: (id) => order[id] });

@@ -158,6 +158,10 @@ console.log(`  page law inputs  client design ${design ? `filed (${design.basis}
 const needToKey = new Map([...keyToNeed].map(([k, v]) => [v, k]));
 /* RR-262: what a need is recorded to lead with (the owner's page-content decision), by need key */
 const leadOfKey = new Map(resolved.pages.flatMap((p) => p.needs.filter((n) => n.lead !== undefined && n.lead !== null).map((n) => [n.key, n.lead])));
+/* RR-265: the client's DECLARED filler phrases (to the point) — none filed is none */
+const fillerPhrases = list("page-filler-phrases.json");
+/* RR-265: a need's recorded general view (GENERAL_VIEW, INFERRED), by need key */
+const generalViewOfKey = new Map(resolved.pages.flatMap((p) => p.needs.filter((n) => n.generalView).map((n) => [n.key, n.generalView])));
 const helpOf = new Map(resolved.pages.flatMap((p) => p.needs.map((n) => [n.key, n.productAnswers ?? []])));
 const questions = new Map(stored.filter((r) => r?.record_type === CONNECTION).map((r) => [r.questionId, r]));
 /* the place of each need on its page is the order the page's needs were handed in; a need F35 did not choose is reported, never written */
@@ -169,7 +173,7 @@ const chosen = new Set(joinable.construction.map((c) => c.spec?.subject));
 const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map((d) => [d.subject.needId, (d.missing ?? []).join(" | ")]));
 const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
 const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
-  design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null,
+  design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, fillerPhrases,
   phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
   statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
@@ -182,6 +186,14 @@ for (const { record: p, ...m } of built) {
   console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), FAQ ${p.faqCount}, key facts ${p.keyFacts.length}, ${p.wordCount} word(s) · title ${p.titleComposed ? "COMPOSED from search phrases" : "from recorded questions (no search phrase recorded)"} · unanswered need(s) ${p.unanswered.length} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
   console.log(`    ${states.join(" · ")}`);
 }
+/* RR-265: a general view that is not labelled where it stands (or breaks its other rules) fails the build — no page is written */
+const unlabelled = built.filter(({ record: p }) => p.checks.generalViewLabelled?.state === "FAIL").map(({ record: p }) => p.value);
+const views = built.reduce((n, { record: p }) => n + (p.generalViews ?? 0), 0);
+console.log(`  general views    ${views} (GENERAL_VIEW, INFERRED — counted apart from sourced answers, never in the FAQ data) on ${built.filter(({ record: p }) => p.generalViews).length} page(s)`);
+/* RR-265: an answer that is not to the point fails the build, named — no page is written */
+const pointless = built.filter(({ record: p }) => p.checks.toThePoint?.state === "FAIL").map(({ record: p }) => `${p.value}: ${p.checks.toThePoint.why}`);
+if (pointless.length) { console.error(`🔴 REFUSED — NOT_TO_THE_POINT: ${pointless.join(" | ")}; no page written`); process.exit(3); }
+if (unlabelled.length) { console.error(`🔴 REFUSED — GENERAL_VIEW_NOT_LABELLED: ${unlabelled.length} page(s) hold a general view that breaks its rules; no page written`); process.exit(3); }
 const out = built.map(({ record: p }) => ({ ...p, recorded_at: `${ON}T00:00:00Z`, subject: SUBJECT, exception: X.exception }));
 if (out.length) { const g = append(out, join(batchDir, "joined-pages.jsonl"), "APPEND_JOINED_TEST_PAGES"); if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the pages did NOT persist`); process.exit(1); } console.log(`  kept             ${pages.length} page draft(s) in the batch's joined-pages store (${g.outcome}) — ${X.stamp}`); }
 process.exit(pages.length > 0 ? 0 : 2);

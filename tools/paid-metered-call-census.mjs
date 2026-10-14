@@ -42,6 +42,8 @@ export const CONNECTOR_CALL_CLASS = Object.freeze({
   QUESTION_SOURCE_API: "METERED",
   /* RR-159: the client's own AI provider is keyed and billed to the client's own account by its provider — METERED */
   AI_PROVIDER: "METERED",
+  /* RR-263: an unauthenticated GET of a public web address a client's own page links to — no account, no key, no billing relationship */
+  LINK_DESTINATIONS: "UNMETERED_PUBLIC",
 });
 const GATE = /\bcreatePaidProviderGate\(/;
 const FAKE = /\bcreateFakePaidProvider\(/;

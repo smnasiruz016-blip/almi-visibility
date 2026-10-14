@@ -19,7 +19,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -98,8 +98,10 @@ test("C8-1 · the census: every entry point the F03 census finds opening a conne
   const rows = liveRunCostCensus();
   const f03 = new Set(censusOf(productionFiles().map((file) => ({ file, text: readFileSync(join(REPO, file), "utf8") }))).sites.filter((s) => s.kind === "CONNECTOR").map((s) => s.file));
   assert.deepEqual(rows.map((r) => r.file), [...f03].sort(), "the census population is not the F03 census's connector sites");
-  assert.equal(rows.length, 10, "the population moved — re-measure");
-  assert.equal(rows.reduce((n, r) => n + r.sites, 0), 12);
+  /* RR-263 (re-measured): 10 -> 11 — F23's bounded link-status check (bin/link-status.mjs) opens a connector; metered, its own recorder, its own ledger */
+  assert.equal(rows.length, 11, "the population moved — re-measure");
+  /* RR-263: + 1 connector site, bin/link-status.mjs = 13 */
+  assert.equal(rows.reduce((n, r) => n + r.sites, 0), 13);
   for (const r of rows) assert.deepEqual([r.metered, r.recorder, r.ownLedger], [true, true, true], `${r.file} is not complete`);
   /* FIRING CONTROL: a stand-in entry point that opens a connector bare, records under another name and names the shared ledger */
   const planted = [{ file: "bin/planted.mjs", text: 'const SCOPE = scopedEntryPoint({ entry: "bin/planted.mjs", governed: true, resources: [RESOURCES.connector(S, "PUBLIC_SITE"), RESOURCES.costLedger()] });\nconst RUN_COST = runCost({ entryPoint: "bin/elsewhere.mjs", scope: SCOPE });\nconst C = openConnector({ scope: SCOPE, subjectId: S, kind: "PUBLIC_SITE" });\n' }];
@@ -190,11 +192,15 @@ test("C9-1 · REAL declarations: each tenant's own ledger ALLOWED, another tenan
 
 test("C9-2 · REAL PATH: a run for a tenant with no declared cost ledger is refused BEFORE any request; nothing is written anywhere", () => {
   const W = declaredWorld({ secondTenantOrigins: ["https://fixture-world.invalid"], secondTenantLedger: false });
+  /* RR-263: a real client's own ledger is copied into every world from the data root — "nothing written" is that the directory's contents do not change */
+  const dir = join(W.root, "tenancy", TENANT_LEDGER_DIR);
+  const ledgers = () => (existsSync(dir) ? readdirSync(dir).sort().map((f) => `${f}:${createHash("sha256").update(readFileSync(join(dir, f))).digest("hex")}`) : []);
+  const before = ledgers();
   try {
     const r = childRun(W, "complete", { tenant: SECOND_FIXTURE_TENANT });
     assert.equal(r.status, 3, r.out);
     assert.deepEqual([r.standIn, r.net], [-1, 0], "the refused run made a request or reached its connector");
-    assert.equal(existsSync(join(W.root, "tenancy", TENANT_LEDGER_DIR)), false, "a ledger was written for a refused run");
+    assert.deepEqual(ledgers(), before, "a ledger was written for a refused run");
   } finally { W.cleanup(); }
 });
 

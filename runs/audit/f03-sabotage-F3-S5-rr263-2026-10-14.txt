@@ -1,0 +1,25 @@
+F03 SABOTAGE EVIDENCE — one defect per limb of the frozen acceptance
+
+Engine tree: 9f339aafa0b48b89e0f7965b2c36fb3ee335bd14. Harness: test/helpers/f08-sabotage.mjs (committed). Node v24.15.0.
+Each sabotage replaces ONE anchor that occurs exactly once, confirms the bytes changed and hold the sabotage (LANDED),
+runs its test file with the TAP reporter, requires fail > 0 (RED), requires the NAMED test among the failing tests,
+requires the intended reason in the output, restores the original bytes, and compares raw-byte sha256 before/after.
+No sabotage aims at the production audit trail; every firing case writes to a stand-in or a confined store.
+
+RESULTS
+F3-S5    landed=true red=true failed=1 namedTestFailed=true reason=true restored=true — a connector is constructed without the run's decision
+         target src/tenancy/connectors.mjs · named test "C6 · resource resolution comes from F03…" in test/f04-roles-permissions-approvals.test.mjs
+         sha256 before 8a82df2f397a36705746ee6ba4fac4b2ae6c39b67feca9233f0df215fc9be0a8 · after 8a82df2f397a36705746ee6ba4fac4b2ae6c39b67feca9233f0df215fc9be0a8
+         failing tests: C6 · resource resolution comes from F03, never from the permission name — a connector needs F03's decision AND F04's, for exactly that connector
+         verdict: RED, named test, intended reason
+
+TOTAL 1 · PROVED 1 · NOT PROVED 0
+residue in sabotaged files after restore: 0
+tracked modifications after restore (excluding this evidence file): 0
+
+PRODUCTION AUDIT TRAIL (LAW 1 — hashed around the whole run, raw bytes)
+  audit-trail/events.jsonl  before 7e51e3eca009d981238e8380a259fe6dd5886dc7aee77d30faab2493e96f0593  after 7e51e3eca009d981238e8380a259fe6dd5886dc7aee77d30faab2493e96f0593
+  audit-trail/head.json  before c48307bf8651ac3f5c09ad68f4f9af4b776fbe41f1729ac44ab2f93e9f86deef  after c48307bf8651ac3f5c09ad68f4f9af4b776fbe41f1729ac44ab2f93e9f86deef
+  untouched: true
+
+EXECUTION ASSERTION: 1 of 1 sabotages executed.

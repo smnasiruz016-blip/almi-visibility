@@ -119,6 +119,8 @@ export const ACTIONS = Object.freeze({
   READ_OWNER_REPORT: A("RESEARCH", "PROTECTED_TENANT_DATA"),
   OPEN_CONNECTOR_PUBLIC_SITE: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_CITED_SOURCES: A("RESEARCH", "EXTERNAL_SOURCE"),
+  /* RR-263 · F23 C8: the bounded link-status check of a client's own pages reaches public web addresses those pages link to */
+  OPEN_CONNECTOR_LINK_DESTINATIONS: A("RESEARCH", "EXTERNAL_SOURCE"),
   OPEN_CONNECTOR_SEARCH_CONSOLE_API: A("RESEARCH", "EXTERNAL_SOURCE"),
   /* RR-155 (4 Oct 2026): F16 C9–C14 — a public-question source API, opened only by the collection entry point (bin/collect-public-questions.mjs)
    * after its preflight; a classification only */
@@ -176,6 +178,10 @@ export const ACTIONS = Object.freeze({
      * survivor (bin/built-page-needs.mjs), kept in the research batch's own stores, the same family and resource class; a classification
      * only, granting no permission. */
     "APPEND_BUILT_PAGE_NEEDS",
+    /* RR-263 (14 Oct 2026): F23 — the observations of the bounded link-status check and the stored reads of a client's own live pages
+     * (bin/link-status.mjs), kept in the research batch's own stores, the same family and resource class; a classification only,
+     * granting no permission. */
+    "APPEND_LINK_STATUS",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

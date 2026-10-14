@@ -107,6 +107,31 @@ const DERIVED_TYPES = Object.freeze({
  * is a direct witnessing — OBSERVED, sourced from its collector, like the raw-HTML observation of the same response. It is traceable only
  * through its own evidence id and its source observation; a record missing either, or its time, is UNMAPPED — never placed by default.
  */
+/**
+ * RR-263 · F23 (Amendment 1, C8) — a `link_status_observation`: what one request of the bounded link-status check was answered — the
+ * status, the hops of its redirect chain — or that it was refused and why. Nothing is computed beyond the class the frozen contract
+ * names, so a MEASURED destination is a direct witnessing — OBSERVED, sourced from the check's own run. A destination that was NOT
+ * MEASURED (disallowed, rate-limited, challenged, timed out, left over at the limit) is UNKNOWN with that insufficiency — never an
+ * observation of anything. A record with no address, no day or no run is UNMAPPED.
+ */
+function ofLinkStatus(r) {
+  const rule = "link_status_observation";
+  if (!present(r.observation_id) || !present(r.url)) return unmapped("a link-status observation names the address it observed", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a link-status observation with no recorded_at has no time", rule);
+  if (!present(r.run)) return unmapped("a link-status observation names the run that made it", rule);
+  if (r.state === "NOT MEASURED") return place(`${rule}.not-measured`, "UNKNOWN", { checkId: `link_status:${r.observation_id}`, insufficiency: "DESTINATION_NOT_MEASURED" });
+  return place(rule, "OBSERVED", { evidenceRef: `link_status:${r.observation_id}`, sourceId: `link-status-check@${r.run}`, observedAt: r.recorded_at });
+}
+
+/** RR-263 · F23 — a `live_page_read`: the body one of the client's own live pages answered with, kept as answered — OBSERVED. */
+function ofLivePageRead(r) {
+  const rule = "live_page_read";
+  if (!present(r.read_id) || !present(r.url) || !present(r.bodySha256)) return unmapped("a live-page read names its address and the hash of the body it holds", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a live-page read with no recorded_at has no time", rule);
+  if (!present(r.run)) return unmapped("a live-page read names the run that made it", rule);
+  return place(rule, "OBSERVED", { evidenceRef: `live_page_read:${r.read_id}`, sourceId: `link-status-check@${r.run}`, observedAt: r.recorded_at });
+}
+
 function ofResponseHeaders(r) {
   const rule = "response_headers";
   if (!present(r.evidence_id)) return unmapped("a response-headers record with no evidence_id cannot be referenced", rule);
@@ -425,6 +450,8 @@ export function evidenceStateOf(record, ctx = {}) {
     case "issue": return ofIssue(record);
     case "draft_recommendation": return ofDraftRecommendation(record, ctx);
     case "response_headers": return ofResponseHeaders(record);
+    case "link_status_observation": return ofLinkStatus(record);
+    case "live_page_read": return ofLivePageRead(record);
     case "page_body": return ofPageBody(record);
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);

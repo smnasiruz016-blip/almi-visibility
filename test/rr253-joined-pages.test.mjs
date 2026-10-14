@@ -150,7 +150,7 @@ test("PAGE LAW · FIRING CONTROL: a page built with the client's design, a hero,
   assert.deepEqual(only(p.html.replace("</main>", "<p>Is it open at night?</p></main>"), { unanswered: [{ need: "n9", wordings: ["Is it open at night?"] }] }), ["law8UnansweredNotShown"]);
 });
 
-test("LEAD · FIRING CONTROL (RR-262, the owner's page-content decision): a need RECORDED to lead with the product's own statements shows its product cards with the call to action right after its question, then ONE sourced line — and each fault fails the page's own check for its own reason", () => {
+test("LEAD · FIRING CONTROL (RR-262, the owner's page-content decision): a need RECORDED to lead with the product's own statements shows its product cards right after its question, then ONE call-to-action button, then ONE sourced line — and each fault fails the page's own check for its own reason", () => {
   const card = (id, text) => ({ answerId: id, text, label: PRODUCT_STATEMENT_LABEL, source: "Standin's own statement (owner-approved, 2026-09-01)", link: "https://client.invalid", approvalRecord: "r@a" });
   const product = { shown: [card("does-x", "It does x."), card("does-y", "It does y.")], refused: [] };
   const needs = (labels = [label("n1-1", { text: "The body offers free samples." })]) => [built("n1", "alpha", [["Where can I practise?", OBS]], labels), built("n2", "alpha", [["Where is it?", OBS]])];
@@ -158,10 +158,15 @@ test("LEAD · FIRING CONTROL (RR-262, the owner's page-content decision): a need
   const p = joined(needs(), opts)[0];
   assert.deepEqual([p.checks.productLedNeeds.state, p.checks.b3DirectAnswerFirst.state, p.checks.law5ProductCards.state, p.checks.law6FaqMatchesVisible.state], ["PASS", "PASS", "PASS", "PASS"], JSON.stringify(p.checks.productLedNeeds));
   assert.deepEqual(p.itemList.map((it) => [it.needId, it.lead ?? null, Object.hasOwn(it, "leadAsked")]), [["n1", LEAD.PRODUCT, true], ["n2", null, false]]);
-  /* the order on the page: question, the product cards (each with the client's call to action), then the one sourced line */
+  /* the order on the page: question, the product cards, ONE call-to-action button for the item, then the one sourced line */
   const at = (w) => p.html.indexOf(w);
-  const order = ["<summary>Where can I practise?</summary>\n<div class=\"product\" data-answer-id=\"does-x\"><p>It does x.</p><a class=\"cta\" href=\"https://client.invalid/start\">Start now</a></div>", "<div class=\"product\" data-answer-id=\"does-y\">", "<p data-claim-id=\"n1-1\">The body offers free samples."];
-  assert.ok(order.every((w) => at(w) >= 0) && at(order[0]) < at(order[1]) && at(order[1]) < at(order[2]), "the product cards do not stand before the sourced line, right after the question");
+  const order = ["<summary>Where can I practise?</summary>\n<div class=\"product\" data-answer-id=\"does-x\"><p>It does x.</p></div>", "<div class=\"product\" data-answer-id=\"does-y\"><p>It does y.</p></div>\n<p class=\"lead-action\"><a class=\"cta\" href=\"https://client.invalid/start\">Start now</a></p>", "<p data-claim-id=\"n1-1\">The body offers free samples."];
+  assert.ok(order.every((w) => at(w) >= 0) && at(order[0]) < at(order[1]) && at(order[1]) < at(order[2]), "the product cards, the one button and the sourced line are not in that order right after the question");
+  const block = p.html.slice(at("<summary>Where can I practise?</summary>"), p.html.indexOf("</details>", at("<summary>Where can I practise?</summary>")));
+  assert.equal(block.split("<a class=\"cta\" ").length - 1, 1, "a product-led item shows more than one call-to-action button, or none");
+  /* a second button in the item fails the check, for its own reason */
+  const twoButtons = joinedChecks({ items: p.itemList, html: p.html.replace("<p data-claim-id=\"n1-1\">", "<a class=\"cta\" href=\"https://client.invalid/start\">Start now</a><p data-claim-id=\"n1-1\">"), stamp: STAMP, title: p.title, titleTrace: p.titleTrace, lastChecked: p.lastChecked, design: DESIGN, intro: [DESIGN.productLine, "2 questions answered below, each with its source."], faq: faqOf(p.itemList), recheck: p.recheck, on: "2026-09-03" });
+  assert.deepEqual([twoButtons.productLedNeeds.state, /2 call-to-action buttons/.test(twoButtons.productLedNeeds.why ?? "")], ["FAIL", true], "two buttons in a product-led item passed");
   assert.equal(LEAD_SOURCED_LINES, 1);
   /* the structured data stays the sourced answer: the product's own statement is never written into it */
   assert.deepEqual(faqInPage(p.html)[0], { question: "Where can I practise?", answer: "The body offers free samples." });
@@ -460,6 +465,11 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     assert.deepEqual([it.lead, p.checks.productLedNeeds.state, it.claims.length, it.statements.length > 0, it.statements.every((st) => approved.has(st.answerId))], [LEAD.PRODUCT, "PASS", LEAD_SOURCED_LINES, true, true], `${p.value}: ${p.checks.productLedNeeds.why ?? ""}`);
     assert.ok(p.html.includes(`<summary>${it.heading.shown.replace(/&/g, "&amp;")}</summary>\n<div class="product" data-answer-id="${it.statements[0].answerId}">`), `${p.value}: the product card does not stand right after the question`);
     assert.ok(p.html.indexOf(`data-answer-id="${it.statements.at(-1).answerId}"`, p.html.indexOf(`data-need-id="${it.needId}"`)) < p.html.indexOf(`data-claim-id="${it.claims[0].claimId}"`), `${p.value}: the sourced line stands before a product card`);
+    /* the owner's answers of 14 October 2026: ONE call-to-action button in the item; the product's own statement never in the FAQ data */
+    const from = p.html.indexOf(`<details data-need-id="${it.needId}"`), block = p.html.slice(from, p.html.indexOf("</details>", from));
+    assert.equal(block.split('<a class="cta" ').length - 1, 1, `${p.value}: the product-led item does not show exactly one call-to-action button (rebuild the pages)`);
+    const faq = faqInPage(p.html).find((f) => f.question === it.heading.shown);
+    assert.ok(faq && faq.answer === it.claims[0].text.trim() && it.statements.every((st) => !JSON.stringify(faqInPage(p.html)).includes(st.text)), `${p.value}: the FAQ data of the product-led item is not its sourced line only`);
   }
   const live = { shared: { length: (proposed.sameNeed ?? []).length } };
   console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, faq: p.faqCount, keyFacts: p.keyFacts.length, words: p.wordCount, unanswered: p.unanswered.length, titleComposed: p.titleComposed, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: failed(p).length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), ledNeeds: led.length, recordedJudgementsNoLongerRead: live.shared.length, retiredCancellationRecords: cancels.length })}`);

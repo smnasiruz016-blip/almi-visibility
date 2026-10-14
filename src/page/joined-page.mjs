@@ -33,8 +33,9 @@
  *   then recorded questions, and the page says the title law is not met for want of that record.
  *
  * THE LEAD (RR-262; the owner's page-content decision of RR-261): a need recorded to LEAD WITH THE PRODUCT'S OWN STATEMENTS shows its
- *   product cards — owner-approved answers, each with the call to action — right after its question, then ONE sourced line: one recorded
- *   claim of one sentence, with its source. Which need leads so is recorded with the need; it is never decided here.
+ *   product cards — owner-approved answers — right after its question, then ONE call-to-action button for the item (the owner's answer
+ *   of 14 October 2026: one button, not one per card), then ONE sourced line: one recorded claim of one sentence, with its source. The
+ *   product's own statement is never written into the FAQ structured data. Which need leads so is recorded with the need; it is never decided here.
  *
  * 🔴 NO PAGE IS CANCELLED HERE (RR-262). Whether two pages serve the same need is decided once, over BUILT pages, by F10
  * (src/page/built-page-needs.mjs, Acceptance Amendment 4) and stored; a rebuild honours the stored records
@@ -382,6 +383,9 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
   /* RR-262 · an item that leads with the product's own statements: its first product card stands right after its question */
   const led = (it) => it.lead === LEAD.PRODUCT;
   const ledFirst = (it) => it.statements.length > 0 && html.includes(`<summary>${esc(shownOf(it))}</summary>\n<div class="product" data-answer-id="${esc(it.statements[0].answerId)}">`);
+  /* the item as the page shows it, and its call-to-action buttons: a product-led item shows exactly one */
+  const blockOf = (it) => { const from = html.indexOf(`<details data-need-id="${esc(it.needId)}"`); return from < 0 ? "" : html.slice(from, html.indexOf("</details>", from)); };
+  const buttons = (it) => blockOf(it).split(`<a class="cta" `).length - 1;
   const oneSentence = (t) => (String(t).trim().match(/[.!?](?=\s|$)/g) ?? []).length === 1 && /[.!?]$/.test(String(t).trim());
   const leadAsked = items.filter((it) => Object.hasOwn(it, "leadAsked"));
   const leadFaults = leadAsked.flatMap((it) => { const lines = it.claims.filter((c) => present(c.text)); return [
@@ -389,6 +393,7 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
     led(it) && !ledFirst(it) ? `${it.needKey}: the product card does not stand right after the question` : null,
     it.statementsRefused.length ? `${it.needKey}: a statement it leads with is not an approved answer` : null,
     present(design?.cta?.label) && present(design?.cta?.href) ? null : `${it.needKey}: the product card has no call to action`,
+    led(it) && present(design?.cta?.label) && present(design?.cta?.href) && buttons(it) !== 1 ? `${it.needKey}: the item shows ${buttons(it)} call-to-action buttons — one is recorded` : null,
     lines.length === LEAD_SOURCED_LINES && lines.every((c) => oneSentence(c.text) && present(c.source) && present(c.link)) ? null : `${it.needKey}: after the product cards stand ${lines.length} sourced line(s), or one that is not a single sentence with its source — ${LEAD_SOURCED_LINES} is recorded`,
   ].filter(Boolean); });
   return Object.freeze({
@@ -493,7 +498,7 @@ function styleOf(design) {
     + `.src{font-size:13px;color:${v.muted}}.checked{color:${v.muted};font-size:14px;margin:0 0 12px}`
     + `details{background:${v.paper};border:1px solid ${v.line};border-radius:${radius};margin:0 0 12px;padding:0 18px}summary{cursor:pointer;list-style-position:outside;padding:16px 0;color:${v.ink};font-weight:600;font-size:18px}details[open] summary{border-bottom:1px solid ${v.line}}`
     + `.cmp{width:100%;border-collapse:collapse;margin:12px 0 16px;font-size:15px}.cmp caption{text-align:left;color:${v.muted};font-size:14px;padding:0 0 6px}.cmp th,.cmp td{border:1px solid ${v.line};padding:8px 10px;text-align:left;vertical-align:top}.cmp thead th{background:${v.bg};color:${v.ink}}`
-    + `details p{margin:12px 0}.also{color:${v.muted};font-size:14px}.product{background:${v.bg};border:1px solid ${v.line};border-radius:${radius};padding:14px 16px;margin:12px 0 16px}.product p{margin:0 0 10px;color:${v.ink}}.product .cta{font-size:14px;padding:8px 18px}`
+    + `details p{margin:12px 0}.also{color:${v.muted};font-size:14px}.product{background:${v.bg};border:1px solid ${v.line};border-radius:${radius};padding:14px 16px;margin:12px 0 16px}.product p{margin:0 0 10px;color:${v.ink}}.product .cta{font-size:14px;padding:8px 18px}.lead-action{margin:0 0 16px}.lead-action .cta{font-size:14px;padding:8px 18px}`
     + `.site-foot{background:${v.footBg};color:${v.onDark};margin-top:40px}.foot{max-width:1120px;margin:0 auto;padding:36px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;font-size:14px}`
     + `.foot h3{margin:0 0 10px;color:${v.footAccent};font-size:12px;letter-spacing:.08em;text-transform:uppercase}.foot ul{margin:0;padding:0;list-style:none}.foot li{margin:0 0 6px}.foot a{color:${v.onDark};opacity:.8;text-decoration:none}.legal{text-align:center;font-size:12px;opacity:.7;padding:0 20px 24px;margin:0}`;
 }
@@ -516,11 +521,13 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
   const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a></td>`).join("")}</tr>`).join("")}</tbody></table>`;
   const productCards = (it) => it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`);
+  /* an item that leads with the product's own statements: its cards, then ONE call-to-action button for the item */
+  const leadCards = (it) => [...it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p></div>`), ...(cta ? [`<p class="lead-action">${cta}</p>`] : [])];
   const item = (it) => [
     `<details data-need-id="${esc(it.needId)}"${it === items[0] ? " open" : ""}>`,
     `<summary>${esc(it.heading.shown ?? it.heading.wording)}</summary>`,
     /* RR-262: an item recorded to lead with the product's own statements shows its product cards first, then its one sourced line */
-    ...(it.lead === LEAD.PRODUCT ? productCards(it) : []),
+    ...(it.lead === LEAD.PRODUCT ? leadCards(it) : []),
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
       ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
     ...tables.filter((t) => t.need === it.needKey).map(table),

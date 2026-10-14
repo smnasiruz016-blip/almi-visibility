@@ -273,7 +273,7 @@ export const MANDATORY_READING = Object.freeze([
   /* RR-111, F23 (1 Oct 2026): the command, the owner's every-limb refinement (both CURRENT records) and F23's acceptance, after the migration at _handoffs d3c8e79. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-01_RR-111_BUILD_F23_FROM_RECORDED_DATA.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-10-01_RR-111_EVERY_LIMB_RULE_REFINEMENT.md", loader: "authority register (CURRENT record)" }),
-  Object.freeze({ repo: "governance", path: "AlmiVisibility_F23_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F23" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F23_ACCEPTANCE_2026-10-01.md", loader: "authority register (CURRENT record) — the original, amended by Amendment 1" }),
   /* RR-111 §5 and §9, F27 (1 Oct 2026): F23's open owner decision (a CURRENT record), and F27's acceptance and its amendment, after the migration at _handoffs 93fa696. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OPEN_OWNER_DECISION_2026-10-01_RR-111_F23_EXCESSIVE_AND_WEAK_LINKS.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F27_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F27" }),
@@ -423,6 +423,16 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T1_2026-10-08.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_TENANT_CONSENT_T2_2026-10-09.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F78_ACCEPTANCE_AMENDMENT_1_2026-10-09.md", loader: "F-board acceptance F78 (Amendment 1)" }),
+  /* RR-263 (14 Oct 2026): the 7 CURRENT records admitted by the migration at _handoffs 24df018: the RR-262 command and the owner's answers to its
+   * report, the RR-263 command and its continue command, the owner's decision to make the link audit standalone (with his GREEN for the
+   * bounded live link-status check), beta-g's technical decisions on excessive and weak links, and F23's Amendment 1. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_BETA_G_DECISION_2026-10-14_RR-263_EXCESSIVE_AND_WEAK_LINKS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-13_RR-262.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-14_RR-263.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-14_RR-263_CONTINUE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-14_RR-262_PRACTICE_ITEM_TWO_CARDS_ONE_BUTTON.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-14_RR-263_LINK_AUDIT_STANDALONE_AND_LIVE_STATUS_GREEN.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F23_ACCEPTANCE_AMENDMENT_1_2026-10-14.md", loader: "F-board acceptance F23 (Amendment 1)" }),
   /* RR-261 (13 Oct 2026): the 6 CURRENT records admitted by the migration at _handoffs c063d3b: the owner's two answers to the F12 sample, the
    * RR-261 command, his page-content direction for the practice needs, his approval of F10's Amendment 4 with one addition, and the Amendment. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-13_RR-260_F12_SAMPLE_ANSWERS.md", loader: "authority register (CURRENT record)" }),

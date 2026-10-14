@@ -322,8 +322,9 @@ test("PRODUCTION PATH · C1 C8: in a scratch world with no egress, for two unrel
   const W = declaredWorld({ extra: [...SUBJECTS.flatMap(([, batch, origin]) => [["RESEARCH_BATCH", batch], ["SITE_ORIGIN", origin]]), ["RESEARCH_BATCH", "fixture-too-many"]] });
   try {
     const reg = JSON.parse(readFileSync(join(W.root, "roots.json"), "utf8"));
-    const connector = (batch) => ({ connectorId: "link-destinations", kind: "LINK_DESTINATIONS", credential: null, reaches: [{ resourceKind: "RESEARCH_BATCH", resourceRef: batch }] });
-    for (const [subjectId, batch] of SUBJECTS) { mkdirSync(join(W.root, subjectId), { recursive: true }); reg.subjects.push({ subjectId, path: subjectId, members: [{ resourceKind: "RESEARCH_BATCH", resourceRef: batch }, ...(subjectId === "fixture-pumps" ? [{ resourceKind: "RESEARCH_BATCH", resourceRef: "fixture-too-many" }] : [])], connectors: [connector(batch)] }); }
+    /* the over-limit batch is reached by its subject's declared connector — its refusal can only be the limit, never the connector's reach */
+    const connector = (...batches) => ({ connectorId: "link-destinations", kind: "LINK_DESTINATIONS", credential: null, reaches: batches.map((batch) => ({ resourceKind: "RESEARCH_BATCH", resourceRef: batch })) });
+    for (const [subjectId, batch] of SUBJECTS) { mkdirSync(join(W.root, subjectId), { recursive: true }); reg.subjects.push({ subjectId, path: subjectId, members: [{ resourceKind: "RESEARCH_BATCH", resourceRef: batch }, ...(subjectId === "fixture-pumps" ? [{ resourceKind: "RESEARCH_BATCH", resourceRef: "fixture-too-many" }] : [])], connectors: [subjectId === "fixture-pumps" ? connector(batch, "fixture-too-many") : connector(batch)] }); }
     writeFileSync(join(W.root, "roots.json"), JSON.stringify(reg, null, 2) + "\n");
     const put = (batch, rows) => { mkdirSync(join(W.root, "research", batch), { recursive: true }); writeFileSync(join(W.root, "research", batch, "joined-pages.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n"); };
     put("fixture-pump-pages", [build("pumps", a(`https://${SHOP}/fit`) + a(`https://${SHOP}/fit`) + a("https://maker.invalid/spec", "Read more"))]);
@@ -336,6 +337,8 @@ test("PRODUCTION PATH · C1 C8: in a scratch world with no egress, for two unrel
     /* the distinct addresses outnumber the limit: refused before the connector opens — no request */
     const many = status("fixture-pumps", "fixture-too-many", "refuse", "--live", "--confirm");
     assert.deepEqual([many.status, /DISTINCT_ADDRESSES_OUTNUMBER_THE_REQUEST_LIMIT: 101 distinct address\(es\) against a limit of 100\. NO REQUEST WAS MADE\./.test(many.stderr), egress()], [3, true, 0], many.stdout + many.stderr);
+    /* the refusal is the LIMIT's, before the connector opens: no other refusal, no requests line, nothing written */
+    assert.deepEqual([/LINK_DESTINATIONS_CONNECTOR_DOES_NOT_REACH/.test(many.stderr), /requests {9}/.test(many.stdout), existsSync(join(W.root, "research", "fixture-too-many", "link-status.jsonl"))], [false, false, false], many.stdout + many.stderr);
     /* without --live: the plan, and no request */
     const dry = status("fixture-pumps", "fixture-pump-pages", "refuse");
     assert.deepEqual([dry.status, /plan {13}3 link occurrence\(s\) · 2 distinct address\(es\) on 2 host\(s\)/.test(dry.stdout), /NOT RUN — no --live/.test(dry.stdout), egress(), existsSync(join(W.root, "research", "fixture-pump-pages", "link-status.jsonl"))], [0, true, true, 0, false], dry.stdout + dry.stderr);

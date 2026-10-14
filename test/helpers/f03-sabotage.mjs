@@ -25,6 +25,8 @@ import { runSabotages, renderEvidence } from "./f08-sabotage.mjs";
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const T = "test/f03-root-connector-registry.test.mjs";
+/* RR-263: F04's test opens a connector WITH an authorised permission and NO F03 decision — the one place the decision guard stands alone */
+const T04 = "test/f04-roles-permissions-approvals.test.mjs";
 const REG = "src/tenancy/root-registry.mjs";
 const SCOPE = "src/tenancy/scope.mjs";
 const CONN = "src/tenancy/connectors.mjs";
@@ -59,10 +61,12 @@ export const F03_SABOTAGES = [
     to: `  if (false && !allowsSubject(opts.decision, id)) throw new SubjectRootRefused("SUBJECT_NOT_RESOLVED",`,
     expect: /Missing expected rejection/ },
 
-  { id: "F3-S5", what: "a connector is constructed without the run's decision", file: CONN, test: T, named: "F03 · C2b ·",
+  /* RR-263 (beta-g): restated — through F03's C2b, F04's authorisation guard refused first and the limb was RED for F04's reason. Proved
+   * where the actor IS authorised, so the decision guard is the only thing removed and its own reason is what the test asks for. */
+  { id: "F3-S5", what: "a connector is constructed without the run's decision", file: CONN, test: T04, named: "C6 · resource resolution comes from F03",
     from: `  if (!decision) throw new ConnectorRefused("CONNECTOR_NOT_RESOLVED");`,
     to: `  if (false) throw new ConnectorRefused("CONNECTOR_NOT_RESOLVED");`,
-    expect: /Missing expected exception/ },
+    expect: /F04's permission resolved a resource F03 never decided/ },
 
   { id: "F3-S6", what: "a subject's members are not all decided — the first member alone decides its tenant", file: SCOPE, test: T, named: "F03 · C3d ·",
     from: `  for (const s of sides.slice(1)) if (!decideSides(sides[0], s).allowed)`,

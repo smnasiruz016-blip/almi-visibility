@@ -7,12 +7,13 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
+import { RESIGHTING_TYPE } from "../src/evidence/store.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
 import { phraseRecord, clientAiHandIn, daySearchesBefore, searchConsoleRows, bingKeywordResearch, keywordPlannerFile, personSeen, aiSuggestions, freshPhrases, kindsOf, kindListFaults, groupPhrases, sourceStatus,
@@ -264,24 +265,28 @@ test("REAL · C1 C2 · the declared product's stored phrases: every one verbatim
   }
   assert.equal(new Set(phrases.map((r) => r.phrase_id)).size, phrases.length, "an observation is stored twice");
   /* (a): re-derived here from the hand-in, by the same function — the stored phrases ARE the accepted runs' phrases, verbatim */
-  const handIn = JSON.parse(readFileSync(join(dir, "phrase-sources", "client-ai-google-2026-10-13.json"), "utf8"));
-  const again = clientAiHandIn(handIn);
+  /* RR-264: every day's hand-in, each re-derived on its own day (a day's cap counts only that day's searches) */
+  const handIns = readdirSync(join(dir, "phrase-sources")).filter((n) => n.startsWith("client-ai-google-") && n.endsWith(".json")).sort().map((n) => JSON.parse(readFileSync(join(dir, "phrase-sources", n), "utf8")));
+  assert.ok(handIns.length > 0, "EMPTY real population: no hand-in of source (a)");
+  const agains = handIns.map((h) => clientAiHandIn(h));
   const mine = phrases.filter((r) => r.source === "CLIENT_AI_GOOGLE");
-  assert.deepEqual(mine.map((r) => r.phrase_id).sort(), again.records.map((r) => r.phrase_id).sort(), "the stored phrases of source (a) are not what the hand-in's accepted runs hold");
-  const handed = new Set(handIn.runs.flatMap((run) => run.observations.flatMap((o) => o.texts)));
+  assert.deepEqual(mine.map((r) => r.phrase_id).sort(), agains.flatMap((a) => a.records.map((r) => r.phrase_id)).sort(), "the stored phrases of source (a) are not what the hand-ins' accepted runs hold");
+  const handed = new Set(handIns.flatMap((h) => h.runs.flatMap((run) => run.observations.flatMap((o) => o.texts))));
   for (const r of mine) assert.ok(handed.has(r.phrase), "a stored phrase is not, character for character, a phrase handed in");
+  for (const [k, handIn] of handIns.entries()) { const again = agains[k];
   const day = runs.filter((r) => r.date === handIn.date);
   assert.deepEqual(day.map((r) => [r.runId, r.verdict, [...r.refusedFor]]).sort(), again.runs.map((r) => [r.runId, r.verdict, [...r.refusedFor]]).sort());
   const accepted = day.filter((r) => r.verdict === "ACCEPTED"), refusedRuns = day.filter((r) => r.verdict === "REFUSED");
-  assert.ok(accepted.length > 0 && accepted.every((r) => r.shortestPauseSeconds >= CLIENT_AI_POLICY.minPauseSeconds && r.stopped === "NO" && r.startedBy === "CLIENT" && r.phrasesKept > 0), "an accepted run broke the declared pace");
+  assert.ok(accepted.length > 0 && accepted.every((r) => r.shortestPauseSeconds >= CLIENT_AI_POLICY.minPauseSeconds && r.stopped === "NO" && r.startedBy === "CLIENT" && r.phrasesKept === r.observationsHandedIn) && accepted.some((r) => r.phrasesKept > 0), "an accepted run broke the declared pace, or dropped a phrase handed in to it");
   assert.ok(Math.max(...day.map((r) => r.searchesOfTheDay)) <= CLIENT_AI_POLICY.dailyCap && day.reduce((n, r) => n + r.searchesUsed, 0) <= 30, "the day's searches exceed the cap");
   assert.ok(refusedRuns.every((r) => r.phrasesKept === 0 && !mine.some((p) => p.runId === r.runId)), "a refused run's phrase was stored");
+  }
   /* (e) and (b) */
   const seen = JSON.parse(readFileSync(join(dir, "search-phrases.json"), "utf8"));
   assert.deepEqual(phrases.filter((r) => r.source === "PERSON_SEEN").map((r) => r.phrase).sort(), seen.map((x) => x.text).sort(), "the phrases a person saw are not stored verbatim, each once");
   assert.ok(phrases.filter((r) => r.source === "SEARCH_CONSOLE").length > 0, "source (b): the stored pull gave no query of this tenant");
   const by = (k) => phrases.reduce((m, r) => ((m[r[k]] = (m[r[k]] ?? 0) + 1), m), {});
-  console.log(`  REAL (count-only; the declared product's stored phrases): ${JSON.stringify({ phrases: phrases.length, bySource: by("source"), byLabel: by("label"), byKind: by("kind"), runs: day.map((r) => ({ verdict: r.verdict, refusedFor: r.refusedFor, searches: r.searchesUsed, shortestPause: r.shortestPauseSeconds, kept: r.phrasesKept })), searchesOfTheDay: day.reduce((n, r) => n + r.searchesUsed, 0), cap: CLIENT_AI_POLICY.dailyCap })}`);
+  console.log(`  REAL (count-only; the declared product's stored phrases): ${JSON.stringify({ phrases: phrases.length, bySource: by("source"), byLabel: by("label"), byKind: by("kind"), runs: runs.map((r) => ({ verdict: r.verdict, refusedFor: r.refusedFor, searches: r.searchesUsed, shortestPause: r.shortestPauseSeconds, kept: r.phrasesKept })), searchesByDay: runs.reduce((m, r) => ((m[r.date] = (m[r.date] ?? 0) + r.searchesUsed), m), {}), cap: CLIENT_AI_POLICY.dailyCap })}`);
 });
 
 test("REAL · C3 C4 C6 [ALL] · every stored phrase has its kinds by the declared lists, stands in exactly one need or in \"no need yet\", each source states its live part, and the real population is complete", () => {
@@ -298,7 +303,9 @@ test("REAL · C3 C4 C6 [ALL] · every stored phrase has its kinds by the declare
   assert.ok(homes.size === phrases.length && [...homes.values()].every((n) => n === 1), "a real phrase is in two needs, or in none");
   const storedGroups = latest(rows, GROUP_RECORD, (r) => r.need);
   assert.ok(storedGroups.length > 0 && storedGroups.every((x) => g.groups.some((y) => y.need === x.need)), "a stored group names a need the recorded grouping does not hold");
-  assert.ok(rows.every((r) => [PHRASE_RECORD, RUN_RECORD, GROUP_RECORD, STATUS_RECORD].includes(r.record_type)), "the phrase store holds a record that is not F11's — or a page");
+  /* the store's own re-sighting marks (a record handed in again on a later run) are the store's, never a phrase */
+  assert.ok(rows.every((r) => [PHRASE_RECORD, RUN_RECORD, GROUP_RECORD, STATUS_RECORD, RESIGHTING_TYPE].includes(r.record_type)), "the phrase store holds a record that is not F11's — or a page");
+  assert.ok(rows.filter((r) => r.record_type === RESIGHTING_TYPE).every((x) => rows.some((r) => r.record_type !== RESIGHTING_TYPE && r.measurement_key === x.measurement_key)), "a re-sighting re-sights no record held in the phrase store");
   const status = latest(rows, STATUS_RECORD, (r) => r.source);
   assert.deepEqual(status.map((s) => s.source).sort(), Object.keys(SOURCES).sort());
   for (const s of status) assert.ok(s.livePart === "MEASURED" || (s.livePart === "NOT MEASURED" && typeof s.ownerStep === "string" && s.ownerStep.length > 20), `${s.source}: a live part is neither measured nor NOT MEASURED with its owner step`);

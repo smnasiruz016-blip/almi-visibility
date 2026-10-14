@@ -1160,7 +1160,7 @@ export const DECLARED = Object.freeze({
   F23: Object.freeze({
     featureId: "F23",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       /* named EXPLICITLY since 14 Oct 2026: ACCEPTANCES.F23 now points at Amendment 1, and these 1 Oct events must keep naming the original */
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F23_ORIGINAL.ruling, contractSha256: F23_ORIGINAL.contractSha256 }),
@@ -1185,6 +1185,27 @@ export const DECLARED = Object.freeze({
       /* F23 Amendment 2 (14 Oct 2026, eeb7245, RR-263, the owner's principle): only the pages the engine builds — no crawl batch is an
        * input, named or not; C5 restated. NO board movement — F23 stays IN-PROGRESS. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F23", on: "2026-10-14", ruling: F23_AMENDMENT_2.ruling, contractSha256: F23_AMENDMENT_2.contractSha256, amends: F23_AMENDMENT_2.amends }),
+      /* RR-263: F23 PROVED under its Acceptance Amendment 2 — standalone, on the pages the engine built only; every clause PROVED, or NOT
+       * MEASURED exactly where the amendment names it, and every sabotage PROVED. Recorded through the board route in the same PR; main CI
+       * on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F23",
+        population: "REAL",
+        on: "2026-10-14",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F23_AMENDMENT_2.ruling.sha256, contract: F23_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "REAL, read by the REAL test (counts only): 23 declared clients; 1 has built pages (4 built and not yet published, in its declared research batches), 22 have none and are reported as 0. 245 link occurrences: internal 38, of them measured 38 (WORKING 36, REDIRECTED 2, BROKEN 0); external 207, of them measured 190 (WORKING 163, REDIRECTED 27, BROKEN 0) and NOT MEASURED 17, each with its reason (12 a robots file that could not be read, 5 the request limit); weakly contextual 0 of 245; named only by a web address 0 of 245; no accessible name 0 of 245. The status classes of C2 and C3 are measured on the real population. The bounded link-status check of the two test pages made 100 requests of a limit of 100, every gap between two requests to one host at least 2000 ms. C5 inbound links and hidden links: NOT MEASURED for every page and link, named, as the amendment states. Live pages: 0 (nothing published), named; that limb is proved by constructed pages only.",
+        proofs: "test/f23-link-audit.test.mjs: the C1, C1 POPULATION, C2, C3, C4, C5, C6 P1, C6 P2, C7, C8, C8 LIMIT and C8 RECORDS firing controls, the C1 NO CRAWL BATCH and C6 DATA censuses, the production-path test of both entry points over two unrelated constructed subjects in a scratch world with no egress, the entry-point census and the REAL test",
+        sabotage: "runs/audit/f23-sabotage-2026-10-14T0659.txt (sha256 7c911ba7…): 63 of 63 proved (one per FAILURE limb of C1 to C8), residue 0, production trail unchanged, on the final code; in-scope harnesses: f01 20/20, f03 17/18 then F3-S5 restated (beta-g: reaches the decision guard through F04's C6) and proved alone 1/1, f04-amendment 7/7, f04 20/20, f06 16/16, f08 34/34, f09 16/16, f10-built-pages 83/83, f16-human-observation 26/26, f16-product-led 12/12, f16-source-adapter 64/64, f40-lift 4/4, f62-assessment 17/17, f77 17/17, f91-connection 25/25, rr103 6/6, rr106 11/11, rr154-owner-records 4/4, rr159 25/25, rr170 24/24, rr199 59/59, rr206 33/33, rr227 68/68, rr232 7/7, rr243 37/37, rr98 5/5; residue 0 and production trail unchanged in every one",
+        historicalReuse: "the earlier crawl-batch audit (src/audit/link-audit.mjs) and its reader stay byte for byte, unread by F23 — two other rows' proofs pin their bytes (PROOF-DEBT PD-005); F23's audit is src/audit/page-links.mjs",
+        declaredLimit: "only the pages the engine built are audited (the owner's principle, 14 Oct 2026); a challenge is known only by named response headers; a robots file's status was not recorded for the 58 observations of 14 Oct 2026 (it is from now on); the generic link names are declared for English only; nothing is published, so the live limb has no real population",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F27 · Security and transport checks. Frozen 1 Oct (_handoffs 8a6312b, RR-111 §9) — its FIRST freeze — ALONE, before any F27

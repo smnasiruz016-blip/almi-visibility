@@ -74,6 +74,9 @@ function world(extra = []) {
 }
 const ledgerDir = (W) => join(W.root, "tenancy", TENANT_LEDGER_DIR);
 const ledgerOf = (W, t = FIXTURE_TENANT) => join(ledgerDir(W), `${t.slice(7)}.jsonl`);
+/** RR-263: every ledger file of the world and its bytes — a real client's own ledger (copied from the data root) is in it from the start,
+ * so "nothing was written" is that this does not change, never that the directory is absent */
+const ledgers = (W) => (existsSync(ledgerDir(W)) ? readdirSync(ledgerDir(W)).sort().map((f) => `${f}:${createHash("sha256").update(readFileSync(join(ledgerDir(W), f))).digest("hex")}`) : []);
 
 /** Spawn one run (async: a fixture server may live in this process) in its own confined audit store; read that store, then remove it. */
 function run(W, file, args, { tenant = FIXTURE_TENANT, confirm = false, env = {} } = {}) {
@@ -135,6 +138,7 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
 
 test("A2-2 · REAL PATH, every entry point: a connector-mode run refused at its scope gate makes no request, writes no cost entry, and its refusal is on the trail", async () => {
   const W = world();
+  const before = ledgers(W);
   try {
     for (const [file, args] of CONNECTOR_MODE) {
       const r = await run(W, file, args, { tenant: UNDECLARED, confirm: true });
@@ -142,7 +146,7 @@ test("A2-2 · REAL PATH, every entry point: a connector-mode run refused at its 
       assert.match(r.out, /TENANT SCOPE REFUSED/, `${file}: not refused at its scope gate`);
       assert.equal(r.net, 0, `${file}: a request was made`);
       assert.ok(scopeRefusals(r).length >= 1, `${file}: the scope-gate refusal is not on the trail`);
-      assert.equal(existsSync(ledgerDir(W)), false, `${file}: a cost entry was written for a gate-refused run`);
+      assert.deepEqual(ledgers(W), before, `${file}: a cost entry was written for a gate-refused run`);
     }
   } finally { W.cleanup(); }
 });
@@ -164,6 +168,7 @@ test("A2-3 · REAL PATH, every entry point: a connector-mode run without --confi
 
 test("A2-4 · REAL PATH: modes that open no connector make no request and write no cost entry; render-audit and mobile-audit offline write nothing to the trail", async () => {
   const W = world();
+  const before = ledgers(W);
   try {
     for (const file of ["bin/render-audit.mjs", "bin/mobile-audit.mjs"]) {
       for (const confirm of [false, true]) {
@@ -180,7 +185,7 @@ test("A2-4 · REAL PATH: modes that open no connector make no request and write 
       assert.equal(r.net, 0, `${file}: its no-connector mode made a request`);
       assert.equal(r.events.some((e) => /COST_ENTRY/.test(e.action ?? "")), false, `${file}: its no-connector mode tried to write a cost entry`);
     }
-    assert.equal(existsSync(ledgerDir(W)), false, "a no-connector mode wrote a cost entry");
+    assert.deepEqual(ledgers(W), before, "a no-connector mode wrote a cost entry");
     assert.equal(existsSync(join(W.research, BATCH, "ledger.jsonl")), false, "a dry crawl wrote a cost entry into its batch");
   } finally { W.cleanup(); }
 });

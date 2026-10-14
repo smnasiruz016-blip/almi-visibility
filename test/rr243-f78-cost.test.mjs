@@ -19,7 +19,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -192,11 +192,15 @@ test("C9-1 · REAL declarations: each tenant's own ledger ALLOWED, another tenan
 
 test("C9-2 · REAL PATH: a run for a tenant with no declared cost ledger is refused BEFORE any request; nothing is written anywhere", () => {
   const W = declaredWorld({ secondTenantOrigins: ["https://fixture-world.invalid"], secondTenantLedger: false });
+  /* RR-263: a real client's own ledger is copied into every world from the data root — "nothing written" is that the directory's contents do not change */
+  const dir = join(W.root, "tenancy", TENANT_LEDGER_DIR);
+  const ledgers = () => (existsSync(dir) ? readdirSync(dir).sort().map((f) => `${f}:${createHash("sha256").update(readFileSync(join(dir, f))).digest("hex")}`) : []);
+  const before = ledgers();
   try {
     const r = childRun(W, "complete", { tenant: SECOND_FIXTURE_TENANT });
     assert.equal(r.status, 3, r.out);
     assert.deepEqual([r.standIn, r.net], [-1, 0], "the refused run made a request or reached its connector");
-    assert.equal(existsSync(join(W.root, "tenancy", TENANT_LEDGER_DIR)), false, "a ledger was written for a refused run");
+    assert.deepEqual(ledgers(), before, "a ledger was written for a refused run");
   } finally { W.cleanup(); }
 });
 

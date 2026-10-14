@@ -72,9 +72,44 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
     credentialName,
     origins: origins ? Object.freeze([...origins]) : null,
     admits: (url) => origins === null || origins.has(originOf(url)),
-    /* ONE call site for the global fetch (F77's egress census counts it) */
-    fetch: (url, init) => (origins === null || origins.has(originOf(url)) ? globalThis.fetch(url, init) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR"))),
+    /* ONE call site for the global fetch (F77's egress census counts it) — and it is reached only through the paced release (RR-265) */
+    fetch: (url, init) => (origins === null || origins.has(originOf(url)) ? pacedRelease(url, declaredGapOf(l.connector)).then(() => globalThis.fetch(url, init)) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR"))),
   });
+}
+
+/* 🔴 RR-265 · THE ONE PACED PATH (owner decision RR-265 item 4: "make it impossible in code"). Every request an opened connector makes waits
+ * here until the per-host gap has passed since the last request this process released to that host: 2 s at the least (the engine's floor),
+ * longer where the connector's own declaration names a longer gap (`pace.minGapMs`). Requests to one host are released one at a time, in
+ * the order asked, on the monotonic clock. A host on this machine is not outbound and is not paced. Every release is counted, and every wait
+ * is recorded (counts only — no host, no address). Reaching the network any other way is a BYPASS in tools/root-connector-census.mjs. */
+export const PACE_FLOOR_MS = 2000;
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const releases = new Map();
+const paceCounts = { released: 0, waited: 0, waitedMs: 0 };
+/** What the paced path did in this process: requests released, how many waited, and for how long in all (ms). */
+export const pacingRecord = () => Object.freeze({ ...paceCounts });
+/** The gap a connector's declaration asks for, or 0 (the floor then decides). */
+export const declaredGapOf = (connector) => (Number.isFinite(Number(connector?.pace?.minGapMs)) ? Number(connector.pace.minGapMs) : 0);
+/**
+ * Release one request to the host of `url` once the gap since that host's last release has passed. Resolves with the wait (ms).
+ * `now`, `sleep`, `hosts` and `counts` exist for the firing control's fake clock; production uses the defaults.
+ */
+export function pacedRelease(url, gapMs = 0, { now = () => performance.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), hosts = releases, counts = paceCounts } = {}) {
+  let host;
+  try { host = new URL(String(url)).hostname; } catch { return Promise.reject(new ConnectorRefused("NOT_A_URL")); }
+  if (LOOPBACK.has(host)) return Promise.resolve(0);
+  const gap = Math.max(PACE_FLOOR_MS, Number.isFinite(gapMs) ? gapMs : 0);
+  let h = hosts.get(host);
+  if (!h) { h = { at: -Infinity, chain: Promise.resolve() }; hosts.set(host, h); }
+  const turn = h.chain.then(async () => {
+    const wait = Math.max(0, h.at + gap - now());
+    if (wait > 0) { counts.waited += 1; counts.waitedMs += wait; await sleep(wait); }
+    h.at = now();
+    counts.released += 1;
+    return wait;
+  });
+  h.chain = turn.catch(() => {});
+  return turn;
 }
 
 /** The origin of a URL, or null when it is not one. */

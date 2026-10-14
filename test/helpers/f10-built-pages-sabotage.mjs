@@ -20,7 +20,9 @@ import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const M = "src/page/built-page-needs.mjs", CFG = "config/page/built-page-needs.mjs", BIN = "bin/built-page-needs.mjs", BOARD = "src/fboard/board.mjs", ADP = "src/evidence/evidence-state-adapters.mjs", SD = "src/page/stored-page-decisions.mjs", BLD = "bin/build-joined-pages.mjs";
-const T = ["test/f10-built-pages.test.mjs"];
+/* RR-265: the page builder's own firing controls live in the joined-pages test file */
+const T = ["test/f10-built-pages.test.mjs", "test/rr253-joined-pages.test.mjs"];
+const JP = "src/page/joined-page.mjs";
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -43,6 +45,10 @@ const SABOTAGES = [
   ["B14", "ONE RULE a second rule is back in the page builder: it reads a same-need judgement at build time", BLD, "const resolved = proposedAfterDecisions({ pages: proposed.pages, decisions: decided });", "const resolved = proposedAfterDecisions({ pages: proposed.pages.filter((p) => !(proposed.sameNeed ?? []).length || p), decisions: decided });", ONE],
   /* RR-264: the two guards of the round — a need record stored on an earlier day is the same record only when every other field matches; a title plan that names no stored phrase stops the builder before it writes */
   ["B15", "RR-264 a need record changed in a field other than its day is read as the stored record", M, "const content = (r) => JSON.stringify({ ...r, recorded_at: null });", "const content = (r) => JSON.stringify({ measurement_key: r.measurement_key });", "NEED RECORDS · FIRING CONTROL (RR-264)"],
+  /* RR-265: to the point, and the general view */
+  ["B17", "RR-265 a declared filler phrase in an answer is not seen", JP, "filler.filter((p) => t.toLowerCase().includes(p))", "filler.filter(() => false)", "TO THE POINT · FIRING CONTROL (RR-265)"],
+  ["B18", "RR-265 a general view is shown without its label", JP, "...(it.generalView ? [`<p class=\"general-view\" data-answer-kind=\"${ANSWER_KIND.GENERAL_VIEW}\"><strong>${STRUCTURE.generalView}:</strong> ${esc(it.generalView.text)} <span", "...(it.generalView ? [`<p class=\"general-view\" data-answer-kind=\"${ANSWER_KIND.GENERAL_VIEW}\">${esc(it.generalView.text)} <span", "GENERAL VIEW · FIRING CONTROL (RR-265)"],
+  ["B19", "RR-265 an answer that is not to the point does not stop the builder", BLD, "if (pointless.length) {", "if (false) {", "TO THE POINT · THE BUILDER REFUSES (RR-265)"],
   ["B16", "RR-264 a title plan that names no stored phrase does not stop the builder", BLD, "if (planned.includes(null)) {", "if (false) {", "TITLE PLAN · FIRING CONTROL (RR-264)"],
   ["T01", "C3 a page with no question-and-answer section, or with two, is not counted as a finding", M, "    if (section !== SECTION.PRESENT) faults.push(Object.freeze({ code: `SECTION_${section.replace(/ /g, \"_\")}`, pageId: p.pageId }));\n", "", C3],
   ["T02", "C3 a page with two sections reads as one", M, ": n > 1 ? SECTION.MORE : SECTION.ABSENT;", ": n > 1 ? SECTION.PRESENT : SECTION.ABSENT;", C3],

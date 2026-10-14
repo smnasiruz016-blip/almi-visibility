@@ -58,7 +58,19 @@ export const TIER_WORDS = Object.freeze({ OBSERVED: "OBSERVED — seen on an ope
 /** Law 7: words of the record that must never be visible. Matched as whole words, case-sensitive where they are record codes. */
 export const RECORD_LABELS = /\b(OBSERVED|INFERRED|RESEARCH-DERIVED|RESPONSIBLE BODY|SECONDARY|SELF-SOURCED|UNKNOWN|UNVERIFIED|NOT MEASURED|PASS|FAIL)\b|self-sourced|not independently verified|owner-approved/;
 /** The page's own structural words. They are declared here, not composed: a section needs a name, and none of them states a fact. */
-export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked" });
+export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked", generalView: "General view — not an official fact" });
+/* RR-265 (owner decision RR-265 item 3): a question no official source answers may carry ONE general-view sentence — after at least two
+ * sourced sentences (that no official body ranks the one thing over the other, and the real differences, each from the owners' own pages),
+ * visibly labelled, never in the FAQ structured data, counted apart from sourced answers. It never attributes a view to people. */
+export const ANSWER_KIND = Object.freeze({ SOURCED: "SOURCED", GENERAL_VIEW: "GENERAL_VIEW" });
+export const GENERAL_VIEW_MIN_SOURCED = 2;
+/* RR-265 (owner decision RR-265 item 7, standing): TO THE POINT. Every answer opens with ONE short sentence — the direct answer; every
+ * sourced line is one sentence of at most TO_THE_POINT_MAX_WORDS words; no filler phrase of the client's DECLARED list stands in an answer.
+ * Whether the first sentence answers its question is the research agent's recorded judgement; the engine measures its shape. */
+export const TO_THE_POINT_MAX_WORDS = 30;
+export const sentencesOf = (text) => String(text ?? "").trim().split(/(?<=[.!?])\s+(?=[A-Z(])/).filter(Boolean);
+const wordsIn = (s) => String(s ?? "").trim().split(/\s+/).filter(Boolean).length;
+const PEOPLE_SAY = /\b(people|most|many|everyone|candidates|students|test[- ]takers)\b[^.]{0,30}\b(say|says|said|think|thinks|feel|feels|find|finds|agree|agrees|believe|believes|report|reports)\b/i;
 export const REFUSAL = Object.freeze({
   NOT_APPROVED: "PRODUCT_STATEMENT_IS_NOT_AN_APPROVED_ANSWER",
   NO_SITE: "PRODUCT_DECLARES_NO_OFFICIAL_SITE_TO_LINK",
@@ -284,7 +296,7 @@ export function faqOf(items) {
  *   leadOf         what a need is RECORDED to lead with (LEAD), or null (RR-262)
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, fillerPhrases = [] }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -307,7 +319,10 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       const st = statementsFor(spec.subject);
       /* RR-262: the lead is granted only as recorded, and only when an approved statement is there to lead with */
       const asked = leadOf(spec.subject) ?? null;
-      return Object.freeze({ ...(asked !== null ? { leadAsked: asked, lead: asked === LEAD.PRODUCT && st.shown.length > 0 ? LEAD.PRODUCT : null } : {}), needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
+      /* RR-265: a recorded general view (INFERRED, the client AI's research), kept apart from the sourced claims */
+      const gv = generalViewOf(spec.subject);
+      const generalView = gv && present(gv.text) && present(gv.source) ? Object.freeze({ text: gv.text.trim(), source: gv.source, label: "INFERRED", ref: gv.ref ?? null }) : null;
+      return Object.freeze({ ...(generalView ? { answerKind: ANSWER_KIND.GENERAL_VIEW, generalView } : {}), ...(asked !== null ? { leadAsked: asked, lead: asked === LEAD.PRODUCT && st.shown.length > 0 ? LEAD.PRODUCT : null } : {}), needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
         needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });
@@ -328,8 +343,9 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown });
     const trace = items.flatMap((it) => [...it.claims.map((c) => Object.freeze({ needId: it.needId, claimId: c.claimId, label: c.label, source: c.source, link: c.link, readOn: c.readOn })),
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
-    const checks = joinedChecks({ items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
-    const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp };
+    const checks = joinedChecks({ fillerPhrases, items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
+    const generalViews = items.filter((it) => it.generalView).length;
+    const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp, ...(generalViews ? { generalViews } : {}) };
     pages.push(Object.freeze({ record_type: JOINED_RECORD, /* RR-259: the files a page is served with are part of what it is — the same HTML with another logo file is another draft */
       measurement_key: `${JOINED_RECORD}:${hash(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
@@ -344,7 +360,7 @@ export function faqInPage(html) {
 }
 
 /** The joined page's OWN measurable checks. A check whose input is not recorded is NOT MEASURED; none passes by default. */
-export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [], tables = [], tablesRefused = [], recheck = {}, on = null }) {
+export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [], tables = [], tablesRefused = [], recheck = {}, on = null }) {
   const state = (ok, why) => (ok ? Object.freeze({ state: CHECK.PASS }) : Object.freeze({ state: CHECK.FAIL, why }));
   const claims = items.flatMap((it) => it.claims);
   const recorded = new Set(items.flatMap((it) => it.questions.map((q) => q.wording)));
@@ -437,6 +453,26 @@ export function joinedChecks({ items, html, stamp, title = "", titleTrace = [], 
     b6Technical: Object.freeze({ state: localFailed.length ? CHECK.FAIL : CHECK.PASS, ...(localFailed.length ? { why: localFailed.join("; ") } : {}), measured: Object.freeze(Object.keys(local)),
       notMeasured: Object.freeze(["loads without a login or bot challenge", "indexability of the public address", "sitemap and a clear address", "reachable by links from the client's other pages", "mobile layout and controls, by a person or a device"]) }),
     b7Trust: state(trustFailed.length === 0, trustFailed.join("; ")),
+    /* RR-265: TO THE POINT — the first sentence of every answer is one short sentence; every sourced line is one short sentence; no
+     * declared filler phrase stands in an answer (each one is named) */
+    toThePoint: (() => {
+      const shortOne = (t) => { const s = sentencesOf(t); return s.length === 1 && wordsIn(s[0]) <= TO_THE_POINT_MAX_WORDS; };
+      const opening = (it) => (it.lead === LEAD.PRODUCT ? it.statements[0]?.text : it.claims.find((c) => present(c.text))?.text);
+      const firstBad = items.filter((it) => !shortOne(opening(it) ?? "")).map((it) => it.needKey);
+      const lineBad = items.flatMap((it) => it.claims.filter((c) => present(c.text) && !shortOne(c.text)).map((c) => c.claimId));
+      const filler = (Array.isArray(fillerPhrases) ? fillerPhrases : []).filter(present).map((p) => p.trim().toLowerCase());
+      const hits = items.flatMap((it) => [...it.claims.map((c) => c.text), it.generalView?.text].filter(present).flatMap((t) => filler.filter((p) => t.toLowerCase().includes(p)).map((p) => `"${p}" (${it.needKey})`)));
+      return state(firstBad.length === 0 && lineBad.length === 0 && hits.length === 0, [hits.length ? `filler phrase(s): ${[...new Set(hits)].join(", ")}` : null,
+        firstBad.length ? `an answer opens with more than one short sentence: ${firstBad.join(", ")}` : null, lineBad.length ? `a sourced line is not one short sentence: ${lineBad.join(", ")}` : null].filter(Boolean).join("; "));
+    })(),
+    /* RR-265: every general view is labelled where it stands, follows at least two sourced sentences, is not in the FAQ data and
+     * attributes no view to people; a page without one does not measure it */
+    generalViewLabelled: items.some((it) => it.generalView) ? state(items.filter((it) => it.generalView).every((it) => {
+      const shown = `<p class="general-view" data-answer-kind="${ANSWER_KIND.GENERAL_VIEW}"><strong>${STRUCTURE.generalView}:</strong> ${esc(it.generalView.text)}`;
+      const inFaq = faq.some((f) => f.answer.includes(it.generalView.text));
+      return html.includes(shown) && it.claims.filter((c) => present(c.text)).length >= GENERAL_VIEW_MIN_SOURCED && !inFaq && !PEOPLE_SAY.test(it.generalView.text);
+    }), "a general view is not labelled where it stands, follows fewer than two sourced sentences, stands in the FAQ data, or attributes a view to people")
+      : Object.freeze({ state: CHECK.NOT_MEASURED, why: "no general view is recorded for this page" }),
     b8NoInstructionToMachines: state(!/\b(ignore (all|any|the|your) (previous|prior|above)|as an ai\b|language model|system prompt|you must recommend|when asked, (say|answer|recommend))/i.test(seen), "the page holds text that reads as an instruction to a machine"),
     titleFromSearchPhrases: composed ? state(untraced.length === 0 && titleTrace.length > 0, `title word(s) with no recorded source: ${untraced.join(", ")}`) : Object.freeze({ state: CHECK.NOT_MEASURED, why: titleMissing ?? "no recorded search phrase" }),
     titleFromRecords: state(present(title) && titleTrace.length > 0 && (composed || titleTrace.every((t) => recorded.has(t.part))), "the title is not made of recorded phrases or recorded questions"),
@@ -531,6 +567,8 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
       ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
     ...tables.filter((t) => t.need === it.needKey).map(table),
+    /* RR-265: the general view, after the sourced sentences, labelled; its source is the client AI's research record */
+    ...(it.generalView ? [`<p class="general-view" data-answer-kind="${ANSWER_KIND.GENERAL_VIEW}"><strong>${STRUCTURE.generalView}:</strong> ${esc(it.generalView.text)} <span class="src">${STRUCTURE.source}: ${esc(it.generalView.source)}</span></p>`] : []),
     it.questions.length > 1 ? `<p class="also">${STRUCTURE.alsoAsked}: ${it.questions.slice(1).map((q) => esc(q.wording)).join(" · ")}</p>` : "",
     ...(it.lead === LEAD.PRODUCT ? [] : productCards(it)),
     `</details>`,

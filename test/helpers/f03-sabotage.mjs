@@ -134,6 +134,13 @@ export const F03_SABOTAGES = [
     from: `    try { bytes = readFileSync(file); doc = JSON.parse(bytes.toString("utf8")); } catch { return unknown("REGISTRY_UNREADABLE", root.id); }`,
     to: `    try { bytes = Buffer.concat([readFileSync(file), Buffer.from(" ")]); doc = JSON.parse(bytes.toString("utf8")); } catch { return unknown("REGISTRY_UNREADABLE", root.id); }`,
     expect: /registry read differs from its committed form/ },
+  /* RR-265 · the one paced path (owner decision RR-265 item 4) */
+  { id: "F3-S19", what: "an opened connector's fetch reaches the network without the paced release", test: T, named: "F03 · C10b · PACED PATH · THE CONNECTOR",
+    edits: [{ file: CONN, from: "pacedRelease(url, declaredGapOf(l.connector)).then(() => globalThis.fetch(url, init))", to: "globalThis.fetch(url, init)" }],
+    expect: /the connector's fetch bypassed the paced release/ },
+  { id: "F3-S20", what: "the paced release lets a second request to one host through inside the gap", test: T, named: "F03 · C10a · PACED PATH · FIRING CONTROL",
+    edits: [{ file: CONN, from: "const wait = Math.max(0, h.at + gap - now());", to: "const wait = 0;" }],
+    expect: /the second request to one host was released before the gap/ },
 ];
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop())) {

@@ -492,7 +492,11 @@ test("REAL · C3 C4 C6 · the declared product's built, unpublished pages agains
   assert.ok(w.run.decisions.every((d) => d.label === "INFERRED" && d.reason && evidenceStateOf(d).state === "INFERRED"));
   const row = rowResult({ sections: w.sections, run: w.run });
   const stored = new Map(rowsIn(realDir(), "built-page-needs.jsonl").map((x) => [x.measurement_key, x]));
-  const kept = w.run.decisions.every((d) => JSON.stringify(stored.get(d.measurement_key)) === JSON.stringify(d));
+  /* RR-267: a decision already held from an earlier day is the stored decision — compared undated, as the need records are (RR-264) */
+  const undated = (x) => (x ? JSON.stringify({ ...x, recorded_at: null }) : null);
+  const kept = w.run.decisions.every((d) => undated(stored.get(d.measurement_key)) === undated(d));
+  const d0 = w.run.decisions[0];
+  assert.deepEqual([undated({ ...d0, recorded_at: "1999-01-01T00:00:00Z" }) === undated(d0), undated({ ...d0, decision: "SAME NEED" }) === undated(d0), undated({ ...d0, reason: null }) === undated(d0)], [true, false, false], "the undated comparison ignores more than the day");
   const board = DECLARED.F10.state;
   console.log(`  REAL (count-only; the declared product's built pages against its stored need records): ${JSON.stringify({ pages: w.pages.length, needRecords: w.N.records.length, sections: w.sections.counts, ...c, result: row.result, decisionsStored: kept, board })}`);
   if (board === "VERIFIED-PASS") assert.deepEqual([row.result, kept], [VERDICTS.PROVED, true], "F10 is VERIFIED-PASS while its real result is not PROVED, or its decisions are not stored");

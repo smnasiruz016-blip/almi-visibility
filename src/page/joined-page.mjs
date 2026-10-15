@@ -123,7 +123,10 @@ export function needsToRestate({ pages = [], stored = [], keyToNeed = new Map(),
   const out = [];
   for (const p of pages) for (const n of p.needs) {
     const needId = keyToNeed.get(n.key);
-    if (!needId || !Array.isArray(n.answer?.claims) || n.answer.claims.length === 0) continue;
+    if (!needId || !Array.isArray(n.answer?.claims)) continue;
+    /* RR-268 C: a draft with no claims restates only a need whose latest stored record still holds claims — a need REOPENED in its draft
+     * (its facts stayed REJECTED) must not keep showing the stored answer; a need never answered is left alone */
+    if (n.answer.claims.length === 0 && (latest.get(needId)?.answer?.claims ?? []).length === 0) continue;
     const answer = judge(n.answer);
     if (JSON.stringify(latest.get(needId)?.answer ?? null) === JSON.stringify(answer)) continue;
     out.push(Object.freeze({ record_type: recordType, measurement_key: `${recordType}:${hash([needId, answer, on, "restated"])}`, recorded_at: `${on}T00:00:00Z`, subject, needId, combination: Object.freeze({ ...p.combination }), answer, sections: Object.freeze([]),

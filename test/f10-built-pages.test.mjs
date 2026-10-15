@@ -603,6 +603,28 @@ test("TO THE POINT · THE BUILDER REFUSES (RR-265): over a scratch copy, through
   assert.equal(existsSync(W.root), false, "the scratch copy was not removed");
 });
 
+test("CHECKED, NOT FOUND · THE BUILDER REFUSES (RR-269): over a scratch copy, through the builder's own entry point — a filed checked-not-found record that carries a quotation refuses the run, named, before anything is written", () => {
+  const real = realDir();
+  const world = realWorld(real);
+  assert.ok(world.pages.length > 0, "EMPTY real population");
+  const P = world.pages[0];
+  const subject = subjectOf(real);
+  const productId = String(lookupSubject(rootIndexFor(process.env), subject).entry?.members?.find((m) => m.resourceKind === "FACT_REGISTRY")?.resourceRef ?? "").split(":").pop().split("/")[0];
+  const x = P.record.exception.record, on = P.record.recorded_at.slice(0, 10);
+  const W = declaredWorld();
+  const dir = join(W.root, "research", BATCH);
+  const STORES = ["joined-pages.jsonl", "planning.jsonl"];
+  try {
+    const before = STORES.map((f) => sha(readFileSync(join(dir, f))));
+    writeFileSync(join(dir, "checked-not-found.json"), JSON.stringify([{ id: "cnf-quoted", needs: [P.record.itemList[0].needKey], line: "Nothing of the kind was found on the official pages checked.", checked: [{ url: "https://example.org/", name: "An official page" }], checkedOn: on, quotation: "an absence is never quoted" }]));
+    const r = spawnSync(process.execPath, ["bin/build-joined-pages.mjs", ...W.argv([`--subject=${subject}`, `--product=${productId}`, `--research-batch=${BATCH}`, `--on=${on}`, `--test-exception=${x.repo}:${x.path}@${x.commit}`, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });
+    assert.equal(r.status, 3, r.stdout + r.stderr);
+    assert.ok(r.stderr.includes("CHECKED_NOT_FOUND_RECORD_REFUSED: cnf-quoted AN_ABSENCE_CARRIES_NO_QUOTATION"), `the refused record was not named: ${r.stderr}`);
+    assert.deepEqual(STORES.map((f) => sha(readFileSync(join(dir, f)))), before, "a store was written although a filed record was refused");
+  } finally { W.cleanup(); }
+  assert.equal(existsSync(W.root), false, "the scratch copy was not removed");
+});
+
 test("TITLE PLAN · FIRING CONTROL (RR-264): the builder's own entry point, over a scratch copy — a title plan that names no phrase stored in the batch refuses the run before anything is written; the plans as recorded build, each title part traced to its stored phrase", () => {
   const real = realDir();
   const world = realWorld(real);

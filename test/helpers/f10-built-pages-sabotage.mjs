@@ -22,7 +22,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const M = "src/page/built-page-needs.mjs", CFG = "config/page/built-page-needs.mjs", BIN = "bin/built-page-needs.mjs", BOARD = "src/fboard/board.mjs", ADP = "src/evidence/evidence-state-adapters.mjs", SD = "src/page/stored-page-decisions.mjs", BLD = "bin/build-joined-pages.mjs";
 /* RR-265: the page builder's own firing controls live in the joined-pages test file */
 const T = ["test/f10-built-pages.test.mjs", "test/rr253-joined-pages.test.mjs"];
-const JP = "src/page/joined-page.mjs";
+const JP = "src/page/joined-page.mjs", CNF = "src/facts/checked-not-found.mjs", CN = "CHECKED, NOT FOUND · FIRING CONTROL (RR-269 §3)";
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
@@ -127,6 +127,12 @@ const SABOTAGES = [
   ["Z05", "A2 an UNANSWERABLE need is counted as answered", JP, "items: items.length, questions:", "items: items.length + unanswerable, questions:", UN],
   /* RR-268 C: a need REOPENED in its draft (its facts stayed REJECTED) must not keep showing its stored answer */
   ["Z06", "C a need reopened in its draft keeps its stored answer", JP, "    if (n.answer.claims.length === 0 && (latest.get(needId)?.answer?.claims ?? []).length === 0) continue;", "    if (n.answer.claims.length === 0) continue;", RS],
+  /* RR-269 §3: an absence is a record of what was checked — never a quoted fact, never in the FAQ data; it is part a of a general view */
+  ["Z07", "RR-269 a checked-not-found record carries a quotation and is admitted", CNF, "  if (r && (\"quotation\" in r || \"quotations\" in r)) reasons.push(", "  if (false) reasons.push(", CN],
+  ["Z08", "RR-269 a checked-not-found line in the FAQ data passes the gate", JP, " && !faq.some((f) => f.answer.includes(r.line)) && !(Array.isArray(inPage)", " && !(Array.isArray(inPage)", CN],
+  ["Z09", "RR-269 a checked-not-found line is shown without the pages it checked", JP, "${r.checked.map((c) => `<a class=\"src\" href=\"${esc(c.url)}\" rel=\"nofollow\">${esc(c.name)}</a>`).join(\", \")}", "", CN],
+  ["Z10", "RR-269 a general view stands without its part a", JP, "return html.includes(shown) && partA && ", "return html.includes(shown) && ", "GENERAL VIEW · FIRING CONTROL (RR-265)"],
+  ["Z11", "RR-269 a refused checked-not-found record does not stop the builder", BLD, "if (cnf.refused.length) {", "if (false) {", "CHECKED, NOT FOUND · THE BUILDER REFUSES (RR-269)"],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

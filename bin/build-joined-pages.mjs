@@ -54,6 +54,7 @@ import { designOf } from "../src/questionnaire/product-questionnaire.mjs";
 import { testException, parseExceptionRecord } from "../src/page/test-exception.mjs";
 import { connectionDrafts, productStatements, joinPages, valueOf, needsToRestate } from "../src/page/joined-page.mjs";
 import { storedDecisions, proposedAfterDecisions, constructionAfterDecisions, withStoredMoves } from "../src/page/stored-page-decisions.mjs";
+import { checkedNotFoundByNeed } from "../src/facts/checked-not-found.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -93,6 +94,10 @@ const storedPhrases = rowsOf("search-phrases.jsonl").filter((r) => r?.record_typ
 const titlePlans = Array.isArray(json("title-plans.json")) ? json("title-plans.json") : [];
 const planned = titlePlans.map((t) => { const r = storedPhrases.find((x) => x.source === t?.source && x.phrase === t?.phrase); return r ? { phraseId: r.phrase_id, page: t.page, text: r.phrase, label: r.label, source: r.source, ...Object.fromEntries(["role", "use", "need", "withYear", "promisesConversionTo"].filter((k) => t[k] !== undefined).map((k) => [k, t[k]])) } : null; });
 if (planned.includes(null)) { console.error(`🔴 REFUSED — TITLE_PLAN_NAMES_NO_STORED_PHRASE: ${planned.filter((p) => p === null).length} title plan(s) name no phrase stored in this batch; nothing written`); process.exit(3); }
+/* RR-269 §3: what was CHECKED and NOT FOUND (an absence is not a fact), by need key — a filed record that breaks its rules refuses the run
+ * before anything is written */
+const cnf = checkedNotFoundByNeed(Array.isArray(json("checked-not-found.json")) ? json("checked-not-found.json") : []);
+if (cnf.refused.length) { console.error(`🔴 REFUSED — CHECKED_NOT_FOUND_RECORD_REFUSED: ${cnf.refused.map((r) => `${r.id ?? "(no id)"} ${r.reasons.join("+")}`).join(" · ")}; nothing written`); process.exit(3); }
 
 console.log(`JOINED TEST PAGES — ${X.stamp} · this subject's product only, from stored records; nothing fetched`);
 console.log(`  exception        ${X.exception.effect} · owner record ${X.exception.record.repo}:${X.exception.record.path}@${X.exception.record.commit.slice(0, 7)} · the declared page specs are set aside with them`);
@@ -175,7 +180,7 @@ const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.
   /* RR-268 A2: a need's recorded UNANSWERABLE disposition (the official source checked and the day), carried as filed — the page gate decides */
   ...(n.unanswerable ? { unanswerable: Object.freeze({ ...n.unanswerable }) } : {}) }))]));
 const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
-  design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, fillerPhrases,
+  design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, checkedNotFoundOf: (needId) => cnf.byNeed.get(needToKey.get(needId)) ?? [], fillerPhrases,
   phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
   statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
@@ -196,6 +201,11 @@ console.log(`  general views    ${views} (GENERAL_VIEW, INFERRED — counted apa
 const pointless = built.filter(({ record: p }) => p.checks.toThePoint?.state === "FAIL").map(({ record: p }) => `${p.value}: ${p.checks.toThePoint.why}`);
 if (pointless.length) { console.error(`🔴 REFUSED — NOT_TO_THE_POINT: ${pointless.join(" | ")}; no page written`); process.exit(3); }
 if (unlabelled.length) { console.error(`🔴 REFUSED — GENERAL_VIEW_NOT_LABELLED: ${unlabelled.length} page(s) hold a general view that breaks its rules; no page written`); process.exit(3); }
+/* RR-269 §3: a checked-not-found line not shown with its checked pages, or found in the FAQ data, fails the build — no page is written */
+const cnfLines = built.reduce((n, { record: p }) => n + p.itemList.reduce((m, it) => m + (it.checkedNotFound?.length ?? 0), 0), 0);
+console.log(`  checked, not found ${cnfLines} line(s) (CHECKED_NOT_FOUND — not facts, never in the FAQ data) on ${built.filter(({ record: p }) => p.checks.checkedNotFoundShown?.state === "PASS").length} page(s)`);
+const cnfBad = built.filter(({ record: p }) => p.checks.checkedNotFoundShown?.state === "FAIL").map(({ record: p }) => p.value);
+if (cnfBad.length) { console.error(`🔴 REFUSED — CHECKED_NOT_FOUND_NOT_SHOWN: ${cnfBad.join(", ")}; no page written`); process.exit(3); }
 const out = built.map(({ record: p }) => ({ ...p, recorded_at: `${ON}T00:00:00Z`, subject: SUBJECT, exception: X.exception }));
 if (out.length) { const g = append(out, join(batchDir, "joined-pages.jsonl"), "APPEND_JOINED_TEST_PAGES"); if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the pages did NOT persist`); process.exit(1); } console.log(`  kept             ${pages.length} page draft(s) in the batch's joined-pages store (${g.outcome}) — ${X.stamp}`); }
 process.exit(pages.length > 0 ? 0 : 2);

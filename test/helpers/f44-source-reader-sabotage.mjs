@@ -17,11 +17,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const PDF = "src/facts/pdf-text.mjs";
 const M = "src/facts/source-reader.mjs", BF = "src/facts/batch-facts.mjs", BIN = "bin/source-facts.mjs", ADP = "src/evidence/evidence-state-adapters.mjs";
 const T = ["test/f44-source-reader.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
+const PDFR = "C7 · PDF READER · FIRING CONTROL (RR-269 §2)", CAP = "CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1)";
 const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
@@ -57,13 +59,26 @@ const SABOTAGES = [
   ["R29", "PP a batch the declared connector does not reach is read", BIN, "if (declared.state !== \"DECLARED\" || !(declared.connector.reaches ?? []).some(", "if (false && !(declared.connector.reaches ?? []).some(", PP],
   ["R30", "PP the rechecks are not stored", BIN, "results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), \"fact-rechecks.jsonl\");", "results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), \"fact-rechecks-elsewhere.jsonl\");", PP],
   /* RR-268 C: the stored-text extraction (--extract), the non-text guard, and the admitted quotation counted for the recheck */
-  ["R31", "C7 a PDF's bytes are kept as a page's text", M, "if (/^\\s*%PDF-/.test(body) || (type !== \"\" && !TEXT_TYPES.test(type))) return blocked(", "if (false) return blocked(", C7],
+  ["R31", "C7 a document that is not text is kept as a page's text", M, "if (type !== \"\" && !TEXT_TYPES.test(type)) return blocked(", "if (false) return blocked(", C7],
   ["R32", "C9/C10 a proposal on another source re-admits the fact", M, "proposal.fact && factLink === proposal.source ? EXTRACTION.RE_ADMITTED", "proposal.fact ? EXTRACTION.RE_ADMITTED", EXT],
   ["R33", "C10 a verdict has no evidence rule", ADP, "  fact_extraction: { inputs:", "  fact_extraction_off: { inputs:", EXT],
   ["R34", "C11 an admitted claim quotation is not counted for the recheck", BF, "if (String(c.quotation ?? \"\").length >= QUOTATION_MIN_CHARS && ", "if (false && ", BFC],
   ["R35", "PP the verdicts are written without --confirm", BIN, "  if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: nothing kept\"); process.exit(0); }", "", PP],
   ["R36", "PP the route's NOT METERED cost entry is not kept", BIN, "const c = RUN_COST.appendOwn(entry);", "const c = { outcome: \"COMMITTED\" };", PP],
   ["R37", "PP a proposals file outside the batch's own name is read", BIN, "(live || !/^fact-proposals-", "(live || false && !/^fact-proposals-", PP],
+  /* RR-269 §1/§2: the PDF reader, the client's own reads, the read list */
+  ["R38", "C7 a PDF is not read by the PDF reader", M, "if (isPdf(bytes) || PDF_TYPE.test(type)) return pdfRead(", "if (false) return pdfRead(", PDFR],
+  ["R39", "C7 a scanned PDF is read as a PDF with text", PDF, "state: /\\S/.test(text) ? PDF_TEXT.TEXT : PDF_TEXT.NO_TEXT, text, pages: pages.length", "state: PDF_TEXT.TEXT, text, pages: pages.length", PDFR],
+  ["R40", "C7 a font's own ToUnicode map is not read", PDF, "      if (cmap?.map.has(code)) return cmap.map.get(code);\n", "", PDFR],
+  ["R41", "C7 a gap between two runs of glyphs is not a space", PDF, "else if (x - last.x > 0.18 * fs && !/\\s$/.test(out.at(-1) ?? \"\") && !/^\\s/.test(ch)) out.push(\" \");", "else if (false) out.push(\" \");", PDFR],
+  ["R42", "C7 an encrypted PDF is read", PDF, "if (/\\/Encrypt\\s/.test(bytes.toString(\"latin1\"))) return", "if (false) return", PDFR],
+  ["R43", "C8 a capture that does not say the client's browser is imported", M, ": !/\\broute:\\s*client browser\\b/i.test(readLine) ? CAPTURE_REFUSE.NOT_CLIENT_BROWSER", ": false ? CAPTURE_REFUSE.NOT_CLIENT_BROWSER", CAP],
+  ["R44", "C8 a capture is kept as a read the engine drove", M, "route: ROUTE.BROWSER, via: VIA.CAPTURE,", "route: ROUTE.BROWSER, via: VIA.ENGINE,", CAP],
+  ["R45", "C10 a fact stands on a file the client says is out of date", M, "  if (read.currency?.state === CURRENCY.OUT_OF_DATE) return", "  if (false) return", CAP],
+  ["R46", "C10 a capture's own read date is lost", M, "readOn: read.via === VIA.CAPTURE || read.via === VIA.CLIENT_FILE ? read.readOn : on,", "readOn: on,", CAP],
+  ["R47", "PP a fact is rechecked against a file the client says is out of date", BIN, " && r.currency?.state !== CURRENCY.OUT_OF_DATE).map((r) => [r.url, r]));", ").map((r) => [r.url, r]));", PP],
+  ["R48", "PP a source outside the read list is read", BIN, "const urls = listed ? [...new Set(listed.sources)].sort() :", "const urls = false ? [] :", PP],
+  ["R49", "PP the imported reads are written without --confirm", BIN, "  if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: no read and no recheck kept\"); process.exit(0); }", "", PP],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

@@ -25,7 +25,7 @@ import { createCostLedger } from "../src/cost/ledger.mjs";
 import { PACE_FLOOR_MS } from "../src/tenancy/connectors.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
-import { declaredWorld } from "./helpers/declared-world.mjs";
+import { declaredWorld, FIXTURE_TENANT } from "./helpers/declared-world.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 
@@ -302,8 +302,10 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     assert.equal(xok.status, 0, xok.stdout + xok.stderr);
     const verdicts = rowsIn(join(b, "fact-extractions.jsonl"));
     assert.deepEqual([verdicts.map((v) => [v.proposalId, v.outcome]), verdicts.every((v) => v.route === "CLIENT_SUBSCRIPTION_SESSION"), egress()], [[["p1", "RE_ADMITTED"], ["p2", "REJECTED"], ["p3", "NEW_FOR_NEED"]], true, 0], "the verdicts are not the engine's, or a request was made");
-    const ledgers = readdirSync(W.root, { recursive: true }).map(String).filter((f) => f.endsWith(".jsonl")).map((f) => rowsIn(join(W.root, f))).flat().filter((e) => e.run_kind === "ai-extraction");
-    assert.deepEqual([ledgers.length, ledgers[0]?.aiRoute, ledgers[0]?.money.amountState, ledgers[0]?.providerCalls.total], [1, { name: "CLIENT_SUBSCRIPTION_SESSION", metered: false }, "ZERO_BY_TARIFF", 0], "the route's NOT METERED cost entry was not kept once");
+    const ledgers = readdirSync(W.root, { recursive: true }).map(String).filter((f) => f.endsWith(".jsonl")).flatMap((f) => rowsIn(join(W.root, f)).filter((e) => e.run_kind === "ai-extraction").map((e) => ({ ...e, file: f })))
+      /* the world is a copy of the declared data root: the real tenant's own ledger travels with it — only this run's tenant is counted */
+      .filter((e) => e.scope?.tenantId === FIXTURE_TENANT);
+    assert.deepEqual([ledgers.length, ledgers[0]?.aiRoute, ledgers[0]?.money.amountState, ledgers[0]?.providerCalls.total], [1, { name: "CLIENT_SUBSCRIPTION_SESSION", metered: false }, "ZERO_BY_TARIFF", 0], `the route's NOT METERED cost entry was not kept once: ${ledgers.map((e) => e.file).join(" | ")}`);
   } finally { W.cleanup(); rmSync(dir, { recursive: true, force: true }); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
 });

@@ -11,14 +11,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync, execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { engineRead, browserRead, readSource, extractFacts, recheckFacts, recheckCounts, readRecord, recheckRecord, robotsOn, quotationIn, isOneSentence, dueOn,
-  ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD } from "../src/facts/source-reader.mjs";
+  ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD, extractionRecord, EXTRACTION, EXTRACTION_RECORD } from "../src/facts/source-reader.mjs";
 import { batchFacts, quotationsOf, QUOTATION_MIN_CHARS } from "../src/facts/batch-facts.mjs";
 import { createPaidProviderGate, createKillSwitch, createFakePaidProvider } from "../src/cost/paid-provider-gate.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
@@ -48,7 +48,7 @@ function network(pages = {}) {
     const p = pages[String(url)];
     if (!p) return new Response("not here", { status: 404 });
     if (p.throws) throw new TypeError(p.throws);
-    const r = new Response(p.body ?? "", { status: p.status ?? 200, headers: { "content-type": "text/html" } });
+    const r = new Response(p.body ?? "", { status: p.status ?? 200, headers: { "content-type": p.type ?? "text/html" } });
     if (p.landed) Object.defineProperty(r, "url", { value: p.landed });
     return r;
   };
@@ -80,6 +80,14 @@ test("C7 · FIRING CONTROL: the engine reads a public page itself — robots fir
   const away = network({ [LANG.url]: { body: LANG.html, landed: "https://parked.invalid/" } });
   assert.equal((await engineRead(LANG.url, { fetchImpl: away.fetchImpl, robots: robotsOn(away.fetchImpl), on: ON })).reason, BLOCK.OFF_HOST);
   await assert.rejects(engineRead(LANG.url, { robots: robotsOn(async () => new Response("", { status: 404 })), on: ON }), /one paced path/, "the engine read without an opened connector's fetch");
+  /* RR-268 C: a document that is not text is never kept as a page's text — B3 stored four PDFs' raw bytes as READ */
+  for (const [body, type] of [[`%PDF-1.5 ${filler("bytes")}`, "text/html"], [LANG.html, "application/pdf"], [LANG.html, "image/png"]]) {
+    const pdf = network({ [LANG.url]: { body, type } });
+    const r = await engineRead(LANG.url, { fetchImpl: pdf.fetchImpl, robots: robotsOn(pdf.fetchImpl), on: ON });
+    assert.deepEqual([r.state, r.reason, r.text], [READ_STATE.BLOCKED, BLOCK.NOT_TEXT, undefined], `${type}: a document that is not text was kept as its text`);
+  }
+  const plain = network({ [LANG.url]: { body: LANG.html, type: "text/plain; charset=utf-8" } });
+  assert.equal((await engineRead(LANG.url, { fetchImpl: plain.fetchImpl, robots: robotsOn(plain.fetchImpl), on: ON })).state, READ_STATE.READ, "CONTROL: a plain-text page must still be read");
   assert.equal(PACE_FLOOR_MS, 2000, "the paced path's floor is not 2 s");
 });
 
@@ -197,6 +205,24 @@ test("C11 · BATCH FACTS · FIRING CONTROL: the facts a batch's pages use are it
   const f = batchFacts({ drafts, findings, registry, intervals: [{ claimId: "c2", recheckDays: 7 }] });
   assert.deepEqual(f.map((x) => [x.factId, x.pages, x.quotations, x.recheckDays]), [["f1", ["a", "b"], ["one is the rule"], 30], ["claim:c2", ["a"], ["two is the rule here"], 7]]);
   assert.deepEqual([QUOTATION_MIN_CHARS, quotationsOf("say \"yes\" or \"a longer span\"")], [8, ["a longer span"]]);
+  /* RR-268 C: a claim carrying the quotation the engine admitted for it adds it to its fact — a short one does not */
+  const quoted = JSON.parse(JSON.stringify(drafts));
+  quoted.pages[0].needs[0].answer.claims[1].quotation = "two is now the rule";
+  quoted.pages[0].needs[0].answer.claims[0].quotation = "one";
+  const q = batchFacts({ drafts: quoted, findings, registry, intervals: [] });
+  assert.deepEqual(q.map((x) => x.quotations), [["one is the rule"], ["two is the rule here", "two is now the rule"]], "an admitted claim quotation was not counted, or a short one was");
+});
+
+test("C9 + C10 · EXTRACTION RECORD · FIRING CONTROL: each proposal's verdict is stored beside the facts — RE_ADMITTED only on the fact's own source, NEW_FOR_NEED on another source, REJECTED with its reason; derived, never an observation", async () => {
+  const n = network(pagesOf(TOWN));
+  const read = await engineRead(TOWN.url, { fetchImpl: n.fetchImpl, robots: robotsOn(n.fetchImpl), on: ON });
+  const judge = async (p) => extractFacts({ read, propose: async () => [p] });
+  const p = (over = {}) => ({ proposalId: "p1", fact: "glass", source: TOWN.url, sentence: "Glass bottles go in the green bin.", quotation: "Glass bottles go in the green bin", ...over });
+  const rec = async (prop, factLink) => extractionRecord({ proposal: prop, result: await judge(prop), factLink, route: "CLIENT_AI", tenantId: "t", on: ON, run: "r" });
+  const same = await rec(p(), TOWN.url), other = await rec(p({ fact: null, need: "n-bins" }), null), moved = await rec(p(), "https://town.invalid/old-page"), bad = await rec(p({ quotation: "Glass bottles go in the blue bin" }), TOWN.url);
+  assert.deepEqual([same.outcome, other.outcome, moved.outcome, bad.outcome, bad.reason], [EXTRACTION.RE_ADMITTED, EXTRACTION.NEW_FOR_NEED, EXTRACTION.NEW_FOR_NEED, EXTRACTION.REJECTED, REJECT.NOT_IN_TEXT], "a proposal on another source re-admitted the fact, or a changed quotation was admitted");
+  assert.deepEqual([same.record_type, same.pageSha256, same.route, evidenceStateOf(same).state, evidenceStateOf(bad).state], [EXTRACTION_RECORD, read.sha256, "CLIENT_AI", "INFERRED", "INFERRED"]);
+  assert.notEqual(same.extraction_id, bad.extraction_id);
 });
 
 /* ================= C12 · NEUTRAL ================= */
@@ -260,6 +286,24 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     const reads = rowsIn(join(b, "source-reads.jsonl")), checks = rowsIn(join(b, "fact-rechecks.jsonl"));
     assert.deepEqual([reads.length, reads[0].state, reads[0].sha256 === createHash("sha256").update(reads[0].text).digest("hex"), reads[0].readOn, checks.map((c) => [c.factId, c.state]).sort()], [1, READ_STATE.READ, true, ON, [["claim:c2", RECHECK.REJECTED], ["f1", RECHECK.CURRENT]]]);
     assert.equal(JSON.parse(readFileSync(join(b, "facts-registry-2026-09-01.json"), "utf8")).facts[0].readOn, "2026-09-01", "a stored fact was rewritten");
+    /* RR-268 C · --extract: the filed proposals judged on the STORED text — no connector, no request; kept only with --confirm, with the
+     * route's NOT METERED cost entry */
+    const url = SUBJECTS[0][2].url;
+    writeFileSync(join(b, "fact-proposals-2026-09-10.json"), JSON.stringify({ route: "CLIENT_SUBSCRIPTION_SESSION", proposals: [
+      { proposalId: "p1", fact: "claim:c2", source: url, sentence: "A score of 350 is a grade B.", quotation: "a score of 350 is a grade B" },
+      { proposalId: "p2", fact: "claim:c2", source: url, sentence: "A score of 300 is a grade B.", quotation: "a score of 300 is a grade B" },
+      { proposalId: "p3", fact: null, need: "n1", source: url, sentence: "Results arrive within ten working days.", quotation: "Results arrive within \"ten\" working days." },
+    ] }));
+    const ext = (...extra) => run("fixture-tests", "fixture-test-facts", "refuse", "--extract=fact-proposals-2026-09-10.json", ...extra);
+    const xdry = ext();
+    assert.deepEqual([xdry.status, /proposals {8}3: NEW_FOR_NEED 1 · REJECTED 1 · RE_ADMITTED 1 · rejected by reason: QUOTATION_NOT_WORD_FOR_WORD_IN_THE_STORED_PAGE_TEXT 1/.test(xdry.stdout), /RE-ADMITTED 1 · STILL REJECTED 0/.test(xdry.stdout), /NOT WRITTEN/.test(xdry.stdout), existsSync(join(b, "fact-extractions.jsonl")), egress()], [0, true, true, true, false, 0], xdry.stdout + xdry.stderr);
+    assert.equal(run("fixture-tests", "fixture-test-facts", "refuse", "--extract=../elsewhere.json", "--confirm").status, 2, "a proposals file outside the batch's own name was read");
+    const xok = ext("--confirm");
+    assert.equal(xok.status, 0, xok.stdout + xok.stderr);
+    const verdicts = rowsIn(join(b, "fact-extractions.jsonl"));
+    assert.deepEqual([verdicts.map((v) => [v.proposalId, v.outcome]), verdicts.every((v) => v.route === "CLIENT_SUBSCRIPTION_SESSION"), egress()], [[["p1", "RE_ADMITTED"], ["p2", "REJECTED"], ["p3", "NEW_FOR_NEED"]], true, 0], "the verdicts are not the engine's, or a request was made");
+    const ledgers = readdirSync(W.root, { recursive: true }).map(String).filter((f) => f.endsWith(".jsonl")).map((f) => rowsIn(join(W.root, f))).flat().filter((e) => e.run_kind === "ai-extraction");
+    assert.deepEqual([ledgers.length, ledgers[0]?.aiRoute, ledgers[0]?.money.amountState, ledgers[0]?.providerCalls.total], [1, { name: "CLIENT_SUBSCRIPTION_SESSION", metered: false }, "ZERO_BY_TARIFF", 0], "the route's NOT METERED cost entry was not kept once");
   } finally { W.cleanup(); rmSync(dir, { recursive: true, force: true }); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
 });

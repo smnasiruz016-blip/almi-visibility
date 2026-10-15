@@ -8,6 +8,7 @@
  * Its pages are every page whose claims it supports. Its recorded word-for-word quotations are the spans its record puts between straight
  * double quotation marks (the registry's `whatSupportsIt`, else the finding's) — a span shorter than QUOTATION_MIN_CHARS is not one.
  * A record that quotes nothing has no quotation, and the recheck can only REJECT it, named. Nothing here is rewritten.
+ * RR-268 C: a claim that carries the quotation the engine ADMITTED for it (claim.quotation, C10 on the stored page text) adds it to its fact.
  */
 export const QUOTATION_MIN_CHARS = 8;
 const QUOTED = new RegExp(`"([^"]{${QUOTATION_MIN_CHARS},})"`, "g");
@@ -28,6 +29,7 @@ export function batchFacts({ drafts, findings = [], registry = { facts: [] }, in
       if (!out.has(id)) out.set(id, reg
         ? { factId: reg.factId, link: reg.link, quotations: quotationsOf(reg.whatSupportsIt), readOn: reg.readOn ?? null, recheckDays: Number.isInteger(reg.recheckDays) ? reg.recheckDays : recheckOf.get(c.claimId) ?? null, pages: new Set(), claims: new Set() }
         : { factId: `claim:${c.claimId}`, link: c.source?.link ?? null, quotations: quotationsOf(f?.whatSupportsIt), readOn: c.source?.readOn ?? null, recheckDays: recheckOf.get(c.claimId) ?? null, pages: new Set(), claims: new Set() });
+      if (String(c.quotation ?? "").length >= QUOTATION_MIN_CHARS && !out.get(id).quotations.includes(c.quotation)) out.get(id).quotations.push(c.quotation);
       out.get(id).pages.add(page);
       out.get(id).claims.add(c.claimId);
     }

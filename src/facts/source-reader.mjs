@@ -37,6 +37,7 @@ export const BLOCK = Object.freeze({
   CAPTCHA: "CAPTCHA",
   OFF_HOST: "REDIRECTED_OFF_HOST",
   NOT_FOUND: "NOT_FOUND",
+  NOT_TEXT: "NOT_A_TEXT_DOCUMENT",
   FAILED: "READ_FAILED",
   NO_ROUTE: "NO_BROWSER_ROUTE_CONNECTED",
   ROUTE_STOPPED: "BROWSER_ROUTE_STOPPED",
@@ -63,7 +64,8 @@ const REFUSAL_STATUS = new Set([401, 403, 407, 429, 503]);
 const CHALLENGE_MARKS = /(cf-challenge|challenge-platform|just a moment\.\.\.|attention required|verify you are (a )?human|are you a robot|enable javascript and cookies to continue)/i;
 const CAPTCHA_MARKS = /(captcha|hcaptcha|recaptcha|turnstile)/i;
 const LOGIN_MARKS = /<input[^>]+type=["']?password/i;
-const LOGIN_PATH = /\/(log-?in|sign-?in|auth|account\/login)(\/|\?|$)/i;
+const TEXT_TYPES = /^\s*(text\/html|text\/plain|application\/xhtml\+xml)\b/i;
+const LOGIN_PATH =/\/(log-?in|sign-?in|auth|account\/login)(\/|\?|$)/i;
 
 export const sha256 = (s) => createHash("sha256").update(String(s)).digest("hex");
 export const hostOf = (url) => { try { return new URL(String(url)).host; } catch { return null; } };
@@ -100,6 +102,9 @@ export async function engineRead(url, { fetchImpl, robots, on, timeoutMs = 20_00
   if (REFUSAL_STATUS.has(res.status)) return blocked(url, ROUTE.ENGINE, BLOCK.REFUSED, `HTTP ${res.status}`, { status: res.status });
   if (res.status === 404 || res.status === 410) return blocked(url, ROUTE.ENGINE, BLOCK.NOT_FOUND, `HTTP ${res.status}`, { status: res.status });
   if (!res.ok) return blocked(url, ROUTE.ENGINE, BLOCK.FAILED, `HTTP ${res.status}`, { status: res.status });
+  /* RR-268 C: a document that is not text (a PDF's bytes, an image) is never kept as a page's text — B3 stored four PDFs' raw bytes as READ */
+  const type = String(res.headers?.get?.("content-type") ?? "");
+  if (/^\s*%PDF-/.test(body) || (type !== "" && !TEXT_TYPES.test(type))) return blocked(url, ROUTE.ENGINE, BLOCK.NOT_TEXT, `the answer is not a text document (${type || "a PDF's bytes"}) — nothing is kept as its text`);
   if (LOGIN_PATH.test(new URL(landed).pathname) || LOGIN_MARKS.test(body)) return blocked(url, ROUTE.ENGINE, BLOCK.LOGIN_WALL, "the page asks for a login — not read past");
   if (CHALLENGE_MARKS.test(body)) return blocked(url, ROUTE.ENGINE, BLOCK.CHALLENGE, "the page answered with a bot challenge");
   const text = normaliseText(body);
@@ -208,6 +213,22 @@ export function readRecord({ read, tenantId, on, run }) {
 export function recheckRecord({ result, tenantId, on, run }) {
   const id = sha256(JSON.stringify([result.factId, result.state, result.pageSha256 ?? result.reason ?? null, on])).slice(0, 24);
   return Object.freeze({ record_type: FACT_RECHECK_RECORD, recheck_id: id, measurement_key: `${FACT_RECHECK_RECORD}:${id}`, tenantId, ...result, recorded_at: `${on}T00:00:00Z`, run });
+}
+
+export const EXTRACTION_RECORD = "fact_extraction";
+/** What an admitted proposal is to the fact it names: the same fact's source re-admitted, or a new fact for a need (another source). */
+export const EXTRACTION = Object.freeze({ RE_ADMITTED: "RE_ADMITTED", NEW_FOR_NEED: "NEW_FOR_NEED", REJECTED: "REJECTED" });
+/**
+ * C9 + C10 · the stored record of one proposal and the engine's verdict on it (extractFacts) — beside the facts, never in place of one. `route`
+ * names the AI that proposed it (the client's own); `factLink` is the source of the fact the proposal names (null for a new fact).
+ */
+export function extractionRecord({ proposal, result, factLink, route, tenantId, on, run }) {
+  const a = result.admitted[0] ?? null, r = result.rejected[0] ?? null;
+  const outcome = !a ? EXTRACTION.REJECTED : proposal.fact && factLink === proposal.source ? EXTRACTION.RE_ADMITTED : EXTRACTION.NEW_FOR_NEED;
+  const id = sha256(JSON.stringify([proposal.proposalId, proposal.fact ?? null, proposal.source, proposal.sentence, proposal.quotation, on])).slice(0, 24);
+  return Object.freeze({ record_type: EXTRACTION_RECORD, extraction_id: id, measurement_key: `${EXTRACTION_RECORD}:${id}`, tenantId, proposalId: proposal.proposalId, fact: proposal.fact ?? null, need: proposal.need ?? null,
+    source: proposal.source, host: hostOf(proposal.source), sentence: proposal.sentence ?? null, quotation: proposal.quotation ?? null, route, outcome,
+    ...(a ? { pageSha256: a.pageSha256, readOnPage: a.readOn } : { reason: r?.reason ?? (result.state === "NOT_READ" ? REJECT.NO_PAGE_TEXT : REJECT.NO_QUOTATION) }), recorded_at: `${on}T00:00:00Z`, run });
 }
 
 /** Counts per state and per source host — count-only, as the row's output is. */

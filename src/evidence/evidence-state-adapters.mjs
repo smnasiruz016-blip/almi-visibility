@@ -94,6 +94,9 @@ const DERIVED_TYPES = Object.freeze({
   /* RR-268 · F44 (Amendment 2, C11): a fact's recheck is DERIVED from the stored read of its source (by the read's text hash), or — when no
    * read decided it (a fact with no quotation, a blocked source) — from the fact it names; the engine's own check, never an observation. */
   fact_recheck: { inputs: (r) => (present(r.pageSha256) ? [`source_page_read:${String(r.pageSha256).slice(0, 16)}`] : present(r.factId) ? [`fact:${h16(r.factId)}`] : []), at: (r) => r.recorded_at, method: "recorded-quotation-rechecked-against-the-stored-page-text" },
+  /* RR-268 C · F44 (Amendment 2, C9 + C10): a proposal's verdict is DERIVED from the stored read of its source (by the read's text hash) when it
+   * was admitted, else from the fact or need it names; the engine's own word-for-word check, never an observation. */
+  fact_extraction: { inputs: (r) => (present(r.pageSha256) ? [`source_page_read:${String(r.pageSha256).slice(0, 16)}`] : present(r.fact) ? [`fact:${h16(r.fact)}`] : present(r.need) ? [`need:${h16(r.need)}`] : []), at: (r) => r.recorded_at, method: "proposed-quotation-checked-word-for-word-against-the-stored-page-text" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
   same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our

@@ -22,7 +22,7 @@ const T = ["test/f44-source-reader.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
-const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11";
+const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -56,6 +56,14 @@ const SABOTAGES = [
   ["R28", "C12 the entry point reads outside the declared connector", BIN, "reads.set(url, await readSource(url, { fetchImpl: CONNECTOR.fetch,", "reads.set(url, await readSource(url, { fetchImpl: globalThis.fetch,", C12],
   ["R29", "PP a batch the declared connector does not reach is read", BIN, "if (declared.state !== \"DECLARED\" || !(declared.connector.reaches ?? []).some(", "if (false && !(declared.connector.reaches ?? []).some(", PP],
   ["R30", "PP the rechecks are not stored", BIN, "results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), \"fact-rechecks.jsonl\");", "results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), \"fact-rechecks-elsewhere.jsonl\");", PP],
+  /* RR-268 C: the stored-text extraction (--extract), the non-text guard, and the admitted quotation counted for the recheck */
+  ["R31", "C7 a PDF's bytes are kept as a page's text", M, "if (/^\\s*%PDF-/.test(body) || (type !== \"\" && !TEXT_TYPES.test(type))) return blocked(", "if (false) return blocked(", C7],
+  ["R32", "C9/C10 a proposal on another source re-admits the fact", M, "proposal.fact && factLink === proposal.source ? EXTRACTION.RE_ADMITTED", "proposal.fact ? EXTRACTION.RE_ADMITTED", EXT],
+  ["R33", "C10 a verdict has no evidence rule", ADP, "  fact_extraction: { inputs:", "  fact_extraction_off: { inputs:", EXT],
+  ["R34", "C11 an admitted claim quotation is not counted for the recheck", BF, "if (String(c.quotation ?? \"\").length >= QUOTATION_MIN_CHARS && ", "if (false && ", BFC],
+  ["R35", "PP the verdicts are written without --confirm", BIN, "  if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: nothing kept\"); process.exit(0); }", "", PP],
+  ["R36", "PP the route's NOT METERED cost entry is not kept", BIN, "const c = RUN_COST.appendOwn(entry);", "const c = { outcome: \"COMMITTED\" };", PP],
+  ["R37", "PP a proposals file outside the batch's own name is read", BIN, "(live || !/^fact-proposals-", "(live || false && !/^fact-proposals-", PP],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

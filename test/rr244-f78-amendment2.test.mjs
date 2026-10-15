@@ -121,7 +121,8 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/quote-match.mjs": ["ALWAYS", ["USAGE"]],
     "bin/render-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
     "bin/render-collect.mjs": ["ALWAYS", ["USAGE"]],
-    "bin/source-facts.mjs": ["live", ["USAGE"]],
+    /* RR-268 C: the recorder also exists for a confirmed --extract run (its NOT METERED cost entry); an --extract name outside the batch is a usage refusal */
+    "bin/source-facts.mjs": ["live || (EXTRACT && permission.mayWrite)", ["USAGE", "USAGE"]],
     "bin/source-integrity.mjs": ["live", ["CONFINEMENT", "CONFINEMENT", "USAGE"]],
     "subjects/almi-oet/tools/build-corpus.mjs": ["ALWAYS", ["CONFINEMENT"]],
     "subjects/almi-oet/tools/nursing-chain.mjs": ["ALWAYS", ["USAGE"]],

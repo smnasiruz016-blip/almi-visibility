@@ -140,6 +140,13 @@ test("CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1): a page read in the 
   for (const [head, why] of [["READ: 2026-09-11 · route: client browser", CAPTURE_REFUSE.NO_URL], ["URL: https://tests.invalid/rules\nREAD: soon · route: client browser", CAPTURE_REFUSE.NO_DATE], ["URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: a search engine", CAPTURE_REFUSE.NOT_CLIENT_BROWSER]])
     assert.deepEqual([captureRead({ raw: raw(head), file: "x" }).state, captureRead({ raw: raw(head), file: "x" }).reason], ["REFUSED", why], `${why} did not refuse`);
   assert.equal(captureRead({ raw: "URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser\n---\n \n", file: "x" }).reason, CAPTURE_REFUSE.NO_TEXT);
+  /* a capture of PART of a page: a quotation not in the part is BLOCKED, named — never CHANGED; control: the whole page shows it CHANGED */
+  const fact = { factId: "f1", link: "https://tests.invalid/rules", quotations: ["Results arrive within ten working days."], pages: ["p"] };
+  const part = (await recheckFacts({ facts: [fact], readOf: async () => ok, on: ON }))[0];
+  assert.deepEqual([ok.capture.whole, part.state, part.reason, part.rebuild.length], [false, RECHECK.BLOCKED, BLOCK.CAPTURE_PART, 0], "a quotation missing from a captured PART was read as gone from the page");
+  const whole = captureRead({ raw: raw("URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser · captured: main page text"), file: "w" });
+  assert.deepEqual([whole.capture.whole, (await recheckFacts({ facts: [fact], readOf: async () => whole, on: ON }))[0].state], [true, RECHECK.CHANGED], "CONTROL: a quotation missing from the whole captured page must be CHANGED");
+  assert.equal(captureRead({ raw: raw("URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser · captured: main page text (excerpt)"), file: "e" }).capture.whole, false, "an excerpt was read as the whole page");
   /* a supplied file: kept with its original URL and day; out of date, no fact stands on it — control: the same file, current, admits */
   const bytes = makePdf({ lines: ["Price list.", "The fee is 30,000 for the test.", ...LONG] });
   const old = clientFileRead({ bytes, file: "client-files/old.pdf", url: "https://tests.invalid/prices.pdf", suppliedOn: "2026-09-10", outOfDate: "the client says these are last year's prices" });
@@ -369,7 +376,7 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     /* RR-269 §1 · --import of the client's own reads: no connector, no request; a capture is VIA CAPTURE with its own read date; the facts
      * citing it are rechecked against its text; a refused capture is named; nothing kept without --confirm */
     const cap = join(b, "browser-captures-2026-09-11"); mkdirSync(cap);
-    writeFileSync(join(cap, "01-rules.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: client browser (a person, in the client's own browser)\n---\nRules. Each sub-test is scored from 0 to 500 and a score of 400 is a grade B.\n${LONG.join("\n")}\n`);
+    writeFileSync(join(cap, "01-rules.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: client browser (a person, in the client's own browser) · captured: main page text\n---\nRules. Each sub-test is scored from 0 to 500 and a score of 400 is a grade B.\n${LONG.join("\n")}\n`);
     writeFileSync(join(cap, "02-elsewhere.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: a search engine\n---\nAnything.\n`);
     writeFileSync(join(cap, "00-README.md"), "not a capture");
     const imp = (folder, ...extra) => run("fixture-tests", "fixture-test-facts", "refuse", `--import=${folder}`, ...extra);
@@ -385,7 +392,7 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     writeFileSync(join(b, "client-files", "old.pdf"), makePdf({ lines: ["Price list.", "The fee is 30,000 for the test.", ...LONG] }));
     writeFileSync(join(b, "client-files", "manifest.json"), JSON.stringify({ files: [{ file: "old.pdf", url, suppliedOn: "2026-09-10", outOfDate: "the client says these are last year's prices" }] }));
     const fok = imp("client-files", "--confirm");
-    assert.deepEqual([fok.status, new RegExp(`kept  CLIENT_FILE ${url} · read 2026-09-10 · \\d+ chars · PDF 1 page\\(s\\) · OUT_OF_DATE`).test(fok.stdout), /recheck {10}0 fact\(s\)/.test(fok.stdout), rowsIn(join(b, "source-reads.jsonl")).at(-1).currency.state], [0, true, true, CURRENCY.OUT_OF_DATE], fok.stdout + fok.stderr);
+    assert.deepEqual([fok.status, new RegExp(`read  CLIENT_FILE ${url} · read 2026-09-10 · \\d+ chars · PDF 1 page\\(s\\) · OUT_OF_DATE`).test(fok.stdout), /recheck {10}0 fact\(s\)/.test(fok.stdout), rowsIn(join(b, "source-reads.jsonl")).at(-1).currency.state], [0, true, true, CURRENCY.OUT_OF_DATE], fok.stdout + fok.stderr);
     writeFileSync(join(b, "fact-proposals-2026-09-10-2.json"), JSON.stringify({ route: "CLIENT_SUBSCRIPTION_SESSION", proposals: [{ proposalId: "p4", fact: null, need: "n1", source: url, sentence: "The fee is 30,000 for the test.", quotation: "The fee is 30,000 for the test." }] }));
     const x2 = run("fixture-tests", "fixture-test-facts", "refuse", "--extract=fact-proposals-2026-09-10-2.json");
     assert.deepEqual([x2.status, /proposals {8}1: REJECTED 1 · rejected by reason: SOURCE_IS_OUT_OF_DATE 1/.test(x2.stdout)], [0, true], x2.stdout + x2.stderr);

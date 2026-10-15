@@ -171,7 +171,7 @@ function importRun() {
   const cited = facts.filter((f) => imported.has(f.link));
   console.log(`F44 · IMPORT OF THE CLIENT'S OWN READS — ${IMPORT} · no connector opened, no request made, no route driven · counts only`);
   console.log(`  files            ${got.length + refused.length}: imported ${got.length} (${tally(got, "state")}) · refused ${refused.length}${refused.length ? ` (${refused.map((r) => `${r.file} ${r.reason}`).join(" · ")})` : ""}`);
-  for (const r of got) console.log(`    ${r.state === READ_STATE.READ ? "kept" : r.state}  ${r.via} ${r.url} · read ${r.readOn ?? "-"} · ${r.chars ?? 0} chars${r.document ? ` · ${r.document}${r.pages ? ` ${r.pages} page(s)` : ""}` : ""}${r.currency ? ` · ${r.currency.state}` : ""}${r.reason ? ` · ${r.reason}` : ""}`);
+  for (const r of got) console.log(`    ${r.state === READ_STATE.READ ? "read" : r.state}  ${r.via} ${r.url} · read ${r.readOn ?? "-"} · ${r.chars ?? 0} chars${r.document ? ` · ${r.document}${r.pages ? ` ${r.pages} page(s)` : ""}` : ""}${r.currency ? ` · ${r.currency.state}` : ""}${r.reason ? ` · ${r.reason}` : ""}`);
   return recheckImported({ got, cited, imported, instant, run });
 }
 async function recheckImported({ got, cited, imported, instant, run }) {

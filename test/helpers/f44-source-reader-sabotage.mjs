@@ -79,6 +79,7 @@ const SABOTAGES = [
   ["R47", "PP a fact is rechecked against a file the client says is out of date", BIN, " && r.currency?.state !== CURRENCY.OUT_OF_DATE).map((r) => [r.url, r]));", ").map((r) => [r.url, r]));", PP],
   ["R48", "PP a source outside the read list is read", BIN, "const urls = listed ? [...new Set(listed.sources)].sort() :", "const urls = false ? [] :", PP],
   ["R49", "PP the imported reads are written without --confirm", BIN, "  if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: no read and no recheck kept\"); process.exit(0); }", "", PP],
+  ["R50", "C11 a quotation missing from a captured part of a page is read as gone", M, "    if (missing.length && read.capture && read.capture.whole !== true) {", "    if (false) {", CAP],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

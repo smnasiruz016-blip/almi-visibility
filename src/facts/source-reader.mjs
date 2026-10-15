@@ -53,6 +53,8 @@ export const BLOCK = Object.freeze({
   ROUTE_STOPPED: "BROWSER_ROUTE_STOPPED",
   ROUTE_CAP: "BROWSER_ROUTE_RUN_CAP_REACHED",
   READ_CAP: "RUN_READ_CAP_REACHED",
+  /* RR-269: a capture of PART of a page cannot show that a quotation is gone from the page — only that it is not in the part */
+  CAPTURE_PART: "CAPTURE_IS_PART_OF_THE_PAGE",
 });
 /** What the engine may hand to the client's browser route: a refusal, a challenge or an empty page (RR-268 §B2.2). Nothing else. */
 export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY]);
@@ -116,7 +118,9 @@ export function captureRead({ raw, file }) {
   const why = !url ? CAPTURE_REFUSE.NO_URL : !readOn ? CAPTURE_REFUSE.NO_DATE : !/\broute:\s*client browser\b/i.test(readLine) ? CAPTURE_REFUSE.NOT_CLIENT_BROWSER : body.trim() === "" ? CAPTURE_REFUSE.NO_TEXT : null;
   if (why) return Object.freeze({ state: "REFUSED", file, reason: why });
   const text = normaliseText(body);
-  return Object.freeze({ state: READ_STATE.READ, url, route: ROUTE.BROWSER, via: VIA.CAPTURE, landedUrl: url, text, sha256: sha256(text), readOn, chars: text.length, capture: Object.freeze({ file, fileSha256: sha256(s) }) });
+  /* WHOLE only when the file says it holds the page's main or body text and no excerpt; anything else is PART of the page */
+  const whole = /\bcaptured:\s*(main page text|page body text)\b/i.test(readLine) && !/excerpt/i.test(readLine);
+  return Object.freeze({ state: READ_STATE.READ, url, route: ROUTE.BROWSER, via: VIA.CAPTURE, landedUrl: url, text, sha256: sha256(text), readOn, chars: text.length, capture: Object.freeze({ file, fileSha256: sha256(s), whole }) });
 }
 
 /**
@@ -246,6 +250,8 @@ export async function recheckFacts({ facts, readOf, on }) {
     const read = await readOf(f.link);
     if (read.state !== READ_STATE.READ) { out.push(Object.freeze({ ...base, state: RECHECK.BLOCKED, reason: read.reason, detail: read.detail ?? null, route: read.route, rebuild: Object.freeze([]) })); continue; }
     const missing = quotations.filter((q) => !quotationIn(q, read.text));
+    /* RR-269: a capture of part of a page shows what is in the part; a quotation not in it is not shown gone — BLOCKED, named, never CHANGED */
+    if (missing.length && read.capture && read.capture.whole !== true) { out.push(Object.freeze({ ...base, state: RECHECK.BLOCKED, reason: BLOCK.CAPTURE_PART, detail: `${missing.length} of ${quotations.length} quotation(s) not in the captured part (${read.capture.file})`, route: read.route, rebuild: Object.freeze([]) })); continue; }
     out.push(Object.freeze({ ...base, state: missing.length ? RECHECK.CHANGED : RECHECK.CURRENT, quotations: quotations.length, missing: missing.length, pageSha256: read.sha256, route: read.route, readOn: on,
       /* nothing is silently kept: a CHANGED fact flags every page that uses it */
       rebuild: Object.freeze(missing.length ? [...base.pages] : []) }));

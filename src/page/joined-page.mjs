@@ -362,10 +362,15 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const unanswerable = unanswered.filter(unanswerableRecorded).length;
     const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp, ...(generalViews ? { generalViews } : {}), ...(unanswerable ? { unanswerable } : {}) };
     pages.push(Object.freeze({ record_type: JOINED_RECORD, /* RR-259: the files a page is served with are part of what it is — the same HTML with another logo file is another draft */
-      measurement_key: `${JOINED_RECORD}:${hash(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
+      /* RR-269: and its gate results are part of what it is — the same HTML judged under a changed gate law is another record, never
+       * swallowed by the earlier one with its stale verdicts */
+      measurement_key: `${JOINED_RECORD}:${hash([...(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html]), gateStates(checks)])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
   return Object.freeze(pages);
 }
+
+/** A page's gate results, name by name — what its record key carries beside the page itself. */
+const gateStates = (checks) => Object.fromEntries(Object.entries(checks ?? {}).sort(([x], [y]) => (x < y ? -1 : 1)).map(([k, v]) => [k, v?.state ?? null]));
 
 /** The FAQPage object found in the rendered page, or null. */
 export function faqInPage(html) {

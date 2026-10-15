@@ -156,6 +156,13 @@ test("CHECKED, NOT FOUND · FIRING CONTROL (RR-269 §3): an absence is a record 
   assert.equal(joinedChecks({ ...base, html: p.html, faq: [{ question: "Is it cheaper?", answer: CNF.line }] }).checkedNotFoundShown.state, "FAIL", "a line in the FAQ data passed");
 });
 
+test("RECORD KEY · FIRING CONTROL (RR-269): the same HTML judged by other gate results is another record — a rebuild under a changed gate law is never swallowed by the earlier record and its stale verdicts", () => {
+  const one = [built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })])];
+  const a = joined(one)[0], b = joined(one, { recheckOf: () => null })[0];
+  assert.deepEqual([a.html === b.html, a.checks.b4SourcedCheckedAndRecheckable.state, b.checks.b4SourcedCheckedAndRecheckable.state, a.measurement_key === b.measurement_key, joined(one)[0].measurement_key === a.measurement_key], [true, "PASS", "FAIL", false, true],
+    "a page whose gate results changed kept the earlier record's key");
+});
+
 test("JOIN · FIRING CONTROL: one page per page candidate, every chosen need on it as ONE item with its own questions and its own answer, in the order handed in; nothing chosen, nothing built", () => {
   const order = { n2: 0, n1: 1, n3: 0 };
   const pages = joined([built("n1", "alpha", [["how much is it", INF], ["How much does it cost?", OBS]]), built("n2", "alpha", [["Where is it?", OBS]]), built("n3", "beta", [["how long is it", INF]])], { orderOf: (id) => order[id] });

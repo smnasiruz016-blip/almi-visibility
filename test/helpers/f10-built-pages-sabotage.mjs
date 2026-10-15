@@ -26,7 +26,7 @@ const JP = "src/page/joined-page.mjs";
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
-const C3 = "C3 · FIRING CONTROL", C4 = "C4 · FIRING CONTROL", RV = "C4 · REVIEW · FIRING CONTROL", C5 = "C5 · FIRING CONTROL", SV = "C5 · SURVIVOR · FIRING CONTROL", C6 = "C6 · FIRING CONTROL", PP = "C5 C6 · PRODUCTION PATH", C7 = "C7 · CENSUS", RB = "REBUILD · FIRING CONTROL", RP = "REBUILD · PRODUCTION PATH", ONE = "ONE RULE · FIRING CONTROL";
+const C3 = "C3 · FIRING CONTROL", C4 = "C4 · FIRING CONTROL", RV = "C4 · REVIEW · FIRING CONTROL", C5 = "C5 · FIRING CONTROL", SV = "C5 · SURVIVOR · FIRING CONTROL", C6 = "C6 · FIRING CONTROL", PP = "C5 C6 · PRODUCTION PATH", C7 = "C7 · CENSUS", RB = "REBUILD · FIRING CONTROL", RP = "REBUILD · PRODUCTION PATH", ONE = "ONE RULE · FIRING CONTROL", UN = "UNANSWERABLE · FIRING CONTROL";
 
 const SABOTAGES = [
   ["B01", "REBUILD a page a stored cancellation names is proposed again", SD, "    if (c) notBuilt.push(", "    if (false) notBuilt.push(", RB],
@@ -119,6 +119,12 @@ const SABOTAGES = [
   ["Y04", "C7 a result stated in the disclosed class is not seen", BOARD, "t.includes(s.id) || t.includes(s.contentHash)) || t.includes(d.evidenceClass)", "t.includes(s.id) || t.includes(s.contentHash))", C7],
   ["Y05", "C7 a production path of the built-pages check names the sealed set", M, "const list = (v) => (Array.isArray(v) ? v : []);", "const sealedSetReader = null;\nconst list = (v) => (Array.isArray(v) ? v : []);", C7],
   ["Y06", "C7 the built-pages check holds a similarity measure", M, "const isDay = (d) => typeof d === \"string\"", "const cosineSimilarity = () => 0;\nconst isDay = (d) => typeof d === \"string\"", C7],
+  /* RR-268 A2: a need recorded UNANSWERABLE is complete for the page gate only with the official source checked and the day */
+  ["Z01", "A2 an UNANSWERABLE record without its checked day passes the page gate", JP, " && /^\\d{4}-\\d{2}-\\d{2}$/.test(u.unanswerable.checkedOn ?? \"\")", "", UN],
+  ["Z02", "A2 an UNANSWERABLE record without its named source passes the page gate", JP, "present(u.unanswerable.source?.name) && ", "", UN],
+  ["Z03", "A2 another disposition is taken for UNANSWERABLE", JP, "u?.unanswerable?.disposition === UNANSWERABLE && ", "u?.unanswerable && ", UN],
+  ["Z04", "A2 the page gate ignores the UNANSWERABLE record (it still fails)", JP, "const open = unanswered.filter((u) => !unanswerableRecorded(u));", "const open = unanswered;", UN],
+  ["Z05", "A2 an UNANSWERABLE need is counted as answered", JP, "items: items.length, questions:", "items: items.length + unanswerable, questions:", UN],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

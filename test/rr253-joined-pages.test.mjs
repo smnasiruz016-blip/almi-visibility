@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, assetsOf, ASSET_FOLDER, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, REFUSAL, JOINED_RECORD, LEAD, LEAD_SOURCED_LINES, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
+import { connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, unanswerableRecorded, UNANSWERABLE, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, assetsOf, ASSET_FOLDER, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, REFUSAL, JOINED_RECORD, LEAD, LEAD_SOURCED_LINES, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
 import { testException, parseExceptionRecord, STAMP } from "../src/page/test-exception.mjs";
 import { CHECK } from "../src/page/draft-render.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
@@ -183,6 +183,30 @@ test("PAGE LAW · FIRING CONTROL: a page built with the client's design, a hero,
   assert.deepEqual(only(p.html.replace('"text":"It costs 5 XTS a month."', '"text":"It costs 4 XTS a month."')), ["law6FaqMatchesVisible"], "FAQ data that differs from the visible answer passed");
   assert.deepEqual(only(p.html.replace("<summary>Where is it?</summary>", "<summary>Where is it?</summary><p>RESPONSIBLE BODY</p>")), ["law7NoRecordLabels"]);
   assert.deepEqual(only(p.html.replace("</main>", "<p>Is it open at night?</p></main>"), { unanswered: [{ need: "n9", wordings: ["Is it open at night?"] }] }), ["law8UnansweredNotShown"]);
+});
+
+test("UNANSWERABLE · FIRING CONTROL (RR-268 A2): a need recorded UNANSWERABLE with the official source checked and the day is complete for the page gate, stays off the page and is counted apart — without its source or its day it still fails", () => {
+  const two = [built("n1", "alpha", [["How much does it cost?", OBS]]), built("n2", "alpha", [["Where is it?", OBS]])];
+  const filed = { disposition: UNANSWERABLE, source: { name: "A Body — its rules page", link: "https://body.invalid/rules" }, checkedOn: "2026-09-02", why: "the page names no rule" };
+  const n9 = (unanswerable) => ({ need: "n9", questions: 1, wordings: ["Is it open at night?"], why: "the central answer is unsupported", ...(unanswerable ? { unanswerable } : {}) });
+  const page = (...u) => joined(two, { orderOf: (id) => Number(id.slice(1)), unansweredFor: () => u })[0];
+  /* recorded with its source and day: the gate passes, the need is not on the page, it is counted apart from the answered items */
+  const ok = page(n9(filed));
+  assert.deepEqual([ok.checks.everyNeedAnswered.state, ok.html.includes("Is it open at night?"), ok.items, ok.unanswerable, ok.unanswered.length], ["PASS", false, 2, 1, 1]);
+  /* FIRING CONTROL — each missing part fails the gate, named; nothing else moves */
+  for (const [what, u] of [["no record", n9(null)], ["no source", n9({ ...filed, source: { link: filed.source.link } })], ["a blank source name", n9({ ...filed, source: { name: "  " } })],
+    ["no day", n9({ ...filed, checkedOn: undefined })], ["a day that is not a date", n9({ ...filed, checkedOn: "recently" })], ["another disposition", n9({ ...filed, disposition: "NOT FOUND" })]]) {
+    const p = page(u);
+    assert.deepEqual([p.checks.everyNeedAnswered.state, p.unanswerable ?? 0], ["FAIL", 0], `${what}: an UNANSWERABLE need without its checked source and day passed`);
+    assert.match(p.checks.everyNeedAnswered.why, /^1 need\(s\) of this page have no supported answer/);
+  }
+  /* one recorded need never covers another that is not: two unanswered, one recorded — the gate fails on the other, and names the count apart */
+  const mixed = page(n9(filed), { ...n9(null), need: "n8", wordings: ["Is it open on Sunday?"] });
+  assert.deepEqual([mixed.checks.everyNeedAnswered.state, mixed.unanswerable, mixed.checks.everyNeedAnswered.why], ["FAIL", 1, "1 need(s) of this page have no supported answer and are not on it (1 more recorded UNANSWERABLE with the source checked and the day)"]);
+  /* never counted as answered: the item count and the FAQ do not move; a page with no unanswerable need does not carry the count at all */
+  const none = page();
+  assert.deepEqual([none.items, none.faqCount, Object.hasOwn(none, "unanswerable"), ok.faqCount], [2, 2, false, 2]);
+  assert.deepEqual([unanswerableRecorded(n9(filed)), unanswerableRecorded(null), unanswerableRecorded({ unanswerable: filed })], [true, false, true]);
 });
 
 test("LEAD · FIRING CONTROL (RR-262, the owner's page-content decision): a need RECORDED to lead with the product's own statements shows its product cards right after its question, then ONE call-to-action button, then ONE sourced line — and each fault fails the page's own check for its own reason", () => {
@@ -492,8 +516,10 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
       assert.ok(it.claims.length > 0 && it.claims.every((c) => c.text && c.source && /^https:\/\//.test(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn)), `${p.value}: an item's claim lacks its statement, source, link or date`);
       assert.ok(it.statements.every((st) => approved.has(st.answerId)), `${p.value}: a product statement is not an approved answer today`);
     }
-    /* the only gate that may fail is "every need answered" — and exactly when the record names an unanswered need */
-    assert.deepEqual(failed(p), p.unanswered.length ? ["everyNeedAnswered"] : [], `${p.value}: a gate fails`);
+    /* the only gate that may fail is "every need answered" — and exactly when the record names an unanswered need that is not recorded
+     * UNANSWERABLE with its checked source and day (RR-268 A2) */
+    assert.deepEqual(failed(p), p.unanswered.some((u) => !unanswerableRecorded(u)) ? ["everyNeedAnswered"] : [], `${p.value}: a gate fails`);
+    assert.equal(p.unanswerable ?? 0, p.unanswered.filter(unanswerableRecorded).length, `${p.value}: the UNANSWERABLE needs are not counted apart`);
     for (const k of ["engaging", "acceptableToSearchAndAnswerEngines"]) assert.equal(p.checks[k].state, "NOT MEASURED");
   }
   assert.equal(cancels.length, 0, "a record of the retired build-time cancel step is in the page store");

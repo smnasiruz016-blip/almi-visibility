@@ -91,6 +91,12 @@ const DERIVED_TYPES = Object.freeze({
   built_page_pair_decision: { inputs: (r) => (Array.isArray(r.pages) ? r.pages.filter(present).map((p) => `built-page:${h16(p)}`) : []), at: (r) => r.recorded_at, method: "page-pair-decided-from-stored-need-records" },
   built_page_cancellation: { inputs: (r) => [r.cancelledBuild, r.survivorBuild].filter(present), at: (r) => r.recorded_at, method: "same-need-page-cancelled-by-the-survivor-rule" },
   built_page_question_move: { inputs: (r) => [r.fromBuild].filter(present), at: (r) => r.recorded_at, method: "question-moved-from-a-cancelled-page" },
+  /* RR-268 · F44 (Amendment 2, C11): a fact's recheck is DERIVED from the stored read of its source (by the read's text hash), or — when no
+   * read decided it (a fact with no quotation, a blocked source) — from the fact it names; the engine's own check, never an observation. */
+  fact_recheck: { inputs: (r) => (present(r.pageSha256) ? [`source_page_read:${String(r.pageSha256).slice(0, 16)}`] : present(r.factId) ? [`fact:${h16(r.factId)}`] : []), at: (r) => r.recorded_at, method: "recorded-quotation-rechecked-against-the-stored-page-text" },
+  /* RR-268 C · F44 (Amendment 2, C9 + C10): a proposal's verdict is DERIVED from the stored read of its source (by the read's text hash) when it
+   * was admitted, else from the fact or need it names; the engine's own word-for-word check, never an observation. */
+  fact_extraction: { inputs: (r) => (present(r.pageSha256) ? [`source_page_read:${String(r.pageSha256).slice(0, 16)}`] : present(r.fact) ? [`fact:${h16(r.fact)}`] : present(r.need) ? [`need:${h16(r.need)}`] : []), at: (r) => r.recorded_at, method: "proposed-quotation-checked-word-for-word-against-the-stored-page-text" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
   same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our
@@ -121,6 +127,22 @@ function ofLinkStatus(r) {
   if (!present(r.run)) return unmapped("a link-status observation names the run that made it", rule);
   if (r.state === "NOT MEASURED") return place(`${rule}.not-measured`, "UNKNOWN", { checkId: `link_status:${r.observation_id}`, insufficiency: "DESTINATION_NOT_MEASURED" });
   return place(rule, "OBSERVED", { evidenceRef: `link_status:${r.observation_id}`, sourceId: `link-status-check@${r.run}`, observedAt: r.recorded_at });
+}
+
+/**
+ * RR-268 · F44 (Amendment 2, C7 C8 C10) — a `source_page_read`: what one read of an official source page answered — its text kept as
+ * read, with its sha256 — OBSERVED, sourced from the reader's own run. A read that was BLOCKED (robots, a refusal, a challenge, a login
+ * wall, no browser route) is UNKNOWN with that insufficiency — never an observation of anything. A record with no address, no day, no run,
+ * or a READ with no hash, is UNMAPPED.
+ */
+function ofSourceRead(r) {
+  const rule = "source_page_read";
+  if (!present(r.read_id) || !present(r.url)) return unmapped("a source read names the address it read", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a source read with no recorded_at has no time", rule);
+  if (!present(r.run)) return unmapped("a source read names the run that made it", rule);
+  if (r.state !== "READ") return place(`${rule}.blocked`, "UNKNOWN", { checkId: `source_page_read:${r.read_id}`, insufficiency: "SOURCE_NOT_READ" });
+  if (!present(r.sha256)) return unmapped("a source read keeps the hash of the text it holds", rule);
+  return place(rule, "OBSERVED", { evidenceRef: `source_page_read:${r.read_id}`, sourceId: `source-reader@${r.run}`, observedAt: r.recorded_at });
 }
 
 /** RR-263 · F23 — a `live_page_read`: the body one of the client's own live pages answered with, kept as answered — OBSERVED. */
@@ -452,6 +474,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "response_headers": return ofResponseHeaders(record);
     case "link_status_observation": return ofLinkStatus(record);
     case "live_page_read": return ofLivePageRead(record);
+    case "source_page_read": return ofSourceRead(record);
     case "page_body": return ofPageBody(record);
     case "public_question": return ofPublicQuestion(record);
     case "keyword_signal": return ofKeywordSignal(record);

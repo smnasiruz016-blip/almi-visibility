@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1513,11 +1513,12 @@ export const DECLARED = Object.freeze({
   }),
   /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code; IN-PROGRESS until 12 Oct 2026 because
    * the unit had no declared rule and no capability record existed. Acceptance Amendment 1 (RR-251) gave the unit the owner's rule and made
-   * a capability record an owner-approved questionnaire answer; every clause then PROVED on the real registry — VERIFIED-PASS. */
+   * a capability record an owner-approved questionnaire answer; every clause then PROVED on the real registry — VERIFIED-PASS. Acceptance
+   * Amendment 2 (RR-268, 15 Oct 2026) adds the source reader (C7–C12): REOPENED at its freeze, IN-PROGRESS until those clauses are PROVED. */
   F44: Object.freeze({
     featureId: "F44",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F44_ORIGINAL.ruling, contractSha256: F44_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1557,6 +1558,23 @@ export const DECLARED = Object.freeze({
         historicalReuse: "F44's RR-113 audit (the nine fields at their recorded paths, the derived waiver) and the RR-79 capability-claim admission are reused unchanged; RR-250 added the one product-neutral client questionnaire; RR-251 made the audit judge the unit by the owner's rule, hold capability records to an approved answer, and read PROVED only when every part does",
         declaredLimit: "every capability record is the product speaking about itself: SELF-SOURCED, no independent tier, UNVERIFIED — F44 proves the record's supply fields, never that the statement is true; the answers were pre-filled by CC from the product's code and public page (basis INFERRED) and approved by the owner for the product as it was live on 2026-10-12, so a change in the product's live offer makes them stale until approved again; one answer is pending and yields no record; one declared product resolves today, so the result is that one product's",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-268: F44's Acceptance Amendment 2 (the engine reads its sources and rechecks its own facts: C7–C12), frozen ALONE before any
+       * build; F44 REOPENED at this freeze */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F44", on: "2026-10-15", ruling: F44_AMENDMENT_2.ruling, contractSha256: F44_AMENDMENT_2.contractSha256, amends: F44_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F44",
+        on: "2026-10-15",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F44_ACCEPTANCE_AMENDMENT_2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F44's 2026-10-12 evidence remains historically valid for what it measured (C1–C6 on the real registry); the reopen is caused by the newly frozen wider requirement (Amendment 2, RR-268: the engine reads the official source pages itself through its one paced path, falls back only to the client's own browser route, extracts through the client's own AI, admits only a word-for-word quotation and rechecks each fact on its date), not by any defect found in that evidence",
+        amendment: Object.freeze({ ruling: F44_AMENDMENT_2.ruling, contractSha256: F44_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-15_RR-268_SOURCE_READS_AND_OWN_FACT_CHECK.md", commit: "0a8a0a966227bb3d1aa52881b1d04eea9fbcbe05", sha256: "e357db1a9fcc1432723b4af53c369d97196955833a4f1535c5cf41e1953c5737" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-15_RR-268.md", commit: "0a8a0a966227bb3d1aa52881b1d04eea9fbcbe05", sha256: "94e8eaa98a023c7069b01d219a36018785bc9a5cdfe70ef8b289818a873d24e8" }),
       }),
     ]),
   }),

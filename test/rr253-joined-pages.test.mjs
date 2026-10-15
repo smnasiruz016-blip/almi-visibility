@@ -322,6 +322,11 @@ test("RESTATE · FIRING CONTROL (RR-256): every question joined to a need carrie
   const r = needsToRestate({ pages, stored: lost, keyToNeed, judge, subject: "s", on: "2026-09-01" });
   assert.deepEqual(r.map((x) => [x.record_type, x.needId, x.answer.centralSupported, x.recorded_at, x.combination.kind]), [["planning_need", "need:a", true, "2026-09-01T00:00:00Z", "alpha"]], "a need with no claims was restated, or the lost one was not");
   assert.deepEqual(needsToRestate({ pages, stored: [...lost, { record_type: "planning_need", needId: "need:a", answer: judge(answer) }], keyToNeed, judge, subject: "s", on: "2026-09-01" }), [], "a need whose latest record holds its answer was restated");
+  /* RR-268 C: a need REOPENED in its draft (no claims left) while its stored record still holds claims is restated with no answer */
+  const judged = (a) => ({ state: a.claims.length ? "SUPPORTED" : "UNKNOWN", centralSupported: a.claims.length > 0, claims: a.claims });
+  const held = [{ record_type: "planning_need", needId: "need:a", answer: judged(answer) }, { record_type: "planning_need", needId: "need:b", answer: judged({ claims: [{ claimId: "old" }] }) }];
+  const reopened = needsToRestate({ pages, stored: held, keyToNeed, judge: judged, subject: "s", on: "2026-09-01" });
+  assert.deepEqual(reopened.map((x) => [x.needId, x.answer.centralSupported, x.answer.claims.length]), [["need:b", false, 0]], "a need reopened in its draft kept its stored answer");
 });
 
 test("CONVERSION · FIRING CONTROL (RR-256, RR-257 A1): a price is converted through one or more dated, sourced rates of the same day, computed here and marked as an estimate; a stale rate, a broken chain or an amount that is not in the claim shows nothing", () => {

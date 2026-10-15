@@ -52,6 +52,8 @@ const CONNECTOR_MODE = Object.freeze([
   ["bin/quote-match.mjs", [P]],
   ["bin/render-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
   ["bin/render-collect.mjs", [`--source-batch=${BATCH}`, `--evidence-batch=${EVIDENCE}`, S, "--live", "--i-have-the-owners-green"]],
+  /* RR-268: F44's source reader (bin/source-facts.mjs) — one more connector entry point, measured by the census below */
+  ["bin/source-facts.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
   ["bin/source-integrity.mjs", [P, "--live"]],
   ["subjects/almi-oet/tools/build-corpus.mjs", ["--out", ".test-scratch/rr244-a2-corpus"]],
   ["subjects/almi-oet/tools/nursing-chain.mjs", [P]],
@@ -119,6 +121,7 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/quote-match.mjs": ["ALWAYS", ["USAGE"]],
     "bin/render-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
     "bin/render-collect.mjs": ["ALWAYS", ["USAGE"]],
+    "bin/source-facts.mjs": ["live", ["USAGE"]],
     "bin/source-integrity.mjs": ["live", ["CONFINEMENT", "CONFINEMENT", "USAGE"]],
     "subjects/almi-oet/tools/build-corpus.mjs": ["ALWAYS", ["CONFINEMENT"]],
     "subjects/almi-oet/tools/nursing-chain.mjs": ["ALWAYS", ["USAGE"]],

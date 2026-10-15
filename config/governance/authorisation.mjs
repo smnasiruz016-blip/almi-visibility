@@ -182,6 +182,10 @@ export const ACTIONS = Object.freeze({
      * (bin/link-status.mjs), kept in the research batch's own stores, the same family and resource class; a classification only,
      * granting no permission. */
     "APPEND_LINK_STATUS",
+    /* RR-268 (15 Oct 2026): F44 (Amendment 2) — the source reader's reads of official source pages and the rechecks of the facts that cite
+     * them (bin/source-facts.mjs), kept in the research batch's own stores, the same family and resource class; a classification only,
+     * granting no permission. */
+    "APPEND_SOURCE_FACTS",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

@@ -440,11 +440,13 @@ test("F31 · READ BY F31'S UNCHANGED CODE · the stored listing is not cut short
 /* RR-263 (re-measured): F23's bounded link-status check, bin/link-status.mjs, reads one client's research batch through that client's
  * declared scope (SCOPED 95 -> 96; 119 -> 120). bin/link-audit.mjs now names the client's subject and its declared batches — SCOPED, as
  * before. No existing entry point moved class. */
-test("F02 · the tenant-scope census is unchanged: 120 entry points, 96 SCOPED · 18 EXCLUDED · 6 NOT_TENANT_GOVERNED; the crawler SCOPED", () => {
+/* RR-268 (re-measured): F44's bounded source recheck, bin/source-facts.mjs, reads one client's research batch through that client's
+ * declared scope (SCOPED 96 -> 97; 120 -> 121). No existing entry point moved class. */
+test("F02 · the tenant-scope census is unchanged: 121 entry points, 97 SCOPED · 18 EXCLUDED · 6 NOT_TENANT_GOVERNED; the crawler SCOPED", () => {
   const rows = census();
   const by = rows.reduce((m, r) => ((m[r.cls] = (m[r.cls] ?? 0) + 1), m), {});
-  assert.equal(rows.length, 120);
-  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [96, 18, 6, 0]);
+  assert.equal(rows.length, 121);
+  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [97, 18, 6, 0]);
   const crawl = classifyEntryPoint("bin/crawl.mjs", readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8"));
   assert.equal(crawl.cls, "SCOPED", crawl.why);
   const planted = readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8").replace("RESOURCES.researchBatch(researchBatch), ", "");

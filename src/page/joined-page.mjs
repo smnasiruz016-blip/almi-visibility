@@ -81,7 +81,12 @@ export const REFUSAL = Object.freeze({
 });
 
 const present = (v) => typeof v === "string" && v.trim() !== "";
-const hash = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 24);
+/* RR-268 A2 (beta-g technical decision): a need recorded UNANSWERABLE is complete for the page gate when its record names the official
+ * source that was checked and the day it was checked. It stays off the page and is counted apart: never as answered, never as nothing.
+ * One without its named source or its day is an unanswered need, and the gate still fails on it. */
+export const UNANSWERABLE = "UNANSWERABLE";
+export const unanswerableRecorded = (u) => u?.unanswerable?.disposition === UNANSWERABLE && present(u.unanswerable.source?.name) && /^\d{4}-\d{2}-\d{2}$/.test(u.unanswerable.checkedOn ?? "");
+const hash =(x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 24);
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 /** the page's own escaping, for a reader that must find a wording in a built page exactly as the page shows it (F10, src/page/built-page-needs.mjs) */
 export const escapeText = esc;
@@ -345,7 +350,9 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
     const checks = joinedChecks({ fillerPhrases, items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
     const generalViews = items.filter((it) => it.generalView).length;
-    const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp, ...(generalViews ? { generalViews } : {}) };
+    /* RR-268 A2: the needs recorded UNANSWERABLE with their checked source and day, counted apart from the answered items */
+    const unanswerable = unanswered.filter(unanswerableRecorded).length;
+    const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp, ...(generalViews ? { generalViews } : {}), ...(unanswerable ? { unanswerable } : {}) };
     pages.push(Object.freeze({ record_type: JOINED_RECORD, /* RR-259: the files a page is served with are part of what it is — the same HTML with another logo file is another draft */
       measurement_key: `${JOINED_RECORD}:${hash(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
@@ -477,7 +484,10 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
     titleFromSearchPhrases: composed ? state(untraced.length === 0 && titleTrace.length > 0, `title word(s) with no recorded source: ${untraced.join(", ")}`) : Object.freeze({ state: CHECK.NOT_MEASURED, why: titleMissing ?? "no recorded search phrase" }),
     titleFromRecords: state(present(title) && titleTrace.length > 0 && (composed || titleTrace.every((t) => recorded.has(t.part))), "the title is not made of recorded phrases or recorded questions"),
     /* ── what was already required ── */
-    everyNeedAnswered: state(items.length > 0 && unanswered.length === 0, `${unanswered.length} need(s) of this page have no supported answer and are not on it`),
+    everyNeedAnswered: (() => {
+      const open = unanswered.filter((u) => !unanswerableRecorded(u));
+      return state(items.length > 0 && open.length === 0, `${open.length} need(s) of this page have no supported answer and are not on it${unanswered.length > open.length ? ` (${unanswered.length - open.length} more recorded UNANSWERABLE with the source checked and the day)` : ""}`);
+    })(),
     everyItemAnswered: state(items.length > 0 && items.every((it) => it.claims.some((c) => c.central !== false && present(c.text))), "an item has no supported central statement to answer its questions"),
     everyClaimSourced: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "")), "a written claim lacks its source's name, link or the date it was read"),
     ownWording: state(items.every((it) => it.questions.every((q, i) => present(q.wording) && (i === 0 ? html.includes(esc(shownOf(it))) && sameWords(shownOf(it), q.wording) : html.includes(esc(q.wording))))), "a question is not shown in its own recorded words"),

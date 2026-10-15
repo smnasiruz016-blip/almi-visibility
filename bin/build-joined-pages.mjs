@@ -171,7 +171,9 @@ const joinable = constructionAfterDecisions({ construction: G.compiled.forConstr
 if (joinable.heldBack) console.log(`  stored decisions ${joinable.heldBack} compiled need(s) of cancelled page(s) held back from the join`);
 const chosen = new Set(joinable.construction.map((c) => c.spec?.subject));
 const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map((d) => [d.subject.needId, (d.missing ?? []).join(" | ")]));
-const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected" }))]));
+const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected",
+  /* RR-268 A2: a need's recorded UNANSWERABLE disposition (the official source checked and the day), carried as filed — the page gate decides */
+  ...(n.unanswerable ? { unanswerable: Object.freeze({ ...n.unanswerable }) } : {}) }))]));
 const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, fillerPhrases,
   phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
@@ -183,7 +185,7 @@ for (const { record: p, ...m } of built) {
   if (m.moved) console.log(`  page ${p.value} — stored moves ${m.moved}: already on the rebuilt page ${m.alreadyHeld} · placed ${m.placed} · with no item on the rebuilt page ${m.noItem} (kept in the stored record only)`);
   const states = Object.entries(p.checks).map(([k, v]) => `${k} ${v.state}`);
   const n = (s) => Object.values(p.checks).filter((v) => v.state === s).length;
-  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), FAQ ${p.faqCount}, key facts ${p.keyFacts.length}, ${p.wordCount} word(s) · title ${p.titleComposed ? "COMPOSED from search phrases" : "from recorded questions (no search phrase recorded)"} · unanswered need(s) ${p.unanswered.length} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
+  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), FAQ ${p.faqCount}, key facts ${p.keyFacts.length}, ${p.wordCount} word(s) · title ${p.titleComposed ? "COMPOSED from search phrases" : "from recorded questions (no search phrase recorded)"} · unanswered need(s) ${p.unanswered.length}${p.unanswerable ? ` (UNANSWERABLE with source and day ${p.unanswerable})` : ""} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
   console.log(`    ${states.join(" · ")}`);
 }
 /* RR-265: a general view that is not labelled where it stands (or breaks its other rules) fails the build — no page is written */

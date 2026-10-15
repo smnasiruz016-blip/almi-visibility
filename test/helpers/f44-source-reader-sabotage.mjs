@@ -70,7 +70,7 @@ const SABOTAGES = [
   ["R38", "C7 a PDF is not read by the PDF reader", M, "if (isPdf(bytes) || PDF_TYPE.test(type)) return pdfRead(", "if (false) return pdfRead(", PDFR],
   ["R39", "C7 a scanned PDF is read as a PDF with text", PDF, "state: /\\S/.test(text) ? PDF_TEXT.TEXT : PDF_TEXT.NO_TEXT, text, pages: pages.length", "state: PDF_TEXT.TEXT, text, pages: pages.length", PDFR],
   ["R40", "C7 a font's own ToUnicode map is not read", PDF, "      if (cmap?.map.has(code)) return cmap.map.get(code);\n", "", PDFR],
-  ["R41", "C7 a gap between two runs of glyphs is not a space", PDF, "else if (x - last.x > 0.18 * fs && !/\\s$/.test(out.at(-1) ?? \"\") && !/^\\s/.test(ch)) out.push(\" \");", "else if (false) out.push(\" \");", PDFR],
+  ["R41", "C7 a gap between two glyphs is not a space", PDF, "if (prev && g.x - prev.ex > 0.18 * g.fs && !/\\s$/.test(out) && !/^\\s/.test(g.ch)) out += \" \";", "if (false) out += \" \";", PDFR],
   ["R42", "C7 an encrypted PDF is read", PDF, "if (/\\/Encrypt\\s/.test(bytes.toString(\"latin1\"))) return", "if (false) return", PDFR],
   ["R43", "C8 a capture that does not say the client's browser is imported", M, ": !/\\broute:\\s*client browser\\b/i.test(readLine) ? CAPTURE_REFUSE.NOT_CLIENT_BROWSER", ": false ? CAPTURE_REFUSE.NOT_CLIENT_BROWSER", CAP],
   ["R44", "C8 a capture is kept as a read the engine drove", M, "route: ROUTE.BROWSER, via: VIA.CAPTURE,", "route: ROUTE.BROWSER, via: VIA.ENGINE,", CAP],
@@ -80,6 +80,7 @@ const SABOTAGES = [
   ["R48", "PP a source outside the read list is read", BIN, "const urls = listed ? [...new Set(listed.sources)].sort() :", "const urls = false ? [] :", PP],
   ["R49", "PP the imported reads are written without --confirm", BIN, "  if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: no read and no recheck kept\"); process.exit(0); }", "", PP],
   ["R50", "C11 a quotation missing from a captured part of a page is read as gone", M, "    if (missing.length && read.capture && read.capture.whole !== true) {", "    if (false) {", CAP],
+  ["R51", "C7 a PDF's glyphs are read in the order they are drawn, not where the page shows them", PDF, "const sorted = [...glyphs].sort((a, b) => b.y - a.y || a.x - b.x);", "const sorted = [...glyphs];", PDFR],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

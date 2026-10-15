@@ -96,9 +96,9 @@ test("C7 · FIRING CONTROL: the engine reads a public page itself — robots fir
 
 /* RR-269 §2 · a PDF built here, byte by byte: a simple font with no widths, a composite font read through its own ToUnicode map, a TJ gap,
  * a new line; or a page drawn only from an image (a scanned document). Nothing is downloaded. */
-function makePdf({ scanned = false, lines = ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."]] } = {}) {
+function makePdf({ scanned = false, raw = null, lines = ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."]] } = {}) {
   const esc = (t) => t.replace(/[\\()]/g, (c) => `\\${c}`);
-  const ops = scanned ? "q 100 0 0 100 0 0 cm /Im1 Do Q" : ["BT /F1 12 Tf 72 720 Td", ...lines.map((l, i) => `${i ? "0 -16 Td " : ""}${Array.isArray(l) ? `[${l.map((x) => (typeof x === "number" ? x : `(${esc(x)})`)).join("")}] TJ` : `(${esc(l)}) Tj`}`), "0 -16 Td /F2 12 Tf <00480049> Tj ET"].join("\n");
+  const ops = raw ?? (scanned ? "q 100 0 0 100 0 0 cm /Im1 Do Q" : null) ?? ["BT /F1 12 Tf 72 720 Td", ...lines.map((l, i) => `${i ? "0 -16 Td " : ""}${Array.isArray(l) ? `[${l.map((x) => (typeof x === "number" ? x : `(${esc(x)})`)).join("")}] TJ` : `(${esc(l)}) Tj`}`), "0 -16 Td /F2 12 Tf <00480049> Tj ET"].join("\n");
   const content = deflateSync(Buffer.from(ops, "latin1"));
   const cmap = deflateSync(Buffer.from("begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 2 beginbfchar <0048> <0048> <0049> <0069> endbfchar endcmap", "latin1"));
   const parts = [Buffer.from("%PDF-1.7\n"), Buffer.from("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"),
@@ -114,6 +114,8 @@ const LONG = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} of the rul
 test("C7 · PDF READER · FIRING CONTROL (RR-269 §2): a PDF is read by the PDF reader — its text, each font decoded (its own ToUnicode map first), a gap a space, a new line a line; the text kept with its sha256 and checked word for word; a scanned PDF or a document that is not one is NOT_A_TEXT_DOCUMENT, named, its bytes never kept", async () => {
   const r = pdfText(makePdf());
   assert.deepEqual([r.state, r.pages, r.text], [PDF_TEXT.TEXT, 1, "Each sub-test is scored from 0 to 500.\nA score of 350 is a grade B.\nHi"], "the PDF's text is not its words, in order, decoded through its fonts");
+  /* a page that draws its lower line first, and the words of a line right to left, is read top to bottom, left to right */
+  assert.equal(pdfText(makePdf({ raw: "BT /F1 12 Tf 72 704 Td (second line) Tj 0 16 Td (first line) Tj ET BT /F1 12 Tf 190 688 Td (end.) Tj -118 0 Td (third line at the) Tj ET" })).text, "first line\nsecond line\nthird line at the end.", "the PDF's text is in the order it was drawn, not the order the page shows it");
   const pdfUrl = "https://tests.invalid/rules.pdf";
   const bytes = makePdf({ lines: ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."], ...LONG] });
   for (const type of ["application/pdf", "text/html", ""]) {

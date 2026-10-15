@@ -214,12 +214,15 @@ function makeFont(doc, fontDict) {
 const mul = (m, n) => [m[0] * n[0] + m[1] * n[2], m[0] * n[1] + m[1] * n[3], m[2] * n[0] + m[3] * n[2], m[2] * n[1] + m[3] * n[3], m[4] * n[0] + m[5] * n[2] + n[4], m[4] * n[1] + m[5] * n[3] + n[5]];
 const ID = [1, 0, 0, 1, 0, 0];
 
-function pageText(doc, contents, resources, depth = 0) {
-  const out = []; const fonts = new Map();
+/**
+ * Every glyph a content stream draws, with where the page puts it: { x, y, ex (where it ends), fs (its size on the page), ch }. A form
+ * drawn on the page adds its own glyphs, placed by its matrix.
+ */
+function pageGlyphs(doc, contents, resources, base = ID, depth = 0, sink = []) {
+  const fonts = new Map();
   const fontOf = (name) => { if (!fonts.has(name)) { const fd = doc.get(doc.get(resources?.Font)?.[name]); fonts.set(name, fd ? makeFont(doc, fd) : null); } return fonts.get(name); };
-  let ctm = ID; const stack = [];
+  let ctm = base; const stack = [];
   let tm = ID, tlm = ID, font = null, size = 0, tc = 0, tw = 0, th = 1, tl = 0;
-  let last = null; // { x, y, fs } where the previous run ended
   const ops = []; const lx = new Lexer(contents);
   for (let t = lx.next(); t; t = lx.next()) {
     if (t.t === "op") {
@@ -229,32 +232,25 @@ function pageText(doc, contents, resources, depth = 0) {
     else if (t.t === "<<") { lx.p -= 2; ops.push(parseValue(lx)); }
     else ops.push(t.t === "name" ? { name: t.v } : t.v);
   }
-  return out.join("");
+  return sink;
 
   function show(buf) {
     if (!font || !Buffer.isBuffer(buf)) return;
     for (const code of font.codes(buf)) {
       const m = mul(tm, ctm);
       const fs = Math.abs(size) * Math.hypot(m[2], m[3]) || 1;
-      const x = m[4], y = m[5];
       const ch = font.text(code);
-      if (last) {
-        if (Math.abs(y - last.y) > 0.5 * Math.max(fs, last.fs)) out.push("\n");
-        else if (x - last.x > 0.18 * fs && !/\s$/.test(out.at(-1) ?? "") && !/^\s/.test(ch)) out.push(" ");
-        else if (last.x - x > 1.5 * fs) out.push(" ");
-      }
-      out.push(ch);
       const adv = ((font.width(code) / 1000) * size + tc + (font.bytesPerCode === 1 && code === 32 ? tw : 0)) * th;
       tm = mul([1, 0, 0, 1, adv, 0], tm);
       const e = mul(tm, ctm);
-      last = { x: e[4], y: e[5], fs };
+      if (ch !== "") sink.push({ x: m[4], y: m[5], ex: e[4], fs, ch });
     }
   }
   function run(op, a) {
     const n = (i) => (typeof a[i] === "number" ? a[i] : 0);
     switch (op) {
       case "q": stack.push(ctm); break;
-      case "Q": ctm = stack.pop() ?? ID; break;
+      case "Q": ctm = stack.pop() ?? base; break;
       case "cm": ctm = mul(a.slice(0, 6).map((v) => (typeof v === "number" ? v : 0)), ctm); break;
       case "BT": tm = tlm = ID; break;
       case "Tf": font = fontOf(a[0]?.name); size = n(1); break;
@@ -271,18 +267,44 @@ function pageText(doc, contents, resources, depth = 0) {
       case '"': tw = n(0); tc = n(1); tlm = mul([1, 0, 0, 1, 0, -tl], tlm); tm = tlm; show(a[2]); break;
       case "TJ": for (const x of Array.isArray(a[0]) ? a[0] : []) { if (typeof x === "number") tm = mul([1, 0, 0, 1, (-x / 1000) * size * th, 0], tm); else show(x); } break;
       case "Do": {
-        /* a form drawn on the page carries its own text */
+        /* a form drawn on the page carries its own glyphs, placed by its own matrix */
         const ref = doc.get(resources?.XObject)?.[a[0]?.name];
         const o = ref?.ref !== undefined ? doc.obj(ref.ref) : null;
         if (depth < 4 && o?.stream && o.value?.Subtype?.name === "Form") {
           const data = decode(o.value, o.stream);
-          if (data) { const inner = pageText(doc, data, doc.get(o.value.Resources) ?? resources, depth + 1); if (inner) out.push(out.length ? "\n" : "", inner); }
+          const fm = Array.isArray(doc.get(o.value.Matrix)) ? doc.get(o.value.Matrix).map((v) => (typeof v === "number" ? v : 0)) : ID;
+          if (data) pageGlyphs(doc, data, doc.get(o.value.Resources) ?? resources, mul(fm, ctm), depth + 1, sink);
         }
         break;
       }
       default: break;
     }
   }
+}
+
+/**
+ * A page's glyphs laid out as the page shows them: lines from top to bottom (a glyph within half its size of a line's height is on that
+ * line), each line left to right; a space where a gap of more than 0.18 of the glyph's size separates two glyphs; a glyph drawn twice on
+ * the same spot (a bold effect) is kept once.
+ */
+function layout(glyphs) {
+  const sorted = [...glyphs].sort((a, b) => b.y - a.y || a.x - b.x);
+  const lines = [];
+  for (const g of sorted) {
+    const line = lines.at(-1);
+    if (line && Math.abs(line.y - g.y) <= 0.5 * Math.max(line.fs, g.fs)) line.glyphs.push(g);
+    else lines.push({ y: g.y, fs: g.fs, glyphs: [g] });
+  }
+  return lines.map((l) => {
+    const gs = l.glyphs.sort((a, b) => a.x - b.x);
+    let out = "", prev = null;
+    for (const g of gs) {
+      if (prev && prev.ch === g.ch && Math.abs(prev.x - g.x) < 0.1 * g.fs) continue;
+      if (prev && g.x - prev.ex > 0.18 * g.fs && !/\s$/.test(out) && !/^\s/.test(g.ch)) out += " ";
+      out += g.ch; prev = g;
+    }
+    return out;
+  }).join("\n");
 }
 
 /**
@@ -315,7 +337,7 @@ export function pdfText(input) {
     const parts = [];
     const c = d.Contents;
     for (const r of Array.isArray(doc.get(c)) ? doc.get(c) : [c]) { const o = r?.ref !== undefined ? doc.obj(r.ref) : null; const data = o?.stream ? decode(o.value, o.stream) : null; if (data) parts.push(data); }
-    try { return pageText(doc, Buffer.concat(parts.flatMap((p) => [p, Buffer.from("\n")])), res); } catch { return ""; }
+    try { return layout(pageGlyphs(doc, Buffer.concat(parts.flatMap((p) => [p, Buffer.from("\n")])), res)); } catch { return ""; }
   });
   const text = texts.join("\n").replace(/[ \t]+\n/g, "\n").trim();
   return Object.freeze({ state: /\S/.test(text) ? PDF_TEXT.TEXT : PDF_TEXT.NO_TEXT, text, pages: pages.length, detail: /\S/.test(text) ? null : "no page shows any text — a scanned or image-only document" });

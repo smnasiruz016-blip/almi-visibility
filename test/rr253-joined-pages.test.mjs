@@ -125,6 +125,7 @@ test("GENERAL VIEW · FIRING CONTROL (RR-265) · part a RR-269:a general view st
   assert.deepEqual(faqInPage(p.html), [{ question: "Is it harder than the other one?", answer: "One uses work topics; the other uses general topics." }], "the general view or the checked-not-found line stands in the FAQ data");
   assert.deepEqual([p.generalViews, p.itemList[0].answerKind, p.itemList[0].generalView.label], [1, "GENERAL_VIEW", "INFERRED"]);
   assert.ok(p.html.indexOf(CNF.line) < p.html.indexOf('data-claim-id="n1-2"') && p.html.indexOf('data-claim-id="n1-2"') < p.html.indexOf(STRUCTURE.generalView), "the parts are not in order: a, b, then the general view");
+  assert.equal(p.checks.b3DirectAnswerFirst.state, "PASS", "part a, standing first on a general-view item, is not read as its direct answer");
   assert.equal(joined(need(one), withA)[0].checks.generalViewLabelled.state, "NOT MEASURED");
   assert.equal(joined(need(one), withA)[0].generalViews, undefined, "a page with no general view counts one");
   /* each fault alone */
@@ -145,6 +146,7 @@ test("CHECKED, NOT FOUND · FIRING CONTROL (RR-269 §3): an absence is a record 
   assert.deepEqual(checkedNotFoundByNeed([ok, { ...ok, id: "x", quotation: "q" }]).refused.map((r) => r.id), ["x"]);
   const p = joined([built("n1", "alpha", [["Is it cheaper?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })])], { checkedNotFoundOf: (id) => (id === "n1" ? [CNF] : []) })[0];
   assert.equal(p.checks.checkedNotFoundShown.state, "PASS", p.checks.checkedNotFoundShown.why);
+  assert.ok(p.html.indexOf('data-claim-id="n1-1"') < p.html.indexOf(CNF.line) && p.checks.b3DirectAnswerFirst.state === "PASS", "on an item with no general view the sourced answer does not stand first");
   assert.ok(p.html.includes(`data-answer-kind="CHECKED_NOT_FOUND" data-record-id="cnf-1">${CNF.line} <span class="src">${STRUCTURE.pagesChecked}: <a class="src" href="https://example.org/a"`), "the line is not shown with its checked pages linked");
   assert.deepEqual(faqInPage(p.html).map((q) => q.answer), ["It costs 5 XTS a month."], "the checked-not-found line stands in the FAQ data");
   assert.equal(joined([built("n1", "alpha", [["Is it cheaper?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })])])[0].checks.checkedNotFoundShown.state, "NOT MEASURED");

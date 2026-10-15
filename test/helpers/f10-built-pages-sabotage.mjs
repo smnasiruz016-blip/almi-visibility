@@ -133,6 +133,7 @@ const SABOTAGES = [
   ["Z09", "RR-269 a checked-not-found line is shown without the pages it checked", JP, "${r.checked.map((c) => `<a class=\"src\" href=\"${esc(c.url)}\" rel=\"nofollow\">${esc(c.name)}</a>`).join(\", \")}", "", CN],
   ["Z10", "RR-269 a general view stands without its part a", JP, "return html.includes(shown) && partA && ", "return html.includes(shown) && ", "GENERAL VIEW · FIRING CONTROL (RR-265)"],
   ["Z11", "RR-269 a refused checked-not-found record does not stop the builder", BLD, "if (cnf.refused.length) {", "if (false) {", "CHECKED, NOT FOUND · THE BUILDER REFUSES (RR-269)"],
+  ["Z12", "RR-269 a general-view item's part a is not read as its direct answer", JP, ": it.generalView && it.checkedNotFound?.length ? html.includes(", ": false ? html.includes(", "GENERAL VIEW · FIRING CONTROL (RR-265)"],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

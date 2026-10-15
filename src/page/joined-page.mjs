@@ -460,7 +460,10 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
       [partsOffPage.length ? `title part(s) whose need is not on the page: ${partsOffPage.join(", ")}` : null, promisesBroken.length ? `title part(s) the page does not keep: ${promisesBroken.join(", ")}` : null, yearOk ? null : "the title carries a year although a fact was read in another year, has no recheck interval or is overdue"].filter(Boolean).join("; "))
       : Object.freeze({ state: CHECK.NOT_MEASURED, why: "the title is not composed from recorded search phrases" }),
     /* RR-262: in an item recorded to lead with the product's own statements, what follows the question at once is its first product card; its central sourced statement is still required */
-    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && (led(it) ? ledFirst(it) : html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`)); }), "an item's question is not followed at once by its central answer"),
+    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && (led(it) ? ledFirst(it)
+      /* RR-269 §3: a general-view item's part a (what was checked and not found) is its direct answer, and stands first */
+      : it.generalView && it.checkedNotFound?.length ? html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p class="checked-not-found" data-answer-kind="${ANSWER_KIND.CHECKED_NOT_FOUND}" data-record-id="${esc(it.checkedNotFound[0].id)}">`)
+      : html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`)); }), "an item's question is not followed at once by its central answer"),
     productLedNeeds: leadAsked.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no need of this page is recorded to lead with the product's own statements" }) : state(leadFaults.length === 0, leadFaults.join("; ")),
     b4SourcedCheckedAndRecheckable: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "") && html.includes(`${STRUCTURE.checked} ${esc(c.readOn)}`)) && noInterval.length === 0 && overdue.length === 0,
       [noInterval.length ? `${noInterval.length} fact(s) have no recorded recheck interval` : null, overdue.length ? `${overdue.length} fact(s) are past their recheck interval` : null].filter(Boolean).join("; ") || "a fact lacks its source or the day it was checked"),
@@ -590,11 +593,14 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
     `<summary>${esc(it.heading.shown ?? it.heading.wording)}</summary>`,
     /* RR-262: an item recorded to lead with the product's own statements shows its product cards first, then its one sourced line */
     ...(it.lead === LEAD.PRODUCT ? leadCards(it) : []),
-    /* RR-269 §3: part a — what was checked and not found, with the official pages checked, linked; never in the FAQ structured data */
-    ...(it.checkedNotFound ?? []).map(checkedLine),
+    /* RR-269 §3: what was checked and not found, with the official pages checked, linked; never in the FAQ structured data. On a general-view
+     * item it is part a, so it comes first (RR-265 §2: a, b, then the general view) and is that item's direct answer; on any other item
+     * the sourced answer comes first and the line follows it */
+    ...(it.generalView ? (it.checkedNotFound ?? []).map(checkedLine) : []),
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
       ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
     ...tables.filter((t) => t.need === it.needKey).map(table),
+    ...(it.generalView ? [] : (it.checkedNotFound ?? []).map(checkedLine)),
     /* RR-265: the general view, after the sourced sentences, labelled; its source is the client AI's research record */
     ...(it.generalView ? [`<p class="general-view" data-answer-kind="${ANSWER_KIND.GENERAL_VIEW}"><strong>${STRUCTURE.generalView}:</strong> ${esc(it.generalView.text)} <span class="src">${STRUCTURE.source}: ${esc(it.generalView.source)}</span></p>`] : []),
     it.questions.length > 1 ? `<p class="also">${STRUCTURE.alsoAsked}: ${it.questions.slice(1).map((q) => esc(q.wording)).join(" · ")}</p>` : "",

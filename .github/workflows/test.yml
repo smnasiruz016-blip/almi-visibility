@@ -75,11 +75,22 @@ jobs:
         with:
           path: almi-visibility
 
+      # 🔴 RR-274 (owner decision, 16 Oct 2026): the data is PUBLIC — smnasiruz016-blip/almi-visibility-data-public, its history cleaned of
+      # every page text of another organisation, every capture and client file, and personal data. It is checked out WITHOUT a key, into
+      # the same sibling folder (almi-visibility-data), so config/subject-roots.mjs resolves unchanged.
+      - uses: actions/checkout@v4
+        with:
+          repository: smnasiruz016-blip/almi-visibility-data-public
+          path: almi-visibility-data
+          persist-credentials: false
+
+      # The full texts stay PRIVATE, in the repository that held the data before (smnasiruz016-blip/almi-visibility-data), read with the
+      # SAME read-only deploy key as before, into ../almi-visibility-sources (config/private-sources.mjs) — no new credential.
       - uses: actions/checkout@v4
         with:
           repository: smnasiruz016-blip/almi-visibility-data
           ssh-key: ${{ secrets.ALMI_VISIBILITY_DATA_KEY }}
-          path: almi-visibility-data
+          path: almi-visibility-sources
           persist-credentials: false
 
       - uses: actions/setup-node@v4

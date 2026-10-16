@@ -12,7 +12,8 @@
  * or handed an empty page by goes to the client's own browser route only when the client has connected and started one — none is declared
  * here, so it is BLOCKED with its URL and reason. Each fact is then CURRENT, CHANGED, BLOCKED or REJECTED (src/facts/source-reader.mjs);
  * a CHANGED fact flags every page that uses it for rebuild; no stored fact is rewritten. Written, through the governed boundary, into the
- * batch's own stores: every read (source-reads.jsonl — the page text kept privately with its sha256, URL and read date) and every recheck
+ * batch's own stores: every read (source-reads.jsonl — its sha256, URL and read date; RR-274: the page text itself only in the PRIVATE sources
+ * root, src/facts/private-texts.mjs, at this batch's path there — the public store holds text null) and every recheck
  * (fact-rechecks.jsonl). The connector is the client's declared CITED_SOURCES connector, and it must reach this batch. Counts only are printed.
  *
  *   node bin/source-facts.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD --extract=fact-proposals-YYYY-MM-DD.json --tenant=<id> --actor=<id> [--confirm]
@@ -36,8 +37,9 @@
  * RR-269 §2 · the live read of the sources a filed list names and of no other (a PDF is read by the PDF reader: its text, or
  * NOT_A_TEXT_DOCUMENT when it shows none); the facts that cite them are rechecked.
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, mkdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import { privateSourcesRoot, publicCopy, withPrivateTexts } from "../src/facts/private-texts.mjs";
 import { performance } from "node:perf_hooks";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
@@ -81,6 +83,13 @@ if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH s
 const batchDir = join(lookupStore(index, "RESEARCH").dir, BATCH);
 if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT: the declared research batch has no directory in the RESEARCH store; no request was made"); process.exit(3); }
 const json = (f) => { try { return JSON.parse(readFileSync(join(batchDir, f), "utf8")); } catch { return null; } };
+/* RR-274: a page text of another organisation is kept PRIVATELY (src/facts/private-texts.mjs), at this batch's own path under the private
+ * sources root — the public batch keeps its URL, read date and sha256 only. A run that would keep a text refuses without that root. */
+const PRIVATE = privateSourcesRoot(process.env);
+/* bound on a line that names the RESEARCH store: these are THIS research batch's own texts, decided by RESOURCES.researchBatch above */
+const privateBatchDir = join(PRIVATE.dir, relative(lookupStore(index, "RESEARCH").rootPath, batchDir));
+const privateRows = (f) => { try { return readFileSync(join(privateBatchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
+const refuseWithoutPrivate = (what) => { if (PRIVATE.state !== "DECLARED") { console.error(`🔴 REFUSED — PRIVATE_SOURCES_ABSENT: ${what} keeps page texts, and the private sources root is not here (config/private-sources.mjs). NO REQUEST WAS MADE AND NOTHING WAS WRITTEN.`); process.exit(3); } };
 /* the batch's fact registry: the one file it files as facts-registry-<day>.json — none, or more than one, refuses */
 const registries = readdirSync(batchDir).filter((f) => /^facts-registry-\d{4}-\d{2}-\d{2}\.json$/.test(f));
 if (registries.length !== 1) { console.error(`🔴 REFUSED — FACT_REGISTRY_NOT_ONE: the batch files ${registries.length} fact registries; no request was made`); process.exit(3); }
@@ -111,6 +120,7 @@ if (!live) { console.log("  NOT RUN — no --live: the plan only; no request was
 const declared = lookupConnector(index, SUBJECT, KIND);
 if (declared.state !== "DECLARED" || !(declared.connector.reaches ?? []).some((x) => x.resourceKind === "RESEARCH_BATCH" && x.resourceRef === BATCH)) { console.error("🔴 REFUSED — CITED_SOURCES_CONNECTOR_DOES_NOT_REACH_THIS_BATCH: the client declares no such connector for this batch. NO REQUEST WAS MADE."); process.exit(3); }
 
+refuseWithoutPrivate("a live read");
 const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: KIND }));
 const before = pacingRecord();
 const robots = robotsOn(CONNECTOR.fetch);
@@ -134,7 +144,11 @@ console.log(`  pages flagged    ${counts.pagesFlagged.length} for rebuild (a CHA
 const append = (records, file) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: store.rootPath, auditRepo: REPO, permission, store: createJsonlStore(join(batchDir, file)), records,
   targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
 const kept = (g) => g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED";
-const g = append([...reads.values()].map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), "source-reads.jsonl");
+/* RR-274: the full read first, privately; then its public copy (no text) — a public record never names a text that is not kept */
+const fullReads = [...reads.values()].map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run: runId }));
+const gp = appendPrivate(fullReads, "source-reads.jsonl", instant);
+if (!kept(gp)) { console.error(`  🔴 ${gp.outcome} — the texts did NOT persist privately; nothing public was written`); process.exit(1); }
+const g = append(fullReads.map(publicCopy), "source-reads.jsonl");
 if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the reads did NOT persist`); process.exit(1); }
 const h = append(results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), "fact-rechecks.jsonl");
 if (!kept(h)) { console.error(`  🔴 ${h.outcome} — the rechecks did NOT persist`); process.exit(1); }
@@ -147,21 +161,30 @@ console.log(`  kept             ${reads.size} read(s) in the batch's source-read
  * its hash, URL and read date; every fact whose source is imported is rechecked against that text (CURRENT or CHANGED, the stored fact
  * untouched). With --confirm both are appended; without it nothing is written.
  */
+/** RR-274: one governed append into the PRIVATE sources root — the full texts, at this batch's own path there. */
+function appendPrivate(records, file, instant) {
+  mkdirSync(privateBatchDir, { recursive: true });
+  return executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: PRIVATE.dir, auditRepo: REPO, permission, store: createJsonlStore(join(privateBatchDir, file)), records,
+    targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:private:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
+}
+
 function importRun() {
-  if (!existsSync(join(batchDir, IMPORT))) { console.error(`🔴 REFUSED — IMPORT_FOLDER_ABSENT: the batch files no folder ${IMPORT}; nothing written`); process.exit(3); }
+  /* RR-274: the client's captures and files are other organisations' texts — filed in the PRIVATE batch folder, never the public one */
+  refuseWithoutPrivate("an import");
+  if (!existsSync(join(privateBatchDir, IMPORT))) { console.error(`🔴 REFUSED — IMPORT_FOLDER_ABSENT: the batch files no folder ${IMPORT}; nothing written`); process.exit(3); }
   const instant = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const run = `source-facts:import:${instant}`;
   const got = [], refused = [];
   if (IMPORT === "client-files") {
-    const manifest = json(join(IMPORT, "manifest.json"));
+    const manifest = (() => { try { return JSON.parse(readFileSync(join(privateBatchDir, IMPORT, "manifest.json"), "utf8")); } catch { return null; } })();
     if (!Array.isArray(manifest?.files)) { console.error("🔴 REFUSED — CLIENT_FILES_MANIFEST_UNREADABLE: client-files/manifest.json names no files; nothing written"); process.exit(3); }
     for (const m of manifest.files) {
-      if (typeof m?.file !== "string" || m.file.includes("/") || m.file.includes("\\") || !/^https?:\/\//.test(m?.url ?? "") || !/^\d{4}-\d{2}-\d{2}$/.test(m?.suppliedOn ?? "") || !existsSync(join(batchDir, IMPORT, m.file))) { refused.push({ file: m?.file ?? "(none)", reason: "CLIENT_FILE_NOT_NAMED_WITH_URL_AND_DAY" }); continue; }
-      got.push(clientFileRead({ bytes: readFileSync(join(batchDir, IMPORT, m.file)), file: `${IMPORT}/${m.file}`, url: m.url, suppliedOn: m.suppliedOn, outOfDate: m.outOfDate ?? null }));
+      if (typeof m?.file !== "string" || m.file.includes("/") || m.file.includes("\\") || !/^https?:\/\//.test(m?.url ?? "") || !/^\d{4}-\d{2}-\d{2}$/.test(m?.suppliedOn ?? "") || !existsSync(join(privateBatchDir, IMPORT, m.file))) { refused.push({ file: m?.file ?? "(none)", reason: "CLIENT_FILE_NOT_NAMED_WITH_URL_AND_DAY" }); continue; }
+      got.push(clientFileRead({ bytes: readFileSync(join(privateBatchDir, IMPORT, m.file)), file: `${IMPORT}/${m.file}`, url: m.url, suppliedOn: m.suppliedOn, outOfDate: m.outOfDate ?? null }));
     }
   } else {
-    for (const f of readdirSync(join(batchDir, IMPORT)).filter((x) => x.endsWith(".txt")).sort()) {
-      const r = captureRead({ raw: readFileSync(join(batchDir, IMPORT, f), "utf8"), file: `${IMPORT}/${f}` });
+    for (const f of readdirSync(join(privateBatchDir, IMPORT)).filter((x) => x.endsWith(".txt")).sort()) {
+      const r = captureRead({ raw: readFileSync(join(privateBatchDir, IMPORT, f), "utf8"), file: `${IMPORT}/${f}` });
       (r.state === "REFUSED" ? refused : got).push(r);
     }
   }
@@ -183,7 +206,11 @@ async function recheckImported({ got, cited, imported, instant, run }) {
   const put =(records, file) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: store.rootPath, auditRepo: REPO, permission, store: createJsonlStore(join(batchDir, file)), records,
     targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
   const ok = (g) => g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED";
-  const g = put(got.map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run })), "source-reads.jsonl");
+  /* RR-274: the full read privately first, then its public copy (no text) */
+  const fullReads = got.map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run }));
+  const gp = appendPrivate(fullReads, "source-reads.jsonl", instant);
+  if (!ok(gp)) { console.error(`  🔴 ${gp.outcome} — the imported texts did NOT persist privately; nothing public was written`); process.exit(1); }
+  const g = put(fullReads.map(publicCopy), "source-reads.jsonl");
   if (!ok(g)) { console.error(`  🔴 ${g.outcome} — the imported reads did NOT persist`); process.exit(1); }
   if (results.length) { const h = put(results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run })), "fact-rechecks.jsonl"); if (!ok(h)) { console.error(`  🔴 ${h.outcome} — the rechecks did NOT persist`); process.exit(1); } }
   console.log(`  kept             ${got.length} read(s) in the batch's source-reads store · ${results.length} recheck(s) in its fact-rechecks store · ${Math.round((performance.now() - t0) / 1000)} s`);
@@ -197,7 +224,8 @@ async function extractRun() {
   if (!proposals || typeof filed.route !== "string" || filed.route === "") { console.error("🔴 REFUSED — PROPOSALS_FILE_UNREADABLE: the batch files no readable proposals with the route that proposed them; nothing written"); process.exit(3); }
   const rows = (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
   /* the latest stored read of each source, and the latest stored recheck of each fact */
-  const readOf = new Map(rows("source-reads.jsonl").map((r) => [r.url, r]));
+  /* RR-274: each public read joined to its private text (by key, and only when the text hashes to the public sha256) */
+  const readOf = new Map(withPrivateTexts(rows("source-reads.jsonl"), privateRows("source-reads.jsonl"), { rootState: PRIVATE.state }).map((r) => [r.url, r]));
   const lastCheck = new Map(rows("fact-rechecks.jsonl").map((c) => [c.factId, c]));
   const linkOf = new Map(facts.map((f) => [f.factId, f.link]));
   const instant = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");

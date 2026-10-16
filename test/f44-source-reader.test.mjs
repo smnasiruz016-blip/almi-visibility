@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync, execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
@@ -31,6 +31,7 @@ import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
 import { declaredWorld, FIXTURE_TENANT } from "./helpers/declared-world.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
+import { privateSourcesRoot, withPrivateTexts, publicCopy, TEXT_AT, TEXT_MISSING } from "../src/facts/private-texts.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -327,6 +328,8 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
   const SUBJECTS = [["fixture-tests", "fixture-test-facts", LANG, "a score of 350 is a grade B"], ["fixture-town", "fixture-town-facts", TOWN, "Glass bottles go in the green bin"]];
   const W = declaredWorld({ extra: [...SUBJECTS.map(([, batch]) => ["RESEARCH_BATCH", batch]), ["FACT_REGISTRY", "fixture-town/facts"]] });
   const dir = mkdtempSync(join(tmpdir(), "f44-pp-"));
+  /* RR-274: the private sources root of this world — every page text, capture and client file lives there, never in the public batch */
+  const P = mkdtempSync(join(tmpdir(), "f44-priv-"));
   try {
     const reg = JSON.parse(readFileSync(join(W.root, "roots.json"), "utf8"));
     for (const [subjectId, batch] of SUBJECTS) { mkdirSync(join(W.root, subjectId), { recursive: true }); reg.subjects.push({ subjectId, path: subjectId, members: [{ resourceKind: "RESEARCH_BATCH", resourceRef: batch }, ...(subjectId === "fixture-town" ? [{ resourceKind: "FACT_REGISTRY", resourceRef: "fixture-town/facts" }] : [])], connectors: [{ connectorId: "cited-sources", kind: "CITED_SOURCES", credential: null, reaches: subjectId === "fixture-tests" ? [{ resourceKind: "RESEARCH_BATCH", resourceRef: batch }] : [{ resourceKind: "FACT_REGISTRY", resourceRef: "fixture-town/facts" }] }] }); }
@@ -343,7 +346,7 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     }
     writeFileSync(join(dir, "replay.json"), JSON.stringify(replay));
     const log = join(dir, "egress.json");
-    const run = (subject, batch, mode, ...extra) => spawnSync(process.execPath, ["--import", PRELOAD, "bin/source-facts.mjs", ...W.argv([`--subject=${subject}`, `--research-batch=${batch}`, `--on=${ON}`, ...extra])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log, NO_EGRESS_REPLAY: join(dir, "replay.json") } });
+    const run = (subject, batch, mode, ...extra) => spawnSync(process.execPath, ["--import", PRELOAD, "bin/source-facts.mjs", ...W.argv([`--subject=${subject}`, `--research-batch=${batch}`, `--on=${ON}`, ...extra])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), ALMIVISIBILITY_PRIVATE_SOURCES: P, NO_EGRESS_MODE: mode, NO_EGRESS_LOG: log, NO_EGRESS_REPLAY: join(dir, "replay.json") } });
     const egress = () => JSON.parse(readFileSync(log, "utf8")).fetch;
     const dry = run("fixture-tests", "fixture-test-facts", "refuse");
     assert.deepEqual([dry.status, /facts {12}2 \(registry 1 · claims naming no registry record 1\) · with a recorded word-for-word quotation 1 of 2/.test(dry.stdout), /NOT RUN — no --live/.test(dry.stdout), egress()], [0, true, true, 0], dry.stdout + dry.stderr);
@@ -353,12 +356,17 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     const unreached = run("fixture-town", "fixture-town-facts", "refuse", "--live", "--confirm");
     /* the connector is declared, and reaches the client's fact registry — not this batch: refused by the reach check, before any request */
     assert.deepEqual([unreached.status, /CITED_SOURCES_CONNECTOR_DOES_NOT_REACH_THIS_BATCH/.test(unreached.stderr), egress(), existsSync(join(W.root, "research", "fixture-town-facts", "source-reads.jsonl"))], [3, true, 0, false], unreached.stdout + unreached.stderr);
+    /* RR-274 CONTROL: without the private sources root a live read keeps no text anywhere — refused before the connector, no request */
+    const noPriv = spawnSync(process.execPath, ["--import", PRELOAD, "bin/source-facts.mjs", ...W.argv(["--subject=fixture-tests", "--research-batch=fixture-test-facts", `--on=${ON}`, "--live", "--confirm"])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), ALMIVISIBILITY_PRIVATE_SOURCES: join(P, "absent"), NO_EGRESS_MODE: "replay", NO_EGRESS_LOG: log, NO_EGRESS_REPLAY: join(dir, "replay.json") } });
+    assert.deepEqual([noPriv.status, /REFUSED — PRIVATE_SOURCES_ABSENT/.test(noPriv.stderr), egress(), existsSync(join(W.root, "research", "fixture-test-facts", "source-reads.jsonl"))], [3, true, 0, false], noPriv.stdout + noPriv.stderr);
     const live = run("fixture-tests", "fixture-test-facts", "replay", "--live", "--confirm");
     assert.equal(live.status, 0, live.stdout + live.stderr);
     assert.match(live.stdout, /requests {9}2 released through the paced path \(robots 1 · sources 1\) of a bound of 100/);
     assert.match(live.stdout, /recheck {10}2 fact\(s\): CURRENT 1 · CHANGED 0 · BLOCKED 0 · REJECTED 1/);
-    const b = join(W.root, "research", "fixture-test-facts");
-    const reads = rowsIn(join(b, "source-reads.jsonl")), checks = rowsIn(join(b, "fact-rechecks.jsonl"));
+    const b = join(W.root, "research", "fixture-test-facts"), pb = join(P, "research", "fixture-test-facts");
+    /* RR-274: the public read keeps no text — it names where the text is; the private read holds it, under the same key and sha256 */
+    const pub = rowsIn(join(b, "source-reads.jsonl")), reads = rowsIn(join(pb, "source-reads.jsonl")), checks = rowsIn(join(b, "fact-rechecks.jsonl"));
+    assert.deepEqual([pub.length, pub[0].text, pub[0].textAt, pub[0].measurement_key === reads[0].measurement_key, pub[0].sha256 === reads[0].sha256], [1, null, TEXT_AT, true, true], "a page text reached the public batch, or the two records are not one read");
     assert.deepEqual([reads.length, reads[0].state, reads[0].sha256 === createHash("sha256").update(reads[0].text).digest("hex"), reads[0].readOn, checks.map((c) => [c.factId, c.state]).sort()], [1, READ_STATE.READ, true, ON, [["claim:c2", RECHECK.REJECTED], ["f1", RECHECK.CURRENT]]]);
     assert.equal(JSON.parse(readFileSync(join(b, "facts-registry-2026-09-01.json"), "utf8")).facts[0].readOn, "2026-09-01", "a stored fact was rewritten");
     /* RR-268 C · --extract: the filed proposals judged on the STORED text — no connector, no request; kept only with --confirm, with the
@@ -383,7 +391,7 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     assert.deepEqual([ledgers.length, ledgers[0]?.aiRoute, ledgers[0]?.money.amountState, ledgers[0]?.providerCalls.total], [1, { name: "CLIENT_SUBSCRIPTION_SESSION", metered: false }, "ZERO_BY_TARIFF", 0], `the route's NOT METERED cost entry was not kept once: ${ledgers.map((e) => e.file).join(" | ")}`);
     /* RR-269 §1 · --import of the client's own reads: no connector, no request; a capture is VIA CAPTURE with its own read date; the facts
      * citing it are rechecked against its text; a refused capture is named; nothing kept without --confirm */
-    const cap = join(b, "browser-captures-2026-09-11"); mkdirSync(cap);
+    const cap = join(pb, "browser-captures-2026-09-11"); mkdirSync(cap, { recursive: true });
     writeFileSync(join(cap, "01-rules.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: client browser (a person, in the client's own browser) · captured: main page text\n---\nRules. Each sub-test is scored from 0 to 500 and a score of 400 is a grade B.\n${LONG.join("\n")}\n`);
     writeFileSync(join(cap, "02-elsewhere.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: a search engine\n---\nAnything.\n`);
     writeFileSync(join(cap, "00-README.md"), "not a capture");
@@ -393,12 +401,12 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     assert.deepEqual([idry.status, /files {12}2: imported 1 \(READ 1\) · refused 1 \(browser-captures-2026-09-11\/02-elsewhere.txt CAPTURE_ROUTE_IS_NOT_CLIENT_BROWSER\)/.test(idry.stdout), /recheck {10}2 fact\(s\) cite an imported source: CURRENT 0 · CHANGED 1 · BLOCKED 0 · REJECTED 1/.test(idry.stdout), /NOT WRITTEN/.test(idry.stdout), rowsIn(join(b, "source-reads.jsonl")).length, egress()], [0, true, true, true, 1, 0], idry.stdout + idry.stderr);
     const iok = imp("browser-captures-2026-09-11", "--confirm");
     assert.equal(iok.status, 0, iok.stdout + iok.stderr);
-    const capRead = rowsIn(join(b, "source-reads.jsonl")).at(-1), capCheck = rowsIn(join(b, "fact-rechecks.jsonl")).filter((c) => c.factId === "f1").at(-1);
+    const capRead = rowsIn(join(pb, "source-reads.jsonl")).at(-1), capCheck = rowsIn(join(b, "fact-rechecks.jsonl")).filter((c) => c.factId === "f1").at(-1);
     assert.deepEqual([capRead.via, capRead.route, capRead.readOn, capRead.capture.file, capCheck.state, capCheck.route, egress()], [VIA.CAPTURE, ROUTE.BROWSER, "2026-09-11", "browser-captures-2026-09-11/01-rules.txt", RECHECK.CHANGED, ROUTE.BROWSER, 0], "the capture is not kept as the client's own read, or the fact it changed is not CHANGED");
     /* a supplied file: kept with its URL, its day and OUT_OF_DATE; no fact is rechecked against it, and a proposal on it is REJECTED */
-    mkdirSync(join(b, "client-files"));
-    writeFileSync(join(b, "client-files", "old.pdf"), makePdf({ lines: ["Price list.", "The fee is 30,000 for the test.", ...LONG] }));
-    writeFileSync(join(b, "client-files", "manifest.json"), JSON.stringify({ files: [{ file: "old.pdf", url, suppliedOn: "2026-09-10", outOfDate: "the client says these are last year's prices" }] }));
+    mkdirSync(join(pb, "client-files"));
+    writeFileSync(join(pb, "client-files", "old.pdf"), makePdf({ lines: ["Price list.", "The fee is 30,000 for the test.", ...LONG] }));
+    writeFileSync(join(pb, "client-files", "manifest.json"), JSON.stringify({ files: [{ file: "old.pdf", url, suppliedOn: "2026-09-10", outOfDate: "the client says these are last year's prices" }] }));
     const fok = imp("client-files", "--confirm");
     assert.deepEqual([fok.status, new RegExp(`read  CLIENT_FILE ${url} · read 2026-09-10 · \\d+ chars · PDF 1 page\\(s\\) · OUT_OF_DATE`).test(fok.stdout), /recheck {10}0 fact\(s\)/.test(fok.stdout), rowsIn(join(b, "source-reads.jsonl")).at(-1).currency.state], [0, true, true, CURRENCY.OUT_OF_DATE], fok.stdout + fok.stderr);
     writeFileSync(join(b, "fact-proposals-2026-09-10-2.json"), JSON.stringify({ route: "CLIENT_SUBSCRIPTION_SESSION", proposals: [{ proposalId: "p4", fact: null, need: "n1", source: url, sentence: "The fee is 30,000 for the test.", quotation: "The fee is 30,000 for the test." }] }));
@@ -414,10 +422,27 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     assert.match(rl.stdout, /read list {8}read-list-2026-09-10.json: 2 source\(s\) named — no other source is read · facts citing them 2/);
     assert.match(rl.stdout, /requests {9}3 released through the paced path \(robots 1 · sources 2\)/);
     assert.match(rl.stdout, /PDF documents {4}1: text read 1 · NOT_A_TEXT_DOCUMENT 0/);
-    const pdfStored = rowsIn(join(b, "source-reads.jsonl")).filter((r) => r.url === "https://tests.invalid/rules.pdf").at(-1);
+    const pdfStored = rowsIn(join(pb, "source-reads.jsonl")).filter((r) => r.url === "https://tests.invalid/rules.pdf").at(-1);
     assert.deepEqual([pdfStored.state, pdfStored.document, quotationIn("A score of 350 is a grade B.", pdfStored.text), /%PDF/.test(pdfStored.text)], [READ_STATE.READ, "PDF", true, false], "the PDF's text was not kept, or its bytes were");
-  } finally { W.cleanup(); rmSync(dir, { recursive: true, force: true }); }
+    /* RR-274: after every mode, the public batch holds no page text at all */
+    assert.equal(rowsIn(join(b, "source-reads.jsonl")).filter((r) => typeof r.text === "string").length, 0, "a page text reached the public batch");
+  } finally { W.cleanup(); rmSync(dir, { recursive: true, force: true }); rmSync(P, { recursive: true, force: true }); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
+});
+
+/* ================= RR-274 · the page texts kept privately ================= */
+test("RR-274 · PRIVATE TEXTS · FIRING CONTROL: a public copy keeps no text and names where it is; a join takes the private text only by key and only when it hashes to the public sha256; without the root, nothing is joined", () => {
+  const text = "Each sub-test is scored from 0 to 500.";
+  const full = { measurement_key: "source_page_read:a", url: "https://tests.invalid/a", state: READ_STATE.READ, sha256: createHash("sha256").update(text).digest("hex"), text };
+  const pub = publicCopy(full);
+  assert.deepEqual([pub.text, pub.textAt, pub.sha256, pub.url, publicCopy({ state: "BLOCKED", reason: "x" }).textAt], [null, TEXT_AT, full.sha256, full.url, undefined]);
+  assert.equal(withPrivateTexts([pub], [full])[0].text, text);
+  assert.deepEqual(withPrivateTexts([pub], [{ ...full, text: "Each sub-test is scored from 0 to 600." }])[0].textMissing, TEXT_MISSING.HASH_DIFFERS, "a private text that is not the one the public record states was taken");
+  assert.equal(withPrivateTexts([pub], [{ ...full, measurement_key: "source_page_read:b" }])[0].textMissing, TEXT_MISSING.ABSENT, "a text of another read was taken");
+  assert.equal(withPrivateTexts([pub], [full], { rootState: "ABSENT" })[0].textMissing, TEXT_MISSING.ROOT_ABSENT);
+  /* CONTROL: a record that never held a text is passed through untouched */
+  assert.equal(withPrivateTexts([full], [])[0].text, text);
+  assert.equal(privateSourcesRoot({ ALMIVISIBILITY_PRIVATE_SOURCES: join(tmpdir(), "rr274-no-such-root") }).state, "ABSENT");
 });
 
 /* ================= REAL ================= */
@@ -427,7 +452,13 @@ test("REAL · the declared batch's stored recheck: every fact its pages use has 
   const research = lookupStore(index, "RESEARCH");
   const dir = research.state === "DECLARED" ? join(research.dir, "rr254-test-pages-2026-10-12") : null;
   if (!dir || !existsSync(join(dir, "fact-rechecks.jsonl"))) { t.skip("no stored recheck in the declared batch"); return; }
-  const checks = rowsIn(join(dir, "fact-rechecks.jsonl")), reads = rowsIn(join(dir, "source-reads.jsonl"));
+  /* RR-274: the public batch keeps no page text; each READ's text is joined from the private sources root by key and sha256 */
+  const priv = privateSourcesRoot(process.env);
+  const publicReads = rowsIn(join(dir, "source-reads.jsonl"));
+  assert.equal(publicReads.filter((r) => typeof r.text === "string").length, 0, "a page text is kept in the public data repository");
+  assert.equal(priv.state, "DECLARED", "the private sources root is not here — the texts cannot be rechecked");
+  const privPath = join(priv.dir, relative(research.rootPath, dir), "source-reads.jsonl");
+  const checks = rowsIn(join(dir, "fact-rechecks.jsonl")), reads = withPrivateTexts(publicReads, existsSync(privPath) ? rowsIn(privPath) : [], { rootState: priv.state });
   const latest = [...new Map(checks.map((c) => [c.factId, c])).values()];
   assert.ok(latest.length > 0 && latest.every((c) => Object.values(RECHECK).includes(c.state)), "a fact has no state");
   assert.ok(latest.filter((c) => c.state === RECHECK.CHANGED).every((c) => c.rebuild.length === c.pages.length && c.pages.length > 0), "a CHANGED fact flags no page");

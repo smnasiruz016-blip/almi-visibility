@@ -71,7 +71,7 @@ test("HG-1 · every sabotage harness and every census-found writer imports the g
   /* RR-261: + f10-built-pages-sabotage.mjs (F10 Acceptance Amendment 4's sabotage harness) = 128 */
   /* RR-263: − f23-owner-rule-sabotage.mjs — it proved a rule of the earlier crawl-batch link audit, which F23 Acceptance Amendment 2 no
    * longer reads; F23's limbs are all in f23-sabotage.mjs = 127 */
-  assert.equal(gated.length, 128, "the gated population moved — a new harness or writer must import the gate, and this census is restated by name"); /* RR-247: 118 harnesses (rr247-sabotage.mjs included) + 5 census-found writers + the clone proof; RR-248: + rr248-sabotage.mjs (the freshness check's sabotage harness) = 125; RR-259: + f11-sabotage.mjs (F11's sabotage harness) = 126; RR-260: + f12-sabotage.mjs (F12's sabotage harness) = 127; RR-268: + f44-source-reader-sabotage.mjs (F44 Amendment 2's source-reader harness) = 128 */
+  assert.equal(gated.length, 129, "the gated population moved — a new harness or writer must import the gate, and this census is restated by name"); /* RR-247: 118 harnesses (rr247-sabotage.mjs included) + 5 census-found writers + the clone proof; RR-248: + rr248-sabotage.mjs (the freshness check's sabotage harness) = 125; RR-259: + f11-sabotage.mjs (F11's sabotage harness) = 126; RR-260: + f12-sabotage.mjs (F12's sabotage harness) = 127; RR-268: + f44-source-reader-sabotage.mjs (F44 Amendment 2's source-reader harness) = 128; RR-271: + rr271-publish-sabotage.mjs (the publish step's harness) = 129 */
 });
 
 test("HG-2 · BEHAVIOUR: every other file a bare `node --test` discovers, run bare, tries no write, no spawn and no network (a production entry point: the confined test store only)", () => {

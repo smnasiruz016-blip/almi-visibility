@@ -46,6 +46,7 @@ const AUTH_OR_PAYMENT_STATUSES = new Set([401, 402, 407]);
 const originOf = (u) => { try { return new URL(u).origin; } catch { return null; } };
 
 class RunCapReached extends Error { constructor() { super("RUN_CAP: the run's total request ceiling is reached — no request was made"); this.code = "RUN_CAP"; } }
+class NoRetry extends Error { constructor() { super("NO_RETRY: the GREEN forbids a retry — no second request was made"); this.code = "NO_RETRY"; } }
 
 /**
  * @param {{ fetchImpl: Function, admits: (url: string) => boolean, bounds?: object, sleepImpl?: Function, monotonic?: Function }} o
@@ -59,12 +60,15 @@ export function createSameOriginPolicy({ fetchImpl, admits, bounds = LIVE_RENDER
    * The first version took a delta of the run-wide counter across an await, and concurrent subresources inflated it: the 3 Oct live
    * render refused 84 requests as REQUEST_CAP at 81 sent in all. */
   const perCall = new AsyncLocalStorage();
+  /* F22 Amendment 1 (C4): bounds.retries === 0 is a GREEN that forbids retries — a resolve whose request failed sends no second one */
+  const noRetry = bounds.retries === 0;
   const ceiled = (url, init) => {
+    const own = perCall.getStore();
+    if (noRetry && own?.failed) return Promise.reject(new NoRetry());
     if (sent >= maxTotal) return Promise.reject(new RunCapReached());
     sent += 1;
-    const own = perCall.getStore();
     if (own) own.n += 1;
-    return fetchImpl(url, init);
+    return Promise.resolve().then(() => fetchImpl(url, init)).catch((e) => { if (own) own.failed = true; throw e; });
   };
   const fetcher = createFetcher({ fetchImpl: ceiled, admits, intervalMs: bounds.intervalMs, timeoutMs: bounds.timeoutMs, maxResponseBytes: bounds.maxResponseBytes, ...(sleepImpl ? { sleepImpl } : {}), ...(monotonic ? { monotonic } : {}) });
   const robots = createRobotsCache({ fetchImpl: ceiled, timeoutMs: bounds.timeoutMs, beforeRequest: () => fetcher.pace("robots") });

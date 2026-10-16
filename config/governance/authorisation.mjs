@@ -193,6 +193,10 @@ export const ACTIONS = Object.freeze({
      * (bin/live-security.mjs), kept in the research batch's own live-security store, the same family and resource class; a classification
      * only, granting no permission. */
     "APPEND_LIVE_SECURITY_READS",
+    /* F22 Amendment 1 (16 Oct 2026): the renders of the client's built pages — offline, and live under the owner's GREEN — (bin/render-
+     * built-pages.mjs), kept in the research batch's own render store, the same family and resource class; a classification only, granting
+     * no permission. */
+    "APPEND_BUILT_PAGE_RENDERS",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

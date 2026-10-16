@@ -53,6 +53,8 @@ const CONNECTOR_MODE = Object.freeze([
   ["bin/mobile-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
   ["bin/quote-match.mjs", [P]],
   ["bin/render-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
+  /* F22 Amendment 1: the renders of the client's built pages (bin/render-built-pages.mjs) — one more connector entry point */
+  ["bin/render-built-pages.mjs", [S, "--on=2026-09-01", "--live"]],
   ["bin/render-collect.mjs", [`--source-batch=${BATCH}`, `--evidence-batch=${EVIDENCE}`, S, "--live", "--i-have-the-owners-green"]],
   /* RR-268: F44's source reader (bin/source-facts.mjs) — one more connector entry point, measured by the census below */
   ["bin/source-facts.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
@@ -124,6 +126,8 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/mobile-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
     "bin/quote-match.mjs": ["ALWAYS", ["USAGE"]],
     "bin/render-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
+    /* F22 Amendment 1: one usage exit before the gate (the subject, the day, one mode, a limit inside the GREEN) */
+    "bin/render-built-pages.mjs": ["live", ["USAGE"]],
     "bin/render-collect.mjs": ["ALWAYS", ["USAGE"]],
     /* RR-268 C: the recorder also exists for a confirmed --extract run (its NOT METERED cost entry); an --extract name outside the batch is a usage refusal */
     /* RR-269: two more usage exits before the gate — --import and --read-list named wrongly */

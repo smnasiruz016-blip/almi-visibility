@@ -17,10 +17,16 @@
  *         CONTENT          the visible text, as words, compared as a multiset
  *         STRUCTURED_DATA  the parsed JSON-LD blocks, compared as a multiset of their canonical forms; a block that does not parse is
  *                          counted as unparseable on its side, never dropped and never compared as equal
+ *   F22 Amendment 1 (16 Oct 2026, _handoffs df82cbe) adds three, as the owner's overnight command lists them:
+ *         TITLE            the document title: every <title> element of the document's head, its text
+ *         H1               the first-level headings: every <h1> element, its text
+ *         ROBOTS_META      the robots meta values: every <meta name="robots"> element's content, its directives
+ *       Text is compared after the character references are decoded and white space collapsed, on both sides alike: a serialiser writing
+ *       "&amp;" where the source wrote "&#38;" is the same text.
  */
 import { extractLinks } from "../crawl/seeds.mjs";
 
-export const DIMENSIONS = Object.freeze(["LINKS", "CANONICAL", "CONTENT", "STRUCTURED_DATA"]);
+export const DIMENSIONS = Object.freeze(["TITLE", "H1", "CONTENT", "LINKS", "STRUCTURED_DATA", "CANONICAL", "ROBOTS_META"]);
 export const NOT_MEASURED = "NOT MEASURED";
 
 const attr = (tag, name) => {
@@ -59,6 +65,29 @@ export function jsonLdIn(html) {
   return { blocks, unparseable };
 }
 
+const NAMED = Object.freeze({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " });
+/** An element's text: its tags removed, character references decoded, white space collapsed. */
+export const textOf = (inner) => String(inner ?? "").replace(/<[^>]*>/g, " ")
+  .replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (m, r) => (r[0] === "#" ? String.fromCodePoint(r[1].toLowerCase() === "x" ? parseInt(r.slice(2), 16) : parseInt(r.slice(1), 10)) : NAMED[r.toLowerCase()] ?? m))
+  .replace(/\s+/g, " ").trim();
+const headOf = (html) => /<head\b[^>]*>([\s\S]*?)<\/head\s*>/i.exec(html)?.[1] ?? html;
+
+/** The document title: the text of every <title> element in the document's head (an SVG's own title in the body is not the document's). */
+export const titlesIn = (html) => [...headOf(elementsOnly(html)).matchAll(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/gi)].map((m) => textOf(m[1]));
+
+/** The first-level headings: the text of every <h1> element. */
+export const h1sIn = (html) => [...elementsOnly(html).matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/gi)].map((m) => textOf(m[1]));
+
+/** The robots meta values: each <meta name="robots"> element's directives, lower-cased, in a stable order. */
+export function robotsMetaIn(html) {
+  const out = [];
+  for (const m of elementsOnly(html).matchAll(/<meta\b[^>]*>/gi)) {
+    if ((attr(m[0], "name") ?? "").trim().toLowerCase() !== "robots") continue;
+    out.push(String(attr(m[0], "content") ?? "").toLowerCase().split(",").map((d) => d.trim()).filter(Boolean).sort().join(","));
+  }
+  return out;
+}
+
 /** The visible text as words (Unicode letters and digits), lower-cased. */
 export const wordsOf = (text) => String(text ?? "").toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
 
@@ -92,6 +121,9 @@ export function compareSourceRender({ renderState, renderReason, pageUrl, source
   return {
     renderState,
     dimensions: {
+      TITLE: verdict(multisetDiff(titlesIn(sourceHtml), titlesIn(renderedHtml))),
+      H1: verdict(multisetDiff(h1sIn(sourceHtml), h1sIn(renderedHtml))),
+      ROBOTS_META: verdict(multisetDiff(robotsMetaIn(sourceHtml), robotsMetaIn(renderedHtml))),
       LINKS: verdict(links),
       CANONICAL: verdict(canon),
       CONTENT: content,

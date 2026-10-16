@@ -101,8 +101,12 @@ function makePdf({ scanned = false, raw = null, lines = ["Each sub-test is score
   const ops = raw ?? (scanned ? "q 100 0 0 100 0 0 cm /Im1 Do Q" : null) ?? ["BT /F1 12 Tf 72 720 Td", ...lines.map((l, i) => `${i ? "0 -16 Td " : ""}${Array.isArray(l) ? `[${l.map((x) => (typeof x === "number" ? x : `(${esc(x)})`)).join("")}] TJ` : `(${esc(l)}) Tj`}`), "0 -16 Td /F2 12 Tf <00480049> Tj ET"].join("\n");
   const content = deflateSync(Buffer.from(ops, "latin1"));
   const cmap = deflateSync(Buffer.from("begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 2 beginbfchar <0048> <0048> <0049> <0069> endbfchar endcmap", "latin1"));
+  const simpleCmap = deflateSync(Buffer.from("begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 2 beginbfchar <48> <0048> <69> <0069> endbfchar endcmap", "latin1"));
   const parts = [Buffer.from("%PDF-1.7\n"), Buffer.from("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"),
-    Buffer.from(`3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 6 0 R >> /XObject << /Im1 9 0 R >> >> /Contents 5 0 R >> endobj\n4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n`),
+    Buffer.from(`3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 6 0 R /F3 10 0 R >> /XObject << /Im1 9 0 R >> >> /Contents 5 0 R >> endobj\n4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n`),
+    /* RR-270: a simple TrueType font whose own ToUnicode map declares a two-byte code space (as Speech Pathology Australia's eligibility PDF does) */
+    Buffer.from("10 0 obj << /Type /Font /Subtype /TrueType /BaseFont /Calibri /Encoding /WinAnsiEncoding /ToUnicode 11 0 R >> endobj\n"),
+    Buffer.from(`11 0 obj << /Length ${simpleCmap.length} /Filter /FlateDecode >> stream\n`), simpleCmap, Buffer.from("\nendstream endobj\n"),
     Buffer.from(`5 0 obj << /Length ${content.length} /Filter /FlateDecode >> stream\n`), content, Buffer.from("\nendstream endobj\n"),
     Buffer.from("6 0 obj << /Type /Font /Subtype /Type0 /BaseFont /X /Encoding /Identity-H /DescendantFonts [8 0 R] /ToUnicode 7 0 R >> endobj\n"),
     Buffer.from(`7 0 obj << /Length ${cmap.length} /Filter /FlateDecode >> stream\n`), cmap, Buffer.from("\nendstream endobj\n8 0 obj << /Type /Font /Subtype /CIDFontType2 /DW 600 >> endobj\n"),
@@ -116,6 +120,8 @@ test("C7 · PDF READER · FIRING CONTROL (RR-269 §2): a PDF is read by the PDF 
   assert.deepEqual([r.state, r.pages, r.text], [PDF_TEXT.TEXT, 1, "Each sub-test is scored from 0 to 500.\nA score of 350 is a grade B.\nHi"], "the PDF's text is not its words, in order, decoded through its fonts");
   /* a page that draws its lower line first, and the words of a line right to left, is read top to bottom, left to right */
   assert.equal(pdfText(makePdf({ raw: "BT /F1 12 Tf 72 704 Td (second line) Tj 0 16 Td (first line) Tj ET BT /F1 12 Tf 190 688 Td (end.) Tj -118 0 Td (third line at the) Tj ET" })).text, "first line\nsecond line\nthird line at the end.", "the PDF's text is in the order it was drawn, not the order the page shows it");
+  /* RR-270: a simple font's codes are one byte each, whatever code space its ToUnicode map declares — read two at a time, every other letter was lost */
+  assert.equal(pdfText(makePdf({ raw: "BT /F3 12 Tf 72 720 Td (Hi there, OET results) Tj ET" })).text, "Hi there, OET results", "a simple font's text was read two bytes to a letter");
   const pdfUrl = "https://tests.invalid/rules.pdf";
   const bytes = makePdf({ lines: ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."], ...LONG] });
   for (const type of ["application/pdf", "text/html", ""]) {

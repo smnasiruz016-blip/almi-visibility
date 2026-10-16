@@ -81,6 +81,7 @@ const SABOTAGES = [
   ["R49", "PP the imported reads are written without --confirm", BIN, "  if (!permission.mayWrite) { console.log(\"  NOT WRITTEN — no --confirm: no read and no recheck kept\"); process.exit(0); }", "", PP],
   ["R50", "C11 a quotation missing from a captured part of a page is read as gone", M, "    if (missing.length && read.capture && read.capture.whole !== true) {", "    if (false) {", CAP],
   ["R51", "C7 a PDF's glyphs are read in the order they are drawn, not where the page shows them", PDF, "const sorted = [...glyphs].sort((a, b) => b.y - a.y || a.x - b.x);", "const sorted = [...glyphs];", PDFR],
+  ["R52", "C7 RR-270 a simple font's codes are read two bytes at a time when its ToUnicode map declares a two-byte code space", PDF, "  const bytesPerCode = composite ? 2 : 1;", "  const bytesPerCode = composite || cmap?.twoByte ? 2 : 1;", PDFR],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

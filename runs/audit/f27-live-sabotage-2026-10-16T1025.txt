@@ -1,0 +1,32 @@
+F27 live sabotage run · 2026-10-16T10:23:36.017Z
+population: 25 sabotages over test/f27-live-security.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 600 s
+PRE-FLIGHT (span occurrences in the code live now): L01=1 L02=1 L03=1 L04=1 L05=1 L06=1 L07=1 L08=1 L09=1 L10=1 L11=1 L12=1 L13=1 L14=1 L15=1 L16=1 L17=1 L18=1 L19=1 L20=1 L21=1 L22=1 L23=1 L24=1 L25=1 · all exactly once: true
+production trail sha256 before: 5c4132c5c60c8a2e186c0c05b27ed59f5cd264c322503dbe221211914a2c1f58
+
+L01 C2 a 302 or 307 passes as a redirect to https src/audit/live-security.mjs: landed true · named test "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L02 C2 a redirect to another host or to http passes src/audit/live-security.mjs: landed true · named test "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L03 C2 an unrecorded redirect passes src/audit/live-security.mjs: landed true · named test "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L04 C2 a TLS protocol below 1.2 passes src/audit/live-security.mjs: landed true · named test "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L05 C2 a certificate the platform did not verify passes src/audit/live-security.mjs: landed true · named test "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L06 C2 an expired certificate passes src/audit/live-security.mjs: landed true · named test "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L07 C3 an http: url() in a style element is missed src/audit/live-security.mjs: landed true · named test "C3 · MIXED CONTENT · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L08 C3 a page that runs script reads complete src/audit/live-security.mjs: landed true · named test "C3 · MIXED CONTENT · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L09 C4 an http: form action is missed src/audit/live-security.mjs: landed true · named test "C4 · UNSAFE FORMS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L10 C5 an HSTS max-age below the floor passes config/security/live-header-baseline.mjs: landed true · named test "C5 · HEADERS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L11 C5 a report-only policy counts for clickjacking src/audit/live-security.mjs: landed true · named test "C5 · HEADERS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L12 C5 unsafe-url passes as a referrer policy config/security/live-header-baseline.mjs: landed true · named test "C5 · HEADERS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L13 C5 a page that is not HTML over https is judged src/audit/live-security.mjs: landed true · named test "C5 · HEADERS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L14 C5 an unrecorded response is reported failing or passing src/audit/live-security.mjs: landed true · named test "C5 · HEADERS · FIRING CONTROL (F27 A3)" red true · failing 2 · reason AssertionError · restored by sha256 true · PROVED
+L15 C5 the Content-Security-Policy is given a verdict src/audit/live-security.mjs: landed true · named test "C5 · HEADERS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L16 C6 a sensitive artefact on a recorded response is missed config/security/public-exposure-declaration.mjs: landed true · named test "C6 · PUBLIC EXPOSURE · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L17 C6 an exposure rule is widened past the owner's words (a 404 counts) src/audit/live-security.mjs: landed true · named test "C6 · PUBLIC EXPOSURE · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L18 C6 with no declaration, exposure reads judged src/audit/live-security.mjs: landed true · named test "C6 · PUBLIC EXPOSURE · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L19 C1 a LIVE page with no recorded read is silently skipped src/audit/live-security.mjs: landed true · named test "C1 C7 · POPULATION, DENOMINATORS, THREE VERDICTS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L20 C7 an empty population reads PROVED src/audit/live-security.mjs: landed true · named test "C1 C7 · POPULATION, DENOMINATORS, THREE VERDICTS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L21 C7 one DISPROVED part does not disprove the row src/audit/live-security.mjs: landed true · named test "C1 C7 · POPULATION, DENOMINATORS, THREE VERDICTS · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L22 C1 the connector reads an address off its origins src/tenancy/connectors.mjs: landed true · named test "CONNECTOR · ONE READ · FIRING CONTROL (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L23 C1 a read bypasses the paced release src/tenancy/connectors.mjs: landed true · named test "CONNECTOR · ONE READ · FIRING CONTROL (F27 A3)" red true · failing 1 · reason TypeError · restored by sha256 true · PROVED
+L24 C1 the run goes on with more requests than the limit bin/live-security.mjs: landed true · named test "PRODUCTION PATH (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+L25 C1 a limit above the owner's ceiling is taken bin/live-security.mjs: landed true · named test "PRODUCTION PATH (F27 A3)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 25 of 25 · residue 0 · production trail sha256 after: 5c4132c5c60c8a2e186c0c05b27ed59f5cd264c322503dbe221211914a2c1f58 · unchanged true

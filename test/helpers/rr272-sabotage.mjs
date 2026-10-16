@@ -32,7 +32,8 @@ const SABOTAGES = [
   ["W04", "a correction that rewrites passes", W, '  if (c?.treatment !== "REPRESENTED_NOT_REWRITTEN") out.push({ code: "CORRECTION_CLAIMS_REWRITE", field: "treatment" });\n', "", COR],
   ["W05", "a correction whose count is not its list passes", W, "c.wrongAdmissions === list.length)) out.push", "true)) out.push", COR],
   ["W06", "a correction naming no difference passes", W, 'if (stored === inForce) out.push({ code: "CORRECTION_NAMES_NO_DIFFERENCE", field: `admissions[${i}]` });', "void stored, inForce;", COR],
-  ["W07", "authority-migrate runs with no --now", M, "|| !engCommit || !validDay(NOW)) {", "|| !engCommit) {", MIG],
+  ["W09", "a correction value the trail would refuse passes", W, "if (typeof s === \"string\" && s.length > METADATA_MAX_VALUE_CHARS) out.push", "if (false) out.push", COR],
+  ["W07","authority-migrate runs with no --now", M, "|| !engCommit || !validDay(NOW)) {", "|| !engCommit) {", MIG],
   ["W08", "authority-migrate takes a day that does not exist", M, " && Number.isFinite(Date.parse(`${d}T00:00:00Z`)) && new Date(`${d}T00:00:00Z`).toISOString().slice(0, 10) === d;", ";", MIG],
 ];
 

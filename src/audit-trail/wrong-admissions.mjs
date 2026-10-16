@@ -10,7 +10,9 @@
  *
  * Its occurredAt is the moment the CORRECTION is recorded.
  */
-export const WRONG_ADMISSIONS_EVENT = Object.freeze({ eventType: "AUDIT_CORRECTION", action: "RECORD_WRONG_AUTHORITY_ADMISSIONS", reasonCode: "ADMISSION_JUDGED_ON_A_WRONG_DAY" });
+import { METADATA_MAX_VALUE_CHARS } from "./event.mjs";
+
+export const WRONG_ADMISSIONS_EVENT =Object.freeze({ eventType: "AUDIT_CORRECTION", action: "RECORD_WRONG_AUTHORITY_ADMISSIONS", reasonCode: "ADMISSION_JUDGED_ON_A_WRONG_DAY" });
 
 const REQUIRED = ["correctionId", "wrongAdmissions", "admissions", "cause", "repair", "treatment", "evidenceRecord", "evidenceSha256"];
 /* an admission is "<n> <32-hex event id> <stored disposition> -> <disposition in force> <authority id>" */
@@ -29,6 +31,8 @@ export function wrongAdmissionsFaults(c) {
   });
   if (c?.treatment !== "REPRESENTED_NOT_REWRITTEN") out.push({ code: "CORRECTION_CLAIMS_REWRITE", field: "treatment" });
   if (!/^[0-9a-f]{64}$/.test(String(c?.evidenceSha256 ?? ""))) out.push({ code: "CORRECTION_EVIDENCE_UNPINNED", field: "evidenceSha256" });
+  /* each value becomes one metadata value: one the trail would refuse as too long is refused here, before any draft or authorisation */
+  for (const [k, v] of Object.entries(c ?? {})) for (const [i, s] of (Array.isArray(v) ? v : [v]).entries()) if (typeof s === "string" && s.length > METADATA_MAX_VALUE_CHARS) out.push({ code: "CORRECTION_VALUE_TOO_LONG", field: Array.isArray(v) ? `${k}[${i}]` : k });
   return out;
 }
 

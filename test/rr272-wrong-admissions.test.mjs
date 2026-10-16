@@ -67,10 +67,19 @@ test("CORRECTION · FIRING CONTROL (RR-272): the declared correction names each 
   assert.ok(codes({ ...c, treatment: "REWRITTEN" }).includes("CORRECTION_CLAIMS_REWRITE"));
   assert.ok(codes({ ...c, evidenceSha256: "x" }).includes("CORRECTION_EVIDENCE_UNPINNED"));
   assert.ok(codes({ ...c, cause: "" }).includes("CORRECTION_FIELD_ABSENT"));
+  /* the trail refuses a metadata value over its ceiling: such a declaration is refused here first (found by the first real run) */
+  assert.ok(codes({ ...c, cause: "x".repeat(201) }).includes("CORRECTION_VALUE_TOO_LONG"));
   assert.throws(() => wrongAdmissionsEventDraft({ correction: { ...c, treatment: "REWRITTEN" }, occurredAt: "2026-10-16T00:00:00Z", softwareVersion: "t", authorityRef: { propositionId: "P", scope: ["S"] }, authorityHash: "0".repeat(64), correlationId: "r" }), /CORRECTION_REFUSED/);
   const d = wrongAdmissionsEventDraft({ correction: c, occurredAt: "2026-10-16T00:00:00Z", softwareVersion: "t", authorityRef: { propositionId: "P", scope: ["S"] }, authorityHash: "0".repeat(64), correlationId: "r" });
   assert.deepEqual([d.eventType, d.action, d.outcome, d.migration, d.metadata.wrongAdmissions, d.metadata.admission6, d.metadata.treatment], [WRONG_ADMISSIONS_EVENT.eventType, WRONG_ADMISSIONS_EVENT.action, "RECORDED", false, 6, c.admissions[5], "REPRESENTED_NOT_REWRITTEN"]);
   assert.equal(correctedAdmissionIds(c).length, 6);
+  /* the real declaration's draft is one the production store accepts — appended once; offered again, nothing is added */
+  const dir = mkdtempSync(join(tmpdir(), "rr272-c-"));
+  try {
+    const s = createAuditStore({ eventsPath: join(dir, "events.jsonl"), headPath: join(dir, "head.json") });
+    const real = wrongAdmissionsEventDraft({ correction: c, occurredAt: "2026-10-16T00:00:00Z", softwareVersion: "t", authorityRef: { propositionId: "P", scope: ["S"] }, authorityHash: "0".repeat(64), correlationId: "r" });
+    assert.deepEqual([s.append(real).status, s.append(real).status, s.readAll().events.length], ["APPENDED", "IDEMPOTENT_RETRY", 1]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
   assert.deepEqual([wrongAdmissionsNotOnTrail([c], []).length, wrongAdmissionsNotOnTrail([c], [{ ...d, eventId: "x" }]).length], [1, 0]);
 });
 

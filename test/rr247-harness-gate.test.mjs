@@ -88,7 +88,7 @@ test("HG-2 · BEHAVIOUR: every other file a bare `node --test` discovers, run ba
 });
 
 test("HG-3 · every gated file, run bare, stops at the gate: exit 2, the flag named, nothing tried", () => {
-  assert.equal(gated.length, 128);
+  assert.equal(gated.length, 129); /* RR-271: + rr271-publish-sabotage.mjs = 129 (the census pin above, restated with it) */
   const wrong = [];
   for (const f of gated) {
     const r = bare(f);

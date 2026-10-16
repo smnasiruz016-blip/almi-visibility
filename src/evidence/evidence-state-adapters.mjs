@@ -98,6 +98,9 @@ const DERIVED_TYPES = Object.freeze({
    * was admitted, else from the fact or need it names; the engine's own word-for-word check, never an observation. */
   fact_extraction: { inputs: (r) => (present(r.pageSha256) ? [`source_page_read:${String(r.pageSha256).slice(0, 16)}`] : present(r.fact) ? [`fact:${h16(r.fact)}`] : present(r.need) ? [`need:${h16(r.need)}`] : []), at: (r) => r.recorded_at, method: "proposed-quotation-checked-word-for-word-against-the-stored-page-text" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
+  /* RR-273: the guides hub is DERIVED from the published records of the pages it lists (src/page/guides-hub.mjs) — each entry is a page's
+   * own H1 and intro, nothing observed */
+  guides_hub_page: { inputs: (r) => (Array.isArray(r.entries) ? r.entries.map((e) => e?.from).filter(present) : []), at: (r) => r.recorded_at, method: "hub-listed-from-published-page-records" },
   same_need_cancellation: { inputs: (r) => (present(r.judgementRef) ? [`same_need_judgement:${h16(r.judgementRef)}`] : []), at: (r) => r.recorded_at, method: "same-need-cancellation-by-a-recorded-judgement" },
   /* 🔴 RR-106 — the two collector v0.2 records PARSED from a stored raw-HTML body (src/crawl/provenance.mjs). Each is computed by our
    * parser from the observation it names, so it is INFERRED with that observation as its one input — never OBSERVED: the links are

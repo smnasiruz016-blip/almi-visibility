@@ -105,6 +105,10 @@ test("REAL (RR-272): each wrong admission the correction names is on the trail w
     const i = AUTHORITY_CORPUS.findIndex((r) => r.authorityId === authorityId);
     assert.ok(i >= 0 && AUTHORITY_CORPUS[i].sourceRef.blob === e.metadata.authorityBlob && d[i].disposition === inForce, `${authorityId}: the corpus in force does not give ${inForce}`);
   }
+  /* the correction itself is on the trail, once, under F08's authority, naming the six */
+  const corr = events.filter((e) => e.action === WRONG_ADMISSIONS_EVENT.action && e.metadata?.correctionId === c.correctionId);
+  assert.deepEqual([corr.length, corr[0]?.eventType, corr[0]?.authorityRef?.propositionId, corr[0]?.metadata?.wrongAdmissions, corr[0]?.metadata?.admission1], [1, "AUDIT_CORRECTION", "OWNER_RULING_F08_ACCEPTANCE", 6, c.admissions[0]], "the correction is not on the trail, once");
+  assert.equal(wrongAdmissionsNotOnTrail(KNOWN_WRONG_ADMISSIONS, events).length, 0);
   const cands = familyACandidates({ corpus: AUTHORITY_CORPUS, dispositions: d, provenance: CORPUS_PROVENANCE, softwareVersion: "t", correlationId: "c", migratedAt: "2026-10-16T00:00:00Z", recorded: events });
   const held = new Set(events.map((e) => e.eventId));
   assert.equal(cands.filter((x) => x.family === "A" && x.draft && x.draft.action === "ADMIT_AUTHORITY_RECORD").length, AUTHORITY_CORPUS.length - cands.filter((x) => x.alreadyAudited).length);

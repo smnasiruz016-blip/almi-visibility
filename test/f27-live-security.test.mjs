@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { judgeTls, judgeRedirect, styleUrls, runsScript, judgeHeaderRule, referrerMeta, cspPresence, exposureOf, auditLive, STATE, LIVE_SECURITY_RECORD } from "../src/audit/live-security.mjs";
 import { VERDICT } from "../src/audit/transport-security.mjs";
-import { lateConnectorRunEntry } from "../src/cost/run-cost.mjs";
+import { lateConnectorRunEntry, tenantLedger } from "../src/cost/run-cost.mjs";
 import { LIVE_HEADER_BASELINE, LIVE_CHECK_CEILING, REFERRER_BASIS } from "../config/security/live-header-baseline.mjs";
 import { PUBLIC_EXPOSURE_DECLARATION } from "../config/security/public-exposure-declaration.mjs";
 import { transportReader, ConnectorRefused } from "../src/tenancy/connectors.mjs";
@@ -257,4 +257,16 @@ test("REAL (F27 A3): the client's LIVE pages and their stored live reads — eve
   const a = auditLive({ pages, robots: robots ? { url: robots.url, status: robots.read.status, body: robots.read.body } : null, headerDeclaration: LIVE_HEADER_BASELINE, exposureDeclaration: PUBLIC_EXPOSURE_DECLARATION, on: robots?.readOn ?? ON });
   assert.equal(a.read, a.pages, `a LIVE page has no stored read: ${a.absent.join(" · ")}`);
   for (const [k, p] of Object.entries(a.parts)) assert.ok([VERDICT.PROVED, VERDICT.DISPROVED, VERDICT.COULD_NOT_PROVE].includes(p.verdict), k);
+  /* RR-272: the stored reads re-judged, with no request, under the Observatory's referrer rule */
+  const ref = a.parts.headers.per.find((h) => h.name === "referrer-policy");
+  assert.deepEqual([ref.PASS, ref.FAIL, ref["NOT MEASURED"]], [a.pages, 0, 0], "the stored reads do not all pass the Observatory's referrer rule");
+  /* RR-272 §2: every stored live run has its cost entry in the tenant's own ledger — its own, or a LATE one made from its reads */
+  const ledger = tenantLedger({ tenantId: "tenant:93b991d5afa33b16ccb9166b249593b6", env: process.env });
+  const entries = readFileSync(ledger.path, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  for (const run of [...new Set(rows.map((r) => r.run))]) {
+    const at = run.replace(/^live-security:/, "");
+    const own = entries.filter((e) => e.entry_id === `late:run:bin/live-security.mjs:${at}` || (String(e.entry_id).startsWith("run:bin/live-security.mjs:") && e.run_started_at <= at && at <= e.recorded_at));
+    assert.equal(own.length, 1, `${run}: ${own.length} cost entries`);
+    if (own[0].late) assert.ok(own[0].recorded_at > at && own[0].late.recordedOn === own[0].recorded_at.slice(0, 10), `${run}: a late entry back-dated or unmarked`);
+  }
 });

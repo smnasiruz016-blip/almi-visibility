@@ -22,10 +22,20 @@ import { createHash } from "node:crypto";
 import { normaliseText, MIN_SUBSTANTIVE_BODY } from "./quote-match.mjs";
 import { createRobotsCache, USER_AGENT } from "../crawl/robots.mjs";
 import { pacedRelease } from "../tenancy/connectors.mjs";
+import { pdfText, isPdf, PDF_TEXT } from "./pdf-text.mjs";
 
 export const SOURCE_READ_RECORD = "source_page_read";
 export const FACT_RECHECK_RECORD = "fact_recheck";
-export const ROUTE = Object.freeze({ ENGINE: "ENGINE_PACED_PATH", BROWSER: "CLIENT_BROWSER_ROUTE" });
+/* RR-269: CLIENT_FILE — a document the client saved and handed over (its original URL and the day it was supplied recorded with it) */
+export const ROUTE = Object.freeze({ ENGINE: "ENGINE_PACED_PATH", BROWSER: "CLIENT_BROWSER_ROUTE", CLIENT_FILE: "CLIENT_FILE_ROUTE" });
+/**
+ * RR-269 §1: how a read reached the engine. ENGINE — the engine made the request itself (C7), or handed a blocked read to the client's
+ * connected route (C8). CAPTURE — a page a person read in the client's own browser and filed as text; the engine made no request and drove
+ * no route, so a capture never counts as a C8 read. CLIENT_FILE — a document the client supplied.
+ */
+export const VIA = Object.freeze({ ENGINE: "ENGINE", CAPTURE: "CAPTURE", CLIENT_FILE: "CLIENT_FILE" });
+/** RR-269 §1: a supplied document the client says is out of date — kept as a record, never a source a fact may stand on */
+export const CURRENCY = Object.freeze({ AS_SUPPLIED: "AS_SUPPLIED", OUT_OF_DATE: "OUT_OF_DATE" });
 export const READ_STATE = Object.freeze({ READ: "READ", BLOCKED: "BLOCKED" });
 export const BLOCK = Object.freeze({
   ROBOTS_DISALLOWED: "ROBOTS_DISALLOWED",
@@ -43,6 +53,8 @@ export const BLOCK = Object.freeze({
   ROUTE_STOPPED: "BROWSER_ROUTE_STOPPED",
   ROUTE_CAP: "BROWSER_ROUTE_RUN_CAP_REACHED",
   READ_CAP: "RUN_READ_CAP_REACHED",
+  /* RR-269: a capture of PART of a page cannot show that a quotation is gone from the page — only that it is not in the part */
+  CAPTURE_PART: "CAPTURE_IS_PART_OF_THE_PAGE",
 });
 /** What the engine may hand to the client's browser route: a refusal, a challenge or an empty page (RR-268 §B2.2). Nothing else. */
 export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY]);
@@ -57,6 +69,7 @@ export const REJECT = Object.freeze({
   NOT_ONE_SENTENCE: "NOT_ONE_SENTENCE",
   NOT_ONE_SOURCE: "NOT_ONE_SOURCE",
   NO_PAGE_TEXT: "NO_STORED_PAGE_TEXT",
+  OUT_OF_DATE: "SOURCE_IS_OUT_OF_DATE",
 });
 
 const REFUSAL_STATUS = new Set([401, 403, 407, 429, 503]);
@@ -65,6 +78,7 @@ const CHALLENGE_MARKS = /(cf-challenge|challenge-platform|just a moment\.\.\.|at
 const CAPTCHA_MARKS = /(captcha|hcaptcha|recaptcha|turnstile)/i;
 const LOGIN_MARKS = /<input[^>]+type=["']?password/i;
 const TEXT_TYPES = /^\s*(text\/html|text\/plain|application\/xhtml\+xml)\b/i;
+const PDF_TYPE = /^\s*application\/(x-)?pdf\b/i;
 const LOGIN_PATH =/\/(log-?in|sign-?in|auth|account\/login)(\/|\?|$)/i;
 
 export const sha256 = (s) => createHash("sha256").update(String(s)).digest("hex");
@@ -75,6 +89,48 @@ export const isOneSentence = (t) => { const s = String(t ?? "").trim(); return s
 export const quotationIn = (quotation, text) => { const n = normaliseText(String(quotation ?? "")); return n !== "" && normaliseText(String(text ?? "")).includes(n); };
 
 const blocked = (url, route, reason, detail, extra = {}) => Object.freeze({ state: READ_STATE.BLOCKED, url, route, reason, detail, ...extra });
+
+/**
+ * RR-269 §2 · a PDF document, read: its text through the PDF reader (src/facts/pdf-text.mjs), kept like a page's text with its sha256. A PDF
+ * that shows no text (a scanned document) or cannot be read is NOT_A_TEXT_DOCUMENT, named — its bytes are never kept as text.
+ */
+export function pdfRead(url, route, bytes, on, { landedUrl = url, status = null, extra = {} } = {}) {
+  const r = pdfText(bytes);
+  if (r.state !== PDF_TEXT.TEXT) return blocked(url, route, BLOCK.NOT_TEXT, r.state === PDF_TEXT.NO_TEXT ? `a PDF of ${r.pages} page(s) that shows no text (a scanned document) — nothing is kept as its text` : `the PDF could not be read (${r.detail}) — nothing is kept as its text`, { document: "PDF", ...extra });
+  const text = normaliseText(r.text);
+  if (text.length < MIN_SUBSTANTIVE_BODY) return blocked(url, route, BLOCK.NOT_TEXT, `a PDF of ${r.pages} page(s) with ${text.length} characters of text — not a text document`, { document: "PDF", ...extra });
+  return Object.freeze({ state: READ_STATE.READ, url, route, landedUrl, ...(status !== null ? { status } : {}), text, sha256: sha256(text), readOn: on, chars: text.length, document: "PDF", pages: r.pages, ...extra });
+}
+
+/**
+ * RR-269 §1 · a page a person read in the client's own browser and filed as text. The file says, in its first lines, the URL, the read
+ * date and the route ("client browser"); then a line "---"; then the page text, verbatim. A file that does not say all of these is
+ * refused, named — nothing is guessed. The engine makes no request and drives no route: the read is kept with VIA CAPTURE.
+ */
+export const CAPTURE_REFUSE = Object.freeze({ NO_URL: "CAPTURE_NAMES_NO_URL", NO_DATE: "CAPTURE_NAMES_NO_READ_DATE", NOT_CLIENT_BROWSER: "CAPTURE_ROUTE_IS_NOT_CLIENT_BROWSER", NO_TEXT: "CAPTURE_HOLDS_NO_PAGE_TEXT" });
+export function captureRead({ raw, file }) {
+  const s = String(raw ?? "").replace(/^﻿/, "");
+  const cut = s.search(/^---\s*$/m);
+  const head = cut < 0 ? s : s.slice(0, cut), body = cut < 0 ? "" : s.slice(cut).replace(/^---\s*\r?\n?/, "");
+  const url = /^URL:\s*(https?:\/\/\S+)\s*$/m.exec(head)?.[1] ?? null;
+  const readLine = /^READ:\s*(.*)$/m.exec(head)?.[1] ?? "";
+  const readOn = /^(\d{4}-\d{2}-\d{2})\b/.exec(readLine)?.[1] ?? null;
+  const why = !url ? CAPTURE_REFUSE.NO_URL : !readOn ? CAPTURE_REFUSE.NO_DATE : !/\broute:\s*client browser\b/i.test(readLine) ? CAPTURE_REFUSE.NOT_CLIENT_BROWSER : body.trim() === "" ? CAPTURE_REFUSE.NO_TEXT : null;
+  if (why) return Object.freeze({ state: "REFUSED", file, reason: why });
+  const text = normaliseText(body);
+  /* WHOLE only when the file says it holds the page's main or body text and no excerpt; anything else is PART of the page */
+  const whole = /\bcaptured:\s*(main page text|page body text)\b/i.test(readLine) && !/excerpt/i.test(readLine);
+  return Object.freeze({ state: READ_STATE.READ, url, route: ROUTE.BROWSER, via: VIA.CAPTURE, landedUrl: url, text, sha256: sha256(text), readOn, chars: text.length, capture: Object.freeze({ file, fileSha256: sha256(s), whole }) });
+}
+
+/**
+ * RR-269 §2 · a document the client supplied: read by the PDF reader, with its original URL and the day it was supplied. A document the
+ * client says is out of date is kept as OUT_OF_DATE with that basis — never a source a fact may stand on (extractFacts refuses it).
+ */
+export function clientFileRead({ bytes, file, url, suppliedOn, outOfDate = null }) {
+  const currency = outOfDate ? Object.freeze({ state: CURRENCY.OUT_OF_DATE, basis: String(outOfDate) }) : Object.freeze({ state: CURRENCY.AS_SUPPLIED });
+  return pdfRead(url, ROUTE.CLIENT_FILE, bytes, suppliedOn, { extra: { via: VIA.CLIENT_FILE, clientFile: Object.freeze({ file, fileSha256: createHash("sha256").update(bytes).digest("hex"), suppliedOn }), currency } });
+}
 
 /**
  * C7 · one read by the engine itself. `fetchImpl` is an OPENED connector's fetch — the one paced path; `robots` a cache built on that same
@@ -89,11 +145,13 @@ export async function engineRead(url, { fetchImpl, robots, on, timeoutMs = 20_00
   if (!r.allowed) return blocked(url, ROUTE.ENGINE, BLOCK.ROBOTS_DISALLOWED, r.reason);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let res, body;
+  let res, body, bytes;
   try {
     /* a plain public request: GET, our own agent, nothing typed — no credential, no cookie, no body */
     res = await fetchImpl(url, { method: "GET", redirect: "follow", credentials: "omit", headers: { "User-Agent": USER_AGENT }, signal: controller.signal });
-    body = await res.text();
+    /* the answer's bytes: a PDF is read from its bytes, a page from their text */
+    bytes = Buffer.from(await res.arrayBuffer());
+    body = bytes.toString("utf8");
   } catch (err) {
     return blocked(url, ROUTE.ENGINE, BLOCK.FAILED, `the read failed: ${err?.name === "AbortError" ? "timeout" : String(err?.message ?? err)}`);
   } finally { clearTimeout(timer); }
@@ -104,7 +162,9 @@ export async function engineRead(url, { fetchImpl, robots, on, timeoutMs = 20_00
   if (!res.ok) return blocked(url, ROUTE.ENGINE, BLOCK.FAILED, `HTTP ${res.status}`, { status: res.status });
   /* RR-268 C: a document that is not text (a PDF's bytes, an image) is never kept as a page's text — B3 stored four PDFs' raw bytes as READ */
   const type = String(res.headers?.get?.("content-type") ?? "");
-  if (/^\s*%PDF-/.test(body) || (type !== "" && !TEXT_TYPES.test(type))) return blocked(url, ROUTE.ENGINE, BLOCK.NOT_TEXT, `the answer is not a text document (${type || "a PDF's bytes"}) — nothing is kept as its text`);
+  /* RR-269 §2: a PDF is read by the PDF reader — its text, never its bytes; a PDF that shows no text (scanned) is NOT_A_TEXT_DOCUMENT */
+  if (isPdf(bytes) || PDF_TYPE.test(type)) return pdfRead(url, ROUTE.ENGINE, bytes, on, { landedUrl: landed, status: res.status });
+  if (type !== "" && !TEXT_TYPES.test(type)) return blocked(url, ROUTE.ENGINE, BLOCK.NOT_TEXT, `the answer is not a text document (${type}) — nothing is kept as its text`);
   if (LOGIN_PATH.test(new URL(landed).pathname) || LOGIN_MARKS.test(body)) return blocked(url, ROUTE.ENGINE, BLOCK.LOGIN_WALL, "the page asks for a login — not read past");
   if (CHALLENGE_MARKS.test(body)) return blocked(url, ROUTE.ENGINE, BLOCK.CHALLENGE, "the page answered with a bot challenge");
   const text = normaliseText(body);
@@ -159,6 +219,8 @@ export const robotsOn = (fetchImpl) => createRobotsCache({ fetchImpl });
  */
 export async function extractFacts({ read, propose }) {
   if (!read || read.state !== READ_STATE.READ || typeof read.text !== "string") return Object.freeze({ state: "NOT_READ", admitted: Object.freeze([]), rejected: Object.freeze([Object.freeze({ reason: REJECT.NO_PAGE_TEXT })]) });
+  /* RR-269 §1: a document the client says is out of date is no source for any fact — nothing is proposed from it, nothing admitted */
+  if (read.currency?.state === CURRENCY.OUT_OF_DATE) return Object.freeze({ state: "OUT_OF_DATE", admitted: Object.freeze([]), rejected: Object.freeze([Object.freeze({ reason: REJECT.OUT_OF_DATE, source: read.url })]) });
   let proposals;
   try { proposals = await propose(read.text, read.url); } catch (err) {
     return Object.freeze({ state: "REFUSED", code: err?.code ?? "PROPOSER_FAILED", detail: String(err?.message ?? err), admitted: Object.freeze([]), rejected: Object.freeze([]) });
@@ -188,6 +250,8 @@ export async function recheckFacts({ facts, readOf, on }) {
     const read = await readOf(f.link);
     if (read.state !== READ_STATE.READ) { out.push(Object.freeze({ ...base, state: RECHECK.BLOCKED, reason: read.reason, detail: read.detail ?? null, route: read.route, rebuild: Object.freeze([]) })); continue; }
     const missing = quotations.filter((q) => !quotationIn(q, read.text));
+    /* RR-269: a capture of part of a page shows what is in the part; a quotation not in it is not shown gone — BLOCKED, named, never CHANGED */
+    if (missing.length && read.capture && read.capture.whole !== true) { out.push(Object.freeze({ ...base, state: RECHECK.BLOCKED, reason: BLOCK.CAPTURE_PART, detail: `${missing.length} of ${quotations.length} quotation(s) not in the captured part (${read.capture.file})`, route: read.route, rebuild: Object.freeze([]) })); continue; }
     out.push(Object.freeze({ ...base, state: missing.length ? RECHECK.CHANGED : RECHECK.CURRENT, quotations: quotations.length, missing: missing.length, pageSha256: read.sha256, route: read.route, readOn: on,
       /* nothing is silently kept: a CHANGED fact flags every page that uses it */
       rebuild: Object.freeze(missing.length ? [...base.pages] : []) }));
@@ -207,7 +271,10 @@ export function readRecord({ read, tenantId, on, run }) {
   const id = sha256(JSON.stringify([read.url, read.state, read.sha256 ?? read.reason, on])).slice(0, 24);
   return Object.freeze({ record_type: SOURCE_READ_RECORD, read_id: id, measurement_key: `${SOURCE_READ_RECORD}:${id}`, tenantId, url: read.url, host: hostOf(read.url), route: read.route, state: read.state,
     ...(read.state === READ_STATE.READ ? { sha256: read.sha256, chars: read.chars, text: read.text, landedUrl: read.landedUrl ?? read.url } : { reason: read.reason, detail: read.detail ?? null }),
-    ...(read.engineBlocked ? { engineBlocked: read.engineBlocked } : {}), readOn: on, recorded_at: `${on}T00:00:00Z`, run });
+    ...(read.engineBlocked ? { engineBlocked: read.engineBlocked } : {}),
+    /* RR-269: how the read reached the engine, and what it was — a PDF's page count, a capture's file, a client file's day and currency */
+    via: read.via ?? VIA.ENGINE, ...Object.fromEntries(["document", "pages", "capture", "clientFile", "currency"].filter((k) => read[k] !== undefined).map((k) => [k, read[k]])),
+    readOn: read.via === VIA.CAPTURE || read.via === VIA.CLIENT_FILE ? read.readOn : on, recorded_at: `${on}T00:00:00Z`, run });
 }
 /** The stored record of one fact's recheck — beside the fact, never in place of it (C11). */
 export function recheckRecord({ result, tenantId, on, run }) {

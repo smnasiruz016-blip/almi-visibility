@@ -18,7 +18,10 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { engineRead, browserRead, readSource, extractFacts, recheckFacts, recheckCounts, readRecord, recheckRecord, robotsOn, quotationIn, isOneSentence, dueOn,
-  ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD, extractionRecord, EXTRACTION, EXTRACTION_RECORD } from "../src/facts/source-reader.mjs";
+  ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD, extractionRecord, EXTRACTION, EXTRACTION_RECORD,
+  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE } from "../src/facts/source-reader.mjs";
+import { pdfText, PDF_TEXT } from "../src/facts/pdf-text.mjs";
+import { deflateSync } from "node:zlib";
 import { batchFacts, quotationsOf, QUOTATION_MIN_CHARS } from "../src/facts/batch-facts.mjs";
 import { createPaidProviderGate, createKillSwitch, createFakePaidProvider } from "../src/cost/paid-provider-gate.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
@@ -89,6 +92,72 @@ test("C7 · FIRING CONTROL: the engine reads a public page itself — robots fir
   const plain = network({ [LANG.url]: { body: LANG.html, type: "text/plain; charset=utf-8" } });
   assert.equal((await engineRead(LANG.url, { fetchImpl: plain.fetchImpl, robots: robotsOn(plain.fetchImpl), on: ON })).state, READ_STATE.READ, "CONTROL: a plain-text page must still be read");
   assert.equal(PACE_FLOOR_MS, 2000, "the paced path's floor is not 2 s");
+});
+
+/* RR-269 §2 · a PDF built here, byte by byte: a simple font with no widths, a composite font read through its own ToUnicode map, a TJ gap,
+ * a new line; or a page drawn only from an image (a scanned document). Nothing is downloaded. */
+function makePdf({ scanned = false, raw = null, lines = ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."]] } = {}) {
+  const esc = (t) => t.replace(/[\\()]/g, (c) => `\\${c}`);
+  const ops = raw ?? (scanned ? "q 100 0 0 100 0 0 cm /Im1 Do Q" : null) ?? ["BT /F1 12 Tf 72 720 Td", ...lines.map((l, i) => `${i ? "0 -16 Td " : ""}${Array.isArray(l) ? `[${l.map((x) => (typeof x === "number" ? x : `(${esc(x)})`)).join("")}] TJ` : `(${esc(l)}) Tj`}`), "0 -16 Td /F2 12 Tf <00480049> Tj ET"].join("\n");
+  const content = deflateSync(Buffer.from(ops, "latin1"));
+  const cmap = deflateSync(Buffer.from("begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 2 beginbfchar <0048> <0048> <0049> <0069> endbfchar endcmap", "latin1"));
+  const parts = [Buffer.from("%PDF-1.7\n"), Buffer.from("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"),
+    Buffer.from(`3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 6 0 R >> /XObject << /Im1 9 0 R >> >> /Contents 5 0 R >> endobj\n4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n`),
+    Buffer.from(`5 0 obj << /Length ${content.length} /Filter /FlateDecode >> stream\n`), content, Buffer.from("\nendstream endobj\n"),
+    Buffer.from("6 0 obj << /Type /Font /Subtype /Type0 /BaseFont /X /Encoding /Identity-H /DescendantFonts [8 0 R] /ToUnicode 7 0 R >> endobj\n"),
+    Buffer.from(`7 0 obj << /Length ${cmap.length} /Filter /FlateDecode >> stream\n`), cmap, Buffer.from("\nendstream endobj\n8 0 obj << /Type /Font /Subtype /CIDFontType2 /DW 600 >> endobj\n"),
+    Buffer.from("9 0 obj << /Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceGray /Length 1 >> stream\n\u0000\nendstream endobj\n%%EOF\n")];
+  return Buffer.concat(parts);
+}
+const LONG = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} of the rules, written in plain words so the document is a real one and not a stub.`);
+
+test("C7 · PDF READER · FIRING CONTROL (RR-269 §2): a PDF is read by the PDF reader — its text, each font decoded (its own ToUnicode map first), a gap a space, a new line a line; the text kept with its sha256 and checked word for word; a scanned PDF or a document that is not one is NOT_A_TEXT_DOCUMENT, named, its bytes never kept", async () => {
+  const r = pdfText(makePdf());
+  assert.deepEqual([r.state, r.pages, r.text], [PDF_TEXT.TEXT, 1, "Each sub-test is scored from 0 to 500.\nA score of 350 is a grade B.\nHi"], "the PDF's text is not its words, in order, decoded through its fonts");
+  /* a page that draws its lower line first, and the words of a line right to left, is read top to bottom, left to right */
+  assert.equal(pdfText(makePdf({ raw: "BT /F1 12 Tf 72 704 Td (second line) Tj 0 16 Td (first line) Tj ET BT /F1 12 Tf 190 688 Td (end.) Tj -118 0 Td (third line at the) Tj ET" })).text, "first line\nsecond line\nthird line at the end.", "the PDF's text is in the order it was drawn, not the order the page shows it");
+  const pdfUrl = "https://tests.invalid/rules.pdf";
+  const bytes = makePdf({ lines: ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."], ...LONG] });
+  for (const type of ["application/pdf", "text/html", ""]) {
+    const n = network({ [pdfUrl]: { body: bytes, type } });
+    const got = await engineRead(pdfUrl, { fetchImpl: n.fetchImpl, robots: robotsOn(n.fetchImpl), on: ON });
+    assert.deepEqual([got.state, got.route, got.document, got.pages, got.sha256 === createHash("sha256").update(got.text).digest("hex"), quotationIn("A score of 350 is a grade B.", got.text), /%PDF|endstream|FlateDecode/.test(got.text)], [READ_STATE.READ, ROUTE.ENGINE, "PDF", 1, true, true, false], `${type || "no type"}: the PDF's text was not read, or its bytes were kept`);
+    assert.deepEqual([readRecord({ read: got, tenantId: "t", on: ON, run: "r" }).document, readRecord({ read: got, tenantId: "t", on: ON, run: "r" }).via], ["PDF", VIA.ENGINE]);
+  }
+  /* each fault alone: a scanned PDF, a document that only says it is a PDF, an encrypted PDF */
+  for (const [body, type, why] of [[makePdf({ scanned: true }), "application/pdf", /shows no text \(a scanned document\)/], [LANG.html, "application/pdf", /not a PDF/], [Buffer.concat([makePdf(), Buffer.from("trailer << /Encrypt 10 0 R >>")]), "application/pdf", /encrypted/]]) {
+    const n = network({ [pdfUrl]: { body, type } });
+    const got = await engineRead(pdfUrl, { fetchImpl: n.fetchImpl, robots: robotsOn(n.fetchImpl), on: ON });
+    assert.deepEqual([got.state, got.reason, got.text, why.test(got.detail)], [READ_STATE.BLOCKED, BLOCK.NOT_TEXT, undefined, true], `${got.detail}: a PDF with no readable text was kept as text`);
+  }
+  assert.equal(pdfRead(pdfUrl, ROUTE.ENGINE, makePdf(), ON).reason, BLOCK.NOT_TEXT, "a PDF with fewer characters than a document was kept as a document");
+});
+
+test("CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1): a page read in the client's own browser is imported with its URL, read date and route as VIA CAPTURE — never an engine-driven C8 read; a capture that does not say all three, or holds no text, is refused, named; a supplied file the client says is out of date is kept, and no fact stands on it", async () => {
+  const raw = (head) => `${head}\n---\nRules. A score of 350 is a grade B.\n${LONG.join("\n")}\n`;
+  const ok = captureRead({ raw: raw("URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser (a person, in the client's own browser)"), file: "browser-captures-2026-09-11/01.txt" });
+  assert.deepEqual([ok.state, ok.route, ok.via, ok.readOn, ok.url, ok.capture.file, ok.sha256 === createHash("sha256").update(ok.text).digest("hex"), quotationIn("A score of 350 is a grade B.", ok.text)], [READ_STATE.READ, ROUTE.BROWSER, VIA.CAPTURE, "2026-09-11", "https://tests.invalid/rules", "browser-captures-2026-09-11/01.txt", true, true]);
+  const rec = readRecord({ read: ok, tenantId: "t", on: ON, run: "r" });
+  assert.deepEqual([rec.via, rec.readOn, rec.capture.file, rec.route], [VIA.CAPTURE, "2026-09-11", "browser-captures-2026-09-11/01.txt", ROUTE.BROWSER], "the capture's own read date and file are not kept with it");
+  for (const [head, why] of [["READ: 2026-09-11 · route: client browser", CAPTURE_REFUSE.NO_URL], ["URL: https://tests.invalid/rules\nREAD: soon · route: client browser", CAPTURE_REFUSE.NO_DATE], ["URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: a search engine", CAPTURE_REFUSE.NOT_CLIENT_BROWSER]])
+    assert.deepEqual([captureRead({ raw: raw(head), file: "x" }).state, captureRead({ raw: raw(head), file: "x" }).reason], ["REFUSED", why], `${why} did not refuse`);
+  assert.equal(captureRead({ raw: "URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser\n---\n \n", file: "x" }).reason, CAPTURE_REFUSE.NO_TEXT);
+  /* a capture of PART of a page: a quotation not in the part is BLOCKED, named — never CHANGED; control: the whole page shows it CHANGED */
+  const fact = { factId: "f1", link: "https://tests.invalid/rules", quotations: ["Results arrive within ten working days."], pages: ["p"] };
+  const part = (await recheckFacts({ facts: [fact], readOf: async () => ok, on: ON }))[0];
+  assert.deepEqual([ok.capture.whole, part.state, part.reason, part.rebuild.length], [false, RECHECK.BLOCKED, BLOCK.CAPTURE_PART, 0], "a quotation missing from a captured PART was read as gone from the page");
+  const whole = captureRead({ raw: raw("URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser · captured: main page text"), file: "w" });
+  assert.deepEqual([whole.capture.whole, (await recheckFacts({ facts: [fact], readOf: async () => whole, on: ON }))[0].state], [true, RECHECK.CHANGED], "CONTROL: a quotation missing from the whole captured page must be CHANGED");
+  assert.equal(captureRead({ raw: raw("URL: https://tests.invalid/rules\nREAD: 2026-09-11 · route: client browser · captured: main page text (excerpt)"), file: "e" }).capture.whole, false, "an excerpt was read as the whole page");
+  /* a supplied file: kept with its original URL and day; out of date, no fact stands on it — control: the same file, current, admits */
+  const bytes = makePdf({ lines: ["Price list.", "The fee is 30,000 for the test.", ...LONG] });
+  const old = clientFileRead({ bytes, file: "client-files/old.pdf", url: "https://tests.invalid/prices.pdf", suppliedOn: "2026-09-10", outOfDate: "the client says these are last year's prices" });
+  assert.deepEqual([old.state, old.route, old.via, old.readOn, old.currency.state, old.clientFile.suppliedOn, old.clientFile.fileSha256 === createHash("sha256").update(bytes).digest("hex")], [READ_STATE.READ, ROUTE.CLIENT_FILE, VIA.CLIENT_FILE, "2026-09-10", CURRENCY.OUT_OF_DATE, "2026-09-10", true]);
+  const p = { sentence: "The fee is 30,000 for the test.", source: "https://tests.invalid/prices.pdf", quotation: "The fee is 30,000 for the test." };
+  const refused = await extractFacts({ read: old, propose: async () => [p] });
+  assert.deepEqual([refused.state, refused.admitted.length, refused.rejected[0].reason], ["OUT_OF_DATE", 0, REJECT.OUT_OF_DATE], "a fact stood on a file the client says is out of date");
+  const current = clientFileRead({ bytes, file: "client-files/old.pdf", url: "https://tests.invalid/prices.pdf", suppliedOn: "2026-09-10" });
+  assert.deepEqual([current.currency.state, (await extractFacts({ read: current, propose: async () => [p] })).admitted.length], [CURRENCY.AS_SUPPLIED, 1], "CONTROL: a current supplied file must admit its word-for-word fact");
 });
 
 /* ================= C8 · FALLBACK ================= */
@@ -227,7 +296,7 @@ test("C9 + C10 · EXTRACTION RECORD · FIRING CONTROL: each proposal's verdict i
 
 /* ================= C12 · NEUTRAL ================= */
 
-const READER = ["src/facts/source-reader.mjs", "src/facts/batch-facts.mjs", "bin/source-facts.mjs"];
+const READER = ["src/facts/source-reader.mjs", "src/facts/batch-facts.mjs", "bin/source-facts.mjs", "src/facts/pdf-text.mjs", "src/facts/checked-not-found.mjs"];
 test("C12 · NEUTRAL: the reader's code names no product, client, exam or host; the entry point is scoped and reaches the network only through the declared connector's fetch", () => {
   const NAMES = /\b(oet|ielts|pte|toefl|celpip|almi|nursing|nmc|ahpra|gmc|\w+\.(com|org|net|gov|uk|au|nz|ie)\b)/i;
   for (const f of READER) {
@@ -306,6 +375,41 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
       /* the world is a copy of the declared data root: the real tenant's own ledger travels with it — only this run's tenant is counted */
       .filter((e) => e.scope?.tenantId === FIXTURE_TENANT);
     assert.deepEqual([ledgers.length, ledgers[0]?.aiRoute, ledgers[0]?.money.amountState, ledgers[0]?.providerCalls.total], [1, { name: "CLIENT_SUBSCRIPTION_SESSION", metered: false }, "ZERO_BY_TARIFF", 0], `the route's NOT METERED cost entry was not kept once: ${ledgers.map((e) => e.file).join(" | ")}`);
+    /* RR-269 §1 · --import of the client's own reads: no connector, no request; a capture is VIA CAPTURE with its own read date; the facts
+     * citing it are rechecked against its text; a refused capture is named; nothing kept without --confirm */
+    const cap = join(b, "browser-captures-2026-09-11"); mkdirSync(cap);
+    writeFileSync(join(cap, "01-rules.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: client browser (a person, in the client's own browser) · captured: main page text\n---\nRules. Each sub-test is scored from 0 to 500 and a score of 400 is a grade B.\n${LONG.join("\n")}\n`);
+    writeFileSync(join(cap, "02-elsewhere.txt"), `URL: ${url}\nREAD: 2026-09-11 · route: a search engine\n---\nAnything.\n`);
+    writeFileSync(join(cap, "00-README.md"), "not a capture");
+    const imp = (folder, ...extra) => run("fixture-tests", "fixture-test-facts", "refuse", `--import=${folder}`, ...extra);
+    assert.deepEqual([imp("../elsewhere").status, imp("browser-captures-2026-09-11", "--live").status], [2, 2], "an import outside the batch's own folders, or with --live, was run");
+    const idry = imp("browser-captures-2026-09-11");
+    assert.deepEqual([idry.status, /files {12}2: imported 1 \(READ 1\) · refused 1 \(browser-captures-2026-09-11\/02-elsewhere.txt CAPTURE_ROUTE_IS_NOT_CLIENT_BROWSER\)/.test(idry.stdout), /recheck {10}2 fact\(s\) cite an imported source: CURRENT 0 · CHANGED 1 · BLOCKED 0 · REJECTED 1/.test(idry.stdout), /NOT WRITTEN/.test(idry.stdout), rowsIn(join(b, "source-reads.jsonl")).length, egress()], [0, true, true, true, 1, 0], idry.stdout + idry.stderr);
+    const iok = imp("browser-captures-2026-09-11", "--confirm");
+    assert.equal(iok.status, 0, iok.stdout + iok.stderr);
+    const capRead = rowsIn(join(b, "source-reads.jsonl")).at(-1), capCheck = rowsIn(join(b, "fact-rechecks.jsonl")).filter((c) => c.factId === "f1").at(-1);
+    assert.deepEqual([capRead.via, capRead.route, capRead.readOn, capRead.capture.file, capCheck.state, capCheck.route, egress()], [VIA.CAPTURE, ROUTE.BROWSER, "2026-09-11", "browser-captures-2026-09-11/01-rules.txt", RECHECK.CHANGED, ROUTE.BROWSER, 0], "the capture is not kept as the client's own read, or the fact it changed is not CHANGED");
+    /* a supplied file: kept with its URL, its day and OUT_OF_DATE; no fact is rechecked against it, and a proposal on it is REJECTED */
+    mkdirSync(join(b, "client-files"));
+    writeFileSync(join(b, "client-files", "old.pdf"), makePdf({ lines: ["Price list.", "The fee is 30,000 for the test.", ...LONG] }));
+    writeFileSync(join(b, "client-files", "manifest.json"), JSON.stringify({ files: [{ file: "old.pdf", url, suppliedOn: "2026-09-10", outOfDate: "the client says these are last year's prices" }] }));
+    const fok = imp("client-files", "--confirm");
+    assert.deepEqual([fok.status, new RegExp(`read  CLIENT_FILE ${url} · read 2026-09-10 · \\d+ chars · PDF 1 page\\(s\\) · OUT_OF_DATE`).test(fok.stdout), /recheck {10}0 fact\(s\)/.test(fok.stdout), rowsIn(join(b, "source-reads.jsonl")).at(-1).currency.state], [0, true, true, CURRENCY.OUT_OF_DATE], fok.stdout + fok.stderr);
+    writeFileSync(join(b, "fact-proposals-2026-09-10-2.json"), JSON.stringify({ route: "CLIENT_SUBSCRIPTION_SESSION", proposals: [{ proposalId: "p4", fact: null, need: "n1", source: url, sentence: "The fee is 30,000 for the test.", quotation: "The fee is 30,000 for the test." }] }));
+    const x2 = run("fixture-tests", "fixture-test-facts", "refuse", "--extract=fact-proposals-2026-09-10-2.json");
+    assert.deepEqual([x2.status, /proposals {8}1: REJECTED 1 · rejected by reason: SOURCE_IS_OUT_OF_DATE 1/.test(x2.stdout)], [0, true], x2.stdout + x2.stderr);
+    /* RR-269 §2 · --read-list: only the listed sources are read, live, through the paced path — a PDF by the PDF reader */
+    writeFileSync(join(b, "read-list-2026-09-10.json"), JSON.stringify({ sources: [url, "https://tests.invalid/rules.pdf"] }));
+    writeFileSync(join(dir, "rules.pdf"), makePdf({ lines: ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."], ...LONG] }));
+    writeFileSync(join(dir, "replay.json"), JSON.stringify({ ...replay, "https://tests.invalid/rules.pdf": join(dir, "rules.pdf") }));
+    assert.equal(run("fixture-tests", "fixture-test-facts", "refuse", "--read-list=read-list-2026-09-10.json").status, 2, "a read list ran without --live");
+    const rl = run("fixture-tests", "fixture-test-facts", "replay", "--live", "--read-list=read-list-2026-09-10.json", "--confirm");
+    assert.equal(rl.status, 0, rl.stdout + rl.stderr);
+    assert.match(rl.stdout, /read list {8}read-list-2026-09-10.json: 2 source\(s\) named — no other source is read · facts citing them 2/);
+    assert.match(rl.stdout, /requests {9}3 released through the paced path \(robots 1 · sources 2\)/);
+    assert.match(rl.stdout, /PDF documents {4}1: text read 1 · NOT_A_TEXT_DOCUMENT 0/);
+    const pdfStored = rowsIn(join(b, "source-reads.jsonl")).filter((r) => r.url === "https://tests.invalid/rules.pdf").at(-1);
+    assert.deepEqual([pdfStored.state, pdfStored.document, quotationIn("A score of 350 is a grade B.", pdfStored.text), /%PDF/.test(pdfStored.text)], [READ_STATE.READ, "PDF", true, false], "the PDF's text was not kept, or its bytes were");
   } finally { W.cleanup(); rmSync(dir, { recursive: true, force: true }); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
 });

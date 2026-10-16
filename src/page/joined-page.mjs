@@ -58,12 +58,15 @@ export const TIER_WORDS = Object.freeze({ OBSERVED: "OBSERVED — seen on an ope
 /** Law 7: words of the record that must never be visible. Matched as whole words, case-sensitive where they are record codes. */
 export const RECORD_LABELS = /\b(OBSERVED|INFERRED|RESEARCH-DERIVED|RESPONSIBLE BODY|SECONDARY|SELF-SOURCED|UNKNOWN|UNVERIFIED|NOT MEASURED|PASS|FAIL)\b|self-sourced|not independently verified|owner-approved/;
 /** The page's own structural words. They are declared here, not composed: a section needs a name, and none of them states a fact. */
-export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked", generalView: "General view — not an official fact" });
-/* RR-265 (owner decision RR-265 item 3): a question no official source answers may carry ONE general-view sentence — after at least two
- * sourced sentences (that no official body ranks the one thing over the other, and the real differences, each from the owners' own pages),
- * visibly labelled, never in the FAQ structured data, counted apart from sourced answers. It never attributes a view to people. */
-export const ANSWER_KIND = Object.freeze({ SOURCED: "SOURCED", GENERAL_VIEW: "GENERAL_VIEW" });
-export const GENERAL_VIEW_MIN_SOURCED = 2;
+export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked", generalView: "General view — not an official fact", pagesChecked: "Official pages checked" });
+/* RR-265 (owner decision RR-265 item 3): a question no official source answers may carry ONE general-view sentence — after part a, that no
+ * official body ranks the one thing over the other, and part b, the real differences, each one sourced sentence from the owners' own pages;
+ * visibly labelled, never in the FAQ structured data, counted apart from sourced answers. It never attributes a view to people.
+ * RR-269 §3: part a is a CHECKED_NOT_FOUND record (src/facts/checked-not-found.mjs) — an absence is never quoted — shown with the official
+ * pages checked, linked, and never in the FAQ structured data. */
+export const ANSWER_KIND = Object.freeze({ SOURCED: "SOURCED", GENERAL_VIEW: "GENERAL_VIEW", CHECKED_NOT_FOUND: "CHECKED_NOT_FOUND" });
+/** part b of a general view: at least this many sourced sentences, after its part a (a CHECKED_NOT_FOUND line) */
+export const GENERAL_VIEW_MIN_SOURCED = 1;
 /* RR-265 (owner decision RR-265 item 7, standing): TO THE POINT. Every answer opens with ONE short sentence — the direct answer; every
  * sourced line is one sentence of at most TO_THE_POINT_MAX_WORDS words; no filler phrase of the client's DECLARED list stands in an answer.
  * Whether the first sentence answers its question is the research agent's recorded judgement; the engine measures its shape. */
@@ -304,7 +307,7 @@ export function faqOf(items) {
  *   leadOf         what a need is RECORDED to lead with (LEAD), or null (RR-262)
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, fillerPhrases = [] }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, checkedNotFoundOf = () => [], fillerPhrases = [] }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -330,7 +333,9 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       /* RR-265: a recorded general view (INFERRED, the client AI's research), kept apart from the sourced claims */
       const gv = generalViewOf(spec.subject);
       const generalView = gv && present(gv.text) && present(gv.source) ? Object.freeze({ text: gv.text.trim(), source: gv.source, label: "INFERRED", ref: gv.ref ?? null }) : null;
-      return Object.freeze({ ...(generalView ? { answerKind: ANSWER_KIND.GENERAL_VIEW, generalView } : {}), ...(asked !== null ? { leadAsked: asked, lead: asked === LEAD.PRODUCT && st.shown.length > 0 ? LEAD.PRODUCT : null } : {}), needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
+      /* RR-269 §3: what was checked and not found, as recorded — a line with its checked pages, never a claim */
+      const checkedNotFound = Object.freeze([...(checkedNotFoundOf(spec.subject) ?? [])].filter((r) => r?.kind === ANSWER_KIND.CHECKED_NOT_FOUND));
+      return Object.freeze({ ...(generalView ? { answerKind: ANSWER_KIND.GENERAL_VIEW, generalView } : {}), ...(checkedNotFound.length ? { checkedNotFound } : {}), ...(asked !== null ? { leadAsked: asked, lead: asked === LEAD.PRODUCT && st.shown.length > 0 ? LEAD.PRODUCT : null } : {}), needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
         needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });
@@ -357,10 +362,15 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const unanswerable = unanswered.filter(unanswerableRecorded).length;
     const value_ = { value, candidate, title, titleTrace, titleComposed: composed.title !== null, items: items.length, questions: items.reduce((n, it) => n + it.questions.length, 0), faqCount: faq.length, lastChecked, stamp, ...(generalViews ? { generalViews } : {}), ...(unanswerable ? { unanswerable } : {}) };
     pages.push(Object.freeze({ record_type: JOINED_RECORD, /* RR-259: the files a page is served with are part of what it is — the same HTML with another logo file is another draft */
-      measurement_key: `${JOINED_RECORD}:${hash(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
+      /* RR-269: and its gate results are part of what it is — the same HTML judged under a changed gate law is another record, never
+       * swallowed by the earlier one with its stale verdicts */
+      measurement_key: `${JOINED_RECORD}:${hash([...(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html]), gateStates(checks)])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
   return Object.freeze(pages);
 }
+
+/** A page's gate results, name by name — what its record key carries beside the page itself. */
+const gateStates = (checks) => Object.fromEntries(Object.entries(checks ?? {}).sort(([x], [y]) => (x < y ? -1 : 1)).map(([k, v]) => [k, v?.state ?? null]));
 
 /** The FAQPage object found in the rendered page, or null. */
 export function faqInPage(html) {
@@ -455,7 +465,10 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
       [partsOffPage.length ? `title part(s) whose need is not on the page: ${partsOffPage.join(", ")}` : null, promisesBroken.length ? `title part(s) the page does not keep: ${promisesBroken.join(", ")}` : null, yearOk ? null : "the title carries a year although a fact was read in another year, has no recheck interval or is overdue"].filter(Boolean).join("; "))
       : Object.freeze({ state: CHECK.NOT_MEASURED, why: "the title is not composed from recorded search phrases" }),
     /* RR-262: in an item recorded to lead with the product's own statements, what follows the question at once is its first product card; its central sourced statement is still required */
-    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && (led(it) ? ledFirst(it) : html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`)); }), "an item's question is not followed at once by its central answer"),
+    b3DirectAnswerFirst: state(items.length > 0 && items.every((it) => { const first = it.claims.find((c) => present(c.text)); return first && first.central !== false && (led(it) ? ledFirst(it)
+      /* RR-269 §3: a general-view item's part a (what was checked and not found) is its direct answer, and stands first */
+      : it.generalView && it.checkedNotFound?.length ? html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p class="checked-not-found" data-answer-kind="${ANSWER_KIND.CHECKED_NOT_FOUND}" data-record-id="${esc(it.checkedNotFound[0].id)}">`)
+      : html.includes(`<summary>${esc(shownOf(it))}</summary>\n<p data-claim-id="${esc(first.claimId)}">`)); }), "an item's question is not followed at once by its central answer"),
     productLedNeeds: leadAsked.length === 0 ? Object.freeze({ state: CHECK.NOT_MEASURED, why: "no need of this page is recorded to lead with the product's own statements" }) : state(leadFaults.length === 0, leadFaults.join("; ")),
     b4SourcedCheckedAndRecheckable: state(claims.every((c) => present(c.source) && present(c.link) && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "") && html.includes(`${STRUCTURE.checked} ${esc(c.readOn)}`)) && noInterval.length === 0 && overdue.length === 0,
       [noInterval.length ? `${noInterval.length} fact(s) have no recorded recheck interval` : null, overdue.length ? `${overdue.length} fact(s) are past their recheck interval` : null].filter(Boolean).join("; ") || "a fact lacks its source or the day it was checked"),
@@ -480,9 +493,16 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
     generalViewLabelled: items.some((it) => it.generalView) ? state(items.filter((it) => it.generalView).every((it) => {
       const shown = `<p class="general-view" data-answer-kind="${ANSWER_KIND.GENERAL_VIEW}"><strong>${STRUCTURE.generalView}:</strong> ${esc(it.generalView.text)}`;
       const inFaq = faq.some((f) => f.answer.includes(it.generalView.text));
-      return html.includes(shown) && it.claims.filter((c) => present(c.text)).length >= GENERAL_VIEW_MIN_SOURCED && !inFaq && !PEOPLE_SAY.test(it.generalView.text);
-    }), "a general view is not labelled where it stands, follows fewer than two sourced sentences, stands in the FAQ data, or attributes a view to people")
+      /* RR-269 §3: part a is a CHECKED_NOT_FOUND line shown on the item; part b at least one sourced sentence */
+      const partA = (it.checkedNotFound ?? []).some((r) => html.includes(`data-record-id="${esc(r.id)}">${esc(r.line)} `));
+      return html.includes(shown) && partA && it.claims.filter((c) => present(c.text)).length >= GENERAL_VIEW_MIN_SOURCED && !inFaq && !PEOPLE_SAY.test(it.generalView.text);
+    }), "a general view is not labelled where it stands, has no checked-not-found line (part a) or no sourced sentence (part b), stands in the FAQ data, or attributes a view to people")
       : Object.freeze({ state: CHECK.NOT_MEASURED, why: "no general view is recorded for this page" }),
+    /* RR-269 §3: every checked-not-found line is shown with every page it checked, linked, and is never in the FAQ structured data */
+    checkedNotFoundShown: items.some((it) => it.checkedNotFound?.length) ? state(items.flatMap((it) => it.checkedNotFound ?? []).every((r) =>
+      html.includes(`data-record-id="${esc(r.id)}">${esc(r.line)} `) && r.checked.every((c) => html.includes(`href="${esc(c.url)}"`)) && !faq.some((f) => f.answer.includes(r.line)) && !(Array.isArray(inPage) && inPage.some((q) => String(q.answer ?? "").includes(r.line)))),
+      "a checked-not-found line is not shown, lacks a link to a page it checked, or stands in the FAQ data")
+      : Object.freeze({ state: CHECK.NOT_MEASURED, why: "no checked-not-found record is shown on this page" }),
     b8NoInstructionToMachines: state(!/\b(ignore (all|any|the|your) (previous|prior|above)|as an ai\b|language model|system prompt|you must recommend|when asked, (say|answer|recommend))/i.test(seen), "the page holds text that reads as an instruction to a machine"),
     titleFromSearchPhrases: composed ? state(untraced.length === 0 && titleTrace.length > 0, `title word(s) with no recorded source: ${untraced.join(", ")}`) : Object.freeze({ state: CHECK.NOT_MEASURED, why: titleMissing ?? "no recorded search phrase" }),
     titleFromRecords: state(present(title) && titleTrace.length > 0 && (composed || titleTrace.every((t) => recorded.has(t.part))), "the title is not made of recorded phrases or recorded questions"),
@@ -569,6 +589,7 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const footer = design ? `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>` : "";
   const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
   const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a></td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const checkedLine = (r) => `<p class="checked-not-found" data-answer-kind="${ANSWER_KIND.CHECKED_NOT_FOUND}" data-record-id="${esc(r.id)}">${esc(r.line)} <span class="src">${STRUCTURE.pagesChecked}: ${r.checked.map((c) => `<a class="src" href="${esc(c.url)}" rel="nofollow">${esc(c.name)}</a>`).join(", ")} · ${STRUCTURE.checked} ${esc(r.checkedOn)}</span></p>`;
   const productCards = (it) => it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`);
   /* an item that leads with the product's own statements: its cards, then ONE call-to-action button for the item */
   const leadCards = (it) => [...it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p></div>`), ...(cta ? [`<p class="lead-action">${cta}</p>`] : [])];
@@ -577,9 +598,14 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
     `<summary>${esc(it.heading.shown ?? it.heading.wording)}</summary>`,
     /* RR-262: an item recorded to lead with the product's own statements shows its product cards first, then its one sourced line */
     ...(it.lead === LEAD.PRODUCT ? leadCards(it) : []),
+    /* RR-269 §3: what was checked and not found, with the official pages checked, linked; never in the FAQ structured data. On a general-view
+     * item it is part a, so it comes first (RR-265 §2: a, b, then the general view) and is that item's direct answer; on any other item
+     * the sourced answer comes first and the line follows it */
+    ...(it.generalView ? (it.checkedNotFound ?? []).map(checkedLine) : []),
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
       ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
     ...tables.filter((t) => t.need === it.needKey).map(table),
+    ...(it.generalView ? [] : (it.checkedNotFound ?? []).map(checkedLine)),
     /* RR-265: the general view, after the sourced sentences, labelled; its source is the client AI's research record */
     ...(it.generalView ? [`<p class="general-view" data-answer-kind="${ANSWER_KIND.GENERAL_VIEW}"><strong>${STRUCTURE.generalView}:</strong> ${esc(it.generalView.text)} <span class="src">${STRUCTURE.source}: ${esc(it.generalView.source)}</span></p>`] : []),
     it.questions.length > 1 ? `<p class="also">${STRUCTURE.alsoAsked}: ${it.questions.slice(1).map((q) => esc(q.wording)).join(" · ")}</p>` : "",

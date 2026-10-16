@@ -18,6 +18,7 @@ import { spawnSync } from "node:child_process";
 import { connectionDrafts, productStatements, joinPages, joinedChecks, renderJoined, unanswerableRecorded, UNANSWERABLE, orderedQuestions, composeTitle, titleWordsTraced, wordsUsed, conversions, comparisonTables, isQuestion, headingShown, centralFirst, assetsOf, ASSET_FOLDER, needsToRestate, capitalsIn, keyFactCards, faqOf, faqInPage, REFUSAL, JOINED_RECORD, LEAD, LEAD_SOURCED_LINES, TIER_WORDS, PRODUCT_STATEMENT_LABEL, RECORD_LABELS, STRUCTURE } from "../src/page/joined-page.mjs";
 import { testException, parseExceptionRecord, STAMP } from "../src/page/test-exception.mjs";
 import { CHECK } from "../src/page/draft-render.mjs";
+import { judgeCheckedNotFound, checkedNotFoundByNeed, CNF_REFUSE } from "../src/facts/checked-not-found.mjs";
 import { classifyEntryPoint } from "../tools/tenant-scope-census.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
@@ -112,24 +113,54 @@ test("TO THE POINT · FIRING CONTROL (RR-265): an answer opens with ONE short se
   assert.deepEqual([long.checks.toThePoint.state, /a sourced line is not one short sentence: n1-2/.test(long.checks.toThePoint.why), /opens with/.test(long.checks.toThePoint.why)], ["FAIL", true, false], "a sourced line over the word limit passed, or the opening was blamed");
 });
 
-test("GENERAL VIEW · FIRING CONTROL (RR-265): a general view stands after two sourced sentences, labelled where it stands, never in the FAQ data, attributing no view to people, counted apart — each fault fails alone", () => {
+const CNF = judgeCheckedNotFound({ id: "cnf-1", needs: ["n1"], line: "No official ranking of the two tests by difficulty was found on the official pages checked on 15 October 2026.", checked: [{ url: "https://example.org/a", name: "Owner A" }, { url: "https://example.org/b", name: "Owner B" }], checkedOn: "2026-10-15" }).record;
+test("GENERAL VIEW · FIRING CONTROL (RR-265) · part a RR-269:a general view stands after part a — a CHECKED_NOT_FOUND line — and at least one sourced sentence, labelled where it stands, never in the FAQ data, attributing no view to people, counted apart — each fault fails alone", () => {
   const view = { text: "Which test feels harder depends on the candidate's own strengths.", source: "the client's own AI research (14 Oct 2026)" };
   const need = (labels) => [built("n1", "alpha", [["Is it harder than the other one?", INF]], labels)];
-  const two = [label("n1-1", { text: "No official body ranks one as harder." }), label("n1-2", { text: "One uses work topics; the other uses general topics." })];
-  const p = joined(need(two), { generalViewOf: (id) => (id === "n1" ? view : null) })[0];
+  const one = [label("n1-2", { text: "One uses work topics; the other uses general topics." })];
+  const withA = { checkedNotFoundOf: (id) => (id === "n1" ? [CNF] : []) };
+  const p = joined(need(one), { generalViewOf: (id) => (id === "n1" ? view : null), ...withA })[0];
   assert.equal(p.checks.generalViewLabelled.state, "PASS", p.checks.generalViewLabelled.why);
   assert.ok(p.html.includes(`<p class="general-view" data-answer-kind="GENERAL_VIEW"><strong>${STRUCTURE.generalView}:</strong> ${view.text}`), "the general view is not labelled where it stands");
-  assert.deepEqual(faqInPage(p.html), [{ question: "Is it harder than the other one?", answer: "No official body ranks one as harder. One uses work topics; the other uses general topics." }], "the general view stands in the FAQ data");
+  assert.deepEqual(faqInPage(p.html), [{ question: "Is it harder than the other one?", answer: "One uses work topics; the other uses general topics." }], "the general view or the checked-not-found line stands in the FAQ data");
   assert.deepEqual([p.generalViews, p.itemList[0].answerKind, p.itemList[0].generalView.label], [1, "GENERAL_VIEW", "INFERRED"]);
-  assert.ok(p.html.indexOf("No official body") < p.html.indexOf(STRUCTURE.generalView) && p.html.indexOf("general topics") < p.html.indexOf(STRUCTURE.generalView), "the general view does not follow the sourced sentences");
-  assert.equal(joined(need(two))[0].checks.generalViewLabelled.state, "NOT MEASURED");
-  assert.equal(joined(need(two))[0].generalViews, undefined, "a page with no general view counts one");
+  assert.ok(p.html.indexOf(CNF.line) < p.html.indexOf('data-claim-id="n1-2"') && p.html.indexOf('data-claim-id="n1-2"') < p.html.indexOf(STRUCTURE.generalView), "the parts are not in order: a, b, then the general view");
+  assert.equal(p.checks.b3DirectAnswerFirst.state, "PASS", "part a, standing first on a general-view item, is not read as its direct answer");
+  assert.equal(joined(need(one), withA)[0].checks.generalViewLabelled.state, "NOT MEASURED");
+  assert.equal(joined(need(one), withA)[0].generalViews, undefined, "a page with no general view counts one");
   /* each fault alone */
-  assert.equal(joined(need([two[0]]), { generalViewOf: () => view })[0].checks.generalViewLabelled.state, "FAIL", "a general view with one sourced sentence passed");
-  assert.equal(joined(need(two), { generalViewOf: () => ({ ...view, text: "Most candidates say it is harder." }) })[0].checks.generalViewLabelled.state, "FAIL", "a general view that attributes a view to people passed");
+  assert.equal(joined(need(one), { generalViewOf: () => view })[0].checks.generalViewLabelled.state, "FAIL", "a general view without part a (a checked-not-found line) passed");
+  assert.equal(joined(need([]), { generalViewOf: () => view, ...withA })[0].checks.generalViewLabelled.state, "FAIL", "a general view with no sourced sentence (part b) passed");
+  assert.equal(joined(need(one), { generalViewOf: () => ({ ...view, text: "Most candidates say it is harder." }), ...withA })[0].checks.generalViewLabelled.state, "FAIL", "a general view that attributes a view to people passed");
   const base = { items: p.itemList, stamp: STAMP, title: p.title, titleTrace: p.titleTrace, lastChecked: p.lastChecked, design: DESIGN, faq: faqOf(p.itemList) };
   assert.equal(joinedChecks({ ...base, html: p.html.replace(`<strong>${STRUCTURE.generalView}:</strong> `, "") }).generalViewLabelled.state, "FAIL", "an unlabelled general view passed");
-  assert.equal(joinedChecks({ ...base, html: p.html, faq: [{ question: "Is it harder than the other one?", answer: `No official body ranks one as harder. ${view.text}` }] }).generalViewLabelled.state, "FAIL", "a general view in the FAQ data passed");
+  assert.equal(joinedChecks({ ...base, html: p.html, faq: [{ question: "Is it harder than the other one?", answer: `One uses work topics. ${view.text}` }] }).generalViewLabelled.state, "FAIL", "a general view in the FAQ data passed");
+});
+
+test("CHECKED, NOT FOUND · FIRING CONTROL (RR-269 §3): an absence is a record of what was checked — one sentence, the official pages checked, the day — never a quoted fact; shown with its pages linked, never in the FAQ data; each fault fails alone", () => {
+  const ok = { id: "cnf-1", needs: ["n1"], line: CNF.line, checked: [{ url: "https://example.org/a", name: "Owner A" }], checkedOn: "2026-10-15" };
+  assert.equal(judgeCheckedNotFound(ok).ok, true);
+  for (const [bad, why] of [[{ ...ok, id: "" }, CNF_REFUSE.NO_ID], [{ ...ok, needs: [] }, CNF_REFUSE.NO_NEED], [{ ...ok, line: "Not found. Checked twice." }, CNF_REFUSE.NOT_ONE_SENTENCE], [{ ...ok, checked: [] }, CNF_REFUSE.NO_PAGE_CHECKED],
+    [{ ...ok, checked: [{ url: "not a page", name: "x" }] }, CNF_REFUSE.PAGE_NOT_A_URL], [{ ...ok, checkedOn: "15 Oct" }, CNF_REFUSE.NO_DATE], [{ ...ok, quotation: "anything" }, CNF_REFUSE.CARRIES_A_QUOTATION]])
+    assert.deepEqual(judgeCheckedNotFound(bad).reasons, [why], `${why} did not refuse alone`);
+  assert.deepEqual(checkedNotFoundByNeed([ok, { ...ok, id: "x", quotation: "q" }]).refused.map((r) => r.id), ["x"]);
+  const p = joined([built("n1", "alpha", [["Is it cheaper?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })])], { checkedNotFoundOf: (id) => (id === "n1" ? [CNF] : []) })[0];
+  assert.equal(p.checks.checkedNotFoundShown.state, "PASS", p.checks.checkedNotFoundShown.why);
+  assert.ok(p.html.indexOf('data-claim-id="n1-1"') < p.html.indexOf(CNF.line) && p.checks.b3DirectAnswerFirst.state === "PASS", "on an item with no general view the sourced answer does not stand first");
+  assert.ok(p.html.includes(`data-answer-kind="CHECKED_NOT_FOUND" data-record-id="cnf-1">${CNF.line} <span class="src">${STRUCTURE.pagesChecked}: <a class="src" href="https://example.org/a"`), "the line is not shown with its checked pages linked");
+  assert.deepEqual(faqInPage(p.html).map((q) => q.answer), ["It costs 5 XTS a month."], "the checked-not-found line stands in the FAQ data");
+  assert.equal(joined([built("n1", "alpha", [["Is it cheaper?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })])])[0].checks.checkedNotFoundShown.state, "NOT MEASURED");
+  const base = { items: p.itemList, stamp: STAMP, title: p.title, titleTrace: p.titleTrace, lastChecked: p.lastChecked, design: DESIGN, faq: faqOf(p.itemList) };
+  assert.equal(joinedChecks({ ...base, html: p.html.replace(CNF.line, "") }).checkedNotFoundShown.state, "FAIL", "a line that is not shown passed");
+  assert.equal(joinedChecks({ ...base, html: p.html.replace('href="https://example.org/b"', 'href="#"') }).checkedNotFoundShown.state, "FAIL", "a checked page that is not linked passed");
+  assert.equal(joinedChecks({ ...base, html: p.html, faq: [{ question: "Is it cheaper?", answer: CNF.line }] }).checkedNotFoundShown.state, "FAIL", "a line in the FAQ data passed");
+});
+
+test("RECORD KEY · FIRING CONTROL (RR-269): the same HTML judged by other gate results is another record — a rebuild under a changed gate law is never swallowed by the earlier record and its stale verdicts", () => {
+  const one = [built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })])];
+  const a = joined(one)[0], b = joined(one, { recheckOf: () => null })[0];
+  assert.deepEqual([a.html === b.html, a.checks.b4SourcedCheckedAndRecheckable.state, b.checks.b4SourcedCheckedAndRecheckable.state, a.measurement_key === b.measurement_key, joined(one)[0].measurement_key === a.measurement_key], [true, "PASS", "FAIL", false, true],
+    "a page whose gate results changed kept the earlier record's key");
 });
 
 test("JOIN · FIRING CONTROL: one page per page candidate, every chosen need on it as ONE item with its own questions and its own answer, in the order handed in; nothing chosen, nothing built", () => {

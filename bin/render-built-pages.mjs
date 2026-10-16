@@ -5,15 +5,16 @@
  *
  *   node bin/render-built-pages.mjs --subject=<id> --on=YYYY-MM-DD --tenant=<id> --actor=<id>                    the audit of the stored renders
  *   node bin/render-built-pages.mjs … --render --confirm                                                         OFFLINE renders, stored
- *   node bin/render-built-pages.mjs … --live --confirm [--max-requests=1..35]                                    LIVE renders, stored
+ *   node bin/render-built-pages.mjs … --live --confirm [--max-requests=1..100]                                   LIVE renders, stored
  *
  * THE POPULATION: every page the engine built for this client, in each research batch it DECLARES (no batch, no date is a default):
  * - OFFLINE: each page as published (re-made from its build at its recorded address; its sha256 must equal the one recorded at publication)
  *   or, before publication, as built — served locally from 127.0.0.1 with the files its own record names (each read from the client's
  *   declared root, and served only when its bytes match the recorded sha256). Every other request is refused.
  * - LIVE: each page recorded as published, at its address, through the client's declared PUBLIC_SITE connector and the bounded same-origin
- *   policy (src/render/same-origin-policy.mjs) under the owner's GREEN (config/audit/live-render-green.mjs): at most 35 requests in the run
- *   (60 shared with F27, which made 25), at least 2 s apart, no retry, robots obeyed, no other host. NO request without --confirm.
+ *   policy (src/render/same-origin-policy.mjs) under the owner's GREEN (config/audit/live-render-green.mjs; RR-272): the pages and their
+ *   own same-origin subresources, at most 100 requests in the run, at least 2 s apart, no retry, robots obeyed; a subresource on any other
+ *   origin is THIRD_PARTY — refused, recorded by host in the stored render, never requested. NO request without --confirm.
  * Each render — the source document read with JavaScript off and the rendered DOM, with their visible texts and the render's state — is
  * appended, through the governed boundary, to its batch's built-page-renders.jsonl. The audit (src/render/built-page-render.mjs) is made
  * from the stored renders only. Nothing is written to the site. Output: counts with their denominators — no host, URL or page content.
@@ -34,7 +35,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
 import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 import { RENDER_BOUNDS, loadPlaywright, launchOfflineChromium, startDocumentServer, renderDocument } from "../src/render/renderer.mjs";
-import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
+import { createSameOriginPolicy, greenSubresources, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
 import { renderJobs, offlineFiles, auditRenders, RENDER_READ_RECORD, MODE } from "../src/render/built-page-render.mjs";
 import { DIMENSIONS, NOT_MEASURED } from "../src/audit/render-compare.mjs";
 import { LIVE_RENDER_GREEN } from "../config/audit/live-render-green.mjs";
@@ -69,7 +70,7 @@ const batchOf = new Map(batches.flatMap((b) => b.builds.map((r) => [r.value, b.b
 
 console.log("F22 · JAVASCRIPT RENDERING AUDIT — this client's built pages · source against render · count-only");
 console.log(`  population   OFFLINE ${jobs.offline.length} page(s) (LIVE ${jobs.counts.live} as published, BUILT ${jobs.counts.built} as built; not servable as they stand ${jobs.offline.filter((j) => j.refused).length}) · LIVE ${jobs.live.length} page(s) · published on a host this client does not declare ${jobs.counts.publishedElsewhere} (never requested) · research batch(es) declared ${BATCHES.length}`);
-if (live) console.log(`  bound        at most ${LIMIT} request(s) in this run (the GREEN's ${LIVE_RENDER_GREEN.maxRequests}) · at least ${LIVE_RENDER_GREEN.intervalMs} ms between two requests · no retry · GET only · the declared origin only${LIVE_RENDER_GREEN.pagesOnly ? " · the LIVE page addresses and the robots file only: a page's subresources are outside the GREEN and refused, never requested" : ""}`);
+if (live) console.log(`  bound        at most ${LIMIT} request(s) in this run (the GREEN's ${LIVE_RENDER_GREEN.maxRequests}) · at least ${LIVE_RENDER_GREEN.intervalMs} ms between two requests · no retry · GET only · the declared origin only${LIVE_RENDER_GREEN.pagesOnly !== false ? " · the LIVE page addresses and the robots file only: a page's subresources are outside the GREEN and refused, never requested" : ""}${LIVE_RENDER_GREEN.sameOriginOnly !== false ? " · a subresource on any origin but its page's own is THIRD_PARTY: refused and recorded by host, never requested" : ""}`);
 
 const stamp = (o) => createHash("sha256").update(JSON.stringify(o)).digest("hex").slice(0, 24);
 if (live || render) {
@@ -110,9 +111,10 @@ if (live || render) {
       if (!doc.served || doc.status < 200 || doc.status >= 300) { read(t, { renderState: "FAILED", reason: `the live document was not served: ${doc.served ? `HTTP_${doc.status}` : doc.refusal}` }); continue; }
       const sourceHtml = doc.body.toString("utf8");
       documents.set(id, { body: sourceHtml, status: doc.status, contentType: doc.contentType ?? "text/html" });
-      const rendered = await renderDocument({ browser, origin: server.origin, id, documentUrl: t.url, egress, bounds, readVisibleText: true, subresources: (u) => (LIVE_RENDER_GREEN.pagesOnly ? { served: false, refusal: "OUTSIDE_THE_GREEN" } : pp.resolve(u)) });
+      const rendered = await renderDocument({ browser, origin: server.origin, id, documentUrl: t.url, egress, bounds, readVisibleText: true, subresources: greenSubresources({ green: LIVE_RENDER_GREEN, pageUrl: t.url, resolve: pp.resolve }) });
       const source = await renderDocument({ browser, origin: server.origin, id, documentUrl: t.url, egress, bounds, readVisibleText: true, javaScriptEnabled: false, subresources: (u) => pp.cacheOnly(u) });
-      read(t, { renderState: rendered.renderState, reason: rendered.reason, sourceHtml, renderedHtml: rendered.html, sourceText: source.visibleText, renderedText: rendered.visibleText });
+      /* the render's requests, by host and outcome, are stored with it: a THIRD_PARTY refusal is named by its host there, never requested */
+      read(t, { renderState: rendered.renderState, reason: rendered.reason, requests: rendered.requests, sourceHtml, renderedHtml: rendered.html, sourceText: source.visibleText, renderedText: rendered.visibleText });
     }
   } finally { await browser.close(); await server.close(); }
   /* each page's render is appended to its own batch's store, through the governed boundary */

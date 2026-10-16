@@ -18,13 +18,13 @@ import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PDF = "src/facts/pdf-text.mjs";
-const M = "src/facts/source-reader.mjs", BF = "src/facts/batch-facts.mjs", BIN = "bin/source-facts.mjs", ADP = "src/evidence/evidence-state-adapters.mjs";
+const M = "src/facts/source-reader.mjs", BF = "src/facts/batch-facts.mjs", BIN = "bin/source-facts.mjs", PT = "src/facts/private-texts.mjs", ADP = "src/evidence/evidence-state-adapters.mjs";
 const T = ["test/f44-source-reader.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const PDFR = "C7 · PDF READER · FIRING CONTROL (RR-269 §2)", CAP = "CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1)";
-const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
+const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -82,6 +82,13 @@ const SABOTAGES = [
   ["R50", "C11 a quotation missing from a captured part of a page is read as gone", M, "    if (missing.length && read.capture && read.capture.whole !== true) {", "    if (false) {", CAP],
   ["R51", "C7 a PDF's glyphs are read in the order they are drawn, not where the page shows them", PDF, "const sorted = [...glyphs].sort((a, b) => b.y - a.y || a.x - b.x);", "const sorted = [...glyphs];", PDFR],
   ["R52", "C7 RR-270 a simple font's codes are read two bytes at a time when its ToUnicode map declares a two-byte code space", PDF, "  const bytesPerCode = composite ? 2 : 1;", "  const bytesPerCode = composite || cmap?.twoByte ? 2 : 1;", PDFR],
+  /* RR-274: the page texts of other organisations kept privately — never in the public batch */
+  ["R53", "RR-274 a public copy keeps the page text", PT, "return Object.freeze({ ...record, text: null, textAt: TEXT_AT });", "return Object.freeze({ ...record, textAt: TEXT_AT });", PRV],
+  ["R54", "RR-274 a private text is joined although it is not the one the public record states", PT, "    if (sha256(p.text) !== r.sha256) return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.HASH_DIFFERS });\n", "", PRV],
+  ["R55", "RR-274 a private text of another read is joined", PT, "const p = byKey.get(r.measurement_key);", "const p = byKey.get(r.measurement_key) ?? [...byKey.values()][0];", PRV],
+  ["R56", "RR-274 a live read writes the full text into the public batch", BIN, "const g = append(fullReads.map(publicCopy), \"source-reads.jsonl\");", "const g = append(fullReads, \"source-reads.jsonl\");", PP],
+  ["R57", "RR-274 a live read runs without the private sources root", BIN, "refuseWithoutPrivate(\"a live read\");\n", "", PP],
+  ["R58", "RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

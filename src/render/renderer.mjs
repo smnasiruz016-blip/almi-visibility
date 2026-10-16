@@ -193,7 +193,8 @@ export async function renderDocument({ browser, origin, id, documentUrl, bounds 
         let got;
         try { got = await subresources(req.url(), req.resourceType(), req.method()); } catch (e) { got = { served: false, refusal: "NETWORK" }; }
         if (got?.served) {
-          requests.push({ ...entry, outcome: "SERVED_SAME_ORIGIN" });
+          /* F22 Amendment 1: a file the page's own record names, served from the local side (OFFLINE), is SERVED_LOCAL — never a live fetch */
+          requests.push({ ...entry, outcome: got.local === true ? "SERVED_LOCAL" : "SERVED_SAME_ORIGIN" });
           return route.fulfill({ status: got.status, headers: got.contentType ? { "content-type": got.contentType } : {}, body: got.body });
         }
         requests.push({ ...entry, outcome: "REFUSED", refusal: got?.refusal ?? "NETWORK" });

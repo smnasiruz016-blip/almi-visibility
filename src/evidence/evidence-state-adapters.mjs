@@ -164,6 +164,16 @@ function ofLiveSecurityRead(r) {
   return place(rule, "OBSERVED", { evidenceRef: r.measurement_key, sourceId: `live-security-check@${r.run}`, observedAt: r.recorded_at });
 }
 
+/** F22 Amendment 1 — a `built_page_render_read`: one render of a page the engine built (offline, or live under the owner's GREEN) — the
+ * source document, the rendered DOM and the render's state, kept as rendered: OBSERVED. */
+function ofBuiltPageRenderRead(r) {
+  const rule = "built_page_render_read";
+  if (!present(r.measurement_key) || !present(r.pageId)) return unmapped("a built-page render names its page and its key", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a built-page render with no recorded_at has no time", rule);
+  if (!present(r.run)) return unmapped("a built-page render names the run that made it", rule);
+  return place(rule, "OBSERVED", { evidenceRef: r.measurement_key, sourceId: `built-page-render@${r.run}`, observedAt: r.recorded_at });
+}
+
 function ofResponseHeaders(r) {
   const rule = "response_headers";
   if (!present(r.evidence_id)) return unmapped("a response-headers record with no evidence_id cannot be referenced", rule);
@@ -485,6 +495,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "link_status_observation": return ofLinkStatus(record);
     case "live_page_read": return ofLivePageRead(record);
     case "live_security_read": return ofLiveSecurityRead(record);
+    case "built_page_render_read": return ofBuiltPageRenderRead(record);
     case "source_page_read": return ofSourceRead(record);
     case "page_body": return ofPageBody(record);
     case "public_question": return ofPublicQuestion(record);

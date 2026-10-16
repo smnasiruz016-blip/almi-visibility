@@ -439,6 +439,14 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-15_RR-267_CLOSE_LAST_NEEDS.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-15_RR-268_SOURCE_READS_AND_OWN_FACT_CHECK.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F44_ACCEPTANCE_AMENDMENT_2_2026-10-15.md", loader: "F-board acceptance F44 (Amendment 2)" }),
+  /* 16 Oct 2026, the migration at _handoffs 71988eb (F27 Amendment 3): the owner's decisions of RR-269, RR-270 and RR-271, the owner's
+   * overnight GREEN and "rukay mat", beta-g's technical header baseline for the live pages, and F27's Amendment 3. */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-15_RR-269_CLIENT_BROWSER_READS_PDF_READER_ABSENCE_RECORDS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-16_RR-270_PILOT_PAGE_FIXES.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-16_RR-271_PUBLISH_THE_PILOT_PAGES.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-16_OVERNIGHT_F27_F22_READ_ONLY_LIVE_GUIDES.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_BETA_G_DECISION_2026-10-16_F27_LIVE_HEADER_BASELINE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F27_ACCEPTANCE_AMENDMENT_3_2026-10-16.md", loader: "F-board acceptance F27 (Amendment 3)" }),
   /* RR-263 (14 Oct 2026), second migration at _handoffs eeb7245: the 3 CURRENT records of the owner's principle — its command, his
    * decision in his own words, and F23's Amendment 2. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-14_RR-263_OWNER_PRINCIPLE.md", loader: "authority register (CURRENT record)" }),

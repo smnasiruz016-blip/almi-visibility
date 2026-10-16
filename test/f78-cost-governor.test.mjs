@@ -15,6 +15,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { attributeCostEntry, totalsByTenant } from "../src/cost/tenant-attribution.mjs";
 import { readCostByTenant, viewForTenant, researchLedgers } from "../src/cost/cost-by-tenant.mjs";
 import { coverageFailures, createCostLedger } from "../src/cost/ledger.mjs";
+import { declaredTenantLedgers } from "../src/cost/tenant-ledger.mjs";
 import { createPaidProviderGate, createFakePaidProvider, createKillSwitch, authorizationProblems, paidProviderRef, PaidCallRefused } from "../src/cost/paid-provider-gate.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
@@ -144,7 +145,9 @@ test("REAL · every recorded cost entry is ATTRIBUTED to one declared tenant or 
   assert.equal(new Set(tenants).size, tenants.length);
   assert.equal([...r.totals.values()].reduce((n, s) => n + s.entries, 0), r.summary.entries, "an entry was counted in two totals, or none");
   /* C1's failure on the real ledger is counted, not hidden: the ledger's own coverage check and F78's totals agree */
-  assert.equal(r.summary.measurableButNotRecorded, coverageFailures([...createCostLedger(join(REPO, "runs/cost/ledger.jsonl")).readAll()]).length, "a measurable-but-unrecorded gap was hidden");
+  /* RR-272: the tenants' own ledgers are read too — the late entry of the 16 Oct F27 live run carries one such gap (its wall-clock) */
+  const tenantEntries = declaredTenantLedgers().flatMap((l) => (existsSync(l.path) ? [...createCostLedger(l.path).readAll()] : []));
+  assert.equal(r.summary.measurableButNotRecorded, coverageFailures([...createCostLedger(join(REPO, "runs/cost/ledger.jsonl")).readAll(), ...tenantEntries]).length, "a measurable-but-unrecorded gap was hidden");
   console.log(`  REAL (count-only): ${r.bound} | ${JSON.stringify(r.summary)}`);
 });
 

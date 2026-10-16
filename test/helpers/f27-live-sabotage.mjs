@@ -39,7 +39,9 @@ const SABOTAGES = [
   ["L09", "C4 an http: form action is missed", M, "submissions += f.submissions;", "submissions += 0;", C4],
   ["L10", "C5 an HSTS max-age below the floor passes", HB, "check: \"HSTS_MIN_MAX_AGE\", min: 15768000 }", "check: \"HSTS_MIN_MAX_AGE\", min: 0 }", C5],
   ["L11", "C5 a report-only policy counts for clickjacking", M, "if (/(^|;)\\s*frame-ancestors\\b/i.test(h[\"content-security-policy\"] ?? \"\"))", "if (/(^|;)\\s*frame-ancestors\\b/i.test(h[\"content-security-policy\"] ?? h[\"content-security-policy-report-only\"] ?? \"\"))", C5],
-  ["L12", "C5 unsafe-url passes as a referrer policy", HB, "\"origin-when-cross-origin\", \"unsafe-url\", \"no-referrer-when-downgrade\"]) }),", "\"origin-when-cross-origin\", \"no-referrer-when-downgrade\"]) }),", C5],
+  /* RR-272: dropping unsafe-url from the unsafe list alone leaves it FAIL as an unknown value (the rule is closed) — found by this harness,
+   * L12 not red; the fault that lets it PASS is naming it private */
+  ["L12", "C5 unsafe-url passes as a referrer policy", HB, "\"strict-origin-when-cross-origin\"]), unsafe:", "\"strict-origin-when-cross-origin\", \"unsafe-url\"]), unsafe:", C5],
   ["L13", "C5 a page that is not HTML over https is judged", M, "  if (!htmlOverHttps) return { state: STATE.NOT_APPLICABLE };\n", "", C5],
   ["L14", "C5 an unrecorded response is reported failing or passing", M, "  if (!read || !read.headers) return { state: STATE.NOT_MEASURED, why: \"the response was not recorded\" };", "  if (!read || !read.headers) return { state: STATE.FAIL, why: \"absent\" };", C5],
   ["L15", "C5 the Content-Security-Policy is given a verdict", M, "verdict: \"REPORTED — NO VERDICT\" }", "verdict: csp.some((c) => c.enforced) ? VERDICT.PROVED : VERDICT.DISPROVED }", C5],

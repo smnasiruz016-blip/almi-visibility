@@ -6,7 +6,7 @@
  *   A1-1  the frozen list: 25 gaps, its hash the one C1's frozen words name, its boundary, its kinds; refs never a client's name
  *   A1-2  the decisions: a listed pre-boundary gap is reported and does not disprove; an UNLISTED one and a post-boundary one DISPROVE;
  *         a list that no longer hashes to its pin DISPROVES
- *   A1-3  REAL: the recorded ledgers — every gap they show is listed and pre-boundary; all 25 reported by name; C1's gap part PROVED
+ *   A1-3  REAL: the recorded ledgers — the listed pre-boundary gaps, all 25 reported by name, and the one gap after the boundary named (RR-272: C1's gap part DISPROVED)
  *   C8-1  the census: every entry point the F03 census finds opening a connector is metered, records, and names its own ledger
  *   C8-2  REAL PATH: one entry for every run — completed, refused, failed — and none twice when the run wrote its own
  *   C8-3  REAL PATH: without --confirm no request is made and no entry is written (the write law refuses it)
@@ -86,9 +86,13 @@ test("A1-2 · a listed pre-boundary gap is reported and does not disprove; an un
 
 test("A1-3 · REAL: the recorded ledgers show only listed pre-boundary gaps; all 25 are reported by name on the read; C1's gap part PROVED", () => {
   const r = readCostByTenant({ resolve: createTenantResolver() });
-  assert.deepEqual([r.gaps.listIntact, r.gaps.listed.total, r.gaps.listed.seenInLedgers, r.gaps.unlisted.length, r.gaps.postBoundary.length, r.gaps.verdict], [true, 25, 12, 0, 0, "PROVED"]);
+  /* RR-272 (restated, DISPROVED): the 16 Oct 2026 F27 live run's own cost entry was refused (GOVERNED_STORE_APPEND_NEEDS_A_KEY) and never
+   * written; its LATE entry, made from its stored reads, shows its wall-clock as measurable but not recorded — a real gap after the boundary.
+   * It is named here, never hidden; C1's gap part reads DISPROVED on the real ledgers until the owner decides it. */
+  assert.deepEqual([r.gaps.listIntact, r.gaps.listed.total, r.gaps.listed.seenInLedgers, r.gaps.unlisted.length, r.gaps.verdict], [true, 25, 12, 0, "DISPROVED"]);
+  assert.deepEqual([...r.gaps.postBoundary], ["late:run:bin/live-security.mjs:2026-10-16T08:15:26Z · founderTime"], "a post-boundary gap other than the named one");
   assert.deepEqual(r.gaps.listed.names, PRE_BOUNDARY_GAPS.map((g) => g.id));
-  assert.equal(r.summary.measurableButNotRecorded, 12, "the twelve gaps are counted, never hidden");
+  assert.equal(r.summary.measurableButNotRecorded, 13, "the twelve listed gaps and the one after the boundary are counted, never hidden");
   console.log(`  REAL (count-only): ${r.bound} | gaps ${JSON.stringify({ listed: r.gaps.listed.total, seen: r.gaps.listed.seenInLedgers, unlisted: r.gaps.unlisted.length, post: r.gaps.postBoundary.length, verdict: r.gaps.verdict })}`);
 });
 

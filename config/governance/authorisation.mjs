@@ -197,6 +197,10 @@ export const ACTIONS = Object.freeze({
      * built-pages.mjs), kept in the research batch's own render store, the same family and resource class; a classification only, granting
      * no permission. */
     "APPEND_BUILT_PAGE_RENDERS",
+    /* RR-273 (16 Oct 2026): the guides hub built from the client's LIVE pages and recorded as LIVE once the owner GREENed it (bin/guides-
+     * hub.mjs), kept in the research batch's own guides-hub store, the same family and resource class; a classification only, granting no
+     * permission. */
+    "APPEND_GUIDES_HUB",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

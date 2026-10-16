@@ -3,7 +3,7 @@
  * F23 · THE BOUNDED LINK-STATUS CHECK of one client's own pages in one research batch (F23 Acceptance Amendment 2, C8; the owner's GREEN
  * of 14 October 2026 for this check and for nothing else).
  *
- *   node bin/link-status.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD --tenant=<id> --actor=<id> [--live --confirm]
+ *   node bin/link-status.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD --tenant=<id> --actor=<id> [--hub=<address>] [--live --confirm]
  *
  * WITHOUT --live: the plan is printed (counts only) and NO request is made. --live without --confirm opens nothing that can request
  * (F78: the metered connector refuses before any request when the run cannot record its cost). WITH both: one GET for each distinct address the links of
@@ -31,6 +31,7 @@ import { canon } from "../src/audit/link-audit-reader.mjs";
 import { clientPages } from "../src/audit/built-page-links.mjs";
 import { planLinkCheck, checkLinks, observationRecord, liveReadRecord, pacingOf, REFUSAL } from "../src/audit/link-status.mjs";
 import { POPULATION, STATE } from "../src/audit/page-links.mjs";
+import { hubLinkPage } from "../src/page/guides-hub.mjs";
 import { LINK_CHECK, LINK_CHECK_OWNER_CEILING } from "../config/audit/link-rules.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -56,15 +57,22 @@ if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSE
 const rows = (name) => (existsSync(join(batchDir, name)) ? createJsonlStore(join(batchDir, name)).readAll() : []);
 const hosts = [...declaredSiteHosts({ tenantId: SCOPE.tenantId })].sort();
 const population = clientPages({ batches: [{ batchId: BATCH, builds: rows("joined-pages.jsonl"), decisions: rows("built-page-needs.jsonl"), reads: rows("live-pages.jsonl") }], tenantId: SCOPE.tenantId, hosts });
+/* RR-273: --hub=<address> checks the guides hub ONLY — its own address and the links of its own list (the guides); its header and footer are
+ * the guides' own, checked with them. A hub not recorded as LIVE at that address, on a declared host, is refused before any request */
+const HUB = arg("hub");
+const hub = HUB === null ? null : hubLinkPage({ records: rows("guides-hub.jsonl"), url: HUB, hosts });
+if (HUB !== null && hub === null) { console.error("🔴 REFUSED — NO_LIVE_HUB: the batch records no LIVE guides hub at that address on a declared host. NO REQUEST WAS MADE."); process.exit(3); }
+const pages = hub ? [hub] : population.pages;
 /* the client's own live pages are read at their own address; every page's links are planned from its stored body */
-const livePages = population.pages.filter((p) => p.population === POPULATION.LIVE);
+const livePages = pages.filter((p) => p.population === POPULATION.LIVE);
 const liveAddresses = new Map(livePages.map((p) => [canon(p.canonical), p]).filter(([u]) => u !== null));
-const plan = planLinkCheck({ pages: population.pages, canon });
+const plan = planLinkCheck({ pages, canon });
 const urls = [...new Set([...liveAddresses.keys(), ...plan.urls])].sort();
 const hostCount = new Set(urls.map((u) => new URL(u).host)).size;
 
 console.log("F23 · LINK-STATUS CHECK — this client's own pages in this batch · counts only");
 console.log(`  pages            BUILT, NOT YET PUBLISHED ${population.counts.built} · LIVE ${population.counts.live} (their own addresses are read: ${liveAddresses.size}) · published on a host this client does not declare ${population.counts.publishedElsewhere} (never requested)`);
+if (hub) console.log(`  hub only        the guides hub at its own address — its list planned from the hub as recorded LIVE (${hub.build}); nothing else of the batch is checked`);
 console.log(`  plan             ${plan.occurrences} link occurrence(s) · ${urls.length} distinct address(es) on ${hostCount} host(s) · not a web address ${plan.notHttp} (never requested)`);
 console.log(`  bound            at most ${LIMITS.maxRequests} request(s) in this run — robots files and redirect hops count · one ${LINK_CHECK.method} for each distinct address, never repeated · at least ${LINK_CHECK.sameHostIntervalMs} ms between two requests to one host · each host's robots file respected · at most ${LINK_CHECK.maxHops} hop(s) per chain · ${LINK_CHECK.timeoutMs} ms per request`);
 /* 🔴 C8: no request at all when the distinct addresses outnumber the limit — decided before the connector is opened */

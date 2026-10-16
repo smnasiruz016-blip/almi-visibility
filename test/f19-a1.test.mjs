@@ -451,8 +451,10 @@ test("F02 · the tenant-scope census is unchanged: 123 entry points, 99 SCOPED �
   const by = rows.reduce((m, r) => ((m[r.cls] = (m[r.cls] ?? 0) + 1), m), {});
   /* F22 Amendment 1 (restated, 16 Oct 2026): one production entry point joined, bin/render-built-pages.mjs (the renders of the client's built
    * pages) — it reads the client's declared batches and its declared root through that client's declared scope (SCOPED 99 -> 100; 123 -> 124). */
-  assert.equal(rows.length, 124);
-  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [100, 18, 6, 0]);
+  /* RR-273 (restated, 16 Oct 2026): one production entry point joined, bin/guides-hub.mjs (the guides hub built from the client's LIVE pages)
+   * — it reads the client's declared batch through that client's declared scope (SCOPED 100 -> 101; 124 -> 125). */
+  assert.equal(rows.length, 125);
+  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [101, 18, 6, 0]);
   const crawl = classifyEntryPoint("bin/crawl.mjs", readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8"));
   assert.equal(crawl.cls, "SCOPED", crawl.why);
   const planted = readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8").replace("RESOURCES.researchBatch(researchBatch), ", "");

@@ -25,6 +25,10 @@ export const WEAK = Object.freeze({ EMPTY_NAME: "EMPTY NAME", IMAGE_NO_ALT: "IMA
 /** C8 · the bounds of one run of the link-status check. */
 export const LINK_CHECK = Object.freeze({ maxRequests: 100, sameHostIntervalMs: 2000, maxHops: 5, timeoutMs: 15000, method: "GET" });
 
+/** RR-271 §4 · the highest request limit one run may be given (--max-requests): the owner's bound for the live link check of the published
+ * pages, "max 300 requests". Every other bound of C8 stands. */
+export const LINK_CHECK_OWNER_CEILING = 300;
+
 /** C2, C8 · why a destination is NOT MEASURED. A refused request is never BROKEN. "ROBOTS FILE COULD NOT BE READ" is the robots file
  * UNAVAILABLE in RFC 9309's sense (a 5xx, a timeout, an unreachable host, or a redirect this check does not follow): the host is treated
  * as disallowing every address. */

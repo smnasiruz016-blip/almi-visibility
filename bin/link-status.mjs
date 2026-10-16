@@ -31,13 +31,16 @@ import { canon } from "../src/audit/link-audit-reader.mjs";
 import { clientPages } from "../src/audit/built-page-links.mjs";
 import { planLinkCheck, checkLinks, observationRecord, liveReadRecord, pacingOf, REFUSAL } from "../src/audit/link-status.mjs";
 import { POPULATION, STATE } from "../src/audit/page-links.mjs";
-import { LINK_CHECK } from "../config/audit/link-rules.mjs";
+import { LINK_CHECK, LINK_CHECK_OWNER_CEILING } from "../config/audit/link-rules.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const KIND = "LINK_DESTINATIONS";
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
 const SUBJECT = arg("subject"), BATCH = arg("research-batch"), ON = arg("on");
-if (!SUBJECT || !BATCH || !/^\d{4}-\d{2}-\d{2}$/.test(ON ?? "")) { console.error("usage: node bin/link-status.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD [--live --confirm] — nothing read, no request, nothing written"); process.exit(2); }
+/* RR-271 §4: a run may be given a higher request limit, never above the owner's ceiling; every other bound stands */
+const MAX = arg("max-requests");
+const LIMITS = Object.freeze({ ...LINK_CHECK, maxRequests: MAX === null ? LINK_CHECK.maxRequests : Number(MAX) });
+if (!SUBJECT || !BATCH || !/^\d{4}-\d{2}-\d{2}$/.test(ON ?? "") || !(Number.isInteger(LIMITS.maxRequests) && LIMITS.maxRequests >= 1 && LIMITS.maxRequests <= LINK_CHECK_OWNER_CEILING && (MAX === null || /^\d+$/.test(MAX)))) { console.error(`usage: node bin/link-status.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD [--max-requests=1..${LINK_CHECK_OWNER_CEILING}] [--live --confirm] — nothing read, no request, nothing written`); process.exit(2); }
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 const live = process.argv.includes("--live");
 const SCOPE = scopedEntryPoint({ entry: "bin/link-status.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...(live ? [RESOURCES.connector(SUBJECT, KIND), RESOURCES.costLedger(ownLedgerRef())] : [])] });
@@ -63,9 +66,9 @@ const hostCount = new Set(urls.map((u) => new URL(u).host)).size;
 console.log("F23 · LINK-STATUS CHECK — this client's own pages in this batch · counts only");
 console.log(`  pages            BUILT, NOT YET PUBLISHED ${population.counts.built} · LIVE ${population.counts.live} (their own addresses are read: ${liveAddresses.size}) · published on a host this client does not declare ${population.counts.publishedElsewhere} (never requested)`);
 console.log(`  plan             ${plan.occurrences} link occurrence(s) · ${urls.length} distinct address(es) on ${hostCount} host(s) · not a web address ${plan.notHttp} (never requested)`);
-console.log(`  bound            at most ${LINK_CHECK.maxRequests} request(s) in this run — robots files and redirect hops count · one ${LINK_CHECK.method} for each distinct address, never repeated · at least ${LINK_CHECK.sameHostIntervalMs} ms between two requests to one host · each host's robots file respected · at most ${LINK_CHECK.maxHops} hop(s) per chain · ${LINK_CHECK.timeoutMs} ms per request`);
+console.log(`  bound            at most ${LIMITS.maxRequests} request(s) in this run — robots files and redirect hops count · one ${LINK_CHECK.method} for each distinct address, never repeated · at least ${LINK_CHECK.sameHostIntervalMs} ms between two requests to one host · each host's robots file respected · at most ${LINK_CHECK.maxHops} hop(s) per chain · ${LINK_CHECK.timeoutMs} ms per request`);
 /* 🔴 C8: no request at all when the distinct addresses outnumber the limit — decided before the connector is opened */
-if (urls.length > LINK_CHECK.maxRequests) { console.error(`🔴 REFUSED — ${REFUSAL.TOO_MANY}: ${urls.length} distinct address(es) against a limit of ${LINK_CHECK.maxRequests}. NO REQUEST WAS MADE.`); process.exit(3); }
+if (urls.length > LIMITS.maxRequests) { console.error(`🔴 REFUSED — ${REFUSAL.TOO_MANY}: ${urls.length} distinct address(es) against a limit of ${LIMITS.maxRequests}. NO REQUEST WAS MADE.`); process.exit(3); }
 if (!live) { console.log("  NOT RUN — no --live: the plan only; no request was made and nothing was written"); process.exit(0); }
 if (urls.length === 0) { console.log("  nothing to check — this batch holds no built or live page with a link to a web address; no request was made"); process.exit(0); }
 /* the declared connector must reach THIS batch: a connector declared for another batch's pages is not this run's */
@@ -73,7 +76,7 @@ const declared = lookupConnector(index, SUBJECT, KIND);
 if (declared.state !== "DECLARED" || !(declared.connector.reaches ?? []).some((x) => x.resourceKind === "RESEARCH_BATCH" && x.resourceRef === BATCH)) { console.error("🔴 REFUSED — LINK_DESTINATIONS_CONNECTOR_DOES_NOT_REACH_THIS_BATCH: the client declares no such connector for this batch. NO REQUEST WAS MADE."); process.exit(3); }
 
 const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: KIND }));
-const run = await checkLinks({ urls, fetchImpl: CONNECTOR.fetch, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), clock: () => performance.now(), bodiesFor: new Set(liveAddresses.keys()) });
+const run = await checkLinks({ urls, fetchImpl: CONNECTOR.fetch, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), clock: () => performance.now(), bodiesFor: new Set(liveAddresses.keys()), limits: LIMITS });
 const instant = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 const runId = `link-status:${instant}`;
 const observations = run.observations.map((observation) => observationRecord({ observation, tenantId: SCOPE.tenantId, on: ON, run: runId }));

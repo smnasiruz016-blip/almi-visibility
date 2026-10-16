@@ -186,6 +186,9 @@ export const ACTIONS = Object.freeze({
      * them (bin/source-facts.mjs), kept in the research batch's own stores, the same family and resource class; a classification only,
      * granting no permission. */
     "APPEND_SOURCE_FACTS",
+    /* RR-271 (16 Oct 2026): the built pages recorded as published once the owner GREENed their publication (bin/publish-pages.mjs), kept
+     * in the research batch's own joined-pages store, the same family and resource class; a classification only, granting no permission. */
+    "APPEND_PUBLISHED_PAGES",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",

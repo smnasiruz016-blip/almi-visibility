@@ -36,6 +36,7 @@ import { STAMP } from "../src/page/test-exception.mjs";
 import { builtPages, pageSections, needIndex, needsOfPage, decidePairs, survivorOf, cancelAndMove, pagesVerdict, runBuiltPages, storedNeedRecords, rowResult, questionsOf, publicationOf,
   REFUSAL, MISSING, DECISION_RECORD, CANCEL_RECORD, MOVE_RECORD, DECISIONS, REVIEW_FLAG, DECISION_LABEL, SURVIVOR_STEPS, PUBLICATION, SECTION, VERDICTS } from "../src/page/built-page-needs.mjs";
 import { storedDecisions, proposedAfterDecisions, constructionAfterDecisions, withStoredMoves } from "../src/page/stored-page-decisions.mjs";
+import { PUBLISHED_FIELDS as PUBLISHED_FIELDS_T } from "../config/page/built-page-needs.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -376,6 +377,7 @@ test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a
   const scratch = (plant, like) => {
     const W = declaredWorld();
     const dir = join(W.root, "research", BATCH);
+    asBuiltCopy(dir);
     appendFileSync(join(dir, "joined-pages.jsonl"), JSON.stringify(plant) + "\n");
     writeFileSync(join(dir, "page-audiences.json"), JSON.stringify({ ...audiences, pages: { ...audiences.pages, [plant.value]: audiences.pages[like.pageId] } }));
     /* the planted page is proposed too, with nothing to connect: whether it is proposed is what is measured */
@@ -465,6 +467,13 @@ const realDir = () => join(RESEARCH(), BATCH);
 const subjectOf = (dir) => rowsIn(dir, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD).at(-1)?.subject ?? null;
 const rowsIn = (dir, name) => (existsSync(join(dir, name)) ? readFileSync(join(dir, name), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.record_type !== RESIGHTING_TYPE) : []);
 const jsonIn = (dir, name) => (existsSync(join(dir, name)) ? JSON.parse(readFileSync(join(dir, name), "utf8")) : null);
+/* RR-271: the real pages were published on 16 Oct 2026 (a publication record per page, bin/publish-pages.mjs). F10 decides over BUILT,
+ * unpublished pages and never cancels or changes a published one, so its real-population proofs read the pages AS BUILT — each page's
+ * publication record set aside — and a separate assertion pins that the pages as they stand are PUBLISHED and left alone. */
+const isPublication = (r) => r?.record_type === JOINED_RECORD && PUBLISHED_FIELDS_T.some((f) => typeof r[f] === "string" && r[f].trim() !== "");
+const asBuilt = (rows) => rows.filter((r) => !isPublication(r));
+/* the same, on a scratch world's own copy of the batch (never the real store): its publication records are taken out, line for line */
+const asBuiltCopy = (dir) => { const f = join(dir, "joined-pages.jsonl"); if (existsSync(f)) writeFileSync(f, readFileSync(f, "utf8").split("\n").filter((l) => l.trim() !== "" && !isPublication(JSON.parse(l))).map((l) => `${l}\n`).join("")); };
 /* RR-264: the day of the real population is READ from its own stored records — the newest day any of them carries — never fixed */
 const realDay = (dir) => [...rowsIn(dir, "need-clusters.jsonl"), ...rowsIn(dir, "built-page-needs.jsonl"), ...rowsIn(dir, "joined-pages.jsonl")].map((r) => String(r.recorded_at ?? "").slice(0, 10))
   .concat(Object.values(jsonIn(dir, "page-audiences.json")?.pages ?? {}).map((a) => String(a?.declaredOn ?? ""))).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().at(-1) ?? "2026-10-13";
@@ -473,7 +482,7 @@ const realWorld = (dir, on = realDay(dir)) => {
   const N = storedNeedRecords({ derived: clusterInputs({ inputs: i.inputs, unread: i.unread, grouping: jsonIn(dir, "need-grouping.json"), on }), stored: rowsIn(dir, "need-clusters.jsonl") });
   /* the tenant is the one the stored decisions were made for (the governed run's own scope); before any run, a stand-in */
   const tenantId = rowsIn(dir, "built-page-needs.jsonl").find((r) => r.record_type === DECISION_RECORD)?.tenantId ?? "tenant:not-yet-run";
-  const pages = builtPages({ records: [...rowsIn(dir, "joined-pages.jsonl"), ...rowsIn(dir, "built-page-needs.jsonl")], tenantId, audiences: jsonIn(dir, "page-audiences.json")?.pages ?? {} });
+  const pages = builtPages({ records: [...asBuilt(rowsIn(dir, "joined-pages.jsonl")), ...rowsIn(dir, "built-page-needs.jsonl")], tenantId, audiences: jsonIn(dir, "page-audiences.json")?.pages ?? {} });
   const ix = needIndex(N.records);
   const recorded = new Map(i.inputs.filter((x) => x.kind === "QUESTION").map((x) => [x.inputId.slice(x.inputId.indexOf(":") + 1), x.wording]));
   return { N, pages, ix, sections: pageSections({ pages, recorded, needOf: (q) => ix.byQuestion.get(q)?.need ?? null }), run: runBuiltPages({ pages, needRecords: N.records, on }) };
@@ -485,6 +494,13 @@ test("REAL · C3 C4 C6 · the declared product's built, unpublished pages agains
   assert.equal(w.N.refused, null, "the need records of the grouping as it stands are not in the need store");
   assert.ok(w.pages.length > 0, "EMPTY real population");
   assert.ok(w.pages.every((p) => p.publication === PUBLICATION.UNPUBLISHED), "a real page is published, or its publication state is not recorded");
+  /* RR-271: the pages as they STAND — with their publication records — are PUBLISHED where a record says so, and F10 decides no pair of
+   * them: each published page is excluded, never cancelled or changed */
+  const standing = builtPages({ records: [...rowsIn(realDir(), "joined-pages.jsonl"), ...rowsIn(realDir(), "built-page-needs.jsonl")], tenantId: w.pages[0]?.tenantId ?? null });
+  const published = standing.filter((p) => isPublication(p.record));
+  assert.ok(published.length > 0 && published.every((p) => p.publication === PUBLICATION.PUBLISHED), "no page stands published, or a page with a publication record is not PUBLISHED");
+  const left = decidePairs({ pages: standing, needRecords: w.N.records, on: realDay(realDir()) });
+  assert.deepEqual([left.excluded.length, left.decisions.some((d) => published.some((p) => p.pageId === d.a || p.pageId === d.b || p.pageId === d.pageA || p.pageId === d.pageB))], [published.length, false], "F10 decided a pair that holds a published page");
   assert.deepEqual([w.sections.faults.length, w.sections.counts.present], [0, w.pages.length]);
   assert.ok(w.pages.every((p) => needsOfPage(p, w.ix).unplaced.length === 0 && needsOfPage(p, w.ix).needs.size > 0), "a real page holds a question no need record places");
   const c = w.run.result.counts;
@@ -507,7 +523,7 @@ test("REAL · C5 C6 · a deliberately planted duplicate of a real built page is 
   const real = realDir();
   const FILES = ["joined-pages.jsonl", "built-page-needs.jsonl", "need-clusters.jsonl"].filter((f) => existsSync(join(real, f)));
   const before = FILES.map((f) => sha(readFileSync(join(real, f))));
-  const pages = [...new Map(rowsIn(real, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD).map((r) => [r.value, r])).values()];
+  const pages = [...new Map(asBuilt(rowsIn(real, "joined-pages.jsonl")).filter((r) => r.record_type === JOINED_RECORD).map((r) => [r.value, r])).values()];
   assert.ok(pages.length >= 2, "EMPTY real population: fewer than two built pages");
   const world = realWorld(real);
   const [P, O] = [world.pages[0], world.pages[1]];
@@ -530,6 +546,7 @@ test("REAL · C5 C6 · a deliberately planted duplicate of a real built page is 
   const scratch = (plant) => {
     const W = declaredWorld();
     const dir = join(W.root, "research", BATCH);
+    asBuiltCopy(dir);
     appendFileSync(join(dir, "joined-pages.jsonl"), JSON.stringify(plant) + "\n");
     writeFileSync(join(dir, "page-audiences.json"), JSON.stringify({ ...audiences, pages: { ...audiences.pages, [plant.value]: audiences.pages[P.pageId] } }));
     const r = spawnSync(process.execPath, ["bin/built-page-needs.mjs", ...W.argv([`--subject=${subjectOf(real)}`, `--research-batch=${BATCH}`, `--on=${ON}`, "--confirm"])], { cwd: REPO, encoding: "utf8", env: W.envWith() });

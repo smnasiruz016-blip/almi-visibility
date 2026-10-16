@@ -37,7 +37,7 @@
  * RR-269 §2 · the live read of the sources a filed list names and of no other (a PDF is read by the PDF reader: its text, or
  * NOT_A_TEXT_DOCUMENT when it shows none); the facts that cite them are rechecked.
  */
-import { existsSync, readdirSync, readFileSync, mkdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { privateSourcesRoot, publicCopy, withPrivateTexts } from "../src/facts/private-texts.mjs";
 import { performance } from "node:perf_hooks";
@@ -89,6 +89,9 @@ const PRIVATE = privateSourcesRoot(process.env);
 /* bound on a line that names the RESEARCH store: these are THIS research batch's own texts, decided by RESOURCES.researchBatch above */
 const privateBatchDir = join(PRIVATE.dir, relative(lookupStore(index, "RESEARCH").rootPath, batchDir));
 const privateRows = (f) => { try { return readFileSync(join(privateBatchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
+/* RR-274: one governed append into the PRIVATE sources root — the full texts, at this batch's own path there */
+const appendPrivate = (records, file, instant) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: PRIVATE.dir, auditRepo: REPO, permission, store: createJsonlStore(join(privateBatchDir, file)), records,
+  targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:private:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
 const refuseWithoutPrivate = (what) => { if (PRIVATE.state !== "DECLARED") { console.error(`🔴 REFUSED — PRIVATE_SOURCES_ABSENT: ${what} keeps page texts, and the private sources root is not here (config/private-sources.mjs). NO REQUEST WAS MADE AND NOTHING WAS WRITTEN.`); process.exit(3); } };
 /* the batch's fact registry: the one file it files as facts-registry-<day>.json — none, or more than one, refuses */
 const registries = readdirSync(batchDir).filter((f) => /^facts-registry-\d{4}-\d{2}-\d{2}\.json$/.test(f));
@@ -161,13 +164,6 @@ console.log(`  kept             ${reads.size} read(s) in the batch's source-read
  * its hash, URL and read date; every fact whose source is imported is rechecked against that text (CURRENT or CHANGED, the stored fact
  * untouched). With --confirm both are appended; without it nothing is written.
  */
-/** RR-274: one governed append into the PRIVATE sources root — the full texts, at this batch's own path there. */
-function appendPrivate(records, file, instant) {
-  mkdirSync(privateBatchDir, { recursive: true });
-  return executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: PRIVATE.dir, auditRepo: REPO, permission, store: createJsonlStore(join(privateBatchDir, file)), records,
-    targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:private:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
-}
-
 function importRun() {
   /* RR-274: the client's captures and files are other organisations' texts — filed in the PRIVATE batch folder, never the public one */
   refuseWithoutPrivate("an import");
@@ -225,7 +221,7 @@ async function extractRun() {
   const rows = (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
   /* the latest stored read of each source, and the latest stored recheck of each fact */
   /* RR-274: each public read joined to its private text (by key, and only when the text hashes to the public sha256) */
-  const readOf = new Map(withPrivateTexts(rows("source-reads.jsonl"), privateRows("source-reads.jsonl"), { rootState: PRIVATE.state }).map((r) => [r.url, r]));
+  const readOf = new Map(withPrivateTexts(rows("source-reads.jsonl"), privateRows("source-reads.jsonl"), { privateRoot: PRIVATE.state }).map((r) => [r.url, r]));
   const lastCheck = new Map(rows("fact-rechecks.jsonl").map((c) => [c.factId, c]));
   const linkOf = new Map(facts.map((f) => [f.factId, f.link]));
   const instant = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");

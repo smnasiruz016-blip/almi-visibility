@@ -33,11 +33,11 @@ export function publicCopy(record) {
 }
 
 /** Public records with their private texts joined: by measurement key, and only a text whose sha256 the public record states. */
-export function withPrivateTexts(publicRows, privateRows, { rootState = "DECLARED" } = {}) {
+export function withPrivateTexts(publicRows, privateRows, { privateRoot = "DECLARED" } = {}) {
   const byKey = new Map((privateRows ?? []).filter((r) => typeof r?.text === "string" && typeof r?.measurement_key === "string").map((r) => [r.measurement_key, r]));
   return (publicRows ?? []).map((r) => {
     if (r?.textAt !== TEXT_AT) return r;
-    if (rootState !== "DECLARED") return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.ROOT_ABSENT });
+    if (privateRoot !== "DECLARED") return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.ROOT_ABSENT });
     const p = byKey.get(r.measurement_key);
     if (!p) return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.ABSENT });
     if (sha256(p.text) !== r.sha256) return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.HASH_DIFFERS });

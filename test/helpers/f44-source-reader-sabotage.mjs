@@ -88,7 +88,7 @@ const SABOTAGES = [
   ["R55", "RR-274 a private text of another read is joined", PT, "const p = byKey.get(r.measurement_key);", "const p = byKey.get(r.measurement_key) ?? [...byKey.values()][0];", PRV],
   ["R56", "RR-274 a live read writes the full text into the public batch", BIN, "const g = append(fullReads.map(publicCopy), \"source-reads.jsonl\");", "const g = append(fullReads, \"source-reads.jsonl\");", PP],
   ["R57", "RR-274 a live read runs without the private sources root", BIN, "refuseWithoutPrivate(\"a live read\");\n", "", PP],
-  ["R58", "RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { rootState: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
+  ["R58", "RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

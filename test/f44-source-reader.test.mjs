@@ -439,7 +439,7 @@ test("RR-274 · PRIVATE TEXTS · FIRING CONTROL: a public copy keeps no text and
   assert.equal(withPrivateTexts([pub], [full])[0].text, text);
   assert.deepEqual(withPrivateTexts([pub], [{ ...full, text: "Each sub-test is scored from 0 to 600." }])[0].textMissing, TEXT_MISSING.HASH_DIFFERS, "a private text that is not the one the public record states was taken");
   assert.equal(withPrivateTexts([pub], [{ ...full, measurement_key: "source_page_read:b" }])[0].textMissing, TEXT_MISSING.ABSENT, "a text of another read was taken");
-  assert.equal(withPrivateTexts([pub], [full], { rootState: "ABSENT" })[0].textMissing, TEXT_MISSING.ROOT_ABSENT);
+  assert.equal(withPrivateTexts([pub], [full], { privateRoot: "ABSENT" })[0].textMissing, TEXT_MISSING.ROOT_ABSENT);
   /* CONTROL: a record that never held a text is passed through untouched */
   assert.equal(withPrivateTexts([full], [])[0].text, text);
   assert.equal(privateSourcesRoot({ ALMIVISIBILITY_PRIVATE_SOURCES: join(tmpdir(), "rr274-no-such-root") }).state, "ABSENT");
@@ -458,7 +458,7 @@ test("REAL · the declared batch's stored recheck: every fact its pages use has 
   assert.equal(publicReads.filter((r) => typeof r.text === "string").length, 0, "a page text is kept in the public data repository");
   assert.equal(priv.state, "DECLARED", "the private sources root is not here — the texts cannot be rechecked");
   const privPath = join(priv.dir, relative(research.rootPath, dir), "source-reads.jsonl");
-  const checks = rowsIn(join(dir, "fact-rechecks.jsonl")), reads = withPrivateTexts(publicReads, existsSync(privPath) ? rowsIn(privPath) : [], { rootState: priv.state });
+  const checks = rowsIn(join(dir, "fact-rechecks.jsonl")), reads = withPrivateTexts(publicReads, existsSync(privPath) ? rowsIn(privPath) : [], { privateRoot: priv.state });
   const latest = [...new Map(checks.map((c) => [c.factId, c])).values()];
   assert.ok(latest.length > 0 && latest.every((c) => Object.values(RECHECK).includes(c.state)), "a fact has no state");
   assert.ok(latest.filter((c) => c.state === RECHECK.CHANGED).every((c) => c.rebuild.length === c.pages.length && c.pages.length > 0), "a CHANGED fact flags no page");

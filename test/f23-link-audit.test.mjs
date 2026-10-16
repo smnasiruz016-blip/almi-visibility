@@ -21,7 +21,7 @@ import { auditLinks, auditPage, linksOf, destinationOf, weakOf, pageLanguage, na
 import { canon } from "../src/audit/link-audit-reader.mjs";
 import { clientPages, storedDestinations, auditClientPages, publishedAddress, NO_ADDRESS_BASE } from "../src/audit/built-page-links.mjs";
 import { planLinkCheck, checkLinks, observationRecord, liveReadRecord, pacingOf, challenged, REFUSAL, LIVE_READ_RECORD } from "../src/audit/link-status.mjs";
-import { GENERIC_LINK_NAMES, LINK_NAME_AUTHORITY, WEAK, LINK_CHECK, NOT_MEASURED_REASON, CHALLENGE_HEADERS } from "../config/audit/link-rules.mjs";
+import { GENERIC_LINK_NAMES, LINK_NAME_AUTHORITY, WEAK, LINK_CHECK, LINK_CHECK_OWNER_CEILING, NOT_MEASURED_REASON, CHALLENGE_HEADERS } from "../config/audit/link-rules.mjs";
 import { JOINED_RECORD } from "../src/page/joined-page.mjs";
 import { CANCEL_RECORD } from "../src/page/built-page-needs.mjs";
 import { STAMP } from "../src/page/test-exception.mjs";
@@ -339,6 +339,15 @@ test("PRODUCTION PATH · C1 C8: in a scratch world with no egress, for two unrel
     assert.deepEqual([many.status, /DISTINCT_ADDRESSES_OUTNUMBER_THE_REQUEST_LIMIT: 101 distinct address\(es\) against a limit of 100\. NO REQUEST WAS MADE\./.test(many.stderr), egress()], [3, true, 0], many.stdout + many.stderr);
     /* the refusal is the LIMIT's, before the connector opens: no other refusal, no requests line, nothing written */
     assert.deepEqual([/LINK_DESTINATIONS_CONNECTOR_DOES_NOT_REACH/.test(many.stderr), /requests {9}/.test(many.stdout), existsSync(join(W.root, "research", "fixture-too-many", "link-status.jsonl"))], [false, false, false], many.stdout + many.stderr);
+    /* RR-271 §4: a run given a higher limit (never above the owner's ceiling) plans with it; a limit above the ceiling, or not a whole
+     * number, is a usage refusal — nothing read, no request */
+    const raised = status("fixture-pumps", "fixture-too-many", "refuse", `--max-requests=${LINK_CHECK_OWNER_CEILING}`);
+    assert.deepEqual([raised.status, new RegExp(`at most ${LINK_CHECK_OWNER_CEILING} request\\(s\\) in this run`).test(raised.stdout), /NOT RUN — no --live/.test(raised.stdout), egress()], [0, true, true, 0], raised.stdout + raised.stderr);
+    for (const bad of [`${LINK_CHECK_OWNER_CEILING + 1}`, "0", "1.5", "lots"]) {
+      const r = status("fixture-pumps", "fixture-too-many", "refuse", `--max-requests=${bad}`, "--live", "--confirm");
+      assert.deepEqual([r.status, /^usage:/.test(r.stderr), egress()], [2, true, 0], `--max-requests=${bad}: ${r.stdout}${r.stderr}`);
+    }
+    assert.deepEqual([LINK_CHECK.maxRequests, LINK_CHECK_OWNER_CEILING], [100, 300], "the default limit or the owner's ceiling moved");
     /* without --live: the plan, and no request */
     const dry = status("fixture-pumps", "fixture-pump-pages", "refuse");
     assert.deepEqual([dry.status, /plan {13}3 link occurrence\(s\) · 2 distinct address\(es\) on 2 host\(s\)/.test(dry.stdout), /NOT RUN — no --live/.test(dry.stdout), egress(), existsSync(join(W.root, "research", "fixture-pump-pages", "link-status.jsonl"))], [0, true, true, 0, false], dry.stdout + dry.stderr);
@@ -351,12 +360,14 @@ test("PRODUCTION PATH · C1 C8: in a scratch world with no egress, for two unrel
     assert.notEqual(wrong.status, 0, "a client checked another client's batch");
     assert.equal(egress(), 0);
     for (const [subject, batch, origin] of SUBJECTS) {
-      const live = status(subject, batch, "fixture", "--live", "--confirm");
+      /* RR-271 §4: one run is given a higher limit, and the checker counts against it */
+      const limit = subject === "fixture-choir" ? 150 : 100;
+      const live = status(subject, batch, "fixture", "--live", "--confirm", ...(limit === 100 ? [] : [`--max-requests=${limit}`]));
       assert.equal(live.status, 0, live.stdout + live.stderr);
       const kept = rowsIn(join(W.root, "research", batch, "link-status.jsonl"));
       const distinct = subject === "fixture-pumps" ? 2 : 1;
       assert.deepEqual([kept.length, kept.every((r) => r.record_type === LINK_STATUS_RECORD && r.tenantId === W.tenantId && r.state === STATE.WORKING && r.checkedOn === "2026-09-01"), new Set(kept.map((r) => r.url)).size], [distinct, true, distinct], live.stdout);
-      assert.match(live.stdout, new RegExp(`requests {9}${distinct * 2} made of a limit of 100 \\(robots ${distinct} · addresses and hops ${distinct}\\)`));
+      assert.match(live.stdout, new RegExp(`requests {9}${distinct * 2} made of a limit of ${limit} \\(robots ${distinct} · addresses and hops ${distinct}\\)`));
       assert.match(live.stdout, /gaps under 2000 ms: 0 of \d+/);
       assert.doesNotMatch(live.stdout + live.stderr, /https?:\/\/|\.invalid/, "the check printed an address");
       const out = spawnSync(process.execPath, ["bin/link-audit.mjs", ...W.argv([`--subject=${subject}`])], { cwd: REPO, encoding: "utf8", env: W.envWith() });

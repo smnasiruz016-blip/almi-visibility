@@ -91,6 +91,9 @@ const SABOTAGES = [
   ["S56", "C8 the observations are not stored", BINS, "const g = append(observations, \"link-status.jsonl\");", "const g = { outcome: \"COMMITTED\" };", PP],
   ["S57", "C8 the entry point fetches outside the declared connector", BINS, "fetchImpl: CONNECTOR.fetch,", "fetchImpl: globalThis.fetch,", EP],
   ["S58", "C7 the entry point does not give the counts per page", BINA, "a.perPage.forEach((page, i) => console.log(`  ${formatPage(page, i + 1, a.perPage.length)}`));\n", "", PP],
+  ["S66", "C8 RR-271 a run's limit is taken above the owner's ceiling", BINS, "LIMITS.maxRequests <= LINK_CHECK_OWNER_CEILING && ", "", PP],
+  ["S67", "C8 RR-271 the checker counts against the default limit, not the run's", BINS, "bodiesFor: new Set(liveAddresses.keys()), limits: LIMITS });", "bodiesFor: new Set(liveAddresses.keys()) });", PP],
+  ["S68", "C8 RR-271 the run's limit is not the one the plan is refused by", BINS, "if (urls.length > LIMITS.maxRequests) {", "if (urls.length > LINK_CHECK.maxRequests) {", PP],
   ["S59", "C1 the entry point audits another client's stored observations", BINA, "const r = auditClientPages({ batches, tenantId: SCOPE.tenantId, hosts, canon });", "const r = auditClientPages({ batches, tenantId: \"tenant:someone-else\", hosts, canon });", PP],
 ];
 

@@ -10,4 +10,7 @@ export const LIVE_RENDER_GREEN = Object.freeze({
   maxRequests: 35,
   intervalMs: 2000,
   retries: 0,
+  /* the GREEN names the LIVE page addresses and the robots file only: a subresource of a page — even on its own origin — is not one of
+   * them, so a live render refuses it (OUTSIDE_THE_GREEN) and reads PARTIAL; it is never requested */
+  pagesOnly: true,
 });

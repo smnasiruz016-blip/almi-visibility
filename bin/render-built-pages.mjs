@@ -69,7 +69,7 @@ const batchOf = new Map(batches.flatMap((b) => b.builds.map((r) => [r.value, b.b
 
 console.log("F22 · JAVASCRIPT RENDERING AUDIT — this client's built pages · source against render · count-only");
 console.log(`  population   OFFLINE ${jobs.offline.length} page(s) (LIVE ${jobs.counts.live} as published, BUILT ${jobs.counts.built} as built; not servable as they stand ${jobs.offline.filter((j) => j.refused).length}) · LIVE ${jobs.live.length} page(s) · published on a host this client does not declare ${jobs.counts.publishedElsewhere} (never requested) · research batch(es) declared ${BATCHES.length}`);
-if (live) console.log(`  bound        at most ${LIMIT} request(s) in this run (the GREEN's ${LIVE_RENDER_GREEN.maxRequests}) · at least ${LIVE_RENDER_GREEN.intervalMs} ms between two requests · no retry · GET only · the declared origin only`);
+if (live) console.log(`  bound        at most ${LIMIT} request(s) in this run (the GREEN's ${LIVE_RENDER_GREEN.maxRequests}) · at least ${LIVE_RENDER_GREEN.intervalMs} ms between two requests · no retry · GET only · the declared origin only${LIVE_RENDER_GREEN.pagesOnly ? " · the LIVE page addresses and the robots file only: a page's subresources are outside the GREEN and refused, never requested" : ""}`);
 
 const stamp = (o) => createHash("sha256").update(JSON.stringify(o)).digest("hex").slice(0, 24);
 if (live || render) {
@@ -110,7 +110,7 @@ if (live || render) {
       if (!doc.served || doc.status < 200 || doc.status >= 300) { read(t, { renderState: "FAILED", reason: `the live document was not served: ${doc.served ? `HTTP_${doc.status}` : doc.refusal}` }); continue; }
       const sourceHtml = doc.body.toString("utf8");
       documents.set(id, { body: sourceHtml, status: doc.status, contentType: doc.contentType ?? "text/html" });
-      const rendered = await renderDocument({ browser, origin: server.origin, id, documentUrl: t.url, egress, bounds, readVisibleText: true, subresources: (u) => pp.resolve(u) });
+      const rendered = await renderDocument({ browser, origin: server.origin, id, documentUrl: t.url, egress, bounds, readVisibleText: true, subresources: (u) => (LIVE_RENDER_GREEN.pagesOnly ? { served: false, refusal: "OUTSIDE_THE_GREEN" } : pp.resolve(u)) });
       const source = await renderDocument({ browser, origin: server.origin, id, documentUrl: t.url, egress, bounds, readVisibleText: true, javaScriptEnabled: false, subresources: (u) => pp.cacheOnly(u) });
       read(t, { renderState: rendered.renderState, reason: rendered.reason, sourceHtml, renderedHtml: rendered.html, sourceText: source.visibleText, renderedText: rendered.visibleText });
     }

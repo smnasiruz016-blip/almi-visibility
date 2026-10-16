@@ -114,7 +114,7 @@ test("C4 · THE GREEN'S BOUNDS · FIRING CONTROL (F22 A1): with the GREEN's no-r
   for (let i = 1; i < once.starts.length; i += 1) assert.ok(once.starts[i] - once.starts[i - 1] >= LIVE_RENDER_GREEN.intervalMs, `two requests ${once.starts[i] - once.starts[i - 1]} ms apart`);
   const capped = await run({ ...green, maxTotalRequests: 2 }, () => false);
   assert.deepEqual([capped.issued, capped.results.map((r) => r.served ? "SERVED" : r.refusal)], [2, ["SERVED", "RUN_CAP", "RUN_CAP"]], "the run's ceiling was passed");
-  assert.deepEqual([LIVE_RENDER_GREEN.maxRequests <= 35, LIVE_RENDER_GREEN.intervalMs >= 2000, LIVE_RENDER_GREEN.retries], [true, true, 0], "the GREEN's bounds were widened");
+  assert.deepEqual([LIVE_RENDER_GREEN.maxRequests <= 35, LIVE_RENDER_GREEN.intervalMs >= 2000, LIVE_RENDER_GREEN.retries, LIVE_RENDER_GREEN.pagesOnly], [true, true, 0, true], "the GREEN's bounds were widened");
 });
 
 /* ---------------- C1 · C4 · C5 · C6 · the binary, two unrelated declared subjects (FIXTURES, named) ---------------- */
@@ -180,6 +180,8 @@ test("C4 · PRODUCTION PATH (F22 A1): the live mode makes NO request without --c
     assert.deepEqual([unconfirmed.status, /NO REQUEST WAS MADE/.test(unconfirmed.stderr)], [3, true], unconfirmed.stdout + unconfirmed.stderr);
     const tight = runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: ["--live", "--confirm", "--max-requests=1"] });
     assert.deepEqual([tight.status, /REQUESTS_OUTNUMBER_THE_LIMIT: 2 \(each page's document and the robots file\) against a limit of 1\. NO REQUEST WAS MADE\./.test(tight.stderr)], [3, true], tight.stdout + tight.stderr);
+    /* the GREEN names the page addresses and the robots file only: the live render's subresource handler refuses, never requests */
+    assert.match(readFileSync(join(REPO, "bin/render-built-pages.mjs"), "utf8"), /LIVE_RENDER_GREEN\.pagesOnly \? \{ served: false, refusal: "OUTSIDE_THE_GREEN" \} : pp\.resolve\(u\)/);
     for (const bad of [`${LIVE_RENDER_GREEN.maxRequests + 1}`, "0", "x"]) assert.equal(runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: [`--max-requests=${bad}`] }).status, 2, bad);
     assert.equal(runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: ["--live", "--render"] }).status, 2, "both modes at once were taken");
   } finally { W.cleanup(); }
@@ -206,9 +208,15 @@ test("REAL (F22 A1): the client's built pages offline and its LIVE pages live �
   const a = auditRenders({ reads: stored, expected: { OFFLINE: jobs.offline.map((j) => j.pageId), LIVE: jobs.live.map((j) => j.pageId) } });
   for (const mode of Object.values(MODE)) {
     const m = a.modes[mode];
-    assert.equal(m.absent, 0, `${mode}: a page has no stored render`);
     for (const d of DIMENSIONS) assert.equal(m.dimensions[d].SAME + m.dimensions[d].DIFFERS + m.dimensions[d][NOT_MEASURED], m.pages, `${mode} ${d}: a page is uncounted`);
   }
+  /* OFFLINE: every built page has a stored render, and every one is COMPLETE */
+  assert.deepEqual([a.modes.OFFLINE.absent, a.modes.OFFLINE.renderStates.COMPLETE, a.modes.OFFLINE.incomplete], [0, jobs.offline.length, false], "OFFLINE: a page has no stored COMPLETE render");
+  /* LIVE: no live render is stored yet — a page's own file (its logo) is outside the owner's GREEN of 16 Oct 2026, so a live render could only
+   * be PARTIAL; the run waits on the owner. Until then every LIVE page is counted absent and the population reads INCOMPLETE, by name. */
+  const L = a.modes.LIVE;
+  assert.ok(L.absent === 0 || (L.incomplete && L.missing.some((x) => /page\(s\) with no stored render/.test(x))), "LIVE: an absent live render was not named");
+  assert.equal(a.incomplete, L.incomplete || a.modes.OFFLINE.incomplete);
 });
 
 test("the production trail was not written by this file", () => {

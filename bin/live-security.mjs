@@ -75,7 +75,8 @@ if (LATE !== null) {
    * run spans that instant. Recorded now — never back-dated — and marked late, with the reason given. No request is made. */
   if (!process.argv.includes("--confirm")) { console.error("🔴 REFUSED — NO_CONFIRM: a late cost entry is a write and needs --confirm. NOTHING WAS WRITTEN."); process.exit(3); }
   const instant = /^live-security:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)$/.exec(LATE)?.[1] ?? null;
-  const own = rows("live-security.jsonl").filter((r) => r?.record_type === LIVE_SECURITY_RECORD && r.tenantId === SCOPE.tenantId && r.run === LATE);
+  /* the batch is this tenant's own (the scope gate above decided it), as for the audit below — no tenant identity is compared here */
+  const own = rows("live-security.jsonl").filter((r) => r?.record_type === LIVE_SECURITY_RECORD && r.run === LATE);
   if (instant === null || own.length === 0) { console.error("🔴 REFUSED — NO_STORED_RUN: this batch holds no read of that run for this tenant. NOTHING WAS WRITTEN."); process.exit(3); }
   const covering = createCostLedger(RUN_COST.ledgerPath).readAll().filter((e) => e.entry_id === `late:run:bin/live-security.mjs:${instant}` || (String(e.entry_id).startsWith("run:bin/live-security.mjs:") && e.run_started_at <= instant && instant <= e.recorded_at));
   if (covering.length) { console.error(`🔴 REFUSED — THE_RUN_HAS_ITS_ENTRY: the tenant's ledger already holds ${covering.length} entry(ies) of this entry point spanning the run. NOTHING WAS WRITTEN.`); process.exit(3); }

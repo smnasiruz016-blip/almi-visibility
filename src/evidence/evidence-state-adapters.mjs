@@ -154,6 +154,16 @@ function ofLivePageRead(r) {
   return place(rule, "OBSERVED", { evidenceRef: `live_page_read:${r.read_id}`, sourceId: `link-status-check@${r.run}`, observedAt: r.recorded_at });
 }
 
+/** F27 Amendment 3 — a `live_security_read`: what one request of the bounded live check of the client's LIVE pages was answered (status,
+ * Location, headers, body, TLS facts), or the error it met — kept as answered: OBSERVED. */
+function ofLiveSecurityRead(r) {
+  const rule = "live_security_read";
+  if (!present(r.measurement_key) || !present(r.url)) return unmapped("a live security read names its address and its key", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("a live security read with no recorded_at has no time", rule);
+  if (!present(r.run)) return unmapped("a live security read names the run that made it", rule);
+  return place(rule, "OBSERVED", { evidenceRef: r.measurement_key, sourceId: `live-security-check@${r.run}`, observedAt: r.recorded_at });
+}
+
 function ofResponseHeaders(r) {
   const rule = "response_headers";
   if (!present(r.evidence_id)) return unmapped("a response-headers record with no evidence_id cannot be referenced", rule);
@@ -474,6 +484,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "response_headers": return ofResponseHeaders(record);
     case "link_status_observation": return ofLinkStatus(record);
     case "live_page_read": return ofLivePageRead(record);
+    case "live_security_read": return ofLiveSecurityRead(record);
     case "source_page_read": return ofSourceRead(record);
     case "page_body": return ofPageBody(record);
     case "public_question": return ofPublicQuestion(record);

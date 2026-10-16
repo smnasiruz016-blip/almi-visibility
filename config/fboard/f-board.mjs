@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1214,7 +1214,7 @@ export const DECLARED = Object.freeze({
   F27: Object.freeze({
     featureId: "F27",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F27_ORIGINAL.ruling, contractSha256: F27_ORIGINAL.contractSha256 }),
       /* named EXPLICITLY since 2 Oct 2026: ACCEPTANCES.F27 now points at Amendment 2, and this 1 Oct event must keep naming Amendment 1 */
@@ -1227,7 +1227,8 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F27.ruling.sha256, contract: ACCEPTANCES.F27.contractSha256 }),
+        /* named EXPLICITLY since 16 Oct 2026: ACCEPTANCES.F27 now points at Amendment 3, and this event keeps the value it always held */
+        acceptanceUnchanged: Object.freeze({ ruling: F27_AMENDMENT_2.ruling.sha256, contract: F27_AMENDMENT_2.contractSha256 }),
         branch: "f27-security-transport",
         baseSha: "5ea5beeb18efceeab4e5e967e3b0bfea924ac432",
         baseCiRun: "36804707198",
@@ -1236,6 +1237,29 @@ export const DECLARED = Object.freeze({
       }),
       /* RR-129 §3: Amendment 2, after the row's 1 Oct implementation — in date order, so that implementation stays under Amendment 1 */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F27", on: "2026-10-02", ruling: F27_AMENDMENT_2.ruling, contractSha256: F27_AMENDMENT_2.contractSha256, amends: F27_AMENDMENT_2.amends }),
+      /* F27 Amendment 3 (16 Oct 2026, 7b9a992, the owner's overnight command): the client's LIVE pages and the bounded live check's recorded
+       * reads; the http: redirect and TLS judged; headers under beta-g's baseline; C6 under the owner's 3 Oct declaration. NO board movement. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F27", on: "2026-10-16", ruling: F27_AMENDMENT_3.ruling, contractSha256: F27_AMENDMENT_3.contractSha256, amends: F27_AMENDMENT_3.amends }),
+      /* overnight 16 Oct 2026: F27 PROVED under its Acceptance Amendment 3 — on the client's LIVE pages and the bounded live check's recorded
+       * reads; every clause PROVED, and every sabotage PROVED. Recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F27",
+        population: "REAL",
+        on: "2026-10-16",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F27_AMENDMENT_3.ruling.sha256, contract: F27_AMENDMENT_3.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        populations: "REAL, read by the REAL test (counts only): 1 declared client with LIVE pages; 12 LIVE pages, 12 of 12 read, population COMPLETE. The bounded live check made 25 requests of the GREEN's 60 (12 https pages, their 12 http: forms, the robots file once), at least 2000 ms apart on the one host, no retry, errors 0. HTTPS 12 of 12; http: redirect PASS 12 of 12; TLS PASS 12 of 12 — PROVED. Mixed content: 0 http: references on 12 of 12 pages read, pages running script 0 — PROVED. Unsafe forms: forms 0, unencrypted submissions 0 — PROVED. Headers under beta-g's declaration: Strict-Transport-Security, X-Content-Type-Options, clickjacking and Referrer-Policy PASS 12 of 12 each — PROVED; Content-Security-Policy enforced on 0, report-only on 12 of 12 — reported, never judged, as the amendment states. Public exposure under the owner's 3 Oct declaration: 0 of 25 recorded responses — PROVED.",
+        proofs: "test/f27-live-security.test.mjs: the C1 C7, C2, C3, C4, C5 and C6 firing controls, the CONNECTOR one-read control, the production-path test of bin/live-security.mjs in a declared fixture world with no egress, and the REAL test",
+        sabotage: "runs/audit/f27-live-sabotage-2026-10-16T1025.txt (sha256 8abce5a7…): 25 of 25 proved, residue 0, production trail unchanged, on the final code; in-scope harnesses on the build head (FAST MODE F8): f03 4/4, f04 2/2, f06 4/4, f09 1/1, f10-built-pages T23 and V13, f44-source-reader R19 and R33, rr170 S08, rr199 T2-evidence-state and D2-sheet-action, rr227 N31 and G1 each 1/1, f16-human-observation 26/26, f16-product-led 12/12, f16-source-adapter 64/64, f19-generic-crawl 8/8, f23 66/66, f62-assessment 17/17, f91-connection 25/25, rr106 11/11; residue 0 and production trail unchanged in every one",
+        historicalReuse: "the earlier transport and header audits of stored crawl bodies (src/audit/transport-security.mjs) stay byte for byte; F27's live audit is src/audit/live-security.mjs, its one network read the connector's transport reader",
+        declaredLimit: "only the client's LIVE pages, their http: forms and the robots file were requested (the owner's GREEN, 16 Oct 2026); references a script inserts are NOT MEASURED on a page that runs script (none here); public exposure is judged only on the recorded responses, every path no request reached being outside the population; the header baseline is beta-g's technical declaration, not owner policy",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F91 · Page opportunity planning. Scope reconciled (_handoffs 24c44d0), then frozen ALONE (2048dd3, RR-113 §2) before any F91 code.

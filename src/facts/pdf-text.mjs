@@ -176,7 +176,9 @@ function makeFont(doc, fontDict) {
   let cmap = null;
   const tu = f.ToUnicode?.ref !== undefined ? doc.obj(f.ToUnicode.ref) : null;
   if (tu?.stream) { const data = decode(tu.value, tu.stream); if (data) cmap = parseCmap(data); }
-  const bytesPerCode = composite || cmap?.twoByte ? 2 : 1;
+  /* a simple font's codes are one byte each, whatever code space its ToUnicode map declares (RR-270: read two at a time, every other letter
+     of Speech Pathology Australia's eligibility PDF was lost); a composite font's are two */
+  const bytesPerCode = composite ? 2 : 1;
   /* widths in thousandths of a unit */
   const widths = new Map(); let dflt = 500;
   if (composite) {

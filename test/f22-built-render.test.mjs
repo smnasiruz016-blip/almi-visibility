@@ -177,7 +177,8 @@ test("C4 · PRODUCTION PATH (F22 A1): the live mode makes NO request without --c
   const { W } = twoClientWorld();
   try {
     const unconfirmed = runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: ["--live"] });
-    assert.deepEqual([unconfirmed.status, /NO REQUEST WAS MADE/.test(unconfirmed.stderr)], [3, true], unconfirmed.stdout + unconfirmed.stderr);
+    /* the refusal is NO_CONFIRM by name: another refusal also says no request was made (found by the harness, limb B20) */
+    assert.deepEqual([unconfirmed.status, /REFUSED — NO_CONFIRM: .*NO REQUEST WAS MADE/.test(unconfirmed.stderr)], [3, true], unconfirmed.stdout + unconfirmed.stderr);
     const tight = runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: ["--live", "--confirm", "--max-requests=1"] });
     assert.deepEqual([tight.status, /REQUESTS_OUTNUMBER_THE_LIMIT: 2 \(each page's document and the robots file\) against a limit of 1\. NO REQUEST WAS MADE\./.test(tight.stderr)], [3, true], tight.stdout + tight.stderr);
     /* the GREEN names the page addresses and the robots file only: the live render's subresource handler refuses, never requests */

@@ -90,8 +90,9 @@ if (live) {
   console.log(`  kept             ${records.length} read(s) in the batch's live-security store`);
 } else console.log("  NOT RUN — no --live: no request was made and nothing was written; the audit below reads the batch's stored reads");
 
-/* the audit, from the STORED reads only: the latest of each LIVE page and of the robots file */
-const stored = rows("live-security.jsonl").filter((r) => r?.record_type === LIVE_SECURITY_RECORD && r.tenantId === SCOPE.tenantId);
+/* the audit, from the STORED reads only: the latest of each LIVE page and of the robots file — the store is this tenant's own batch (the
+   scope gate above decided it), and each read is matched to a page of this tenant's population by its page id and address */
+const stored = rows("live-security.jsonl").filter((r) => r?.record_type === LIVE_SECURITY_RECORD);
 const lastOf = (pred) => stored.filter(pred).at(-1) ?? null;
 const pages = livePages.map((p) => { const r = lastOf((x) => x.kind === "PAGE" && x.pageId === p.pageId && x.url === p.canonical); return { pageId: p.pageId, url: p.canonical, read: r && !r.read?.error ? r.read : null, http: r && !r.http?.error ? r.http : null }; });
 const robotsRead = lastOf((x) => x.kind === "ROBOTS" && x.url === robotsUrl);

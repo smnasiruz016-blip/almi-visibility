@@ -48,6 +48,8 @@ const CONNECTOR_MODE = Object.freeze([
   ["bin/gsc-ingest.mjs", ["--property=sc-domain:fixture-world.invalid", S]],
   /* RR-263: F23's bounded link-status check (bin/link-status.mjs) — one more connector entry point, measured by the census below */
   ["bin/link-status.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
+  /* F27 Amendment 3: the bounded live check of the client's LIVE pages (bin/live-security.mjs) — one more connector entry point */
+  ["bin/live-security.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
   ["bin/mobile-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
   ["bin/quote-match.mjs", [P]],
   ["bin/render-audit.mjs", [`--research-batch=${BATCH}`, S, "--live-render", "--i-have-the-owners-green"]],
@@ -117,6 +119,8 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/crawl.mjs": ["live", ["USAGE", "USAGE", "CONFINEMENT", "CONFINEMENT"]],
     "bin/gsc-ingest.mjs": ['arg("source") === null', []],
     "bin/link-status.mjs": ["live", ["USAGE"]],
+    /* F27 Amendment 3: one usage exit before the gate (the subject, batch, day and a limit inside the owner's ceiling) */
+    "bin/live-security.mjs": ["live", ["USAGE"]],
     "bin/mobile-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
     "bin/quote-match.mjs": ["ALWAYS", ["USAGE"]],
     "bin/render-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],

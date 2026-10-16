@@ -34,8 +34,12 @@ const OUT = confineToRepo(join(ENGINE, "config", "authority", "corpus.mjs"), { l
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
 const govRoot = arg("governance-root"), govCommit = arg("governance-commit"), engCommit = arg("engine-commit");
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
-const NOW = arg("now") ?? "2026-09-22";
-if (!govRoot || !govCommit || !engCommit) { console.error("usage: --governance-root=<dir> --governance-commit=<sha> --engine-commit=<sha> [--confirm]"); process.exit(2); }
+/* RR-272: the day the records are judged at is REQUIRED. It had a hidden default (2026-09-22): a run without --now on 16 Oct 2026 judged
+ * every record committed after that day NOT_APPLICABLE ("not yet effective"), and six wrong admissions reached the trail
+ * (config/known-wrong-admissions.mjs). No day is assumed. */
+const NOW = arg("now");
+const validDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") && Number.isFinite(Date.parse(`${d}T00:00:00Z`)) && new Date(`${d}T00:00:00Z`).toISOString().slice(0, 10) === d;
+if (!govRoot || !govCommit || !engCommit || !validDay(NOW)) { console.error("usage: --governance-root=<dir> --governance-commit=<sha> --engine-commit=<sha> --now=YYYY-MM-DD [--confirm] — --now is the day the records are judged at, required (no default day); nothing read, nothing written"); process.exit(2); }
 
 /* F08 §6.1 — this governed run's sealed-path refusals are audited by the guard itself, into the governed store
  * (the confined one inside a verified test context). A permitted read emits nothing. */

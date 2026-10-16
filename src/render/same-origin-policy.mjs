@@ -40,10 +40,26 @@ export const LIVE_RENDER_BOUNDS = Object.freeze({
   maxResponseBytes: MAX_RESPONSE_BYTES,
 });
 
-export const REFUSALS = Object.freeze(["UNDECLARED_HOST", "METHOD_NOT_ALLOWED", "RUN_CAP", "REQUEST_CAP", "ROBOTS", "AUTH_OR_PAYMENT", "NETWORK", "SIZE_CAP", "REDIRECT_OFF_ORIGIN", "NOT_FETCHED_IN_RENDER"]);
+export const REFUSALS = Object.freeze(["UNDECLARED_HOST", "METHOD_NOT_ALLOWED", "RUN_CAP", "REQUEST_CAP", "ROBOTS", "AUTH_OR_PAYMENT", "NETWORK", "SIZE_CAP", "REDIRECT_OFF_ORIGIN", "NOT_FETCHED_IN_RENDER", "OUTSIDE_THE_GREEN", "THIRD_PARTY"]);
 const AUTH_OR_PAYMENT_STATUSES = new Set([401, 402, 407]);
 
 const originOf = (u) => { try { return new URL(u).origin; } catch { return null; } };
+
+/**
+ * A live render's subresource handler under an owner GREEN (config/audit/live-render-green.mjs), decided BEFORE the policy is asked:
+ *   OUTSIDE_THE_GREEN  the GREEN names the page addresses only (pagesOnly) — no subresource is requested
+ *   THIRD_PARTY        the GREEN admits the page's own origin only (sameOriginOnly) and the subresource is on another — even one the
+ *                      client declares; the renderer records its host, and no request is made
+ * Anything else goes to the page's bounded resolve, with the page's own method.
+ */
+export function greenSubresources({ green, pageUrl, resolve }) {
+  const own = originOf(pageUrl);
+  return (url, _resourceType, method = "GET") => {
+    if (green.pagesOnly !== false) return { served: false, refusal: "OUTSIDE_THE_GREEN" };
+    if (green.sameOriginOnly !== false && (own === null || originOf(url) !== own)) return { served: false, refusal: "THIRD_PARTY" };
+    return resolve(url, { method });
+  };
+}
 
 class RunCapReached extends Error { constructor() { super("RUN_CAP: the run's total request ceiling is reached — no request was made"); this.code = "RUN_CAP"; } }
 class NoRetry extends Error { constructor() { super("NO_RETRY: the GREEN forbids a retry — no second request was made"); this.code = "NO_RETRY"; } }

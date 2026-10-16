@@ -24,7 +24,7 @@ const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const C3 = "C3 · SEVEN DIMENSIONS · FIRING CONTROL (F22 A1)", C2 = "C2 C6 · FIRING CONTROL (F22 A1)", IN = "INPUT · POPULATION · FIRING CONTROL (F22 A1)", C4 = "C4 · THE GREEN'S BOUNDS · FIRING CONTROL (F22 A1)",
-  C1P = "C1 · PRODUCTION PATH (F22 A1)", C4P = "C4 · PRODUCTION PATH (F22 A1)", C5 = "C5 · THE SEALED EXAM RULE (F22 A1)";
+  C1P = "C1 · PRODUCTION PATH (F22 A1)", C4P = "C4 · PRODUCTION PATH (F22 A1)", C5 = "C5 · THE SEALED EXAM RULE (F22 A1)", C4T = "C4 · THIRD PARTY · FIRING CONTROL (RR-272)";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -44,7 +44,7 @@ const SABOTAGES = [
   ["B14", "INPUT a file the record does not name is served", J, "  const f = job.files.get(url);", "  const f = job.files.get(url) ?? [...job.files.values()][0];", IN],
   ["B15", "C4 a failed request is retried under the GREEN", P, "    if (noRetry && own?.failed) return Promise.reject(new NoRetry());\n", "", C4],
   ["B16", "C4 the GREEN's interval is widened away", G, "  intervalMs: 2000,", "  intervalMs: 1000,", C4],
-  ["B17", "C4 a live render requests a subresource outside the GREEN", B, 'subresources: (u) => (LIVE_RENDER_GREEN.pagesOnly ? { served: false, refusal: "OUTSIDE_THE_GREEN" } : pp.resolve(u)) });', "subresources: (u) => pp.resolve(u) });", C4P],
+  ["B17", "C4 a live render's subresources bypass the GREEN's handler", B, "subresources: greenSubresources({ green: LIVE_RENDER_GREEN, pageUrl: t.url, resolve: pp.resolve }) });", "subresources: (u) => pp.resolve(u) });", C4P],
   ["B18", "C4 a limit above the GREEN's is taken", B, "LIMIT >= 1 && LIMIT <= LIVE_RENDER_GREEN.maxRequests", "LIMIT >= 1", C4P],
   ["B19", "C4 the run goes on when its requests outnumber the limit", B, "  if (live && targets.length + 1 > LIMIT) {", "  if (false) {", C4P],
   ["B20", "C4 a live run goes on without --confirm", B, '  if (!process.argv.includes("--confirm")) {', "  if (false) {", C4P],
@@ -52,6 +52,10 @@ const SABOTAGES = [
   ["B22", "C1 a render is stored under another tenant", B, "tenantId: SCOPE.tenantId, pageId: t.pageId,", 'tenantId: "tenant:00000000000000000000000000000bad", pageId: t.pageId,', C1P],
   ["B23", "C6 the output carries a page address", B, "  console.log(`  rendered     ${reads.length} page(s)", "  console.log(reads.map((r) => r.url).join(\" \")); console.log(`  rendered     ${reads.length} page(s)", C1P],
   ["B24", "C5 the render path names a sealed directory", B, 'const STORE_FILE = "built-page-renders.jsonl";', 'const STORE_FILE = "built-page-renders.jsonl"; const SEALED_DIR = "exam-bank";', C5],
+  /* RR-272: the owner's GREEN admits the page's own-origin subresources and no other host */
+  ["B25", "C4 a third-party subresource is requested under the GREEN", P, '    if (green.sameOriginOnly !== false && (own === null || originOf(url) !== own)) return { served: false, refusal: "THIRD_PARTY" };\n', "", C4T],
+  ["B26", "C4 a GREEN that does not name subresources lets them through", P, "    if (green.pagesOnly !== false) return", "    if (green.pagesOnly === true) return", C4T],
+  ["B27", "C4 a live render's refused hosts are not stored with it", B, "reason: rendered.reason, requests: rendered.requests, sourceHtml,", "reason: rendered.reason, sourceHtml,", C4P],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

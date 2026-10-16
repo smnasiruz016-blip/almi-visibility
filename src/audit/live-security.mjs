@@ -8,7 +8,8 @@
  *   C3  mixed content: the raw-HTML references F27 always read (src/audit/transport-security.mjs mixedReferences), and every url() in a style
  *       element or style attribute; a page that runs script leaves script-inserted references NOT MEASURED
  *   C4  unsafe forms (src/audit/transport-security.mjs unsafeForms, unchanged)
- *   C5  headers under beta-g's declaration (config/security/live-header-baseline.mjs), on an HTML page served over https only
+ *   C5  headers under beta-g's declaration (config/security/live-header-baseline.mjs), on an HTML page served over https only; its
+ *       referrer rule is Mozilla HTTP Observatory's, exactly, by the owner's decision of 16 Oct 2026 (RR-272)
  *   C6  public exposure under the owner's declaration of 3 Oct 2026 (config/security/public-exposure-declaration.mjs), on the recorded
  *       responses only — no path is ever requested to create evidence
  *   C7  every count with its denominator; INCOMPLETE named; three verdicts per part
@@ -68,6 +69,20 @@ export function runsScript(html) {
   return /<[a-z][^>]*\son[a-z]+\s*=/i.test(text.replace(/<script\b[\s\S]*?<\/script\s*>/gi, " "));
 }
 
+/**
+ * C5 · the referrer policy a page's own HTML declares, as the Observatory reads it (src/retriever/utils.js parseHttpEquivHeaders): the
+ * non-empty content of the LAST <meta name="referrer">; a meta that has both http-equiv and content is never read for it. null: none.
+ */
+export function referrerMeta(html) {
+  let found = null;
+  for (const m of String(html ?? "").replace(/<!--[\s\S]*?-->/g, " ").matchAll(/<meta\b([^>]*)>/gi)) {
+    const attrs = new Map([...m[1].matchAll(/([^\s"'=<>\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)].map((a) => [a[1].toLowerCase(), a[2] ?? a[3] ?? a[4] ?? ""]));
+    if (attrs.has("http-equiv") && attrs.has("content")) continue;
+    if ((attrs.get("name") ?? "").trim().toLowerCase() === "referrer" && attrs.get("content")) found = attrs.get("content");
+  }
+  return found;
+}
+
 /** C5 · one declared header rule on one recorded response. The page's type decides whether it applies: an HTML page served over https. */
 export function judgeHeaderRule(rule, read) {
   const h = lower(read?.headers);
@@ -87,9 +102,13 @@ export function judgeHeaderRule(rule, read) {
       return /^\s*(deny|sameorigin)\s*$/i.test(h["x-frame-options"] ?? "") ? { state: STATE.PASS } : { state: STATE.FAIL, why: "no enforced frame-ancestors and no X-Frame-Options DENY or SAMEORIGIN" };
     }
     case "REFERRER_POLICY": {
-      const v = (h["referrer-policy"] ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean).at(-1) ?? null;
-      if (v === null) return { state: STATE.FAIL, why: "absent" };
-      return rule.failing.includes(v) ? { state: STATE.FAIL, why: v } : { state: STATE.PASS };
+      /* Mozilla HTTP Observatory's rule exactly (config/security/live-header-baseline.mjs REFERRER_BASIS; the owner's decision, RR-272) */
+      const meta = referrerMeta(read.body);
+      const values = [...(Object.hasOwn(h, "referrer-policy") ? [h["referrer-policy"]] : []), ...(meta === null ? [] : [meta])];
+      if (values.length === 0) return { state: STATE.PASS, why: "not implemented: no header and no meta — the Observatory passes it" };
+      const v = values.join(", ").split(",").map((x) => x.trim().toLowerCase()).filter((x) => rule.private.includes(x) || rule.unsafe.includes(x)).at(-1) ?? null;
+      if (v === null) return { state: STATE.FAIL, why: "invalid: no value is one the rule names" };
+      return rule.private.includes(v) ? { state: STATE.PASS } : { state: STATE.FAIL, why: `unsafe: ${v}` };
     }
     default: throw Object.assign(new Error(`HEADER_RULE_UNDECLARED: ${rule.check}`), { code: "HEADER_RULE_UNDECLARED" });
   }

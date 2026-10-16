@@ -43,6 +43,8 @@ import { GAP_EVENT, gapEventDraft, gapFaults, gapsNotOnTrail } from "../src/audi
 import { AUDIT_GAPS } from "../config/audit-gaps.mjs";
 import { KNOWN_READS_EVENT, knownReadsEventDraft, knownReadsFaults, correctionsNotOnTrail } from "../src/audit-trail/known-reads.mjs"; // RR-246, appended only via recordCandidates
 import { KNOWN_OUT_OF_BAND_READS } from "../config/known-out-of-band-reads.mjs";
+import { WRONG_ADMISSIONS_EVENT, wrongAdmissionsEventDraft, wrongAdmissionsFaults, wrongAdmissionsNotOnTrail, correctedAdmissionIds } from "../src/audit-trail/wrong-admissions.mjs"; // RR-272, appended only via recordCandidates
+import { KNOWN_WRONG_ADMISSIONS } from "../config/known-wrong-admissions.mjs";
 import { authorise, authorisationEvent, namedActor, AUTHORISATION_REFUSED_EXIT } from "../src/governance/authorisation.mjs";
 import { durableGuardSink } from "../src/governance/guard-audit.mjs";
 
@@ -98,7 +100,7 @@ function migratedCandidates(softwareVersion, migratedAt) {
   const recorded = productionAuditStore({ repo: REPO, forbiddenSubstrings: [] }).readAll().events;
   const dispositions = authorityCensus(AUTHORITY_CORPUS, NOW_DAY).dispositions;
   return [
-    ...familyACandidates({ corpus: AUTHORITY_CORPUS, dispositions, provenance: CORPUS_PROVENANCE, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt }),
+    ...familyACandidates({ corpus: AUTHORITY_CORPUS, dispositions, provenance: CORPUS_PROVENANCE, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt, recorded }),
     ...familyBCandidates({ declared: DECLARED, versions: ACCEPTANCE_VERSIONS, recorded, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt, blockerAuthority: BLOCKER_AUTHORITY }),
     ...familyCCandidates({ registry: EVIDENCE_ROLE_REGISTRY, softwareVersion, correlationId: MIGRATION_CORRELATION, migratedAt, roleAuthority, registeredAtOf }),
   ];
@@ -158,6 +160,15 @@ function nativeCandidates(softwareVersion, f08Hash) {
     });
   }
   return out;
+}
+
+/* RR-272: an admission on the trail whose disposition differs from the corpus in force — a record superseded since, or an admission a
+ * declared correction (config/known-wrong-admissions.mjs) names as wrong. Named on every run; never offered again. */
+function printDispositionsSince(candidates) {
+  const corrected = new Map(KNOWN_WRONG_ADMISSIONS.flatMap((c) => correctedAdmissionIds(c).map((id) => [id, c.correctionId])));
+  const since = candidates.filter((c) => c.dispositionSince);
+  console.log(`  admissions whose disposition differs since: ${since.length} (never offered again) · named by a declared correction ${since.filter((c) => corrected.has(c.alreadyAudited)).length}`);
+  for (const c of since) console.log(`  SINCE           ${c.family} ${c.alreadyAudited} ${c.dispositionSince.stored} -> ${c.dispositionSince.inForce} · ${corrected.has(c.alreadyAudited) ? `WRONG WHEN ADMITTED — corrected by ${corrected.get(c.alreadyAudited)}` : "a change since the admission"} · ${c.sourceId}`);
 }
 
 // ── SUBCOMMANDS ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -246,6 +257,7 @@ function doRecord() {
     console.log(`  remainder ${result.remainder}`);
     for (const n of result.notMigratable) console.log(`  NOT_MIGRATABLE  ${n.family} ${n.sourceId} — ${n.notMigratable}`);
     for (const i of result.invalid) console.log(`  INVALID         ${i.family} ${i.sourceId} — ${i.codes.join(", ")}`);
+    printDispositionsSince(candidates);
     const size = store.sizeReport();
     console.log(`  store: ${size.events} event(s) · ${size.bytes} bytes · ${size.bytesPerEvent} bytes/event · ceiling ${size.ceilingBytes} · within ceiling ${size.withinCeiling}`);
     console.log(`  store sha256 ${store.storeHash()}`);
@@ -280,17 +292,24 @@ function doGap() {
   for (const { c, f } of faultyReads) console.log(`  🔴 ${c.correctionId}: ${f.map((x) => `${x.code}(${x.field})`).join(", ")}`);
   const f07a4 = AUTHORITY_CORPUS.find((r) => r.propositionId === "F07_ACCEPTANCE_AMENDMENT_4");
   if (pendingReads.length && !f07a4) { console.log("NO CURRENT AUTHORITY for F07 Amendment 4 — nothing is recorded"); process.exit(1); }
-  if (faulty.length || faultyReads.length) process.exit(1);
+  /* RR-272: each declared correction of wrong authority admissions, once, ever — under F08's authority; every admission it names must be
+   * on the trail with the disposition it says was stored, or nothing is recorded */
+  const pendingAdmissions = wrongAdmissionsNotOnTrail(KNOWN_WRONG_ADMISSIONS, onTrail);
+  console.log(`KNOWN WRONG AUTHORITY ADMISSIONS · declared ${KNOWN_WRONG_ADMISSIONS.length} · already on the trail ${KNOWN_WRONG_ADMISSIONS.length - pendingAdmissions.length} · to record ${pendingAdmissions.length}`);
+  const faultyAdmissions = pendingAdmissions.map((c) => ({ c, f: [...wrongAdmissionsFaults(c), ...c.admissions.map((a) => String(a).split(" ")).filter(([, id, stored]) => !onTrail.some((e) => e.eventId === id && e.action === "ADMIT_AUTHORITY_RECORD" && e.metadata?.disposition === stored)).map(([n]) => ({ code: "CORRECTION_ADMISSION_NOT_ON_TRAIL", field: `admissions[${Number(n) - 1}]` }))] })).filter((x) => x.f.length);
+  for (const { c, f } of faultyAdmissions) console.log(`  🔴 ${c.correctionId}: ${f.map((x) => `${x.code}(${x.field})`).join(", ")}`);
+  if (faulty.length || faultyReads.length || faultyAdmissions.length) process.exit(1);
   if (!permission.mayWrite) { console.log("nothing is appended without --confirm"); return; }
   /* Nothing to record is not a write: no authorisation is asked for and nothing reaches the trail. */
-  if (pending.length === 0 && pendingReads.length === 0) { console.log("every declared gap and correction is already on the trail — nothing is appended"); return; }
+  if (pending.length === 0 && pendingReads.length === 0 && pendingAdmissions.length === 0) { console.log("every declared gap and correction is already on the trail — nothing is appended"); return; }
   const store = productionAuditStore({ repo: REPO });
   const decision = authorise({ actorRef: namedActor(process.argv), action: "WRITE_AUDIT_TRAIL_STORE", scope: { scopeType: "GLOBAL_PRODUCT" }, resourceRef: AUDIT_STORE.eventsPath, now: RUN_INSTANT });
   durableGuardSink({ store, actor: "bin/audit-trail.mjs", softwareVersion, correlationId: `run:audit-trail:gap:${RUN_INSTANT}:authorisation`, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash }).emit(authorisationEvent(decision));
   if (!decision.allowed) { console.error(`🔴 AUTHORISATION REFUSED — WRITE_AUDIT_TRAIL_STORE: ${decision.outcome} (${decision.reason}); nothing was recorded`); process.exit(AUTHORISATION_REFUSED_EXIT); }
   /* Appended through the recorder's audit-store-only primitive, as `record` does — never a direct store.append here. */
   const candidates = [...pending.map((gap) => ({ family: GAP_EVENT.eventType, sourceId: gap.gapId, draft: gapEventDraft({ gap, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) })),
-    ...pendingReads.map((correction) => ({ family: KNOWN_READS_EVENT.eventType, sourceId: correction.correctionId, draft: knownReadsEventDraft({ correction, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: f07a4.propositionId, scope: [...f07a4.scope] }, authorityHash: f07a4.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) }))];
+    ...pendingReads.map((correction) => ({ family: KNOWN_READS_EVENT.eventType, sourceId: correction.correctionId, draft: knownReadsEventDraft({ correction, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: f07a4.propositionId, scope: [...f07a4.scope] }, authorityHash: f07a4.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) })),
+    ...pendingAdmissions.map((correction) => ({ family: WRONG_ADMISSIONS_EVENT.eventType, sourceId: correction.correctionId, draft: wrongAdmissionsEventDraft({ correction, occurredAt: RUN_INSTANT, softwareVersion, authorityRef: { propositionId: F08_AUTHORITY.propositionId, scope: [...F08_AUTHORITY.scope] }, authorityHash: f08.contentHash, correlationId: `run:audit-trail:gap:${RUN_INSTANT}` }) }))];
   const result = recordCandidates({ store, candidates, corpus: AUTHORITY_CORPUS });
   for (const m of result.migrated) console.log(`  ${m.sourceId} → ${m.eventId} (APPENDED)`);
   for (const i of result.invalid) console.log(`  🔴 ${i.sourceId} INVALID — ${i.codes.join(", ")}`);

@@ -16,7 +16,7 @@ import { spawnSync } from "node:child_process";
 
 import { compareSourceRender, DIMENSIONS, NOT_MEASURED, titlesIn, h1sIn, robotsMetaIn, textOf } from "../src/audit/render-compare.mjs";
 import { renderJobs, offlineFiles, auditRenders, RENDER_READ_RECORD, MODE } from "../src/render/built-page-render.mjs";
-import { createSameOriginPolicy, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
+import { createSameOriginPolicy, greenSubresources, LIVE_RENDER_BOUNDS } from "../src/render/same-origin-policy.mjs";
 import { loadPlaywright } from "../src/render/renderer.mjs";
 import { publishedHtml, PUBLISH } from "../src/page/publish-page.mjs";
 import { JOINED_RECORD } from "../src/page/joined-page.mjs";
@@ -114,7 +114,30 @@ test("C4 · THE GREEN'S BOUNDS · FIRING CONTROL (F22 A1): with the GREEN's no-r
   for (let i = 1; i < once.starts.length; i += 1) assert.ok(once.starts[i] - once.starts[i - 1] >= LIVE_RENDER_GREEN.intervalMs, `two requests ${once.starts[i] - once.starts[i - 1]} ms apart`);
   const capped = await run({ ...green, maxTotalRequests: 2 }, () => false);
   assert.deepEqual([capped.issued, capped.results.map((r) => r.served ? "SERVED" : r.refusal)], [2, ["SERVED", "RUN_CAP", "RUN_CAP"]], "the run's ceiling was passed");
-  assert.deepEqual([LIVE_RENDER_GREEN.maxRequests <= 35, LIVE_RENDER_GREEN.intervalMs >= 2000, LIVE_RENDER_GREEN.retries, LIVE_RENDER_GREEN.pagesOnly], [true, true, 0, true], "the GREEN's bounds were widened");
+  assert.deepEqual([LIVE_RENDER_GREEN.maxRequests <= 100, LIVE_RENDER_GREEN.intervalMs >= 2000, LIVE_RENDER_GREEN.retries, LIVE_RENDER_GREEN.sameOriginOnly], [true, true, 0, true], "the GREEN's bounds were widened");
+});
+
+/* RR-272: the owner's GREEN admits a page's own same-origin subresources and no other host */
+test("C4 · THIRD PARTY · FIRING CONTROL (RR-272): under the GREEN a page's own-origin subresource is requested and a subresource on another origin — even one the connector admits — is THIRD_PARTY, refused before any request; without sameOriginOnly the same request is made; a pages-only GREEN refuses both", async () => {
+  const PAGE = "https://site.invalid/guides/a", OWN = "https://site.invalid/guides/assets/logo.png", OTHER = "https://other.invalid/font.woff2";
+  const run = async (green) => {
+    const asked = [];
+    const fetchImpl = async (u) => { asked.push(u); return new Response(u.endsWith("robots.txt") ? "User-agent: *\nAllow: /\n" : "x", { status: 200, headers: { "content-type": "image/png" } }); };
+    /* a connector that admits BOTH origins: only the GREEN's own rule can keep the second one out */
+    const p = createSameOriginPolicy({ fetchImpl, admits: (u) => /^https:\/\/(site|other)\.invalid\//.test(u), bounds: { ...LIVE_RENDER_BOUNDS, intervalMs: 0, retries: 0 }, sleepImpl: async () => {} });
+    const sub = greenSubresources({ green, pageUrl: PAGE, resolve: p.forPage().resolve });
+    const own = await sub(OWN, "image", "GET"), other = await sub(OTHER, "font", "GET");
+    return { own: own.served ? "SERVED" : own.refusal, other: other.served ? "SERVED" : other.refusal, asked: asked.filter((u) => !u.endsWith("robots.txt")) };
+  };
+  const real = await run(LIVE_RENDER_GREEN);
+  assert.deepEqual([real.own, real.other, real.asked], ["SERVED", "THIRD_PARTY", [OWN]], "a third-party subresource was requested under the GREEN");
+  const open = await run({ ...LIVE_RENDER_GREEN, sameOriginOnly: false });
+  assert.deepEqual([open.other, open.asked], ["SERVED", [OWN, OTHER]], "CONTROL: without sameOriginOnly the third-party request is made — the refusal could not fail");
+  const pagesOnly = await run({ ...LIVE_RENDER_GREEN, pagesOnly: true });
+  assert.deepEqual([pagesOnly.own, pagesOnly.other, pagesOnly.asked], ["OUTSIDE_THE_GREEN", "OUTSIDE_THE_GREEN", []]);
+  /* a GREEN that does not say is read as the narrowest: no subresource at all */
+  const silent = await run({ maxRequests: 1, intervalMs: 2000, retries: 0 });
+  assert.deepEqual([silent.own, silent.asked], ["OUTSIDE_THE_GREEN", []]);
 });
 
 /* ---------------- C1 · C4 · C5 · C6 · the binary, two unrelated declared subjects (FIXTURES, named) ---------------- */
@@ -181,8 +204,9 @@ test("C4 · PRODUCTION PATH (F22 A1): the live mode makes NO request without --c
     assert.deepEqual([unconfirmed.status, /REFUSED — NO_CONFIRM: .*NO REQUEST WAS MADE/.test(unconfirmed.stderr)], [3, true], unconfirmed.stdout + unconfirmed.stderr);
     const tight = runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: ["--live", "--confirm", "--max-requests=1"] });
     assert.deepEqual([tight.status, /REQUESTS_OUTNUMBER_THE_LIMIT: 2 \(each page's document and the robots file\) against a limit of 1\. NO REQUEST WAS MADE\./.test(tight.stderr)], [3, true], tight.stdout + tight.stderr);
-    /* the GREEN names the page addresses and the robots file only: the live render's subresource handler refuses, never requests */
-    assert.match(readFileSync(join(REPO, "bin/render-built-pages.mjs"), "utf8"), /LIVE_RENDER_GREEN\.pagesOnly \? \{ served: false, refusal: "OUTSIDE_THE_GREEN" \} : pp\.resolve\(u\)/);
+    /* RR-272: the live render's subresources go through the GREEN's handler (own origin only), and the render's requests are stored */
+    assert.match(readFileSync(join(REPO, "bin/render-built-pages.mjs"), "utf8"), /subresources: greenSubresources\(\{ green: LIVE_RENDER_GREEN, pageUrl: t\.url, resolve: pp\.resolve \}\) \}\);/);
+    assert.match(readFileSync(join(REPO, "bin/render-built-pages.mjs"), "utf8"), /read\(t, \{ renderState: rendered\.renderState, reason: rendered\.reason, requests: rendered\.requests, sourceHtml,/);
     for (const bad of [`${LIVE_RENDER_GREEN.maxRequests + 1}`, "0", "x"]) assert.equal(runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: [`--max-requests=${bad}`] }).status, 2, bad);
     assert.equal(runBin(W, { tenant: FIXTURE_TENANT, subject: FIXTURE_SUBJECT, extra: ["--live", "--render"] }).status, 2, "both modes at once were taken");
   } finally { W.cleanup(); }
@@ -213,11 +237,14 @@ test("REAL (F22 A1): the client's built pages offline and its LIVE pages live �
   }
   /* OFFLINE: every built page has a stored render, and every one is COMPLETE */
   assert.deepEqual([a.modes.OFFLINE.absent, a.modes.OFFLINE.renderStates.COMPLETE, a.modes.OFFLINE.incomplete], [0, jobs.offline.length, false], "OFFLINE: a page has no stored COMPLETE render");
-  /* LIVE: no live render is stored yet — a page's own file (its logo) is outside the owner's GREEN of 16 Oct 2026, so a live render could only
-   * be PARTIAL; the run waits on the owner. Until then every LIVE page is counted absent and the population reads INCOMPLETE, by name. */
+  /* LIVE (RR-272): rendered live under the owner's widened GREEN (the pages and their own same-origin subresources, 100 requests) — every
+   * LIVE page has a stored live render and every one is COMPLETE; the population reads COMPLETE in both modes */
   const L = a.modes.LIVE;
-  assert.ok(L.absent === 0 || (L.incomplete && L.missing.some((x) => /page\(s\) with no stored render/.test(x))), "LIVE: an absent live render was not named");
-  assert.equal(a.incomplete, L.incomplete || a.modes.OFFLINE.incomplete);
+  assert.deepEqual([L.absent, L.renderStates.COMPLETE, L.incomplete, a.incomplete], [0, jobs.live.length, false, false], "LIVE: a LIVE page has no stored COMPLETE live render");
+  /* no live render requested a host but its page's own, and none was refused one (no third-party subresource on the real pages) */
+  const live = stored.filter((r) => r.mode === MODE.LIVE && r.requests);
+  assert.ok(live.length >= jobs.live.length, "the live renders do not carry their requests");
+  for (const r of live) assert.deepEqual(Object.keys(r.requests.byHost), [new URL(r.url).host], `${r.pageId}: a request to another host was attempted`);
 });
 
 test("the production trail was not written by this file", () => {

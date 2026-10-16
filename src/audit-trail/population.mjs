@@ -31,6 +31,8 @@
  */
 import { createHash } from "node:crypto";
 import { resolve as resolveAuthority, permits } from "../authority/register.mjs";
+import { deriveEventId } from "./event.mjs";
+import { defaultIdentity } from "./store.mjs";
 
 export const FAMILIES = Object.freeze({
   A: "current-authority resolution and migration actions",
@@ -112,7 +114,12 @@ const dispositionOutcome = Object.freeze({
  * FAMILY A — one admission decision per committed authority record, plus the recorded corpus migration action.
  * The record's own first-commit time is its occurredAt: a committed fact, never a guess.
  */
-export function familyACandidates({ corpus, dispositions, provenance, softwareVersion, correlationId, migratedAt }) {
+export function familyACandidates({ corpus, dispositions, provenance, softwareVersion, correlationId, migratedAt, recorded = [] }) {
+  /* RR-272: an admission is recorded ONCE, as the corpus in force judged the record when it was admitted. One already on the trail (its id
+   * derived exactly as the store derives it) is accounted as already audited and never offered again — a record later superseded, or an
+   * admission later corrected (config/known-wrong-admissions.mjs), would otherwise be a conflicting second admission on every record run
+   * (EVENT_ID_CONFLICT). A disposition that differs since is carried, so the run names it. */
+  const held = new Map(recorded.filter((e) => e?.action === "ADMIT_AUTHORITY_RECORD").map((e) => [e.eventId, e]));
   const out = [];
   corpus.forEach((r, i) => {
     const d = dispositions[i];
@@ -120,7 +127,7 @@ export function familyACandidates({ corpus, dispositions, provenance, softwareVe
     const occurredAt = typeof r.recordedAt === "string" && r.recordedAt.length > 10 ? new Date(r.recordedAt).toISOString().replace(/\.\d{3}Z$/, "Z") : day ? dayToInstant(day) : null;
     const map = dispositionOutcome[d.disposition] ?? { outcome: "INVALID", reasonCode: "UNACCOUNTED" };
     if (!occurredAt) { out.push({ family: "A", sourceId: r.authorityId, notMigratable: "NO_COMMITTED_TIME: the record carries no recordedAt" }); return; }
-    out.push({
+    const candidate = {
       family: "A",
       sourceId: r.authorityId,
       migrationSource: `authority-corpus:${r.sourceRef?.blob ?? "unknown"}`,
@@ -146,7 +153,15 @@ export function familyACandidates({ corpus, dispositions, provenance, softwareVe
         migratedAt,
         metadata: { family: "A", disposition: d.disposition, authorityBlob: r.sourceRef?.blob ?? "", issuerClass: r.issuer?.class ?? "UNDECLARED", inclusionRule: r.inclusionRule ?? "" },
       },
-    });
+    };
+    const id = deriveEventId(defaultIdentity(candidate.draft));
+    const prior = held.get(id);
+    if (prior) {
+      const stored = prior.metadata?.disposition ?? null;
+      out.push({ family: "A", sourceId: r.authorityId, alreadyAudited: id, ...(stored !== d.disposition ? { dispositionSince: { stored, inForce: d.disposition } } : {}) });
+      return;
+    }
+    out.push(candidate);
   });
   // The recorded corpus MIGRATION action itself.
   out.push({

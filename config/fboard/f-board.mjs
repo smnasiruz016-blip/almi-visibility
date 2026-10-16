@@ -1426,11 +1426,12 @@ export const DECLARED = Object.freeze({
   /* 🔴 F22 · JavaScript rendering audit. Frozen ALONE (_handoffs 2d20a63, RR-137 §3) before any F22 code. IN-PROGRESS only:
    * the detector, the tenant-scoped render audit and the bounded same-origin live path are built and proved on fixtures and on the offline
    * real run; every real render is PARTIAL or FAILED offline, so every real comparison is NOT MEASURED — and F22 never passes from PARTIAL
-   * renders. The live run waits on its reviewed bounded request (_handoffs AlmiVisibility_RR-137_F22_LIVE_RENDER_BOUNDED_REQUEST). */
+   * renders. The live run waits on its reviewed bounded request (_handoffs AlmiVisibility_RR-137_F22_LIVE_RENDER_BOUNDED_REQUEST).
+   * RR-272 (16 Oct 2026): VERIFIED-PASS under Amendment 1 — offline 14 of 14 and live 12 of 12 COMPLETE, every clause PROVED (event below). */
   F22: Object.freeze({
     featureId: "F22",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-02", ruling: F22_ORIGINAL.ruling, contractSha256: F22_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1451,6 +1452,26 @@ export const DECLARED = Object.freeze({
       /* F22 Amendment 1 (16 Oct 2026, df82cbe, the owner's overnight command): the client's built pages offline and its LIVE pages live;
        * C1 on named fixtures; seven dimensions; the GREEN's bound. NO board movement. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F22", on: "2026-10-16", ruling: F22_AMENDMENT_1.ruling, contractSha256: F22_AMENDMENT_1.contractSha256, amends: F22_AMENDMENT_1.amends }),
+      /* RR-272 (16 Oct 2026): F22 PROVED under its Acceptance Amendment 1 — offline on the 14 built pages, live on the 12 LIVE pages under the
+       * owner's widened GREEN (_handoffs a7b58ef). Recorded through the board route in the same PR; main CI on the merge decides it. */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F22",
+        population: "REAL",
+        on: "2026-10-16",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F22_AMENDMENT_1.ruling.sha256, contract: F22_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL, read by the REAL test (counts only): 1 declared client with built pages; OFFLINE 14 of 14 rendered COMPLETE (12 as published, 2 as built), LIVE 12 of 12 rendered COMPLETE; both populations COMPLETE. Seven dimensions SAME on 14 of 14 offline and 12 of 12 live, DIFFERS 0, NOT MEASURED 0. The live run made 25 requests of the GREEN's 100 (the robots file, 12 documents, each page's own logo), pacing gaps 24, breaches 0, no retry, one host only; third-party subresources refused 0 (none is asked for).",
+        proofs: "test/f22-built-render.test.mjs: the C3, C2 C6, INPUT, C4 bounds and C4 THIRD PARTY firing controls, the C1 and C4 production-path tests in a declared fixture world (two unrelated subjects, named), C5, and the REAL test",
+        sabotage: "runs/audit/f22-built-sabotage-2026-10-16T1727.txt (sha256 83e8e7fb…): 27 of 27 proved, residue 0, production trail unchanged, on the build head; in-scope harnesses (FAST MODE F8): rr272 9/9, f27-live 36/37 then L12 re-aimed and proved alone, f22-render-audit 15/15, rr138-render-collect 20/20, f40-lift 4/4, rr234 S3-S7, rr243 S06 S07 S08 S09 S13 S15 (after the F78 pin was restated), rr244 A09 A10, d-recorder-1 S1-S5, f08 S-A1 each 1/1; residue 0 and production trail unchanged in every one",
+        historicalReuse: "the renderer, the seven-dimension comparison and the bounded same-origin policy are reused unchanged; the GREEN's subresource handler (greenSubresources) is the one addition",
+        declaredLimit: "only the client's LIVE pages and their own same-origin subresources were requested (the owner's GREEN, RR-272); a third-party refusal is proved on fixtures only — the real pages ask for none",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F25 · Mobile readiness assessment. Frozen ALONE (_handoffs b56655a, RR-137 §4) before any F25 code. IN-PROGRESS only:

@@ -55,6 +55,35 @@ export function connectorRunEntry({ entryPoint, tenantId, startedAt, finishedAt,
 }
 
 /**
+ * A LATE entry (RR-272) for a connector run whose own exit-hook entry was never written, made from that run's OWN stored records: its id
+ * and instant, and the requests its stored reads count. It is recorded at the moment it is written — `recordedAt`, never back-dated — and
+ * says so: `late` carries the day it was recorded and why the run's own entry is missing. The run's wall-clock was in the entry that was
+ * never written, so founderTime is UNKNOWN (measurable, not recorded) — never a figure made up after the fact.
+ */
+export function lateConnectorRunEntry({ entryPoint, tenantId, runId, runInstant, requests, kinds, recordedAt, reason }) {
+  if (![entryPoint, tenantId, runId, runInstant, recordedAt, reason].every((v) => typeof v === "string" && v !== "")) throw new TypeError("lateConnectorRunEntry: the entry point, tenant, run, its instant, the recording instant and the reason are required");
+  if (!(Number.isInteger(requests) && requests > 0)) throw new TypeError("lateConnectorRunEntry: a late entry is for a run whose stored reads count its requests");
+  if (!(Date.parse(recordedAt) > Date.parse(runInstant))) throw new TypeError("lateConnectorRunEntry: recorded at or before the run — a late entry is never back-dated");
+  return Object.freeze({
+    ...makeCostEntry({
+      entry_id: `late:run:${entryPoint}:${runInstant}`,
+      run_kind: "connector-run",
+      run_ref: `${entryPoint} · run ${runId} · LATE ENTRY, recorded ${recordedAt} from the run's own stored reads`,
+      run_started_at: runInstant,
+      recorded_at: recordedAt,
+      money: { amountState: "UNKNOWN", amount: null, currency: "USD", unknownKind: "NOT_MEASURABLE_WITH_TOOLS_WE_HOLD", unknownReason: "each origin reached bears its own serving cost, which nothing this engine holds can read; no paid provider is called here (F78 C2)" },
+      providerCalls: { state: "MEASURED", total: requests, perProvider: Object.fromEntries(Object.entries(kinds).filter(([, n]) => n > 0)) },
+      budget: { kind: "connector-run", used: { requests }, bounds: { requestPath: "the opened connector's fetch, the one egress path (F03)" }, capReached: false },
+      founderTime: { state: "UNKNOWN", seconds: null, unknownKind: "MEASURABLE_BUT_NOT_RECORDED", unknownReason: "the run's wall-clock was in its own exit-hook entry, which was never written; its stored reads carry no end time" },
+      sources: [`${entryPoint} run ${runId}`],
+    }),
+    outcome: "COMPLETED",
+    late: Object.freeze({ recordedOn: recordedAt.slice(0, 10), reason }),
+    scope: Object.freeze({ tenantId }),
+  });
+}
+
+/**
  * The run's cost recorder (C8/C9). `scope` is the entry point's scoped run (its tenant and writeScope); `permission` its write permission.
  * `write` is the entry point's OWN governed append of one entry into the cost ledger at w.path, inside its executeGovernedWrite — so the
  * write is routed, and seen, where the entry point is; this module writes nothing itself. Refuses (exit 3) when the tenant has no declared ledger — the scope gate has normally refused already. Injectable for tests.

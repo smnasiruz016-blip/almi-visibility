@@ -122,7 +122,8 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/gsc-ingest.mjs": ['arg("source") === null', []],
     "bin/link-status.mjs": ["live", ["USAGE"]],
     /* F27 Amendment 3: one usage exit before the gate (the subject, batch, day and a limit inside the owner's ceiling) */
-    "bin/live-security.mjs": ["live", ["USAGE"]],
+    /* RR-272 §2: the recorder also exists for a confirmed --late-cost-entry run (it writes the late entry through it); one more usage exit */
+    "bin/live-security.mjs": ["live || LATE !== null", ["USAGE", "USAGE"]],
     "bin/mobile-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],
     "bin/quote-match.mjs": ["ALWAYS", ["USAGE"]],
     "bin/render-audit.mjs": ["LIVE", ["USAGE", "USAGE"]],

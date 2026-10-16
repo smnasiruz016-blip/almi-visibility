@@ -237,11 +237,14 @@ test("REAL (F22 A1): the client's built pages offline and its LIVE pages live �
   }
   /* OFFLINE: every built page has a stored render, and every one is COMPLETE */
   assert.deepEqual([a.modes.OFFLINE.absent, a.modes.OFFLINE.renderStates.COMPLETE, a.modes.OFFLINE.incomplete], [0, jobs.offline.length, false], "OFFLINE: a page has no stored COMPLETE render");
-  /* LIVE: no live render is stored yet — a page's own file (its logo) is outside the owner's GREEN of 16 Oct 2026, so a live render could only
-   * be PARTIAL; the run waits on the owner. Until then every LIVE page is counted absent and the population reads INCOMPLETE, by name. */
+  /* LIVE (RR-272): rendered live under the owner's widened GREEN (the pages and their own same-origin subresources, 100 requests) — every
+   * LIVE page has a stored live render and every one is COMPLETE; the population reads COMPLETE in both modes */
   const L = a.modes.LIVE;
-  assert.ok(L.absent === 0 || (L.incomplete && L.missing.some((x) => /page\(s\) with no stored render/.test(x))), "LIVE: an absent live render was not named");
-  assert.equal(a.incomplete, L.incomplete || a.modes.OFFLINE.incomplete);
+  assert.deepEqual([L.absent, L.renderStates.COMPLETE, L.incomplete, a.incomplete], [0, jobs.live.length, false, false], "LIVE: a LIVE page has no stored COMPLETE live render");
+  /* no live render requested a host but its page's own, and none was refused one (no third-party subresource on the real pages) */
+  const live = stored.filter((r) => r.mode === MODE.LIVE && r.requests);
+  assert.ok(live.length >= jobs.live.length, "the live renders do not carry their requests");
+  for (const r of live) assert.deepEqual(Object.keys(r.requests.byHost), [new URL(r.url).host], `${r.pageId}: a request to another host was attempted`);
 });
 
 test("the production trail was not written by this file", () => {

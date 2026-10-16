@@ -4,6 +4,7 @@
  * read-only requests to the LIVE pages, their http: forms and the robots file, at most 60 in all, at least 2 s apart, no retries).
  *
  *   node bin/live-security.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD --tenant=<id> --actor=<id> [--max-requests=1..60] [--live --confirm]
+ *   node bin/live-security.mjs … --late-cost-entry=<run id> --because=<why> --confirm      a LATE cost entry for a stored run (RR-272)
  *
  * The population is the client's pages the engine built and recorded as published (LIVE), in this research batch — no crawl batch.
  * WITHOUT --live: the plan (counts only) and, from the batch's stored reads, the audit; NO request. WITH --live --confirm: through the
@@ -26,7 +27,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
-import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
+import { runCost, ownLedgerRef, lateConnectorRunEntry } from "../src/cost/run-cost.mjs";
 import { clientPages } from "../src/audit/built-page-links.mjs";
 import { POPULATION } from "../src/audit/page-links.mjs";
 import { auditLive, LIVE_SECURITY_RECORD } from "../src/audit/live-security.mjs";
@@ -41,9 +42,12 @@ const LIMIT = MAX === null ? LIVE_CHECK_CEILING : Number(MAX);
 if (!SUBJECT || !BATCH || !/^\d{4}-\d{2}-\d{2}$/.test(ON ?? "") || !(MAX === null || /^\d+$/.test(MAX)) || !(Number.isInteger(LIMIT) && LIMIT >= 1 && LIMIT <= LIVE_CHECK_CEILING)) { console.error(`usage: node bin/live-security.mjs --subject=<id> --research-batch=<id> --on=YYYY-MM-DD [--max-requests=1..${LIVE_CHECK_CEILING}] [--live --confirm] — nothing read, no request, nothing written`); process.exit(2); }
 const permission = writePermission({ target: LOCAL, argv: process.argv, env: process.env });
 const live = process.argv.includes("--live");
-const SCOPE = scopedEntryPoint({ entry: "bin/live-security.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...(live ? [RESOURCES.connector(SUBJECT, KIND), RESOURCES.costLedger(ownLedgerRef())] : [])] });
-/* F78: a run that opens a connector records its cost — constructed right after the scope gate */
-const RUN_COST = live ? runCost({ entryPoint: "bin/live-security.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
+/* RR-272: --late-cost-entry=<run id> --because=<why> --confirm — a LATE cost entry for a stored live check whose own entry was never written */
+const LATE = arg("late-cost-entry"), BECAUSE = arg("because");
+if (LATE !== null && (live || !(BECAUSE ?? "").trim())) { console.error("usage: node bin/live-security.mjs … --late-cost-entry=<run id> --because=<why the run's own entry is missing> --confirm (never with --live) — nothing read, no request, nothing written"); process.exit(2); }
+const SCOPE = scopedEntryPoint({ entry: "bin/live-security.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...(live ? [RESOURCES.connector(SUBJECT, KIND), RESOURCES.costLedger(ownLedgerRef())] : LATE !== null ? [RESOURCES.costLedger(ownLedgerRef())] : [])] });
+/* F78: a run that opens a connector records its cost — constructed right after the scope gate (a late entry writes through the same path) */
+const RUN_COST = live || LATE !== null ? runCost({ entryPoint: "bin/live-security.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
 
 const index = rootIndexFor(process.env);
 const store = lookupStore(index, "RESEARCH");
@@ -65,6 +69,23 @@ console.log(`  bound            at most ${LIMIT} request(s) in this run`);
 if (planned > LIMIT) { console.error(`🔴 REFUSED — REQUESTS_OUTNUMBER_THE_LIMIT: ${planned} planned against a limit of ${LIMIT}. NO REQUEST WAS MADE.`); process.exit(3); }
 
 const stamp = (o) => createHash("sha256").update(JSON.stringify(o)).digest("hex").slice(0, 24);
+if (LATE !== null) {
+  /* the run's OWN stored reads are the only source: its instant from its id, its requests from what each read recorded (a page's https and
+   * http: forms, the robots file); refused when it has none, or when the tenant's ledger already holds an entry of this entry point whose
+   * run spans that instant. Recorded now — never back-dated — and marked late, with the reason given. No request is made. */
+  if (!process.argv.includes("--confirm")) { console.error("🔴 REFUSED — NO_CONFIRM: a late cost entry is a write and needs --confirm. NOTHING WAS WRITTEN."); process.exit(3); }
+  const instant = /^live-security:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)$/.exec(LATE)?.[1] ?? null;
+  const own = rows("live-security.jsonl").filter((r) => r?.record_type === LIVE_SECURITY_RECORD && r.tenantId === SCOPE.tenantId && r.run === LATE);
+  if (instant === null || own.length === 0) { console.error("🔴 REFUSED — NO_STORED_RUN: this batch holds no read of that run for this tenant. NOTHING WAS WRITTEN."); process.exit(3); }
+  const covering = createCostLedger(RUN_COST.ledgerPath).readAll().filter((e) => e.entry_id === `late:run:bin/live-security.mjs:${instant}` || (String(e.entry_id).startsWith("run:bin/live-security.mjs:") && e.run_started_at <= instant && instant <= e.recorded_at));
+  if (covering.length) { console.error(`🔴 REFUSED — THE_RUN_HAS_ITS_ENTRY: the tenant's ledger already holds ${covering.length} entry(ies) of this entry point spanning the run. NOTHING WAS WRITTEN.`); process.exit(3); }
+  const requests = own.reduce((n, r) => n + (r.read ? 1 : 0) + (r.http ? 1 : 0), 0);
+  const entry = lateConnectorRunEntry({ entryPoint: "bin/live-security.mjs", tenantId: SCOPE.tenantId, runId: LATE, runInstant: instant, requests, kinds: { [KIND]: requests }, recordedAt: new Date().toISOString(), reason: BECAUSE.trim() });
+  const g = RUN_COST.appendOwn(entry);
+  if (!(g?.outcome === "COMMITTED" || g?.outcome === "ALREADY_COMMITTED")) { console.error(`  🔴 ${g?.outcome} — the late entry did NOT persist`); process.exit(1); }
+  console.log(`  late cost entry  ${g.outcome} · ${own.length} stored read(s) of the run · requests ${requests} · recorded ${entry.recorded_at} (the run's instant ${instant}) · marked late — in the tenant's own ledger`);
+  process.exit(0);
+}
 if (live) {
   if (planned === 0) { console.log("  nothing to read — this batch holds no LIVE page; no request was made"); process.exit(0); }
   const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: KIND }));

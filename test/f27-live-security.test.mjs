@@ -11,9 +11,10 @@ import { EventEmitter } from "node:events";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { judgeTls, judgeRedirect, styleUrls, runsScript, judgeHeaderRule, cspPresence, exposureOf, auditLive, STATE, LIVE_SECURITY_RECORD } from "../src/audit/live-security.mjs";
+import { judgeTls, judgeRedirect, styleUrls, runsScript, judgeHeaderRule, referrerMeta, cspPresence, exposureOf, auditLive, STATE, LIVE_SECURITY_RECORD } from "../src/audit/live-security.mjs";
 import { VERDICT } from "../src/audit/transport-security.mjs";
-import { LIVE_HEADER_BASELINE, LIVE_CHECK_CEILING } from "../config/security/live-header-baseline.mjs";
+import { lateConnectorRunEntry } from "../src/cost/run-cost.mjs";
+import { LIVE_HEADER_BASELINE, LIVE_CHECK_CEILING, REFERRER_BASIS } from "../config/security/live-header-baseline.mjs";
 import { PUBLIC_EXPOSURE_DECLARATION } from "../config/security/public-exposure-declaration.mjs";
 import { transportReader, ConnectorRefused } from "../src/tenancy/connectors.mjs";
 import { JOINED_RECORD } from "../src/page/joined-page.mjs";
@@ -73,7 +74,7 @@ test("C5 · HEADERS · FIRING CONTROL (F27 A3): each rule of beta-g's declaratio
     [HSTS, without("strict-transport-security"), "HSTS absent"], [HSTS, read({ headers: { ...GOOD_HEADERS, "strict-transport-security": "max-age=15767999" } }), "HSTS one second short"],
     [NOSNIFF, without("x-content-type-options"), "nosniff absent"], [NOSNIFF, read({ headers: { ...GOOD_HEADERS, "x-content-type-options": "sniff" } }), "not nosniff"],
     [CLICK, without("x-frame-options"), "a report-only frame-ancestors only"], [CLICK, read({ headers: { ...GOOD_HEADERS, "x-frame-options": "ALLOW-FROM https://a.invalid" } }), "ALLOW-FROM"],
-    [REF, without("referrer-policy"), "referrer-policy absent"], [REF, read({ headers: { ...GOOD_HEADERS, "referrer-policy": "unsafe-url" } }), "unsafe-url"], [REF, read({ headers: { ...GOOD_HEADERS, "referrer-policy": "no-referrer-when-downgrade" } }), "no-referrer-when-downgrade"],
+    [REF, read({ headers: { ...GOOD_HEADERS, "referrer-policy": "unsafe-url" } }), "unsafe-url"], [REF, read({ headers: { ...GOOD_HEADERS, "referrer-policy": "no-referrer-when-downgrade" } }), "no-referrer-when-downgrade"],
   ]) assert.equal(judgeHeaderRule(rule, r).state, STATE.FAIL, why);
   assert.equal(judgeHeaderRule(HSTS, read({ headers: { ...GOOD_HEADERS, "strict-transport-security": "max-age=15768000" } })).state, STATE.PASS, "the boundary 15768000 fails");
   assert.equal(judgeHeaderRule(CLICK, read({ headers: { ...without("x-frame-options").headers, "content-security-policy": "frame-ancestors 'self'" } })).state, STATE.PASS, "an enforced frame-ancestors did not count");
@@ -83,6 +84,36 @@ test("C5 · HEADERS · FIRING CONTROL (F27 A3): each rule of beta-g's declaratio
   const a = audit([page()]);
   assert.deepEqual([a.parts.headers.verdict, a.parts.headers.csp.verdict], [VERDICT.PROVED, "REPORTED — NO VERDICT"]);
   assert.equal(audit([page({ read: without("x-content-type-options") })]).parts.headers.verdict, VERDICT.DISPROVED);
+});
+
+/* RR-272: the owner's decision — the referrer rule is Mozilla HTTP Observatory's, exactly (config/security/live-header-baseline.mjs REFERRER_BASIS) */
+test("C5 · REFERRER POLICY IS THE OBSERVATORY'S · FIRING CONTROL (RR-272): absent passes; origin, origin-when-cross-origin and an unknown value fail; the last value the rule names decides; a <meta name=\"referrer\"> comes after the header; a meta with http-equiv and content is not read", () => {
+  const REF = LIVE_HEADER_BASELINE.rules.find((r) => r.check === "REFERRER_POLICY");
+  assert.deepEqual([[...REF.private], [...REF.unsafe]], [["no-referrer", "same-origin", "strict-origin", "strict-origin-when-cross-origin"], ["origin", "origin-when-cross-origin", "unsafe-url", "no-referrer-when-downgrade"]]);
+  assert.match(REFERRER_BASIS.url, /^https:\/\/github\.com\/mdn\/mdn-http-observatory\/blob\/e486eba3a82c\/src\/analyzer\/tests\/referrer-policy\.js$/);
+  assert.equal(REFERRER_BASIS.readOn, "2026-10-16");
+  const h = (v) => { const x = { ...GOOD_HEADERS }; if (v === undefined) delete x["referrer-policy"]; else x["referrer-policy"] = v; return x; };
+  const doc = (meta) => HTML.replace("</head>", `${meta}</head>`);
+  const judge = (v, meta = "") => judgeHeaderRule(REF, read({ headers: h(v), body: doc(meta) })).state;
+  const cases = [
+    ["absent: not implemented", undefined, "", STATE.PASS],
+    ["each private value", "no-referrer", "", STATE.PASS], ["", "same-origin", "", STATE.PASS], ["", "strict-origin", "", STATE.PASS], ["", "strict-origin-when-cross-origin", "", STATE.PASS],
+    ["origin", "origin", "", STATE.FAIL], ["origin-when-cross-origin", "origin-when-cross-origin", "", STATE.FAIL],
+    ["an unknown value alone", "same-site", "", STATE.FAIL], ["an empty header", "", "", STATE.FAIL],
+    ["the last NAMED value decides", "unsafe-url, strict-origin, same-site", "", STATE.PASS], ["", "no-referrer, unsafe-url", "", STATE.FAIL], ["", "  Strict-Origin  ", "", STATE.PASS],
+    ["a meta overrides a private header", "strict-origin", '<meta name="referrer" content="unsafe-url">', STATE.FAIL],
+    ["a meta overrides an unsafe header", "unsafe-url", '<meta name="Referrer" content="no-referrer">', STATE.PASS],
+    ["a meta alone", undefined, '<meta name="referrer" content="origin">', STATE.FAIL],
+    ["the last meta wins", undefined, '<meta name="referrer" content="unsafe-url"><meta name="referrer" content="same-origin">', STATE.PASS],
+    ["an empty meta is not read", "unsafe-url", '<meta name="referrer" content="">', STATE.FAIL],
+    ["a meta with http-equiv and content is not read", "strict-origin", '<meta http-equiv="x" name="referrer" content="unsafe-url">', STATE.PASS],
+    ["a commented meta is not read", "strict-origin", '<!-- <meta name="referrer" content="unsafe-url"> -->', STATE.PASS],
+  ];
+  for (const [why, v, meta, want] of cases) assert.equal(judge(v, meta), want, `${why} · header ${JSON.stringify(v)} · meta ${meta}`);
+  assert.deepEqual([referrerMeta('<meta content="origin" name="referrer">'), referrerMeta("<p>none</p>")], ["origin", null]);
+  /* CONTROL: the stored F27 reads all send strict-origin-when-cross-origin — the cases above that FAIL are the ones the old rule PASSED */
+  const oldRule = (v) => (v === undefined ? STATE.FAIL : ["unsafe-url", "no-referrer-when-downgrade"].includes(v.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean).at(-1)) ? STATE.FAIL : STATE.PASS);
+  assert.deepEqual([oldRule(undefined), oldRule("origin"), oldRule("same-site")], [STATE.FAIL, STATE.PASS, STATE.PASS], "CONTROL: the old rule differs on these three — the new cases could not fail");
 });
 
 test("C6 · PUBLIC EXPOSURE · FIRING CONTROL (F27 A3): each of the owner's three classes is found on a recorded response only as wide as his words; an intended public page, a 404 with no trace and a trace on a 2xx page are not exposures; with no declaration it is NOT MEASURED", () => {
@@ -165,6 +196,51 @@ test("PRODUCTION PATH (F27 A3): in a declared fixture world — the plan and the
     assert.deepEqual([tight.status, /REQUESTS_OUTNUMBER_THE_LIMIT: 3 planned against a limit of 2\. NO REQUEST WAS MADE\./.test(tight.stderr)], [3, true], tight.stdout + tight.stderr);
     for (const bad of [`${LIVE_CHECK_CEILING + 1}`, "0", "x"]) assert.equal(run(`--max-requests=${bad}`).status, 2, bad);
     assert.equal(LIVE_CHECK_CEILING, 60, "the owner's ceiling moved");
+  } finally { W.cleanup(); }
+});
+
+/* RR-272 §2: the F27 live run's own cost entry was never written; a LATE entry is made from the run's own stored reads, never back-dated */
+test("LATE COST ENTRY · PRODUCTION PATH (RR-272): in a declared fixture world — nothing without --confirm or a reason; refused for a run with no stored read, and for a run the ledger already covers (an exit-hook entry spanning it, or its own late entry); otherwise ONE entry, its requests counted from the run's stored reads, recorded now and marked late; no request", () => {
+  assert.throws(() => lateConnectorRunEntry({ entryPoint: "bin/x.mjs", tenantId: "t", runId: "r", runInstant: "2026-10-16T08:15:26Z", requests: 3, kinds: { K: 3 }, recordedAt: "2026-10-16T08:15:26Z", reason: "why" }), /never back-dated/);
+  const BATCH = "fixture-live-security";
+  const W = declaredWorld({ extra: [["RESEARCH_BATCH", BATCH]] });
+  try {
+    const reg = JSON.parse(readFileSync(join(W.root, "roots.json"), "utf8"));
+    reg.subjects.find((s) => s.subjectId === "fixture-world-subject").members.push({ resourceKind: "RESEARCH_BATCH", resourceRef: BATCH });
+    writeFileSync(join(W.root, "roots.json"), JSON.stringify(reg, null, 2) + "\n");
+    const b = join(W.root, "research", BATCH); mkdirSync(b, { recursive: true });
+    const RUN = "live-security:2026-10-16T08:15:26Z", COVERED = "live-security:2026-10-16T08:30:00Z";
+    const reads = (run) => [
+      { record_type: LIVE_SECURITY_RECORD, kind: "PAGE", tenantId: W.tenantId, pageId: "a-page", url: PAGE, readOn: ON, run, read: read(), http: { status: 308, location: PAGE } },
+      { record_type: LIVE_SECURITY_RECORD, kind: "ROBOTS", tenantId: W.tenantId, url: "https://fixture-world.invalid/robots.txt", readOn: ON, run, read: { status: 200, body: "User-Agent: *\nAllow: /\n" } },
+    ];
+    writeFileSync(join(b, "live-security.jsonl"), [...reads(RUN), ...reads(COVERED)].map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const ledgerFile = join(W.root, "tenancy", "cost-ledgers", `${W.tenantId.slice(7)}.jsonl`);
+    mkdirSync(join(W.root, "tenancy", "cost-ledgers"), { recursive: true });
+    /* an exit-hook entry whose run spans COVERED (08:00 → 09:00), and none for RUN */
+    writeFileSync(ledgerFile, JSON.stringify({ record_type: "cost_entry", entry_id: "run:bin/live-security.mjs:2026-10-16T08:20:00.000Z:1", run_kind: "connector-run", run_ref: "x", run_started_at: "2026-10-16T08:20:00.000Z", recorded_at: "2026-10-16T09:00:00.000Z" }) + "\n");
+    const lateOf = () => readFileSync(ledgerFile, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((e) => String(e.entry_id).startsWith("late:"));
+    const run = (...extra) => spawnSync(process.execPath, ["bin/live-security.mjs", ...W.argv(["--subject=fixture-world-subject", `--research-batch=${BATCH}`, `--on=${ON}`, ...extra])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), NO_EGRESS_MODE: "refuse" } });
+    const why = "--because=the run's own entry was refused and never written";
+    assert.equal(run(`--late-cost-entry=${RUN}`, "--confirm").status, 2, "a late entry without a reason was taken");
+    assert.equal(run(`--late-cost-entry=${RUN}`, why, "--live", "--confirm").status, 2, "a late entry with --live was taken");
+    const unconfirmed = run(`--late-cost-entry=${RUN}`, why);
+    assert.deepEqual([unconfirmed.status, /REFUSED — NO_CONFIRM/.test(unconfirmed.stderr), lateOf().length], [3, true, 0], unconfirmed.stdout + unconfirmed.stderr);
+    const none = run("--late-cost-entry=live-security:2026-10-16T07:00:00Z", why, "--confirm");
+    assert.deepEqual([none.status, /REFUSED — NO_STORED_RUN/.test(none.stderr), lateOf().length], [3, true, 0], none.stdout + none.stderr);
+    const covered = run(`--late-cost-entry=${COVERED}`, why, "--confirm");
+    assert.deepEqual([covered.status, /REFUSED — THE_RUN_HAS_ITS_ENTRY/.test(covered.stderr), lateOf().length], [3, true, 0], "CONTROL: a run the ledger already covers got a late entry");
+    const before = Date.now();
+    const ok = run(`--late-cost-entry=${RUN}`, why, "--confirm");
+    assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+    assert.match(ok.stdout, /late cost entry {2}COMMITTED · 2 stored read\(s\) of the run · requests 3 ·/);
+    const [e] = lateOf();
+    assert.deepEqual([lateOf().length, e.entry_id, e.run_started_at, e.providerCalls.total, e.providerCalls.perProvider, e.founderTime.state, e.late.reason, e.scope.tenantId],
+      [1, "late:run:bin/live-security.mjs:2026-10-16T08:15:26Z", "2026-10-16T08:15:26Z", 3, { PUBLIC_SITE: 3 }, "UNKNOWN", "the run's own entry was refused and never written", W.tenantId]);
+    assert.ok(Date.parse(e.recorded_at) >= before - 1000 && e.late.recordedOn === e.recorded_at.slice(0, 10), "the late entry is back-dated, or not marked with the day it was recorded");
+    const again = run(`--late-cost-entry=${RUN}`, why, "--confirm");
+    assert.deepEqual([again.status, /THE_RUN_HAS_ITS_ENTRY/.test(again.stderr), lateOf().length], [3, true, 1], "a second late entry was written for one run");
+    assert.doesNotMatch(ok.stdout + ok.stderr, /https?:\/\//, "the output carries an address");
   } finally { W.cleanup(); }
 });
 

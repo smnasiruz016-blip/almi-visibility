@@ -17,13 +17,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const M = "src/audit/live-security.mjs", CON = "src/tenancy/connectors.mjs", BIN = "bin/live-security.mjs", HB = "config/security/live-header-baseline.mjs", PE = "config/security/public-exposure-declaration.mjs";
+const M = "src/audit/live-security.mjs", CON = "src/tenancy/connectors.mjs", BIN = "bin/live-security.mjs", HB = "config/security/live-header-baseline.mjs", PE = "config/security/public-exposure-declaration.mjs", RC = "src/cost/run-cost.mjs";
 const T = ["test/f27-live-security.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const C2 = "C2 · HTTPS AND TLS · FIRING CONTROL (F27 A3)", C3 = "C3 · MIXED CONTENT · FIRING CONTROL (F27 A3)", C4 = "C4 · UNSAFE FORMS · FIRING CONTROL (F27 A3)", C5 = "C5 · HEADERS · FIRING CONTROL (F27 A3)",
-  C6 = "C6 · PUBLIC EXPOSURE · FIRING CONTROL (F27 A3)", C7 = "C1 C7 · POPULATION, DENOMINATORS, THREE VERDICTS · FIRING CONTROL (F27 A3)", CON1 = "CONNECTOR · ONE READ · FIRING CONTROL (F27 A3)", PP = "PRODUCTION PATH (F27 A3)";
+  C6 = "C6 · PUBLIC EXPOSURE · FIRING CONTROL (F27 A3)", C7 = "C1 C7 · POPULATION, DENOMINATORS, THREE VERDICTS · FIRING CONTROL (F27 A3)", CON1 = "CONNECTOR · ONE READ · FIRING CONTROL (F27 A3)", PP = "PRODUCTION PATH (F27 A3)",
+  C5R = "C5 · REFERRER POLICY IS THE OBSERVATORY'S · FIRING CONTROL (RR-272)", LT = "LATE COST ENTRY · PRODUCTION PATH (RR-272)";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -38,7 +39,7 @@ const SABOTAGES = [
   ["L09", "C4 an http: form action is missed", M, "submissions += f.submissions;", "submissions += 0;", C4],
   ["L10", "C5 an HSTS max-age below the floor passes", HB, "check: \"HSTS_MIN_MAX_AGE\", min: 15768000 }", "check: \"HSTS_MIN_MAX_AGE\", min: 0 }", C5],
   ["L11", "C5 a report-only policy counts for clickjacking", M, "if (/(^|;)\\s*frame-ancestors\\b/i.test(h[\"content-security-policy\"] ?? \"\"))", "if (/(^|;)\\s*frame-ancestors\\b/i.test(h[\"content-security-policy\"] ?? h[\"content-security-policy-report-only\"] ?? \"\"))", C5],
-  ["L12", "C5 unsafe-url passes as a referrer policy", HB, "failing: Object.freeze([\"unsafe-url\", \"no-referrer-when-downgrade\"])", "failing: Object.freeze([])", C5],
+  ["L12", "C5 unsafe-url passes as a referrer policy", HB, "\"origin-when-cross-origin\", \"unsafe-url\", \"no-referrer-when-downgrade\"]) }),", "\"origin-when-cross-origin\", \"no-referrer-when-downgrade\"]) }),", C5],
   ["L13", "C5 a page that is not HTML over https is judged", M, "  if (!htmlOverHttps) return { state: STATE.NOT_APPLICABLE };\n", "", C5],
   ["L14", "C5 an unrecorded response is reported failing or passing", M, "  if (!read || !read.headers) return { state: STATE.NOT_MEASURED, why: \"the response was not recorded\" };", "  if (!read || !read.headers) return { state: STATE.FAIL, why: \"absent\" };", C5],
   ["L15", "C5 the Content-Security-Policy is given a verdict", M, "verdict: \"REPORTED — NO VERDICT\" }", "verdict: csp.some((c) => c.enforced) ? VERDICT.PROVED : VERDICT.DISPROVED }", C5],
@@ -52,6 +53,20 @@ const SABOTAGES = [
   ["L23", "C1 a read bypasses the paced release", CON, "    await release(url, gapMs);\n    const send = sendFor(u.protocol);", "    const send = sendFor(u.protocol);", CON1],
   ["L24", "C1 the run goes on with more requests than the limit", BIN, "if (planned > LIMIT) { console.error(`🔴 REFUSED — REQUESTS_OUTNUMBER_THE_LIMIT: ${planned} planned against a limit of ${LIMIT}. NO REQUEST WAS MADE.`); process.exit(3); }", "", PP],
   ["L25", "C1 a limit above the owner's ceiling is taken", BIN, "LIMIT >= 1 && LIMIT <= LIVE_CHECK_CEILING", "LIMIT >= 1", PP],
+  /* RR-272: the owner's decision — the referrer rule is Mozilla HTTP Observatory's, exactly */
+  ["L26", "C5 an absent referrer policy fails (the Observatory passes it)", M, "if (values.length === 0) return { state: STATE.PASS, why:", "if (values.length === 0) return { state: STATE.FAIL, why:", C5R],
+  ["L27", "C5 origin passes as a referrer policy (the Observatory fails it)", HB, "unsafe: Object.freeze([\"origin\", \"origin-when-cross-origin\",", "unsafe: Object.freeze([\"origin-when-cross-origin\",", C5R],
+  ["L28", "C5 an unknown value passes as a referrer policy", M, "if (v === null) return { state: STATE.FAIL, why: \"invalid: no value is one the rule names\" };", "if (v === null) return { state: STATE.PASS };", C5R],
+  ["L29", "C5 the last value decides even when the rule does not name it", M, ".filter((x) => rule.private.includes(x) || rule.unsafe.includes(x)).at(-1) ?? null;", ".filter(Boolean).at(-1) ?? null;", C5R],
+  ["L30", "C5 a <meta name=\"referrer\"> is not read", M, "...(meta === null ? [] : [meta])];", "];", C5R],
+  ["L31", "C5 a meta with http-equiv and content is read for the referrer", M, "    if (attrs.has(\"http-equiv\") && attrs.has(\"content\")) continue;\n", "", C5R],
+  /* RR-272 §2: a LATE cost entry for a run whose own entry was never written */
+  ["L33", "LATE a late entry may be back-dated", RC, "  if (!(Date.parse(recordedAt) > Date.parse(runInstant))) throw new TypeError(\"lateConnectorRunEntry: recorded at or before the run — a late entry is never back-dated\");\n", "", LT],
+  ["L34", "LATE a run the ledger already covers gets a second entry", BIN, "  if (covering.length) {", "  if (false) {", LT],
+  ["L35", "LATE the entry is not marked late", RC, "    late: Object.freeze({ recordedOn: recordedAt.slice(0, 10), reason }),\n", "", LT],
+  ["L36", "LATE a late entry goes on without --confirm", BIN, "  if (!process.argv.includes(\"--confirm\")) { console.error(\"🔴 REFUSED — NO_CONFIRM: a late cost entry", "  if (false) { console.error(\"🔴 REFUSED — NO_CONFIRM: a late cost entry", LT],
+  ["L37", "LATE the requests are not the ones the run's reads recorded", BIN, "own.reduce((n, r) => n + (r.read ? 1 : 0) + (r.http ? 1 : 0), 0);", "own.reduce((n) => n + 1, 0);", LT],
+  ["L32", "C5 the first meta wins over the last", M, "&& attrs.get(\"content\")) found = attrs.get(\"content\");", "&& attrs.get(\"content\") && found === null) found = attrs.get(\"content\");", C5R],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

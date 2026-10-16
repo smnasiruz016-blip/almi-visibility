@@ -21,6 +21,9 @@ import { isGenuineDecision, refDigest } from "./scope.mjs";
 import { lookupConnector } from "./root-registry.mjs";
 import { createTenantResolver } from "./resolver.mjs";
 import { isGenuineAuthorisation, authorisationRefDigest } from "../governance/authorisation.mjs";
+import { request as httpsRequest } from "node:https";
+import { request as httpRequest } from "node:http";
+import { USER_AGENT } from "../crawl/robots.mjs";
 
 /** A connector refusal: a reason code; no host, path, payload or value. */
 export class ConnectorRefused extends Error {
@@ -72,6 +75,9 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
     credentialName,
     origins: origins ? Object.freeze([...origins]) : null,
     admits: (url) => origins === null || origins.has(originOf(url)),
+    /* F27 Amendment 3: a PUBLIC_SITE connector's one transport read (status, Location, headers, body, TLS facts), through the same paced
+     * release and the same origins */
+    ...(l.connector.kind === "PUBLIC_SITE" ? { readTransport: transportReader({ admits: (url) => origins === null || origins.has(originOf(url)), gapMs: declaredGapOf(l.connector), userAgent: USER_AGENT }) } : {}),
     /* ONE call site for the global fetch (F77's egress census counts it) — and it is reached only through the paced release (RR-265) */
     fetch: (url, init) => (origins === null || origins.has(originOf(url)) ? pacedRelease(url, declaredGapOf(l.connector)).then(() => globalThis.fetch(url, init)) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR"))),
   });
@@ -113,6 +119,42 @@ export function pacedRelease(url, gapMs = 0, { now = () => performance.now(), sl
 }
 
 /** The origin of a URL, or null when it is not one. */
+/**
+ * F27 Amendment 3 · ONE TRANSPORT READ of an address a PUBLIC_SITE connector admits — or of the http: form of one it admits (the owner's GREEN
+ * of 16 Oct 2026 names each page's http: form). Released through the same paced path, GET only, NO redirect followed, nothing retried. It
+ * answers what F27 judges: the status, the Location, the response headers (names and values), the body (at most `maxBytes`; `truncated` when
+ * cut), and for an https connection the TLS facts the platform reported — its protocol, whether it verified the certificate for the host,
+ * and the certificate's validity. The connection does not refuse an unverified certificate (rejectUnauthorized false) so that it can be
+ * RECORDED as unverified; nothing is sent on it but the one GET. A failed request is answered { error } — never retried.
+ */
+export function transportReader({ admits, gapMs, release = pacedRelease, timeoutMs = 15000, userAgent, sendFor = (protocol) => (protocol === "https:" ? httpsRequest : httpRequest) }) {
+  return async function readTransport(url, { maxBytes = 2_000_000 } = {}) {
+    let u;
+    try { u = new URL(url); } catch { throw new ConnectorRefused("NOT_AN_ADDRESS"); }
+    const httpsForm = u.protocol === "http:" ? `https:${url.slice(5)}` : url;
+    if (!["http:", "https:"].includes(u.protocol) || !admits(httpsForm)) throw new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR");
+    await release(url, gapMs);
+    const send = sendFor(u.protocol);
+    return await new Promise((resolve) => {
+      const req = send(url, { method: "GET", headers: { "User-Agent": userAgent, Accept: "text/html,*/*;q=0.5" }, timeout: timeoutMs, rejectUnauthorized: false }, (res) => {
+        const socket = res.socket ?? {};
+        const tls = u.protocol === "https:" && typeof socket.getProtocol === "function" ? (() => {
+          const cert = socket.getPeerCertificate?.() ?? {};
+          return Object.freeze({ protocol: socket.getProtocol(), authorized: socket.authorized === true, authorizationError: socket.authorizationError ? String(socket.authorizationError) : null,
+            validFrom: cert.valid_from ? new Date(cert.valid_from).toISOString() : null, validTo: cert.valid_to ? new Date(cert.valid_to).toISOString() : null });
+        })() : null;
+        const chunks = []; let size = 0, truncated = false;
+        res.on("data", (c) => { if (size < maxBytes) chunks.push(c.subarray(0, Math.max(0, maxBytes - size))); if (size + c.length > maxBytes) truncated = true; size += c.length; });
+        res.on("end", () => resolve(Object.freeze({ url, status: res.statusCode, location: res.headers.location ?? null, headers: Object.freeze({ ...res.headers }), body: Buffer.concat(chunks).toString("utf8"), truncated, tls })));
+        res.on("error", (e) => resolve(Object.freeze({ url, error: String(e?.code ?? e?.message ?? e) })));
+      });
+      req.on("timeout", () => req.destroy(new Error("TIMEOUT")));
+      req.on("error", (e) => resolve(Object.freeze({ url, error: String(e?.code ?? e?.message ?? e) })));
+      req.end();
+    });
+  };
+}
+
 export function originOf(url) {
   try { return new URL(String(url)).origin; } catch { return null; }
 }

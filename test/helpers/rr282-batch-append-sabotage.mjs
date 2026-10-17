@@ -24,7 +24,7 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 
 /* [id, limb, [[file, from, to], …], test file, named-test prefix, reason (optional)] */
-const FC = "RR-282 · ONE WRITE PER BATCH · FIRING CONTROL", GA = "RR-282 · ONE WRITE PER BATCH · THE GOVERNED APPEND";
+const FC = "RR-282 · ONE WRITE PER BATCH · FIRING CONTROL:", GA = "RR-282 · ONE WRITE PER BATCH · THE GOVERNED APPEND:";
 const SABOTAGES = [
   ["W1", "the batch lands no line at all", [[ST, "if (lines.length) { ensureDir(); appendFileSync(filePath, lines.join(\"\"), \"utf8\"); }", "if (false) { ensureDir(); appendFileSync(filePath, lines.join(\"\"), \"utf8\"); }"]], T, FC],
   ["W2", "a record that throws loses the lines decided before it", [[ST, "    try { return records.map((r) => appendIfNew(r, opts)); } finally {", "    try { return records.map((r) => appendIfNew(r, opts)); } catch (e) { pending = []; throw e; } finally {"]], T, FC],

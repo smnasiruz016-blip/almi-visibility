@@ -56,6 +56,8 @@ import { markReadFrom } from "./provenance.mjs";
 export const STORE_INTERFACE = Object.freeze([
   "appendWithoutDedupe",
   "appendIfNew",
+  /* RR-282: appendIfNew over a batch, decided record by record, landed in one write — an append, never an update */
+  "appendAllIfNew",
   "appendAllWithoutDedupe",
   "readAll",
   "count",
@@ -219,7 +221,8 @@ export function createJsonlStore(filePath) {
     // make the file unparseable line-by-line and a partial write unrecoverable.
     const line = JSON.stringify(record);
     if (line.includes("\n")) throw new Error("appendWithoutDedupe: a serialised record must not contain a newline");
-    if (pending) pending.push(line + "\n"); else appendFileSync(filePath, line + "\n", "utf8");
+    if (pending) pending.push(line + "\n");
+    else appendFileSync(filePath, line + "\n", "utf8");
     if (index && dedupeKeyOf(record) !== null && !index.has(indexKey(record))) index.set(indexKey(record), record);
     return record;
   }

@@ -696,6 +696,24 @@ export const F46_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing control: a claim whose words wholly overlap its source, with no person's verdict recorded, must be NEEDS A PERSON. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "738f219d567ff24bf20cd7fe600f383ae5cde44636812e6e2429a1956f0fc83a",
 });
+/* 🔴 F46 · ACCEPTANCE AMENDMENT 1, FROZEN 17 Oct 2026 (_handoffs a90fbf4, RR-283 item 1), committed ALONE: owner decision 3 ("NO HUMAN
+ * CHECKER", rule 3f) — FIT stands on the verbatim official text: CONFIRMED only from a matched word-for-word quotation of the official
+ * source, REFUTED only by a recorded CONFLICT, otherwise CHECKED_NOT_FOUND naming what was not found, the pages checked and the date; who
+ * checked is never a condition. INPUT, C3 and C3's FAILURE and EVIDENCE lines change; FEATURE, C1, C2, C4 and C5 are the original's byte for
+ * byte. It amends the original, pinned as F46_ORIGINAL. Pinned from the committed blob by parseContract (file ff21d5ee…, contract e7d8403b…). */
+export const F46_AMENDMENT_1 = Object.freeze({
+  featureId: "F46",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F46_ACCEPTANCE_AMENDMENT_1_2026-10-17.md", commit: "a90fbf44281642a3716dbd9243ee1a43a825e6c9", sha256: "ff21d5ee34e513978c0cb92ac79b299a964f4a2ee092366623fcdafaebe93ce9" }),
+  authority: Object.freeze({ propositionId: "F46_ACCEPTANCE_AMENDMENT_1", scope: Object.freeze(["ALMIVISIBILITY", "F46"]) }),
+  frozenOn: "2026-10-17",
+  feature: "F46 · Source integrity and citation audit",
+  input: "For each declared client: every fact in its registry with its claim (subject, predicate, qualifier, scope), its recorded source and source tier, its recorded link, quotation and fingerprint check outcomes with their dates, and any recorded verification verdict with its checker, reported as recorded — driven over the real recorded registry, count-only, with nothing fetched.",
+  expected: "[C1 · FIVE SEPARATE CHECKS] Every fact carries exactly one result for each of LINK, QUOTATION, FINGERPRINT, AUTHORITY and FIT, each counted in its own population with its own bound, and no score or combined pass is produced.\n[C2 · A WORKING LINK IS NOT A CORRECT CITATION] A fact is PROVED only when every applicable check passed and FIT is CONFIRMED; any recorded failure makes it DISPROVED; everything else — including three passing checks with FIT unmeasured — is COULD-NOT-PROVE.\n[C3 · FIT STANDS ON THE VERBATIM OFFICIAL TEXT] FIT is CONFIRMED only when the record holds a word-for-word quotation of its official source and the recorded quote match of it passed; it is REFUTED only when the recorded verdict is CONFLICT (the official text states otherwise); otherwise it is CHECKED_NOT_FOUND, naming what was not found, the page(s) checked and the date. No named person is required, and who checked is never a condition; a recorded verdict is reported beside FIT as recorded. Word overlap or similarity never decides FIT, and an element the official text does not state is CHECKED_NOT_FOUND, never REFUTED and never inferred.\n[C4 · AUTHORITY] A source is ADMISSIBLE only when its recorded tier is primary official, or secondary labelled SECONDARY VERIFIED, with a recorded verification date; any other tier is NOT ADMISSIBLE; an unrecorded tier or date is NOT MEASURED.\n[C5 · RECORDED DATA ONLY] Every outcome comes from the recorded registry, reported with its recorded date; nothing is fetched, re-checked or written; the gate for a fresh check is named; the output is count-only with its population and bound.",
+  failure: "[C1] A check result is missing, doubled or merged with another, or a combined score or pass appears. [C2] A fact reads PROVED with FIT not confirmed or any applicable check not passed, or a recorded failure does not make it DISPROVED. [C3] FIT is decided by word overlap, resemblance or similarity, or by who checked it; FIT is CONFIRMED without a matched word-for-word quotation of the official source; an element the official text does not state reads REFUTED or CONFIRMED; or a CHECKED_NOT_FOUND names no missing thing, no page checked or no date. [C4] A tier outside the admissible ones reads ADMISSIBLE, or an unrecorded tier or date reads either way. [C5] Anything is fetched, re-checked or written, a recorded outcome is presented as current, or a figure is printed without its population and bound. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing controls: a claim whose words wholly overlap its source, with no matched word-for-word quotation, must be CHECKED_NOT_FOUND; a matched word-for-word quotation with no checker at all must be CONFIRMED. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "e7d8403b621b8344148ebf3b5796dc2e072e9d486499e513a73095268466ad24",
+  amends: Object.freeze({ ruling: F46_ORIGINAL.ruling, contractSha256: F46_ORIGINAL.contractSha256 }),
+});
 /* 🔴 F47 · FROZEN 30 Sep 2026 (_handoffs ccd4c1e, RR-96 §5), committed ALONE before any F47 code was written. Pinned from the committed
  * blob by parseContract (derivation re-run with a firing control inside the contract: "PUBLISHED-BY" → "PUBLISHED-VIA"). */
 export const F47_ORIGINAL = Object.freeze({
@@ -1667,7 +1685,7 @@ export const ACCEPTANCES = Object.freeze({
   F43: F43_ORIGINAL,
   F44: F44_AMENDMENT_2,
   F45: F45_ORIGINAL,
-  F46: F46_ORIGINAL,
+  F46: F46_AMENDMENT_1,
   F47: F47_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,

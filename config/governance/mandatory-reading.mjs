@@ -449,6 +449,8 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F27_ACCEPTANCE_AMENDMENT_3_2026-10-16.md", loader: "F-board acceptance F27 (Amendment 3)" }),
   /* 16 Oct 2026, the migration at _handoffs df82cbe (F22 Amendment 1, the owner's overnight command) */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F22_ACCEPTANCE_AMENDMENT_1_2026-10-16.md", loader: "F-board acceptance F22 (Amendment 1)" }),
+  /* 17 Oct 2026, the migration at _handoffs 4b5b01c (RR-283: F46 Amendment 1, owner decision 3) */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F46_ACCEPTANCE_AMENDMENT_1_2026-10-17.md", loader: "F-board acceptance F46 (Amendment 1)" }),
   /* RR-263 (14 Oct 2026), second migration at _handoffs eeb7245: the 3 CURRENT records of the owner's principle — its command, his
    * decision in his own words, and F23's Amendment 2. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-14_RR-263_OWNER_PRINCIPLE.md", loader: "authority register (CURRENT record)" }),

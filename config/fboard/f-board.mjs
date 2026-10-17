@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3592,6 +3592,51 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f54-sabotage-2026-10-17T2039.txt (sha256 68240825…): 11 of 11 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
         historicalReuse: "no historical row maps to F54 (crosswalk NEW). Reused read-only: the page laws of src/page/joined-page.mjs (sentencesOf, TO_THE_POINT_MAX_WORDS, RECORD_LABELS, faqInPage) — no new page rule is made",
         declaredLimit: "an audit of the page as built — not a claim about ranking or citation by any AI engine; clarity is the engine's own answer-line law; entity consistency compares the structured data with the visible sourced lines and acronyms, not a knowledge graph (that is F49)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F42 · Draft repair assistant. RR-283 item 6: its first acceptance, the owner-approved draft (owner decision 1 of 17 Oct 2026), frozen
+   * ALONE (_handoffs 1fcee4a) before any F42 code; then built and proved on the RR-283 branch. VERIFIED stands only with the command's final
+   * full suite and CI green (owner decision 6). */
+  F42: Object.freeze({
+    featureId: "F42",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-17", ruling: F42_ORIGINAL.ruling, contractSha256: F42_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F42",
+        on: "2026-10-17",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F42_ORIGINAL.ruling.sha256, contract: F42_ORIGINAL.contractSha256 }),
+        branch: "rr283-decision3",
+        baseSha: "b398f8cef99a2ca23a4eb17c1aedf2aac060502b",
+        baseCiRun: "39032750196",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-17_RR-283.md", commit: "bddad4f659b3f2383bb418864bc73f6d6c08c3cd", sha256: "4d129142633d12524cc345bf317b5a9363290f4d818b69ce8c94684bffd41ac2" }),
+      }),
+      /* RR-283 item 6: F42 PROVED — every clause of its frozen acceptance on the final code, over real drafts of the batch as built */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F42",
+        population: "REAL",
+        on: "2026-10-17",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F42_ORIGINAL.ruling.sha256, contract: F42_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED" }),
+        populations: "REAL (count-only): the 12 published drafts as built (each page's latest built record) — the gate \"to the point\" (the builder's own law) PASS 12, repairs needed 0. Firing controls on a real draft holding a general view and a product card, made to fail the gate: one declared filler phrase → REPAIRED in round 1, every claim, quotation, source link and evidence state byte-equal (C1); three → PARKED after round 2, the repair asked exactly twice (C2), naming the gate and the remaining filler phrase, no approval possible (C4); a second sentence planted in a claim → round 1 removes nothing → stops after round 1 (C3); a proposal editing a claim, or the product card, is refused and changes nothing (C1, C5)",
+        proofs: "test/f42-draft-repair.test.mjs — C1 to C5 on real drafts of the batch, REAL over the 12 published drafts, no product word, no network call path",
+        sabotage: "runs/audit/f42-sabotage-2026-10-17T2102.txt (sha256 868d2687…): 7 of 7 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "no historical row maps to F42 (crosswalk NEW). Reused read-only: the builder's to-the-point law (src/page/joined-page.mjs joinedChecks) and F40's MAX_REPAIR_ROUNDS; F40 still repairs nothing",
+        declaredLimit: "the repair is proposed by the agent in its own session and only judged here; the gate is the one law the approved text names — a repair can never fix a claim's own words, so a claim that fails the law is parked, by design",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

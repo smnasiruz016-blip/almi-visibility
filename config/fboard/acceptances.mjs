@@ -696,6 +696,20 @@ export const F46_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing control: a claim whose words wholly overlap its source, with no person's verdict recorded, must be NEEDS A PERSON. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "738f219d567ff24bf20cd7fe600f383ae5cde44636812e6e2429a1956f0fc83a",
 });
+/* 🔴 F42 · FROZEN 17 Oct 2026 (_handoffs 1fcee4a, RR-283 item 6), committed ALONE before any F42 code: the owner-approved draft (owner decision
+ * 1 of 17 Oct 2026) carried under the four headings. Pinned from the committed blob by parseContract (file ba3aad4e…, contract 928ad5fd…). */
+export const F42_ORIGINAL = Object.freeze({
+  featureId: "F42",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F42_ACCEPTANCE_2026-10-17.md", commit: "1fcee4a105b86ad790ebf112e65a5c68d3cc2cc7", sha256: "ba3aad4e9ff2ce06451643cdad97b95cc570c4fcd5512867682127f9c38508a7" }),
+  authority: Object.freeze({ propositionId: "F42_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F42"]) }),
+  frozenOn: "2026-10-17",
+  feature: "F42 · Draft repair assistant",
+  input: "For one declared product: a draft of its research batch as built (each page's latest built record — its answer items with their claims, quotations, source links and evidence states, its owner-approved product cards and its general views), the page law it is judged by (the engine's own \"to the point\" law, src/page/joined-page.mjs, with the client's declared filler phrases), and a repair proposed for it in the existing agent session; as firing controls only, real drafts made to fail that gate. Nothing fetched; no new fact written; nothing published.",
+  expected: "[C1 · CLAIMS AND SOURCES KEPT] A repair changes no claim text, quotation, source link or evidence state.\n[C2 · TWO ROUNDS AT MOST] No draft gets a third round.\n[C3 · NO PROGRESS STOPS EARLY] A round that removes no named failure ends the repair.\n[C4 · STILL FAILING IS PARKED] A draft still failing is PARKED with its exact gate and reason, and never offered for approval.\n[C5 · OWNER BOUNDARY] A repair never touches an owner-approved statement.",
+  failure: "[C1] A repaired draft differs from its draft in any claim's text, quotation, source link or evidence state. [C2] A third repair round runs, or the repair is asked for a third time. [C3] A round that removes no named failure is followed by another round. [C4] A draft still failing is not PARKED, its record names no gate or no reason, or an approval record can be made for it. [C5] An owner-approved statement differs after a repair. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a real draft of the batch made to fail one gate (e.g. \"to the point\"); after repair, every claim, quotation and link is byte-equal to before. [C2] PROOF: a real draft that cannot be repaired stops after round 2. [C3] PROOF: a real draft whose round 1 fixes nothing stops after round 1. [C4] PROOF: the parked record of C2's draft names its gate; no approval record can be made for it. [C5] PROOF: a real draft holding a product card; the card is byte-equal after repair. Proofs are real runs over real records (fixtures may be added only as firing controls). One sabotage per clause on the final code, each turning a named test red by assertion for its own reason and restored by raw-byte hash with the production trail untouched; then the full suite and CI on the final head. F42 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "928ad5fd7a5ed4c72212dc4828d0868a03f2f4abb8f3ce145f7df26d2dedd4bd",
+});
 /* 🔴 F54 · FROZEN 17 Oct 2026 (_handoffs 4b5b01c, RR-283 item 2), committed ALONE before any F54 code: the owner-approved draft (owner decision
  * 1 of 17 Oct 2026) carried under the four headings. Pinned from the committed blob by parseContract (file c62ec07f…, contract 0b722ff3…). */
 export const F54_ORIGINAL = Object.freeze({
@@ -1701,6 +1715,7 @@ export const ACCEPTANCES = Object.freeze({
   F45: F45_ORIGINAL,
   F46: F46_AMENDMENT_1,
   F54: F54_ORIGINAL,
+  F42: F42_ORIGINAL,
   F47: F47_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,

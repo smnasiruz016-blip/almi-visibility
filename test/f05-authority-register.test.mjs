@@ -117,9 +117,11 @@ test("§7 REAL — every ZERO in the census has a LIVE POSITIVE CONTROL over the
   const c = census(AUTHORITY_CORPUS, DAY);
   /* SUPERSEDED → a newer clone of a real record makes exactly ONE MORE record SUPERSEDED, measured from the real
    * baseline on the same day. (It was "0 → 1" until the real corpus held a real supersession — 23 Sep, F07 migration.) */
-  const base = census(AUTHORITY_CORPUS, "2026-09-24").counts.SUPERSEDED;
-  const s = census([...AUTHORITY_CORPUS, clone({ issuedAt: "2026-09-24", effectiveFrom: "2026-09-24", contentHash: H("newer") })], "2026-09-24");
-  assert.equal(c.counts.SUPERSEDED, base, "the real supersession count moved between the measuring day and the next");
+  /* RR-283: measured on the measuring day itself — the real corpus now holds a second real supersession (17 Oct 2026: F87's acceptance of
+   * 1 Oct superseded by the owner-approved one of 17 Oct), so the 24 Sep count is no longer the measuring day's */
+  const base = c.counts.SUPERSEDED;
+  assert.equal(base, 2, "the real supersession count moved — re-measure");
+  const s = census([...AUTHORITY_CORPUS, clone({ issuedAt: "2026-09-24", effectiveFrom: "2026-09-24", contentHash: H("newer") })], DAY);
   assert.equal(s.counts.SUPERSEDED, base + 1);
   // OPEN_CONFLICT 0 → a same-day clone that disagrees makes both OPEN_CONFLICT
   const o = census([...AUTHORITY_CORPUS, clone({ contentHash: H("disagrees") })], DAY);

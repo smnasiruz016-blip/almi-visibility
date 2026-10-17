@@ -1566,7 +1566,7 @@ export const DECLARED = Object.freeze({
   F44: Object.freeze({
     featureId: "F44",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F44_ORIGINAL.ruling, contractSha256: F44_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1623,6 +1623,25 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F44_AMENDMENT_2.ruling, contractSha256: F44_AMENDMENT_2.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-15_RR-268_SOURCE_READS_AND_OWN_FACT_CHECK.md", commit: "0a8a0a966227bb3d1aa52881b1d04eea9fbcbe05", sha256: "e357db1a9fcc1432723b4af53c369d97196955833a4f1535c5cf41e1953c5737" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-15_RR-268.md", commit: "0a8a0a966227bb3d1aa52881b1d04eea9fbcbe05", sha256: "94e8eaa98a023c7069b01d219a36018785bc9a5cdfe70ef8b289818a873d24e8" }),
+      }),
+      /* RR-277 (17 Oct 2026): F44 PROVED under its Acceptance Amendment 2 — C8 by a real run of the browser route the engine starts on the
+       * client's computer (owner decision _handoffs d6d43af), C11 by a real CHANGED case (a dated 2020-21 fee snapshot against today's page). */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F44",
+        population: "REAL",
+        on: "2026-10-17",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F44_ACCEPTANCE_AMENDMENT_2)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F44_AMENDMENT_2.ruling.sha256, contract: F44_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED", C10: "PROVED", C11: "PROVED", C12: "PROVED" }),
+        populations: "REAL, the declared batch (counts only). C8: the live run of 17 Oct 2026 (a read list of 8 sources on 8 hosts) — the engine's plain request was refused or found the robots file unreadable on 7; the browser route (a visible window, a fresh separate profile, 5 s per host, cap 40, 12 reads with robots files) READ 4 of them, every recorded quotation of the 3 regulator pages among them found word for word, and stopped honestly on 3 (one a bot-check; two robots files the window could not read either — fail closed), each BLOCKED with the line telling the client to save the page; the eighth was read by the engine itself. C11: 29 rechecks — CURRENT 15, CHANGED 4, BLOCKED 10, REJECTED 0; the dated snapshot of an old fee list (OUT OF DATE, owner-supplied, never publishable) reads CHANGED against today's page, its quotation gone; the run's cost entry on time (23 requests: engine 11, browser route 12).",
+        proofs: "test/f44-source-reader.test.mjs: the C7–C12 firing controls, the two RR-277 browser-route firing controls (a stop per host, the route's own robots read failing closed, a consent wall, a footer mark beside a whole page, the window's signals), the production path with a private root, the snapshot CHANGED and its refusals, and the REAL test",
+        sabotage: "runs/audit/f44-source-reader-sabotage-2026-10-17T0342.txt (sha256 4ab2312a…): 73 of 73 proved, residue 0, production trail unchanged, on the final code (the window launched by the opened connector, F03); with it the connector module's limbs f03 F3-S5 F3-S11, f04 F4-S10, f19-generic-crawl 8/8 and f27-live L22 L23, each proved (FAST MODE F8)",
+        declaredLimit: "3 fee facts read CHANGED because their recorded quotations carry a capture's table separators the page text does not — the fees themselves are on today's page; one page was flagged for rebuild by that, and nothing was rebuilt",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

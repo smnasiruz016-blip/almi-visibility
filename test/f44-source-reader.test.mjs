@@ -19,7 +19,8 @@ import { pathToFileURL } from "node:url";
 
 import { engineRead, browserRead, readSource, extractFacts, recheckFacts, recheckCounts, readRecord, recheckRecord, robotsOn, quotationIn, isOneSentence, dueOn,
   ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD, extractionRecord, EXTRACTION, EXTRACTION_RECORD,
-  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE } from "../src/facts/source-reader.mjs";
+  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE, hostOf, ROUTE_STOPS, SAVE_THE_PAGE, BROWSER_WALL_BELOW } from "../src/facts/source-reader.mjs";
+import { browserSignal, robotsVerdict, openBrowserRoute, WALL_COVERS_BELOW } from "../src/facts/browser-route.mjs";
 import { pdfText, PDF_TEXT } from "../src/facts/pdf-text.mjs";
 import { deflateSync } from "node:zlib";
 import { batchFacts, quotationsOf, QUOTATION_MIN_CHARS } from "../src/facts/batch-facts.mjs";
@@ -187,10 +188,11 @@ test("C8 · FIRING CONTROL: a refusal, a challenge or an empty page goes to the 
   const st2 = fresh(); const before = reads.length;
   const stopped = await ask(route({ read: async () => ({ text: "<p>Please solve this captcha</p>" }) }), st2);
   const after = await ask(route(), st2);
-  assert.deepEqual([stopped.reason, st2.stopped, after.reason, reads.length - before], [BLOCK.CAPTCHA, BLOCK.CAPTCHA, BLOCK.ROUTE_STOPPED, 0], "a captcha did not stop the route");
+  assert.deepEqual([stopped.reason, st2.stoppedHosts.get(hostOf(TOWN.url)), after.reason, reads.length - before], [BLOCK.CAPTCHA, BLOCK.CAPTCHA, BLOCK.ROUTE_STOPPED, 0], "a captcha did not stop the route for its host");
   assert.equal((await ask(route({ read: async () => ({ text: "x", signal: BLOCK.LOGIN_WALL }) }))).reason, BLOCK.LOGIN_WALL);
   /* only a refusal, a challenge or an empty page falls back: a page that is not found never does */
-  assert.deepEqual(FALLBACK_ON, [BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY]);
+  /* RR-277: a robots file the engine could not read falls back too — the route then reads the robots file itself (see C8 · RR-277) */
+  assert.deepEqual(FALLBACK_ON, [BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY, BLOCK.ROBOTS_UNREADABLE]);
   const gone = network({});
   const seen = reads.length;
   assert.equal((await readSource(TOWN.url, { fetchImpl: gone.fetchImpl, robots: robotsOn(gone.fetchImpl), route: route(), state: fresh(), on: ON, pace: async () => {}, hosts: new Map() })).reason, BLOCK.NOT_FOUND);
@@ -412,6 +414,13 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     writeFileSync(join(b, "fact-proposals-2026-09-10-2.json"), JSON.stringify({ route: "CLIENT_SUBSCRIPTION_SESSION", proposals: [{ proposalId: "p4", fact: null, need: "n1", source: url, sentence: "The fee is 30,000 for the test.", quotation: "The fee is 30,000 for the test." }] }));
     const x2 = run("fixture-tests", "fixture-test-facts", "refuse", "--extract=fact-proposals-2026-09-10-2.json");
     assert.deepEqual([x2.status, /proposals {8}1: REJECTED 1 · rejected by reason: SOURCE_IS_OUT_OF_DATE 1/.test(x2.stdout)], [0, true], x2.stdout + x2.stderr);
+    /* RR-277 · C11: a dated historical snapshot — the client's out-of-date file's one quotation — rechecked against the page today: CHANGED,
+     * flagging no page; a snapshot whose quotation the stored file does not hold is refused, named; the browser route only with --live */
+    writeFileSync(join(b, "historical-snapshots-2026-09-12.json"), JSON.stringify({ snapshots: [
+      { snapshotId: "old-fee", source: url, file: "client-files/old.pdf", quotation: "The fee is 30,000 for the test.", period: "last year", suppliedOn: "2026-09-10", state: "OUT_OF_DATE", publishable: false },
+      { snapshotId: "not-in-the-file", source: url, file: "client-files/old.pdf", quotation: "The fee is 99,000 for the test.", period: "last year", suppliedOn: "2026-09-10", state: "OUT_OF_DATE", publishable: false },
+    ] }));
+    assert.equal(run("fixture-tests", "fixture-test-facts", "refuse", "--browser-route").status, 2, "the browser route was taken without a live read");
     /* RR-269 §2 · --read-list: only the listed sources are read, live, through the paced path — a PDF by the PDF reader */
     writeFileSync(join(b, "read-list-2026-09-10.json"), JSON.stringify({ sources: [url, "https://tests.invalid/rules.pdf"] }));
     writeFileSync(join(dir, "rules.pdf"), makePdf({ lines: ["Each sub-test is scored from 0 to 500.", ["A score of", -300, "350 is a grade B."], ...LONG] }));
@@ -422,12 +431,76 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     assert.match(rl.stdout, /read list {8}read-list-2026-09-10.json: 2 source\(s\) named — no other source is read · facts citing them 2/);
     assert.match(rl.stdout, /requests {9}3 released through the paced path \(robots 1 · sources 2\)/);
     assert.match(rl.stdout, /PDF documents {4}1: text read 1 · NOT_A_TEXT_DOCUMENT 0/);
+    assert.match(rl.stdout, /fallback order {3}1 the engine's paced request → 2 the browser route OFF \(start the run with --browser-route to use it\) → 3 the client's own file/);
+    assert.match(rl.stdout, /snapshots {8}2 historical snapshot\(s\) filed \(OUT OF DATE, never publishable\): rechecked 1 · refused 1 \(not-in-the-file:/);
+    const snap = rowsIn(join(b, "fact-rechecks.jsonl")).filter((c) => c.factId === "snapshot:old-fee").at(-1);
+    assert.deepEqual([snap?.state, snap?.missing, snap?.rebuild, snap?.readOnBefore], [RECHECK.CHANGED, 1, [], "2026-09-10"], "the old snapshot did not read CHANGED against today's page, or flagged a page");
+    assert.equal(rowsIn(join(b, "fact-rechecks.jsonl")).some((c) => c.factId === "snapshot:not-in-the-file"), false, "a snapshot its file does not hold was rechecked");
     const pdfStored = rowsIn(join(pb, "source-reads.jsonl")).filter((r) => r.url === "https://tests.invalid/rules.pdf").at(-1);
     assert.deepEqual([pdfStored.state, pdfStored.document, quotationIn("A score of 350 is a grade B.", pdfStored.text), /%PDF/.test(pdfStored.text)], [READ_STATE.READ, "PDF", true, false], "the PDF's text was not kept, or its bytes were");
     /* RR-274: after every mode, the public batch holds no page text at all */
     assert.equal(rowsIn(join(b, "source-reads.jsonl")).filter((r) => typeof r.text === "string").length, 0, "a page text reached the public batch");
   } finally { W.cleanup(); rmSync(dir, { recursive: true, force: true }); rmSync(P, { recursive: true, force: true }); }
   assert.equal(execFileSync("git", ["-C", REPO, "status", "--porcelain"], { encoding: "utf8" }), before, "the entry point wrote into the repository");
+});
+
+/* ================= RR-277 · the browser route the engine starts on the client's computer ================= */
+test("C8 · RR-277 · FIRING CONTROL: a stop holds for its host only; the route reads the host's robots file itself and obeys it (fail closed), paced and within its cap; a robots file the engine could not read falls back; a consent wall stops; a footer's captcha mark beside a whole page does not; the client is told to save the page", async () => {
+  const OTHER = { url: "https://other.invalid/rules", html: TOWN.html };
+  const reads = [], robotsAsked = [];
+  const route = (over = {}) => ({ connected: true, startedByClient: true, cap: 10, robots: async (u) => { robotsAsked.push(u); return { state: "ALLOWED" }; }, read: async (u) => { reads.push(u); return { text: TOWN.html }; }, ...over });
+  const go = (url, r, st, paced = []) => browserRead(url, { route: r, state: st, on: ON, pace: async (u, gap) => { paced.push([new URL(u).pathname, gap]); }, hosts: new Map() });
+  /* a captcha stops ITS host — another host is still read */
+  const st = { engineReads: 0, reads: 0 };
+  const cap = await go(TOWN.url, route({ read: async () => ({ text: "x", signal: BLOCK.CAPTCHA }) }), st);
+  const again = await go(TOWN.url, route(), st), other = await go(OTHER.url, route(), st);
+  assert.deepEqual([cap.reason, again.reason, other.state], [BLOCK.CAPTCHA, BLOCK.ROUTE_STOPPED, READ_STATE.READ], "a stop did not hold for its host, or spread to another");
+  assert.ok(cap.detail.includes(SAVE_THE_PAGE) && again.detail.includes(SAVE_THE_PAGE), "the client is not told to save the page into the client-file folder");
+  for (const signal of ROUTE_STOPS) assert.equal((await go(TOWN.url, route({ read: async () => ({ text: "x", signal }) }), { engineReads: 0, reads: 0 })).reason, signal, `${signal} did not stop the route`);
+  assert.deepEqual(ROUTE_STOPS, [BLOCK.CAPTCHA, BLOCK.CHALLENGE, BLOCK.LOGIN_WALL, BLOCK.CONSENT_WALL]);
+  /* the route's own robots read: a disallow is never read past, an unreadable robots file fails closed — no page read either way */
+  const before = reads.length;
+  assert.equal((await go(TOWN.url, route({ robots: async () => ({ state: "DISALLOWED", reason: "x" }) }), { engineReads: 0, reads: 0 })).reason, BLOCK.ROBOTS_DISALLOWED);
+  assert.equal((await go(TOWN.url, route({ robots: async () => ({ state: "UNKNOWN", reason: "x" }) }), { engineReads: 0, reads: 0 })).reason, BLOCK.ROBOTS_UNREADABLE);
+  assert.equal(reads.length, before, "a page was read past its robots file");
+  /* the robots read and the page read are each paced at the browser gap, and both count against the cap */
+  const paced = [], st3 = { engineReads: 0, reads: 0 };
+  await go(TOWN.url, route({ cap: 2 }), st3, paced);
+  assert.deepEqual([paced.map(([, g]) => g), paced.map(([p]) => p).includes("/robots.txt"), st3.reads], [[BROWSER_GAP_MS, BROWSER_GAP_MS], true, 2], "a read was not paced, or the robots read did not count");
+  assert.equal((await go(OTHER.url, route({ cap: 2 }), st3)).reason, BLOCK.ROUTE_CAP, "the robots read did not count against the cap");
+  /* a footer's mark beside a whole page is not a wall; the same mark on a short page is */
+  const longPage = "Rules of the scheme. ".repeat(120) + " This site is protected by reCAPTCHA.";
+  assert.equal((await go(TOWN.url, route({ read: async () => ({ text: longPage }) }), { engineReads: 0, reads: 0 })).state, READ_STATE.READ, "a footer's captcha mark stopped a whole page");
+  assert.equal((await go(TOWN.url, route({ read: async () => ({ text: "Please solve this captcha to continue." }) }), { engineReads: 0, reads: 0 })).reason, BLOCK.CAPTCHA);
+  assert.ok(longPage.length > BROWSER_WALL_BELOW && BROWSER_WALL_BELOW === WALL_COVERS_BELOW);
+  /* the window landing on another host is not the page */
+  assert.equal((await go(TOWN.url, route({ read: async () => ({ text: TOWN.html, landedUrl: "https://elsewhere.invalid/" }) }), { engineReads: 0, reads: 0 })).reason, BLOCK.OFF_HOST);
+  /* the engine's plain request finds the robots file unreadable (refused) → the route is asked, and reads the robots file itself */
+  const blockedRobots = network({ "https://tests.invalid/robots.txt": { status: 403, body: "no" }, [LANG.url]: { body: LANG.html } });
+  const fb = await readSource(LANG.url, { fetchImpl: blockedRobots.fetchImpl, robots: robotsOn(blockedRobots.fetchImpl), route: route(), state: fresh(), on: ON, pace: async () => {}, hosts: new Map() });
+  assert.deepEqual([fb.state, fb.route, fb.engineBlocked, robotsAsked.includes(LANG.url)], [READ_STATE.READ, ROUTE.BROWSER, BLOCK.ROBOTS_UNREADABLE, true], "a robots file the engine could not read did not go to the route's own robots read");
+  /* CONTROL: without a route it stays BLOCKED with its reason */
+  assert.equal((await readSource(LANG.url, { fetchImpl: blockedRobots.fetchImpl, robots: robotsOn(blockedRobots.fetchImpl), route: null, state: fresh(), on: ON, pace: async () => {}, hosts: new Map() })).reason, BLOCK.NO_ROUTE);
+});
+
+test("C8 · RR-277 · THE WINDOW'S SIGNALS AND ROBOTS VERDICT (pure): a captcha, a bot-check, a login wall and a consent wall are named only when they ARE the page; a robots file disallows, allows or fails closed; the route opens only when the client starts it", async () => {
+  assert.equal(browserSignal({ html: '<div class="g-recaptcha"></div>', text: "Please confirm" }), BLOCK.CAPTCHA);
+  assert.equal(browserSignal({ html: "<title>Just a moment...</title>", text: "Checking your browser" }), BLOCK.CHALLENGE);
+  assert.equal(browserSignal({ html: '<input type="password">', text: "Sign in" }), BLOCK.LOGIN_WALL);
+  assert.equal(browserSignal({ html: "", text: "Rules", landedUrl: "https://x.invalid/account/login" }), BLOCK.LOGIN_WALL);
+  assert.equal(browserSignal({ html: "", text: "We use cookies. Accept all cookies to continue." }), BLOCK.CONSENT_WALL);
+  const page = "The scheme's rules, in full. ".repeat(80);
+  for (const [html, text] of [['<div class="g-recaptcha"></div>', page], ['<input type="password">', page], ["", page + " We use cookies."]]) assert.equal(browserSignal({ html, text }), null, "a mark beside a whole page was named a wall");
+  assert.deepEqual(robotsVerdict({ status: 200, body: "User-agent: *\nDisallow: /rules\n", url: "https://x.invalid/rules" }).state, "DISALLOWED");
+  assert.deepEqual(robotsVerdict({ status: 200, body: "User-agent: *\nAllow: /\n", url: "https://x.invalid/rules" }).state, "ALLOWED");
+  assert.deepEqual(robotsVerdict({ status: 404, body: "", url: "https://x.invalid/rules" }).state, "ALLOWED");
+  for (const [status, body] of [[403, "no"], [200, "<html><body>Just a moment...</body></html>"], [null, null]]) assert.equal(robotsVerdict({ status, body, url: "https://x.invalid/rules" }).state, "UNKNOWN", `${status} did not fail closed`);
+  let loaded = 0;
+  await assert.rejects(openBrowserRoute({ cap: 5, startedByClient: false, loadPlaywright: async () => { loaded += 1; return {}; } }), /only when the client starts it/);
+  assert.equal(loaded, 0, "a browser was loaded for a route the client did not start");
+  /* F03: the window is launched only by an opened connector — never by the route itself */
+  await assert.rejects(openBrowserRoute({ cap: 5, startedByClient: true, loadPlaywright: async () => { loaded += 1; return {}; } }), /opened connector's launchBrowser/);
+  assert.equal(loaded, 0, "a browser was loaded without an opened connector");
 });
 
 /* ================= RR-274 · the page texts kept privately ================= */
@@ -461,7 +534,15 @@ test("REAL · the declared batch's stored recheck: every fact its pages use has 
   const checks = rowsIn(join(dir, "fact-rechecks.jsonl")), reads = withPrivateTexts(publicReads, existsSync(privPath) ? rowsIn(privPath) : [], { privateRoot: priv.state });
   const latest = [...new Map(checks.map((c) => [c.factId, c])).values()];
   assert.ok(latest.length > 0 && latest.every((c) => Object.values(RECHECK).includes(c.state)), "a fact has no state");
-  assert.ok(latest.filter((c) => c.state === RECHECK.CHANGED).every((c) => c.rebuild.length === c.pages.length && c.pages.length > 0), "a CHANGED fact flags no page");
+  /* a historical snapshot (RR-277) is used by no page: CHANGED, it flags nothing; every other CHANGED fact flags each page that uses it */
+  const isSnap = (c) => String(c.factId).startsWith("snapshot:");
+  assert.ok(latest.filter((c) => c.state === RECHECK.CHANGED && !isSnap(c)).every((c) => c.rebuild.length === c.pages.length && c.pages.length > 0), "a CHANGED fact flags no page");
+  assert.ok(latest.filter(isSnap).every((c) => c.pages.length === 0 && c.rebuild.length === 0), "a snapshot flagged a page");
+  /* RR-277 · C11 real: the dated 2020-21 fee snapshot reads CHANGED against the page today; C8 real: the browser route READ sources the
+   * engine was refused, and stopped on others, BLOCKED with the line telling the client to save the page */
+  assert.equal(latest.find((c) => c.factId === "snapshot:bc-pk-ielts-fee-2020-21")?.state, RECHECK.CHANGED, "C11: no real CHANGED case is stored");
+  const routeReads = reads.filter((r) => r.readOn === "2026-10-17" && r.route === ROUTE.BROWSER);
+  assert.ok(routeReads.filter((r) => r.state === READ_STATE.READ).length >= 1 && routeReads.every((r) => r.state === READ_STATE.READ ? r.engineBlocked : /save it as a PDF/.test(r.detail ?? "")), "C8: no real browser-route read, or a stop without the client's line");
   assert.ok(reads.filter((r) => r.state === READ_STATE.READ).every((r) => r.sha256 === createHash("sha256").update(r.text).digest("hex") && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn)), "a stored read lost its text, hash or date");
 });
 

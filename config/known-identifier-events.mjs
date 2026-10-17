@@ -23,4 +23,16 @@ export const KNOWN_IDENTIFIER_EVENTS = Object.freeze([
     evidenceSha256: "f41d9df0ff16ab9f972f3e0fc7865082cc8f103f750235fcc958ffa11d20c44c",
     ownerRatification: "RATIFIED 2026-10-12 — the owner, RR-252 answer 1 (keep it; one line, one declared exception, no reset): _handoffs 38d6e9182e1cc9c5b09a4c8109f27e6300bd6c4a AlmiVisibility_OWNER_DECISION_2026-10-12_RR-252_MERGE_ANSWERS.md",
   }),
+  Object.freeze({
+    eventId: "c087af48e3cfe1d383c544fe12a2f380",
+    eventType: "AUTHORITY_RESOLUTION",
+    trailLineWhenDeclared: 9077,
+    lineSha256: "5e6b84409d72f48a6cbf733e3d7cfb826c28be6d82a21edca2423d1099a5c5fa",
+    field: "authorityRef.propositionId",
+    cause: "RR-283: the authority migration admitted an owner-decision record committed (by another hand) under a file name that carried a client's product name; an admitted name becomes the record's proposition id, and the migration's resolution event carries that id",
+    repair: "the record was renamed to a neutral admitted name (bytes unchanged) and the corpus regenerated; the trail was NOT reset, so this one event stays as the true record of what was admitted at that moment",
+    evidenceRecord: "_handoffs 6c5545c73a8a8c75e5e701e06f26c3db27949e3f AlmiVisibility_RR-283_INCIDENT_CLIENT_WORD_IN_AN_ADMITTED_NAME_2026-10-17.md",
+    evidenceSha256: "6bd89f68cb67d9b8689f34478740b3931c51c456a9432411f34e7b1a99e53a64",
+    ownerRatification: "PENDING — not yet ratified: the same class the owner ratified for RR-251 (RR-252 answer 1: keep the line, declare it, never reset); asked at the top of the RR-283 report, and removed if he refuses",
+  }),
 ]);

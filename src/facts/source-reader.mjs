@@ -81,6 +81,13 @@ export const REJECT = Object.freeze({
   NOT_ONE_SOURCE: "NOT_ONE_SOURCE",
   NO_PAGE_TEXT: "NO_STORED_PAGE_TEXT",
   OUT_OF_DATE: "SOURCE_IS_OUT_OF_DATE",
+  QUOTATION_TOO_LONG: "QUOTATION_IS_MORE_THAN_ONE_SENTENCE_OR_TABLE_ROW",
+  QUOTATION_SPANS_LAYOUT: "QUOTATION_SPANS_A_LAYOUT_BREAK",
+});
+/** RR-282 · the plain message a refused quotation carries, for the person who proposed it. */
+export const REJECT_PLAIN = Object.freeze({
+  [REJECT.QUOTATION_TOO_LONG]: "The quotation holds more than one sentence. Quote only the one sentence, or the one table row, that states the fact, word for word.",
+  [REJECT.QUOTATION_SPANS_LAYOUT]: "The quotation runs across a line, list or table break of the page. Quote only one sentence, or one table row, word for word.",
 });
 
 const REFUSAL_STATUS = new Set([401, 403, 407, 429, 503]);
@@ -98,6 +105,14 @@ export const hostOf = (url) => { try { return new URL(String(url)).host; } catch
 export const isOneSentence = (t) => { const s = String(t ?? "").trim(); return s.length > 0 && /[.!?]$/.test(s) && (s.match(/[.!?](?=\s+[A-Z(]|$)/g) ?? []).length === 1; };
 /** A recorded quotation is present in a page text only word for word, under the quote match's own thin normalisation. */
 export const quotationIn = (quotation, text) => { const n = normaliseText(String(quotation ?? "")); return n !== "" && normaliseText(String(text ?? "")).includes(n); };
+/**
+ * RR-282 · a NEW fact's quotation is one sentence or one table row, word for word. A stored page text is kept flat (its layout is gone),
+ * so the quotation is judged by its own marks: a line, tab or list-bullet mark is a layout break; a sentence end followed by another
+ * sentence is more than one sentence. A table row has no sentence end inside it, so it passes. Returns the refusal, or null.
+ */
+const LAYOUT_MARKS = /[\r\n\t\u2028\u2029\u00b7\u2022\u25aa\u25cf\u25e6\u2023]/;
+export const quotationShape = (quotation) => LAYOUT_MARKS.test(String(quotation ?? "")) ? REJECT.QUOTATION_SPANS_LAYOUT
+  : /[.!?](?=\s+[A-Z(])/.test(normaliseText(String(quotation ?? ""))) ? REJECT.QUOTATION_TOO_LONG : null;
 
 const blocked = (url, route, reason, detail, extra = {}) => Object.freeze({ state: READ_STATE.BLOCKED, url, route, reason, detail, ...extra });
 
@@ -264,9 +279,9 @@ export async function extractFacts({ read, propose }) {
   for (const p of Array.isArray(proposals) ? proposals : []) {
     const why = !isOneSentence(p?.sentence) ? REJECT.NOT_ONE_SENTENCE
       : p?.source !== read.url ? REJECT.NOT_ONE_SOURCE
-      : !quotationIn(p?.quotation, read.text) ? (String(p?.quotation ?? "").trim() === "" ? REJECT.NO_QUOTATION : REJECT.NOT_IN_TEXT)
-      : null;
-    (why ? rejected : admitted).push(Object.freeze({ sentence: p?.sentence ?? null, quotation: p?.quotation ?? null, source: read.url, ...(why ? { reason: why } : { pageSha256: read.sha256, readOn: read.readOn }) }));
+      : String(p?.quotation ?? "").trim() === "" ? REJECT.NO_QUOTATION
+      : quotationShape(p?.quotation) ?? (!quotationIn(p?.quotation, read.text) ? REJECT.NOT_IN_TEXT : null);
+    (why ? rejected : admitted).push(Object.freeze({ sentence: p?.sentence ?? null, quotation: p?.quotation ?? null, source: read.url, ...(why ? { reason: why, ...(REJECT_PLAIN[why] ? { message: REJECT_PLAIN[why] } : {}) } : { pageSha256: read.sha256, readOn: read.readOn }) }));
   }
   return Object.freeze({ state: "PROPOSED", admitted: Object.freeze(admitted), rejected: Object.freeze(rejected) });
 }

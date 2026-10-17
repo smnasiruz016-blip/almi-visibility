@@ -19,7 +19,7 @@ import { pathToFileURL } from "node:url";
 
 import { engineRead, browserRead, readSource, extractFacts, recheckFacts, recheckCounts, readRecord, recheckRecord, robotsOn, quotationIn, isOneSentence, dueOn,
   ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD, extractionRecord, EXTRACTION, EXTRACTION_RECORD,
-  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE, hostOf, ROUTE_STOPS, SAVE_THE_PAGE, BROWSER_WALL_BELOW } from "../src/facts/source-reader.mjs";
+  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE, hostOf, ROUTE_STOPS, SAVE_THE_PAGE, BROWSER_WALL_BELOW, quotationShape, REJECT_PLAIN } from "../src/facts/source-reader.mjs";
 import { browserSignal, robotsVerdict, openBrowserRoute, WALL_COVERS_BELOW } from "../src/facts/browser-route.mjs";
 import { pdfText, PDF_TEXT } from "../src/facts/pdf-text.mjs";
 import { deflateSync } from "node:zlib";
@@ -249,6 +249,27 @@ test("C10 · FIRING CONTROL: a proposed fact is admitted only when its quotation
 
 /* ================= C11 · RECHECK ================= */
 
+test("RR-282 · ONE SENTENCE · FIRING CONTROL: a new fact's quotation is one sentence or one table row, word for word — two sentences, or a line, tab or list-bullet break, is refused with a plain message; an existing fact's quotation is never judged by it", async () => {
+  const n = network(pagesOf(TOWN));
+  const read = await engineRead(TOWN.url, { fetchImpl: n.fetchImpl, robots: robotsOn(n.fetchImpl), on: ON });
+  const p = (quotation) => ({ sentence: "Glass goes in the green bin.", quotation, source: TOWN.url });
+  const two = "Glass bottles go in the green bin, emptied every second Tuesday. Batteries are taken at the depot only.";
+  assert.ok(quotationIn(two, read.text), "the control's two sentences are not in the stored text — the refusal below would prove nothing");
+  const r = await extractFacts({ read, propose: async () => [p("Glass bottles go in the green bin, emptied every second Tuesday."), p(two), p("emptied every second Tuesday.\nBatteries are taken"), p("Glass bottles go in the green bin, • emptied every second Tuesday"), p("Glass bottles go in the green bin, emptied every second Tuesday")] });
+  assert.deepEqual([r.admitted.map((a) => a.quotation), r.rejected.map((x) => x.reason)],
+    [["Glass bottles go in the green bin, emptied every second Tuesday.", "Glass bottles go in the green bin, emptied every second Tuesday"], [REJECT.QUOTATION_TOO_LONG, REJECT.QUOTATION_SPANS_LAYOUT, REJECT.QUOTATION_SPANS_LAYOUT]]);
+  assert.deepEqual(r.rejected.map((x) => x.message), [REJECT_PLAIN[REJECT.QUOTATION_TOO_LONG], REJECT_PLAIN[REJECT.QUOTATION_SPANS_LAYOUT], REJECT_PLAIN[REJECT.QUOTATION_SPANS_LAYOUT]], "a refused quotation carries no plain message");
+  assert.ok(Object.values(REJECT_PLAIN).every((m) => /^The quotation [a-z ,]+\. Quote only/.test(m)), "a plain message is not plain");
+  /* one table row, a mid-sentence abbreviation and a sentence ending at its end each pass; a second sentence after a spaced stop does not */
+  assert.deepEqual(["Reading B (350 - 450) Writing C+ (300 - 340) Speaking B (350 - 450)", "reported in ten-point steps (e.g. 350, 360, 370 etc)", "The fee is AU$120.", "the fee is AU$120 . If you reschedule late", "One. (Two)", "  \t  "].map(quotationShape),
+    [null, null, null, REJECT.QUOTATION_TOO_LONG, REJECT.QUOTATION_TOO_LONG, REJECT.QUOTATION_SPANS_LAYOUT]);
+  /* an EXISTING fact of two sentences is not rewritten and still rechecks CURRENT against its stored text: the rule binds new facts only */
+  const facts = [{ factId: "both", link: TOWN.url, quotations: [two], readOn: "2026-09-01", recheckDays: 90, pages: ["town-a"] }];
+  const snapshot = JSON.stringify(facts);
+  const [c] = await recheckFacts({ facts, readOf: async () => read, on: ON });
+  assert.deepEqual([c.state, JSON.stringify(facts)], [RECHECK.CURRENT, snapshot], "an existing fact was judged by the new-fact rule, or rewritten");
+});
+
 test("C11 · FIRING CONTROL: each fact is exactly one of CURRENT, CHANGED, BLOCKED or REJECTED — a quotation gone flags every page that uses it; a blocked source is never CURRENT; a fact with no quotation is REJECTED, named; nothing stored is rewritten", async () => {
   const changed = { ...TOWN, html: TOWN.html.replace("every second Tuesday", "every Monday") };
   const facts = [
@@ -383,6 +404,14 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     const xdry = ext();
     assert.deepEqual([xdry.status, /proposals {8}3: NEW_FOR_NEED 1 · REJECTED 1 · RE_ADMITTED 1 · rejected by reason: QUOTATION_NOT_WORD_FOR_WORD_IN_THE_STORED_PAGE_TEXT 1/.test(xdry.stdout), /RE-ADMITTED 1 · STILL REJECTED 0/.test(xdry.stdout), /NOT WRITTEN/.test(xdry.stdout), existsSync(join(b, "fact-extractions.jsonl")), egress()], [0, true, true, true, false, 0], xdry.stdout + xdry.stderr);
     assert.equal(run("fixture-tests", "fixture-test-facts", "refuse", "--extract=../elsewhere.json", "--confirm").status, 2, "a proposals file outside the batch's own name was read");
+    /* RR-282 · a quotation of two sentences, or across a line break, is refused at the entry point in plain words, naming its proposal */
+    writeFileSync(join(b, "fact-proposals-2026-09-10-3.json"), JSON.stringify({ route: "CLIENT_SUBSCRIPTION_SESSION", proposals: [
+      { proposalId: "p5", fact: null, need: "n1", source: url, sentence: "A score of 350 is a grade B.", quotation: "Rules. Each sub-test is scored from 0 to 500" },
+      { proposalId: "p6", fact: null, need: "n1", source: url, sentence: "A score of 350 is a grade B.", quotation: "scored from 0 to 500\nand a score of 350" },
+    ] }));
+    const x3 = run("fixture-tests", "fixture-test-facts", "refuse", "--extract=fact-proposals-2026-09-10-3.json");
+    assert.deepEqual([x3.status, /proposals {8}2: REJECTED 2 · rejected by reason: QUOTATION_IS_MORE_THAN_ONE_SENTENCE_OR_TABLE_ROW 1 · QUOTATION_SPANS_A_LAYOUT_BREAK 1/.test(x3.stdout),
+      /refused {8}p5 — The quotation holds more than one sentence\./.test(x3.stdout), /refused {8}p6 — The quotation runs across a line, list or table break/.test(x3.stdout), egress()], [0, true, true, true, 0], x3.stdout + x3.stderr);
     const xok = ext("--confirm");
     assert.equal(xok.status, 0, xok.stdout + xok.stderr);
     const verdicts = rowsIn(join(b, "fact-extractions.jsonl"));

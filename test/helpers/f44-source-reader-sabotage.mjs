@@ -24,7 +24,7 @@ const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const PDFR = "C7 · PDF READER · FIRING CONTROL (RR-269 §2)", CAP = "CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1)";
-const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", C8B = "C8 · RR-277 · FIRING CONTROL", C8S = "C8 · RR-277 · THE WINDOW'S SIGNALS", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
+const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", C8B = "C8 · RR-277 · FIRING CONTROL", C8S = "C8 · RR-277 · THE WINDOW'S SIGNALS", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL", ONE = "RR-282 · ONE SENTENCE · FIRING CONTROL";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -104,6 +104,13 @@ const SABOTAGES = [
   ["R70","C11 RR-277 a snapshot its stored file does not hold is rechecked", BIN, " && file && quotationIn(s.quotation, file.text);", " && file;", PP],
   ["R71", "C11 RR-277 a snapshot flags a page for rebuild", BIN, "recheckDays: null, pages: [], snapshot:", "recheckDays: null, pages: [\"x\"], snapshot:", PP],
   ["R72", "C8 RR-277 the browser route is taken without a live read", BIN, "if ((BROWSER && !live) || !(", "if (!(", PP],
+  /* RR-282: a new fact's quotation is one sentence or one table row */
+  ["R74", "RR-282 a quotation of two sentences is admitted", M, ": /[.!?](?=\\s+[A-Z(])/.test(normaliseText(String(quotation ?? \"\"))) ? REJECT.QUOTATION_TOO_LONG : null;", ": false ? REJECT.QUOTATION_TOO_LONG : null;", ONE],
+  ["R75", "RR-282 a quotation across a line or bullet break is admitted", M, "export const quotationShape = (quotation) => LAYOUT_MARKS.test(String(quotation ?? \"\")) ?", "export const quotationShape = (quotation) => false ?", ONE],
+  ["R76", "RR-282 the extraction never judges a quotation's shape", M, ": quotationShape(p?.quotation) ?? (", ": null ?? (", ONE],
+  ["R77", "RR-282 a refused quotation carries no plain message", M, "...(REJECT_PLAIN[why] ? { message: REJECT_PLAIN[why] } : {})", "...({})", ONE],
+  ["R78", "RR-282 an existing fact is judged by the new-fact rule", M, "    const quotations = (f.quotations ?? []).filter((q) => String(q ?? \"\").trim() !== \"\");", "    const quotations = (f.quotations ?? []).filter((q) => String(q ?? \"\").trim() !== \"\" && !quotationShape(q));", ONE],
+  ["R79", "RR-282 the entry point tells no plain message", BIN, "  for (const r of records.filter((x) => REJECT_PLAIN[x.reason])) console.log(", "  for (const r of []) console.log(", PP],
   ["R58","RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
 ];
 

@@ -327,6 +327,10 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "d4a6e23673929c04c8a2a74213f8455f16e53907b98b9cd1bd6ced341674600a", why: "F12's frozen acceptance, EXPECTED (the owner's words, d960fa8)" }),
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "4ba4289207c4d042d2caef226c7a08c1b6ccef22755794268d5115c249965baf", why: "F12's frozen acceptance, FAILURE (the owner's words, d960fa8)" }),
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "97cd15d83ce5d1c3496bc9cd3a1ac521eee49150c614d6437078d0d311e997ac", why: "F12's frozen acceptance, EVIDENCE (the owner's words, d960fa8)" }),
+  /* RR-283 item 9: F62 Amendment 1 carries the original's EXPECTED, FAILURE and EVIDENCE byte for byte plus C8/C9, pinned by contractSha256 */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "75224e0d2392e6dc1f628621630eb105a2b6f79145045e1c58b299ec94235984", why: "F62 Amendment 1's frozen acceptance, EXPECTED (the original's owner words byte for byte, with the owner's RR-283 item 9 C8 and C9, _handoffs 94a6d17)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "d393ba0ab76418904624d72cd771c3a2743182c4d8e2bc1111faaa42e31c74cf", why: "F62 Amendment 1's frozen acceptance, FAILURE (the original's owner words byte for byte, with the owner's RR-283 item 9 C8 and C9, _handoffs 94a6d17)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "1b1d7b45b5eb35662fd2744b0f61e62f2e5fc625faece8c0a3661069bcc7ff05", why: "F62 Amendment 1's frozen acceptance, EVIDENCE (the original's owner words byte for byte, with the owner's RR-283 item 9 C8 and C9, _handoffs 94a6d17)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

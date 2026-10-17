@@ -78,9 +78,23 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
     /* F27 Amendment 3: a PUBLIC_SITE connector's one transport read (status, Location, headers, body, TLS facts), through the same paced
      * release and the same origins */
     ...(l.connector.kind === "PUBLIC_SITE" ? { readTransport: transportReader({ admits: (url) => origins === null || origins.has(originOf(url)), gapMs: declaredGapOf(l.connector), userAgent: USER_AGENT }) } : {}),
+    /* RR-277 · F44 C8: a CITED_SOURCES connector, opened on the run's decision, may launch the browser route's window — the ONE browser
+     * launch outside a local-only render (F03's census counts it): visible, with a fresh temporary profile (Playwright never opens a
+     * launched browser with the computer's own profile). What the window reads is paced by the caller through pacedRelease below. */
+    ...(l.connector.kind === "CITED_SOURCES" ? { launchBrowser: (chromium) => launchVisibleBrowser(chromium) } : {}),
     /* ONE call site for the global fetch (F77's egress census counts it) — and it is reached only through the paced release (RR-265) */
     fetch: (url, init) => (origins === null || origins.has(originOf(url)) ? pacedRelease(url, declaredGapOf(l.connector)).then(() => globalThis.fetch(url, init)) : Promise.reject(new ConnectorRefused("ORIGIN_NOT_DECLARED_FOR_THIS_CONNECTOR"))),
   });
+}
+
+/** RR-277: a VISIBLE browser with a fresh, separate profile — Playwright's own Chromium, else the Edge or Chrome BINARY (a temporary profile
+ *  either way, never the computer's own). Reached only through an opened CITED_SOURCES connector's launchBrowser. */
+async function launchVisibleBrowser(chromium) {
+  let last = null;
+  for (const [label, opts] of [["playwright-chromium", {}], ["edge", { channel: "msedge" }], ["chrome", { channel: "chrome" }]]) {
+    try { const browser = await chromium.launch({ headless: false, ...opts }); return { browser, name: `${label} ${browser.version()}` }; } catch (e) { last = e; }
+  }
+  throw new ConnectorRefused(`NO_BROWSER_COULD_BE_LAUNCHED: ${String(last?.message ?? last).split("\n")[0]}`);
 }
 
 /* 🔴 RR-265 · THE ONE PACED PATH (owner decision RR-265 item 4: "make it impossible in code"). Every request an opened connector makes waits

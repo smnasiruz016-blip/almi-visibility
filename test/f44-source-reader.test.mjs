@@ -498,6 +498,9 @@ test("C8 · RR-277 · THE WINDOW'S SIGNALS AND ROBOTS VERDICT (pure): a captcha,
   let loaded = 0;
   await assert.rejects(openBrowserRoute({ cap: 5, startedByClient: false, loadPlaywright: async () => { loaded += 1; return {}; } }), /only when the client starts it/);
   assert.equal(loaded, 0, "a browser was loaded for a route the client did not start");
+  /* F03: the window is launched only by an opened connector — never by the route itself */
+  await assert.rejects(openBrowserRoute({ cap: 5, startedByClient: true, loadPlaywright: async () => { loaded += 1; return {}; } }), /opened connector's launchBrowser/);
+  assert.equal(loaded, 0, "a browser was loaded without an opened connector");
 });
 
 /* ================= RR-274 · the page texts kept privately ================= */

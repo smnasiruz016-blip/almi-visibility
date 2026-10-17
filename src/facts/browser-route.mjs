@@ -47,20 +47,18 @@ export function robotsVerdict({ status, body, url }) {
 }
 
 /**
- * Open the route: a visible browser, launched by the engine — Playwright's own Chromium when it is installed, else the computer's Edge or
+ * Open the route: a visible browser, launched by an OPENED connector (launchBrowser) — Playwright's own Chromium when installed, else the Edge or
  * Chrome BINARY with a temporary, separate profile (Playwright never opens a launched browser with the computer's own profile). Returns the
  * route browserRead uses: { connected, startedByClient, cap, browser, read(url), robots(url), close() }.
  * @param {{ cap: number, startedByClient: boolean, loadPlaywright: () => Promise<{chromium?: object, unavailable?: string}>, settleMs?: number, timeoutMs?: number }} o
  */
-export async function openBrowserRoute({ cap, startedByClient, loadPlaywright, settleMs = 6000, timeoutMs = 45000 }) {
+export async function openBrowserRoute({ cap, startedByClient, loadPlaywright, launchBrowser, settleMs = 6000, timeoutMs = 45000 }) {
   if (startedByClient !== true) throw new Error("the browser route opens only when the client starts it");
+  /* the window is launched by an OPENED connector (src/tenancy/connectors.mjs launchBrowser) — the one lawful launch site (F03) */
+  if (typeof launchBrowser !== "function") throw new Error("the browser route opens only through an opened connector's launchBrowser");
   const pw = await loadPlaywright();
   if (pw.unavailable) throw new Error(`no browser here: ${pw.unavailable}`);
-  let browser = null, name = null, last = null;
-  for (const [label, opts] of [["playwright-chromium", {}], ["edge", { channel: "msedge" }], ["chrome", { channel: "chrome" }]]) {
-    try { browser = await pw.chromium.launch({ headless: false, ...opts }); name = `${label} ${browser.version()}`; break; } catch (e) { last = e; }
-  }
-  if (!browser) throw new Error(`no browser could be launched: ${String(last?.message ?? last).split("\n")[0]}`);
+  const { browser, name } = await launchBrowser(pw.chromium);
   /* a new context for every read: no cookie, storage or service worker crosses from one page to the next; downloads refused */
   const fresh = () => browser.newContext({ acceptDownloads: false, serviceWorkers: "block" });
   const robotsCache = new Map();

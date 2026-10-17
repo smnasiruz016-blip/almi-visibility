@@ -151,7 +151,7 @@ const robots = robotsOn(CONNECTOR.fetch);
  * to it (src/facts/source-reader.mjs browserRead); it is closed when the reads are done. A route that cannot open leaves them BLOCKED. */
 let ROUTE_OPEN = null;
 if (BROWSER) {
-  try { ROUTE_OPEN = await openBrowserRoute({ cap: BROWSER_CAP, startedByClient: true, loadPlaywright }); console.log(`  browser route    OPEN — ${ROUTE_OPEN.browser}, a visible window with a fresh, separate profile; it reads only what the engine is refused`); }
+  try { ROUTE_OPEN = await openBrowserRoute({ cap: BROWSER_CAP, startedByClient: true, loadPlaywright, launchBrowser: CONNECTOR.launchBrowser }); console.log(`  browser route    OPEN — ${ROUTE_OPEN.browser}, a visible window with a fresh, separate profile; it reads only what the engine is refused`); }
   catch (e) { console.log(`  browser route    COULD NOT OPEN (${String(e?.message ?? e).split("\n")[0]}) — a blocked read stays BLOCKED`); }
 }
 const state = { engineReads: 0, reads: 0, stoppedHosts: new Map() };

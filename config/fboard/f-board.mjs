@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3637,6 +3637,51 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f42-sabotage-2026-10-17T2102.txt (sha256 868d2687…): 7 of 7 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
         historicalReuse: "no historical row maps to F42 (crosswalk NEW). Reused read-only: the builder's to-the-point law (src/page/joined-page.mjs joinedChecks) and F40's MAX_REPAIR_ROUNDS; F40 still repairs nothing",
         declaredLimit: "the repair is proposed by the agent in its own session and only judged here; the gate is the one law the approved text names — a repair can never fix a claim's own words, so a claim that fails the law is parked, by design",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F86 · Independent acceptance and portability suite. RR-283 item 8: its first acceptance, the owner-approved draft (owner decision 1 of 17 Oct 2026), frozen
+   * ALONE (_handoffs 903f361) before any F86 code; then built and proved on the RR-283 branch. VERIFIED stands only with the command's final
+   * full suite and CI green (owner decision 6). */
+  F86: Object.freeze({
+    featureId: "F86",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-17", ruling: F86_ORIGINAL.ruling, contractSha256: F86_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F86",
+        on: "2026-10-17",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F86_ORIGINAL.ruling.sha256, contract: F86_ORIGINAL.contractSha256 }),
+        branch: "rr283-decision3",
+        baseSha: "b398f8cef99a2ca23a4eb17c1aedf2aac060502b",
+        baseCiRun: "39032750196",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-17_RR-283.md", commit: "bddad4f659b3f2383bb418864bc73f6d6c08c3cd", sha256: "4d129142633d12524cc345bf317b5a9363290f4d818b69ce8c94684bffd41ac2" }),
+      }),
+      /* RR-283 item 8: F86 PROVED — every clause of its frozen acceptance on the final code: one real run here and in a fresh sibling clone */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F86",
+        population: "REAL",
+        on: "2026-10-17",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F86_ORIGINAL.ruling.sha256, contract: F86_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED" }),
+        populations: "REAL: one run of the one entry (runs/audit/f86-acceptance-suite-2026-10-17T2123.txt, sha256 311c2ed3…, on the commit ea5ecee) — CLONE: a fresh sibling clone of that commit, only the declared data, 123 s, the suite PASS in it, no tracked file changed (C2); HERE: DEFECTS_CAUGHT PASS (C3: limbs f54 F5, f42 G2, f46 S8 and rr282 W1 — four rows — each PROVED alone, residue 0, trail unchanged), NEUTRAL_AND_ISOLATED PASS (C4: product-boundary, client-neutrality, f02 tenant isolation and f09 cross-client portability, each with its planted name or planted cross-tenant read red), REAL_POPULATION PASS (C5: seven real-population files, none skipped, their counts carried into the report); SUITE PASS, trail unchanged, tracked files unchanged (C1)",
+        proofs: "test/f86-acceptance-suite.test.mjs — the firing control of every verdict (C1 a failed or missing part fails the suite and every part has its line; C2 an unfinished, failing or tracked-changing clone fails; C3 a limb not PROVED, a residue or a moved trail fails; C4 a census exiting non-zero, or with a failed test, fails; C5 a skipped real test, or one with no counts, fails), and the part declarations against the clauses; the real run above",
+        sabotage: "runs/audit/f86-sabotage-2026-10-17T2123.txt (sha256 93a7faf4…): 9 of 9 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "no historical row maps to F86 (crosswalk NEW). Reused: RR-247's sibling-clone method, the existing censuses with their planted controls, the existing harness engine and real-population tests",
+        declaredLimit: "the clone is a sibling of this repository so the declared data resolves (RR-247); the sample is a fixed four limbs, not every harness; an outside auditor is F89",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

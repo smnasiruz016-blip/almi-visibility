@@ -696,6 +696,20 @@ export const F46_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing control: a claim whose words wholly overlap its source, with no person's verdict recorded, must be NEEDS A PERSON. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "738f219d567ff24bf20cd7fe600f383ae5cde44636812e6e2429a1956f0fc83a",
 });
+/* 🔴 F86 · FROZEN 17 Oct 2026 (_handoffs 903f361, RR-283 item 8), committed ALONE before any F86 code: the owner-approved draft (owner decision
+ * 1 of 17 Oct 2026) carried under the four headings. Pinned from the committed blob by parseContract (file 8a0347b1…, contract 0ab27e62…). */
+export const F86_ORIGINAL = Object.freeze({
+  featureId: "F86",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F86_ACCEPTANCE_2026-10-17.md", commit: "903f361e7ad3baea64a0de5517cf2a737a86fcff", sha256: "8a0347b16d8ddd0ea0ad5c64b5bc4867485b700fcfa791dff45f89c0d1b71f85" }),
+  authority: Object.freeze({ propositionId: "F86_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F86"]) }),
+  frozenOn: "2026-10-17",
+  feature: "F86 · Independent acceptance and portability suite",
+  input: "The engine at one commit, with only its declared data (the data roots its declarations name, resolved as CI resolves them, side by side): its existing neutrality, isolation and scope censuses (each with its own planted controls), its sabotage harnesses (a fixed sample of their limbs, each run alone and restored by hash), and its real-population tests (each printing its counts); and, for C2, a fresh clone of that commit in a new sibling folder (RR-247's method). Nothing fetched; nothing written into the engine's tracked files or its production trail.",
+  expected: "[C1 · ONE SUITE] One entry runs every part below and prints PASS / FAIL per part.\n[C2 · PORTABLE] The suite passes on a fresh clone in a new folder with only the declared data.\n[C3 · DEFECTS CAUGHT] A fixed sample of sabotage limbs across rows each turns red.\n[C4 · NEUTRAL AND ISOLATED] No client, product or host name in engine code; one tenant's run reads no other tenant's data.\n[C5 · REAL POPULATION] The real-population tests run and pass on the declared data.",
+  failure: "[C1] A part runs without its PASS / FAIL printed, a part is skipped, or the entry reports PASS while a part failed. [C2] The suite is not run in a fresh clone in a new folder, the clone needs anything beyond the declared data, or it fails there while reported as passing. [C3] A limb of the sample is not run, does not turn its test red, or is not restored. [C4] A client, product or host name in engine code, or a cross-tenant read, is not caught, or the planted controls are not red. [C5] A real-population test is skipped, fails, or its counts are missing from the report. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: one real run, its report kept. [C2] PROOF: a real clone run (as RR-247's clone proof). [C3] PROOF: the sample's evidence file. [C4] PROOF: the existing censuses run inside the suite, with a planted name and a planted cross-tenant read each red. [C5] PROOF: their counts in the report. Proofs are real runs over real records (fixtures may be added only as firing controls). One sabotage per clause on the final code, each turning a named test red by assertion for its own reason and restored by raw-byte hash with the production trail untouched; then the full suite and CI on the final head. F86 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "0ab27e62c5c5867b8def5b493fba4f78b731930d3041caf0434ee2e2dfb77a57",
+});
 /* 🔴 F42 · FROZEN 17 Oct 2026 (_handoffs 1fcee4a, RR-283 item 6), committed ALONE before any F42 code: the owner-approved draft (owner decision
  * 1 of 17 Oct 2026) carried under the four headings. Pinned from the committed blob by parseContract (file ba3aad4e…, contract 928ad5fd…). */
 export const F42_ORIGINAL = Object.freeze({
@@ -1715,6 +1729,7 @@ export const ACCEPTANCES = Object.freeze({
   F45: F45_ORIGINAL,
   F46: F46_AMENDMENT_1,
   F54: F54_ORIGINAL,
+  F86: F86_ORIGINAL,
   F42: F42_ORIGINAL,
   F47: F47_ORIGINAL,
   F48: F48_AMENDMENT_1,

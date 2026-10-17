@@ -171,15 +171,18 @@ test("🔴 P9 · F31 governs the REAL production validator — proved by an inpu
   assert.equal(F31(records).length, 0, "the real registry should raise no F31");
 
   /* 🔴 THE BRANCH NO REAL RECORD REACHES. Take a record that really is advancing and really is
-   * grandfathered, and change ONE thing: its checker becomes a model signature. It stays
-   * schema-valid and still satisfies the older "is anybody named?" test, so nothing else refuses
-   * it — only condition 3 does. */
+   * grandfathered, and change ONE thing. RR-283 (owner decision 3): condition 3 now asks only for a typed checker and a date — and the
+   * older evidence law (F24, "nobody is named as having checked it") refuses a record without them FIRST, so condition 3 alone can no
+   * longer be the only refusal. The one change that only F31 refuses is condition 2: the record's verificationState left blank. */
   const base = records.find((r) => r.id === "uk-hcpc.certificate-maximum-age");
   assert.ok(base, "the record this proof is built on is missing from the registry");
   assert.equal(base.verification.checkedBy, "engine:almi-visibility", "RR-283: the authoring AI's checks are relabelled as the engine");
-  const crafted = { ...base, verification: { ...base.verification, checkedBy: "beta-g" } };
+  const crafted = { ...base, verificationState: "" };
+  /* condition 3's case is refused by the older law before F31: an untyped checker is F24's */
+  const untyped = { ...base, verification: { ...base.verification, checkedBy: "beta-g" } };
+  assert.deepEqual(validateRegistry(records.map((r) => (r.id === base.id ? untyped : r))).registryErrors.filter((e) => e.law === "F24" && JSON.stringify(e).includes(base.id)).length, 1, "an untyped checker was not refused by the older evidence law");
 
   const raised = F31(records.map((r) => (r.id === crafted.id ? crafted : r)));
-  assert.equal(raised.length, 1, "F31 did not fire on a record with no typed checker that would otherwise advance");
-  assert.match(raised[0].message, /RECORDED_CHECKER_AND_DATE/);
+  assert.equal(raised.length, 1, "F31 did not fire on a record with a blank state that would otherwise advance");
+  assert.match(raised[0].message, /STATE_EXPLICIT/);
 });

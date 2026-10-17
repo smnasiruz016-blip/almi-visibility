@@ -265,7 +265,7 @@ test("🔴 REAL: every one of the 46 records names WHO checked it and WHEN", () 
   for (const f of checked) {
     const expected = ownerVerified.includes(f.id) ? "2026-09-21" : rechecked.includes(f.id) ? "2026-09-13" : "2026-09-12";
     assert.equal(f.checks.factCheckedOn, expected, `${f.id}: no check date`);
-    assert.match(f.checks.factCheckedBy, /^human:/, `${f.id}: a fact check must name a person, not a tool`);
+    assert.match(f.checks.factCheckedBy, /^(human|model|engine):\S/, `${f.id}: a fact check must name who did it, by a typed id (RR-283, owner decision 3: who checked is never a condition — the check still names WHO, by a typed id)`);
   }
 });
 

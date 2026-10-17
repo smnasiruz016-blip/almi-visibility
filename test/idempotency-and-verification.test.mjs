@@ -303,8 +303,8 @@ test("🔴 A3: no record on disk claims a standing it has not earned", async () 
     assert.ok(r.checks.factCheckedOn, `${r.id}: ${r.verificationState} with no check date`);
     assert.match(
       r.checks.factCheckedBy ?? "",
-      /^human:/,
-      `${r.id}: a fact check must name a PERSON — a tool cannot read a source and judge a claim`,
+      /^(human|model|engine):\S/,
+      `${r.id}: a fact check must name who did it, by a typed id (RR-283, owner decision 3: who checked is never a condition — the check still names WHO, by a typed id)`,
     );
   }
 });

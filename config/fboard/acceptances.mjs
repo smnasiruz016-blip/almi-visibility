@@ -696,6 +696,20 @@ export const F46_ORIGINAL = Object.freeze({
   evidence: "For each clause: a test driving the production path; a firing control; and a sabotage that removes the clause in the bytes, turns a named test red for that reason, and is restored by raw-byte hash with the production trail untouched. C3's firing control: a claim whose words wholly overlap its source, with no person's verdict recorded, must be NEEDS A PERSON. The real result over the client's recorded registry, count-only, with its bound, each check's population reported separately. The full suite as CI runs it, and exact-SHA CI on the PR head before any merge, then on the merge commit. F46 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
   contractSha256: "738f219d567ff24bf20cd7fe600f383ae5cde44636812e6e2429a1956f0fc83a",
 });
+/* 🔴 F54 · FROZEN 17 Oct 2026 (_handoffs 4b5b01c, RR-283 item 2), committed ALONE before any F54 code: the owner-approved draft (owner decision
+ * 1 of 17 Oct 2026) carried under the four headings. Pinned from the committed blob by parseContract (file c62ec07f…, contract 0b722ff3…). */
+export const F54_ORIGINAL = Object.freeze({
+  featureId: "F54",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F54_ACCEPTANCE_2026-10-17.md", commit: "4b5b01cdfc1ec69eba528e3c6a7758a9a9740f27", sha256: "c62ec07f8d041792260f2de7b0cd3174df7ced8e3541f633f5739142e2bdfa9e" }),
+  authority: Object.freeze({ propositionId: "F54_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F54"]) }),
+  frozenOn: "2026-10-17",
+  feature: "F54 · Answer-readiness audit",
+  input: "For one declared product, read through that product's own scope: the pages it has published, as built — the stored HTML of each page's latest built record in the product's research batch, byte-equal to the file the client's site serves — with each page's structured data (its FAQ JSON-LD) and the record of each answer's source and date; and, as firing controls only, planted copies of one real page. Clarity is read by the page laws the engine already applies to every built answer line: one sentence per sourced line, and no internal record label. Nothing fetched, rendered, bought or written; no claim about ranking or being cited by an AI engine.",
+  expected: "[C1 · FIVE CHECKS, SEPARATE] Each page gets five separate results — clarity, extractability, provenance, entity consistency, direct answer — each PASS / FAIL / NOT MEASURED with its reason; never one merged score.\n[C2 · DIRECT ANSWER] Each question's answer starts right after it, in plain text.\n[C3 · PROVENANCE] Every fact shows its source link and checked date.\n[C4 · ENTITY CONSISTENCY] The same body or product is named the same way across a page and its structured data.\n[C5 · FIRES] A planted page missing each element fails that check alone.",
+  failure: "[C1] A page lacks one of the five results, two checks share one result or a merged score appears, or a FAIL or NOT MEASURED names no reason. [C2] A question whose answer does not start right after it, in plain text, reads PASS, or its FAIL does not name the question. [C3] A fact without its source link or its checked date reads PASS, or the count of facts with both is not the count of all facts. [C4] A body or product named differently on the page and in its structured data reads PASS, or a mismatch is not named. [C5] A planted page missing one element passes that check, or fails a check other than its own. And for any clause: it is proved only on an empty population, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the 12 live guides as built (stored HTML); 12 × 5 results. [C2] PROOF: real pages; every FAIL names the question. [C3] PROOF: real pages; count of facts with both = all facts. [C4] PROOF: real pages; every mismatch named, or 0. [C5] PROOF: five planted copies of one real page, each red for its own check. Proofs are real runs over real records (fixtures may be added only as firing controls). One sabotage per clause on the final code, each turning a named test red by assertion for its own reason and restored by raw-byte hash with the production trail untouched; then the full suite and CI on the final head. F54 moves only through the production validator and the audit trail, and only when every clause is PROVED.",
+  contractSha256: "0b722ff3048501484ecd52978bfd1e57d95fd2e531a79ebf109a54f56859abcb",
+});
 /* 🔴 F46 · ACCEPTANCE AMENDMENT 1, FROZEN 17 Oct 2026 (_handoffs a90fbf4, RR-283 item 1), committed ALONE: owner decision 3 ("NO HUMAN
  * CHECKER", rule 3f) — FIT stands on the verbatim official text: CONFIRMED only from a matched word-for-word quotation of the official
  * source, REFUTED only by a recorded CONFLICT, otherwise CHECKED_NOT_FOUND naming what was not found, the pages checked and the date; who
@@ -1686,6 +1700,7 @@ export const ACCEPTANCES = Object.freeze({
   F44: F44_AMENDMENT_2,
   F45: F45_ORIGINAL,
   F46: F46_AMENDMENT_1,
+  F54: F54_ORIGINAL,
   F47: F47_ORIGINAL,
   F48: F48_AMENDMENT_1,
   F55: F55_ORIGINAL,

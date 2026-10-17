@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3547,6 +3547,51 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f12-sabotage-2026-10-13T1631.txt (sha256 21b2f627…): 65 of 65 proved (one per FAILURE limb of C1–C7 and [ALL]), residue 0, production trail unchanged; the practice pass (runs/audit/f12-sabotage-2026-10-13T1425.txt) proved 64 of 64 before limb S65 was added for the record-key defect found on the owner's correction",
         historicalReuse: "no historical row maps to F12 (crosswalk NEW). The historical Row-5 clustering module (src/discovery/intent-clusters.mjs) joins by a similarity score; it is not used by F12, is unchanged, and is recorded by the owner's instruction as proof debt PD-003 (legacy, conflicts with C2, to retire later)",
         declaredLimit: "the engine judges no meaning and fetches nothing: the grouping is a recorded judgement (here the research agent's, INFERRED) and the engine only holds it to the acceptance's rules; the owner checked ten needs and the three split from one of them, not all 28; a need's country part and the fact a need differs by are named by the grouping, and the engine checks that a statement and a reference are present, not that the fact is true; one need holds only 2 wordings, accepted by the owner in his own words; a need is not a page and no page is decided",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F54 · Answer-readiness audit. RR-283 item 2: its first acceptance, the owner-approved draft (owner decision 1 of 17 Oct 2026), frozen
+   * ALONE (_handoffs 4b5b01c) before any F54 code; then built and proved on the RR-283 branch. VERIFIED stands only with the command's final
+   * full suite and CI green (owner decision 6). */
+  F54: Object.freeze({
+    featureId: "F54",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-17", ruling: F54_ORIGINAL.ruling, contractSha256: F54_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F54",
+        on: "2026-10-17",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F54_ORIGINAL.ruling.sha256, contract: F54_ORIGINAL.contractSha256 }),
+        branch: "rr283-decision3",
+        baseSha: "b398f8cef99a2ca23a4eb17c1aedf2aac060502b",
+        baseCiRun: "39032750196",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-17_RR-283.md", commit: "bddad4f659b3f2383bb418864bc73f6d6c08c3cd", sha256: "4d129142633d12524cc345bf317b5a9363290f4d818b69ce8c94684bffd41ac2" }),
+      }),
+      /* RR-283 item 2: F54 PROVED — every clause of its frozen acceptance on the final code, over the 12 published guides as built */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F54",
+        population: "REAL",
+        on: "2026-10-17",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F54_ORIGINAL.ruling.sha256, contract: F54_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED" }),
+        populations: "REAL (count-only): the 12 published guides as built (each page's latest built record in the batch, byte-equal to the live file), 12 × 5 results — CLARITY PASS 12; EXTRACTABILITY PASS 12; PROVENANCE FAIL 12 (488 facts, 457 with their source link and checked date; the 31 without are every one a comparison-table cell, which shows its source link but no checked date — a finding on the live pages, reported, not repaired: no live change in this round); ENTITY CONSISTENCY PASS 12; DIRECT ANSWER PASS 12. C5: five planted copies of one real page (its comparison tables set aside), each red for its own check alone",
+        proofs: "test/f54-answer-readiness.test.mjs — C1 five results per page, never a score, an absent input NOT MEASURED with its reason; C2/C3/C4 firing controls; C5 the five planted copies of one real page; REAL over the 12 published guides; the entry point in a declared world (counts only, writes nothing); no product word, no network call path",
+        sabotage: "runs/audit/f54-sabotage-2026-10-17T2039.txt (sha256 68240825…): 11 of 11 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "no historical row maps to F54 (crosswalk NEW). Reused read-only: the page laws of src/page/joined-page.mjs (sentencesOf, TO_THE_POINT_MAX_WORDS, RECORD_LABELS, faqInPage) — no new page rule is made",
+        declaredLimit: "an audit of the page as built — not a claim about ranking or citation by any AI engine; clarity is the engine's own answer-line law; entity consistency compares the structured data with the visible sourced lines and acronyms, not a knowledge graph (that is F49)",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

@@ -53,7 +53,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
 import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 import { batchFacts } from "../src/facts/batch-facts.mjs";
-import { readSource, robotsOn, recheckFacts, recheckCounts, readRecord, recheckRecord, hostOf, SOURCE_READ, READ_STATE, RECHECK, extractFacts, extractionRecord, EXTRACTION, captureRead, clientFileRead, CURRENCY, BROWSER_GAP_MS, SAVE_THE_PAGE, quotationIn } from "../src/facts/source-reader.mjs";
+import { readSource, robotsOn, recheckFacts, recheckCounts, readRecord, recheckRecord, hostOf, SOURCE_READ, READ_STATE, RECHECK, extractFacts, extractionRecord, EXTRACTION, captureRead, clientFileRead, CURRENCY, BROWSER_GAP_MS, SAVE_THE_PAGE, quotationIn, REJECT_PLAIN } from "../src/facts/source-reader.mjs";
 import { openBrowserRoute } from "../src/facts/browser-route.mjs";
 import { loadPlaywright } from "../src/render/renderer.mjs";
 import { makeCostEntry } from "../src/cost/ledger.mjs";
@@ -271,6 +271,8 @@ async function extractRun() {
   console.log("F44 · EXTRACT ON THE STORED TEXTS — C9 + C10 · no connector opened, no request made · counts only");
   console.log(`  route            ${filed.route} — NOT METERED (no paid-provider call)`);
   console.log(`  proposals        ${records.length}: ${tally(records, "outcome")} · rejected by reason: ${tally(records.filter((r) => r.outcome === EXTRACTION.REJECTED), "reason")}`);
+  /* RR-282: a quotation refused for its shape is told in plain words, naming its proposal */
+  for (const r of records.filter((x) => REJECT_PLAIN[x.reason])) console.log(`    refused        ${r.proposalId ?? "(no id)"} — ${REJECT_PLAIN[r.reason]}`);
   console.log(`  rejected facts   ${was.length} left REJECTED by the stored recheck: RE-ADMITTED ${readmitted.length} · STILL REJECTED ${was.length - readmitted.length}`);
   for (const f of was.filter((x) => !readmitted.includes(x))) console.log(`    still rejected ${f.factId} — ${readOf.get(f.link)?.state === READ_STATE.READ ? "no word-for-word quotation admitted from its stored text" : `its source is ${readOf.get(f.link)?.reason ?? "not read"}`} (${f.link ?? "no URL"})`);
   console.log(`  new for needs    ${tally(records.filter((r) => r.outcome === EXTRACTION.NEW_FOR_NEED), "need")}`);

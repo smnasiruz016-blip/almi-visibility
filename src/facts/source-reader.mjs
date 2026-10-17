@@ -309,6 +309,23 @@ export async function recheckFacts({ facts, readOf, on }) {
   return Object.freeze(out);
 }
 
+/**
+ * RR-282 · the stored read of each source, for a recheck from stored text alone — no request. `rows` are the batch's stored reads with
+ * their private texts joined (src/facts/private-texts.mjs). The latest stored read of a URL stands for it, as the run that made it would;
+ * a client file the client says is out of date stands for nothing; a READ whose text is not here (the private root absent, or a text that
+ * does not hash to its record) is BLOCKED by name — never read as a page with no words, which would show every quotation gone.
+ */
+export function storedReadOf(rows) {
+  const latest = new Map();
+  for (const r of rows ?? []) if (typeof r?.url === "string" && r.currency?.state !== CURRENCY.OUT_OF_DATE) latest.set(r.url, r);
+  return (url) => {
+    const r = latest.get(url);
+    if (!r) return blocked(url, null, REJECT.NO_PAGE_TEXT, "no stored read of this source");
+    if (r.state === READ_STATE.READ && typeof r.text !== "string") return blocked(url, r.route ?? null, REJECT.NO_PAGE_TEXT, `its stored text is not here (${r.textMissing ?? "no text"})`);
+    return r;
+  };
+}
+
 /** Due on `on` when its read date plus its recheck interval is not later than `on`; null when either is not recorded. */
 export function dueOn(f, on) {
   const ok = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "");

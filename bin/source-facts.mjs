@@ -36,6 +36,11 @@
  *
  * RR-269 §2 · the live read of the sources a filed list names and of no other (a PDF is read by the PDF reader: its text, or
  * NOT_A_TEXT_DOCUMENT when it shows none); the facts that cite them are rechecked.
+ *
+ *   node bin/source-facts.mjs ... --stored [--facts=<id,id>] --tenant=<id> --actor=<id>
+ *
+ * RR-282 · the recheck from stored text: each fact's quotations matched against the stored text of its source's latest read (the private
+ * texts joined) — no connector, no request, nothing written; each verdict is set beside the fact's latest kept recheck.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -53,7 +58,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
 import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 import { batchFacts } from "../src/facts/batch-facts.mjs";
-import { readSource, robotsOn, recheckFacts, recheckCounts, readRecord, recheckRecord, hostOf, SOURCE_READ, READ_STATE, RECHECK, extractFacts, extractionRecord, EXTRACTION, captureRead, clientFileRead, CURRENCY, BROWSER_GAP_MS, SAVE_THE_PAGE, quotationIn, REJECT_PLAIN } from "../src/facts/source-reader.mjs";
+import { readSource, robotsOn, recheckFacts, recheckCounts, readRecord, recheckRecord, hostOf, SOURCE_READ, READ_STATE, RECHECK, extractFacts, extractionRecord, EXTRACTION, captureRead, clientFileRead, CURRENCY, BROWSER_GAP_MS, SAVE_THE_PAGE, quotationIn, REJECT_PLAIN, storedReadOf } from "../src/facts/source-reader.mjs";
 import { openBrowserRoute } from "../src/facts/browser-route.mjs";
 import { loadPlaywright } from "../src/render/renderer.mjs";
 import { makeCostEntry } from "../src/cost/ledger.mjs";
@@ -78,6 +83,10 @@ if (READ_LIST !== null && (!live || !/^read-list-\d{4}-\d{2}-\d{2}(-\d{1,2})?\.j
  * run cap (robots files count) is named before the run. Without it a blocked read stays BLOCKED, with the line telling the client what to do. */
 const BROWSER = process.argv.includes("--browser-route"), BROWSER_CAP = Number(arg("browser-cap") ?? 40);
 if ((BROWSER && !live) || !(Number.isInteger(BROWSER_CAP) && BROWSER_CAP >= 1 && BROWSER_CAP <= SOURCE_READ.maxRequests)) { console.error(`usage: --browser-route runs only with --live; --browser-cap=1..${SOURCE_READ.maxRequests} — nothing read, no request, nothing written`); process.exit(2); }
+/* RR-282: the quote check re-run against the batch's STORED texts alone (--stored) — no connector, no request, nothing written;
+ * --facts=<id,id> names the facts to recheck (all the batch's facts without it) */
+const STORED = process.argv.includes("--stored"), FACT_IDS = arg("facts")?.split(",").filter(Boolean) ?? null;
+if ((STORED && (live || EXTRACT !== null || IMPORT !== null || READ_LIST !== null)) || (FACT_IDS !== null && (!STORED || FACT_IDS.length === 0))) { console.error("usage: --stored never runs with --live, --extract, --import or --read-list; --facts=<id,id> runs only with --stored — nothing read, no request, nothing written"); process.exit(2); }
 const SCOPE = scopedEntryPoint({ entry: "bin/source-facts.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...(live ? [RESOURCES.connector(SUBJECT, KIND), RESOURCES.costLedger(ownLedgerRef())] : EXTRACT && permission.mayWrite ? [RESOURCES.costLedger(ownLedgerRef())] : [])] });
 /* F78: a run that opens a connector records its cost — constructed right after the scope gate */
 const RUN_COST = live || (EXTRACT && permission.mayWrite) ? runCost({ entryPoint: "bin/source-facts.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
@@ -128,6 +137,7 @@ const hosts = [...new Set(urls.map(hostOf))].sort();
 const t0 = performance.now();
 if (EXTRACT) await extractRun();
 if (IMPORT) await importRun();
+if (STORED) await storedRun();
 
 console.log("F44 · SOURCE READER — the recheck of the facts this batch's pages use · counts only");
 if (listed) console.log(`  read list        ${READ_LIST}: ${urls.length} source(s) named — no other source is read · facts citing them ${rechecked.filter((f) => !f.factId.startsWith("snapshot:")).length}`);
@@ -187,6 +197,32 @@ if (!kept(g)) { console.error(`  🔴 ${g.outcome} — the reads did NOT persist
 const h = append(results.map((r) => recheckRecord({ result: r, tenantId: SCOPE.tenantId, on: ON, run: runId })), "fact-rechecks.jsonl");
 if (!kept(h)) { console.error(`  🔴 ${h.outcome} — the rechecks did NOT persist`); process.exit(1); }
 console.log(`  kept             ${reads.size} read(s) in the batch's source-reads store · ${results.length} recheck(s) in its fact-rechecks store · ${Math.round((performance.now() - t0) / 1000)} s`);
+
+/**
+ * RR-282 · the recheck from stored text: each fact's recorded quotations matched against the STORED text of its source's latest read
+ * (src/facts/source-reader.mjs storedReadOf, the private texts joined) by the one recheck rule — no connector is opened and no request is
+ * made. Each verdict is set beside the latest kept recheck of the fact. Nothing is written: a stored text shows what was read, never
+ * that the source still says it today.
+ */
+async function storedRun() {
+  if (PRIVATE.state !== "DECLARED") { console.error("🔴 REFUSED — PRIVATE_SOURCES_ABSENT: a recheck from stored text reads the stored page texts, and the private sources root is not here (config/private-sources.mjs). NO REQUEST WAS MADE AND NOTHING WAS WRITTEN."); process.exit(3); }
+  const rows = (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
+  const unknown = (FACT_IDS ?? []).filter((id) => !facts.some((f) => f.factId === id));
+  if (unknown.length) { console.error(`🔴 REFUSED — FACT_NOT_IN_BATCH: ${unknown.join(", ")} — no such fact on this batch's pages; nothing read, nothing written`); process.exit(3); }
+  const readOf = storedReadOf(withPrivateTexts(rows("source-reads.jsonl"), privateRows("source-reads.jsonl"), { privateRoot: PRIVATE.state }));
+  const chosen = FACT_IDS ? facts.filter((f) => FACT_IDS.includes(f.factId)) : facts;
+  const results = await recheckFacts({ facts: chosen, readOf: async (u) => readOf(u), on: ON });
+  const lastCheck = new Map(rows("fact-rechecks.jsonl").map((c) => [c.factId, c]));
+  const differs = results.filter((r) => lastCheck.get(r.factId)?.state !== r.state);
+  const tally = (xs, k) => Object.entries(xs.reduce((m, x) => ((m[x[k] ?? "-"] = (m[x[k] ?? "-"] ?? 0) + 1), m), {})).sort().map(([a, n]) => `${a} ${n}`).join(" · ") || "none";
+  console.log("F44 · RECHECK FROM STORED TEXT — RR-282 · no connector opened, no request made · nothing written");
+  console.log(`  facts            ${results.length}${FACT_IDS ? " (named)" : ""}: ${tally(results, "state")}`);
+  console.log("  requests         0 — no connector was opened; each source's latest stored read stands for it");
+  console.log(`  kept recheck     same state ${results.length - differs.length} · differs ${differs.filter((r) => lastCheck.has(r.factId)).length} · never rechecked ${differs.filter((r) => !lastCheck.has(r.factId)).length}`);
+  for (const r of FACT_IDS ? results : differs) { const k = lastCheck.get(r.factId); console.log(`    ${r.factId.padEnd(28)} stored ${r.state}${r.reason ? ` (${r.reason})` : ""} · kept ${k ? `${k.state} (${k.route ?? "-"}, ${k.run})` : "none"}`); }
+  console.log("  NOT WRITTEN — a recheck from stored text shows what the stored texts hold; it is never kept as a new check of the source");
+  process.exit(0);
+}
 
 /**
  * RR-269 §1/§2 · the client's own reads, filed in this batch, imported — no connector, no request, no route driven. A browser capture

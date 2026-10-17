@@ -18,13 +18,13 @@ import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PDF = "src/facts/pdf-text.mjs";
-const M = "src/facts/source-reader.mjs", BF = "src/facts/batch-facts.mjs", BIN = "bin/source-facts.mjs", PT = "src/facts/private-texts.mjs", ADP = "src/evidence/evidence-state-adapters.mjs";
+const M = "src/facts/source-reader.mjs", BF = "src/facts/batch-facts.mjs", BIN = "bin/source-facts.mjs", PT = "src/facts/private-texts.mjs", BR = "src/facts/browser-route.mjs", ADP = "src/evidence/evidence-state-adapters.mjs";
 const T = ["test/f44-source-reader.test.mjs"];
 const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const PDFR = "C7 · PDF READER · FIRING CONTROL (RR-269 §2)", CAP = "CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1)";
-const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
+const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", C8B = "C8 · RR-277 · FIRING CONTROL", C8S = "C8 · RR-277 · THE WINDOW'S SIGNALS", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -36,9 +36,9 @@ const SABOTAGES = [
   ["R06", "C8 the browser route is used without the client having started it", M, " || route.startedByClient !== true", "", C8],
   ["R07", "C8 the browser route reads one host sooner than 5 s apart", M, "export const BROWSER_GAP_MS = 5000;", "export const BROWSER_GAP_MS = 2000;", C8],
   ["R08", "C8 the browser route reads past its run cap", M, "if (state.reads >= cap)", "if (false)", C8],
-  ["R09", "C8 a captcha does not stop the route", M, "if (stop) { state.stopped = stop; return", "if (stop) { return", C8],
+  ["R09", "C8 a captcha does not stop the route", M, "if (stop) { state.stoppedHosts.set(host, stop); return", "if (stop) { return", C8],
   ["R10", "C8 a blocked read with no route is an error, not BLOCKED with its URL", M, "return blocked(url, ROUTE.BROWSER, BLOCK.NO_ROUTE,", "throw new Error(\"no route\"); return blocked(url, ROUTE.BROWSER, BLOCK.NO_ROUTE,", C8],
-  ["R11", "C8 a page that is not found goes to the browser route", M, "export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY]);", "export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY, BLOCK.NOT_FOUND]);", C8],
+  ["R11", "C8 a page that is not found goes to the browser route", M, "export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY, BLOCK.ROBOTS_UNREADABLE]);", "export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY, BLOCK.ROBOTS_UNREADABLE, BLOCK.NOT_FOUND]);", C8],
   ["R12", "C8 the run's bound is not honoured", M, "  if (requestsMade() + 2 > maxReads) return blocked(url, ROUTE.ENGINE, BLOCK.READ_CAP, `the run's bound of ${maxReads} request(s) would be passed`);\n", "", C8],
   ["R13", "C9 a refusal of the paid-provider gate is not reported", M, "return Object.freeze({ state: \"REFUSED\", code:", "return Object.freeze({ state: \"PROPOSED\", code:", C9],
   ["R14", "C9 a proposal of more than one sentence is kept", M, "const why = !isOneSentence(p?.sentence) ? REJECT.NOT_ONE_SENTENCE", "const why = false ? REJECT.NOT_ONE_SENTENCE", C9],
@@ -88,7 +88,22 @@ const SABOTAGES = [
   ["R55", "RR-274 a private text of another read is joined", PT, "const p = byKey.get(r.measurement_key);", "const p = byKey.get(r.measurement_key) ?? [...byKey.values()][0];", PRV],
   ["R56", "RR-274 a live read writes the full text into the public batch", BIN, "const g = append(fullReads.map(publicCopy), \"source-reads.jsonl\");", "const g = append(fullReads, \"source-reads.jsonl\");", PP],
   ["R57", "RR-274 a live read runs without the private sources root", BIN, "refuseWithoutPrivate(\"a live read\");\n", "", PP],
-  ["R58", "RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
+  /* RR-277: the browser route the engine starts on the client's computer */
+  ["R59", "C8 RR-277 a host a stop held is read again", M, "  if (state.stoppedHosts.has(host)) return blocked(", "  if (false) return blocked(", C8B],
+  ["R60", "C8 RR-277 the route reads a page without the host's robots file", M, "  if (typeof route.robots === \"function\") {", "  if (false) {", C8B],
+  ["R61", "C8 RR-277 a robots disallow read by the route is read past", M, "    if (r?.state === \"DISALLOWED\") return blocked(", "    if (false) return blocked(", C8B],
+  ["R62", "C8 RR-277 a robots file the route cannot read either does not fail closed", M, "    if (r?.state !== \"ALLOWED\") return blocked(", "    if (false) return blocked(", C8B],
+  ["R63", "C8 RR-277 a consent wall does not stop the route", M, "    : got?.signal === BLOCK.CONSENT_WALL ? BLOCK.CONSENT_WALL : null;", "    : null;", C8B],
+  ["R64", "C8 RR-277 a footer's captcha mark stops a whole page", M, "  const wallText = normaliseText(raw).length < BROWSER_WALL_BELOW;", "  const wallText = true;", C8B],
+  ["R65", "C8 RR-277 a window that landed on another host is read as the page", M, "  if (hostOf(landed) !== host) return blocked(url, ROUTE.BROWSER, BLOCK.OFF_HOST,", "  if (false) return blocked(url, ROUTE.BROWSER, BLOCK.OFF_HOST,", C8B],
+  ["R66", "C8 RR-277 the client is not told to save a stopped page", M, "nothing is clicked, typed or solved. ${SAVE_THE_PAGE}`", "nothing is clicked, typed or solved.`", C8B],
+  ["R67", "C8 RR-277 a mark beside a whole page is named a wall", BR, "  const wall = t.replace(/\\s+/g, \" \").trim().length < WALL_COVERS_BELOW;", "  const wall = true;", C8S],
+  ["R68", "C8 RR-277 an unreadable robots file is read as allowing", BR, "  if (status !== 200 || typeof body !== \"string\") return { state: \"UNKNOWN\"", "  if (status !== 200 || typeof body !== \"string\") return { state: \"ALLOWED\"", C8S],
+  ["R69", "C8 RR-277 the route opens without the client starting it", BR, "  if (startedByClient !== true) throw new Error(", "  if (false) throw new Error(", C8S],
+  ["R70", "C11 RR-277 a snapshot its stored file does not hold is rechecked", BIN, " && file && quotationIn(s.quotation, file.text);", " && file;", PP],
+  ["R71", "C11 RR-277 a snapshot flags a page for rebuild", BIN, "recheckDays: null, pages: [], snapshot:", "recheckDays: null, pages: [\"x\"], snapshot:", PP],
+  ["R72", "C8 RR-277 the browser route is taken without a live read", BIN, "if ((BROWSER && !live) || !(", "if (!(", PP],
+  ["R58","RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
 ];
 
 /* --only=<id>: one limb, applied alone (FAST MODE F10: a limb is re-run on its own) */

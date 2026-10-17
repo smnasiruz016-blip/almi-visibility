@@ -53,7 +53,9 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
 import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 import { batchFacts } from "../src/facts/batch-facts.mjs";
-import { readSource, robotsOn, recheckFacts, recheckCounts, readRecord, recheckRecord, hostOf, SOURCE_READ, READ_STATE, RECHECK, extractFacts, extractionRecord, EXTRACTION, captureRead, clientFileRead, CURRENCY } from "../src/facts/source-reader.mjs";
+import { readSource, robotsOn, recheckFacts, recheckCounts, readRecord, recheckRecord, hostOf, SOURCE_READ, READ_STATE, RECHECK, extractFacts, extractionRecord, EXTRACTION, captureRead, clientFileRead, CURRENCY, BROWSER_GAP_MS, SAVE_THE_PAGE, quotationIn } from "../src/facts/source-reader.mjs";
+import { openBrowserRoute } from "../src/facts/browser-route.mjs";
+import { loadPlaywright } from "../src/render/renderer.mjs";
 import { makeCostEntry } from "../src/cost/ledger.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -72,6 +74,10 @@ if (IMPORT !== null && (live || EXTRACT !== null || !/^(browser-captures-\d{4}-\
 /* RR-269 §2: a live read of the sources a filed list names, and of no other — the facts that cite them are rechecked */
 const READ_LIST = arg("read-list");
 if (READ_LIST !== null && (!live || !/^read-list-\d{4}-\d{2}-\d{2}(-\d{1,2})?\.json$/.test(READ_LIST))) { console.error("usage: --read-list=read-list-YYYY-MM-DD[-N].json names the batch's own list and runs only with --live — nothing read, no request, nothing written"); process.exit(2); }
+/* RR-277 · C8: the CLIENT starts the browser route for this run (--browser-route) — off unless asked, and only with a live read; its own
+ * run cap (robots files count) is named before the run. Without it a blocked read stays BLOCKED, with the line telling the client what to do. */
+const BROWSER = process.argv.includes("--browser-route"), BROWSER_CAP = Number(arg("browser-cap") ?? 40);
+if ((BROWSER && !live) || !(Number.isInteger(BROWSER_CAP) && BROWSER_CAP >= 1 && BROWSER_CAP <= SOURCE_READ.maxRequests)) { console.error(`usage: --browser-route runs only with --live; --browser-cap=1..${SOURCE_READ.maxRequests} — nothing read, no request, nothing written`); process.exit(2); }
 const SCOPE = scopedEntryPoint({ entry: "bin/source-facts.mjs", governed: true, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH), ...(live ? [RESOURCES.connector(SUBJECT, KIND), RESOURCES.costLedger(ownLedgerRef())] : EXTRACT && permission.mayWrite ? [RESOURCES.costLedger(ownLedgerRef())] : [])] });
 /* F78: a run that opens a connector records its cost — constructed right after the scope gate */
 const RUN_COST = live || (EXTRACT && permission.mayWrite) ? runCost({ entryPoint: "bin/source-facts.mjs", scope: SCOPE, permission, write: (w) => executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: w.root, auditRepo: w.auditRepo, permission: w.permission, store: createCostLedger(w.path), records: [w.entry], targetClass: "RUN_EVIDENCE", action: "APPEND_RUN_COST_ENTRY", occurredAt: w.occurredAt, correlationId: w.correlationId, discipline: "LEDGER_APPEND", keyOf: (e) => e.entry_id ?? null })), auditRepo: REPO }) : null;
@@ -102,7 +108,19 @@ const facts = batchFacts({ drafts, findings, registry, intervals: Array.isArray(
 /* RR-269 §2: a filed read list names the sources of this run — none outside it is read; a list that is not readable refuses */
 const listed = READ_LIST ? json(READ_LIST) : null;
 if (READ_LIST && !(Array.isArray(listed?.sources) && listed.sources.length > 0 && listed.sources.every((u) => /^https?:\/\/\S+$/.test(String(u))))) { console.error("🔴 REFUSED — READ_LIST_UNREADABLE: the batch's read list names no readable source URLs; no request was made"); process.exit(3); }
-const rechecked = listed ? facts.filter((f) => listed.sources.includes(f.link)) : facts;
+/* RR-277 · C11: a dated HISTORICAL SNAPSHOT the batch files (historical-snapshots-<day>.json) — an old document's one quotation, OUT OF DATE
+ * and never publishable — is rechecked against its source's page today like a fact no page uses: it can only show that the page changed.
+ * It counts only when the client's own stored file (a CLIENT_FILE read, kept privately, OUT_OF_DATE) holds that quotation word for word. */
+const snapshotFiles = readdirSync(batchDir).filter((f) => /^historical-snapshots-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();
+const storedFiles = withPrivateTexts(privateRows("source-reads.jsonl").filter((r) => r?.via === "CLIENT_FILE"), [], { privateRoot: PRIVATE.state });
+const snapshots = snapshotFiles.flatMap((f) => (Array.isArray(json(f)?.snapshots) ? json(f).snapshots : []).map((s) => ({ ...s, filedIn: f })));
+const snapshotFacts = snapshots.map((s) => {
+  const file = storedFiles.find((r) => r.clientFile?.file === s.file && r.currency?.state === CURRENCY.OUT_OF_DATE && typeof r.text === "string");
+  const ok = typeof s.snapshotId === "string" && /^https?:\/\//.test(s.source ?? "") && s.publishable === false && s.state === CURRENCY.OUT_OF_DATE && file && quotationIn(s.quotation, file.text);
+  return ok ? { factId: `snapshot:${s.snapshotId}`, link: s.source, quotations: [s.quotation], readOn: s.suppliedOn ?? null, recheckDays: null, pages: [], snapshot: s.period ?? null } : { refused: s.snapshotId ?? "(unnamed)" };
+});
+const refusedSnapshots = snapshotFacts.filter((s) => s.refused);
+const rechecked = [...(listed ? facts.filter((f) => listed.sources.includes(f.link)) : facts), ...snapshotFacts.filter((s) => !s.refused && (!listed || listed.sources.includes(s.link)))];
 const checkable = rechecked.filter((f) => f.quotations.length > 0 && f.link);
 /* every distinct source a fact cites is read — a fact with no quotation still has its source's text kept for a later extraction */
 const urls = listed ? [...new Set(listed.sources)].sort() : [...new Set(facts.map((f) => f.link).filter(Boolean))].sort();
@@ -112,10 +130,12 @@ if (EXTRACT) await extractRun();
 if (IMPORT) await importRun();
 
 console.log("F44 · SOURCE READER — the recheck of the facts this batch's pages use · counts only");
-if (listed) console.log(`  read list        ${READ_LIST}: ${urls.length} source(s) named — no other source is read · facts citing them ${rechecked.length}`);
+if (listed) console.log(`  read list        ${READ_LIST}: ${urls.length} source(s) named — no other source is read · facts citing them ${rechecked.filter((f) => !f.factId.startsWith("snapshot:")).length}`);
 console.log(`  facts            ${facts.length} (registry ${facts.filter((f) => !f.factId.startsWith("claim:")).length} · claims naming no registry record ${facts.filter((f) => f.factId.startsWith("claim:")).length}) · with a recorded word-for-word quotation ${checkable.length} of ${facts.length} · used on ${new Set(facts.flatMap((f) => f.pages)).size} page(s)`);
 console.log(`  plan             ${urls.length} distinct source(s) on ${hosts.length} host(s) · requests needed at most ${urls.length + hosts.length} (each source once, each host's robots file once)`);
 console.log(`  bound            at most ${SOURCE_READ.maxRequests} request(s) in this run · the one paced path (at least 2 s between two requests to one host) · robots respected · a plain public request; nothing typed, no login`);
+console.log(`  fallback order   1 the engine's paced request → 2 the browser route ${BROWSER ? `ON (started by the client for this run: a visible window, a fresh separate profile, at least ${BROWSER_GAP_MS / 1000} s per host, at most ${BROWSER_CAP} read(s) with robots files)` : "OFF (start the run with --browser-route to use it)"} → 3 the client's own file (client-files/, named in its manifest)`);
+if (snapshots.length) console.log(`  snapshots        ${snapshots.length} historical snapshot(s) filed (OUT OF DATE, never publishable): rechecked ${rechecked.filter((f) => f.factId.startsWith("snapshot:")).length} · refused ${refusedSnapshots.length}${refusedSnapshots.length ? ` (${refusedSnapshots.map((s) => s.refused).join(", ")}: no stored OUT_OF_DATE client file holds its quotation word for word)` : ""}`);
 /* no request at all when the plan outnumbers the bound — decided before the connector is opened */
 if (urls.length + hosts.length > SOURCE_READ.maxRequests) { console.error(`🔴 REFUSED — OVER_THE_BOUND: ${urls.length + hosts.length} request(s) against a bound of ${SOURCE_READ.maxRequests}. NO REQUEST WAS MADE.`); process.exit(3); }
 if (!live) { console.log("  NOT RUN — no --live: the plan only; no request was made and nothing was written"); process.exit(0); }
@@ -127,10 +147,21 @@ refuseWithoutPrivate("a live read");
 const CONNECTOR = RUN_COST.metered(openConnector({ scope: SCOPE, subjectId: SUBJECT, kind: KIND }));
 const before = pacingRecord();
 const robots = robotsOn(CONNECTOR.fetch);
-/* the client's own browser route: none is declared for this client — a blocked read is BLOCKED with its URL, never retried by the engine */
-const state = { engineReads: 0, reads: 0, stopped: null };
+/* RR-277: the browser route, when the client started it for this run — a visible window the engine opens now; a blocked engine read goes
+ * to it (src/facts/source-reader.mjs browserRead); it is closed when the reads are done. A route that cannot open leaves them BLOCKED. */
+let ROUTE_OPEN = null;
+if (BROWSER) {
+  try { ROUTE_OPEN = await openBrowserRoute({ cap: BROWSER_CAP, startedByClient: true, loadPlaywright }); console.log(`  browser route    OPEN — ${ROUTE_OPEN.browser}, a visible window with a fresh, separate profile; it reads only what the engine is refused`); }
+  catch (e) { console.log(`  browser route    COULD NOT OPEN (${String(e?.message ?? e).split("\n")[0]}) — a blocked read stays BLOCKED`); }
+}
+const state = { engineReads: 0, reads: 0, stoppedHosts: new Map() };
 const reads = new Map();
-for (const url of urls) reads.set(url, await readSource(url, { fetchImpl: CONNECTOR.fetch, robots, route: null, state, on: ON, maxReads: SOURCE_READ.maxRequests, requestsMade: () => pacingRecord().released - before.released }));
+try {
+  for (const url of urls) reads.set(url, await readSource(url, { fetchImpl: CONNECTOR.fetch, robots, route: ROUTE_OPEN, state, on: ON, maxReads: SOURCE_READ.maxRequests, requestsMade: () => pacingRecord().released - before.released }));
+} finally { if (ROUTE_OPEN) await ROUTE_OPEN.close().catch(() => {}); }
+/* F78: the browser route's reads are this run's requests too — the run's one cost entry counts them */
+if (state.reads) RUN_COST.noteRequests("CLIENT_BROWSER_ROUTE", state.reads);
+for (const r of [...reads.values()].filter((x) => x.state === READ_STATE.BLOCKED)) console.log(`  blocked          ${hostOf(r.url)} · ${r.reason}${/save it as a PDF/.test(r.detail ?? "") ? ` — ${SAVE_THE_PAGE}` : ""}`);
 const results = await recheckFacts({ facts: rechecked, readOf: async (u) => reads.get(u), on: ON });
 const counts = recheckCounts(results);
 const paced = pacingRecord();

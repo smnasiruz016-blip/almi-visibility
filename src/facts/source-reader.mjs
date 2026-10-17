@@ -55,13 +55,24 @@ export const BLOCK = Object.freeze({
   READ_CAP: "RUN_READ_CAP_REACHED",
   /* RR-269: a capture of PART of a page cannot show that a quotation is gone from the page — only that it is not in the part */
   CAPTURE_PART: "CAPTURE_IS_PART_OF_THE_PAGE",
+  /* RR-277: a page that shows only a cookie or consent prompt — the route never clicks it away */
+  CONSENT_WALL: "CONSENT_WALL",
 });
-/** What the engine may hand to the client's browser route: a refusal, a challenge or an empty page (RR-268 §B2.2). Nothing else. */
-export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY]);
+/**
+ * What the engine may hand to the client's browser route: a refusal, a challenge or an empty page (RR-268 §B2.2) — and (RR-277) a robots
+ * file the engine's plain request could not read, which is the same refusal one step earlier. The route then reads the robots file itself
+ * and obeys it, failing closed. A robots file that DISALLOWS, or a page that is not found, never falls back.
+ */
+export const FALLBACK_ON = Object.freeze([BLOCK.REFUSED, BLOCK.CHALLENGE, BLOCK.EMPTY, BLOCK.ROBOTS_UNREADABLE]);
+/** RR-277: what stops the browser route for a host, and the one line the client is told — never clicked through, solved or retried */
+export const ROUTE_STOPS = Object.freeze([BLOCK.CAPTCHA, BLOCK.CHALLENGE, BLOCK.LOGIN_WALL, BLOCK.CONSENT_WALL]);
+export const SAVE_THE_PAGE = "Open this page in your own browser, save it as a PDF into this batch's client-files folder and name it in client-files/manifest.json with its URL and today's date — the engine reads it from there.";
 /** The owner's bound for one run of live reads (RR-268 §B3: "max 100 reads") — robots files count. */
 export const SOURCE_READ = Object.freeze({ maxRequests: 100 });
 /** The browser route's own floor between two reads of one host (RR-268 §B2.2: "≥5 s per host"). */
 export const BROWSER_GAP_MS = 5000;
+/** RR-277: below this many characters of text a page's captcha, bot-check or login marks are the page itself, not a footer beside it. */
+export const BROWSER_WALL_BELOW = 1500;
 export const RECHECK = Object.freeze({ CURRENT: "CURRENT", CHANGED: "CHANGED", BLOCKED: "BLOCKED", REJECTED: "REJECTED" });
 export const REJECT = Object.freeze({
   NO_QUOTATION: "NO_RECORDED_WORD_FOR_WORD_QUOTATION",
@@ -179,19 +190,43 @@ export async function engineRead(url, { fetchImpl, robots, on, timeoutMs = 20_00
  */
 export async function browserRead(url, { route, state, on, pace = pacedRelease, hosts } = {}) {
   if (!route || route.connected !== true || route.startedByClient !== true || typeof route.read !== "function") return blocked(url, ROUTE.BROWSER, BLOCK.NO_ROUTE, "no browser route of the client's is connected and started — the need is BLOCKED, named");
-  if (state.stopped) return blocked(url, ROUTE.BROWSER, BLOCK.ROUTE_STOPPED, `the route stopped earlier in this run (${state.stopped})`);
+  /* RR-277: a stop holds for its HOST for the rest of the run — the route never tries that host again, and other hosts go on */
+  const host = hostOf(url);
+  state.stoppedHosts ??= new Map();
+  if (state.stoppedHosts.has(host)) return blocked(url, ROUTE.BROWSER, BLOCK.ROUTE_STOPPED, `the route stopped for ${host} earlier in this run (${state.stoppedHosts.get(host)}). ${SAVE_THE_PAGE}`);
   const cap = Number.isInteger(route.cap) && route.cap > 0 ? route.cap : 0;
-  if (state.reads >= cap) return blocked(url, ROUTE.BROWSER, BLOCK.ROUTE_CAP, `the route's run cap of ${cap} read(s) is reached`);
-  await pace(url, BROWSER_GAP_MS, hosts ? { hosts } : undefined);
-  state.reads += 1;
+  const take = async (what) => {
+    if (state.reads >= cap) return false;
+    await pace(what, BROWSER_GAP_MS, hosts ? { hosts } : undefined);
+    state.reads += 1;
+    return true;
+  };
+  /* RR-277: when the route can read a robots file it reads the host's own first, through the same pacing and cap, and obeys it — a
+   * disallow is never read past, and a robots file the route cannot read either fails closed */
+  if (typeof route.robots === "function") {
+    if (!(await take(`${new URL(url).origin}/robots.txt`))) return blocked(url, ROUTE.BROWSER, BLOCK.ROUTE_CAP, `the route's run cap of ${cap} read(s) is reached`);
+    let r;
+    try { r = await route.robots(url); } catch (err) { r = { state: "UNKNOWN", reason: String(err?.message ?? err) }; }
+    if (r?.state === "DISALLOWED") return blocked(url, ROUTE.BROWSER, BLOCK.ROBOTS_DISALLOWED, `the host's robots file disallows it (read by the browser route): ${r.reason ?? ""}`.trim());
+    if (r?.state !== "ALLOWED") return blocked(url, ROUTE.BROWSER, BLOCK.ROBOTS_UNREADABLE, `the browser route could not read the host's robots file either (${r?.reason ?? "unknown"}) — not read, failing closed. ${SAVE_THE_PAGE}`);
+  }
+  if (!(await take(url))) return blocked(url, ROUTE.BROWSER, BLOCK.ROUTE_CAP, `the route's run cap of ${cap} read(s) is reached`);
   let got;
   try { got = await route.read(url); } catch (err) { return blocked(url, ROUTE.BROWSER, BLOCK.FAILED, `the browser route failed: ${String(err?.message ?? err)}`); }
   const raw = String(got?.text ?? "");
-  const stop = got?.signal === BLOCK.CAPTCHA || CAPTCHA_MARKS.test(raw) ? BLOCK.CAPTCHA : got?.signal === BLOCK.LOGIN_WALL || LOGIN_MARKS.test(raw) ? BLOCK.LOGIN_WALL : null;
-  if (stop) { state.stopped = stop; return blocked(url, ROUTE.BROWSER, stop, "the route stops at a captcha or a login wall — nothing is typed, nothing is solved"); }
+  /* the route's own signal decides; the text marks are read only when the text is short enough to BE the wall (RR-277: a footer's
+   * "protected by reCAPTCHA" beside a whole page is not a captcha) */
+  const wallText = normaliseText(raw).length < BROWSER_WALL_BELOW;
+  const stop = got?.signal === BLOCK.CAPTCHA || (wallText && CAPTCHA_MARKS.test(raw)) ? BLOCK.CAPTCHA
+    : got?.signal === BLOCK.LOGIN_WALL || (wallText && LOGIN_MARKS.test(raw)) ? BLOCK.LOGIN_WALL
+    : got?.signal === BLOCK.CHALLENGE || (wallText && CHALLENGE_MARKS.test(raw)) ? BLOCK.CHALLENGE
+    : got?.signal === BLOCK.CONSENT_WALL ? BLOCK.CONSENT_WALL : null;
+  if (stop) { state.stoppedHosts.set(host, stop); return blocked(url, ROUTE.BROWSER, stop, `the route stops for ${host} at a ${stop.toLowerCase().replace(/_/g, " ")} — nothing is clicked, typed or solved. ${SAVE_THE_PAGE}`); }
+  const landed = typeof got?.landedUrl === "string" && got.landedUrl !== "" ? got.landedUrl : url;
+  if (hostOf(landed) !== host) return blocked(url, ROUTE.BROWSER, BLOCK.OFF_HOST, `asked for ${host}, the window landed on ${hostOf(landed)}`);
   const text = normaliseText(raw);
   if (text.length < MIN_SUBSTANTIVE_BODY) return blocked(url, ROUTE.BROWSER, BLOCK.EMPTY, `${text.length} characters of text — not a document`);
-  return Object.freeze({ state: READ_STATE.READ, url, route: ROUTE.BROWSER, landedUrl: url, text, sha256: sha256(text), readOn: on, chars: text.length });
+  return Object.freeze({ state: READ_STATE.READ, url, route: ROUTE.BROWSER, landedUrl: landed, text, sha256: sha256(text), readOn: on, chars: text.length, ...(got?.browser ? { browser: String(got.browser) } : {}) });
 }
 
 /**

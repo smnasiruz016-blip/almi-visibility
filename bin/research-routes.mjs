@@ -40,7 +40,7 @@ else {
   console.log(`  narrower scope   ${a.narrower.length} record(s) naming a narrower scope, each evidence about that scope only — never generalised`);
   if (r.narrowing) console.log(`  narrowing        routes before ${r.narrowing.before} → after ${r.narrowing.after} (REQUIRED/ACCEPTED combinations only; a route is not demand)`);
 }
-if (a) for (const [d, x] of Object.entries(a.otherDifferences)) console.log(`  ${d.padEnd(16)} ${x.state} — missing ${x.missing}`);
+if (a) for (const [d, x] of Object.entries(a.otherDifferences)) console.log(`  ${d.padEnd(16)} ${x.state} — ${x.why}`);
 console.log("  pages            0 created and 0 counted from routes or applicability — a page exists only because a real question exists");
 if (r.routes === NOT_MEASURED) {
   console.log(`  routes           ${NOT_MEASURED} — missing ${r.refusals.join("; ")}`);

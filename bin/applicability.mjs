@@ -35,5 +35,5 @@ if (!d.derived) {
   console.log(`  proposed checks  ${d.counts.checks} over ${d.counts.bodies} deciding bod(ies): ${Object.entries(d.counts.byOutcome).map(([k, n]) => `${k} ${n}`).join(" · ")} — UNKNOWN is never zero; ACCEPTED is never REQUIRED`);
   for (const m of d.missing) console.log(`  missing          ${m}`);
 }
-for (const [k, x] of Object.entries(d.otherDifferences)) console.log(`  ${k.padEnd(16)} ${x.state} — missing ${x.missing}`);
+for (const [k, x] of Object.entries(d.otherDifferences)) console.log(`  ${k.padEnd(16)} ${x.state} — ${x.why}`);
 console.log(`  pages            ${d.pagesCreated} created and ${d.pagesCounted} counted — a page exists only because a real question exists`);

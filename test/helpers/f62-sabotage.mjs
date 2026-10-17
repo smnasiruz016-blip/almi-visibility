@@ -58,7 +58,9 @@ const SABOTAGES = [
   ["S20", "C7 the code names no product", AP, "export const NOT_MEASURED = \"NOT MEASURED\";\n", `export const NOT_MEASURED = "NOT MEASURED";\nexport const PLANTED = "${PRODUCT_WORDS[0]}";\n`, P7B],
   ["S21", "C7 the code reaches no network", AP, "export const NOT_MEASURED_APPLICABILITY = NOT_MEASURED;\n", "export const NOT_MEASURED_APPLICABILITY = NOT_MEASURED;\nexport async function probe(u) { return fetch(u); }\n", P7B],
   /* C8 */
-  ["S22", "C8 language, cultural and search differences are NOT MEASURED, named", AP, "Object.freeze({ state: NOT_MEASURED, missing: MISSING.otherEvidence })", "Object.freeze({ state: 0, missing: null })", P8],
+  /* RR-283 · S22 restated for C8 as amended (F62 Amendment 1): language and search moved to future rows, the reason named; S22b: cultural removed */
+  ["S22", "C8 language and search differences are MOVED TO A FUTURE ROW, the reason named — never 0", AP, "Object.freeze({ state: MOVED_TO_A_FUTURE_ROW, why: MISSING.otherEvidence })", "Object.freeze({ state: 0, why: null })", P8],
+  ["S22b", "C8 cultural differences are removed", AP, "export const OTHER_DIFFERENCES = Object.freeze([\"language\", \"search\"]);", "export const OTHER_DIFFERENCES = Object.freeze([\"language\", \"cultural\", \"search\"]);", P8],
   /* RR-149 · the derived research declaration */
   ["S23", "D1 only a tier-1 record makes a deciding body", AP, "const deciding = act.filter((f) => f?.source?.tier === 1 && present(f?.claim?.subject));", "const deciding = act.filter((f) => present(f?.claim?.subject));", D1],
   ["S24", "D1/D2 a check is one body and one EXACT scope — never merged across scopes", AP, "    const k = scopeKey(f.claim.subject, scope);", "    const k = scopeKey(f.claim.subject, new Map());", D1],

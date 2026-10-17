@@ -24,7 +24,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
-import { applicabilityOf, applicableRoutes, neededCombinations, deriveDeclaration, OUTCOMES, OTHER_DIFFERENCES, MISSING, MISSING_FACT, CHECK_AUTHORITY, NOT_MEASURED, ROUTE_LIMITS } from "../src/research/applicability.mjs";
+import { applicabilityOf, applicableRoutes, neededCombinations, deriveDeclaration, OUTCOMES, OTHER_DIFFERENCES, MOVED_TO_A_FUTURE_ROW, MISSING, MISSING_FACT, CHECK_AUTHORITY, NOT_MEASURED, ROUTE_LIMITS } from "../src/research/applicability.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
 import { qualifierPairs } from "../src/discovery/context-axes.mjs";
 import { researchRoutes } from "../src/research/research-routes.mjs";
@@ -239,10 +239,12 @@ test("P7b · C7 the applicability code and its reader name no product word and r
 
 /* ================= C8 ================= */
 
-test("P8 · C8 THE REST OF THE ROW'S LINE: language, cultural and search differences are NOT MEASURED with the missing definition named — in a measured and an unmeasured result alike", () => {
+test("P8 · C8 THE REST OF THE ROW'S LINE (Amendment 1): cultural differences are removed; language and search differences are MOVED TO A FUTURE ROW with the reason named — never measured, never 0 — in a measured and an unmeasured result alike", () => {
+  assert.deepEqual([...OTHER_DIFFERENCES], ["language", "search"], "cultural is still reported, or a difference was dropped");
   for (const a of [run([fact("f1", "knot=bowline,region=r-one", "REQUIRED")]), run([], { on: null })]) {
     assert.deepEqual(Object.keys(a.otherDifferences), [...OTHER_DIFFERENCES]);
-    for (const d of OTHER_DIFFERENCES) assert.deepEqual({ ...a.otherDifferences[d] }, { state: NOT_MEASURED, missing: MISSING.otherEvidence }, `${d} reads measured, 0 or blank`);
+    for (const d of OTHER_DIFFERENCES) assert.deepEqual({ ...a.otherDifferences[d] }, { state: MOVED_TO_A_FUTURE_ROW, why: MISSING.otherEvidence }, `${d} reads measured, 0 or blank`);
+    assert.ok(!("cultural" in a.otherDifferences), "cultural is still reported");
   }
 });
 
@@ -258,7 +260,7 @@ test("ENTRY · the entry point on two declared products: one declares a dimensio
     assert.match(f0.stdout, /applicability {4}NOT MEASURED — missing a stated judging date/);
     assert.match(f.stdout, /routes {11}NOT MEASURED — missing APPLICABILITY_NOT_MEASURED/);
     assert.match(k.stdout, /applicability {4}NOT DECLARED by the product/);
-    for (const d of OTHER_DIFFERENCES) assert.match(f.stdout, new RegExp(`  ${d} +NOT MEASURED — missing an owner-defined recorded evidence path`));
+    for (const d of OTHER_DIFFERENCES) assert.match(f.stdout, new RegExp(`  ${d} +MOVED TO A FUTURE ROW — the owner moved it to a separate future row`));
     for (const x of [f, f0, k]) assert.match(x.stdout, /pages {12}0 created and 0 counted/);
   } finally { W.cleanup(); }
 });
@@ -349,7 +351,7 @@ test("D4 · A PROPOSED CHECK IS NOT a verdict, a question, demand, a page opport
   for (const c of d.checks) assert.match(c.status, /^PROPOSED — not a verdict, not a question, not demand, not a page/);
   assert.deepEqual([d.pagesCreated, d.pagesCounted], [0, 0]);
   assert.doesNotMatch(JSON.stringify(d), /"(page|pages|pageCount|opportunit\w*|demand|route|routes|maxRoutes)":/i, "the declaration carried a page, an opportunity, demand or a route budget");
-  for (const x of OTHER_DIFFERENCES) assert.deepEqual({ ...d.otherDifferences[x] }, { state: NOT_MEASURED, missing: MISSING.otherEvidence });
+  for (const x of OTHER_DIFFERENCES) assert.deepEqual({ ...d.otherDifferences[x] }, { state: MOVED_TO_A_FUTURE_ROW, why: MISSING.otherEvidence });
 });
 
 test("D5 · THE PRODUCTION READER on two unrelated products, each over its own registry on disk — nothing listed by hand, one product's records never counted for another", async () => {

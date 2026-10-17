@@ -16,7 +16,8 @@
  *                        product's own records carry. No catalogue, and nothing asked of the owner beyond the dimension's key.
  *   C6 NOT A PAGE        nothing here creates, counts or proposes a page; the hand-off is routes for REQUIRED/ACCEPTED combinations only,
  *                        each carrying its records, their dates and its limits — never an observed question, an opportunity or demand.
- *   C8 THE REST          language, cultural and search differences have no defined evidence path: each is NOT MEASURED, named.
+ *   C8 THE REST          (F62 Amendment 1, the owner, RR-283 item 9) cultural differences are removed; language and search differences
+ *                        are separate future rows, not built here: each is printed MOVED TO A FUTURE ROW — never measured, never 0.
  */
 import { qualifierPairs } from "../discovery/context-axes.mjs";
 import { auditCitation, CITATION } from "../facts/citation-audit.mjs";
@@ -28,7 +29,9 @@ export const APPLICABLE = Object.freeze([OUTCOMES.REQUIRED, OUTCOMES.ACCEPTED]);
 export const NOT_MEASURED = "NOT MEASURED";
 export const NOT_MEASURED_APPLICABILITY = NOT_MEASURED;
 /* C8 — the other differences F62's line names, held as words of the row, never as a product's dimension */
-export const OTHER_DIFFERENCES = Object.freeze(["language", "cultural", "search"]);
+export const OTHER_DIFFERENCES = Object.freeze(["language", "search"]);
+/* RR-283 (F62 Amendment 1 C8): where they went — never measured here, never 0 */
+export const MOVED_TO_A_FUTURE_ROW = "MOVED TO A FUTURE ROW";
 export const MISSING = Object.freeze({
   date: "a stated judging date (YYYY-MM-DD) — a date is a measurement, never the clock's default",
   dimension: "the product's declared applicability dimension — its KEY only, never a list of values",
@@ -36,7 +39,7 @@ export const MISSING = Object.freeze({
   routes: "research routes in hand",
   discovered: "F13 reports no such dimension from the product's own records",
   carried: "a record of the product carrying a value of the declared applicability dimension",
-  otherEvidence: "an owner-defined recorded evidence path for this difference (F62 C8)",
+  otherEvidence: "the owner moved it to a separate future row, not built here (F62 Amendment 1 C8, RR-283 item 9)",
 });
 export const ROUTE_LIMITS = "a place to look for public questions in a combination where a current, proved, authoritative record states the product applies — not an observed question, not a page opportunity and not evidence of demand";
 
@@ -48,8 +51,8 @@ const scopeOf = (f) => new Map(qualifierPairs(f));
 const covers = (outer, inner) => [...inner].every(([k, v]) => outer.get(k) === v);
 /* C3 — a deciding record's observed date: F45's recorded check date, one reader for every path */
 const observedOnOf = (health, f) => health.get(f.id)?.freshness?.checkedOn ?? null;
-/* C8 — one builder, used by every path: each difference NOT MEASURED, its missing definition named */
-const otherDifferencesNow = () => Object.freeze(Object.fromEntries(OTHER_DIFFERENCES.map((d) => [d, Object.freeze({ state: NOT_MEASURED, missing: MISSING.otherEvidence })])));
+/* C8 (Amendment 1) — one builder, used by every path: each difference moved to its future row, the reason named; cultural is removed */
+const otherDifferencesNow = () => Object.freeze(Object.fromEntries(OTHER_DIFFERENCES.map((d) => [d, Object.freeze({ state: MOVED_TO_A_FUTURE_ROW, why: MISSING.otherEvidence })])));
 const comboKey = (m) => JSON.stringify([...m].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
 /** C5 — the combinations the routes in hand need: each route × each value of the declared dimension the product's records carry. */

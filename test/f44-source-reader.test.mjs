@@ -531,7 +531,15 @@ test("REAL · the declared batch's stored recheck: every fact its pages use has 
   const checks = rowsIn(join(dir, "fact-rechecks.jsonl")), reads = withPrivateTexts(publicReads, existsSync(privPath) ? rowsIn(privPath) : [], { privateRoot: priv.state });
   const latest = [...new Map(checks.map((c) => [c.factId, c])).values()];
   assert.ok(latest.length > 0 && latest.every((c) => Object.values(RECHECK).includes(c.state)), "a fact has no state");
-  assert.ok(latest.filter((c) => c.state === RECHECK.CHANGED).every((c) => c.rebuild.length === c.pages.length && c.pages.length > 0), "a CHANGED fact flags no page");
+  /* a historical snapshot (RR-277) is used by no page: CHANGED, it flags nothing; every other CHANGED fact flags each page that uses it */
+  const isSnap = (c) => String(c.factId).startsWith("snapshot:");
+  assert.ok(latest.filter((c) => c.state === RECHECK.CHANGED && !isSnap(c)).every((c) => c.rebuild.length === c.pages.length && c.pages.length > 0), "a CHANGED fact flags no page");
+  assert.ok(latest.filter(isSnap).every((c) => c.pages.length === 0 && c.rebuild.length === 0), "a snapshot flagged a page");
+  /* RR-277 · C11 real: the dated 2020-21 fee snapshot reads CHANGED against the page today; C8 real: the browser route READ sources the
+   * engine was refused, and stopped on others, BLOCKED with the line telling the client to save the page */
+  assert.equal(latest.find((c) => c.factId === "snapshot:bc-pk-ielts-fee-2020-21")?.state, RECHECK.CHANGED, "C11: no real CHANGED case is stored");
+  const routeReads = reads.filter((r) => r.readOn === "2026-10-17" && r.route === ROUTE.BROWSER);
+  assert.ok(routeReads.filter((r) => r.state === READ_STATE.READ).length >= 1 && routeReads.every((r) => r.state === READ_STATE.READ ? r.engineBlocked : /save it as a PDF/.test(r.detail ?? "")), "C8: no real browser-route read, or a stop without the client's line");
   assert.ok(reads.filter((r) => r.state === READ_STATE.READ).every((r) => r.sha256 === createHash("sha256").update(r.text).digest("hex") && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn)), "a stored read lost its text, hash or date");
 });
 

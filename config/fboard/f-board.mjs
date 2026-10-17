@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1541,7 +1541,7 @@ export const DECLARED = Object.freeze({
     board: "F_BOARD",
     state: "IN-PROGRESS",
     events: Object.freeze([
-      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-03", ruling: ACCEPTANCES.F62.ruling, contractSha256: ACCEPTANCES.F62.contractSha256 }),
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-03", ruling: F62_ORIGINAL.ruling, contractSha256: F62_ORIGINAL.contractSha256 }),
       Object.freeze({
         kind: "IMPLEMENTATION",
         featureId: "F62",
@@ -1550,13 +1550,21 @@ export const DECLARED = Object.freeze({
         to: "IN-PROGRESS",
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
-        acceptanceUnchanged: Object.freeze({ ruling: ACCEPTANCES.F62.ruling.sha256, contract: ACCEPTANCES.F62.contractSha256 }),
+        acceptanceUnchanged: Object.freeze({ ruling: F62_ORIGINAL.ruling.sha256, contract: F62_ORIGINAL.contractSha256 }),
         branch: "rr148-f62-applicability",
         baseSha: "9ba2a954ce8360a98c2334c8a59fac58d6e381b6",
         baseCiRun: "37111226893",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-148_ONE_FEATURE_PRODUCT_APPLICABILITY.md", commit: "e10099e88e8548cbee912c34b8649b7a28996acd", sha256: "2cb7548638f583e7825f15800a2a66fe502e1f71d06a22a24a5d29eda8b9dec3" }),
       }),
+      /* RR-283 item 9: F62's Acceptance Amendment 1 (the owner's words: cultural removed; language and search to future rows; C9 the verdict
+       * of each check from the verbatim official text, CHECKED_NOT_FOUND or BLOCKED), frozen ALONE. F62 STAYS IN-PROGRESS. Proven on the
+       * branch: C8 (f62-sabotage 34/34) and C9 (f62-verdicts-sabotage 7/7; REAL 24 checks — ACCEPTED 6, CHECKED_NOT_FOUND 16, BLOCKED 2 by the
+       * test owner's licence, UNKNOWN 0; one read of 8 pages, 14 requests). EXACT BLOCKER: C1–C6 measure the combinations of the product's
+       * declared applicability dimension and its research routes, and no declared product declares either (applicability NOT MEASURED), so
+       * those clauses have only an empty real population; and the C9 verdicts are not yet read back as the derived checks' outcomes (C1 reads
+       * only an outcome a record states). */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F62", on: "2026-10-17", ruling: F62_AMENDMENT_1.ruling, contractSha256: F62_AMENDMENT_1.contractSha256, amends: F62_AMENDMENT_1.amends }),
     ]),
   }),
   /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code; IN-PROGRESS until 12 Oct 2026 because

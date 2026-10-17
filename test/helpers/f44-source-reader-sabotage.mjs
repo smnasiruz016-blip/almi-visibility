@@ -24,7 +24,7 @@ const TRAIL = "audit-trail/events.jsonl";
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const read = (p) => readFileSync(join(REPO, p));
 const PDFR = "C7 · PDF READER · FIRING CONTROL (RR-269 §2)", CAP = "CAPTURE · CLIENT FILE · FIRING CONTROL (RR-269 §1)";
-const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", C8B = "C8 · RR-277 · FIRING CONTROL", C8S = "C8 · RR-277 · THE WINDOW'S SIGNALS", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL", ONE = "RR-282 · ONE SENTENCE · FIRING CONTROL";
+const C7 = "C7 · FIRING CONTROL", C8 = "C8 · FIRING CONTROL", C9 = "C9 · FIRING CONTROL", C10 = "C10 · FIRING CONTROL", C11 = "C11 · FIRING CONTROL", BFC = "C11 · BATCH FACTS · FIRING CONTROL", C12 = "C12 · NEUTRAL", PP = "PRODUCTION PATH · C7 C10 C11", PRV = "RR-274 · PRIVATE TEXTS · FIRING CONTROL", C8B = "C8 · RR-277 · FIRING CONTROL", C8S = "C8 · RR-277 · THE WINDOW'S SIGNALS", EXT = "C9 + C10 · EXTRACTION RECORD · FIRING CONTROL", ONE = "RR-282 · ONE SENTENCE · FIRING CONTROL", STO = "RR-282 · STORED RECHECK · FIRING CONTROL";
 
 /* [id, limb, file, span, replacement, the test that must turn red] */
 const SABOTAGES = [
@@ -111,6 +111,13 @@ const SABOTAGES = [
   ["R77", "RR-282 a refused quotation carries no plain message", M, "...(REJECT_PLAIN[why] ? { message: REJECT_PLAIN[why] } : {})", "...({})", ONE],
   ["R78", "RR-282 an existing fact is judged by the new-fact rule", M, "    const quotations = (f.quotations ?? []).filter((q) => String(q ?? \"\").trim() !== \"\");", "    const quotations = (f.quotations ?? []).filter((q) => String(q ?? \"\").trim() !== \"\" && !quotationShape(q));", ONE],
   ["R79", "RR-282 the entry point tells no plain message", BIN, "  for (const r of records.filter((x) => REJECT_PLAIN[x.reason])) console.log(", "  for (const r of []) console.log(", PP],
+  /* RR-282: the recheck from stored text alone */
+  ["R80", "RR-282 a stored read whose text is not here reads as a page with every quotation gone", M, "    if (r.state === READ_STATE.READ && typeof r.text !== \"string\") return blocked(", "    if (false) return blocked(", STO],
+  ["R81", "RR-282 an older stored read stands for its source", M, "latest.set(r.url, r);", "latest.has(r.url) || latest.set(r.url, r);", STO],
+  ["R82", "RR-282 a client file said out of date stands for its source", M, "r.currency?.state !== CURRENCY.OUT_OF_DATE) latest", "true) latest", STO],
+  ["R83", "RR-282 the stored recheck runs without the private texts", BIN, "  if (PRIVATE.state !== \"DECLARED\") { console.error(\"🔴 REFUSED — PRIVATE_SOURCES_ABSENT: a recheck from stored text", "  if (false) { console.error(\"🔴 REFUSED — PRIVATE_SOURCES_ABSENT: a recheck from stored text", PP],
+  ["R84", "RR-282 the stored recheck runs beside a live read", BIN, "(STORED && (live || EXTRACT !== null", "(STORED && (false || EXTRACT !== null", PP],
+  ["R85", "RR-282 the stored recheck reads the public copies (no text) instead of the private texts", BIN, "storedReadOf(withPrivateTexts(rows(READS), privateRows(READS), { privateRoot: PRIVATE.state }))", "storedReadOf(rows(READS))", PP],
   ["R58","RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
 ];
 

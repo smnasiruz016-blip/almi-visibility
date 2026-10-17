@@ -19,7 +19,7 @@ import { pathToFileURL } from "node:url";
 
 import { engineRead, browserRead, readSource, extractFacts, recheckFacts, recheckCounts, readRecord, recheckRecord, robotsOn, quotationIn, isOneSentence, dueOn,
   ROUTE, READ_STATE, BLOCK, RECHECK, REJECT, FALLBACK_ON, BROWSER_GAP_MS, SOURCE_READ, SOURCE_READ_RECORD, FACT_RECHECK_RECORD, extractionRecord, EXTRACTION, EXTRACTION_RECORD,
-  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE, hostOf, ROUTE_STOPS, SAVE_THE_PAGE, BROWSER_WALL_BELOW, quotationShape, REJECT_PLAIN } from "../src/facts/source-reader.mjs";
+  captureRead, clientFileRead, pdfRead, VIA, CURRENCY, CAPTURE_REFUSE, hostOf, ROUTE_STOPS, SAVE_THE_PAGE, BROWSER_WALL_BELOW, quotationShape, REJECT_PLAIN, storedReadOf } from "../src/facts/source-reader.mjs";
 import { browserSignal, robotsVerdict, openBrowserRoute, WALL_COVERS_BELOW } from "../src/facts/browser-route.mjs";
 import { pdfText, PDF_TEXT } from "../src/facts/pdf-text.mjs";
 import { deflateSync } from "node:zlib";
@@ -270,6 +270,17 @@ test("RR-282 · ONE SENTENCE · FIRING CONTROL: a new fact's quotation is one se
   assert.deepEqual([c.state, JSON.stringify(facts)], [RECHECK.CURRENT, snapshot], "an existing fact was judged by the new-fact rule, or rewritten");
 });
 
+test("RR-282 · STORED RECHECK · FIRING CONTROL: from stored reads alone — the latest read of a source stands for it; a stored text that is not here is BLOCKED, never a page with every quotation gone; a client file said out of date stands for nothing; a source never read is BLOCKED", async () => {
+  const q = "Glass bottles go in the green bin, emptied every second Tuesday.";
+  const row = (over) => ({ url: TOWN.url, state: READ_STATE.READ, route: ROUTE.ENGINE, sha256: "x", readOn: "2026-09-01", text: `Recycling. ${q} More.`, ...over });
+  const facts = [{ factId: "glass", link: TOWN.url, quotations: [q], readOn: "2026-09-01", recheckDays: 90, pages: ["town-a"] }, { factId: "never", link: "https://never.invalid/", quotations: [q], pages: [] }];
+  const check = async (rows) => (await recheckFacts({ facts, readOf: async (u) => storedReadOf(rows)(u), on: ON })).map((r) => [r.factId, r.state, r.reason ?? null]);
+  assert.deepEqual(await check([row({ text: "gone" }), row({})]), [["glass", RECHECK.CURRENT, null], ["never", RECHECK.BLOCKED, REJECT.NO_PAGE_TEXT]], "the latest stored read does not stand for its source");
+  assert.deepEqual(await check([row({}), row({ text: "Recycling. Glass goes in the blue bin." })]), [["glass", RECHECK.CHANGED, null], ["never", RECHECK.BLOCKED, REJECT.NO_PAGE_TEXT]], "an older read stood for its source");
+  assert.deepEqual(await check([row({ text: null, textMissing: "PRIVATE_SOURCES_ROOT_ABSENT" })]), [["glass", RECHECK.BLOCKED, REJECT.NO_PAGE_TEXT], ["never", RECHECK.BLOCKED, REJECT.NO_PAGE_TEXT]], "a stored text that is not here read as a page whose quotations are gone");
+  assert.deepEqual(await check([row({}), row({ text: "Old prices.", currency: { state: CURRENCY.OUT_OF_DATE } })]), [["glass", RECHECK.CURRENT, null], ["never", RECHECK.BLOCKED, REJECT.NO_PAGE_TEXT]], "a client file said out of date stood for its source");
+});
+
 test("C11 · FIRING CONTROL: each fact is exactly one of CURRENT, CHANGED, BLOCKED or REJECTED — a quotation gone flags every page that uses it; a blocked source is never CURRENT; a fact with no quotation is REJECTED, named; nothing stored is rewritten", async () => {
   const changed = { ...TOWN, html: TOWN.html.replace("every second Tuesday", "every Monday") };
   const facts = [
@@ -387,6 +398,18 @@ test("PRODUCTION PATH · C7 C10 C11: in a scratch world with no egress, for two 
     assert.match(live.stdout, /requests {9}2 released through the paced path \(robots 1 · sources 1\) of a bound of 100/);
     assert.match(live.stdout, /recheck {10}2 fact\(s\): CURRENT 1 · CHANGED 0 · BLOCKED 0 · REJECTED 1/);
     const b = join(W.root, "research", "fixture-test-facts"), pb = join(P, "research", "fixture-test-facts");
+    /* RR-282 · --stored: the same facts rechecked from the stored texts alone read as the live run did — no request, nothing written;
+     * --facts names them; a fact not on the batch, or --stored with --live, refuses; without the private root, nothing is read */
+    const sizes = () => [join(b, "source-reads.jsonl"), join(b, "fact-rechecks.jsonl"), join(pb, "source-reads.jsonl")].map((f) => readFileSync(f).length);
+    const sizesBefore = sizes();
+    const st = run("fixture-tests", "fixture-test-facts", "refuse", "--stored");
+    assert.deepEqual([st.status, /facts {12}2: CURRENT 1 · REJECTED 1/.test(st.stdout), /requests {9}0 — no connector was opened/.test(st.stdout), /kept recheck {5}same state 2 · differs 0 · never rechecked 0/.test(st.stdout), /NOT WRITTEN/.test(st.stdout), egress()], [0, true, true, true, true, 0], st.stdout + st.stderr);
+    const one = run("fixture-tests", "fixture-test-facts", "refuse", "--stored", "--facts=f1");
+    assert.deepEqual([one.status, /facts {12}1 \(named\): CURRENT 1/.test(one.stdout), /f1 +stored CURRENT · kept CURRENT \(ENGINE_PACED_PATH, source-facts:/.test(one.stdout), egress()], [0, true, true, 0], one.stdout + one.stderr);
+    assert.deepEqual([run("fixture-tests", "fixture-test-facts", "refuse", "--stored", "--facts=nope").status, run("fixture-tests", "fixture-test-facts", "refuse", "--stored", "--live").status, run("fixture-tests", "fixture-test-facts", "refuse", "--facts=f1").status], [3, 2, 2], "a fact not on the batch, --stored with --live, or --facts alone was run");
+    const stNoPriv = spawnSync(process.execPath, ["--import", PRELOAD, "bin/source-facts.mjs", ...W.argv(["--subject=fixture-tests", "--research-batch=fixture-test-facts", `--on=${ON}`, "--stored"])], { cwd: REPO, encoding: "utf8", env: { ...W.envWith(), ALMIVISIBILITY_PRIVATE_SOURCES: join(P, "absent"), NO_EGRESS_MODE: "refuse", NO_EGRESS_LOG: log, NO_EGRESS_REPLAY: join(dir, "replay.json") } });
+    assert.deepEqual([stNoPriv.status, /REFUSED — PRIVATE_SOURCES_ABSENT: a recheck from stored text/.test(stNoPriv.stderr), egress()], [3, true, 0], stNoPriv.stdout + stNoPriv.stderr);
+    assert.deepEqual(sizes(), sizesBefore, "a recheck from stored text wrote into the batch");
     /* RR-274: the public read keeps no text — it names where the text is; the private read holds it, under the same key and sha256 */
     const pub = rowsIn(join(b, "source-reads.jsonl")), reads = rowsIn(join(pb, "source-reads.jsonl")), checks = rowsIn(join(b, "fact-rechecks.jsonl"));
     assert.deepEqual([pub.length, pub[0].text, pub[0].textAt, pub[0].measurement_key === reads[0].measurement_key, pub[0].sha256 === reads[0].sha256], [1, null, TEXT_AT, true, true], "a page text reached the public batch, or the two records are not one read");
@@ -573,6 +596,29 @@ test("REAL · the declared batch's stored recheck: every fact its pages use has 
   const routeReads = reads.filter((r) => r.readOn === "2026-10-17" && r.route === ROUTE.BROWSER);
   assert.ok(routeReads.filter((r) => r.state === READ_STATE.READ).length >= 1 && routeReads.every((r) => r.state === READ_STATE.READ ? r.engineBlocked : /save it as a PDF/.test(r.detail ?? "")), "C8: no real browser-route read, or a stop without the client's line");
   assert.ok(reads.filter((r) => r.state === READ_STATE.READ).every((r) => r.sha256 === createHash("sha256").update(r.text).digest("hex") && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn)), "a stored read lost its text, hash or date");
+});
+
+test("RR-282 · STORED RECHECK · REAL: the 3 British Council facts and ahpra-2026, rechecked from their stored texts alone, read as their kept live rechecks did — with no request at all", async (t) => {
+  const index = rootIndexFor(process.env);
+  const research = lookupStore(index, "RESEARCH");
+  const dir = research.state === "DECLARED" ? join(research.dir, "rr254-test-pages-2026-10-12") : null;
+  const priv = privateSourcesRoot(process.env);
+  if (!dir || !existsSync(join(dir, "fact-rechecks.jsonl")) || priv.state !== "DECLARED") { t.skip("no declared batch with its private texts here (CI has no private sources root)"); return; }
+  const json = (f) => JSON.parse(readFileSync(join(dir, f), "utf8"));
+  const registry = readdirSync(dir).filter((f) => /^facts-registry-\d{4}-\d{2}-\d{2}\.json$/.test(f));
+  const facts = batchFacts({ drafts: json("page-drafts.json"), findings: json("findings.json"), registry: json(registry[0]), intervals: json("recheck-intervals.json") });
+  const NAMED = ["claim:n-cheaper-ielts-1", "claim:n-cheaper-ielts-2", "claim:n-cheaper-ielts-3", "ahpra-2026"];
+  const privPath = join(priv.dir, relative(research.rootPath, dir), "source-reads.jsonl");
+  const readOf = storedReadOf(withPrivateTexts(rowsIn(join(dir, "source-reads.jsonl")), rowsIn(privPath), { privateRoot: priv.state }));
+  const kept = new Map(rowsIn(join(dir, "fact-rechecks.jsonl")).map((c) => [c.factId, c]));
+  /* every request the process could make is counted: none may be */
+  const realFetch = globalThis.fetch; let requests = 0;
+  globalThis.fetch = async () => { requests += 1; throw new Error("a recheck from stored text made a request"); };
+  let got;
+  try { got = await recheckFacts({ facts: facts.filter((f) => NAMED.includes(f.factId)), readOf: async (u) => readOf(u), on: "2026-10-17" }); } finally { globalThis.fetch = realFetch; }
+  assert.deepEqual(got.map((r) => r.factId).sort(), [...NAMED].sort(), "a named fact is not on the batch's pages");
+  assert.deepEqual(got.map((r) => [r.factId, r.state, r.pageSha256]), got.map((r) => [r.factId, kept.get(r.factId)?.state, kept.get(r.factId)?.pageSha256]), "the stored recheck does not read as the kept live recheck did");
+  assert.deepEqual([got.every((r) => r.state === RECHECK.CURRENT), requests], [true, 0], "the four are not CURRENT from their stored texts, or a request was made");
 });
 
 test("the production trail is untouched by this file", () => { assert.equal(trailSha(), TRAIL_BEFORE); });

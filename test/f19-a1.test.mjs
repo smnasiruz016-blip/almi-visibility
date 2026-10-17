@@ -453,8 +453,12 @@ test("F02 · the tenant-scope census is unchanged: 123 entry points, 99 SCOPED �
    * pages) — it reads the client's declared batches and its declared root through that client's declared scope (SCOPED 99 -> 100; 123 -> 124). */
   /* RR-273 (restated, 16 Oct 2026): one production entry point joined, bin/guides-hub.mjs (the guides hub built from the client's LIVE pages)
    * — it reads the client's declared batch through that client's declared scope (SCOPED 100 -> 101; 124 -> 125). */
-  assert.equal(rows.length, 125);
-  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [101, 18, 6, 0]);
+  /* RR-283 item 2 (restated, 17 Oct 2026): one production entry point joined, bin/answer-readiness.mjs (F54) — it reads the client's
+   * declared batch through that client's declared scope (SCOPED 101 -> 102; 125 -> 126). */
+  /* RR-283 item 9 (restated, 17 Oct 2026): one more, bin/applicability-verdicts.mjs (F62 C9) — the client's declared batch and its private texts through its
+   * declared scope (SCOPED 102 -> 103; 126 -> 127). */
+  assert.equal(rows.length, 127);
+  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [103, 18, 6, 0]);
   const crawl = classifyEntryPoint("bin/crawl.mjs", readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8"));
   assert.equal(crawl.cls, "SCOPED", crawl.why);
   const planted = readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8").replace("RESOURCES.researchBatch(researchBatch), ", "");

@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { judgeCheck, judgeChecks, VERDICT_KIND, VERDICT_REFUSAL } from "../src/research/applicability-verdicts.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
@@ -95,6 +96,18 @@ test("REAL · C9 on the declared product: every one of its 24 derived checks car
   /* pins — re-measured on 17 Oct 2026 */
   assert.deepEqual({ ...j.counts }, { checks: 24, OFFICIAL: 6, REQUIRED: 0, ACCEPTED: 6, NOT_REQUIRED: 0, CHECKED_NOT_FOUND: 16, BLOCKED: 2, UNKNOWN: 0 });
   console.log(`  REAL (count-only): checks ${j.counts.checks} · official ${j.counts.OFFICIAL} (ACCEPTED ${j.counts.ACCEPTED}, REQUIRED ${j.counts.REQUIRED}, NOT_REQUIRED ${j.counts.NOT_REQUIRED}) · CHECKED_NOT_FOUND ${j.counts.CHECKED_NOT_FOUND} · BLOCKED ${j.counts.BLOCKED} · UNKNOWN ${j.counts.UNKNOWN}`);
+});
+
+test("ENTRY · bin/applicability-verdicts.mjs: counts only — no body, excerpt or page printed; a bad call is a usage exit and reads nothing", { skip: HERE ? false : "the batch's verdicts or the private sources are not on this machine" }, () => {
+  const go = (args) => spawnSync(process.execPath, ["bin/applicability-verdicts.mjs", "--product=almi-oet", ...args, "--tenant=tenant:93b991d5afa33b16ccb9166b249593b6", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8" });
+  const r = go(["--research-batch=rr254-test-pages-2026-10-12", "--verdicts=applicability-verdicts-2026-10-17.json", "--on=2026-10-17"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /official {9}6: REQUIRED 0 · ACCEPTED 6 · NOT_REQUIRED 0/);
+  assert.match(r.stdout, /not found {8}16 — /);
+  assert.match(r.stdout, /blocked {10}2 — /);
+  assert.match(r.stdout, /unknown {10}0/);
+  assert.doesNotMatch(r.stdout, /https?:\/\//, "a page was printed");
+  assert.equal(go(["--research-batch=rr254-test-pages-2026-10-12", "--verdicts=other.json", "--on=2026-10-17"]).status, 2);
 });
 
 test("the verdict judge names no product and loads no module that can make a network, process, connector or paid call — and each control fires", () => {

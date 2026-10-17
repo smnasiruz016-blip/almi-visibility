@@ -397,6 +397,7 @@ export function governedStoreAppend({ repo, auditRepo = null, permission, store,
     records,
     keyOf: identity ?? (() => null),
     append: (s, r) => chosen.apply(s, r, { seenAt }),
+    ...(chosen.applyAll ? { appendAll: (s, rs) => chosen.applyAll(s, rs, { seenAt }) } : {}),
     linesWritten: chosen.linesWritten,
     requiresKey: chosen.requiresKey,
     /* The run is part of the occurrence: a later run's observation of the same finding is a NEW occurrence, which

@@ -219,9 +219,24 @@ export function createJsonlStore(filePath) {
     // make the file unparseable line-by-line and a partial write unrecoverable.
     const line = JSON.stringify(record);
     if (line.includes("\n")) throw new Error("appendWithoutDedupe: a serialised record must not contain a newline");
-    appendFileSync(filePath, line + "\n", "utf8");
+    if (pending) pending.push(line + "\n"); else appendFileSync(filePath, line + "\n", "utf8");
     if (index && dedupeKeyOf(record) !== null && !index.has(indexKey(record))) index.set(indexKey(record), record);
     return record;
+  }
+
+  /* RR-282 · ONE WRITE PER BATCH. On this machine each append to a large store costs about as much as the whole file (a 10 MB
+   * store: ~1.8 s per append, one line or six), so a batch of N records appended one by one cost N times that. `appendAllIfNew`
+   * decides each record exactly as appendIfNew does, in order — new, or a re-sighting — and lands the same lines, in the same
+   * order, in ONE append. A record that throws stops the batch as it did before: every line decided before it is still written. */
+  let pending = null;
+  function appendAllIfNew(records, opts) {
+    if (pending) throw new Error("appendAllIfNew: a batch is already open");
+    pending = [];
+    try { return records.map((r) => appendIfNew(r, opts)); } finally {
+      const lines = pending;
+      pending = null;
+      if (lines.length) { ensureDir(); appendFileSync(filePath, lines.join(""), "utf8"); }
+    }
   }
 
   function appendAllWithoutDedupe(records) {
@@ -296,5 +311,5 @@ export function createJsonlStore(filePath) {
   // and defeat C2 from the outside.
   /* `dedupeKeyOf` is exposed so the governed-write boundary can ask THIS store what identifies a record, rather
    * than carrying its own copy of the rule. A copy is a second rule, and two rules drift. */
-  return Object.freeze({ appendWithoutDedupe, appendIfNew, appendAllWithoutDedupe, readAll, count, dedupeKeyOf, path: filePath });
+  return Object.freeze({ appendWithoutDedupe, appendIfNew, appendAllIfNew, appendAllWithoutDedupe, readAll, count, dedupeKeyOf, path: filePath });
 }

@@ -39,6 +39,10 @@ export const hashRuleFor = (bytes) => (Buffer.isBuffer(bytes) ? byteHash : conte
 export const APPEND_DISCIPLINES = Object.freeze({
   APPEND_IF_NEW: Object.freeze({
     apply: (store, record, { seenAt }) => (seenAt ? store.appendIfNew(record, { seenAt }) : store.appendIfNew(record)),
+    /* RR-282: the same decisions, record by record, landed in one write (src/evidence/store.mjs appendAllIfNew) */
+    applyAll: (store, records, { seenAt }) => (typeof store.appendAllIfNew === "function"
+      ? store.appendAllIfNew(records, seenAt ? { seenAt } : undefined)
+      : records.map((r) => (seenAt ? store.appendIfNew(r, { seenAt }) : store.appendIfNew(r)))),
     onRepeat: "appends a RE-SIGHTING — the record that we looked again — so one line lands either way",
     linesWritten: () => 1,
     /* The store itself THROWS on a record with no dedupe key, so demanding one here fails earlier and says why. */
@@ -375,7 +379,7 @@ export function jsonlAppendAdapter({ repo, repoRelativeTarget, targetClass, reco
  * writer census already declares. `CONFLICTING` is not producible here: the store's key is content-derived, so two
  * records sharing a key share their content, and there is no same-key-different-content state to find.
  */
-export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, store, records, keyOf, append, linesWritten = () => 1, requiresKey = true, occurrenceScope }) {
+export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, store, records, keyOf, append, appendAll = null, linesWritten = () => 1, requiresKey = true, occurrenceScope }) {
   void repo;
   /* 🔴 THE OCCURRENCE IS THE BATCH, NOT THE RECORD — AND THAT IS NOT ONLY AN OPTIMISATION.
    *
@@ -432,7 +436,8 @@ export function storeAppendAdapter({ repo, repoRelativeTarget, targetClass, stor
     result: null,
     commit() {
       before = countFor();
-      this.result = list.map((r) => append(store, r));
+      /* RR-282: a discipline that can land the batch in one write does; each record is still decided alone, in order */
+      this.result = appendAll ? appendAll(store, list) : list.map((r) => append(store, r));
       committed = true;
     },
 

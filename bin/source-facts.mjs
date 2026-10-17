@@ -209,7 +209,8 @@ async function storedRun() {
   const rows = (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
   const unknown = (FACT_IDS ?? []).filter((id) => !facts.some((f) => f.factId === id));
   if (unknown.length) { console.error(`🔴 REFUSED — FACT_NOT_IN_BATCH: ${unknown.join(", ")} — no such fact on this batch's pages; nothing read, nothing written`); process.exit(3); }
-  const readOf = storedReadOf(withPrivateTexts(rows("source-reads.jsonl"), privateRows("source-reads.jsonl"), { privateRoot: PRIVATE.state }));
+  const READS = "source-reads.jsonl";
+  const readOf = storedReadOf(withPrivateTexts(rows(READS), privateRows(READS), { privateRoot: PRIVATE.state }));
   const chosen = FACT_IDS ? facts.filter((f) => FACT_IDS.includes(f.factId)) : facts;
   const results = await recheckFacts({ facts: chosen, readOf: async (u) => readOf(u), on: ON });
   const lastCheck = new Map(rows("fact-rechecks.jsonl").map((c) => [c.factId, c]));

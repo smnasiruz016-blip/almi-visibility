@@ -117,6 +117,7 @@ const SABOTAGES = [
   ["R82", "RR-282 a client file said out of date stands for its source", M, "r.currency?.state !== CURRENCY.OUT_OF_DATE) latest", "true) latest", STO],
   ["R83", "RR-282 the stored recheck runs without the private texts", BIN, "  if (PRIVATE.state !== \"DECLARED\") { console.error(\"🔴 REFUSED — PRIVATE_SOURCES_ABSENT: a recheck from stored text", "  if (false) { console.error(\"🔴 REFUSED — PRIVATE_SOURCES_ABSENT: a recheck from stored text", PP],
   ["R84", "RR-282 the stored recheck runs beside a live read", BIN, "(STORED && (live || EXTRACT !== null", "(STORED && (false || EXTRACT !== null", PP],
+  ["R85", "RR-282 the stored recheck reads the public copies (no text) instead of the private texts", BIN, "storedReadOf(withPrivateTexts(rows(READS), privateRows(READS), { privateRoot: PRIVATE.state }))", "storedReadOf(rows(READS))", PP],
   ["R58","RR-274 an extraction reads the public text (none) instead of the private one", BIN, "withPrivateTexts(rows(\"source-reads.jsonl\"), privateRows(\"source-reads.jsonl\"), { privateRoot: PRIVATE.state })", "rows(\"source-reads.jsonl\")", PP],
 ];
 

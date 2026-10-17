@@ -119,7 +119,8 @@ test("N4 · the admitted set is unchanged: 432 corpus records by the same rule; 
   /* RR-283 migrations (re-measured, 17 Oct 2026): 495 -> 507 — the 12 records admitted since 16 Oct (_handoffs 6c5545c): the owner decisions of RR-272 to RR-277 and
    * RR-283, the RR-283 command, F46's Amendment 1 and its plain-words decision-3 record, the F54 and F87 acceptances; the RR-276 record under its neutral name */
   /* RR-283 item 6 migration: 507 -> 508 — F42's acceptance (_handoffs 1fcee4a) */
-  assert.equal(AUTHORITY_CORPUS.length, 508, "the corpus population moved — re-measure");
+  /* RR-283 item 8 migration: 508 -> 509 — F86's acceptance (_handoffs 903f361) */
+  assert.equal(AUTHORITY_CORPUS.length, 509, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;

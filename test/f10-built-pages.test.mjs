@@ -38,6 +38,7 @@ import { builtPages, pageSections, needIndex, needsOfPage, decidePairs, survivor
 import { storedDecisions, proposedAfterDecisions, constructionAfterDecisions, withStoredMoves } from "../src/page/stored-page-decisions.mjs";
 import { PUBLISHED_FIELDS as PUBLISHED_FIELDS_T } from "../config/page/built-page-needs.mjs";
 import { declaredWorld } from "./helpers/declared-world.mjs";
+import { privateSourcesRoot } from "../src/facts/private-texts.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TRAIL = join(REPO, "audit-trail", "events.jsonl");
@@ -347,7 +348,8 @@ test("REBUILD · FIRING CONTROL (RR-262): the page builder reads the stored deci
   assert.equal(storedDecisions({ records: [...rv.decisions, { ...r.cancellations[0], cancelledPage: "delta" }], tenantId: T }).listed.filter((x) => x.pages.includes("delta")).length, 0);
 });
 
-test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a scratch copy of the declared product's records — a planted duplicate cancelled by the one rule is not proposed again and its moved questions stand in the rebuilt real page; a real page cancelled by a planted earlier page is NOT rebuilt; before any stored cancellation nothing is held back; the product's own store is unchanged and the plants are removed", () => {
+test("REBUILD · PRODUCTION PATH (RR-262): the builder's own entry point, over a scratch copy of the declared product's records — a planted duplicate cancelled by the one rule is not proposed again and its moved questions stand in the rebuilt real page; a real page cancelled by a planted earlier page is NOT rebuilt; before any stored cancellation nothing is held back; the product's own store is unchanged and the plants are removed", (t) => {
+  if (noPrivateTexts(t)) return;
   const real = realDir();
   const FILES = ["joined-pages.jsonl", "built-page-needs.jsonl", "need-clusters.jsonl", "page-drafts.json", "planning.jsonl"].filter((f) => existsSync(join(real, f)));
   const before = FILES.map((f) => sha(readFileSync(join(real, f))));
@@ -464,6 +466,11 @@ test("C7 · CENSUS: no production path of the built-pages check reads the sealed
 const RESEARCH = () => lookupStore(rootIndexFor(process.env), "RESEARCH").dir;
 const BATCH = (() => { const d = RESEARCH(); return (existsSync(d) ? readdirSync(d) : []).filter((b) => existsSync(join(d, b, "joined-pages.jsonl")) && existsSync(join(d, b, "need-clusters.jsonl"))).sort().at(-1) ?? "NO-BATCH-HOLDS-BUILT-PAGES-AND-NEEDS"; })();
 const realDir = () => join(RESEARCH(), BATCH);
+/* RR-281: the builder's link guard reads the batch's stored source texts, kept only in the PRIVATE sources root (RR-274), which CI does not
+ * check out. There the builder refuses every real build by that guard (proved in test/rr281-link-guard.test.mjs), so a test that needs a
+ * real build is skipped there, named; it runs in full where the private root is. */
+const PRIVATE_TEXTS = privateSourcesRoot(process.env).state === "DECLARED";
+const noPrivateTexts = (t) => { if (PRIVATE_TEXTS) return false; t.skip("RR-281: no private sources root here — the builder's link guard refuses every real build without its stored texts"); return true; };
 const subjectOf = (dir) => rowsIn(dir, "joined-pages.jsonl").filter((r) => r.record_type === JOINED_RECORD).at(-1)?.subject ?? null;
 const rowsIn = (dir, name) => (existsSync(join(dir, name)) ? readFileSync(join(dir, name), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.record_type !== RESIGHTING_TYPE) : []);
 const jsonIn = (dir, name) => (existsSync(join(dir, name)) ? JSON.parse(readFileSync(join(dir, name), "utf8")) : null);
@@ -597,7 +604,8 @@ test("NEED RECORDS · FIRING CONTROL (RR-264): a need record the store holds fro
   assert.equal(storedNeedRecords({ derived, stored: [] }).refused, "NEED_RECORDS_NOT_STORED_AS_DERIVED");
 });
 
-test("TO THE POINT · THE BUILDER REFUSES (RR-265): over a scratch copy, through the builder's own entry point — a declared filler phrase that stands in an answer fails the build, named, and no page is written", () => {
+test("TO THE POINT · THE BUILDER REFUSES (RR-265): over a scratch copy, through the builder's own entry point — a declared filler phrase that stands in an answer fails the build, named, and no page is written", (t) => {
+  if (noPrivateTexts(t)) return;
   const real = realDir();
   const world = realWorld(real);
   assert.ok(world.pages.length > 0, "EMPTY real population");
@@ -642,7 +650,8 @@ test("CHECKED, NOT FOUND · THE BUILDER REFUSES (RR-269): over a scratch copy, t
   assert.equal(existsSync(W.root), false, "the scratch copy was not removed");
 });
 
-test("TITLE PLAN · FIRING CONTROL (RR-264): the builder's own entry point, over a scratch copy — a title plan that names no phrase stored in the batch refuses the run before anything is written; the plans as recorded build, each title part traced to its stored phrase", () => {
+test("TITLE PLAN · FIRING CONTROL (RR-264): the builder's own entry point, over a scratch copy — a title plan that names no phrase stored in the batch refuses the run before anything is written; the plans as recorded build, each title part traced to its stored phrase", (t) => {
+  if (noPrivateTexts(t)) return;
   const real = realDir();
   const world = realWorld(real);
   assert.ok(world.pages.length > 0, "EMPTY real population");

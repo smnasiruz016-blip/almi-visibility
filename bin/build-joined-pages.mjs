@@ -30,8 +30,8 @@
  *   6  each page is rendered — its title and headings chosen from the recorded questions, observed first (RR-254) — with its gate table
  *      and the needs it could not answer, and appended to the batch's joined-pages.jsonl. A joined page is a DRAFT, never ACCEPTED.
  */
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
@@ -55,6 +55,8 @@ import { testException, parseExceptionRecord } from "../src/page/test-exception.
 import { connectionDrafts, productStatements, joinPages, valueOf, needsToRestate } from "../src/page/joined-page.mjs";
 import { storedDecisions, proposedAfterDecisions, constructionAfterDecisions, withStoredMoves } from "../src/page/stored-page-decisions.mjs";
 import { checkedNotFoundByNeed } from "../src/facts/checked-not-found.mjs";
+import { linkGuard } from "../src/facts/link-guard.mjs";
+import { privateSourcesRoot, withPrivateTexts } from "../src/facts/private-texts.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
@@ -98,8 +100,26 @@ if (planned.includes(null)) { console.error(`🔴 REFUSED — TITLE_PLAN_NAMES_N
  * before anything is written */
 const cnf = checkedNotFoundByNeed(Array.isArray(json("checked-not-found.json")) ? json("checked-not-found.json") : []);
 if (cnf.refused.length) { console.error(`🔴 REFUSED — CHECKED_NOT_FOUND_RECORD_REFUSED: ${cnf.refused.map((r) => `${r.id ?? "(no id)"} ${r.reasons.join("+")}`).join(" · ")}; nothing written`); process.exit(3); }
+/* 🔴 RR-281 · THE LINK GUARD (src/facts/link-guard.mjs): every claim's fact is rechecked at the link the page shows, and its quotation is in a
+ * stored text of that link — else the run refuses before anything is written. The texts are this batch's own stored reads, joined to their
+ * private texts (RR-274) at this batch's own path under the private sources root; without that root no text is there, and the guard refuses. */
+const PRIVATE = privateSourcesRoot(process.env);
+/* bound on a line that names the RESEARCH store: these are THIS research batch's own texts, decided by RESOURCES.researchBatch above */
+const privateBatchDir = join(PRIVATE.dir, relative(lookupStore(index, "RESEARCH").rootPath, batchDir));
+const privateRows = (f) => { try { return readFileSync(join(privateBatchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
+const registries = readdirSync(batchDir).filter((f) => /^facts-registry-\d{4}-\d{2}-\d{2}\.json$/.test(f));
+if (registries.length > 1) { console.error(`🔴 REFUSED — FACT_REGISTRY_AMBIGUOUS: the batch files ${registries.length} fact registries; nothing written`); process.exit(3); }
+const guard = linkGuard({ drafts: proposed, findings: Array.isArray(json("findings.json")) ? json("findings.json") : [], registry: registries.length ? json(registries[0]) ?? { facts: [] } : { facts: [] },
+  intervals: Array.isArray(json("recheck-intervals.json")) ? json("recheck-intervals.json") : [], reads: withPrivateTexts(rowsOf("source-reads.jsonl"), privateRows("source-reads.jsonl"), { privateRoot: PRIVATE.state }) });
+if (guard.refused.length) {
+  const by = Object.entries(Object.groupBy(guard.refused, (r) => r.code)).map(([k, v]) => `${k} ${v.length}`).join(" · ");
+  console.error(`🔴 REFUSED — LINK_GUARD: ${guard.refused.length} of ${guard.claims} claim(s) (${by}) cite a fact through a link it was not verified at${PRIVATE.state === "DECLARED" ? "" : " (the private sources root is not here, so no stored text is)"}; nothing written`);
+  for (const r of guard.refused.slice(0, 20)) console.error(`    ${r.code}  ${r.page} · ${r.claimId} · fact ${r.factId ?? "(none)"} · page link ${r.pageLink}${r.code === "LINK_DIFFERS" ? ` · rechecked at ${r.factLink}` : ` · stored texts of that link ${r.storedTexts}`}`);
+  process.exit(3);
+}
 
 console.log(`JOINED TEST PAGES — ${X.stamp} · this subject's product only, from stored records; nothing fetched`);
+console.log(`  link guard       ${guard.claims} claim(s): each rechecked at the link its page shows, its quotation in a stored text of that link (RR-281)`);
 console.log(`  exception        ${X.exception.effect} · owner record ${X.exception.record.repo}:${X.exception.record.path}@${X.exception.record.commit.slice(0, 7)} · the declared page specs are set aside with them`);
 
 /* 2 · F10's stored decisions (Acceptance Amendment 4) — read, honoured, never made here */

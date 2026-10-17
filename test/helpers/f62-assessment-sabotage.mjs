@@ -35,14 +35,16 @@ const SABOTAGES = [
   ["X7", "the excerpt must occur in the stored text", AS, "if (!present(excerpt) || !storedTextOf(f).some((t) => t.includes(excerpt))) {", "if (!present(excerpt)) {", W4],
   ["X8", "a duplicate is refused", AS, "if (seen.has(id)) {", "if (false) {", W5],
   ["X9", "another subject's draft is refused", AS, "if (d?.subject !== subject) {", "if (false) {", W6],
-  ["X10", "only a checker declared a person confirms (F46 C3)", AS, "if (!present(checker) || !persons.includes(checker)) return", "if (!present(checker)) return", W7],
+  /* RR-283 · owner decision 3 (F62 as amended): no person confirms; a confirmation stands on the verbatim official text. X10, X12 and X17
+   * tested the person roster, which the decision removed — they are restated on the rules that replaced it. */
+  ["X10", "a confirmation stands only on a MATCHED word-for-word quotation of the official text (F46 C3 as amended)", AS, "if (fitCheck(f).result !== \"CONFIRMED\" || !present(assessment.evidence?.excerpt)", "if (!present(assessment.evidence?.excerpt)", W7],
   ["X11", "a source stale at confirmation is refused", AS, "if (h?.presentation !== \"CURRENT\") return Object.freeze({ refused: REFUSAL.STALE_SOURCE", "if (false) return Object.freeze({ refused: REFUSAL.STALE_SOURCE", W7],
-  ["X12", "the readback counts only confirmations by declared persons", AS, "r?.record_type === CONFIRMATION_RECORD && persons.includes(r.checker)", "r?.record_type === CONFIRMATION_RECORD", W8],
+  ["X12", "a confirmation's evidence is the deciding body's own source (tier 1)", AS, "if (f?.source?.tier !== 1) return Object.freeze({ refused: REFUSAL.NOT_OFFICIAL", "if (false) return Object.freeze({ refused: REFUSAL.NOT_OFFICIAL", W7],
   ["X13", "a PROPOSED assessment is never read back as CONFIRMED", AS, "state: \"PROPOSED\", outcome: OUTCOMES.UNKNOWN, proposedOutcomes", "state: \"CONFIRMED\", outcome: proposed[0].outcome, proposedOutcomes", W8],
   ["X14", "a PROPOSED assessment is INFERRED, never OBSERVED", ES, "return place(rule, \"INFERRED\", { inputRefs: [`fact:${h16(r.evidence.factId)}`]", "return place(rule, \"OBSERVED\", { inputRefs: [`fact:${h16(r.evidence.factId)}`]", W10],
   ["X15", "without --confirm nothing is written", BX, "if (toWrite.length && permission.mayWrite) {", "if (toWrite.length) {", E3],
   ["X16", "the product must be the subject's (no tenant crossover at the entry point)", BX, "if (!members.some((m) => m.resourceKind === \"FACT_REGISTRY\"", "if (false && !members.some((m) => m.resourceKind === \"FACT_REGISTRY\"", E3],
-  ["X17", "the roster is the declared one — a recorded id is never treated as a person", BX, "const persons = NO_DECLARED_PERSON_CHECKERS;", "const persons = [\"human:beta-g (Cowork)\"];", E3],
+  ["X17", "the record's own words are never taken for the official text", AS, "!String(f?.evidence?.quotedSpan ?? \"\").includes(assessment.evidence.excerpt)", "!storedTextOf(f).some((t) => t.includes(assessment.evidence.excerpt))", W7],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];

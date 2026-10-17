@@ -25,7 +25,7 @@ const lawful = (over = {}) => ({
   governed: true,
   verification: {
     checkedOn: "2026-09-12",
-    checkedBy: "human:beta-g (Cowork)",
+    checkedBy: "engine:almi-visibility",
     elementsConfirmedKeys: ["a", "b"],
     elementsNotFoundKeys: [],
     ...(over.verification ?? {}),
@@ -35,7 +35,7 @@ const lawful = (over = {}) => ({
 
 test("the ruling is DATA: five named conditions and a cut-off, enumerable without reading control flow", () => {
   assert.equal(PRE_CONTRACT_CONDITIONS.length, 5);
-  assert.deepEqual(GRANDFATHERING.conditionIds, ["DATE_EXEMPT", "STATE_EXPLICIT", "NAMED_HUMAN_AND_DATE", "ELEMENTS_RECONCILE", "NO_PROMOTION_OF_UNKNOWN"]);
+  assert.deepEqual(GRANDFATHERING.conditionIds, ["DATE_EXEMPT", "STATE_EXPLICIT", "RECORDED_CHECKER_AND_DATE", "ELEMENTS_RECONCILE", "NO_PROMOTION_OF_UNKNOWN"]);
   assert.equal(GRANDFATHERING.conjunctive, true);
   assert.match(GRANDFATHERING.cutOff, /^\d{4}-\d{2}-\d{2}$/);
   for (const c of PRE_CONTRACT_CONDITIONS) assert.ok(c.requirement.length > 20, `${c.id} carries no stated requirement`);
@@ -74,18 +74,18 @@ test("🔴 P1 · condition 2 false — verificationState not explicit → refuse
   }
 });
 
-test("🔴 P2 · condition 3 false — the checker is a MODEL, not a named human → refused", () => {
-  const j = judgeGrandfathering(lawful({ verification: { checkedBy: "model:claude-opus-5" } }));
-  assert.equal(j.regime, "REFUSED_PRE_CONTRACT");
-  assert.ok(j.failed.includes("NAMED_HUMAN_AND_DATE"));
-
-  /* 🔴 THE BRANCH NO REAL RECORD REACHES. A `model:` signature is SCHEMA-VALID and satisfies the
-   * older "is anybody named?" test, so without this condition such a record would advance. */
+test("🔴 P2 · condition 3 false — no recorded checker, an untyped one, or no date → refused; who checked is never a condition (RR-283, owner decision 3)", () => {
+  for (const checkedBy of [undefined, "", "beta-g", "human:", "robot:x"]) {
+    const j = judgeGrandfathering(lawful({ verification: { checkedBy } }));
+    assert.equal(j.regime, "REFUSED_PRE_CONTRACT", `checker ${JSON.stringify(checkedBy)} was grandfathered`);
+    assert.ok(j.failed.includes("RECORDED_CHECKER_AND_DATE"));
+  }
+  assert.ok(judgeGrandfathering(lawful({ verification: { checkedOn: undefined } })).failed.includes("RECORDED_CHECKER_AND_DATE"), "an undated check was grandfathered");
+  /* CONTROL: a person, a model and the engine are recorded checkers alike — who checked is never a condition */
+  for (const checkedBy of ["human:N.U.", "model:claude-opus-5", "engine:almi-visibility"]) assert.equal(judgeGrandfathering(lawful({ verification: { checkedBy } })).regime, "GRANDFATHERED", `${checkedBy} was refused for who it is`);
+  /* the typed prefix still tells a person from a model; it no longer decides anything here */
   assert.equal(isNamedHumanChecker("model:claude-opus-5"), false);
-  assert.equal(isNamedHumanChecker("human:beta-g (Cowork)"), true);
-  /* CONTROL: the same subject with a human signature IS grandfathered, so the refusal above is the
-   * prefix talking and not a judge that refuses everything. */
-  assert.equal(judgeGrandfathering(lawful()).regime, "GRANDFATHERED");
+  assert.equal(isNamedHumanChecker("engine:almi-visibility"), false);
 });
 
 test("🔴 P10 · humanity is decided by the TYPED PREFIX, never a name, substring or tool list", () => {
@@ -176,10 +176,10 @@ test("🔴 P9 · F31 governs the REAL production validator — proved by an inpu
    * it — only condition 3 does. */
   const base = records.find((r) => r.id === "uk-hcpc.certificate-maximum-age");
   assert.ok(base, "the record this proof is built on is missing from the registry");
-  assert.equal(base.verification.checkedBy, "human:beta-g (Cowork)");
-  const crafted = { ...base, verification: { ...base.verification, checkedBy: "model:claude-opus-5" } };
+  assert.equal(base.verification.checkedBy, "engine:almi-visibility", "RR-283: the authoring AI's checks are relabelled as the engine");
+  const crafted = { ...base, verification: { ...base.verification, checkedBy: "beta-g" } };
 
   const raised = F31(records.map((r) => (r.id === crafted.id ? crafted : r)));
-  assert.equal(raised.length, 1, "F31 did not fire on a model-signed record that would otherwise advance");
-  assert.match(raised[0].message, /NAMED_HUMAN_AND_DATE/);
+  assert.equal(raised.length, 1, "F31 did not fire on a record with no typed checker that would otherwise advance");
+  assert.match(raised[0].message, /RECORDED_CHECKER_AND_DATE/);
 });

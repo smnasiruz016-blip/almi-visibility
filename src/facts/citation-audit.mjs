@@ -10,8 +10,9 @@
  *   FINGERPRINT  the RECORDED fingerprint check — MATCHED · MISMATCHED · NOT_MEASURED
  *   AUTHORITY    V3 §10.1 + §10.3 — ADMISSIBLE (primary official, or SECONDARY VERIFIED, with a recorded verification date) ·
  *                NOT_ADMISSIBLE · NOT_MEASURED (tier or date unrecorded, or the two recorded tiers disagree)
- *   FIT          a PERSON's judgement — CONFIRMED / REFUTED only from a recorded verdict whose checker is DECLARED a person (a roster passed
- *                explicitly); otherwise NEEDS_A_PERSON with the reason, the recorded verdict reported beside it. Nothing compares words.
+ *   FIT          RR-283 (owner decision 3, C3 as amended): stands on the VERBATIM OFFICIAL TEXT — CONFIRMED only from a matched
+ *                word-for-word quotation of the source, REFUTED only by a recorded CONFLICT, otherwise CHECKED_NOT_FOUND (what was not
+ *                found, the pages checked, the date); the recorded verdict reported beside it. No person is required. Nothing compares words.
  *
  * Every outcome is a DATED RECORDING, never a fresh check. Citation verdict: PROVED only when every applicable check passed and FIT is
  * CONFIRMED; DISPROVED on any recorded failure; otherwise COULD-NOT-PROVE. Pure: no fetch, no write. Names no product.
@@ -20,8 +21,6 @@
 import { sourceTierOfFact } from "../evidence/source-tiers.mjs";
 
 export const CITATION = Object.freeze({ PROVED: "PROVED", DISPROVED: "DISPROVED", COULD_NOT_PROVE: "COULD-NOT-PROVE" });
-/** No roster declares any checker a person today: [] is that recorded fact, passed EXPLICITLY. */
-export const NO_DECLARED_PERSON_CHECKERS = Object.freeze([]);
 const ADMISSIBLE_TIERS = Object.freeze(["OFFICIAL", "SECONDARY_VERIFIED", "SECONDARY VERIFIED"]);
 const day = (s) => (typeof s === "string" && /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null);
 
@@ -61,22 +60,29 @@ export function authorityCheck(f) {
   return { result: "ADMISSIBLE", tier };
 }
 
-/** FIT — only a declared person's recorded verdict decides it. `persons` is the declared roster, passed explicitly. */
-export function fitCheck(f, { persons }) {
-  if (!Array.isArray(persons)) throw new TypeError("the roster of checkers declared a person must be passed explicitly — an empty roster is a recorded fact, not a default");
+/**
+ * FIT — RR-283, owner decision 3 (F46 C3 as amended, _handoffs AlmiVisibility_F46_F62_ACCEPTANCE_AMENDMENT_DECISION_3_2026-10-17.md): a
+ * verdict stands on the verbatim official text, or it is CHECKED_NOT_FOUND. CONFIRMED only when the record's word-for-word quotation of
+ * its source was matched; REFUTED only by a recorded CONFLICT (the official text states otherwise); anything the official text was not
+ * found to state is CHECKED_NOT_FOUND — what was not found, the page(s) checked and the date — never REFUTED, never inferred. Who checked
+ * is never a condition. Nothing compares words: the recorded quote match decides.
+ */
+export function fitCheck(f) {
   const v = f?.verification ?? null;
   const beside = v?.verdict ? { recordedVerdict: v.verdict } : {};
-  if (!v?.verdict) return { result: "NEEDS_A_PERSON", reason: "no verdict is recorded", ...beside };
-  if (!v.checkedBy || !persons.includes(v.checkedBy)) return { result: "NEEDS_A_PERSON", reason: "the recorded verdict's checker is not declared a person", ...beside };
-  if (v.verdict === "CONFLICT" || (v.elementsNotFoundKeys ?? []).length > 0) return { result: "REFUTED", ...beside };
-  if (v.verdict === "VERIFIED" && (v.elementsConfirmedKeys ?? []).length > 0) return { result: "CONFIRMED", ...beside };
-  return { result: "NEEDS_A_PERSON", reason: `the recorded verdict (${v.verdict}) does not confirm every element`, ...beside };
+  if (v?.verdict === "CONFLICT") return { result: "REFUTED", ...beside };
+  const q = quotationCheck(f);
+  const pages = [...new Set([f?.source?.url, v?.sourceUrl].filter((u) => typeof u === "string" && u !== ""))];
+  const notFound = (what) => ({ result: "CHECKED_NOT_FOUND", notFound: pages.length ? what : `${what} — no source page is recorded for it`, pagesChecked: pages, on: q.recordedOn ?? day(v?.checkedOn), ...beside });
+  if ((v?.elementsNotFoundKeys ?? []).length > 0) return notFound(`the official text does not state: ${v.elementsNotFoundKeys.join(", ")}`);
+  if (q.result === "MATCHED") return { result: "CONFIRMED", on: q.recordedOn, ...beside };
+  return notFound(q.result === "MISMATCHED" ? "the recorded quotation, word for word, in the official text" : "a word-for-word quotation of the official text that states it");
 }
 
 const FAILURES = new Set(["FAILED", "MISMATCHED", "NOT_ADMISSIBLE", "REFUTED"]);
 
-export function auditCitation(f, { persons }) {
-  const checks = { link: linkCheck(f), quotation: quotationCheck(f), fingerprint: fingerprintCheck(f), authority: authorityCheck(f), fit: fitCheck(f, { persons }) };
+export function auditCitation(f) {
+  const checks = { link: linkCheck(f), quotation: quotationCheck(f), fingerprint: fingerprintCheck(f), authority: authorityCheck(f), fit: fitCheck(f) };
   const results = Object.values(checks).map((c) => c.result);
   const proved = checks.link.result === "WORKED" && ["MATCHED", "NOT_APPLICABLE"].includes(checks.quotation.result) && checks.fingerprint.result === "MATCHED" && checks.authority.result === "ADMISSIBLE" && checks.fit.result === "CONFIRMED";
   const verdict = results.some((r) => FAILURES.has(r)) ? CITATION.DISPROVED : proved ? CITATION.PROVED : CITATION.COULD_NOT_PROVE;
@@ -84,9 +90,9 @@ export function auditCitation(f, { persons }) {
 }
 
 /** The registry: each check's population counted separately — never a score. */
-export function auditCitations(records, { persons }) {
+export function auditCitations(records) {
   const active = records.filter((f) => f?.life?.status !== "retired");
-  const rows = active.map((f) => auditCitation(f, { persons }));
+  const rows = active.map((f) => auditCitation(f));
   const count = (k) => rows.reduce((m, r) => ((m[r.checks[k].result] = (m[r.checks[k].result] ?? 0) + 1), m), {});
   return Object.freeze({
     rows,

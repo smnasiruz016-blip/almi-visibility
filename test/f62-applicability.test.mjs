@@ -30,7 +30,6 @@ import { qualifierPairs } from "../src/discovery/context-axes.mjs";
 import { researchRoutes } from "../src/research/research-routes.mjs";
 import { readResearchPlan } from "../src/research/research-plan-reader.mjs";
 import { readProductAxes } from "../src/discovery/context-axes-reader.mjs";
-import { NO_DECLARED_PERSON_CHECKERS } from "../src/facts/citation-audit.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
 import { censusSubjectScope } from "../src/tenancy/scoped-run.mjs";
@@ -47,19 +46,20 @@ const TRAIL_BEFORE = trailSha();
 const CODE = ["src/research/applicability.mjs", "src/research/research-plan-reader.mjs", "src/research/applicability-declaration-reader.mjs", "bin/applicability.mjs"];
 const TMP = join(tmpdir(), `almi-f62-${process.pid}`);
 
-const PERSONS = ["human:Fixture Checker"];
+/* RR-283 (owner decision 3): who checked is never a condition; the fixture's checker is the engine */
+const PERSONS = ["engine:fixture"];
 const ON = "2026-10-03";
-/* a fixture record the REAL F46 audit can PROVE and the REAL F45 assessment presents CURRENT on ON — unless `over` says otherwise */
+/* a fixture record (its verbatim official quotation matched — F46 C3 as amended) the REAL F46 audit can PROVE and the REAL F45 assessment presents CURRENT on ON — unless `over` says otherwise */
 const fact = (id, qualifier, outcome, over = {}) => ({
   id, claim: { subject: `fixture-${id}`, predicate: "fixture-applies", qualifier }, value: { value: outcome ?? "none" },
   ...(outcome ? { applicability: { outcome } } : {}), source: { tier: 1 }, freshness: { days: 180 }, life: { extractedOn: "2026-10-01" },
   verification: { checkedOn: "2026-10-01", verdict: "VERIFIED", checkedBy: PERSONS[0], elementsConfirmedKeys: ["outcome"] },
-  checks: { linkCheckOutcome: "pass", linkCheckedOn: "2026-10-01", quoteMatchOutcome: "not-applicable", fingerprintOutcome: "pass", fingerprintCheckedOn: "2026-10-01" }, ...over,
+  checks: { linkCheckOutcome: "pass", linkCheckedOn: "2026-10-01", quoteMatchOutcome: "pass", quoteMatchedOn: "2026-10-01", fingerprintOutcome: "pass", fingerprintCheckedOn: "2026-10-01" }, ...over,
 });
 const route = (dimension, value) => ({ dimension, value, route_id: `r-${dimension ?? "topic"}-${value ?? ""}` });
 const AXES = { discovered: [{ key: "knot" }, { key: "region" }] };
 const PRODUCT = { research: { applicability: { dimension: "region" } } };
-const run = (facts, over = {}) => applicabilityOf({ product: PRODUCT, axes: AXES, routes: [route("knot", "bowline"), route("knot", "sheet-bend")], facts, persons: PERSONS, on: ON, ...over });
+const run = (facts, over = {}) => applicabilityOf({ product: PRODUCT, axes: AXES, routes: [route("knot", "bowline"), route("knot", "sheet-bend")], facts, on: ON, ...over });
 const at = (a, knot, region) => a.combinations.find((c) => c.scope.knot === knot && c.scope.region === region);
 
 /* ================= C1 ================= */
@@ -105,7 +105,7 @@ test("P3 · C3 AUTHORITATIVE, CURRENT, PROVED — OR UNKNOWN: F46 admissibility,
     ["not admissible", fact("c1", "knot=bowline,region=r-one", "REQUIRED", { source: { tier: 4 } }), /source not admissible \(F46 AUTHORITY NOT_ADMISSIBLE/],
     /* F46 ADMITS a record NAMED official with no numeric tier: only the tier-1 rule keeps it out */
     ["not tier 1", fact("c2", "knot=bowline,region=r-one", "REQUIRED", { source: {}, verification: { ...ok.verification, sourceTier: "OFFICIAL" } }), /not tier 1/],
-    ["citation not proved", fact("c3", "knot=bowline,region=r-one", "REQUIRED", { verification: { ...ok.verification, checkedBy: "someone undeclared" } }), /citation COULD-NOT-PROVE by F46 — FIT NEEDS_A_PERSON \(the recorded verdict's checker is not declared a person\)/],
+    ["citation not proved", fact("c3", "knot=bowline,region=r-one", "REQUIRED", { checks: { ...ok.checks, quoteMatchOutcome: "not-applicable", quoteMatchedOn: null } }), /citation COULD-NOT-PROVE by F46 — FIT CHECKED_NOT_FOUND/],
     ["expired", fact("c4", "knot=bowline,region=r-one", "REQUIRED", { verification: { ...ok.verification, checkedOn: "2025-01-01" } }), /F45 REVIEW_REQUIRED — EXPIRED/],
     ["undated", fact("c5", "knot=bowline,region=r-one", "REQUIRED", { verification: { verdict: "VERIFIED", checkedBy: PERSONS[0], elementsConfirmedKeys: ["outcome"] } }), /F46 AUTHORITY NOT_MEASURED — missing a recorded verification date/],
   ];
@@ -120,8 +120,8 @@ test("P3 · C3 AUTHORITATIVE, CURRENT, PROVED — OR UNKNOWN: F46 admissibility,
   const k = run([c1, c2]);
   assert.equal(at(k, "bowline", "r-one").outcome, "UNKNOWN", "a contradicted record decided");
   assert.match(at(k, "bowline", "r-one").why, /F45 REVIEW_REQUIRED — CONTRADICTED/);
-  /* with NO declared person (the real roster today) nothing is PROVED, so nothing decides */
-  assert.equal(at(run([ok], { persons: NO_DECLARED_PERSON_CHECKERS }), "bowline", "r-one").outcome, "UNKNOWN");
+  /* RR-283 (owner decision 3): who checked is never a condition — a record checked by a person or by the engine decides alike */
+  assert.equal(at(run([fact("h1", "knot=bowline,region=r-one", "REQUIRED", { verification: { ...ok.verification, checkedBy: "human:someone" } })]), "bowline", "r-one").outcome, "REQUIRED", "who checked changed the outcome");
   /* CONTROL: the sound record decides, and it carries its observed date */
   const good = run([ok]);
   assert.equal(at(good, "bowline", "r-one").outcome, "REQUIRED", "CONTROL: a sound record cannot decide — every refusal above is unproved");
@@ -186,7 +186,7 @@ test("P6 · C6 NOT A PAGE, NOT DEMAND: only REQUIRED and ACCEPTED combinations b
   const product = { ...KNOTS, research: { ...KNOTS.research, maxRoutes: 10, applicability: { dimension: "region" } } };
   const axes = { ...(await readProductAxes({ product: KNOTS, tenantId: null, resolve: null })).axes };
   const inHand = researchRoutes({ subject: KNOTS.productId, product: KNOTS, axes });
-  const a = applicabilityOf({ product, axes: { ...axes, discovered: [...axes.discovered, { key: "region" }] }, routes: inHand.routes, facts, persons: PERSONS, on: ON });
+  const a = applicabilityOf({ product, axes: { ...axes, discovered: [...axes.discovered, { key: "region" }] }, routes: inHand.routes, facts, on: ON });
   const handed = applicableRoutes(a);
   assert.deepEqual(handed.map((h) => [h.route.dimension, h.route.value, h.scope.region, h.outcome]), [[null, null, "r-one", "ACCEPTED"], ["knot", "bowline", "r-one", "REQUIRED"], ["knot", "bowline", "r-two", "ACCEPTED"]]);
   for (const h of handed) {
@@ -213,16 +213,17 @@ test("P7 · C7 ANY PRODUCT: the PRODUCTION reader on two unrelated products, eac
   try {
     const knots = { ...KNOTS, factsDir: registryOf("knots", [fact("k1", "knot=bowline,region=r-one", "REQUIRED"), fact("k2", "knot=clove-hitch,region=r-one", "NOT_REQUIRED")]), research: { ...KNOTS.research, maxRoutes: 10, applicability: { dimension: "region" } } };
     const ferments = { ...FERMENTS, factsDir: registryOf("ferments", [fact("m1", "ferment=miso,declared-scope=scope-two", "ACCEPTED"), fact("m2", "declared-scope=scope-one", null)]), research: { ...FERMENTS.research, maxRoutes: 10 } };
-    const k = await readResearchPlan({ product: knots, subject: knots.productId, tenantId: null, resolve: null, on: ON, persons: PERSONS });
-    const f = await readResearchPlan({ product: ferments, subject: ferments.productId, tenantId: null, resolve: null, on: ON, persons: PERSONS });
+    const k = await readResearchPlan({ product: knots, subject: knots.productId, tenantId: null, resolve: null, on: ON });
+    const f = await readResearchPlan({ product: ferments, subject: ferments.productId, tenantId: null, resolve: null, on: ON });
     assert.deepEqual([k.applicability.population, k.applicability.counts], [4, { REQUIRED: 1, ACCEPTED: 0, NOT_REQUIRED: 1, UNKNOWN: 2 }]);
     assert.deepEqual([f.applicability.population, f.applicability.counts], [12, { REQUIRED: 0, ACCEPTED: 1, NOT_REQUIRED: 0, UNKNOWN: 11 }]);
     /* optional reads: a route that escaped the narrowing carries no context, and must fail here by assertion, not crash (RR-148 run 1, S17) */
     assert.deepEqual(k.plan.routes.map((x) => [x.value, x.context?.scope?.region, x.context?.outcome]), [["bowline", "r-one", "REQUIRED"]]);
     assert.deepEqual(f.plan.routes.map((x) => [x.value, x.context?.scope?.["declared-scope"], x.context?.outcome]), [["miso", "scope-two", "ACCEPTED"]]);
     assert.ok(!JSON.stringify(k).includes("scope-two") && !JSON.stringify(f).includes("r-one"), "one product's records were counted for another");
-    /* the real roster today: no declared person, so the same registries decide nothing */
-    const k0 = await readResearchPlan({ product: knots, subject: knots.productId, tenantId: null, resolve: null, on: ON });
+    /* RR-283 (owner decision 3): without its verbatim official quotation matched, the same registry decides nothing */
+    const unquoted = (f) => ({ ...f, checks: { ...f.checks, quoteMatchOutcome: "not-applicable", quoteMatchedOn: null } });
+    const k0 = await readResearchPlan({ product: { ...knots, factsDir: registryOf("knots0", [unquoted(fact("k1", "knot=bowline,region=r-one", "REQUIRED")), unquoted(fact("k2", "knot=clove-hitch,region=r-one", "NOT_REQUIRED"))]) }, subject: knots.productId, tenantId: null, resolve: null, on: ON });
     assert.deepEqual(k0.applicability.counts, { REQUIRED: 0, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 4 });
   } finally { rmSync(TMP, { recursive: true, force: true }); }
 });
@@ -273,14 +274,14 @@ test("REAL · every declared product in the real data root, count-only, on the s
     const records = (await loadRegistry(product.factsDir, product.productId)).records.filter((f) => f?.life?.status !== "retired");
     const stating = records.filter((f) => ["REQUIRED", "ACCEPTED", "NOT_REQUIRED"].includes(f?.applicability?.outcome)).length;
     const plan = await readResearchPlan({ product, subject: id, tenantId: null, resolve: null, on: ON });
-    out.push({ subject: id, activeRecords: records.length, statingAnOutcome: stating, applicabilityDeclared: Boolean(product.research?.applicability), researchDeclared: Boolean(product.research), routes: plan.plan.routes === NOT_MEASURED ? NOT_MEASURED : plan.plan.routes.length, declaredPersons: NO_DECLARED_PERSON_CHECKERS.length });
+    out.push({ subject: id, activeRecords: records.length, statingAnOutcome: stating, applicabilityDeclared: Boolean(product.research?.applicability), researchDeclared: Boolean(product.research), routes: plan.plan.routes === NOT_MEASURED ? NOT_MEASURED : plan.plan.routes.length });
   }
   console.log(`  REAL (${ON}, count-only, every declared subject in the real data root): ${JSON.stringify(out)}`);
   /* pins — re-measured, never assumed: a change here must be read, not edited */
   /* RR-155 §2: the owner declared a third subject (_handoffs a03a11f) with no product declaration — re-measured: 3 subjects, 2 NOT MEASURED */
   assert.deepEqual(roots.length, 3);
   const oet = out.find((x) => x.activeRecords !== undefined);
-  assert.deepEqual({ ...oet, subject: undefined }, { subject: undefined, activeRecords: 47, statingAnOutcome: 0, applicabilityDeclared: false, researchDeclared: false, routes: NOT_MEASURED, declaredPersons: 0 });
+  assert.deepEqual({ ...oet, subject: undefined }, { subject: undefined, activeRecords: 47, statingAnOutcome: 0, applicabilityDeclared: false, researchDeclared: false, routes: NOT_MEASURED });
   assert.equal(out.filter((x) => x.applicability === NOT_MEASURED).length, 2);
 });
 
@@ -289,7 +290,7 @@ test("REAL · every declared product in the real data root, count-only, on the s
 /* a record of a NAMED deciding body (its own claim.subject) — everything else as `fact` */
 const bodyFact = (id, body, qualifier, outcome, over = {}) => fact(id, qualifier, outcome, { claim: { subject: body, predicate: `fixture-${id}`, qualifier }, ...over });
 const AXES2 = { declared: [{ key: "knot", status: "EVIDENCED" }], discovered: [{ key: "knot", records: 2, verifiedRecords: 2, distinctValues: 2 }, { key: "region", records: 1, verifiedRecords: 1, distinctValues: 1 }] };
-const derive = (facts, over = {}) => deriveDeclaration({ axes: AXES2, facts, persons: PERSONS, on: ON, ...over });
+const derive = (facts, over = {}) => deriveDeclaration({ axes: AXES2, facts, on: ON, ...over });
 const check = (d, body, q) => d.checks.find((c) => c.body === body && JSON.stringify(c.scope) === JSON.stringify(q));
 
 test("D1 · DERIVED, NOT LISTED: one proposed check per deciding body (a tier-1 record's own subject) and scope (its qualifiers) — a non-tier-1 record never makes a body; dimensions are F13's", () => {
@@ -313,24 +314,25 @@ test("D2 · A CHECK IS DECIDED ONLY BY ITS OWN BODY AND EXACT SCOPE: ACCEPTED st
     bodyFact("a2", "body-a", null, "REQUIRED"),
     bodyFact("a3", "body-a", "knot=sheet-bend", null),
     bodyFact("b1", "body-b", "knot=sheet-bend", "REQUIRED"),
-    bodyFact("b2", "body-b", "knot=clove-hitch", "REQUIRED", { verification: { ...fact("x", null, null).verification, checkedBy: "someone undeclared" } }),
+    bodyFact("b2", "body-b", "knot=clove-hitch", "REQUIRED", { checks: { ...fact("x", null, null).checks, quoteMatchOutcome: "not-applicable", quoteMatchedOn: null } }),
   ]);
   assert.equal(check(d, "body-a", { knot: "bowline" }).outcome, "ACCEPTED", "ACCEPTED was changed");
   assert.equal(check(d, "body-a", {}).outcome, "REQUIRED");
   assert.equal(check(d, "body-a", { knot: "sheet-bend" }).outcome, "UNKNOWN", "a body-wide rule or another body's rule decided a narrower check");
   assert.match(check(d, "body-a", { knot: "sheet-bend" }).why, /^no source/);
   assert.equal(check(d, "body-b", { knot: "sheet-bend" }).outcome, "REQUIRED");
-  assert.equal(check(d, "body-b", { knot: "clove-hitch" }).outcome, "UNKNOWN", "a record whose checker is not a declared person decided");
-  assert.match(check(d, "body-b", { knot: "clove-hitch" }).why, /citation COULD-NOT-PROVE by F46 — FIT NEEDS_A_PERSON/);
+  assert.equal(check(d, "body-b", { knot: "clove-hitch" }).outcome, "UNKNOWN", "a record with no verbatim official quotation decided");
+  assert.match(check(d, "body-b", { knot: "clove-hitch" }).why, /citation COULD-NOT-PROVE by F46 — FIT CHECKED_NOT_FOUND/);
   assert.deepEqual({ ...d.counts.byOutcome }, { REQUIRED: 2, ACCEPTED: 1, NOT_REQUIRED: 0, UNKNOWN: 2 });
-  /* CONTROL: with no declared person (the real roster today) the same records decide nothing */
-  assert.deepEqual({ ...derive([bodyFact("a1", "body-a", "knot=bowline", "ACCEPTED")], { persons: [] }).counts.byOutcome }, { REQUIRED: 0, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 1 });
+  /* CONTROL: without its verbatim official quotation matched, the same record decides nothing */
+  assert.deepEqual({ ...derive([bodyFact("a1", "body-a", "knot=bowline", "ACCEPTED", { checks: { ...fact("x", null, null).checks, quoteMatchOutcome: "not-applicable", quoteMatchedOn: null } })]).counts.byOutcome }, { REQUIRED: 0, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 1 });
 });
 
-test("D3 · WHAT IS MISSING IS NAMED, ONE BY ONE — never 0, never guessed: the stated outcome, the declared person, a tier-1 record, the registry, the date", () => {
-  const none = derive([bodyFact("a1", "body-a", "knot=bowline", null)], { persons: [] });
-  assert.deepEqual([...check(none, "body-a", { knot: "bowline" }).unknownFields], [MISSING_FACT.outcome, MISSING_FACT.person]);
-  assert.deepEqual([...none.missing], [MISSING_FACT.outcome, MISSING_FACT.person]);
+test("D3 · WHAT IS MISSING IS NAMED, ONE BY ONE — never 0, never guessed: the stated outcome, a tier-1 record, the registry, the date; who checked is never missing (owner decision 3)", () => {
+  const none = derive([bodyFact("a1", "body-a", "knot=bowline", null)]);
+  assert.deepEqual([...check(none, "body-a", { knot: "bowline" }).unknownFields], [MISSING_FACT.outcome]);
+  assert.deepEqual([...none.missing], [MISSING_FACT.outcome]);
+  assert.ok(!("person" in MISSING_FACT), "a person is still named as a missing fact");
   const signed = derive([bodyFact("a1", "body-a", "knot=bowline", "REQUIRED")]);
   assert.deepEqual([...signed.missing], [], "a stated, signed check still reports something missing");
   assert.deepEqual([...derive([bodyFact("c1", "body-c", "knot=bowline", null, { source: { tier: 4 } })]).missing], [MISSING_FACT.tier1]);
@@ -354,8 +356,8 @@ test("D5 · THE PRODUCTION READER on two unrelated products, each over its own r
   try {
     const knots = { ...KNOTS, factsDir: registryOf("d-knots", [bodyFact("k1", "knot-body-one", "knot=bowline", "REQUIRED"), bodyFact("k2", "knot-body-two", "knot=clove-hitch", null)]) };
     const ferments = { ...FERMENTS, factsDir: registryOf("d-ferments", [bodyFact("m1", "ferment-body-one", "ferment=miso", "ACCEPTED"), bodyFact("m2", "ferment-body-one", null, null), bodyFact("m3", "ferment-body-two", "ferment=kimchi", null, { source: { tier: 3 } })]) };
-    const k = await readDerivedDeclaration({ product: knots, tenantId: null, resolve: null, on: ON, persons: PERSONS });
-    const f = await readDerivedDeclaration({ product: ferments, tenantId: null, resolve: null, on: ON, persons: PERSONS });
+    const k = await readDerivedDeclaration({ product: knots, tenantId: null, resolve: null, on: ON });
+    const f = await readDerivedDeclaration({ product: ferments, tenantId: null, resolve: null, on: ON });
     assert.deepEqual([k.counts.checks, k.counts.bodies, { ...k.counts.byOutcome }], [2, 2, { REQUIRED: 1, ACCEPTED: 0, NOT_REQUIRED: 0, UNKNOWN: 1 }]);
     assert.deepEqual([f.counts.checks, f.counts.bodies, f.counts.notDeciding, { ...f.counts.byOutcome }], [2, 1, 1, { REQUIRED: 0, ACCEPTED: 1, NOT_REQUIRED: 0, UNKNOWN: 1 }]);
     assert.ok(k.dimensions.some((x) => x.key === "knot") && f.dimensions.some((x) => x.key === "ferment"), "F13's dimensions were not read through each product");
@@ -394,13 +396,13 @@ test("REAL2 · the derived declaration for every declared subject in the real da
     const d = await readDerivedDeclaration({ product, tenantId: null, resolve: null, on: ON });
     out.push({ subject: id, dimensions: d.dimensions === NOT_MEASURED ? NOT_MEASURED : d.dimensions.map((x) => `${x.key}:${x.status}:${x.records}r:${x.distinctValues}v`), counts: d.counts, missing: d.missing, unknownFieldsPerCheck: d.checks.map((c) => c.unknownFields.length) });
   }
-  console.log(`  REAL2 (${ON}, count-only, every declared subject; persons declared: ${NO_DECLARED_PERSON_CHECKERS.length}): ${JSON.stringify(out)}`);
+  console.log(`  REAL2 (${ON}, count-only, every declared subject; no person required (owner decision 3)): ${JSON.stringify(out)}`);
   /* pins — re-measured, never assumed */
   const oet = out.find((x) => x.counts);
   assert.deepEqual([oet.counts.activeRecords, oet.counts.decidingRecords, oet.counts.statingRecords], [47, 46, 0]);
   assert.equal(oet.counts.byOutcome.UNKNOWN, oet.counts.checks, "a real check was decided without a stated outcome");
   assert.ok(oet.counts.checks > 0, "EMPTY real population");
-  assert.deepEqual([...oet.missing], [MISSING_FACT.outcome, MISSING_FACT.person]);
+  assert.deepEqual([...oet.missing], [MISSING_FACT.outcome], "a person is still reported missing, or the stated outcome is not");
   /* RR-155 §2: the owner's third declared subject has no product declaration — NOT MEASURED, re-measured */
   assert.equal(out.filter((x) => x.declaration === NOT_MEASURED).length, 2);
 });

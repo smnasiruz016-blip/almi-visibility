@@ -70,8 +70,8 @@ export function neededCombinations({ routes, dimension, facts }) {
 }
 
 /** C3 — why a record stating an outcome does not decide, or null when it decides: F46's checks and F45's presentation, as they stand. */
-export function disqualification(f, { persons, health }) {
-  const cite = auditCitation(f, { persons });
+export function disqualification(f, { health }) {
+  const cite = auditCitation(f);
   const auth = cite.checks.authority;
   if (auth.result !== "ADMISSIBLE") return `source not admissible (F46 AUTHORITY ${auth.result}${auth.missing ? ` — missing ${auth.missing}` : ""})`;
   if (f?.source?.tier !== 1) return "source is not tier 1 — not the deciding body's own source";
@@ -86,10 +86,9 @@ export function disqualification(f, { persons, health }) {
 }
 
 /**
- * @param {{ product: object, axes: object, routes: object[]|string, facts: object[]|null, persons: string[], on: string }} input
+ * @param {{ product: object, axes: object, routes: object[]|string, facts: object[]|null, on: string }} input
  */
-export function applicabilityOf({ product, axes, routes, facts, persons, on }) {
-  if (!Array.isArray(persons)) throw new TypeError("the roster of declared persons must be passed explicitly (F46) — an empty roster is a recorded fact, not a default");
+export function applicabilityOf({ product, axes, routes, facts, on }) {
   const otherDifferences = otherDifferencesNow();
   const base = { otherDifferences, pagesCreated: 0, pagesCounted: 0, notes: "a scope for question research — never a page, a page count or a reason to create one" };
   const unmeasured = (missing) => Object.freeze({ ...base, measured: false, missing });
@@ -115,7 +114,7 @@ export function applicabilityOf({ product, axes, routes, facts, persons, on }) {
       else if (s.size < n.scope.size && covers(n.scope, s)) wider.push(f.id ?? null);
     }
     const counting = [], refused = [];
-    for (const f of exact) { const why = disqualification(f, { persons, health }); if (why) refused.push({ factId: f.id ?? null, why }); else counting.push(f); }
+    for (const f of exact) { const why = disqualification(f, { health }); if (why) refused.push({ factId: f.id ?? null, why }); else counting.push(f); }
     const out = { scope: Object.freeze(Object.fromEntries(n.scope)), route: n.route, routeIds: n.routeIds };
     const outcomes = [...new Set(counting.map((f) => f.applicability.outcome))];
     if (outcomes.length === 1) return Object.freeze({ ...out, outcome: outcomes[0], records: counting.map((f) => Object.freeze({ factId: f.id ?? null, observedOn: observedOnOf(health, f) })) });
@@ -143,7 +142,6 @@ export const PROPOSED_CHECK_IS_NOT = Object.freeze(["an applicability verdict", 
 export const CHECK_AUTHORITY = "the deciding body's own current source (tier 1) — a test owner's recognition list, a regulator's or council's own page, or the institution's or employer's own page; a blog, coaching site, aggregator or third-party list never decides";
 export const MISSING_FACT = Object.freeze({
   outcome: "a record of this body, for this exact scope, that STATES an outcome (REQUIRED · ACCEPTED · NOT_REQUIRED)",
-  person: "a checker declared a person, whose recorded verdict confirms the record (F46 C3)",
   tier1: "a current record from any deciding body's own source (tier 1)",
   registry: "the product's fact registry",
   dimensions: "F13's dimensions for the product",
@@ -151,10 +149,9 @@ export const MISSING_FACT = Object.freeze({
 const scopeKey = (body, scope) => JSON.stringify([body, [...scope].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))]);
 
 /**
- * @param {{ axes: object|null, facts: object[]|null, persons: string[], on: string }} input
+ * @param {{ axes: object|null, facts: object[]|null, on: string }} input
  */
-export function deriveDeclaration({ axes, facts, persons, on }) {
-  if (!Array.isArray(persons)) throw new TypeError("the roster of declared persons must be passed explicitly (F46) — an empty roster is a recorded fact, not a default");
+export function deriveDeclaration({ axes, facts, on }) {
   const otherDifferences = otherDifferencesNow();
   const base = { kind: "DERIVED RESEARCH DECLARATION — a proposal for review, never a verdict", notA: PROPOSED_CHECK_IS_NOT, otherDifferences, pagesCreated: 0, pagesCounted: 0 };
   if (!ISO.test(on ?? "")) return Object.freeze({ ...base, derived: false, missing: [MISSING.date] });
@@ -175,11 +172,10 @@ export function deriveDeclaration({ axes, facts, persons, on }) {
   const checks = [...byKey.values()].map(({ body, scope, records }) => {
     const stating = records.filter((f) => STATED.includes(f?.applicability?.outcome));
     const counting = [], refused = [];
-    for (const f of stating) { const why = disqualification(f, { persons, health }); if (why) refused.push(why); else counting.push(f); }
+    for (const f of stating) { const why = disqualification(f, { health }); if (why) refused.push(why); else counting.push(f); }
     const outcomes = [...new Set(counting.map((f) => f.applicability.outcome))];
     const unknownFields = [];
     if (!stating.length) unknownFields.push(MISSING_FACT.outcome);
-    if (!records.some((f) => persons.includes(f?.verification?.checkedBy))) unknownFields.push(MISSING_FACT.person);
     const outcome = outcomes.length === 1 ? outcomes[0] : OUTCOMES.UNKNOWN;
     const why = outcomes.length === 1 ? null : outcomes.length > 1 ? `CONFLICT — deciding records state ${outcomes.join(" and ")}; none is chosen` : refused.length ? `no stating record decides it (${refused.join("; ")})` : "no source — no record of this body states an outcome for this exact scope";
     return Object.freeze({
@@ -192,7 +188,6 @@ export function deriveDeclaration({ axes, facts, persons, on }) {
   if (!deciding.length) missing.push(MISSING_FACT.tier1);
   if (dimensions === NOT_MEASURED) missing.push(MISSING_FACT.dimensions);
   if (checks.some((c) => c.unknownFields.includes(MISSING_FACT.outcome))) missing.push(MISSING_FACT.outcome);
-  if (checks.some((c) => c.unknownFields.includes(MISSING_FACT.person))) missing.push(MISSING_FACT.person);
   return Object.freeze({
     ...base, derived: true, on, dimensions, checks: Object.freeze(checks),
     counts: Object.freeze({

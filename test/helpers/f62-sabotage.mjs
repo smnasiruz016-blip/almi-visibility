@@ -63,9 +63,10 @@ const SABOTAGES = [
   ["S23", "D1 only a tier-1 record makes a deciding body", AP, "const deciding = act.filter((f) => f?.source?.tier === 1 && present(f?.claim?.subject));", "const deciding = act.filter((f) => present(f?.claim?.subject));", D1],
   ["S24", "D1/D2 a check is one body and one EXACT scope — never merged across scopes", AP, "    const k = scopeKey(f.claim.subject, scope);", "    const k = scopeKey(f.claim.subject, new Map());", D1],
   ["S25", "D2 one body's record never decides another body's check", AP, "const scopeKey = (body, scope) => JSON.stringify([body,", "const scopeKey = (body, scope) => JSON.stringify([\"\",", D2],
-  ["S26", "D2 a stating record decides only under F46/F45 (a declared person signs)", AP, "for (const f of stating) { const why = disqualification(f, { persons, health });", "for (const f of stating) { const why = null;", D2],
+  ["S26", "D2 a stating record decides only under F46/F45 (its verbatim official quotation matched — owner decision 3)", AP, "for (const f of stating) { const why = disqualification(f, { health });", "for (const f of stating) { const why = null;", D2],
   ["S27", "D3 the missing stated outcome is named", AP, "    if (!stating.length) unknownFields.push(MISSING_FACT.outcome);\n", "", D3],
-  ["S28", "D3 the missing declared person is named", AP, "    if (!records.some((f) => persons.includes(f?.verification?.checkedBy))) unknownFields.push(MISSING_FACT.person);\n", "", D3],
+  /* RR-283 · S28 RESTATED (owner decision 3): it named the missing declared person; no person is ever missing now, and D3 asserts it is never named */
+  ["S28", "D3 who checked is never named as a missing fact", AP, `  tier1: "a current record from any deciding body's own source (tier 1)",\n`, `  person: "a checker declared a person",\n  tier1: "a current record from any deciding body's own source (tier 1)",\n`, D3],
   ["S29", "D3 the missing tier-1 record is named", AP, "  if (!deciding.length) missing.push(MISSING_FACT.tier1);\n", "", D3],
   ["S30", "D3 the judging date is stated, never the clock's", AP, "  if (!ISO.test(on ?? \"\")) return Object.freeze({ ...base, derived: false, missing: [MISSING.date] });", "  if (!ISO.test(on ?? \"\")) on = new Date().toISOString().slice(0, 10);", D3],
   ["S31", "D4 a proposed check is not demand evidence (the five NOTs)", AP, "\"a public question\", \"demand evidence\", \"a page opportunity\"", "\"a public question\", \"a page opportunity\"", D4],

@@ -60,10 +60,12 @@ export const PRE_CONTRACT_CONDITIONS = Object.freeze([
     requirement: "verificationState is explicit on the record",
     holds: ({ verificationState }) => typeof verificationState === "string" && verificationState.trim() !== "",
   }),
+  /* 🔴 RR-283 (owner decision 3): who checked is never a condition. This condition asked for a named HUMAN checker; 44 of the records it
+   * admitted named the authoring AI as `human:`, which no person was. It now asks for a recorded checker of any typed prefix and a date. */
   Object.freeze({
-    id: "NAMED_HUMAN_AND_DATE",
-    requirement: "the verification carries a named human checker and a date",
-    holds: ({ verification }) => isNamedHumanChecker(verification?.checkedBy) && ISO_DAY.test(verification?.checkedOn ?? ""),
+    id: "RECORDED_CHECKER_AND_DATE",
+    requirement: "the verification carries a recorded checker (human:, model: or engine:) and a date",
+    holds: ({ verification }) => FACT_CHECKED_BY_PATTERN.test(String(verification?.checkedBy ?? "")) && ISO_DAY.test(verification?.checkedOn ?? ""),
   }),
   Object.freeze({
     id: "ELEMENTS_RECONCILE",

@@ -86,7 +86,12 @@ test("🔴 REAL WRITE — mkdirSync in the real store's ensureDir is a write sit
 });
 
 test("🔴 REAL WRITE — appendFileSync in the real store's appendWithoutDedupe is a write site", () => {
-  assertSite(exactlyOne(find((t) => t.startsWith("appendFileSync(filePath,")), "appendFileSync line"), "appendFileSync");
+  /* RR-282: the line now follows the batch's `if (pending)` branch — `else appendFileSync(filePath, line + …` — and is found by what it writes */
+  assertSite(exactlyOne(find((t) => /^(else )?appendFileSync\(filePath, line \+ "\\n"/.test(t)), "appendFileSync line"), "appendFileSync");
+});
+
+test("🔴 REAL WRITE — RR-282: the real store's ONE append of a batch (appendAllIfNew) is a write site", () => {
+  assertSite(exactlyOne(find((t) => t.includes("appendFileSync(filePath, lines.join(\"\"), \"utf8\")"), JSONL), "batch append line"), "the batch append");
 });
 
 test("🔴 REAL WRITE — the real store's appendAllWithoutDedupe loop call is a write site", () => {

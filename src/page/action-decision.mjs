@@ -201,7 +201,7 @@ export function decideForPage(e) {
   /* REFRESH — a recorded measurement that a material fact on the page is past its freshness window */
   if ((e.staleFacts ?? []).length) actions.push(chosen("REFRESH", "A_MATERIAL_FACT_ON_THE_PAGE_IS_PAST_ITS_FRESHNESS", [...e.staleFacts]));
   /* KEEP / ADD SECTION / NOINDEX / REMOVE — only on their own recorded evidence */
-  if (true) actions.push(chosen("KEEP", "RECORDED_QUALITY_SATISFIES_THE_INTENT", [e.quality.ref]));
+  if (e.quality?.satisfiesIntent === true) actions.push(chosen("KEEP", "RECORDED_QUALITY_SATISFIES_THE_INTENT", [e.quality.ref]));
   else missing.push("KEEP needs a recorded quality measurement — none is authoritative (F40 blocked)");
   if (e.questionCoverage?.newQuestionInIntent === true) actions.push(chosen("ADD SECTION", "RECORDED_NEW_QUESTION_IN_THE_PAGE_INTENT", [e.questionCoverage.ref]));
   if (e.postPublication?.weakResult === true && e.postPublication.ownerApprovalPath === true) actions.push(chosen("NOINDEX", "RECORDED_WEAK_RESULT_AFTER_THE_EVALUATION_WINDOW", [e.postPublication.ref]));

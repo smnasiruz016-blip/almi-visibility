@@ -12,6 +12,7 @@
  * Evidence: runs/audit/rr247-bare-clone-proof-<date>T<hhmm>.txt, written once (wx).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -81,6 +82,6 @@ try {
   lines.push(`clone deleted: ${!existsSync(dir)}`, `VERDICT: ${ok ? "PASS — a bare `node --test` ran no harness and changed no tracked file" : "FAIL"}`);
 }
 mkdirSync(dirname(EVIDENCE), { recursive: true });
-writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(EVIDENCE, badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.join("\n"));
 process.exitCode = ok ? 0 : 1;

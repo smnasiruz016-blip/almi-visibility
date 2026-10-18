@@ -98,7 +98,8 @@ test("SF-6 · EVIDENCE IS NEVER OVERWRITTEN: every harness writes its evidence t
   }
   assert.deepEqual(offences, [], "a harness can replace the evidence of the run that proved it");
   const once = readFileSync(join(REPO, "test/helpers/evidence-once.mjs"), "utf8");
-  assert.match(once, /writeFileSync\(join\(repo, rel\), text, \{ flag: "wx" \}\)/, "the shared writer opens no existing file");
+  /* RR-287 (F88 C5): the text passes through badFindingsFirst on its way — the same protection: a new file only */
+  assert.match(once, /writeFileSync\(join\(repo, rel\), badFindingsFirst\(text\), \{ flag: "wx" \}\)/, "the shared writer opens no existing file");
   assert.match(once, /\$\{base\}-\$\{stamp\}/, "the shared writer names each run's file by its time");
 });
 

@@ -10,6 +10,7 @@
  * and the audit store confined by the verified test context. Nothing is written to the real data root, the engine's corpus or the
  * production trail. Evidence: runs/audit/f19-plan-preflight-<batch>-<day>.txt (count-only; never overwritten).
  */
+import { badFindingsFirst } from "../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -136,7 +137,7 @@ test("F19 PLAN PREFLIGHT · every prerequisite of the one planned run, proved wi
   const day = new Date().toISOString().slice(0, 10);
   let evidence = join(REPO, "runs", "audit", `f19-plan-preflight-${BATCH}-${day}.txt`);
   if (existsSync(evidence)) evidence = evidence.replace(/.txt$/, `-${Date.now()}.txt`);
-  writeFileSync(evidence, [`F19 plan preflight · ${new Date().toISOString()} · batch ${BATCH} · engine ${headOf(REPO)} · data ${headOf(DATA_ROOT)} · count-only`, ...lines, ""].join("\n"));
+  writeFileSync(evidence, badFindingsFirst([`F19 plan preflight · ${new Date().toISOString()} · batch ${BATCH} · engine ${headOf(REPO)} · data ${headOf(DATA_ROOT)} · count-only`, ...lines, ""].join("\n")));
   console.log(lines.join("\n"));
   assert.ok(ok.every(Boolean), "a prerequisite failed — the run must not be asked for");
   assert.equal(trailSha(), TRAIL_BEFORE, "the production trail was written");

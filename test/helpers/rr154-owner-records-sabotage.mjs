@@ -8,6 +8,7 @@
  * the production trail hashed before and after. Evidence: runs/audit/rr154-owner-records-sabotage-2026-10-03.txt — refuses to overwrite.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -82,6 +83,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(dirname(EVIDENCE), { recursive: true });
-writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(EVIDENCE, badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === SABOTAGES.length ? 0 : 1;

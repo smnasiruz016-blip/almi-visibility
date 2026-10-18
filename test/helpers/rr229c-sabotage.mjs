@@ -7,6 +7,7 @@
  *   node test/helpers/rr229c-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -127,6 +128,6 @@ const total = RUN.length;
 const totalProved = proved;
 lines.push("", `proved ${totalProved} of ${total} (source ${proved} of ${RUN.length}) · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(dirname(EVIDENCE), { recursive: true });
-writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(EVIDENCE, badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && totalProved === total ? 0 : 1;

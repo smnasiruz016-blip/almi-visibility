@@ -12,8 +12,12 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { classifyReports, phoneFailures, desktopFailures, assistiveFailures, badFirstFailures, FAIL, UNLISTED } from "../src/report/owner-workflows.mjs";
+import { classifyReports, phoneFailures, desktopFailures, assistiveFailures, badFirstFailures, badFindingsFirst, freshFailures, BAD_FIRST_TITLE, FAIL, UNLISTED, OWNER_WORKFLOWS, WRITERS } from "../src/report/owner-workflows.mjs";
+import { HISTORICAL_REPORTS } from "../config/owner-workflows-historical.mjs";
 import { runFiles, offlineRenderer, checkReports } from "../tools/owner-workflows.mjs";
+import { CSS } from "../src/report/view.mjs";
+import { spawnSync } from "node:child_process";
+import { PHONE, DESKTOP } from "../src/report/owner-workflows.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { scanSource } from "../tools/product-boundary.mjs";
 
@@ -75,6 +79,35 @@ test("C6 · FIRES · FIRING CONTROL: one planted copy per rule fails that check 
   for (const [rule, got] of Object.entries(planted)) assert.deepEqual(got, [rule], `the planted breach of ${rule} failed ${JSON.stringify(got)}`);
 });
 
+test("A1 C5 · THE WRITERS' SIDE · FIRING CONTROL: a writer's text with a bad finding anywhere comes out with every bad line copied first — word for word, nothing removed; a clean text is unchanged", () => {
+  const late = "F run · 2026-10-18\npopulation: 3\n\nV1 ok · PROVED\nV2 x · landed true · red false · NOT PROVED\n\nproved 2 of 3 · residue 0\n";
+  assert.deepEqual(badFirstFailures("f", late, "text/plain").map((x) => x.failure), [FAIL.BAD_NOT_FIRST], "the planted report already said it first — the control cannot fire");
+  const out = badFindingsFirst(late);
+  assert.deepEqual(badFirstFailures("f", out, "text/plain"), [], "the writer left a bad finding after the first section");
+  assert.deepEqual(assistiveFailures("f", out, "text/plain"), [], "the writer broke an assistive rule");
+  assert.ok(out.endsWith(late), "the writer removed or reworded a line");
+  assert.deepEqual(out.split("\n").slice(0, 3), [BAD_FIRST_TITLE, "  V2 x · landed true · red false · NOT PROVED", "  proved 2 of 3 · residue 0"]);
+  /* a report that opens with a heading: the copy goes under its title, before any second heading */
+  const h = badFindingsFirst("# R\n\nfine\n\n## End\n\nproved 2 of 3\n");
+  assert.deepEqual([badFirstFailures("f", h, "text/plain"), h.split("\n")[0], assistiveFailures("f", h, "text/plain")], [[], "# R", []]);
+  /* CONTROLS: clean, and already first — byte for byte */
+  for (const t of ["ok\nproved 3 of 3 · residue 0\n", CLEAN_MD, "TITLE\nNOT DONE: x\n\nmore\n"]) assert.equal(badFindingsFirst(t), t);
+});
+
+test("A1 · HISTORICAL · FIRING CONTROL: only a file on the historical list is answered by it — the same failure in any other file is fresh, never forgiven", () => {
+  const failures = [{ file: "runs/audit/old.txt", failure: FAIL.BAD_NOT_FIRST }, { file: "runs/audit/new.txt", failure: FAIL.BAD_NOT_FIRST }];
+  assert.deepEqual(freshFailures(failures, [{ file: "runs/audit/old.txt" }]).map((f) => f.file), ["runs/audit/new.txt"]);
+  assert.deepEqual(freshFailures(failures, []).length, 2);
+  /* every historical entry names its file and the check it fails; the list holds no duplicate */
+  assert.ok(HISTORICAL_REPORTS.every((h) => h.file.startsWith("runs/") && typeof h.fails === "string" && h.fails !== ""));
+  assert.equal(new Set(HISTORICAL_REPORTS.map((h) => h.file)).size, HISTORICAL_REPORTS.length);
+});
+
+test("A1 C1 · EVERY KIND NAMES ITS WRITER, OR IS HISTORICAL ONLY BY NAME", () => {
+  assert.deepEqual(Object.keys(WRITERS).sort(), OWNER_WORKFLOWS.map((w) => w.kind).sort());
+  assert.deepEqual(Object.entries(WRITERS).filter(([, w]) => w === null).map(([k]) => k), ["OWNER_VERIFICATION"]);
+});
+
 /* ── REAL ── */
 const FILES = existsSync(join(REPO, "runs")) ? runFiles(REPO) : [];
 const REPORTS = classifyReports(FILES);
@@ -85,8 +118,11 @@ test("REAL · C1 + C4 + C5: every report file under runs/ classed (UNLISTED repo
   const listed = REPORTS.filter((r) => r.kind !== UNLISTED);
   const failures = listed.flatMap((r) => { const t = readFileSync(join(REPO, r.file), "utf8"); return [...assistiveFailures(r.file, t, r.type), ...badFirstFailures(r.file, t, r.type)]; });
   for (const f of failures) assert.ok(f.file && (f.line !== undefined), "a failure is not named by file and line");
+  /* F88 Amendment 1: a failure outside the historical list is fresh — there are none */
+  assert.deepEqual(freshFailures(failures, HISTORICAL_REPORTS).map((f) => `${f.failure} ${f.file}:${f.line}`), [], "a report written outside the historical list fails a check");
+  assert.ok(failures.every((f) => HISTORICAL_REPORTS.some((h) => h.file === f.file && h.fails.includes(f.failure))), "a historical file fails a check its entry does not name");
   const by = (k) => failures.filter((f) => f.failure === k).length;
-  console.log(`  REAL (count-only): report files ${REPORTS.length} · listed ${listed.length} · UNLISTED ${REPORTS.length - listed.length} · ${[...new Set(failures.map((f) => f.failure))].map((k) => `${k} ${by(k)}`).join(" · ") || "failures 0"}`);
+  console.log(`  REAL (count-only): report files ${REPORTS.length} · listed ${listed.length} · UNLISTED ${REPORTS.length - listed.length} · historical ${HISTORICAL_REPORTS.length} · ${[...new Set(failures.map((f) => f.failure))].map((k) => `${k} ${by(k)}`).join(" · ") || "failures 0"} · fresh failures ${freshFailures(failures, HISTORICAL_REPORTS).length}`);
 });
 
 test("REAL · C2 + C3: the owner's report page, the exports, the operations report and the verification records rendered offline at 430 px and at desktop width — each failure named", { skip: SKIP }, async (t) => {
@@ -101,7 +137,49 @@ test("REAL · C2 + C3: the owner's report page, the exports, the operations repo
   assert.equal(states.length, some.length * 2);
   const renderFails = failures.filter((f) => f.failure === FAIL.WIDER || f.failure === FAIL.TEXT_DIFFERS);
   for (const f of renderFails) assert.ok(f.file);
+  /* F88 Amendment 1: a render failure is only ever a historical file's */
+  assert.deepEqual(freshFailures(renderFails, HISTORICAL_REPORTS).map((f) => `${f.failure} ${f.file}`), [], "a report outside the historical list fails a render check");
   console.log(`  REAL (count-only): rendered ${some.length} report(s) at 430 px and desktop · ${renderFails.map((f) => `${f.failure} ${f.file}${f.detail ? ` (${f.detail})` : ""}`).join(" · ") || "render failures 0"}`);
+});
+
+/* F88 Amendment 1 · one fresh run of each report kind that has a writer, made after RR-287's writer fix (18 Oct 2026) */
+const FRESH = Object.freeze([
+  { kind: "OWNER_REPORT", file: "runs/report/report-2026-10-18.html", type: "text/html", how: "bin/report.mjs --out=… --confirm, a governed write to a new file (the old index.html is historical)" },
+  { kind: "SABOTAGE_EVIDENCE", file: "runs/audit/f61-sabotage-2026-10-18T1755.txt", type: "text/plain", how: "a harness run with a real NOT PROVED limb, written through the shared bad-findings-first step" },
+  { kind: "AUDIT_EVIDENCE", file: "runs/audit/f19-real-census-controls-rr135-2026-10-02-1792346500545.txt", type: "text/plain", how: "test/helpers/f19-census-controls.mjs, written through the shared step" },
+  { kind: "OPERATIONS_REPORT", file: "runs/ops/operations-report-2026-10-18.txt", type: "text/plain", how: "its writer is unchanged by RR-287; its run of 18 Oct 2026" },
+]);
+const FRESH_HERE = FRESH.every((f) => existsSync(join(REPO, f.file)));
+
+test("A1 C7 · THE REPORT PAGE'S OWN CSS · FIRING CONTROL: a 3000-character line and a wide table stay inside a 430 px screen", async (t) => {
+  const r = await offlineRenderer();
+  if (r.unavailable) { t.skip(r.unavailable); return; }
+  try {
+    const page = (css) => `<!doctype html><html><head><style>${css}</style></head><body><pre class="wrap">${"x".repeat(3000)}</pre><table><thead><tr>${"<th>column heading</th>".repeat(20)}</tr></thead></table></body></html>`;
+    const ok = await r.render({ file: "f", type: "text/html" }, page(CSS), PHONE);
+    assert.deepEqual(phoneFailures("f", ok.layout), [], "the report page's CSS let a long line or a wide table cut off the screen");
+    /* CONTROL: without the wrap rule the same page overflows */
+    const bad = await r.render({ file: "f", type: "text/html" }, page(CSS.replace("pre{white-space:pre-wrap;overflow-wrap:anywhere}", "")), PHONE);
+    assert.equal(phoneFailures("f", bad.layout).length, 1, "the control cannot fire — the page fits without the rule");
+  } finally { await r.close(); }
+});
+
+test("REAL · A1 · THE FRESH RUN OF EACH REPORT KIND: rendered at 430 px and at desktop width and checked — every failure named, or 0; every kind with a writer has its run; the kind with none is HISTORICAL ONLY", { skip: FRESH_HERE ? false : "the fresh runs are local evidence, not on this machine" }, async () => {
+  assert.deepEqual(FRESH.map((f) => f.kind).sort(), Object.entries(WRITERS).filter(([k, w]) => w !== null && k !== "EVIDENCE_EXPORT").map(([k]) => k).sort());
+  for (const f of FRESH) assert.equal(classifyReports([f.file])[0].kind, f.kind, `${f.file} is not its kind`);
+  /* EVIDENCE_EXPORT: the ruling-sheet writer run without --confirm — it prints the sheet and writes nothing, no trail */
+  const sheet = spawnSync(process.execPath, ["bin/row60-ruling-sheet.mjs", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8" });
+  assert.equal(sheet.status, 0, sheet.stderr);
+  const texts = [...FRESH.map((f) => ({ ...f, text: readFileSync(join(REPO, f.file), "utf8") })), { kind: "EVIDENCE_EXPORT", file: "bin/row60-ruling-sheet.mjs (stdout)", type: "text/plain", text: sheet.stdout }];
+  const failures = texts.flatMap((x) => [...assistiveFailures(x.file, x.text, x.type), ...badFirstFailures(x.file, x.text, x.type)]);
+  const r = await offlineRenderer();
+  if (!r.unavailable) {
+    try { for (const x of texts) { const p = await r.render(x, x.text, PHONE), d = await r.render(x, x.text, DESKTOP); failures.push(...phoneFailures(x.file, p.layout), ...desktopFailures(x.file, p.visibleText, d.visibleText)); } } finally { await r.close(); }
+  }
+  assert.deepEqual(failures.map((f) => `${f.failure} ${f.file}`), [], "a fresh run of a report kind fails a check");
+  /* the fresh harness run held a real bad finding, and says it first */
+  assert.ok(texts[1].text.startsWith(BAD_FIRST_TITLE));
+  console.log(`  REAL (count-only): fresh runs ${texts.length} (${texts.map((x) => x.kind).join(", ")}) · rendered ${r.unavailable ? `NOT MEASURED — ${r.unavailable}` : "at 430 px and desktop"} · failures ${failures.length} · HISTORICAL ONLY: ${Object.entries(WRITERS).filter(([, w]) => w === null).map(([k]) => k).join(", ")}`);
 });
 
 test("the judgements name no product and load no module that can make a network, process, connector or paid call — and the control fires", () => {

@@ -401,7 +401,7 @@ export function renderRunCost(s) {
 </section>`;
 }
 
-const CSS = `
+export const CSS = `
 :root{--bg:#fff;--fg:#111;--muted:#666;--line:#ddd;--warn:#8a1c1c;--ok:#0a5c2a}
 *{box-sizing:border-box}
 body{margin:0;padding:1rem;font:15px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg)}
@@ -420,6 +420,8 @@ caption{text-align:left;font-weight:700;padding:.3rem 0;color:var(--muted)}
 th,td{border:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}
 th{background:#f6f6f6;font-weight:600}
 code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}
+td,th{overflow-wrap:anywhere}
 .wrap{max-width:34rem}
 .null{color:var(--muted)}
 .sum{padding:.5rem;background:#f6f6f6;border-radius:4px}

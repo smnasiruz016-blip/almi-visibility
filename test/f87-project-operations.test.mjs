@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
-import { failedRuns, staleFacts, blockedSources, fileState, partialOutputs, recoveryPlan, applyRecovery, recordCount, operationsReport, PARTIAL, RECOVERY_REFUSAL, SIDECAR } from "../src/ops/project-operations.mjs";
+import { failedRuns, staleFacts, blockedSources, damageOf, partialOutputs, recoveryPlan, applyRecovery, recordCount, operationsReport, PARTIAL, RECOVERY_REFUSAL, SIDECAR } from "../src/ops/project-operations.mjs";
 import { SAGA, ALERT_SENDING } from "../src/ops/watchman.mjs";
 import { batchFacts } from "../src/facts/batch-facts.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
@@ -56,10 +56,10 @@ test("C3 · UNAVAILABLE SOURCES · FIRING CONTROL: a source BLOCKED in its lates
 
 const scratch = () => mkdtempSync(join(tmpdir(), "f87-"));
 test("C4 · PARTIAL OUTPUTS · FIRING CONTROL: a store left half-written and a write begun and never finished are detected; whole stores and finished writes are not", () => {
-  assert.equal(fileState("a.jsonl", '{"a":1}\n{"b":2}\n'), null);
-  assert.equal(fileState("a.jsonl", '{"a":1}\n{"b":'), PARTIAL.NO_LINE_END);
-  assert.equal(fileState("a.jsonl", '{"a":1}\n{"b":\n{"c":3}\n'), PARTIAL.LINE_UNREADABLE);
-  assert.equal(fileState("a.json", '{"a":'), PARTIAL.JSON_UNREADABLE);
+  assert.equal(damageOf("a.jsonl", '{"a":1}\n{"b":2}\n'), null);
+  assert.equal(damageOf("a.jsonl", '{"a":1}\n{"b":'), PARTIAL.NO_LINE_END);
+  assert.equal(damageOf("a.jsonl", '{"a":1}\n{"b":\n{"c":3}\n'), PARTIAL.LINE_UNREADABLE);
+  assert.equal(damageOf("a.json", '{"a":'), PARTIAL.JSON_UNREADABLE);
   const d = scratch();
   try {
     writeFileSync(join(d, "whole.jsonl"), '{"a":1}\n'); writeFileSync(join(d, "half.jsonl"), '{"a":1}\n{"a":');

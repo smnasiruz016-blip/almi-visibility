@@ -25,6 +25,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { SAGA, TERMINAL_PHASES, ALERT_SENDING } from "./watchman.mjs";
+import { decideResolvedTenants } from "../tenancy/scope.mjs";
 
 /* Held here, not imported: src/facts/source-reader.mjs reaches the network (it reads sources), and a monitor loads no such module.
  * test/f87-project-operations.test.mjs pins these equal to that module's own SOURCE_READ_RECORD, READ_STATE.BLOCKED and dueOn. */
@@ -45,7 +46,8 @@ export const SIDECAR = ".partial-tail";
 /** C1 · the project's failed or refused runs, each with its reason; the engine's own (no tenant) counted apart. */
 export function failedRuns(events, { tenantId }) {
   const failed = (events ?? []).filter((e) => FAILED_OUTCOMES.includes(e?.outcome));
-  const mine = failed.filter((e) => e.tenantId === tenantId);
+  /* the project's own: decided by the one tenant decision (src/tenancy/scope.mjs), never compared here */
+  const mine = failed.filter((e) => decideResolvedTenants(e.tenantId, tenantId).allowed);
   return Object.freeze({
     listed: Object.freeze(mine.map((e) => Object.freeze({ eventId: e.eventId, occurredAt: e.occurredAt, eventType: e.eventType, action: e.action, outcome: e.outcome, reason: e.reasonCode ?? null }))),
     inTrail: mine.length,
@@ -86,7 +88,7 @@ export function blockedSources(reads) {
 }
 
 /** C4 · one stored file's bytes: half-written or whole. */
-export function fileState(name, text) {
+export function damageOf(name, text) {
   if (name.endsWith(".json")) { try { JSON.parse(text); return null; } catch { return PARTIAL.JSON_UNREADABLE; } }
   if (!name.endsWith(".jsonl") || text === "") return null;
   const lines = text.replace(/\r\n/g, "\n").split("\n");
@@ -99,7 +101,7 @@ export function fileState(name, text) {
 export function writesNeverFinished(events, { tenantId }) {
   const open = new Map();
   for (const e of events ?? []) {
-    if (e?.eventType !== "GOVERNED_WRITE" || e.tenantId !== tenantId) continue;
+    if (e?.eventType !== "GOVERNED_WRITE" || !decideResolvedTenants(e.tenantId, tenantId).allowed) continue;
     const key = e.metadata?.governedWriteKey, phase = e.metadata?.governedWritePhase;
     if (!key || !phase) continue;
     if (phase === SAGA.ATTEMPTED) open.set(key, e);
@@ -112,7 +114,7 @@ const storeFiles = (dir) => (existsSync(dir) ? readdirSync(dir).filter((f) => /\
 
 /** C4 · every half-written store of a batch directory, and every write begun and never finished. */
 export function partialOutputs({ dir, events = [], tenantId }) {
-  const halfWritten = storeFiles(dir).map((f) => ({ file: f, state: fileState(f, readFileSync(join(dir, f), "utf8")) })).filter((x) => x.state).map((x) => Object.freeze(x));
+  const halfWritten = storeFiles(dir).map((f) => ({ file: f, state: damageOf(f, readFileSync(join(dir, f), "utf8")) })).filter((x) => x.state).map((x) => Object.freeze(x));
   return Object.freeze({ halfWritten: Object.freeze(halfWritten), neverFinished: Object.freeze(writesNeverFinished(events, { tenantId })), files: storeFiles(dir).length });
 }
 
@@ -130,7 +132,7 @@ export function recoveryPlan({ dir, real = [] }) {
   if (real.some((r) => { const rel = relative(resolve(r), d); return rel === "" || (!rel.startsWith("..") && !/^[A-Za-z]:/.test(rel)); })) return Object.freeze({ refused: RECOVERY_REFUSAL.NOT_A_SCRATCH_COPY });
   const writes = [], repaired = [], rerun = [];
   for (const f of storeFiles(d)) {
-    const text = readFileSync(join(d, f), "utf8"), state = fileState(f, text);
+    const text = readFileSync(join(d, f), "utf8"), state = damageOf(f, text);
     if (!state) continue;
     if (state === PARTIAL.JSON_UNREADABLE) { rerun.push(Object.freeze({ file: f, state })); continue; }
     const { keep, broken } = wholeLines(text);

@@ -25,7 +25,7 @@ const read = (p) => readFileSync(join(REPO, p));
 
 /* [id, limb, [[file, from, to], …], test file, named-test prefix, reason (optional)] */
 const SABOTAGES = [
-  ["P1", "C1 · another project's and the engine's failed runs listed as this project's", [[IC, "const mine = failed.filter((e) => e.tenantId === tenantId);", "const mine = failed;"]], T, "C1 · FAILED JOBS · FIRING CONTROL:"],
+  ["P1", "C1 · another project's and the engine's failed runs listed as this project's", [[IC, "const mine = failed.filter((e) => decideResolvedTenants(e.tenantId, tenantId).allowed);", "const mine = failed;"]], T, "C1 · FAILED JOBS · FIRING CONTROL:"],
   ["P2", "C2 · a CURRENT recheck does not move the read date", [[IC, "const readOn = moved && (!f.readOn || moved > f.readOn) ? moved : f.readOn;", "const readOn = f.readOn;"]], T, "C2 · STALE EVIDENCE · FIRING CONTROL:"],
   ["P3", "C3 · a source read since is still listed BLOCKED", [[IC, "if (!was || String(r.readOn ?? \"\") >= String(was.readOn ?? \"\")) latest.set(r.url, r);", "if (!was) latest.set(r.url, r);"]], T, "C3 · UNAVAILABLE SOURCES · FIRING CONTROL:"],
   ["P4", "C4 · a store with an unfinished last line passes", [[IC, "if (lines[lines.length - 1] !== \"\") return PARTIAL.NO_LINE_END;", "if (false) return PARTIAL.NO_LINE_END;"]], T, "C4 · PARTIAL OUTPUTS · FIRING CONTROL:"],

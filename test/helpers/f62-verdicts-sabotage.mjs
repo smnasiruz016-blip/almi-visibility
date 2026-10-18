@@ -32,6 +32,7 @@ const SABOTAGES = [
   ["V5", "C9 · a CHECKED_NOT_FOUND line naming nothing stands", [[AV, "if (!present(v.notFound)) return unknown(", "if (false) return unknown("]], T, "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:"],
   ["V6", "C9 · a readable page is taken as BLOCKED", [[AV, "    return unknown(VERDICT_REFUSAL.NOT_BLOCKED,", "    return Object.freeze({ ...base, kind: VERDICT_KIND.BLOCKED, page: v.page, reason: \"x\" }); unknown(VERDICT_REFUSAL.NOT_BLOCKED,"]], T, "C9 · BLOCKED · FIRING CONTROL:"],
   ["V7", "C9 · two verdicts for one check — one is chosen", [[AV, "if (mine.length > 1) return unknown(", "if (false) return unknown("]], T, "C9 · ONE VERDICT PER CHECK:"],
+  ["V8", "C9 · read back: another body's verdict decides a check", [[AV, "if (v && v.kind === VERDICT_KIND.OFFICIAL && v.body === c.body && sameScope(v.scope, c.scope)) return", "if (v && v.kind === VERDICT_KIND.OFFICIAL) return"]], T, "C9 · READ BACK · FIRING CONTROL (RR-286):"],
 ];
 
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

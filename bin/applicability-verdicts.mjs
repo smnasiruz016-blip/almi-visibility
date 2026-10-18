@@ -19,7 +19,7 @@ import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { privateSourcesRoot, withPrivateTexts } from "../src/facts/private-texts.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
-import { judgeChecks } from "../src/research/applicability-verdicts.mjs";
+import { judgeChecks, checksWithVerdicts } from "../src/research/applicability-verdicts.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const USAGE = "node bin/applicability-verdicts.mjs --product=<id> --research-batch=<id> --verdicts=applicability-verdicts-YYYY-MM-DD.json --on=YYYY-MM-DD";
@@ -50,4 +50,5 @@ console.log(`  official         ${j.counts.OFFICIAL}: REQUIRED ${j.counts.REQUIR
 console.log(`  not found        ${j.counts.CHECKED_NOT_FOUND} — each naming what was not found, the pages checked and the date`);
 console.log(`  blocked          ${j.counts.BLOCKED} — each with its page and reason; never NOT_REQUIRED`);
 console.log(`  unknown          ${j.counts.UNKNOWN}${j.counts.UNKNOWN ? ` — refused: ${[...new Set(j.rows.filter((r) => r.kind === "UNKNOWN").map((r) => r.refused))].join(", ")}` : ""}`);
+{ const back = checksWithVerdicts({ declaration, judged: j }).byOutcome; console.log(`  checks' outcomes REQUIRED ${back.REQUIRED} · ACCEPTED ${back.ACCEPTED} · NOT_REQUIRED ${back.NOT_REQUIRED} · UNKNOWN ${back.UNKNOWN} — each OFFICIAL verdict read back into its check (RR-286); every other check UNKNOWN with its reason`); }
 console.log(`  private texts    ${PRIVATE.state === "DECLARED" ? "joined" : "ABSENT — an official verdict cannot be judged without them"}`);

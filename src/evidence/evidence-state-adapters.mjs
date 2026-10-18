@@ -99,6 +99,9 @@ const DERIVED_TYPES = Object.freeze({
   fact_extraction: { inputs: (r) => (present(r.pageSha256) ? [`source_page_read:${String(r.pageSha256).slice(0, 16)}`] : present(r.fact) ? [`fact:${h16(r.fact)}`] : present(r.need) ? [`need:${h16(r.need)}`] : []), at: (r) => r.recorded_at, method: "proposed-quotation-checked-word-for-word-against-the-stored-page-text" },
   /* RR-284 · F50: a version of the question library is DERIVED from the merged questions it holds (src/research/question-library.mjs) —
    * the engine's own assembly of stored wordings, claims and recorded judgements, never an observation. */
+  /* RR-285: the summary of the client's own Search Console export (src/discovery/search-console-export.mjs) is DERIVED from the files the
+   * client filed, by their sha256 — counts read from the export, never an observation of the engine's own. */
+  search_console_export: { inputs: (r) => (r?.files && typeof r.files === "object" ? Object.values(r.files).filter(present).map((h) => `client-file:${String(h).slice(0, 16)}`) : []), at: (r) => r.recorded_at, method: "counts-read-from-the-clients-own-search-console-export" },
   question_library_version: { inputs: (r) => (Array.isArray(r.entries) ? r.entries.filter((e) => present(e?.questionKey)).map((e) => `need:${h16(e.questionKey)}`) : []), at: (r) => (present(r.on) ? `${r.on}T00:00:00Z` : null), method: "question-library-assembled-from-stored-wordings-claims-and-judgements" },
   joined_page_draft: { inputs: (r) => (Array.isArray(r.itemList) ? r.itemList.filter((it) => present(it?.needId)).map((it) => `planning_need:${h16(it.needId)}`) : []), at: (r) => r.recorded_at, method: "joined-page-from-chosen-needs" },
   /* RR-273: the guides hub is DERIVED from the published records of the pages it lists (src/page/guides-hub.mjs) — each entry is a page's

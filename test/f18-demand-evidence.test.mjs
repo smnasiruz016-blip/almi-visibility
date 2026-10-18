@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { recordDemand, needDemand, pageCandidates, unsourcedPageQuestions, DEMAND, DEMAND_REFUSAL } from "../src/research/demand-evidence.mjs";
+import { recordDemand, needDemand, pageCandidates, unsourcedPageQuestions, pageNeedDemand, DEMAND, DEMAND_REFUSAL } from "../src/research/demand-evidence.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
@@ -53,6 +53,12 @@ test("C3 · REPLACED BY DATA · FIRING CONTROL: when an observation arrives for 
   assert.equal(after.label, DEMAND.OBSERVED);
   assert.deepEqual(after.observedIn.map((o) => [o.inputId, o.source, o.date]), [["search_phrase:sc", "SEARCH_CONSOLE", "2026-10-13"]]);
   assert.deepEqual(after.estimate, { state: DEMAND.SUPERSEDED, from: ["research_derived_question:d1"] }, "the estimate was deleted or not marked SUPERSEDED");
+  /* RR-285: on a page's need, the observation arrives by a recorded join — the same rule, the estimate kept beside it */
+  const item = { needKey: "k", questions: [{ questionId: "research_derived_question:d1" }] };
+  const page = pageNeedDemand("https://a.example/p", item, recordOf, { joins: [{ page: "https://a.example/p", needKey: "k", inputId: "search_phrase:sc" }] });
+  assert.equal(page.label, DEMAND.OBSERVED, "a joined observation did not reach the page's need");
+  assert.deepEqual(page.estimate, { state: DEMAND.SUPERSEDED, from: ["research_derived_question:d1"] });
+  assert.equal(pageNeedDemand("https://a.example/p", item, recordOf, { joins: [{ page: "https://a.example/other", needKey: "k", inputId: "search_phrase:sc" }] }).label, DEMAND.ESTIMATE, "a join to another page reached this one");
 });
 
 test("C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL: only an observed need may create a page candidate; a published page question with no source of its own is listed", () => {
@@ -65,6 +71,10 @@ test("C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL: only an observed need m
   const r = unsourcedPageQuestions(pages, (id) => RECS.get(id) ?? RECS.get(`search_phrase:${id}`) ?? RECS.get(`research_derived_question:${id}`) ?? null);
   assert.equal(r.items, 2);
   assert.deepEqual(r.unsourced.map((x) => x.needKey), ["k2"]);
+  /* RR-285: a recorded join of an observed record gives the page question a source of its own; a join to an estimate does not */
+  const look = (id) => RECS.get(id) ?? RECS.get(`search_phrase:${id}`) ?? RECS.get(`research_derived_question:${id}`) ?? null;
+  assert.deepEqual(unsourcedPageQuestions(pages, look, { joins: [{ page: "https://a.example/p", needKey: "k2", inputId: "search_phrase:sc" }] }).unsourced, []);
+  assert.deepEqual(unsourcedPageQuestions(pages, look, { joins: [{ page: "https://a.example/p", needKey: "k2", inputId: "search_phrase:ai" }] }).unsourced.map((x) => x.needKey), ["k2"]);
 });
 
 /* ── REAL ── */
@@ -104,16 +114,31 @@ test("REAL · C3: the batch's needs that hold both — each observation reported
   console.log(`  REAL (count-only): needs holding an observation and an estimate ${both.length} · each estimate SUPERSEDED and kept`);
 });
 
-test("REAL · C3 AS FROZEN: the real run repeated with the one stored Search Console row — its need shows both", { skip: SKIP }, () => {
-  const { recordOf, clusters, records } = real();
+test("REAL · C3 (Amendment 1): the run repeated with the client's own imported Search Console rows — a page need that was only an ESTIMATE shows both, the estimate SUPERSEDED and kept; no estimate-only need group is matched by any query", { skip: SKIP }, () => {
+  const { recordOf, clusters, records, pages } = real();
   const sc = [...new Set([...records.values()].filter((r) => r.record_type === "search_phrase" && r.source === "SEARCH_CONSOLE"))];
-  assert.equal(sc.length, 1, "not exactly one stored Search Console row");
-  const mine = clusters.filter((c) => (c.members ?? []).some((m) => m.inputId === sc[0].measurement_key));
-  const shown = mine.map((c) => needDemand(c, recordOf));
-  /* 🔴 recorded, not asserted green: the row sits in needs that hold no estimate, so "both" cannot be shown — C3 stays unproved as frozen */
-  const showsBoth = shown.some((n) => n.observedIn.some((o) => o.inputId === sc[0].measurement_key) && n.estimate?.state === DEMAND.SUPERSEDED);
-  console.log(`  REAL (count-only): the Search Console row's needs ${shown.length} · placed ${[...new Set(mine.map((c) => c.place))].join(", ")} · a need showing both ${showsBoth ? "yes" : "NONE — C3 as frozen is NOT PROVED"}`);
-  assert.equal(showsBoth, false, "the frozen C3 proof became possible — re-assess F18's C3");
+  assert.ok(sc.length > 1, "the client's Search Console export is not imported");
+  const file = JSON.parse(readFileSync(join(BATCH, "observed-question-joins-2026-10-18.json"), "utf8"));
+  const joins = file.joins;
+  assert.ok(joins.every((j) => sc.some((r) => r.measurement_key === j.inputId)), "a join names a record that is not an imported Search Console row");
+  const keys = [...new Set(joins.map((j) => `${j.page}#${j.needKey}`))];
+  let both = 0;
+  for (const k of keys) {
+    const [pg, key] = k.split("#");
+    const item = pages.find((p) => p.publishedUrl === pg).itemList.find((x) => x.needKey === key);
+    const before = pageNeedDemand(pg, item, recordOf), after = pageNeedDemand(pg, item, recordOf, { joins });
+    assert.equal(before.label, DEMAND.ESTIMATE, `${k} was not only an estimate before the import`);
+    assert.equal(after.label, DEMAND.OBSERVED);
+    assert.ok(after.observedIn.every((o) => o.source === "SEARCH_CONSOLE" && o.date === "2026-10-18"));
+    assert.deepEqual(after.estimate, { state: DEMAND.SUPERSEDED, from: before.estimate.from }, `${k}: the estimate was deleted or not SUPERSEDED`);
+    both += 1;
+  }
+  assert.ok(both > 0, "no need shows both");
+  /* the need groups with no observed record: the import joins none of them — they stay ESTIMATE, by the recorded judgement */
+  const estimateOnly = clusters.map((c) => needDemand(c, recordOf)).filter((n) => n.label === DEMAND.ESTIMATE);
+  assert.equal(estimateOnly.length, file.estimateOnlyNeeds.checked);
+  assert.equal(file.estimateOnlyNeeds.sameNeedQueries, 0);
+  console.log(`  REAL (count-only): Search Console rows ${sc.length} · recorded joins ${joins.length} · page needs that were only an ESTIMATE and now show both ${both} · estimate-only need groups ${estimateOnly.length}, matched by a query 0`);
 });
 
 test("REAL · C4: 0 page candidates from estimates only; on the 12 published guides as built, every page question with no source of its own is listed", { skip: SKIP }, () => {
@@ -123,7 +148,10 @@ test("REAL · C4: 0 page candidates from estimates only; on the 12 published gui
   assert.ok(pc.candidates.every((id) => needs.find((n) => n.needId === id).observedIn.length > 0), "a page candidate came from estimates only");
   assert.ok(pc.refused.length > 0 && pc.candidates.length > 0);
   assert.equal(pages.length, 12, "not the 12 published guides");
-  const u = unsourcedPageQuestions(pages, recordOf);
+  /* RR-285: with the batch's recorded joins of the client's own Search Console rows, a joined question has a source of its own */
+  const joins = JSON.parse(readFileSync(join(BATCH, "observed-question-joins-2026-10-18.json"), "utf8")).joins;
+  const u = unsourcedPageQuestions(pages, recordOf, { joins });
+  assert.equal(unsourcedPageQuestions(pages, recordOf).unsourced.length - u.unsourced.length, new Set(joins.map((j) => `${j.page}#${j.needKey}`)).size, "a join did not give its question a source");
   for (const x of u.unsourced) assert.ok(typeof x.question === "string" && x.page.startsWith("https://"));
   console.log(`  REAL (count-only): page candidates ${pc.candidates.length} (all observed) · refused (estimate alone) ${pc.refused.length} · published page questions ${u.items} · with no source of their own ${u.unsourced.length}`);
 });

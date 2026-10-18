@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3698,6 +3698,162 @@ export const DECLARED = Object.freeze({
         historicalReuse: "no historical row maps to F86 (crosswalk NEW). Reused: RR-247's sibling-clone method, the existing censuses with their planted controls, the existing harness engine and real-population tests",
         declaredLimit: "the clone is a sibling of this repository so the declared data resolves (RR-247); the sample is a fixed four limbs, not every harness; an outside auditor is F89",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F74 · Safe implementation command generation. RR-284: its approved acceptance frozen ALONE, then built and PROVED on the RR-284 branch. VERIFIED stands
+   * only with the command's final full suite and CI green. */
+  F74: Object.freeze({
+    featureId: "F74",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F74_ORIGINAL.ruling, contractSha256: F74_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F74",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F74_ORIGINAL.ruling.sha256, contract: F74_ORIGINAL.contractSha256 }),
+        branch: "rr284",
+        baseSha: "1487e29658dac0bab424bfa8405985b34b3fc52f",
+        baseCiRun: "39083343236",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-284.md", commit: "70ffaf2eb04b40afffeacabc60fdf552a87e2b4b", sha256: "140037d4113498d013e9d29eb8d0be57991f444e5ded50572b4b4f018d7c7997" }),
+      }),
+      /* RR-284: F74 PROVED — every clause of its frozen acceptance on the final code, over real records */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F74",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F74_ORIGINAL.ruling.sha256, contract: F74_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED" }),
+        populations: "REAL (count-only): the batch's 4 approved actions (approved-actions-2026-10-18.json), each resting on an owner decision of the governance repository admitted CURRENT with an OWNER issuer and its committed sha256 (beta-g decision E: RR-275, RR-276, RR-283 and RR-284) — commands 4 = approved actions, refused 0, every command holding its scope, what must never happen, its stop conditions and its proof steps, secret values 0 (the engine's own secret firewall). Firing controls: no approval, a record not in the corpus, a superseded record, a record not the owner's, a command record and other bytes are each refused, named; an action seen twice is refused; a secret value is refused by path and detector, never by value",
+        proofs: "test/f74-implementation-commands.test.mjs — C1 to C5 firing controls, REAL over the batch's approved actions against the engine's own authority corpus, the bin's counting run, no product word, no network call path",
+        sabotage: "runs/audit/f74-sabotage-2026-10-18T0127.txt (sha256 874877af…): 7 of 7 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "no historical row maps to F74 (crosswalk NEW). Reused read-only: the authority corpus (config/authority/corpus.mjs) as the approval register, and F01's secret firewall (src/intake/secrets.mjs)",
+        declaredLimit: "nothing is run: a command is text for a developer or an agent to read and carry out; RR-279 has no owner decision file in _handoffs, so the batch's approved actions name RR-275, RR-276, RR-283 and RR-284",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F87 · Operational monitoring alerts and recovery. RR-284: its approved acceptance (17 Oct, governing by beta-g decision B) frozen ALONE, then built and PROVED on the RR-284 branch. VERIFIED stands
+   * only with the command's final full suite and CI green. */
+  F87: Object.freeze({
+    featureId: "F87",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-17", ruling: F87_ORIGINAL.ruling, contractSha256: F87_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F87",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F87_ORIGINAL.ruling.sha256, contract: F87_ORIGINAL.contractSha256 }),
+        branch: "rr284",
+        baseSha: "1487e29658dac0bab424bfa8405985b34b3fc52f",
+        baseCiRun: "39083343236",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-284.md", commit: "70ffaf2eb04b40afffeacabc60fdf552a87e2b4b", sha256: "140037d4113498d013e9d29eb8d0be57991f444e5ded50572b4b4f018d7c7997" }),
+      }),
+      /* RR-284: F87 PROVED — every clause of its frozen acceptance on the final code, over real records */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F87",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F87_ORIGINAL.ruling.sha256, contract: F87_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL (count-only), scope by beta-g decision B (each client project's own operations): the project's failed or refused runs on the real trail listed = the trail's count, each with its reason (the engine's own, with no project, counted apart); the batch's 146 facts — on each 7-day fact's own day 7 it is listed, never on its day 6, a CURRENT recheck moving its read date (4 of 6 moved); the sources BLOCKED in their latest read listed with their reasons, the three sources its acceptance names among them; on a SCRATCH copy of the batch a planted half-written store flagged and recovered — records before = after, the 59 other stores byte-identical, the real batch and trail untouched; the real report written once as a local file (runs/ops/, ignored by git), nothing sent",
+        proofs: "test/f87-project-operations.test.mjs — C1 to C6 firing controls, REAL C1–C3 over the real trail and batch, C4 + C5 on a scratch copy, the read rules pinned equal to the source reader's, no product word, no network call path",
+        sabotage: "runs/audit/f87-project-sabotage-2026-10-18T0127.txt (sha256 82cad304…): 6 of 6 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "the engine-wide watchman (src/ops/watchman.mjs) stays for the operator; reused: its saga phases (C4) and its alert rule, nothing sent (C6). The 1 Oct acceptance, its Amendment 1 and RR-111's F87 scope question are SUPERSEDED by name (_handoffs b91d5e9, beta-g decision B)",
+        declaredLimit: "recovery repairs a half-written JSONL store on a scratch copy (whole records kept, the broken tail moved beside it) and lists what to re-run; it never re-runs a write itself, and a JSON file that does not parse or a write never finished is listed, not repaired",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F50 · Prompt and answer-question library. RR-284: its approved acceptance frozen ALONE, then built and PROVED on the RR-284 branch. VERIFIED stands
+   * only with the command's final full suite and CI green. */
+  F50: Object.freeze({
+    featureId: "F50",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F50_ORIGINAL.ruling, contractSha256: F50_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F50",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F50_ORIGINAL.ruling.sha256, contract: F50_ORIGINAL.contractSha256 }),
+        branch: "rr284",
+        baseSha: "1487e29658dac0bab424bfa8405985b34b3fc52f",
+        baseCiRun: "39083343236",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-284.md", commit: "70ffaf2eb04b40afffeacabc60fdf552a87e2b4b", sha256: "140037d4113498d013e9d29eb8d0be57991f444e5ded50572b4b4f018d7c7997" }),
+      }),
+      /* RR-284: F50 PROVED — every clause of its frozen acceptance on the final code, over real records */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F50",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F50_ORIGINAL.ruling.sha256, contract: F50_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED" }),
+        populations: "REAL (count-only): 182 merged questions of the 12 pages as drafted — wordings in 292 = kept 292, rewritten 0, each with its source and date; answered 179 from stored claims with source and read date, DATA GAP 3, answers without a source 0; the product's 11 capability records (SELF-SOURCED, its own two public pages read once through the paced path on 18 Oct 2026, 3 requests with robots, beta-g decision C) each found word for word in the engine's stored read — ADDRESSES 11 · PARTIALLY 46 (both parts named) · DOES NOT ADDRESS 101 · UNKNOWN 24; gaps 101, answered on the product's behalf 0; the real library kept as a version in the batch, and on a scratch store built twice across one added question, both versions read back; intent recorded 0, locale 13, stage 0 — the rest NOT RECORDED by name",
+        proofs: "test/f50-question-library.test.mjs — C1 to C6 firing controls, REAL C1–C6 (C5 on a scratch store) with the private page texts joined, the bin's counting run writing no trail event, no product word, no network call path",
+        sabotage: "runs/audit/f50-sabotage-2026-10-18T0128.txt (sha256 3efde568…): 7 of 7 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "no historical row maps to F50 as a whole; the F50 question-fit gate (src/facts/question-fit.mjs) is an earlier, narrower piece, untouched. Reused: F44's SELF-SOURCED marking for the capability records, and the engine's stored-read join (src/facts/private-texts.mjs)",
+        declaredLimit: "decision C reads 'independently verified' as verified by the engine against its own stored read of the product's page — the records stay SELF-SOURCED, never third-party evidence; the coverage judgements are the research agent's (AI), recorded and checked against verified records, never a person's; C4's 'answered on the product's behalf' is measured as a claim naming the product; intent and journey stage are recorded for no question yet",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F18 · New-product and pre-launch research. RR-284: its approved acceptance frozen ALONE, then built on the RR-284 branch. IN-PROGRESS — C3 AS FROZEN IS NOT PROVED: its proof is 'the real run repeated with the one stored Search Console row; that need shows both', and the one stored Search Console row sits in NO NEED YET groups whose every member is already observed — no estimate exists for it to replace, so 'both' cannot be shown (test/f18-demand-evidence.test.mjs records it, and turns red the day it becomes possible). Unblocked by a Search Console row for a need that holds an estimate (the client's Search Console export for the 12 guides), or by an owner amendment of C3's proof. C1, C2, C4 and C3's mechanism are proven on the real batch (needs 118: OBSERVED 93 from observed records alone, ESTIMATE 25; 67 needs hold both, each estimate SUPERSEDED and kept; page candidates 77, all observed, 25 refused as an estimate alone; on the 12 published guides 159 of 179 page questions have no source of their own — on the page-fix queue, no live page changed); sabotage 5 of 5 limbs proved (runs/audit/f18-sabotage-2026-10-18T0128.txt). */
+  F18: Object.freeze({
+    featureId: "F18",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F18_ORIGINAL.ruling, contractSha256: F18_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F18",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F18_ORIGINAL.ruling.sha256, contract: F18_ORIGINAL.contractSha256 }),
+        branch: "rr284",
+        baseSha: "1487e29658dac0bab424bfa8405985b34b3fc52f",
+        baseCiRun: "39083343236",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-284.md", commit: "70ffaf2eb04b40afffeacabc60fdf552a87e2b4b", sha256: "140037d4113498d013e9d29eb8d0be57991f444e5ded50572b4b4f018d7c7997" }),
       }),
     ]),
   }),

@@ -1,0 +1,15 @@
+F50 sabotage run · 2026-10-18T01:28:06.958Z
+population: 7 source sabotage(s) over test/f50-question-library.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 7 of 7
+PRE-FLIGHT (span occurrences in the code live now): Q1=1 Q2=1 Q3=1 Q4=1 Q5=1 Q6=1 Q7=1 · all exactly once: true
+production trail sha256 before: d14a7637f01d787802c219f0b489032313bf760ff73e244f21563540ae22b5e8
+
+Q1 C1 · a wording with no date is kept as if whole [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C1 · ORIGINAL WORDING · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1 · restored true · PROVED
+Q2 C2 · a claim with no read date answers [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C2 · EVIDENCE ANSWER · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2 · restored true · PROVED
+Q3 C3 · a capability never said word for word is verified [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C3 · PRODUCT COVERAGE, SEPARATE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3 · restored true · PROVED
+Q4 C3 · PARTIALLY without both parts is accepted [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C3 · PRODUCT COVERAGE, SEPARATE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3 · restored true · PROVED
+Q5 C4 · DOES NOT ADDRESS judged against part of the list [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C4 · GAPS NEVER FILLED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4 · restored true · PROVED
+Q6 C5 · a new version forgets the one before it [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C5 · VERSIONED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C5,REAL · restored true · PROVED
+Q7 C6 · an unrecorded intent is not named [src/research/question-library.mjs] → test/f50-question-library.test.mjs: landed true · named test "C6 · INTENT, LOCALE, STAGE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C6,REAL · restored true · PROVED
+
+proved 7 of 7 (source 7 of 7) · residue 0 · production trail sha256 after: d14a7637f01d787802c219f0b489032313bf760ff73e244f21563540ae22b5e8 · unchanged true

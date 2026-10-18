@@ -64,7 +64,9 @@ test("S5 · the REAL corpus carries the adoption ruling's six links, and they mo
   const F87_LINKED = ["_handoffs:AlmiVisibility_F87_ACCEPTANCE_2026-10-01.md", "_handoffs:AlmiVisibility_F87_ACCEPTANCE_2026-10-17.md", "_handoffs:AlmiVisibility_F87_ACCEPTANCE_AMENDMENT_1_2026-10-01.md", "_handoffs:AlmiVisibility_OPEN_OWNER_DECISION_2026-10-01_RR-111_F87_SCOPE_OF_OPERATIONAL_MONITORING.md"];
   /* RR-286 (the owner's demand-or-opportunity decision): F91's Amendment 6 supersedes, by name, Amendment 5's C22, C23 and C24 */
   const F91_LINKED = ["_handoffs:AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_5_2026-10-17.md", "_handoffs:AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_6_2026-10-18.md"];
-  assert.deepEqual(linked, [A5R, A5E, A7, ...F87_LINKED, ...F91_LINKED].sort(), "no other record carries a supersession link");
+  /* RR-287 (beta-g decision B): F62's Amendment 2 supersedes, by name, C1–C5 and C9 of its Amendment 1 */
+  const F62_LINKED = ["_handoffs:AlmiVisibility_F62_ACCEPTANCE_AMENDMENT_1_2026-10-17.md", "_handoffs:AlmiVisibility_F62_ACCEPTANCE_AMENDMENT_2_2026-10-18.md"];
+  assert.deepEqual(linked, [A5R, A5E, A7, ...F87_LINKED, ...F91_LINKED, ...F62_LINKED].sort(), "no other record carries a supersession link");
   const row25 = AUTHORITY_CORPUS.find((r) => r.propositionId === "CC_COMMAND_ROW25_PAGE_QUALITY_GATE");
   assert.deepEqual([...row25.supersededBy], [], "Row 25's narrower thresholds are NOT superseded (no named amendment)");
 });

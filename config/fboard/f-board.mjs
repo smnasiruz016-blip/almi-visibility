@@ -3998,7 +3998,7 @@ export const DECLARED = Object.freeze({
   F88: Object.freeze({
     featureId: "F88",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F88_ORIGINAL.ruling, contractSha256: F88_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -4018,13 +4018,31 @@ export const DECLARED = Object.freeze({
       }),
       /* RR-287 task C: Acceptance Amendment 1 (beta-g decision C), frozen ALONE: the writers fix it (C7), the old reports historical by name (C8) */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F88", on: "2026-10-18", ruling: F88_AMENDMENT_1.ruling, contractSha256: F88_AMENDMENT_1.contractSha256, amends: F88_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F88",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F88_AMENDMENT_1.ruling.sha256, contract: F88_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED" }),
+        populations: "REAL (count-only): report files under runs/ classed (UNLISTED reported by name); the fresh run of each kind with a writer — OWNER_REPORT (bin/report.mjs, a governed write to a new file), SABOTAGE_EVIDENCE (a run with a real NOT PROVED limb, its bad findings first), AUDIT_EVIDENCE, OPERATIONS_REPORT and EVIDENCE_EXPORT (the ruling sheet, printed) — rendered at 430 px and desktop: 0 failures; the 122 older failing reports historical by name, fresh failures 0; OWNER_VERIFICATION has no writer: HISTORICAL ONLY",
+        proofs: "test/f88-owner-workflows.test.mjs — C1 to C8 firing controls (the shared bad-findings-first step, the historical list, the report page's own CSS), REAL C1–C8, no product word, no network call path",
+        sabotage: "runs/audit/f88-sabotage-2026-10-18T1828.txt (sha256 d928a885…): 6 of 6 proved, residue 0, production trail unchanged · runs/audit/f88-a1-sabotage-2026-10-18T1806.txt (sha256 bf84df60…): 5 of 5 proved, residue 0, production trail unchanged · runs/audit/f88-css-sabotage-2026-10-18T1805.txt (sha256 2d32671e…): 1 of 1 proved, residue 0, production trail unchanged — at least one limb per clause, on the final code",
+        historicalReuse: "the stored report files, read-only; the 122 historical ones never rewritten",
+        declaredLimit: "the owner report page's fresh run is a new file; the old index.html stays as it was (historical)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F60 · Earned citation and digital PR opportunities. Frozen ALONE (RR-287 task E) on the owner's "g aproved"; built on the branch — VERIFIED only through phase 2. */
   F60: Object.freeze({
     featureId: "F60",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F60_ORIGINAL.ruling, contractSha256: F60_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -4041,6 +4059,24 @@ export const DECLARED = Object.freeze({
         baseCiRun: "39108066096",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F60",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F60_ORIGINAL.ruling.sha256, contract: F60_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED" }),
+        populations: "REAL (count-only): 106 sources recorded in the batch (cited by the published pages' verified claims, or stored reads) → 57 OFFICIAL (a verified claim cites each as the responsible body's own source) give 192 opportunities over the 12 published pages, each with its page and fact; 49 dropped by name (no recorded class — never assumed legitimate); 0 refused (no source is recorded as selling links); unlinked mentions 0 found over 67 stored reads with text, off the client's own site; 0 sent",
+        proofs: "test/f60-earned-citations.test.mjs — C1 to C5 firing controls (a planted link seller refused, named), REAL C1–C5, no product word, no network or message call path",
+        sabotage: "runs/audit/f60-sabotage-2026-10-18T1759.txt (sha256 d9957f6b…): 7 of 7 proved, residue 0, production trail unchanged — at least one limb per clause, on the final code",
+        historicalReuse: "the batch's recorded claims, stored reads and published pages, read-only",
+        declaredLimit: "an opportunity is a place to propose a citation — whether a body would cite the page is the owner's call; nothing is sent. Classes other than OFFICIAL come only from a supplied class file (none today)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

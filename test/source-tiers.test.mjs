@@ -28,7 +28,7 @@ test("🔴 REAL: all 16 verified facts become Source records at the OFFICIAL tie
   assert.deepEqual(tierCensus(sources), { OFFICIAL: REGISTRY_VERIFIED_COUNT, OWNED_GSC_ANALYTICS: 0, VERIFIED_ALMIWORLD: 0, REPUTABLE_SECONDARY: 0, COMPETITOR_COMMUNITY: 0, AGENT_INFERENCE: 0 });
   for (const s of sources) {
     assert.ok(["2026-09-12", "2026-09-13", "2026-09-21"].includes(s.retrieved_at), `${s.source_id} carries no verification date`);
-    assert.match(s.reviewer, /^human:/);
+    assert.match(s.reviewer, /^(human|model|engine):\S/, "RR-283, owner decision 3: who checked is never a condition — the check still names WHO, by a typed id");
   }
 });
 

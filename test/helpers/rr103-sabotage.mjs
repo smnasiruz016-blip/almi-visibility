@@ -33,7 +33,8 @@ const SABOTAGES = [
    * overridden by the live F91 line and land without effect. It now replaces F91's own acceptance with another row's. */
   /* RR-153: re-anchored to live code — ACCEPTANCES.F91 now names Amendment 2 (fff60df) */
   /* RR-248: moved to the live line again, as RR-130 did — ACCEPTANCES.F91 now names Amendment 4 (b66d46d and after) */
-  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_4,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
+  /* RR-283: G05 restated — ACCEPTANCES.F91 now names Amendment 5; the same protection */
+  ["G05", "F91 given an acceptance that is not its own", AC, "  F91: F91_AMENDMENT_5,\n", "  F91: F90_ORIGINAL,\n", "A3·5"],
   ["G06", "the validator stops refusing a board whose ids are not F01..F{DENOMINATOR}", BD, " || expected.some((x) => !ids.includes(x))) errs.push({ code: \"DENOMINATOR\"", ") errs.push({ code: \"DENOMINATOR\"", "A3·4"],
 ];
 

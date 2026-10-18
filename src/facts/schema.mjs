@@ -191,8 +191,11 @@ export const QUOTABLE_VALUES = Object.freeze([true, false, "unknown"]);
  * 🔴 THE LENGTH FLOOR AND THE PREFIX ARE UNCHANGED. `human:` on its own, or a
  * bare name with no prefix, still fails — those are the cases F10 exists for,
  * and this must not become a class so wide that anything passes.
+ *
+ * 🔴 RR-283 (owner decision 3, rule e): a third typed prefix, `engine:<id>`. The checks the authoring AI made were recorded as
+ * `human:beta-g (Cowork)`; no person made them, and they are relabelled as the engine. `engine:` is what they are — never a person.
  */
-export const FACT_CHECKED_BY_PATTERN = /^(human:[A-Za-z.() -]{2,40}|model:[A-Za-z0-9._-]{2,60})$/;
+export const FACT_CHECKED_BY_PATTERN = /^(human:[A-Za-z.() -]{2,40}|model:[A-Za-z0-9._-]{2,60}|engine:[A-Za-z0-9._-]{2,60})$/;
 
 /**
  * 🔴 FRESHNESS IS DERIVED FROM WHAT THE SOURCE PERMITS — NEVER CHOSEN.

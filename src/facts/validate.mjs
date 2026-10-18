@@ -227,7 +227,7 @@ export function validateRecord(record) {
     push("F10", `checks.factCheckedOn must be an ISO date or null, got ${JSON.stringify(c.factCheckedOn)}`);
   }
   if (c.factCheckedOn !== null && !FACT_CHECKED_BY_PATTERN.test(String(c.factCheckedBy))) {
-    push("F10", `factCheckedOn is set so factCheckedBy is mandatory as "human:<name>" or "model:<id>", got ${JSON.stringify(c.factCheckedBy)} — those are not the same evidence and must never average into one number`);
+    push("F10", `factCheckedOn is set so factCheckedBy is mandatory as "human:<name>", "model:<id>" or "engine:<id>", got ${JSON.stringify(c.factCheckedBy)} — those are not the same evidence and must never average into one number`);
   }
   if (c.factCheckedOn === null && c.factCheckedBy !== null) {
     push("F10", "factCheckedBy is set without factCheckedOn — a checker with no date is not a check");

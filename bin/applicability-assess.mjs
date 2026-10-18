@@ -6,8 +6,8 @@
  *        [--drafts=<drafts.json>] [--confirmations=<confirmations.json>] [--drafted-by=<id>] [--confirm]
  *
  * DRAFTS become PROPOSED assessments of the product's DERIVED checks (src/research/applicability-assessment.mjs), each resting on a stored
- * record of that exact check, CURRENT by F45; CONFIRMATIONS are accepted only from a checker DECLARED A PERSON (F46 C3) — today the
- * roster is empty, so every confirmation is refused. Both are kept in the research batch's applicability.jsonl through the governed
+ * record of that exact check, CURRENT by F45; a CONFIRMATION records that an assessment still stands on its verbatim official evidence on
+ * the stated date (RR-283, owner decision 3: no person is required — tier 1, CURRENT, the excerpt still verbatim in the stored text). Both are kept in the research batch's applicability.jsonl through the governed
  * boundary, only with --confirm. Nothing is fetched. The readback prints counts only: CONFIRMED · PROPOSED · UNKNOWN, and the guidance
  * F16 may use (CONFIRMED REQUIRED/ACCEPTED only). An assessment is never a question and never a page.
  */
@@ -23,7 +23,6 @@ import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
 import { productFromArgvOrExit } from "../src/product-cli.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { NO_DECLARED_PERSON_CHECKERS } from "../src/facts/citation-audit.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
 import { draftAssessments, confirmAssessment, readback, confirmedGuidance, ASSESSMENT_RECORD, CONFIRMATION_RECORD } from "../src/research/applicability-assessment.mjs";
@@ -50,7 +49,6 @@ const declaration = await readDerivedDeclaration({ product, tenantId: SCOPE.tena
 if (!declaration.derived) { console.error(`🔴 REFUSED — DECLARATION_NOT_DERIVED: missing ${declaration.missing.join("; ")}`); process.exit(3); }
 const file = join(batchDir, "applicability.jsonl");
 const held = () => (existsSync(file) ? createJsonlStore(file).readAll() : []);
-const persons = NO_DECLARED_PERSON_CHECKERS;
 
 console.log("F62 · APPLICABILITY WRITER — this subject's product only, from stored records; count-only; nothing fetched");
 let toWrite = [];
@@ -64,9 +62,9 @@ if (DRAFTS) {
 if (CONFIRMATIONS) {
   const wanted = JSON.parse(readFileSync(CONFIRMATIONS, "utf8"));
   const all = held().concat(toWrite);
-  const results = wanted.map((w) => confirmAssessment({ assessment: all.find((a) => a.record_type === ASSESSMENT_RECORD && a.assessment_id === w.assessmentId), checker: w.checker, persons, facts, on: ON, existingIds: all.filter((x) => x.record_type === CONFIRMATION_RECORD).map((x) => x.confirmation_id) }));
+  const results = wanted.map((w) => confirmAssessment({ assessment: all.find((a) => a.record_type === ASSESSMENT_RECORD && a.assessment_id === w.assessmentId), facts, on: ON, existingIds: all.filter((x) => x.record_type === CONFIRMATION_RECORD).map((x) => x.confirmation_id) }));
   const codes = results.filter((x) => x.refused).reduce((m, x) => ((m[x.refused] = (m[x.refused] ?? 0) + 1), m), {});
-  console.log(`  confirmations    ${wanted.length} read · ${results.filter((x) => x.record).length} accepted · refused ${results.filter((x) => x.refused).length}${Object.keys(codes).length ? ` (${Object.entries(codes).map(([k, n]) => `${k} ${n}`).join(" · ")})` : ""} · checkers declared a person: ${persons.length}`);
+  console.log(`  confirmations    ${wanted.length} read · ${results.filter((x) => x.record).length} accepted · refused ${results.filter((x) => x.refused).length}${Object.keys(codes).length ? ` (${Object.entries(codes).map(([k, n]) => `${k} ${n}`).join(" · ")})` : ""} · each stands on its verbatim official evidence; no person is required (owner decision 3)`);
   toWrite = toWrite.concat(results.filter((x) => x.record).map((x) => x.record));
 }
 
@@ -80,6 +78,6 @@ if (toWrite.length && permission.mayWrite) {
   console.log(`  kept             ${toWrite.length} record(s) in the batch's applicability store (${governed.outcome})`);
 }
 
-const rb = readback({ declaration, records: held(), persons });
+const rb = readback({ declaration, records: held() });
 console.log(`  readback         ${rb.counts.checks} derived check(s): CONFIRMED ${rb.counts.CONFIRMED} · PROPOSED ${rb.counts.PROPOSED} · UNKNOWN ${rb.counts.UNKNOWN} — UNKNOWN is never zero; a PROPOSED outcome is not a verdict`);
 console.log(`  guidance for F16 ${confirmedGuidance(rb).length} CONFIRMED REQUIRED/ACCEPTED check(s) — research guidance only: never a question, never a page`);

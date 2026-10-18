@@ -205,7 +205,7 @@ export function promoteOutcome(from, to) {
 export const VERIFICATION_OUTCOME = Object.freeze({ VERIFIED: "PASS", UNKNOWN: "UNKNOWN", UNVERIFIED: "UNKNOWN" });
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
-const NAMED_CHECKER = /^(human|model):\S/;
+const NAMED_CHECKER = /^(human|model|engine):\S/;
 
 /**
  * May this record leave UNKNOWN?

@@ -17,7 +17,8 @@ const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const names = (line) => PRODUCT_WORDS.some((w) => new RegExp(w, "i").test(line));
 
 /** 🔴 every entry is the owner's to allow: the count is pinned here, in one place */
-export const DECLARED_IDENTIFIER_EVENTS = 1;
+/* RR-283: 1 -> 2, the RR-276 record admitted by the RR-283 migration (PENDING the owner's word — the RR-283 report) */
+export const DECLARED_IDENTIFIER_EVENTS = 2;
 
 /** @param {string} whole  the committed trail, every byte · @returns {string} the trail with exactly the declared lines set aside */
 export function trailWithoutDeclaredIdentifierEvents(whole, known = KNOWN_IDENTIFIER_EVENTS) {

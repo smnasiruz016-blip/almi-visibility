@@ -276,7 +276,8 @@ const OTHER_ROWS = Object.freeze({
   "src/page/answer-first-evidence.mjs": "7f5e9748bfa666ad97edd4c758999b1f1eedb3ad52aadc9a0b447e64d0ca8c2d",
   "src/audit/link-audit.mjs": "ff1361bc9339d7cb811208c24d05fcd3f255567e7e8e20202ac9ada6e91a4206",
   "src/audit/link-audit-reader.mjs": "714a7d9107a490f259219369d9aa0094d159ad3468e9b5fb587e5e81f4c12c75",
-  "src/facts/citation-audit.mjs": "1833508d0476f808b5394941a2d225b59da546fa205738af688224d44a5afa94",
+  /* RR-283: F46 C3 amended by owner decision 3 (FIT stands on the verbatim official text) — moved by F46's own amendment, not by F93 */
+  "src/facts/citation-audit.mjs": "b1a7040d9bb2ecc56a1c8009897a17467068c404e71a5e2fac89f734dcdec6de",
 });
 const lfSha = (f) => createHash("sha256").update(readFileSync(join(REPO, f), "utf8").replace(/\r\n/g, "\n")).digest("hex");
 const mjsUnder = (dir) => readdirSync(join(REPO, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? mjsUnder(`${dir}/${e.name}`) : e.name.endsWith(".mjs") ? [`${dir}/${e.name}`] : []));

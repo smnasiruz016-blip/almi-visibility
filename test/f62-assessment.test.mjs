@@ -6,7 +6,7 @@
  * store. REAL3 reads the real stored records, and its drafts are CC's readings: PROPOSED, never confirmed.
  *
  *   W1 four kinds, one outcome each; ACCEPTED never REQUIRED; silence never NOT_REQUIRED      W6 tenant crossover refused
- *   W2 misleading scope: another body, a wider or a narrower record is refused (COPIED_SCOPE)  W7 missing checker refused at CONFIRMATION
+ *   W2 misleading scope: another body, a wider or a narrower record is refused (COPIED_SCOPE)  W7 a confirmation stands on the verbatim official text (owner decision 3)
  *   W3 stale or undated source refused                                                          W8 readback; guidance only when CONFIRMED
  *   W4 an excerpt that is not in the stored text is refused                                     W9 two unrelated products
  *   W5 duplicate write refused                                                                  W10 evidence states of the two new records
@@ -23,7 +23,6 @@ import { deriveDeclaration } from "../src/research/applicability.mjs";
 import { draftAssessments, confirmAssessment, readback, confirmedGuidance, REFUSAL, KINDS, GUIDANCE_LIMITS, ASSESSMENT_RECORD } from "../src/research/applicability-assessment.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
-import { NO_DECLARED_PERSON_CHECKERS } from "../src/facts/citation-audit.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
 import { censusSubjectScope } from "../src/tenancy/scoped-run.mjs";
@@ -40,14 +39,15 @@ const trailSha = () => (existsSync(TRAIL) ? createHash("sha256").update(readFile
 const TRAIL_BEFORE = trailSha();
 const TMP = join(tmpdir(), `almi-f62-assess-${process.pid}`);
 const ON = "2026-10-03";
-const PERSON = "human:Fixture Checker";
+/* RR-283 (owner decision 3): who checked is never a condition; the fixture's checker is the engine */
+const PERSON = "engine:fixture";
 const SUBJ = "fixture-subject-one";
 
 const rec = (id, body, qualifier, text, over = {}) => ({
   id, claim: { subject: body, predicate: `fixture-${id}`, qualifier }, value: { value: id }, source: { tier: 1, url: `https://fixture.invalid/${id}`, publisher: body },
-  freshness: { days: 180 }, life: { extractedOn: "2026-10-01" }, evidence: { ownWords: text },
+  freshness: { days: 180 }, life: { extractedOn: "2026-10-01" }, evidence: { quotedSpan: text, ownWords: text },
   verification: { checkedOn: "2026-10-01", verdict: "VERIFIED", checkedBy: PERSON, elementsConfirmedKeys: ["value"] },
-  checks: { linkCheckOutcome: "pass", linkCheckedOn: "2026-10-01", quoteMatchOutcome: "not-applicable", fingerprintOutcome: "pass", fingerprintCheckedOn: "2026-10-01" }, ...over,
+  checks: { linkCheckOutcome: "pass", linkCheckedOn: "2026-10-01", quoteMatchOutcome: "pass", quoteMatchedOn: "2026-10-01", fingerprintOutcome: "pass", fingerprintCheckedOn: "2026-10-01" }, ...over,
 });
 const FACTS = [
   rec("a1", "body-a", "knot=bowline", "Body A accepts the declared test among two tests for this knot."),
@@ -57,7 +57,7 @@ const FACTS = [
   rec("s1", "body-s", "knot=bowline", "Body S accepts the declared test.", { verification: { checkedOn: "2025-01-01", verdict: "VERIFIED", checkedBy: PERSON, elementsConfirmedKeys: ["value"] } }),
 ];
 const AXES = { declared: [{ key: "knot", status: "EVIDENCED" }], discovered: [{ key: "knot", records: 5, verifiedRecords: 5, distinctValues: 2 }] };
-const DECL = deriveDeclaration({ axes: AXES, facts: FACTS, persons: [], on: ON });
+const DECL = deriveDeclaration({ axes: AXES, facts: FACTS, on: ON });
 const draft = (body, scope, kind, outcome, factId, excerpt, over = {}) => ({ subject: SUBJ, check: { body, scope }, kind, outcome, evidence: { factId, excerpt }, ...over });
 const run = (drafts, over = {}) => draftAssessments({ subject: SUBJ, declaration: DECL, facts: FACTS, drafts, on: ON, draftedBy: "actor:cc", ...over });
 const ACC = draft("body-a", { knot: "bowline" }, "ACCEPTANCE", "ACCEPTED", "a1", "accepts the declared test among two tests");
@@ -101,7 +101,7 @@ test("W3 · STALE SOURCE: a record F45 does not present CURRENT — expired, or 
   assert.deepEqual(stale.refused.map((x) => x.code), [REFUSAL.STALE_SOURCE]);
   assert.match(stale.refused[0].why, /EXPIRED/);
   const undatedFacts = FACTS.map((f) => (f.id === "a1" ? { ...f, verification: { verdict: "VERIFIED", checkedBy: PERSON, elementsConfirmedKeys: ["value"] } } : f));
-  const undated = draftAssessments({ subject: SUBJ, declaration: deriveDeclaration({ axes: AXES, facts: undatedFacts, persons: [], on: ON }), facts: undatedFacts, drafts: [ACC], on: ON, draftedBy: "actor:cc" });
+  const undated = draftAssessments({ subject: SUBJ, declaration: deriveDeclaration({ axes: AXES, facts: undatedFacts, on: ON }), facts: undatedFacts, drafts: [ACC], on: ON, draftedBy: "actor:cc" });
   assert.deepEqual(undated.refused.map((x) => x.code), [REFUSAL.STALE_SOURCE]);
   assert.equal(run([ACC]).refused.length, 0, "CONTROL: a CURRENT record was refused");
 });
@@ -127,33 +127,35 @@ test("W6 · TENANT CROSSOVER: a draft naming another subject is refused — one 
   assert.equal(admitted([ACC])[0].subject, SUBJ);
 });
 
-test("W7 · MISSING CHECKER: drafting needs no declared person; CONFIRMATION does (F46 C3) — the empty roster, an undeclared checker, an UNKNOWN and a stale source are each refused", () => {
+test("W7 · A CONFIRMATION STANDS ON THE VERBATIM OFFICIAL TEXT (owner decision 3): no person is needed; evidence not the body's own source, an excerpt not in its matched word-for-word quotation, an UNKNOWN and a stale source are each refused", () => {
   const [a] = admitted([ACC]);
-  const c = (over) => confirmAssessment({ assessment: a, checker: PERSON, persons: [PERSON], facts: FACTS, on: ON, ...over });
-  assert.equal(c({ persons: NO_DECLARED_PERSON_CHECKERS }).refused, REFUSAL.MISSING_CHECKER);
-  assert.equal(c({ checker: "human:someone undeclared" }).refused, REFUSAL.MISSING_CHECKER);
+  const c = (over) => confirmAssessment({ assessment: a, facts: FACTS, on: ON, ...over });
+  const swap = (g) => FACTS.map((f) => (f.id === "a1" ? g(f) : f));
+  assert.equal(c({ facts: swap((f) => ({ ...f, source: { ...f.source, tier: 3 } })) }).refused, REFUSAL.NOT_OFFICIAL, "evidence that is not the body's own source confirmed");
+  assert.equal(c({ facts: swap((f) => ({ ...f, evidence: { ownWords: f.evidence.ownWords } })) }).refused, REFUSAL.NOT_VERBATIM, "the record's own words were taken for the official text");
+  assert.equal(c({ facts: swap((f) => ({ ...f, checks: { ...f.checks, quoteMatchOutcome: "not-applicable", quoteMatchedOn: null } })) }).refused, REFUSAL.NOT_VERBATIM, "an unmatched quotation was taken for the official text");
   const [silent] = admitted([draft("body-a", { knot: "sheet-bend" }, "SILENT_OR_AMBIGUOUS", "UNKNOWN", "a3", "says nothing about the test", { missingFact: "x" })]);
   assert.equal(c({ assessment: silent }).refused, REFUSAL.NOTHING_TO_CONFIRM);
   assert.equal(c({ on: "2027-06-01" }).refused, REFUSAL.STALE_SOURCE);
   const ok = c({});
-  assert.ok(ok.record, "CONTROL: a declared person could not confirm");
+  assert.ok(ok.record, "CONTROL: an outcome standing on its verbatim official text could not be confirmed");
+  assert.ok(!("checker" in ok.record) && ok.record.standsOn === "the verbatim official text", "the confirmation names a checker, or not what it stands on");
   assert.equal(c({ existingIds: [ok.record.confirmation_id] }).refused, REFUSAL.DUPLICATE);
 });
 
 test("W8 · READBACK: CONFIRMED · PROPOSED · UNKNOWN kept apart, each UNKNOWN with its missing fact; only CONFIRMED REQUIRED/ACCEPTED is guidance for F16 — never a question, never a page", () => {
   const drafted = admitted([ACC, draft("body-a", {}, "EXPLICIT_REQUIREMENT", "REQUIRED", "a2", "requires the declared test"), draft("body-b", { knot: "bowline" }, "EXPLICIT_NON_REQUIREMENT", "NOT_REQUIRED", "b1", "does not require the declared test")]);
-  const conf = confirmAssessment({ assessment: drafted[0], checker: PERSON, persons: [PERSON], facts: FACTS, on: ON }).record;
-  const notMine = confirmAssessment({ assessment: drafted[1], checker: "human:Other", persons: ["human:Other"], facts: FACTS, on: ON }).record;
-  const rb = readback({ declaration: DECL, records: [...drafted, conf, notMine], persons: [PERSON] });
+  const conf = confirmAssessment({ assessment: drafted[0], facts: FACTS, on: ON }).record;
+  const rb = readback({ declaration: DECL, records: [...drafted, conf] });
   const row = (body, scope) => rb.rows.find((r) => r.check.body === body && JSON.stringify(r.check.scope) === JSON.stringify(scope));
   assert.deepEqual([row("body-a", { knot: "bowline" }).state, row("body-a", { knot: "bowline" }).outcome], ["CONFIRMED", "ACCEPTED"]);
-  assert.equal(row("body-a", {}).state, "PROPOSED", "a confirmation by a checker not on the roster counted");
-  assert.match(row("body-a", {}).missingFact, /F46 C3/);
+  assert.equal(row("body-a", {}).state, "PROPOSED", "an unconfirmed assessment read CONFIRMED");
+  assert.match(row("body-a", {}).missingFact, /stands on its verbatim official evidence/);
   assert.match(row("body-a", { knot: "sheet-bend" }).missingFact, /^no assessment drafted/);
   assert.deepEqual({ ...rb.counts }, { checks: DECL.checks.length, CONFIRMED: 1, PROPOSED: 2, UNKNOWN: DECL.checks.length - 3 });
   const g = confirmedGuidance(rb);
   assert.deepEqual(g.map((x) => [x.check.body, x.outcome, x.limits]), [["body-a", "ACCEPTED", GUIDANCE_LIMITS]]);
-  assert.equal(confirmedGuidance(readback({ declaration: DECL, records: drafted, persons: [PERSON] })).length, 0, "an unconfirmed assessment became guidance");
+  assert.equal(confirmedGuidance(readback({ declaration: DECL, records: drafted })).length, 0, "an unconfirmed assessment became guidance");
   assert.doesNotMatch(JSON.stringify([rb, g]), /"(page|pages|question|questions|demand)":/i);
 });
 
@@ -175,7 +177,7 @@ test("W9 · TWO UNRELATED PRODUCTS through the production reader, each over its 
 
 test("W10 · EVIDENCE STATES: a PROPOSED assessment is INFERRED from its record; a silent one is UNKNOWN; a confirmation is INFERRED; a record missing its id is UNMAPPED", () => {
   const [acc, sil] = admitted([ACC, draft("body-a", { knot: "sheet-bend" }, "SILENT_OR_AMBIGUOUS", "UNKNOWN", "a3", "says nothing about the test", { missingFact: "x" })]);
-  const conf = confirmAssessment({ assessment: acc, checker: PERSON, persons: [PERSON], facts: FACTS, on: ON }).record;
+  const conf = confirmAssessment({ assessment: acc, facts: FACTS, on: ON }).record;
   assert.deepEqual([evidenceStateOf(acc).state, evidenceStateOf(sil).state, evidenceStateOf(conf).state], ["INFERRED", "UNKNOWN", "INFERRED"]);
   assert.equal(evidenceStateOf({ ...acc, assessment_id: "" }).unmapped, true);
   assert.equal(evidenceStateOf({ ...conf, assessment_id: undefined }).unmapped, true);
@@ -215,16 +217,16 @@ test("REAL3 · the demonstration product's STORED records, on the stated date: d
   const facts = (await loadRegistry(product.factsDir, product.productId)).records;
   const declaration = await readDerivedDeclaration({ product, tenantId: null, resolve: null, on: ON });
   const r = draftAssessments({ subject: "almi-oet", declaration, facts, drafts: realDrafts("almi-oet", declaration, facts), on: ON, draftedBy: "actor:cc" });
-  const rb = readback({ declaration, records: r.assessments, persons: NO_DECLARED_PERSON_CHECKERS });
+  const rb = readback({ declaration, records: r.assessments });
   const byId = new Map(facts.map((f) => [f.id, f]));
   const silentRows = rb.rows.filter((x) => x.state === "UNKNOWN");
   const disputed = silentRows.filter((x) => declaration.checks.find((c) => c.body === x.check.body && JSON.stringify(c.scope) === JSON.stringify(x.check.scope)).provenance.every((p) => byId.get(p.factId)?.verification?.verdict === "CONFLICT"));
-  const split = { needHumanConfirmation: rb.counts.PROPOSED, needFreshSourceReading: silentRows.length - disputed.length, blockedRecordDisputed: disputed.length, confirmed: rb.counts.CONFIRMED };
-  console.log(`  REAL3 (${ON}, almi-oet, count-only; declared persons ${NO_DECLARED_PERSON_CHECKERS.length}): ${JSON.stringify({ drafts: r.assessments.length + r.refused.length, admitted: r.assessments.length, refused: r.refused.map((x) => x.code), byOutcome: r.assessments.reduce((m, a) => ((m[a.outcome] = (m[a.outcome] ?? 0) + 1), m), {}), readback: rb.counts, split, guidance: confirmedGuidance(rb).length })}`);
+  const split = { needConfirmationOnVerbatimText: rb.counts.PROPOSED, needFreshSourceReading: silentRows.length - disputed.length, blockedRecordDisputed: disputed.length, confirmed: rb.counts.CONFIRMED };
+  console.log(`  REAL3 (${ON}, almi-oet, count-only; no person required — owner decision 3): ${JSON.stringify({ drafts: r.assessments.length + r.refused.length, admitted: r.assessments.length, refused: r.refused.map((x) => x.code), byOutcome: r.assessments.reduce((m, a) => ((m[a.outcome] = (m[a.outcome] ?? 0) + 1), m), {}), readback: rb.counts, split, guidance: confirmedGuidance(rb).length })}`);
   /* pins — re-measured, never assumed */
   assert.deepEqual([r.assessments.length, r.refused.length], [24, 0], "a real draft was refused, or the population moved");
   assert.deepEqual({ ...rb.counts }, { checks: 24, CONFIRMED: 0, PROPOSED: 5, UNKNOWN: 19 });
-  assert.equal(split.needHumanConfirmation + split.needFreshSourceReading + split.blockedRecordDisputed + split.confirmed, 24);
+  assert.equal(split.needConfirmationOnVerbatimText + split.needFreshSourceReading + split.blockedRecordDisputed + split.confirmed, 24);
   assert.equal(confirmedGuidance(rb).length, 0, "an unconfirmed real assessment became guidance");
 });
 
@@ -249,7 +251,7 @@ function input(W, name, content) {
   return p;
 }
 
-test("ENTRY3 · bin/applicability-assess.mjs in a declared world: no --confirm writes nothing; --confirm keeps the PROPOSED assessments once; a re-run is a duplicate; a confirmation with no declared person is refused; another subject's run is refused; counts only", async () => {
+test("ENTRY3 · bin/applicability-assess.mjs in a declared world: no --confirm writes nothing; --confirm keeps the PROPOSED assessments once; a re-run is a duplicate; a confirmation not standing on a matched verbatim official quotation is refused; another subject's run is refused; counts only", async () => {
   const BATCH = "fixture-applicability-review";
   const W = declaredWorld();
   try {
@@ -273,9 +275,9 @@ test("ENTRY3 · bin/applicability-assess.mjs in a declared world: no --confirm w
     const second = go([`--drafts=${drafts}`, "--confirm"]);
     assert.match(second.stdout, /24 read · 0 PROPOSED assessment\(s\) admitted · refused 24 \(DUPLICATE 24\)/);
     const accepted = kept.find((x) => x.outcome === "ACCEPTED");
-    const conf = input(W, "conf.json", [{ assessmentId: accepted.assessment_id, checker: "human:beta-g (Cowork)" }]);
+    const conf = input(W, "conf.json", [{ assessmentId: accepted.assessment_id }]);
     const c = go([`--confirmations=${conf}`, "--confirm"]);
-    assert.match(c.stdout, /confirmations {4}1 read · 0 accepted · refused 1 \(MISSING_CHECKER 1\) · checkers declared a person: 0/);
+    assert.match(c.stdout, /confirmations {4}1 read · 0 accepted · refused 1 \(NOT_VERBATIM 1\) · each stands on its verbatim official evidence; no person is required \(owner decision 3\)/);
     assert.match(c.stdout, /guidance for F16 0 CONFIRMED/);
     /* TENANT CROSSOVER at the entry point: another subject, with a batch of ITS OWN (so the scope gate admits the run and the product
      * membership rule is what must refuse it) — refused by name, and nothing written into its batch */

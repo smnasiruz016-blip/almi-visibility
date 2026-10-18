@@ -5,13 +5,12 @@
  */
 import { readProductAxes } from "../discovery/context-axes-reader.mjs";
 import { loadRegistry } from "../facts/registry.mjs";
-import { NO_DECLARED_PERSON_CHECKERS } from "../facts/citation-audit.mjs";
 import { deriveDeclaration } from "./applicability.mjs";
 
-export async function readDerivedDeclaration({ product, tenantId, resolve, on = null, persons = NO_DECLARED_PERSON_CHECKERS }) {
+export async function readDerivedDeclaration({ product, tenantId, resolve, on = null }) {
   let facts = null;
   try { facts = (await loadRegistry(product.factsDir, product.productId)).records; } catch { facts = null; }
   let axes = null;
   try { axes = (await readProductAxes({ product, tenantId, resolve })).axes; } catch { axes = null; }
-  return deriveDeclaration({ axes, facts, persons, on });
+  return deriveDeclaration({ axes, facts, on });
 }

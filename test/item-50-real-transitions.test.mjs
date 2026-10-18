@@ -165,7 +165,7 @@ test("🔴 50 · DIRECTION TWO — evidence insufficient: writing, speaking and 
 test("🔴 the writing record is CORRECTED, not re-verified: UNKNOWN, PARTIAL_EVIDENCE, same checker, date, source and previous", () => {
   const w = byId.get(WRITING).verification;
   assert.deepEqual([w.state, w.verdict, w.reason], ["UNKNOWN", "UNKNOWN", "PARTIAL_EVIDENCE"]);
-  assert.deepEqual([w.checkedOn, w.checkedBy, w.sourceUrl, w.sourceTier, w.sourceRead], ["2026-09-13", "human:beta-g (Cowork)", "https://oet.com/ready/writing", "OFFICIAL", true]);
+  assert.deepEqual([w.checkedOn, w.checkedBy, w.sourceUrl, w.sourceTier, w.sourceRead], ["2026-09-13", "engine:almi-visibility", "https://oet.com/ready/writing", "OFFICIAL", true]);
   assert.deepEqual([w.previous.state, w.previous.reason, w.previous.checkedOn], ["UNKNOWN", "SOURCE_UNREACHABLE", "2026-09-12"]);
   assert.equal(w.recheckAfter, undefined, "an UNKNOWN record carries no recheck date of a verification it does not have");
 });
@@ -410,7 +410,8 @@ test("🔴 3C · the four OET records were attempted IDENTICALLY in ONE pass by 
   assert.equal(new Set(four.map((x) => x.pass)).size, 1);
   assert.match(four[0].pass, /attempted identically in one pass/);
   assert.deepEqual([...new Set(four.map((x) => x.checkedOn))], ["2026-09-13"]);
-  assert.deepEqual([...new Set(four.map((x) => x.checkedBy))], ["human:beta-g (Cowork)"]);
+  /* RR-283 (owner decision 3, rule e): the authoring AI's checks, recorded as human:beta-g (Cowork), are relabelled as the engine */
+  assert.deepEqual([...new Set(four.map((x) => x.checkedBy))], ["engine:almi-visibility"]);
 });
 
 /* ---- 1A · NO OET TEXT ---------------------------------------------------- */

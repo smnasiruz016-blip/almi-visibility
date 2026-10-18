@@ -4,7 +4,7 @@
  *
  *   node bin/citation-audit.mjs --product=<id> --tenant=<id> --actor=<id>      READ-ONLY; nothing fetched; writes nothing
  *
- * 🔴 A WORKING LINK IS NOT A CORRECT CITATION, and FIT is a person's judgement (RR-96). Every outcome is a dated recording, not a fresh
+ * 🔴 A WORKING LINK IS NOT A CORRECT CITATION, and FIT stands on the verbatim official text, or it is CHECKED_NOT_FOUND (RR-283, owner decision 3). Every outcome is a dated recording, not a fresh
  * check: re-checking a link or a page today needs a bounded fetch under its own authorisation (bin/source-integrity.mjs) — not run here.
  * Audit: src/facts/citation-audit.mjs.
  */
@@ -12,7 +12,7 @@ import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
-import { auditCitations, NO_DECLARED_PERSON_CHECKERS } from "../src/facts/citation-audit.mjs";
+import { auditCitations } from "../src/facts/citation-audit.mjs";
 
 const USAGE = "node bin/citation-audit.mjs --product=<id>";
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
@@ -20,11 +20,11 @@ const SCOPE = scopedEntryPoint({ entry: "bin/citation-audit.mjs", governed: fals
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
 
-const a = auditCitations(records, { persons: NO_DECLARED_PERSON_CHECKERS });
+const a = auditCitations(records);
 const fmt = (o) => Object.entries(o ?? {}).map(([k, n]) => `${k} ${n}`).join(" · ") || "none";
 const span = a.recordedOn.length ? `${a.recordedOn[0]}..${a.recordedOn.at(-1)}` : "none";
 console.log("F46 · SOURCE INTEGRITY AND CITATION AUDIT — recorded registry only, count-only, five checks kept apart");
-console.log(`  bound            recorded registry only · ${a.facts} active fact(s) · outcomes recorded ${span}, not re-checked · checkers declared a person: ${NO_DECLARED_PERSON_CHECKERS.length} · nothing fetched`);
+console.log(`  bound            recorded registry only · ${a.facts} active fact(s) · outcomes recorded ${span}, not re-checked · FIT stands on the verbatim official text, no person required (owner decision 3) · nothing fetched`);
 console.log(`  link             ${fmt(a.link)}`);
 console.log(`  quotation        ${fmt(a.quotation)}`);
 console.log(`  fingerprint      ${fmt(a.fingerprint)}`);

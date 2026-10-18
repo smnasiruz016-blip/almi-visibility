@@ -25,7 +25,7 @@ const lawful = (over = {}) => ({
   governed: true,
   verification: {
     checkedOn: "2026-09-12",
-    checkedBy: "human:beta-g (Cowork)",
+    checkedBy: "engine:almi-visibility",
     elementsConfirmedKeys: ["a", "b"],
     elementsNotFoundKeys: [],
     ...(over.verification ?? {}),
@@ -35,7 +35,7 @@ const lawful = (over = {}) => ({
 
 test("the ruling is DATA: five named conditions and a cut-off, enumerable without reading control flow", () => {
   assert.equal(PRE_CONTRACT_CONDITIONS.length, 5);
-  assert.deepEqual(GRANDFATHERING.conditionIds, ["DATE_EXEMPT", "STATE_EXPLICIT", "NAMED_HUMAN_AND_DATE", "ELEMENTS_RECONCILE", "NO_PROMOTION_OF_UNKNOWN"]);
+  assert.deepEqual(GRANDFATHERING.conditionIds, ["DATE_EXEMPT", "STATE_EXPLICIT", "RECORDED_CHECKER_AND_DATE", "ELEMENTS_RECONCILE", "NO_PROMOTION_OF_UNKNOWN"]);
   assert.equal(GRANDFATHERING.conjunctive, true);
   assert.match(GRANDFATHERING.cutOff, /^\d{4}-\d{2}-\d{2}$/);
   for (const c of PRE_CONTRACT_CONDITIONS) assert.ok(c.requirement.length > 20, `${c.id} carries no stated requirement`);
@@ -74,18 +74,18 @@ test("🔴 P1 · condition 2 false — verificationState not explicit → refuse
   }
 });
 
-test("🔴 P2 · condition 3 false — the checker is a MODEL, not a named human → refused", () => {
-  const j = judgeGrandfathering(lawful({ verification: { checkedBy: "model:claude-opus-5" } }));
-  assert.equal(j.regime, "REFUSED_PRE_CONTRACT");
-  assert.ok(j.failed.includes("NAMED_HUMAN_AND_DATE"));
-
-  /* 🔴 THE BRANCH NO REAL RECORD REACHES. A `model:` signature is SCHEMA-VALID and satisfies the
-   * older "is anybody named?" test, so without this condition such a record would advance. */
+test("🔴 P2 · condition 3 false — no recorded checker, an untyped one, or no date → refused; who checked is never a condition (RR-283, owner decision 3)", () => {
+  for (const checkedBy of [undefined, "", "beta-g", "human:", "robot:x"]) {
+    const j = judgeGrandfathering(lawful({ verification: { checkedBy } }));
+    assert.equal(j.regime, "REFUSED_PRE_CONTRACT", `checker ${JSON.stringify(checkedBy)} was grandfathered`);
+    assert.ok(j.failed.includes("RECORDED_CHECKER_AND_DATE"));
+  }
+  assert.ok(judgeGrandfathering(lawful({ verification: { checkedOn: undefined } })).failed.includes("RECORDED_CHECKER_AND_DATE"), "an undated check was grandfathered");
+  /* CONTROL: a person, a model and the engine are recorded checkers alike — who checked is never a condition */
+  for (const checkedBy of ["human:N.U.", "model:claude-opus-5", "engine:almi-visibility"]) assert.equal(judgeGrandfathering(lawful({ verification: { checkedBy } })).regime, "GRANDFATHERED", `${checkedBy} was refused for who it is`);
+  /* the typed prefix still tells a person from a model; it no longer decides anything here */
   assert.equal(isNamedHumanChecker("model:claude-opus-5"), false);
-  assert.equal(isNamedHumanChecker("human:beta-g (Cowork)"), true);
-  /* CONTROL: the same subject with a human signature IS grandfathered, so the refusal above is the
-   * prefix talking and not a judge that refuses everything. */
-  assert.equal(judgeGrandfathering(lawful()).regime, "GRANDFATHERED");
+  assert.equal(isNamedHumanChecker("engine:almi-visibility"), false);
 });
 
 test("🔴 P10 · humanity is decided by the TYPED PREFIX, never a name, substring or tool list", () => {
@@ -171,15 +171,18 @@ test("🔴 P9 · F31 governs the REAL production validator — proved by an inpu
   assert.equal(F31(records).length, 0, "the real registry should raise no F31");
 
   /* 🔴 THE BRANCH NO REAL RECORD REACHES. Take a record that really is advancing and really is
-   * grandfathered, and change ONE thing: its checker becomes a model signature. It stays
-   * schema-valid and still satisfies the older "is anybody named?" test, so nothing else refuses
-   * it — only condition 3 does. */
+   * grandfathered, and change ONE thing. RR-283 (owner decision 3): condition 3 now asks only for a typed checker and a date — and the
+   * older evidence law (F24, "nobody is named as having checked it") refuses a record without them FIRST, so condition 3 alone can no
+   * longer be the only refusal. The one change that only F31 refuses is condition 2: the record's verificationState left blank. */
   const base = records.find((r) => r.id === "uk-hcpc.certificate-maximum-age");
   assert.ok(base, "the record this proof is built on is missing from the registry");
-  assert.equal(base.verification.checkedBy, "human:beta-g (Cowork)");
-  const crafted = { ...base, verification: { ...base.verification, checkedBy: "model:claude-opus-5" } };
+  assert.equal(base.verification.checkedBy, "engine:almi-visibility", "RR-283: the authoring AI's checks are relabelled as the engine");
+  const crafted = { ...base, verificationState: "" };
+  /* condition 3's case is refused by the older law before F31: an untyped checker is F24's */
+  const untyped = { ...base, verification: { ...base.verification, checkedBy: "beta-g" } };
+  assert.deepEqual(validateRegistry(records.map((r) => (r.id === base.id ? untyped : r))).registryErrors.filter((e) => e.law === "F24" && JSON.stringify(e).includes(base.id)).length, 1, "an untyped checker was not refused by the older evidence law");
 
   const raised = F31(records.map((r) => (r.id === crafted.id ? crafted : r)));
-  assert.equal(raised.length, 1, "F31 did not fire on a model-signed record that would otherwise advance");
-  assert.match(raised[0].message, /NAMED_HUMAN_AND_DATE/);
+  assert.equal(raised.length, 1, "F31 did not fire on a record with a blank state that would otherwise advance");
+  assert.match(raised[0].message, /STATE_EXPLICIT/);
 });

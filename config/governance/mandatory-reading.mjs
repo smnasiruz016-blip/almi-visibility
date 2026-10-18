@@ -284,7 +284,7 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OPEN_OWNER_DECISION_2026-10-01_RR-111_F27_HEADERS_AND_PUBLIC_EXPOSURE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OPEN_OWNER_DECISION_2026-10-01_RR-111_F87_SCOPE_OF_OPERATIONAL_MONITORING.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_RR-112_OUTSTANDING_OWNER_DECISIONS_2026-10-01.md", loader: "authority register (CURRENT record)" }),
-  Object.freeze({ repo: "governance", path: "AlmiVisibility_F87_ACCEPTANCE_2026-10-01.md", loader: "authority register (CURRENT record)" }),
+  /* RR-283: AlmiVisibility_F87_ACCEPTANCE_2026-10-01.md left the mandatory reading — SUPERSEDED in the corpus by the owner-approved F87 acceptance of 17 Oct 2026 (same proposition F87_ACCEPTANCE) */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F87_ACCEPTANCE_AMENDMENT_1_2026-10-01.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F91_ACCEPTANCE_2026-10-01.md", loader: "F-board acceptance F91" }),
   /* RR-113 §9, F44 (1 Oct 2026): F44's acceptance, after the migration at _handoffs eecdfe4. */
@@ -449,6 +449,23 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F27_ACCEPTANCE_AMENDMENT_3_2026-10-16.md", loader: "F-board acceptance F27 (Amendment 3)" }),
   /* 16 Oct 2026, the migration at _handoffs df82cbe (F22 Amendment 1, the owner's overnight command) */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F22_ACCEPTANCE_AMENDMENT_1_2026-10-16.md", loader: "F-board acceptance F22 (Amendment 1)" }),
+  /* 17 Oct 2026, the RR-283 migrations (_handoffs 6c5545c): the records admitted since 16 Oct — the owner decisions of RR-272 to RR-277 and RR-283, the RR-283 command, and the F54 and F87 acceptances (frozen ahead of their builds) */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-16_RR-272_F22_LIVE_GREEN_AND_CLEANUPS.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-16_RR-273_GUIDES_HUB_PAGE.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-16_RR-274_DATA_REPOSITORY_PUBLIC.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-17_RR-275_OLD_PAGES_REDIRECT_MAP.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-17_RR-276_REMOVE_OLD_CLIENT_SEO_PAGES.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-17_RR-277_ENGINE_BROWSER_ROUTE_AND_FEE_SNAPSHOT.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-17_RR-283.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-17_RR-283.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F54_ACCEPTANCE_2026-10-17.md", loader: "F-board acceptance F54" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F87_ACCEPTANCE_2026-10-17.md", loader: "F-board acceptance F87" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F42_ACCEPTANCE_2026-10-17.md", loader: "F-board acceptance F42" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F86_ACCEPTANCE_2026-10-17.md", loader: "F-board acceptance F86" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F62_ACCEPTANCE_AMENDMENT_1_2026-10-17.md", loader: "F-board acceptance F62 (Amendment 1)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_5_2026-10-17.md", loader: "F-board acceptance F91 (Amendment 5)" }),
+  /* 17 Oct 2026, the migration at _handoffs 6c5545c (RR-283: F46 Amendment 1, owner decision 3) */
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_F46_ACCEPTANCE_AMENDMENT_1_2026-10-17.md", loader: "F-board acceptance F46 (Amendment 1)" }),
   /* RR-263 (14 Oct 2026), second migration at _handoffs eeb7245: the 3 CURRENT records of the owner's principle — its command, his
    * decision in his own words, and F23's Amendment 2. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-14_RR-263_OWNER_PRINCIPLE.md", loader: "authority register (CURRENT record)" }),

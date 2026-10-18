@@ -648,12 +648,12 @@ describe("🔴 factChecked moved 0 → 46, deliberately, and confirmed is counte
     );
   });
 
-  test("🔴 every record that carries a fact-check date NAMES the person who did it", async () => {
+  test("🔴 every record that carries a fact-check date NAMES who did it, by a typed id (RR-283, owner decision 3: who checked is never a condition — the check still names WHO, by a typed id)", async () => {
     const { records } = await loadRegistry(FACTS_DIR, PRODUCT_ID);
     const dated = records.filter((r) => r.checks.factCheckedOn !== null);
     assert.equal(dated.length, REGISTRY_FACT_CHECK_COUNT);
     for (const r of dated) {
-      assert.match(r.checks.factCheckedBy ?? "", /^human:/, `${r.id}: somebody must NAME themselves to move this number`);
+      assert.match(r.checks.factCheckedBy ?? "", /^(human|model|engine):\S/, `${r.id}: whoever checked must be NAMED, by a typed id, to move this number`);
     }
   });
 

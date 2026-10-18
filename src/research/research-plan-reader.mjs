@@ -6,11 +6,10 @@
  */
 import { readProductAxes } from "../discovery/context-axes-reader.mjs";
 import { loadRegistry } from "../facts/registry.mjs";
-import { NO_DECLARED_PERSON_CHECKERS } from "../facts/citation-audit.mjs";
 import { researchRoutes } from "./research-routes.mjs";
 import { applicabilityOf } from "./applicability.mjs";
 
-export async function readResearchPlan({ product, subject, tenantId, resolve, on = null, persons = NO_DECLARED_PERSON_CHECKERS }) {
+export async function readResearchPlan({ product, subject, tenantId, resolve, on = null }) {
   const { axes } = await readProductAxes({ product, tenantId, resolve });
   let applicability = null;
   if (product?.research?.applicability) {
@@ -18,7 +17,7 @@ export async function readResearchPlan({ product, subject, tenantId, resolve, on
     try { facts = (await loadRegistry(product.factsDir, product.productId)).records; } catch { facts = null; }
     /* the routes in hand: the product's own routes before any narrowing — F62 measures only what these need */
     const inHand = researchRoutes({ subject, product: { ...product, research: { ...product.research, applicability: undefined } }, axes });
-    applicability = applicabilityOf({ product, axes, routes: inHand.routes, facts, persons, on });
+    applicability = applicabilityOf({ product, axes, routes: inHand.routes, facts, on });
   }
   return { axes, applicability, plan: researchRoutes({ subject, product, axes, applicability }) };
 }

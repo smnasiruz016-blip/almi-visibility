@@ -1,0 +1,15 @@
+F74 implementation-commands sabotage run · 2026-10-18T01:27:41.285Z
+population: 7 source sabotage(s) over test/f74-implementation-commands.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 7 of 7
+PRE-FLIGHT (span occurrences in the code live now): T1=1 T2=1 T3=1 T4=1 T5=1 T6=1 T7=1 · all exactly once: true
+production trail sha256 before: d14a7637f01d787802c219f0b489032313bf760ff73e244f21563540ae22b5e8
+
+T1 C1 · a superseded record approves [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C1 · ONLY APPROVED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1 · restored true · PROVED
+T2 C1 · other bytes approve [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C1 · ONLY APPROVED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1 · restored true · PROVED
+T3 C1 · a command or another kind of record approves [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C1 · ONLY APPROVED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1 · restored true · PROVED
+T4 C2 · an action seen twice gives two commands [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C2 · ONE PER ACTION · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2 · restored true · PROVED
+T5 C3 · a command with nothing it must never do [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C3 · BOUNDED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3 · restored true · PROVED
+T6 C4 · a command with no proof step [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C4 · PROOF STEPS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4 · restored true · PROVED
+T7 C5 · a secret value reaches a command [src/governance/implementation-commands.mjs] → test/f74-implementation-commands.test.mjs: landed true · named test "C5 · NO SECRETS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C5 · restored true · PROVED
+
+proved 7 of 7 (source 7 of 7) · residue 0 · production trail sha256 after: d14a7637f01d787802c219f0b489032313bf760ff73e244f21563540ae22b5e8 · unchanged true

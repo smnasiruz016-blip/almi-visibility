@@ -70,3 +70,5 @@ runs/_profession-cache/
 
 # F77 R2 (RR-82): ingest operation journals, beside their store, hold metered responses (query data) — local only, never committed.
 *.operations/
+# F87 (RR-284): the operations report names a project's own sources; a local file the owner reads, never committed.
+runs/ops/

@@ -128,8 +128,8 @@ test("🔴 every runner that needs a product takes it as an ARGUMENT, never as a
 /** module path (repo-relative, forward slashes) → why it has no importer. */
 const ORPHAN_ALLOWLIST = Object.freeze({
   // "src/example.mjs": "reason, dated, and who accepted it",
-  "src/acceptance/suite.mjs": "TEMPORARY (RR-283 item 8, 17 Oct 2026): F86's parts and verdicts; its one entry is the harness-gated test/helpers/f86-acceptance-suite.mjs (F86 C1 — run deliberately, never by npm test), which this census does not walk. Remove when a bin runs the suite.",
-  "src/page/draft-repair.mjs": "TEMPORARY (RR-283 item 6, 17 Oct 2026): F42's repair judge; the repair is proposed in the agent's own session (F42 Waits on) and no build path calls it yet. Remove when the page builder routes a failing draft through it.",
+  "src/acceptance/suite.mjs": "TEMPORARY (RR-283 item 8, 17 Oct 2026; accepted until a production consumer exists by beta-g decision A of RR-284, 18 Oct 2026): F86's parts and verdicts; its one entry is the harness-gated test/helpers/f86-acceptance-suite.mjs (F86 C1 — run deliberately, never by npm test), which this census does not walk. Remove when a bin runs the suite.",
+  "src/page/draft-repair.mjs": "TEMPORARY (RR-283 item 6, 17 Oct 2026; accepted until a production consumer exists by beta-g decision A of RR-284, 18 Oct 2026): F42's repair judge; the repair is proposed in the agent's own session (F42 Waits on) and no build path calls it yet. Remove when the page builder routes a failing draft through it.",
   "src/facts/question-fit.mjs":
     "TEMPORARY. Built AHEAD of its consumer by the owner's order, RR-80 §3 (_handoffs 9e60c53, 28 Sep 2026): 'Build the verification and readback path BEFORE any ADDRESSES / PARTIALLY ADDRESSES / DOES NOT ADDRESS verdict is reported.' It is NOT a completed capability, counts toward no row and moves no row. Accepted as TEMPORARY only by the owner, RR-81 §2.1 (_handoffs 4eb9d8f). REMOVAL TRIGGER: the change that makes F50's question-and-answer inventory import this gate — and that same change deletes this entry (enforced below: an allowlisted module with a production consumer fails the census).",
 });

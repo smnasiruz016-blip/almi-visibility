@@ -33,6 +33,6 @@ export const KNOWN_IDENTIFIER_EVENTS = Object.freeze([
     repair: "the record was renamed to a neutral admitted name (bytes unchanged) and the corpus regenerated; the trail was NOT reset, so this one event stays as the true record of what was admitted at that moment",
     evidenceRecord: "_handoffs 6c5545c73a8a8c75e5e701e06f26c3db27949e3f AlmiVisibility_RR-283_INCIDENT_CLIENT_WORD_IN_AN_ADMITTED_NAME_2026-10-17.md",
     evidenceSha256: "6bd89f68cb67d9b8689f34478740b3931c51c456a9432411f34e7b1a99e53a64",
-    ownerRatification: "PENDING — not yet ratified: the same class the owner ratified for RR-251 (RR-252 answer 1: keep the line, declare it, never reset); asked at the top of the RR-283 report, and removed if he refuses",
+    ownerRatification: "RATIFIED 2026-10-18 — beta-g decision A of RR-284 (ratified as a declared exception, as RR-251): _handoffs 70ffaf2eb04b40afffeacabc60fdf552a87e2b4b AlmiVisibility_OWNER_DECISION_2026-10-18_RR-284.md",
   }),
 ]);

@@ -201,6 +201,9 @@ export const ACTIONS = Object.freeze({
      * hub.mjs), kept in the research batch's own guides-hub store, the same family and resource class; a classification only, granting no
      * permission. */
     "APPEND_GUIDES_HUB",
+    /* RR-284 (18 Oct 2026): F50 C5 — a new version of the client's question library (bin/question-library.mjs), kept beside the old ones in
+     * the research batch's own question-library store, the same family and resource class; a classification only, granting no permission. */
+    "APPEND_QUESTION_LIBRARY_VERSION",
     /* RR-155 (4 Oct 2026): F16 C9–C13 — the collection run record (every request counted, every refusal, every zero), kept in the research
      * batch's own collection store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_COLLECTION_RUN",
@@ -227,6 +230,9 @@ export const ACTIONS = Object.freeze({
     "WRITE_GATE_A_REPORT", "WRITE_GATE_A_CSV", "WRITE_TEXT_KIND_REPORT", "WRITE_QUOTE_MATCH_REPORT", "WRITE_ESTATE_REPORT",
     "WRITE_RULING_SHEET_JSON", "WRITE_RULING_SHEET_MARKDOWN", "WRITE_ACCEPTANCE_TEST_REPORT", "WRITE_OVERLAP_DIAGNOSTIC",
     "WRITE_CHAIN_REPORT", "WRITE_PLACEMENT_REPORT", "WRITE_VARIANT_CHAIN_REPORT",
+    /* RR-284 (18 Oct 2026): F87 C6 — one client project's operations report (bin/project-operations.mjs), a local file the owner reads, the
+     * same family and resource class as the other run reports; a classification only, granting no permission. */
+    "WRITE_OPERATIONS_REPORT",
   ]),
   ...many("CONTENT_BUILD", "CANDIDATE_CONTENT", ["WRITE_CANDIDATE_PAGE", "WRITE_CANDIDATE_TRACE", "WRITE_CHAIN_CANDIDATE_PAGE", "WRITE_PLACEMENT_PAGE", "WRITE_VARIANT_CHAIN_PAGE"]),
   /* (SUPERSEDE_EVIDENCE_STATE is the ACTION LABEL of an F06 audit event, not an action anyone performs — removed 25 Sep.) */

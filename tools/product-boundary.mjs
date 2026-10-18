@@ -331,6 +331,9 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "75224e0d2392e6dc1f628621630eb105a2b6f79145045e1c58b299ec94235984", why: "F62 Amendment 1's frozen acceptance, EXPECTED (the original's owner words byte for byte, with the owner's RR-283 item 9 C8 and C9, _handoffs 94a6d17)" }),
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "d393ba0ab76418904624d72cd771c3a2743182c4d8e2bc1111faaa42e31c74cf", why: "F62 Amendment 1's frozen acceptance, FAILURE (the original's owner words byte for byte, with the owner's RR-283 item 9 C8 and C9, _handoffs 94a6d17)" }),
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "1b1d7b45b5eb35662fd2744b0f61e62f2e5fc625faece8c0a3661069bcc7ff05", why: "F62 Amendment 1's frozen acceptance, EVIDENCE (the original's owner words byte for byte, with the owner's RR-283 item 9 C8 and C9, _handoffs 94a6d17)" }),
+  /* RR-284: F87's frozen acceptance (_handoffs baa4d43, owner-approved on 17 Oct 2026) names, in its own EVIDENCE, the regulator sources C3's proof
+   * must list — the frozen words, copied byte for byte and pinned by contractSha256; the same declared blind spot, by exact sha256 only, 1 line, one file. */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "2293fe81a07cab1b8323a640ccd3cf57c6025d72508bc517e0507648e7540046", why: "F87's frozen acceptance, EVIDENCE (the owner-approved words, baa4d43)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

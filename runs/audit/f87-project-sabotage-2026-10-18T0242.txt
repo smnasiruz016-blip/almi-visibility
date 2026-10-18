@@ -1,0 +1,14 @@
+F87 sabotage run · 2026-10-18T02:42:56.951Z
+population: 6 source sabotage(s) over test/f87-project-operations.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 6 of 6
+PRE-FLIGHT (span occurrences in the code live now): P1=1 P2=1 P3=1 P4=1 P5=1 P6=1 · all exactly once: true
+production trail sha256 before: c54bfa6812919596eeedc065f3feed8046890881fb0af2f5ee82c9c62698e1ef
+
+P1 C1 · another project's and the engine's failed runs listed as this project's [src/ops/project-operations.mjs] → test/f87-project-operations.test.mjs: landed true · named test "C1 · FAILED JOBS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1,REAL · restored true · PROVED
+P2 C2 · a CURRENT recheck does not move the read date [src/ops/project-operations.mjs] → test/f87-project-operations.test.mjs: landed true · named test "C2 · STALE EVIDENCE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2,REAL · restored true · PROVED
+P3 C3 · a source read since is still listed BLOCKED [src/ops/project-operations.mjs] → test/f87-project-operations.test.mjs: landed true · named test "C3 · UNAVAILABLE SOURCES · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3 · restored true · PROVED
+P4 C4 · a store with an unfinished last line passes [src/ops/project-operations.mjs] → test/f87-project-operations.test.mjs: landed true · named test "C4 · PARTIAL OUTPUTS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4,C5,REAL · restored true · PROVED
+P5 C5 · recovery drops the whole records of a half-written store [src/ops/project-operations.mjs] → test/f87-project-operations.test.mjs: landed true · named test "C5 · RECOVERY WITHOUT LOSS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C5,REAL · restored true · PROVED
+P6 C6 · the report claims the alerts are sent [src/ops/project-operations.mjs] → test/f87-project-operations.test.mjs: landed true · named test "C6 · ALERT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C6 · restored true · PROVED
+
+proved 6 of 6 (source 6 of 6) · residue 0 · production trail sha256 after: c54bfa6812919596eeedc065f3feed8046890881fb0af2f5ee82c9c62698e1ef · unchanged true

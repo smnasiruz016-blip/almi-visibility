@@ -51,7 +51,7 @@ const index = rootIndexFor(process.env);
 const BATCH = join(lookupStore(index, "RESEARCH").dir, "rr254-test-pages-2026-10-12");
 const PRIV = privateSourcesRoot(process.env);
 const FOLDER = PRIV.state === "DECLARED" ? join(PRIV.dir, relative(lookupStore(index, "RESEARCH").rootPath, BATCH), "client-files", "search-console-2026-10-18") : null;
-const HERE = FOLDER !== null && existsSync(join(FOLDER, "meta.json")) && existsSync(join(BATCH, "search-phrases.jsonl"));
+const HERE = FOLDER !== null && existsSync(join(FOLDER, "meta.json")) && existsSync(join(BATCH, "search-console-exports.jsonl"));
 const SKIP = HERE ? false : "the client's export is not filed on this machine (private sources root)";
 
 test("REAL · the export the client filed: 112 days, 1 click, 507 impressions, 50 queries kept once each as observed phrases, 0 links — and the kept summary is this export's", { skip: SKIP }, () => {
@@ -60,7 +60,7 @@ test("REAL · the export the client filed: 112 days, 1 click, 507 impressions, 5
   const r = readSearchConsoleExport({ queries: t(meta.files.queries), pages: t(meta.files.pages), chart: t(meta.files.chart), links: meta.files.links.map(t) }, meta);
   assert.deepEqual([r.record.window.days, r.record.totals.clicks, r.record.totals.impressions, r.record.queries.rows, r.record.links.rows], [112, 1, 507, 50, 0]);
   /* a resighting of a phrase carries the phrase's own key; only the records themselves are counted */
-  const held = readFileSync(join(BATCH, "search-phrases.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)).filter((h) => h.record_type !== "resighting");
+  const held = readFileSync(join(BATCH, "search-console-exports.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)).filter((h) => h.record_type !== "resighting");
   const keys = new Map(held.map((h) => [h.measurement_key, (/** count */ 0)]));
   for (const h of held) keys.set(h.measurement_key, keys.get(h.measurement_key) + 1);
   for (const p of r.phrases) assert.equal(keys.get(p.measurement_key), 1, `${p.phrase} is kept ${keys.get(p.measurement_key) ?? 0} times`);

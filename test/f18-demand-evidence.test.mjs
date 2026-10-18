@@ -84,7 +84,7 @@ const SKIP = HERE ? false : "the declared batch is not on this machine";
 const rows = (f) => readFileSync(join(BATCH, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l));
 function real() {
   const records = new Map();
-  for (const r of [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...rows("search-phrases.jsonl").filter((x) => x.record_type === "search_phrase")]) { records.set(r.measurement_key, r); records.set(r.question_id ?? r.phrase_id, r); }
+  for (const r of [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...[...rows("search-phrases.jsonl"), ...(existsSync(join(BATCH, "search-console-exports.jsonl")) ? rows("search-console-exports.jsonl") : [])].filter((x) => x.record_type === "search_phrase")]) { records.set(r.measurement_key, r); records.set(r.question_id ?? r.phrase_id, r); }
   for (const p of JSON.parse(readFileSync(join(BATCH, "search-phrases.json"), "utf8"))) records.set(p.phraseId, p);
   const recordOf = (id) => records.get(id) ?? null;
   const clusters = rows("need-clusters.jsonl").filter((c) => c.record_type === "need_cluster");

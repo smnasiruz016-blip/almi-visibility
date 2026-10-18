@@ -29,7 +29,7 @@ if (!existsSync(join(batchDir, "need-clusters.jsonl"))) { console.error("🔴 RE
 const rows = (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
 const json = (f) => { try { return JSON.parse(readFileSync(join(batchDir, f), "utf8")); } catch { return null; } };
 const records = new Map();
-for (const r of [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...rows("search-phrases.jsonl").filter((x) => x.record_type === "search_phrase")]) { records.set(r.measurement_key, r); records.set(r.question_id ?? r.phrase_id, r); }
+for (const r of [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...[...rows("search-phrases.jsonl"), ...rows("search-console-exports.jsonl")].filter((x) => x.record_type === "search_phrase")]) { records.set(r.measurement_key, r); records.set(r.question_id ?? r.phrase_id, r); }
 for (const p of json("search-phrases.json") ?? []) records.set(p.phraseId, p);
 const recordOf = (id) => records.get(id) ?? null;
 const needs = rows("need-clusters.jsonl").filter((c) => c.record_type === "need_cluster").map((c) => needDemand(c, recordOf));

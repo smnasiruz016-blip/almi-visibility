@@ -7,7 +7,9 @@
  * The export the client filed PRIVATELY in the batch (client-files/<folder>/ with its meta.json: the day exported and the source named) is
  * read by src/discovery/search-console-export.mjs: each query a phrase record through the engine's existing Search Console route
  * (SEARCH_CONSOLE, OBSERVED), and one summary record — the window, the totals, the pages and the links (a link file with no row is 0 links).
- * Without --confirm counts are printed and nothing is recorded; with it both are appended to the batch's search-phrases.jsonl, each once.
+ * Without --confirm counts are printed and nothing is recorded; with it both are appended to the batch's OWN export store,
+ * search-console-exports.jsonl, each once — never to F11's phrase store (search-phrases.jsonl), whose real population F11 and F12 hold whole:
+ * an imported query joins a need only through a recorded grouping (RR-285 repair).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -49,10 +51,10 @@ console.log(`  window           ${s.window.from} – ${s.window.to} (${s.window.
 console.log(`  queries          ${s.queries.rows} rows (${s.queries.impressions} impressions) · phrase records ${s.queries.phrasesRecorded} (SEARCH_CONSOLE, OBSERVED) · refused ${s.queries.refused}`);
 console.log(`  pages            ${s.pages.rows} rows · clicks ${s.pages.clicks} · impressions ${s.pages.impressions}`);
 console.log(`  links            ${s.links.rows} on ${s.exportedOn} (${s.links.files} link file(s))`);
-if (!CONFIRM) { console.log("  NOT RECORDED — --confirm appends the phrases and the summary to the batch's search-phrases.jsonl"); process.exit(0); }
+if (!CONFIRM) { console.log("  NOT RECORDED — --confirm appends the phrases and the summary to the batch's search-console-exports.jsonl"); process.exit(0); }
 const permission = announceWritePermission(writePermission({ target: LOCAL, argv: process.argv, env: process.env }));
 const instant = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-const g = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: store.rootPath, auditRepo: REPO, permission, store: createJsonlStore(join(batchDir, "search-phrases.jsonl")), records: [...r.phrases, s],
+const g = executeGovernedWrite(governedStoreAppend({ ...SCOPE.writeScope, repo: store.rootPath, auditRepo: REPO, permission, store: createJsonlStore(join(batchDir, "search-console-exports.jsonl")), records: [...r.phrases, s],
   targetClass: "GENERATED_CONFIG", action: "APPEND_SEARCH_PHRASES", occurredAt: instant, correlationId: `run:search-console-export:${instant}`, discipline: "APPEND_IF_NEW" }));
-console.log(`  kept             ${g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED" ? `${r.phrases.length} phrase record(s) and the summary in the batch's search-phrases.jsonl [${g.outcome}]` : `🔴 ${g.outcome} — nothing persisted`}`);
+console.log(`  kept             ${g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED" ? `${r.phrases.length} phrase record(s) and the summary in the batch's search-console-exports.jsonl [${g.outcome}]` : `🔴 ${g.outcome} — nothing persisted`}`);
 if (!(g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED")) process.exitCode = 1;

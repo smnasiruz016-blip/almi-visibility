@@ -58,7 +58,7 @@ export const TIER_WORDS = Object.freeze({ OBSERVED: "OBSERVED — seen on an ope
 /** Law 7: words of the record that must never be visible. Matched as whole words, case-sensitive where they are record codes. */
 export const RECORD_LABELS = /\b(OBSERVED|INFERRED|RESEARCH-DERIVED|RESPONSIBLE BODY|SECONDARY|SELF-SOURCED|UNKNOWN|UNVERIFIED|NOT MEASURED|PASS|FAIL)\b|self-sourced|not independently verified|owner-approved/;
 /** The page's own structural words. They are declared here, not composed: a section needs a name, and none of them states a fact. */
-export const STRUCTURE = Object.freeze({ keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked", generalView: "General view — not an official fact", pagesChecked: "Official pages checked" });
+export const STRUCTURE = Object.freeze({ related: "Related guides", keyFacts: "Key facts", questions: "Questions and answers", lastChecked: "Last checked", source: "Source", alsoAsked: "Also asked", conversion: "estimate", checked: "checked", generalView: "General view — not an official fact", pagesChecked: "Official pages checked" });
 /* RR-265 (owner decision RR-265 item 3): a question no official source answers may carry ONE general-view sentence — after part a, that no
  * official body ranks the one thing over the other, and part b, the real differences, each one sourced sentence from the owners' own pages;
  * visibly labelled, never in the FAQ structured data, counted apart from sourced answers. It never attributes a view to people.
@@ -274,9 +274,9 @@ export function comparisonTables({ tables = [], items = [], converted = [] }) {
   for (const t of tables) {
     const cols = Array.isArray(t?.columns) ? t.columns : [], rows = Array.isArray(t?.rows) ? t.rows : [];
     const cell = (x) => {
-      if (present(x?.conversionOf)) { const v = converted.find((k) => k.claimId === x.conversionOf); return v ? Object.freeze({ value: `${v.short} (${STRUCTURE.conversion})`, source: v.steps.map((s) => s.short).join(" and "), link: v.steps[0].link, claimId: v.claimId }) : null; }
+      if (present(x?.conversionOf)) { const v = converted.find((k) => k.claimId === x.conversionOf); return v ? Object.freeze({ value: `${v.short} (${STRUCTURE.conversion})`, source: v.steps.map((s) => s.short).join(" and "), link: v.steps[0].link, readOn: claims.get(x.conversionOf)?.readOn ?? null, claimId: v.claimId }) : null; }
       const c = claims.get(x?.claimId);
-      return c && present(x.value) && String(c.text ?? "").includes(x.value) ? Object.freeze({ value: x.value.trim(), source: c.source, link: c.link, claimId: c.claimId }) : null;
+      return c && present(x.value) && String(c.text ?? "").includes(x.value) ? Object.freeze({ value: x.value.trim(), source: c.source, link: c.link, readOn: c.readOn ?? null, claimId: c.claimId }) : null;
     };
     const built = rows.map((r) => ({ label: r?.label, cells: (Array.isArray(r?.cells) ? r.cells : []).map(cell) }));
     const ok = keys.has(t?.need) && present(t.caption) && cols.length >= 2 && cols.slice(1).every(present) && built.length > 0 && built.every((r) => present(r.label) && r.cells.length === cols.length - 1 && r.cells.every(Boolean));
@@ -307,7 +307,7 @@ export function faqOf(items) {
  *   leadOf         what a need is RECORDED to lead with (LEAD), or null (RR-262)
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, checkedNotFoundOf = () => [], fillerPhrases = [] }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, checkedNotFoundOf = () => [], fillerPhrases = [], relatedFor = () => [] }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -353,7 +353,8 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const unanswered = Object.freeze([...unansweredFor(value)]);
     const faq = faqOf(items);
     const intro = Object.freeze([present(productLine) ? productLine.trim() : null, `${items.length} question${items.length === 1 ? "" : "s"} answered below, each with its source.`].filter(Boolean));
-    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown });
+    /* RR-286: the page's internal links, from the batch's filed link plan (F94's rule: the hub and every recorded page of the same need) */
+    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown, related: relatedFor(value) });
     const trace = items.flatMap((it) => [...it.claims.map((c) => Object.freeze({ needId: it.needId, claimId: c.claimId, label: c.label, source: c.source, link: c.link, readOn: c.readOn })),
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
     const checks = joinedChecks({ fillerPhrases, items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
@@ -576,7 +577,7 @@ function styleOf(design) {
  * Deterministic HTML under the page law. Every sentence of fact is a recorded claim's own text or an approved answer's own statement;
  * the questions are recorded questions; the brand, navigation, call to action and footer are the client's own filed design.
  */
-export function renderJoined({ title, stamp, items, design = null, intro = [], cards = [], faq = faqOf(items), lastChecked = null, converted = [], tables = [] }) {
+export function renderJoined({ title, stamp, items, design = null, intro = [], cards = [], faq = faqOf(items), lastChecked = null, converted = [], tables = [], related = [] }) {
   const site = design?.siteAddress ?? null;
   const link = (href) => esc(absolute(site, href) ?? "#");
   const cta = present(design?.cta?.label) && present(design?.cta?.href) ? `<a class="cta" href="${link(design.cta.href)}">${esc(design.cta.label)}</a>` : "";
@@ -588,7 +589,7 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
     + `<nav aria-label="${esc(co?.name ?? design.brandName ?? "Site")}">${(design.nav ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}</nav></div></div></header>` : "";
   const footer = design ? `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>` : "";
   const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
-  const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a></td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   const checkedLine = (r) => `<p class="checked-not-found" data-answer-kind="${ANSWER_KIND.CHECKED_NOT_FOUND}" data-record-id="${esc(r.id)}">${esc(r.line)} <span class="src">${STRUCTURE.pagesChecked}: ${r.checked.map((c) => `<a class="src" href="${esc(c.url)}" rel="nofollow">${esc(c.name)}</a>`).join(", ")} · ${STRUCTURE.checked} ${esc(r.checkedOn)}</span></p>`;
   const productCards = (it) => it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`);
   /* an item that leads with the product's own statements: its cards, then ONE call-to-action button for the item */
@@ -619,5 +620,7 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
     `<section class="hero"><h1>${esc(title)}</h1>${intro.map((l) => `<p>${esc(l)}</p>`).join("")}${cta}</section>`,
     cards.length ? `<section><h2>${STRUCTURE.keyFacts}</h2><ul class="cards">${cards.map((c) => `<li class="card" data-claim-id="${esc(c.claimId)}"><span class="k">${esc(c.label)}</span><span class="v">${esc(c.value)}</span>${source(c)}</li>`).join("")}</ul></section>` : "",
     `<section><h2>${STRUCTURE.questions}</h2>${lastChecked ? `<p class="checked">${STRUCTURE.lastChecked}: ${esc(lastChecked)}</p>` : ""}`, ...items.map(item), `</section>`,
+    /* RR-286: the related guides and the hub — words on every link, relative to the client's own site */
+    related.length ? `<section class="related"><h2>${STRUCTURE.related}</h2><ul>${related.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></section>` : "",
     `</main>`, footer, `<p class="stamp">${esc(stamp)}</p>`, `</body></html>`, ""].filter((x) => x !== "").join("\n") + "\n";
 }

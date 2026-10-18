@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { judgeCheck, judgeChecks, VERDICT_KIND, VERDICT_REFUSAL } from "../src/research/applicability-verdicts.mjs";
+import { judgeCheck, judgeChecks, VERDICT_KIND, VERDICT_REFUSAL, checksWithVerdicts } from "../src/research/applicability-verdicts.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { productFromArgv } from "../src/product-cli.mjs";
@@ -72,6 +72,23 @@ test("C9 · BLOCKED · FIRING CONTROL: a page blocked in its latest read, or bar
   assert.ok(!("outcome" in blocked), "a BLOCKED check carries an outcome");
 });
 
+test("C9 · READ BACK · FIRING CONTROL (RR-286): a check takes its OFFICIAL verdict's outcome with what decided it; every other check stays UNKNOWN with the verdict's reason — never NOT_REQUIRED", () => {
+  const declaration = { checks: [{ body: "b1", scope: { k: "v" }, outcome: "UNKNOWN", why: "no source" }, { body: "b2", scope: { k: "v" }, outcome: "UNKNOWN", why: "no source" }, { body: "b3", scope: {}, outcome: "UNKNOWN", why: "no source" }] };
+  const judged = { rows: [
+    { body: "b1", scope: { k: "v" }, kind: VERDICT_KIND.OFFICIAL, outcome: "ACCEPTED", excerpt: "x accepted", page: "https://b1.example/p", readOn: "2026-10-17" },
+    { body: "b2", scope: { k: "v" }, kind: VERDICT_KIND.CHECKED_NOT_FOUND, notFound: "no rule on x", pagesChecked: ["https://b2.example/p"], checkedOn: "2026-10-17" },
+    { body: "b3", scope: {}, kind: VERDICT_KIND.BLOCKED, page: "https://b3.example/p", reason: "the page could not be read: CHALLENGE" },
+  ] };
+  const r = checksWithVerdicts({ declaration, judged });
+  assert.deepEqual(r.checks.map((c) => c.outcome), ["ACCEPTED", "UNKNOWN", "UNKNOWN"]);
+  assert.deepEqual(r.checks[0].decidedBy, { page: "https://b1.example/p", excerpt: "x accepted", readOn: "2026-10-17" });
+  assert.match(r.checks[1].why, /^CHECKED_NOT_FOUND — no rule on x/);
+  assert.match(r.checks[2].why, /^BLOCKED — /);
+  const other = checksWithVerdicts({ declaration, judged: { rows: [{ ...judged.rows[0], body: "someone-else" }, ...judged.rows.slice(1)] } });
+  assert.equal(other.checks[0].outcome, "UNKNOWN", "another body's verdict decided this check");
+  assert.deepEqual(r.byOutcome, { REQUIRED: 0, ACCEPTED: 1, NOT_REQUIRED: 0, UNKNOWN: 2 });
+});
+
 test("C9 · ONE VERDICT PER CHECK: none filed or two filed leaves the check UNKNOWN, named; an unknown kind is refused", () => {
   assert.equal(judgeCheck(check(["r1"]), { facts, reads, filed: [] }).refused, VERDICT_REFUSAL.NO_VERDICT);
   const two = [...filed({ kind: "CHECKED_NOT_FOUND", notFound: "x" }), ...filed({ kind: "CHECKED_NOT_FOUND", notFound: "y" })];
@@ -95,6 +112,11 @@ test("REAL · C9 on the declared product: every one of its 24 derived checks car
   for (const r of j.rows.filter((x) => x.kind === VERDICT_KIND.OFFICIAL)) assert.ok(r.excerpt && r.page && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn ?? ""), `${r.body}: an official verdict without its excerpt, page or date`);
   /* pins — re-measured on 17 Oct 2026 */
   assert.deepEqual({ ...j.counts }, { checks: 24, OFFICIAL: 6, REQUIRED: 0, ACCEPTED: 6, NOT_REQUIRED: 0, CHECKED_NOT_FOUND: 16, BLOCKED: 2, UNKNOWN: 0 });
+  /* RR-286: the verdicts read back into the checks' own outcomes */
+  const back = checksWithVerdicts({ declaration, judged: j });
+  assert.deepEqual({ ...back.byOutcome }, { REQUIRED: 0, ACCEPTED: 6, NOT_REQUIRED: 0, UNKNOWN: 18 });
+  assert.ok(back.checks.filter((c) => c.outcome === "ACCEPTED").every((c) => c.decidedBy?.excerpt && c.decidedBy?.page && c.decidedBy?.readOn));
+  assert.ok(back.checks.filter((c) => c.outcome === "UNKNOWN").every((c) => /^(CHECKED_NOT_FOUND|BLOCKED) — /.test(c.why)));
   console.log(`  REAL (count-only): checks ${j.counts.checks} · official ${j.counts.OFFICIAL} (ACCEPTED ${j.counts.ACCEPTED}, REQUIRED ${j.counts.REQUIRED}, NOT_REQUIRED ${j.counts.NOT_REQUIRED}) · CHECKED_NOT_FOUND ${j.counts.CHECKED_NOT_FOUND} · BLOCKED ${j.counts.BLOCKED} · UNKNOWN ${j.counts.UNKNOWN}`);
 });
 

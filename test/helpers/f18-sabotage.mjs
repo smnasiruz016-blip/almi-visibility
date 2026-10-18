@@ -1,5 +1,5 @@
 /**
- * 🔴 F18 · THE OBSERVED-VS-ESTIMATE RULE CAN FAIL — one sabotage per protection of each clause of F18's frozen acceptance (_handoffs AlmiVisibility_F18_ACCEPTANCE_2026-10-18.md and its Amendment 1, beta-g decision D, RR-284/RR-285)
+ * 🔴 F18 · THE OBSERVED-VS-ESTIMATE RULE CAN FAIL — one sabotage per protection of each clause of F18's frozen acceptance (_handoffs AlmiVisibility_F18_ACCEPTANCE_2026-10-18.md and its Amendments 1 and 2, beta-g decision D, RR-284/285/286)
  * in src/research/demand-evidence.mjs; the named test of test/f18-demand-evidence.test.mjs must turn red by an AssertionError.
  * Each span found EXACTLY ONCE, applied ALONE, restored by raw-byte sha256, the production trail hashed before and after. The engine of
  * test/helpers/rr282-batch-append-sabotage.mjs.
@@ -28,7 +28,8 @@ const SABOTAGES = [
   ["D1", "C1 · every need labelled OBSERVED", [[IC, "label: observed ? DEMAND.OBSERVED : DEMAND.ESTIMATE,", "label: DEMAND.OBSERVED,"]], T, "C1 · ESTIMATE IS LABELLED · FIRING CONTROL:"],
   ["D2", "C2 · a record claiming OBSERVED without its source and date is accepted", [[IC, "if (claims && r.record_type !== \"research_derived_question\") return Object.freeze({ refused: DEMAND_REFUSAL.OBSERVED_WITHOUT_SOURCE });", "if (claims) return Object.freeze({ demand: DEMAND.OBSERVED, source: null, date: null });"]], T, "C2 · NEVER MIXED · FIRING CONTROL:"],
   ["D3", "C3 · an estimate beside an observation is not SUPERSEDED", [[IC, "state: observed ? DEMAND.SUPERSEDED : DEMAND.ESTIMATE,", "state: DEMAND.ESTIMATE,"]], T, "C3 · REPLACED BY DATA · FIRING CONTROL:"],
-  ["D4", "C4 · an estimate alone creates a page candidate", [[IC, "if (n.label === DEMAND.OBSERVED && n.observedIn.length > 0) candidates.push(n.needId);", "if (true) candidates.push(n.needId);"]], T, "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:"],
+  ["D4", "C4 · an estimate alone creates a page candidate", [[IC, "if (n.label === DEMAND.OBSERVED && n.observedIn.length > 0) { candidates.push(n.needId); continue; }", "if (true) { candidates.push(n.needId); continue; }"]], T, "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:"],
+  ["D8", "C4 · an estimate with no answer of its own becomes an OPPORTUNITY", [[IC, "if (answer.length > 0) { candidates.push(n.needId);", "if (true) { candidates.push(n.needId);"]], T, "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:"],
   ["D5", "C4 · a page question with no source of its own goes unlisted", [[IC, "if (!own) out.push(", "if (false) out.push("]], T, "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:"],
   ["D6", "C3 · a joined observation never reaches the page need", [[IC, "...joinedTo(joins, page, item.needKey)];", "];"]], T, "C3 · REPLACED BY DATA · FIRING CONTROL:"],
   ["D7", "C4 · a joined observation never gives the page question its source", [[IC, "...joinedTo(joins, p.publishedUrl, it.needKey)];", "];"]], T, "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:"],

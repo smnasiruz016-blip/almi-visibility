@@ -38,12 +38,15 @@ for (const r of rows("joined-pages.jsonl")) if (r.record_type === "joined_page_d
 /* RR-285: the batch's recorded joins of observed records to page needs (the latest observed-question-joins-<day>.json), when it files one */
 const joinFile = readdirSync(batchDir).filter((f) => /^observed-question-joins-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().at(-1) ?? null;
 const joins = joinFile ? (json(joinFile)?.joins ?? []) : [];
-const pc = pageCandidates(needs), u = unsourcedPageQuestions([...pages.values()], recordOf, { joins });
+/* Amendment 2 (RR-286): the batch's recorded own answers of its estimate-only needs, when it files them */
+const oppFile = readdirSync(batchDir).filter((f) => /^opportunity-answers-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().at(-1) ?? null;
+const oppAnswers = oppFile ? (json(oppFile)?.needs ?? []) : [];
+const pc = pageCandidates(needs, { answerOf: (id) => oppAnswers.find((x) => x.needId === id)?.answer ?? [] }), u = unsourcedPageQuestions([...pages.values()], recordOf, { joins });
 const joinedNeeds = [...new Set(joins.map((j) => `${j.page}#${j.needKey}`))].map((k) => { const [pg, key] = k.split("#"); const it = pages.get(pg)?.itemList?.find((x) => x.needKey === key); return it ? pageNeedDemand(pg, it, recordOf, { joins }) : null; }).filter(Boolean);
 const count = (l) => needs.filter((n) => n.label === l).length;
 console.log("F18 · OBSERVED DEMAND AND ESTIMATES — nothing fetched, written or published");
 console.log(`  needs            ${needs.length}: OBSERVED ${count(DEMAND.OBSERVED)} · ESTIMATE ${count(DEMAND.ESTIMATE)} · estimate beside an observation (SUPERSEDED, kept) ${needs.filter((n) => n.estimate?.state === DEMAND.SUPERSEDED).length} · records refused ${needs.reduce((s, n) => s + n.refused.length, 0)}`);
-console.log(`  page candidates  ${pc.candidates.length} from observed needs · refused ${pc.refused.length} (an estimate alone)`);
+console.log(`  page candidates  ${pc.candidates.length}: observed ${pc.candidates.length - pc.opportunities.length} · OPPORTUNITY ${pc.opportunities.length} (no searches, its own verified answer) · refused ${pc.refused.length} (an estimate alone)`);
 console.log(`  published pages  ${pages.size}: page questions ${u.items} · with no source of their own ${u.unsourced.length} (for the page-fix queue; no live page changes)`);
 console.log(`  joined           ${joins.length} recorded join(s)${joinFile ? ` (${joinFile})` : ""} · page needs joined ${joinedNeeds.length}: observation beside a SUPERSEDED estimate ${joinedNeeds.filter((n) => n.label === DEMAND.OBSERVED && n.estimate?.state === DEMAND.SUPERSEDED).length}`);
 if (process.argv.includes("--list")) for (const x of u.unsourced) console.log(`    ${x.page} · ${x.needKey} · ${x.question}`);

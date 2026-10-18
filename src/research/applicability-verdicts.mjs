@@ -80,3 +80,18 @@ export function judgeChecks({ declaration, facts, reads, filed }) {
     counts: Object.freeze({ checks: rows.length, OFFICIAL: n(VERDICT_KIND.OFFICIAL), REQUIRED: n(VERDICT_KIND.OFFICIAL, OUTCOMES.REQUIRED), ACCEPTED: n(VERDICT_KIND.OFFICIAL, OUTCOMES.ACCEPTED), NOT_REQUIRED: n(VERDICT_KIND.OFFICIAL, OUTCOMES.NOT_REQUIRED), CHECKED_NOT_FOUND: n(VERDICT_KIND.CHECKED_NOT_FOUND), BLOCKED: n(VERDICT_KIND.BLOCKED), UNKNOWN: n(VERDICT_KIND.UNKNOWN) }),
   });
 }
+
+/**
+ * RR-286 · C9 READ BACK INTO THE CHECKS: each derived check takes the outcome of its OFFICIAL verdict (the excerpt found word for word in the
+ * stored text of the deciding body's own page), with that page, excerpt and read date as what decided it. A check whose verdict is
+ * CHECKED_NOT_FOUND, BLOCKED or UNKNOWN stays UNKNOWN, its reason named from the verdict — never NOT_REQUIRED, never dropped.
+ */
+export function checksWithVerdicts({ declaration, judged }) {
+  const checks = (declaration?.checks ?? []).map((c, i) => {
+    const v = judged?.rows?.[i];
+    if (v && v.kind === VERDICT_KIND.OFFICIAL && v.body === c.body && sameScope(v.scope, c.scope)) return Object.freeze({ ...c, outcome: v.outcome, why: null, decidedBy: Object.freeze({ page: v.page, excerpt: v.excerpt, readOn: v.readOn }) });
+    const why = !v ? "no verdict judged" : v.kind === VERDICT_KIND.CHECKED_NOT_FOUND ? `CHECKED_NOT_FOUND — ${v.notFound} (pages checked ${v.pagesChecked.length}, ${v.checkedOn})` : v.kind === VERDICT_KIND.BLOCKED ? `BLOCKED — ${v.reason}` : `UNKNOWN — ${v.why}`;
+    return Object.freeze({ ...c, outcome: OUTCOMES.UNKNOWN, why, decidedBy: null });
+  });
+  return Object.freeze({ checks: Object.freeze(checks), byOutcome: Object.freeze(Object.fromEntries(Object.values(OUTCOMES).map((o) => [o, checks.filter((c) => c.outcome === o).length]))) });
+}

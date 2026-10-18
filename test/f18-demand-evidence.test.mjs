@@ -63,7 +63,10 @@ test("C3 · REPLACED BY DATA · FIRING CONTROL: when an observation arrives for 
 
 test("C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL: only an observed need may create a page candidate; a published page question with no source of its own is listed", () => {
   const needs = [needDemand(need("obs", ["search_phrase:g"]), recordOf), needDemand(need("est", ["research_derived_question:d2"]), recordOf)];
-  assert.deepEqual(pageCandidates(needs), { candidates: ["obs"], refused: [{ needId: "est", refused: DEMAND_REFUSAL.ESTIMATE_ALONE }] });
+  assert.deepEqual(pageCandidates(needs), { candidates: ["obs"], refused: [{ needId: "est", refused: DEMAND_REFUSAL.ESTIMATE_ALONE }], opportunities: [] });
+  /* Amendment 2 (RR-286): an estimate with its own verified answer is an OPPORTUNITY — a candidate, labelled so, naming its answer */
+  assert.deepEqual(pageCandidates(needs, { answerOf: (id) => (id === "est" ? ["claim-1"] : []) }), { candidates: ["obs", "est"], refused: [], opportunities: [{ needId: "est", label: "OPPORTUNITY", answer: ["claim-1"] }] });
+  assert.deepEqual(pageCandidates(needs, { answerOf: () => [] }).refused.map((r) => r.needId), ["est"], "an estimate with no answer of its own became a candidate");
   const pages = [{ publishedUrl: "https://a.example/p", itemList: [
     { needKey: "k1", heading: { shown: "Q1?", searchPhrase: "g" }, questions: [{ questionId: "d1" }] },
     { needKey: "k2", heading: { shown: "Q2?" }, questions: [{ questionId: "d2" }] },
@@ -144,8 +147,12 @@ test("REAL · C3 (Amendment 1): the run repeated with the client's own imported 
 test("REAL · C4: 0 page candidates from estimates only; on the 12 published guides as built, every page question with no source of its own is listed", { skip: SKIP }, () => {
   const { recordOf, clusters, pages } = real();
   const needs = clusters.filter((c) => c.place === "A NEED").map((c) => needDemand(c, recordOf));
-  const pc = pageCandidates(needs);
-  assert.ok(pc.candidates.every((id) => needs.find((n) => n.needId === id).observedIn.length > 0), "a page candidate came from estimates only");
+  /* Amendment 2 (RR-286): the batch's recorded own answers of its estimate-only needs */
+  const opp = JSON.parse(readFileSync(join(BATCH, "opportunity-answers-2026-10-18.json"), "utf8")).needs;
+  const pc = pageCandidates(needs, { answerOf: (id) => opp.find((x) => x.needId === id)?.answer ?? [] });
+  const oppIds = new Set(pc.opportunities.map((o) => o.needId));
+  assert.ok(pc.candidates.every((id) => needs.find((n) => n.needId === id).observedIn.length > 0 || oppIds.has(id)), "a page candidate came from an estimate with no answer of its own");
+  assert.ok(pc.opportunities.length > 0 && pc.opportunities.every((o) => o.label === "OPPORTUNITY" && o.answer.length > 0), "an OPPORTUNITY names no verified answer");
   assert.ok(pc.refused.length > 0 && pc.candidates.length > 0);
   assert.equal(pages.length, 12, "not the 12 published guides");
   /* RR-285: with the batch's recorded joins of the client's own Search Console rows, a joined question has a source of its own */
@@ -153,7 +160,7 @@ test("REAL · C4: 0 page candidates from estimates only; on the 12 published gui
   const u = unsourcedPageQuestions(pages, recordOf, { joins });
   assert.equal(unsourcedPageQuestions(pages, recordOf).unsourced.length - u.unsourced.length, new Set(joins.map((j) => `${j.page}#${j.needKey}`)).size, "a join did not give its question a source");
   for (const x of u.unsourced) assert.ok(typeof x.question === "string" && x.page.startsWith("https://"));
-  console.log(`  REAL (count-only): page candidates ${pc.candidates.length} (all observed) · refused (estimate alone) ${pc.refused.length} · published page questions ${u.items} · with no source of their own ${u.unsourced.length}`);
+  console.log(`  REAL (count-only): page candidates ${pc.candidates.length} (observed ${pc.candidates.length - pc.opportunities.length}, OPPORTUNITY ${pc.opportunities.length}) · refused (estimate alone) ${pc.refused.length} · published page questions ${u.items} · with no source of their own ${u.unsourced.length}`);
 });
 
 test("ENTRY · bin/demand-evidence.mjs: counts only by default; a bad call is a usage exit", { skip: SKIP }, () => {

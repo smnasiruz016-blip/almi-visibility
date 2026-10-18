@@ -58,16 +58,22 @@ export function needDemand(need, recordOf) {
   });
 }
 
-/** C2 + C4 · the needs that may create a page candidate (OBSERVED only) and those refused, named. */
-export function pageCandidates(needs) {
-  const candidates = [], refused = [];
+/**
+ * C2 + C4 (Amendment 2, RR-286) · the needs that may create a page candidate and those refused, named: an OBSERVED need; or an ESTIMATE whose
+ * own materially different answer from verified facts is recorded (`answerOf(needId)` → its verified claim ids) — an OPPORTUNITY, labelled
+ * so in these records only. An estimate with no answer of its own is refused: an estimate alone never creates a page.
+ */
+export const OPPORTUNITY = "OPPORTUNITY";
+export function pageCandidates(needs, { answerOf = () => [] } = {}) {
+  const candidates = [], refused = [], opportunities = [];
   for (const n of needs) {
-    if (n.label === DEMAND.OBSERVED && n.observedIn.length > 0) candidates.push(n.needId);
+    if (n.label === DEMAND.OBSERVED && n.observedIn.length > 0) { candidates.push(n.needId); continue; }
+    const answer = answerOf(n.needId) ?? [];
+    if (answer.length > 0) { candidates.push(n.needId); opportunities.push(Object.freeze({ needId: n.needId, label: OPPORTUNITY, answer: Object.freeze([...answer]) })); }
     else refused.push(Object.freeze({ needId: n.needId, refused: DEMAND_REFUSAL.ESTIMATE_ALONE }));
   }
-  return Object.freeze({ candidates: Object.freeze(candidates), refused: Object.freeze(refused) });
+  return Object.freeze({ candidates: Object.freeze(candidates), refused: Object.freeze(refused), opportunities: Object.freeze(opportunities) });
 }
-
 /**
  * RR-285 · a recorded judgement may JOIN an observed record to a page's need (`joins`: [{ page, needKey, inputId }]) — the research agent's
  * join, recorded with its reason, never a similarity score. The joined record is judged by its own source and date like any other.

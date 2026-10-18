@@ -334,6 +334,10 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
   /* RR-284: F87's frozen acceptance (_handoffs baa4d43, owner-approved on 17 Oct 2026) names, in its own EVIDENCE, the regulator sources C3's proof
    * must list — the frozen words, copied byte for byte and pinned by contractSha256; the same declared blind spot, by exact sha256 only, 1 line, one file. */
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "2293fe81a07cab1b8323a640ccd3cf57c6025d72508bc517e0507648e7540046", why: "F87's frozen acceptance, EVIDENCE (the owner-approved words, baa4d43)" }),
+  /* RR-286: F91's Acceptance Amendment 6 (_handoffs d43bd7f) carries in its EVIDENCE the owner's own example of a DEMAND page, a client's
+   * search wording — the frozen words, copied byte for byte and pinned by contractSha256; the same declared blind spot, by exact sha256 only,
+   * 1 line, one file. */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "9d496e18663281cdb27c800340037e5f30ed638895725eb074af1703e2b322c9", why: "F91 Amendment 6's frozen acceptance, EVIDENCE (the owner's example, d43bd7f)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

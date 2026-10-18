@@ -199,7 +199,11 @@ const whyNot = new Map(G.groupedNeeds.filter((d) => d.decision !== "CHOSEN").map
 const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.needs.filter((n) => !chosen.has(keyToNeed.get(n.key))).map((n) => Object.freeze({ need: n.key, questions: n.questions.length, wordings: Object.freeze(n.questions.map((q) => questions.get(q)?.wording).filter(Boolean)), why: whyNot.get(keyToNeed.get(n.key)) ?? "not connected",
   /* RR-268 A2: a need's recorded UNANSWERABLE disposition (the official source checked and the day), carried as filed — the page gate decides */
   ...(n.unanswerable ? { unanswerable: Object.freeze({ ...n.unanswerable }) } : {}) }))]));
-const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
+/* RR-286: the batch's filed internal-link plan, when it files one (the latest internal-links-<day>.json): for each page value, its links */
+const linkPlanFile = readdirSync(batchDir).filter((f) => /^internal-links-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().at(-1) ?? null;
+const linkPlan = linkPlanFile ? JSON.parse(readFileSync(join(batchDir, linkPlanFile), "utf8")).pages ?? {} : {};
+if (linkPlanFile) console.log(`  link plan        ${linkPlanFile}: ${Object.keys(linkPlan).length} page(s)`);
+const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, relatedFor: (value) => (Array.isArray(linkPlan[value]) ? linkPlan[value] : []), orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, checkedNotFoundOf: (needId) => cnf.byNeed.get(needToKey.get(needId)) ?? [], fillerPhrases,
   phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),

@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F18_AMENDMENT_2, F91_AMENDMENT_6, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1307,6 +1307,16 @@ export const DECLARED = Object.freeze({
        * re-proved to match; C24 — one recorded reason per collapsed combination; then C19's spec compiler and R4 (Amendment 4's open work);
        * one sabotage per clause on the final code, and the real result for the declared product as a new project. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-17", ruling: F91_AMENDMENT_5.ruling, contractSha256: F91_AMENDMENT_5.contractSha256, amends: F91_AMENDMENT_5.amends }),
+      /* RR-286 task 3: Amendment 6, the owner's demand-or-opportunity rule (C22–C24 of Amendment 5 superseded by name, C25 new), frozen ALONE.
+       * F91 STAYS IN-PROGRESS. Built and proved on the branch: C21–C25 (src/page/page-plan.mjs, bin/page-plan.mjs; runs/audit/f91-a6-sabotage-2026-10-18T0647.txt (ad4f2f90…): 8 of 8) —
+       * REAL over the batch's stored records, the client's own Search Console queries among them: 60 requested combinations → DEMAND 11 ·
+       * OPPORTUNITY 20 · MERGED 29 (the same answer 15, no own answer 14), 0 duplicate or thin pages. REMAINING, clause by clause: C20 — no
+       * existing-page read is proved absent from every F91 path (the planner reads none; demand-connection and the coverage record are not
+       * re-proved under it); F35 C3 is NOT amended — it decides grouped needs of the 12 profession pages, while the plan makes some
+       * combinations (e.g. medicine × united-kingdom) pages of their own: whether those pages replace the profession pages' sections is an
+       * owner decision (otherwise a duplicate); C19's spec compiler and R4 (Amendment 4's open work); the real result printed by every
+       * number of C1–C18 under Amendments 5 and 6. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-18", ruling: F91_AMENDMENT_6.ruling, contractSha256: F91_AMENDMENT_6.contractSha256, amends: F91_AMENDMENT_6.amends }),
     ]),
   }),
   /* 🔴 F13 · Context and axis discovery. Frozen ALONE (_handoffs 0ca24d3, RR-131 §3) before any F13 code; every clause PROVED on the real
@@ -3873,6 +3883,41 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f18-sabotage-2026-10-18T0530.txt (sha256 712bcde2…): 7 of 7 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
         historicalReuse: "no historical row maps to F18; reused: the batch's recorded need groups (F12) and the engine's Search Console route for the imported rows",
         declaredLimit: "every join is the research agent's recorded judgement and every one is a BROADER QUERY: the query names a country and no occupation, and the page question asks the same for the occupation of its own page; the 25 estimate-only need groups are not proven observed — they stay ESTIMATE",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-286 task 3: Acceptance Amendment 2 (only C4: an OPPORTUNITY with its own verified answer may create a page), frozen ALONE; F18 is
+       * reopened by the authoritative requirement change and re-proved on the final code */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F18", on: "2026-10-18", ruling: F18_AMENDMENT_2.ruling, contractSha256: F18_AMENDMENT_2.contractSha256, amends: F18_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F18",
+        on: "2026-10-18",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F18_ACCEPTANCE_AMENDMENT_2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F18's RR-285 evidence remains historically valid for what it measured (C4: no page candidate from an estimate); the owner's decision of RR-286 lets an OPPORTUNITY — its own answer from verified facts — create one, so C4 is amended and re-proved",
+        amendment: Object.freeze({ ruling: F18_AMENDMENT_2.ruling, contractSha256: F18_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-286.md", commit: "57afa221ec5298372efb7f1d79ea7d6d5c7855a6", sha256: "067436ee23107021241ca94ccdbf3d3e2f028f85ea654c714734a76bf153c489" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-286.md", commit: "57afa221ec5298372efb7f1d79ea7d6d5c7855a6", sha256: "9c5d415924f7edcf944638d1118fa5a15619fc62e6310c9796531e6bf9fe8cdc" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F18",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F18_ACCEPTANCE_AMENDMENT_2)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F18_AMENDMENT_2.ruling.sha256, contract: F18_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED" }),
+        populations: "REAL (count-only): needs 118 — OBSERVED 93, ESTIMATE 25; 67 needs hold both, each estimate SUPERSEDED and kept; C3 under Amendment 1 as before (3 page needs show the client's own Search Console query beside a SUPERSEDED estimate); C4 under Amendment 2: page candidates 85 — observed 77 and OPPORTUNITY 8 (the estimate-only need groups whose own answer is their regulators' verified claims, recorded in opportunity-answers-2026-10-18.json), refused 17 (an estimate alone); 156 of 179 published page questions with no source of their own, on the page-fix queue",
+        proofs: "test/f18-demand-evidence.test.mjs — C1 to C4 firing controls (the OPPORTUNITY rule among them), REAL C1–C4, the bin's counting run, no product word, no network call path",
+        sabotage: "runs/audit/f18-sabotage-2026-10-18T0632.txt (sha256 8850d26f…): 8 of 8 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "the batch's recorded need groups (F12) and its recorded own answers; F91 Amendment 6's planner reads the same rule (src/page/page-plan.mjs)",
+        declaredLimit: "an OPPORTUNITY's own answer is the research agent's recorded judgement (opportunity-answers-2026-10-18.json); the OPPORTUNITY label lives only in Visibility's records, never on a page",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),

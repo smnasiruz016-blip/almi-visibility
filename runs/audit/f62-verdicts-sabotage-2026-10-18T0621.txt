@@ -1,0 +1,16 @@
+F62 C9 verdicts sabotage run · 2026-10-18T06:21:48.053Z
+population: 8 source sabotage(s) over test/f62-verdicts.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 8 of 8
+PRE-FLIGHT (span occurrences in the code live now): V1=1 V2=1 V3=1 V4=1 V5=1 V6=1 V7=1 V8=1 · all exactly once: true
+production trail sha256 before: 5be661f17d0f0a111bf0e5bc296504fa625a7d7e51e8c1f66eaf9e428f9f805d
+
+V1 C9 · a paraphrase decides a check [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · OFFICIAL · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V2 C9 · another body's page decides a check [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · OFFICIAL · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V3 C9 · an outcome not stated decides a check [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · OFFICIAL · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V4 C9 · a cited page never read counts as checked [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V5 C9 · a CHECKED_NOT_FOUND line naming nothing stands [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V6 C9 · a readable page is taken as BLOCKED [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · BLOCKED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V7 C9 · two verdicts for one check — one is chosen [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · ONE VERDICT PER CHECK:" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+V8 C9 · read back: another body's verdict decides a check [src/research/applicability-verdicts.mjs] → test/f62-verdicts.test.mjs: landed true · named test "C9 · READ BACK · FIRING CONTROL (RR-286):" red true · its failure AssertionError · SyntaxError false · failing C9 · restored true · PROVED
+
+proved 8 of 8 (source 8 of 8) · residue 0 · production trail sha256 after: 5be661f17d0f0a111bf0e5bc296504fa625a7d7e51e8c1f66eaf9e428f9f805d · unchanged true

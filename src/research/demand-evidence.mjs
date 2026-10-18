@@ -69,15 +69,28 @@ export function pageCandidates(needs) {
 }
 
 /**
- * C4 · on published pages as built: every page question (one item = one need on the page) with no source of its own — none of its
- * questions is an OBSERVED record and its heading's search phrase is not one either. `recordOf(id)` resolves a question id or a phrase id.
+ * RR-285 · a recorded judgement may JOIN an observed record to a page's need (`joins`: [{ page, needKey, inputId }]) — the research agent's
+ * join, recorded with its reason, never a similarity score. The joined record is judged by its own source and date like any other.
  */
-export function unsourcedPageQuestions(pages, recordOf) {
+const joinedTo = (joins, page, needKey) => (joins ?? []).filter((j) => j.page === page && j.needKey === needKey).map((j) => j.inputId);
+
+/** C3 · one need of a published page: its questions and its joined records, judged as one need (OBSERVED beside a SUPERSEDED estimate). */
+export function pageNeedDemand(page, item, recordOf, { joins = [] } = {}) {
+  const ids = [...(item.questions ?? []).map((q) => q.questionId), ...(item.heading?.searchPhrase ? [item.heading.searchPhrase] : []), ...joinedTo(joins, page, item.needKey)];
+  return needDemand({ needId: `${page}#${item.needKey}`, members: [...new Set(ids)].map((inputId) => ({ inputId })) }, recordOf);
+}
+
+/**
+ * C4 · on published pages as built: every page question (one item = one need on the page) with no source of its own — none of its
+ * questions is an OBSERVED record, its heading's search phrase is not one, and no joined record is. `recordOf(id)` resolves a question id
+ * or a phrase id (bare or keyed).
+ */
+export function unsourcedPageQuestions(pages, recordOf, { joins = [] } = {}) {
   const out = [];
   let items = 0;
   for (const p of pages) for (const it of p.itemList ?? []) {
     items += 1;
-    const ids = [...(it.questions ?? []).map((q) => q.questionId), ...(it.heading?.searchPhrase ? [it.heading.searchPhrase] : [])];
+    const ids = [...(it.questions ?? []).map((q) => q.questionId), ...(it.heading?.searchPhrase ? [it.heading.searchPhrase] : []), ...joinedTo(joins, p.publishedUrl, it.needKey)];
     const own = ids.map((id) => recordDemand(recordOf(id))).find((d) => d.demand === DEMAND.OBSERVED);
     if (!own) out.push(Object.freeze({ page: p.publishedUrl, needKey: it.needKey, question: it.heading?.shown ?? it.heading?.wording ?? null, label: DEMAND.ESTIMATE }));
   }

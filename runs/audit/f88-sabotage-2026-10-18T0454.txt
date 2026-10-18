@@ -1,0 +1,14 @@
+F88 sabotage run · 2026-10-18T04:54:17.460Z
+population: 6 source sabotage(s) over test/f88-owner-workflows.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 6 of 6
+PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 G5=1 G6=1 · all exactly once: true
+production trail sha256 before: a10dd4b37974ed59dee5a086119002b961d81ca7de55dfce8a61ef59fc2aca2b
+
+G1 C1 · a report kind not on the list is dropped [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "C1 · THE WORKFLOWS ARE NAMED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1 · restored true · PROVED
+G2 C2 · content wider than the phone passes [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "C2 · READABLE ON A PHONE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2,C6 · restored true · PROVED
+G3 C3 · a desktop render with other text passes [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "C3 · READABLE ON A DESKTOP · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3,C6 · restored true · PROVED
+G4 C4 · a skipped heading level passes [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "C4 · ASSISTIVE SURFACES · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4,C6 · restored true · PROVED
+G5 C5 · a bad finding at the end passes [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "C5 · BAD FINDINGS FIRST · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C5,C6 · restored true · PROVED
+G6 C6 · an emoji-only line passes [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "C6 · FIRES · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4,C6 · restored true · PROVED
+
+proved 6 of 6 (source 6 of 6) · residue 0 · production trail sha256 after: a10dd4b37974ed59dee5a086119002b961d81ca7de55dfce8a61ef59fc2aca2b · unchanged true

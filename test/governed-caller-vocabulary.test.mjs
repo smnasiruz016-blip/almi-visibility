@@ -363,9 +363,11 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
    * bin/demand-evidence.mjs (F18), READ_ONLY_DIAGNOSTIC: they print counts and write nothing (58 → 60); bin/project-operations.mjs (F87) and
    * bin/question-library.mjs (F50), which write their report and their library versions only through the governed boundary (BOUNDARY_ROUTED
    * 68 → 70). No existing caller moved class. */
-  assert.equal(rows.length, 131);
-  assert.equal(governed.length, 71);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 60);
+  /* 131/71 → 133/72 on 18 October (RR-285), for a MEASURED reason: bin/entity-register.mjs (F49), READ_ONLY_DIAGNOSTIC (60 → 61), and
+   * bin/search-console-export.mjs, which appends the client's export only through the governed boundary (BOUNDARY_ROUTED 70 → 71). */
+  assert.equal(rows.length, 133);
+  assert.equal(governed.length, 72);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 61);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */
@@ -389,7 +391,7 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
   /* 65 → 66 BOUNDARY_ROUTED on 16 October (F27 Amendment 3): bin/live-security.mjs, the one new governed caller above */
   /* 66 → 67 BOUNDARY_ROUTED on 16 October (F22 Amendment 1): bin/render-built-pages.mjs, the one new governed caller above */
   /* 67 → 68 BOUNDARY_ROUTED on 16 October (RR-273): bin/guides-hub.mjs, the one new governed caller above */
-  assert.deepEqual(by, { BOUNDARY_ROUTED: 70, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
+  assert.deepEqual(by, { BOUNDARY_ROUTED: 71, DIRECT_DURABLE_WRITE: 0, COLLECTOR_OR_LIBRARY_WRITE: 0, CHECKED_AUDIT_STORE_EXEMPTION: 1, READ_ONLY: 0, PARTIALLY_ROUTED: 0, UNKNOWN: 0 });
   assert.equal(bypasses(rows).length, 0);
   assert.equal(governed.filter((r) => r.routed).length + auditStoreExempt(rows).length + nonMutating(rows).length + bypasses(rows).length, governed.length);
   const sites = governed.flatMap((r) => r.siteDetail.map((s) => ({ ...s, file: r.file, reaches: r.reachesBoundary })));

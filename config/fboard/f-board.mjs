@@ -938,7 +938,7 @@ export const DECLARED = Object.freeze({
   F35: Object.freeze({
     featureId: "F35",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F35_ORIGINAL.ruling, contractSha256: F35_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1089,6 +1089,24 @@ export const DECLARED = Object.freeze({
         amendment: Object.freeze({ ruling: F35_AMENDMENT_2.ruling, contractSha256: F35_AMENDMENT_2.contractSha256 }),
         ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F35",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F35_ACCEPTANCE_AMENDMENT_2)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F35_AMENDMENT_2.ruling.sha256, contract: F35_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED", C3_AS_AMENDED_2: "PROVED" }),
+        populations: "REAL (count-only): F91's plan of the batch — 60 requested combinations: 31 own pages (DEMAND 11 + OPPORTUNITY 20), each with its covering published guide told to keep a summary and a link (11 guides), 29 MERGED as sections of their larger pages, 0 created twice; Amendment 1's real decisions as recorded before",
+        proofs: "test/f35-a2-guide-summary.test.mjs (C3 AS AMENDED 2: firing controls and REAL) beside F35's own tests (test/f35-action-decision.test.mjs, test/rr174-r3-f35-f34.test.mjs, test/rr179-r4.test.mjs), all on the final code",
+        sabotage: "runs/audit/f35-a2-sabotage-2026-10-18T1736.txt (sha256 9362c45b…): 7 of 7 proved, residue 0, production trail unchanged · runs/audit/f35-sabotage-2026-10-18T1915.txt (sha256 790cd8ba…): 26 of 26 proved, residue 0, production trail unchanged · runs/audit/rr174-sabotage-2026-10-18T1915.txt (sha256 80c8a288…): 42 of 42 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S17-2026-10-18T2125.txt (sha256 973ff399…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S18-2026-10-18T2136.txt (sha256 ea21685c…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S19-2026-10-18T2152.txt (sha256 ee14beb3…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S20-2026-10-18T2211.txt (sha256 ac0c35fd…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S21-2026-10-18T2227.txt (sha256 f24fbace…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S22-2026-10-18T2242.txt (sha256 fb48d0cb…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S23-2026-10-18T2257.txt (sha256 11e717c0…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S24-2026-10-18T2309.txt (sha256 94c67261…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S25-2026-10-18T2322.txt (sha256 384d0c0a…): 1 of 1 proved, residue 0, production trail unchanged · runs/audit/rr179-sabotage-S37-2026-10-18T2334.txt (sha256 6ed7ee95…): 1 of 1 proved, residue 0, production trail unchanged — at least one limb per clause, on the final code",
+        historicalReuse: "Amendment 1's recorded proofs stand for the clauses it carries; the harnesses whose target changed were re-run on the final code",
+        declaredLimit: "the guides' summaries and links are recommendations on the page-fix queue (READY-WHEN-BUILT); no live guide is changed",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

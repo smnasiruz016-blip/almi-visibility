@@ -1,0 +1,9 @@
+RR-248 freshness-check sabotage run · 2026-10-18T23:47:48.189Z
+population: 1 sabotage(s) over test/rr248-span-freshness.test.mjs + test/rr248-harness-run-refusal.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): R02=1 · all exactly once: true
+production trail sha256 before: 7b159fcf6d5c8e5ea78bd622f205cbd10428cb2044a751685c87d97b7592355c
+
+R02 SF-2 · a span that occurs twice in its target [src/page/action-decision.mjs]: landed true · named test "SF-2" red true · its failure AssertionError · SyntaxError false · failing SF-2 · restored by sha256 true · GREEN after restore true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 7b159fcf6d5c8e5ea78bd622f205cbd10428cb2044a751685c87d97b7592355c · unchanged true

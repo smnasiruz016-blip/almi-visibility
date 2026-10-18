@@ -1,0 +1,9 @@
+RR-179 R4 sabotage run · 2026-10-18T23:03:37.293Z
+population: 1 sabotage(s) over test/rr179-r4.test.mjs + test/page-construction.test.mjs + test/f36-right-to-exist.test.mjs + test/f41-content-brief.test.mjs + test/f35-action-decision.test.mjs + test/rr174-r3-f35-f34.test.mjs + test/facts-registry.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S23=1 · all exactly once: true
+production trail sha256 before: 7b159fcf6d5c8e5ea78bd622f205cbd10428cb2044a751685c87d97b7592355c
+
+S23 F35 C7 · the decision reaches a network call [src/page/action-decision.mjs]: landed true · named test "C7 · the decision and its evidence reader load no module" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing C7,R3-CALLS,R4-CALLS · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 7b159fcf6d5c8e5ea78bd622f205cbd10428cb2044a751685c87d97b7592355c · unchanged true

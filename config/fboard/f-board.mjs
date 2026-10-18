@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -3837,7 +3837,7 @@ export const DECLARED = Object.freeze({
   F18: Object.freeze({
     featureId: "F18",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F18_ORIGINAL.ruling, contractSha256: F18_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -3854,6 +3854,98 @@ export const DECLARED = Object.freeze({
         baseCiRun: "39083343236",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-284.md", commit: "70ffaf2eb04b40afffeacabc60fdf552a87e2b4b", sha256: "140037d4113498d013e9d29eb8d0be57991f444e5ded50572b4b4f018d7c7997" }),
+      }),
+      /* RR-285 task 2: F18's Acceptance Amendment 1 (only C3's proof: the client's own imported Search Console rows), frozen ALONE */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F18", on: "2026-10-18", ruling: F18_AMENDMENT_1.ruling, contractSha256: F18_AMENDMENT_1.contractSha256, amends: F18_AMENDMENT_1.amends }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F18",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F18_AMENDMENT_1.ruling.sha256, contract: F18_AMENDMENT_1.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED" }),
+        populations: "REAL (count-only): needs 118 — OBSERVED 93 from observed records alone, ESTIMATE 25, each naming its records; 67 needs hold both, each estimate SUPERSEDED and kept; page candidates 77, all observed, 25 refused as an estimate alone. C3 (Amendment 1): the client's own Search Console export of 18 Oct 2026 imported (50 query rows); 11 recorded joins of its Ireland and New Zealand queries give 3 page needs that were only an ESTIMATE (speech Ireland, vets Ireland, physio New Zealand) an observation beside their SUPERSEDED, kept estimate; the 25 estimate-only need groups are matched by no query and stay ESTIMATE, named. On the 12 published guides 156 of 179 page questions have no source of their own (the page-fix queue; no live page changed)",
+        proofs: "test/f18-demand-evidence.test.mjs — C1 to C4 firing controls (with the join), REAL C1–C4 and C3 under Amendment 1, the bin's counting run, no product word, no network call path",
+        sabotage: "runs/audit/f18-sabotage-2026-10-18T0453.txt (sha256 54211903…): 7 of 7 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "no historical row maps to F18; reused: the batch's recorded need groups (F12) and the engine's Search Console route for the imported rows",
+        declaredLimit: "every join is the research agent's recorded judgement and every one is a BROADER QUERY: the query names a country and no occupation, and the page question asks the same for the occupation of its own page; the 25 estimate-only need groups are not proven observed — they stay ESTIMATE",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F49 · Knowledge graph and entity-linking support. RR-285 task 4: the owner-approved draft frozen ALONE, then built and PROVED on the RR-285
+   * branch. VERIFIED stands only with the command's final full suite and CI green. */
+  F49: Object.freeze({
+    featureId: "F49",
+    board: "F_BOARD",
+    state: "VERIFIED-PASS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F49_ORIGINAL.ruling, contractSha256: F49_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F49",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F49_ORIGINAL.ruling.sha256, contract: F49_ORIGINAL.contractSha256 }),
+        branch: "rr285",
+        baseSha: "5567aeb8a4b247ce0ac1b2bd97073aec567fc53e",
+        baseCiRun: "39093489060",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-285.md", commit: "82b11fee9c1531e35b7d4e887a38423070178c7a", sha256: "7d7a1cd3a3aa8080acd03789c2219f9cf33a726c76ad5c4151672b36453333fe" }),
+      }),
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F49",
+        population: "REAL",
+        on: "2026-10-18",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED",
+        acceptanceUnchanged: Object.freeze({ ruling: F49_ORIGINAL.ruling.sha256, contract: F49_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED" }),
+        populations: "REAL (count-only): 30 entities recorded from the responsible bodies the batch's claims name; 418 mentions on the 12 live guides (claims and regulator-table rows) — RESOLVED 418, UNRESOLVED 0, AMBIGUOUS 0; identifiers 29 on 28 entities, every one from the body's own official site in the engine's stored reads with its read date; NO IDENTIFIER 2 (ECFMG, Veterinary Council of Ireland), each with the sources checked (their own site BLOCKED by an unreadable robots file; Wikidata BLOCKED) and the date; the 30 Wikidata reads of 18 Oct 2026 (one per entity, paced, 1 request: robots) all BLOCKED — Wikidata's robots disallows the item-by-title pages — kept BLOCKED, named; sameAs entries on the 12 pages 0, mismatches 0; the product entity from the client's own declaration",
+        proofs: "test/f49-entity-register.test.mjs — C1 to C5 firing controls, REAL C1–C5, the bin's counting run, no product word, no network call path",
+        sabotage: "runs/audit/f49-sabotage-2026-10-18T0453.txt (sha256 32e234f1…): 5 of 5 proved — at least one limb per clause — residue 0, production trail unchanged, on the final code",
+        historicalReuse: "reused read-only: the batch's recorded claims and stored reads; F47's entity map is untouched",
+        declaredLimit: "no Wikidata identifier could be read (its robots disallows the pages, 30 of 30 BLOCKED); every identifier is the body's own official site; C4's real population holds no sameAs entry, so 0 mismatches is the measured result, with the planted control red",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+    ]),
+  }),
+  /* 🔴 F88 · Desktop, mobile and accessibility of owner workflows. RR-285 task 5: the owner-approved draft frozen ALONE, then built on the RR-285
+   * branch. IN-PROGRESS — the checks are built and proved (6 of 6 limbs, runs/audit/f88-sabotage-2026-10-18T0454.txt); the REAL report files FAIL them, named:
+   * C2 runs/report/index.html renders 2819 px wide in a 430 px screen; C4 runs/audit/row60-ruling-sheet-red-limbs-2026-09-14.txt holds 3 tables
+   * without a header row; C5 118 reports (107 sabotage-evidence files, 10 audit-evidence files, 1 owner-verification file) state their bad
+   * findings only at their end. C1: 1189 report files in 6 named kinds, 534 files under runs/ UNLISTED, reported by name. Unblocked when the
+   * report writers put their summary first, the owner report page fits a phone, and the three tables gain header rows. */
+  F88: Object.freeze({
+    featureId: "F88",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F88_ORIGINAL.ruling, contractSha256: F88_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F88",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F88_ORIGINAL.ruling.sha256, contract: F88_ORIGINAL.contractSha256 }),
+        branch: "rr285",
+        baseSha: "5567aeb8a4b247ce0ac1b2bd97073aec567fc53e",
+        baseCiRun: "39093489060",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-285.md", commit: "82b11fee9c1531e35b7d4e887a38423070178c7a", sha256: "7d7a1cd3a3aa8080acd03789c2219f9cf33a726c76ad5c4151672b36453333fe" }),
       }),
     ]),
   }),

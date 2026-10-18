@@ -1,0 +1,13 @@
+F49 sabotage run · 2026-10-18T04:54:00.682Z
+population: 5 source sabotage(s) over test/f49-entity-register.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 5 of 5
+PRE-FLIGHT (span occurrences in the code live now): E1=1 E2=1 E3=1 E4=1 E5=1 · all exactly once: true
+production trail sha256 before: a10dd4b37974ed59dee5a086119002b961d81ca7de55dfce8a61ef59fc2aca2b
+
+E1 C1 · one name of two bodies resolves to one [src/research/entity-register.mjs] → test/f49-entity-register.test.mjs: landed true · named test "C1 · ONE ENTITY, ONE NAME · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1 · restored true · PROVED
+E2 C2 · an identifier from any host is accepted [src/research/entity-register.mjs] → test/f49-entity-register.test.mjs: landed true · named test "C2 · APPROVED IDENTIFIERS ONLY · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2 · restored true · PROVED
+E3 C3 · a Wikidata item is taken without its official website naming the body's site [src/research/entity-register.mjs] → test/f49-entity-register.test.mjs: landed true · named test "C3 · NO IDENTIFIER IS GUESSED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3 · restored true · PROVED
+E4 C4 · a foreign sameAs goes unnamed [src/research/entity-register.mjs] → test/f49-entity-register.test.mjs: landed true · named test "C4 · SAME ON PAGE AND IN DATA · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4 · restored true · PROVED
+E5 C5 · a product entity from a third party is accepted [src/research/entity-register.mjs] → test/f49-entity-register.test.mjs: landed true · named test "C5 · OWN PRODUCT, OWN RECORDS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C5 · restored true · PROVED
+
+proved 5 of 5 (source 5 of 5) · residue 0 · production trail sha256 after: a10dd4b37974ed59dee5a086119002b961d81ca7de55dfce8a61ef59fc2aca2b · unchanged true

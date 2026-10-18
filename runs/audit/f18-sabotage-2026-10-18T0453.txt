@@ -1,0 +1,15 @@
+F18 sabotage run · 2026-10-18T04:53:48.697Z
+population: 7 source sabotage(s) over test/f18-demand-evidence.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 7 of 7
+PRE-FLIGHT (span occurrences in the code live now): D1=1 D2=1 D3=1 D4=1 D5=1 D6=1 D7=1 · all exactly once: true
+production trail sha256 before: a10dd4b37974ed59dee5a086119002b961d81ca7de55dfce8a61ef59fc2aca2b
+
+D1 C1 · every need labelled OBSERVED [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C1 · ESTIMATE IS LABELLED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1,C2,C3,REAL · restored true · PROVED
+D2 C2 · a record claiming OBSERVED without its source and date is accepted [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C2 · NEVER MIXED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2 · restored true · PROVED
+D3 C3 · an estimate beside an observation is not SUPERSEDED [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C3 · REPLACED BY DATA · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3,REAL · restored true · PROVED
+D4 C4 · an estimate alone creates a page candidate [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4,REAL · restored true · PROVED
+D5 C4 · a page question with no source of its own goes unlisted [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4,REAL · restored true · PROVED
+D6 C3 · a joined observation never reaches the page need [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C3 · REPLACED BY DATA · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3,REAL · restored true · PROVED
+D7 C4 · a joined observation never gives the page question its source [src/research/demand-evidence.mjs] → test/f18-demand-evidence.test.mjs: landed true · named test "C4 · NO PAGE BY ESTIMATE ALONE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4,REAL · restored true · PROVED
+
+proved 7 of 7 (source 7 of 7) · residue 0 · production trail sha256 after: a10dd4b37974ed59dee5a086119002b961d81ca7de55dfce8a61ef59fc2aca2b · unchanged true

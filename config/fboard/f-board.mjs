@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F18_AMENDMENT_2, F91_AMENDMENT_6, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F62_AMENDMENT_2, F35_AMENDMENT_2, F88_AMENDMENT_1, F60_ORIGINAL, F59_ORIGINAL, F61_ORIGINAL, F96_ORIGINAL, F18_AMENDMENT_2, F91_AMENDMENT_6, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -938,7 +938,7 @@ export const DECLARED = Object.freeze({
   F35: Object.freeze({
     featureId: "F35",
     board: "F_BOARD",
-    state: "VERIFIED-PASS",
+    state: "IN-PROGRESS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-09-29", ruling: F35_ORIGINAL.ruling, contractSha256: F35_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1072,6 +1072,23 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/rr179-sabotage-2026-10-05T2142.txt: 65 of 65 proved (F91 C19, F41 C1 as amended and C8, F36 S38 and record B, construction under ruling RR-179 (c) and D1, FS-A1, and one per clause for the F41, F36 and F35 re-proofs), residue 0, production trail unchanged",
         ownerRulings: Object.freeze({ repo: "_handoffs", rr179R4Rulings: "a8dc1900442ff17508b0ee7129db19b3b29f69a3" }),
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
+      /* RR-287 task A: Acceptance Amendment 2 (beta-g decision A: one full answer, one place), frozen ALONE; F35 is reopened by the authoritative
+       * requirement change and re-proved on the final code before it moves again */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F35", on: "2026-10-18", ruling: F35_AMENDMENT_2.ruling, contractSha256: F35_AMENDMENT_2.contractSha256, amends: F35_AMENDMENT_2.amends }),
+      Object.freeze({
+        kind: "REOPENED",
+        featureId: "F35",
+        on: "2026-10-18",
+        from: "VERIFIED-PASS",
+        to: "IN-PROGRESS",
+        route: "VERIFIED-PASS -> IN-PROGRESS -> VERIFIED-PASS (authoritative requirement change: F35_ACCEPTANCE_AMENDMENT_2)",
+        reason: "AUTHORITATIVE_REQUIREMENT_CHANGE",
+        reopenRule: "one of the owner's five reopen grounds (src/checklist/classification.mjs REOPEN_REASONS), matched word for word",
+        rationale: "F35's earlier evidence remains historically valid for what it measured; beta-g decision A of RR-287 adds C3 AS AMENDED 2 — a combination F91's plan gives its own page is CREATED with the full answer and the guide covering it keeps only a summary and a link — so F35 is reopened and re-proved",
+        amendment: Object.freeze({ ruling: F35_AMENDMENT_2.ruling, contractSha256: F35_AMENDMENT_2.contractSha256 }),
+        ownerDecision: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
       }),
     ]),
   }),
@@ -1582,6 +1599,13 @@ export const DECLARED = Object.freeze({
        * those clauses have only an empty real population; and the C9 verdicts are not yet read back as the derived checks' outcomes (C1 reads
        * only an outcome a record states). */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F62", on: "2026-10-17", ruling: F62_AMENDMENT_1.ruling, contractSha256: F62_AMENDMENT_1.contractSha256, amends: F62_AMENDMENT_1.amends }),
+      /* RR-287 task B: Amendment 2 (beta-g decision B), frozen ALONE. F62 STAYS IN-PROGRESS. Built and proved on the branch: the key cell (deciding
+       * body × the filed key: destination × profession), no state named UNKNOWN (a refused verdict is a FAULT, never a verdict), a licence-barred
+       * page never decides (f62-verdicts-sabotage 14/14). REAL: 24 checks → OFFICIAL 4 (ACCEPTED 4) · CHECKED_NOT_FOUND 8 · BLOCKED 12 · faults 0;
+       * 12 key cells over 9 bodies → OFFICIAL 4 · CHECKED_NOT_FOUND 3 · BLOCKED 5. REMAINING: C7 — "two unrelated declared products, at least one
+       * outside AlmiWorld": the real data root declares ONE product (two subjects carry no product declaration); C1–C6 are proved on the key cells
+       * of that one product only. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F62", on: "2026-10-18", ruling: F62_AMENDMENT_2.ruling, contractSha256: F62_AMENDMENT_2.contractSha256, amends: F62_AMENDMENT_2.amends }),
     ]),
   }),
   /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code; IN-PROGRESS until 12 Oct 2026 because
@@ -3992,6 +4016,95 @@ export const DECLARED = Object.freeze({
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-18_RR-285.md", commit: "82b11fee9c1531e35b7d4e887a38423070178c7a", sha256: "7d7a1cd3a3aa8080acd03789c2219f9cf33a726c76ad5c4151672b36453333fe" }),
       }),
+      /* RR-287 task C: Acceptance Amendment 1 (beta-g decision C), frozen ALONE: the writers fix it (C7), the old reports historical by name (C8) */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F88", on: "2026-10-18", ruling: F88_AMENDMENT_1.ruling, contractSha256: F88_AMENDMENT_1.contractSha256, amends: F88_AMENDMENT_1.amends }),
+    ]),
+  }),
+  /* 🔴 F60 · Earned citation and digital PR opportunities. Frozen ALONE (RR-287 task E) on the owner's "g aproved"; built on the branch — VERIFIED only through phase 2. */
+  F60: Object.freeze({
+    featureId: "F60",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F60_ORIGINAL.ruling, contractSha256: F60_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F60",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F60_ORIGINAL.ruling.sha256, contract: F60_ORIGINAL.contractSha256 }),
+        branch: "rr287",
+        baseSha: "f082ebd8621b281e6a42eb80924c46b0cade15a1",
+        baseCiRun: "39108066096",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
+      }),
+    ]),
+  }),
+  /* 🔴 F59 · Backlink profile and link-gap intelligence. Frozen ALONE (RR-287 task F); free data only. */
+  F59: Object.freeze({
+    featureId: "F59",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F59_ORIGINAL.ruling, contractSha256: F59_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F59",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F59_ORIGINAL.ruling.sha256, contract: F59_ORIGINAL.contractSha256 }),
+        branch: "rr287",
+        baseSha: "f082ebd8621b281e6a42eb80924c46b0cade15a1",
+        baseCiRun: "39108066096",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
+      }),
+      /* RR-287 task F: C1–C3 built and proved on today's 0 links (f59-sabotage 6/6). IN-PROGRESS, waiting on: C4 a second Links export of a
+       * different date; C5 links that carry a recorded quality signal; C6 a competitor link file the client supplies. */
+    ]),
+  }),
+  /* 🔴 F61 · Brand mention monitoring. Frozen ALONE (RR-287 task F); free data only. */
+  F61: Object.freeze({
+    featureId: "F61",
+    board: "F_BOARD",
+    state: "IN-PROGRESS",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F61_ORIGINAL.ruling, contractSha256: F61_ORIGINAL.contractSha256 }),
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F61",
+        on: "2026-10-18",
+        from: "UNASSESSED",
+        to: "IN-PROGRESS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F61_ORIGINAL.ruling.sha256, contract: F61_ORIGINAL.contractSha256 }),
+        branch: "rr287",
+        baseSha: "f082ebd8621b281e6a42eb80924c46b0cade15a1",
+        baseCiRun: "39108066096",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-18_RR-287.md", commit: "7e98c67a6a426321672c9641e33da630cb5e7f03", sha256: "e0b25d68ff7f69240692f596be09e7b0e9a299b956f1f1e0add393906eda1d3e" }),
+      }),
+      /* RR-287 task F: C1–C3 built and proved (f61-sabotage 5/5); REAL: 0 public mentions in the client's own data (its own site's 2 pages
+       * apart). IN-PROGRESS, waiting on: links or mentions in the client's own data, and C4 a second dated export. */
+    ]),
+  }),
+  /* 🔴 F96 · E-commerce visibility. Frozen ALONE (RR-287 task G); never dropped. */
+  F96: Object.freeze({
+    featureId: "F96",
+    board: "F_BOARD",
+    state: "ACCEPTANCE-FROZEN",
+    events: Object.freeze([
+      Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F96_ORIGINAL.ruling, contractSha256: F96_ORIGINAL.contractSha256 }),
+      /* RR-287 task G: frozen only — no build now (beta-g decision G). AlmiOET is NOT APPLICABLE by name: it sells a subscription, no listed
+       * product. The row stays open, waiting for a declared client that sells listed products and files its own feed, listing export and crawl. */
     ]),
   }),
 });

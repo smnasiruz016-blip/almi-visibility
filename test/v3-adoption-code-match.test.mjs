@@ -67,6 +67,8 @@ test("V5 · no record is loosened beyond the three named clauses (the negative c
   /* RR-284 (beta-g decision B, _handoffs b91d5e9): F87's 17 Oct acceptance supersedes, by name, its 1 Oct acceptance (WHOLE_ACCEPTANCE), its
    * Amendment 1 (WHOLE_AMENDMENT and CLAUSE_C1–C7) and RR-111's F87 scope question — named here so no other loosening can hide among them */
   const F87_CLAUSES = ["CLAUSE_C1", "CLAUSE_C2", "CLAUSE_C3", "CLAUSE_C4", "CLAUSE_C5", "CLAUSE_C6", "CLAUSE_C7", "F87_SCOPE_QUESTION_CLOSED_BY_BETA_G_DECISION_B", "WHOLE_ACCEPTANCE", "WHOLE_AMENDMENT"];
-  assert.deepEqual(clauses, ["OVERLAP_ABOVE_40_PERCENT_AUTOMATIC_REJECTION", "UNIVERSAL_MIN_UNIQUE_WORDS_350", "UNIVERSAL_MIN_VERIFIED_FACTS_5", ...F87_CLAUSES].sort());
+  /* RR-286: F91 Amendment 6 supersedes, by name, Amendment 5's C22, C23 and C24 */
+  const F91_CLAUSES = ["CLAUSE_C22_ONE_MAXIMUM_PAGE_NUMBER", "CLAUSE_C23_A_PAGE_ONLY_FOR_ITS_OWN_REAL_DEMAND", "CLAUSE_C24_A_REASON_FOR_EVERY_COLLAPSED_COMBINATION"];
+  assert.deepEqual(clauses, ["OVERLAP_ABOVE_40_PERCENT_AUTOMATIC_REJECTION", "UNIVERSAL_MIN_UNIQUE_WORDS_350", "UNIVERSAL_MIN_VERIFIED_FACTS_5", ...F87_CLAUSES, ...F91_CLAUSES].sort());
   assert.ok(byId(A7), "the superseding record exists");
 });

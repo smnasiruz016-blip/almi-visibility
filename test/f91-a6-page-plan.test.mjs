@@ -85,10 +85,10 @@ function real() {
   const rows = (f) => readFileSync(join(BATCH, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l));
   const inputs = json("page-plan-inputs-2026-10-18.json");
   const published = [...new Map(rows("joined-pages.jsonl").filter((r) => r.record_type === "joined_page_draft" && r.publishedUrl).map((r) => [r.value, r])).values()];
-  const professions = inputs.professions.map((p) => ({ ...p, page: published.find((x) => x.value === p.value)?.publishedUrl ?? null }));
-  const claims = json("page-drafts.json").pages.flatMap((p) => p.needs.flatMap((n) => (n.answer?.claims ?? []).map((c) => ({ claimId: c.claimId, primary: p.combination?.profession, body: c.body ?? c.source?.body, text: c.text }))));
+  const professions = inputs.primary.values.map((p) => ({ ...p, page: published.find((x) => x.value === p.value)?.publishedUrl ?? null }));
+  const claims = json("page-drafts.json").pages.flatMap((p) => p.needs.flatMap((n) => (n.answer?.claims ?? []).map((c) => ({ claimId: c.claimId, primary: p.combination?.[inputs.primary.name], body: c.body ?? c.source?.body, text: c.text }))));
   const records = [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...[...rows("search-phrases.jsonl"), ...rows("search-console-exports.jsonl")].filter((x) => x.record_type === "search_phrase")];
-  return { primaries: professions, secondaries: inputs.destinations, claims, records };
+  return { primaries: professions, secondaries: inputs.secondary.values, claims, records };
 }
 
 test("REAL · the batch's requested combinations: each exactly one of DEMAND / OPPORTUNITY / MERGED INTO <page> with its reason; 0 duplicate or thin pages; the three examples", { skip: SKIP }, () => {

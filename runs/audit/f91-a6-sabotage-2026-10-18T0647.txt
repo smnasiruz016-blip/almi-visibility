@@ -1,0 +1,16 @@
+F91 sabotage run · 2026-10-18T06:47:52.732Z
+population: 8 source sabotage(s) over test/f91-a6-page-plan.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 8 of 8
+PRE-FLIGHT (span occurrences in the code live now): P1=1 P2=1 P3=1 P4=1 P5=1 P6=1 P7=1 P8=1 · all exactly once: true
+production trail sha256 before: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae
+
+P1 C22 · the candidate count is not the raw product [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C22 · THREE COUNTS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C22,C24,REAL · restored true · PROVED
+P2 C23 · an estimate counts as demand [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C23 · DEMAND OR OPPORTUNITY, NEVER DUPLICATE OR THIN · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C22,C23,C25 · restored true · PROVED
+P3 C23 · demand naming one value only is taken [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C23 · DEMAND OR OPPORTUNITY, NEVER DUPLICATE OR THIN · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C22,C23,C25,REAL · restored true · PROVED
+P4 C23 · the same answer becomes a second page [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C23 · DEMAND OR OPPORTUNITY, NEVER DUPLICATE OR THIN · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C22,C23,REAL,ENTRY · restored true · PROVED
+P5 C23 · the page kept is not the one with demand [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C23 · the same answer is ONE page," red true · its failure AssertionError · SyntaxError false · failing C23 · restored true · PROVED
+P6 C23 · a duplicate planned page goes unnamed [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C23 · DEMAND OR OPPORTUNITY, NEVER DUPLICATE OR THIN · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C23 · restored true · PROVED
+P7 C24 · a combination with no own answer is dropped [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C24 · EXACTLY ONE LABEL AND ONE REASON · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C22,C23,C24 · restored true · PROVED
+P8 C25 · an OPPORTUNITY never moves to DEMAND [src/page/page-plan.mjs] → test/f91-a6-page-plan.test.mjs: landed true · named test "C25 · OPPORTUNITY MOVES · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C25 · restored true · PROVED
+
+proved 8 of 8 (source 8 of 8) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true

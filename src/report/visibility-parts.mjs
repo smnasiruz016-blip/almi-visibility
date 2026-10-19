@@ -11,6 +11,7 @@ import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
 import { renderReport } from "./visibility-report-html.mjs";
 import { KINDS, consentGate, evidenceCounts } from "../intake/client-supplied.mjs";
 import { crawlItem, diffRuns } from "./change-and-scale.mjs";
+import { inferFollowUps, competitorsOf, inferDifficulty, DIFFICULTY_METHOD, INFERRED, napOf, napConsistency, benchmark } from "../research/follow-ups-and-competitors.mjs";
 import { admitObservation, perSystem, shareOfVoice, influenceGraph, gapsOf, actionsForGaps } from "../research/ai-visibility.mjs";
 
 /** F66–F68 · the stored evidence of the client's own live pages, by URL */
@@ -165,6 +166,63 @@ export const PARTS = Object.freeze({
         `FIELD  ${field.length ? `${field.length} record(s)` : `${NM} — no field data supplied (it needs the client's own key or export)`}; pages with field data ${findings.filter((f) => f.field !== NM).length} of ${findings.length}`,
         ...(io.list ? findings.map((f) => `  ${f.url} · lab LCP ${f.lab.metrics?.lcpMs ?? NM} ms · field ${f.field === NM ? NM : "present"}`) : []),
       ];
+    },
+  }),
+  /* F17 · src/research/follow-ups-and-competitors.mjs */
+  "follow-ups": Object.freeze({
+    title: "F17 · FOLLOW-UP NEEDS",
+    run: (io) => {
+      const f = inferFollowUps(io.rows("planning.jsonl").filter((r) => r.record_type === "planning_coverage"));
+      const seqs = io.rows("next-question-sequences.jsonl");
+      return [
+        `INFERRED follow-ups ${f.length} (each names the two coverage records it is inferred from) over ${new Set(f.map((x) => x.after)).size} need(s) · answered on another page ${f.filter((x) => !x.gap).length} · INFORMATION GAPS (no page answers it) ${f.filter((x) => x.gap).length} across ${new Set(f.filter((x) => x.gap).map((x) => x.next)).size} need(s)`,
+        `OBSERVED sequences  ${seqs.length ? `${seqs.length} filed — counted apart` : "NOT MEASURED — none filed (they need a lawful source the client holds)"}`,
+        ...(io.list ? f.slice(0, 20).map((x) => `  after ${x.after} → ${x.next} (${x.gap ? "INFORMATION GAP: no page answers it" : `answered by ${x.answeredBy}`})`) : []),
+      ];
+    },
+  }),
+  /* F58 · F69 · competitors and the benchmark */
+  "competitors": Object.freeze({
+    title: "F58 · F69 · COMPETITORS AND BENCHMARK",
+    run: (io) => {
+      const decl = io.own("answer-surfaces.json");
+      const c = competitorsOf({ declared: io.own("competitors.json")?.competitors ?? [], observedSurfaces: io.rows("answer-surface-observations.jsonl").filter((r) => r.surface === "WEB_SEARCH"), ownDomains: decl?.ownDomains ?? [] });
+      const queries = [...new Set(io.rows("search-phrases.jsonl").filter((r) => r.record_type === "search_phrase" && r.label === "OBSERVED").map((r) => r.phrase))];
+      const d = queries.map(inferDifficulty);
+      const s = runMode({ mode: "full", evidenceByUrl: storedEvidence(io) });
+      const b = benchmark({ clientScore: s.score, peers: c.competitors.map((x) => ({ ...x, score: null })) });
+      return [
+        `F58 competitors     ${c.competitors.length} (declared ${c.competitors.filter((x) => x.from === "DECLARED").length} · from observed result surfaces ${c.competitors.filter((x) => x.from === "OBSERVED_RESULT_SURFACE").length}) · refused unsourced ${c.refused.length}`,
+        `F58 difficulty      ${d.length} observed queries, each ${INFERRED}: ${Object.entries(d.reduce((m, x) => ((m[x.difficulty] = (m[x.difficulty] ?? 0) + 1), m), {})).map(([k, v]) => `${k} ${v}`).join(" · ")} — method: ${DIFFICULTY_METHOD}`,
+        `F58 coverage gap    ${c.competitors.length ? "compared over stored observations" : "NOT MEASURED — no competitor page is in a stored observation"}`,
+        `F69 benchmark       ${b.line}`,
+      ];
+    },
+  }),
+  /* F63 · local rank from the browser-route observations of the declared locations */
+  "local-rank": Object.freeze({
+    title: "F63 · LOCAL RANK",
+    run: (io) => {
+      const decl = io.own("answer-surfaces.json");
+      const local = io.rows("answer-surface-observations.jsonl").filter((r) => r.surface === "WEB_SEARCH" && r.location);
+      const line = (r) => `${r.location} · "${r.query}" · ${r.surfaceId} · ${r.on} · ${r.state === "OBSERVED" ? (r.own?.state === "RANKED" ? `#${r.own.position} of ${r.own.of}` : `${r.own?.state ?? "NOT MEASURED"}`) : `BLOCKED ${r.reason}`}`;
+      return [
+        `declared locations  ${(decl?.locations ?? []).join(", ") || "none"}`,
+        `rank records        ${local.length}: ${local.length ? Object.entries(local.reduce((m, r) => ((m[r.state === "OBSERVED" ? "RANKED or NOT_IN_THE_RESULTS_SHOWN" : `BLOCKED ${r.reason}`] = (m[r.state === "OBSERVED" ? "RANKED or NOT_IN_THE_RESULTS_SHOWN" : `BLOCKED ${r.reason}`] ?? 0) + 1), m), {})).map(([k, v]) => `${k} ${v}`).join(" · ") : "NOT MEASURED — none filed"}`,
+        ...local.map((r) => `  ${line(r)}`),
+      ];
+    },
+  }),
+  /* F64 · name, address and phone on the client's own pages */
+  "nap": Object.freeze({
+    title: "F64 · NAME / ADDRESS / PHONE",
+    run: (io) => {
+      const latest = new Map();
+      for (const r of io.rows("live-pages.jsonl")) if (r.url && r.html) latest.set(r.url, r.html);
+      const values = [...latest].flatMap(([url, html]) => napOf(html, url));
+      const rep = napConsistency(values);
+      const show = (v) => (typeof v === "string" ? v : v.state === "CONSISTENT" ? `CONSISTENT "${v.value}" on ${v.sources} statement(s)` : `MISMATCH ${v.pairs.map((p) => `"${p.a.value}" (${p.a.source}) vs "${p.b.value}" (${p.b.source})`).join("; ")}`);
+      return [`own pages read      ${latest.size} · NAP statements ${values.length}`, `name                ${show(rep.name)}`, `address             ${show(rep.address)}`, `phone               ${show(rep.phone)}`];
     },
   }),
   /* F67 · the quick sample — the same checks */

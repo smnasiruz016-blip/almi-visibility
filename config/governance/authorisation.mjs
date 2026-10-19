@@ -189,6 +189,10 @@ export const ACTIONS = Object.freeze({
     /* RR-271 (16 Oct 2026): the built pages recorded as published once the owner GREENed their publication (bin/publish-pages.mjs), kept
      * in the research batch's own joined-pages store, the same family and resource class; a classification only, granting no permission. */
     "APPEND_PUBLISHED_PAGES",
+    /* RR-291 (19 Oct 2026, owner decision 2): F16 C7 and F63 — what the engine's own browser route saw on a web-search result page or a public
+     * AI answer page (bin/answer-surfaces.mjs): domains, features and addresses only, never a page's text; kept in the research batch's own
+     * answer-surface store, the same family and resource class; a classification only, granting no permission. */
+    "APPEND_ANSWER_SURFACE_OBSERVATIONS",
     /* F27 Amendment 3 (16 Oct 2026): the bounded live check's reads of the client's LIVE pages, their http: forms and its robots file
      * (bin/live-security.mjs), kept in the research batch's own live-security store, the same family and resource class; a classification
      * only, granting no permission. */

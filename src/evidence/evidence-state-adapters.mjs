@@ -139,6 +139,21 @@ function ofLinkStatus(r) {
 }
 
 /**
+ * RR-291 · F16 C7 and F63 — an `answer_surface_observation`: what the engine's own browser route saw on one web-search result page or one
+ * public AI answer page (domains, features, addresses; never its text) — OBSERVED, sourced from its run. A BLOCKED one (robots, a captcha, a
+ * bot check, a login wall) is UNKNOWN with that reason — never an observation of anything.
+ */
+function ofAnswerSurface(r) {
+  const rule = "answer_surface_observation";
+  if (!present(r.observation_id) || !present(r.query) || !present(r.surface)) return unmapped("an answer-surface observation names its query and surface", rule);
+  if (!present(r.recorded_at) || !ISOISH.test(r.recorded_at)) return unmapped("an answer-surface observation with no recorded_at has no time", rule);
+  if (!present(r.run)) return unmapped("an answer-surface observation names the run that made it", rule);
+  if (r.state === "BLOCKED") return place(`${rule}.blocked`, "UNKNOWN", { checkId: `answer_surface:${r.observation_id}`, insufficiency: /^[A-Z][A-Z0-9_]{1,63}$/.test(r.reason ?? "") ? r.reason : "BLOCKED" });
+  if (r.state !== "OBSERVED") return unmapped(`answer-surface state ${r.state ?? "(none)"} is not declared`, rule);
+  return place(rule, "OBSERVED", { evidenceRef: `answer_surface:${r.observation_id}`, sourceId: `answer-surface@${r.run}`, observedAt: r.recorded_at });
+}
+
+/**
  * RR-268 · F44 (Amendment 2, C7 C8 C10) — a `source_page_read`: what one read of an official source page answered — its text kept as
  * read, with its sha256 — OBSERVED, sourced from the reader's own run. A read that was BLOCKED (robots, a refusal, a challenge, a login
  * wall, no browser route) is UNKNOWN with that insufficiency — never an observation of anything. A record with no address, no day, no run,
@@ -502,6 +517,7 @@ export function evidenceStateOf(record, ctx = {}) {
     case "draft_recommendation": return ofDraftRecommendation(record, ctx);
     case "response_headers": return ofResponseHeaders(record);
     case "link_status_observation": return ofLinkStatus(record);
+    case "answer_surface_observation": return ofAnswerSurface(record);
     case "live_page_read": return ofLivePageRead(record);
     case "live_security_read": return ofLiveSecurityRead(record);
     case "built_page_render_read": return ofBuiltPageRenderRead(record);

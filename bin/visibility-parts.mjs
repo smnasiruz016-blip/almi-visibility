@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+/**
+ * RR-291 · THE PARTS OF THE VISIBILITY REPORT, ONE AT A TIME — READ-ONLY; count-only; nothing fetched, sent, published or written.
+ *
+ *   node bin/visibility-parts.mjs --part=<name> --subject=<id> --research-batch=<id> --tenant=<id> --actor=<id> [--list]
+ *
+ * One declared client's own stored records, read through its own subject and research batch (decided by the scope gate first). Each part is a
+ * row of the board built under light proof in RR-291; its rules live in src/ (named per part below), never here. The output is counts, states
+ * and named gaps; a part with nothing to read says NOT MEASURED, never 0.
+ *
+ * Generic: it names no client, product or host.
+ */
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
+import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
+import { rootIndexFor } from "../src/tenancy/resolver.mjs";
+import { lookupStore, lookupSubject } from "../src/tenancy/root-registry.mjs";
+import { PARTS } from "../src/report/visibility-parts.mjs";
+
+const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
+const PART = arg("part"), SUBJECT = arg("subject"), BATCH = arg("research-batch");
+if (!PART || !Object.hasOwn(PARTS, PART) || !SUBJECT || !BATCH) { console.error(`usage: node bin/visibility-parts.mjs --part=<${Object.keys(PARTS).join("|")}> --subject=<id> --research-batch=<id> — nothing read`); process.exit(2); }
+const SCOPE = scopedEntryPoint({ entry: "bin/visibility-parts.mjs", governed: false, resources: [RESOURCES.subject(SUBJECT), RESOURCES.researchBatch(BATCH)] });
+const index = rootIndexFor(process.env);
+const subject = lookupSubject(index, SUBJECT);
+if (subject.state !== "DECLARED") { console.error(`🔴 REFUSED — the subject is not declared (${subject.state}); nothing read`); process.exit(3); }
+/* the batch directory is bound on the line that names the RESEARCH store, so every read through it is that store's (tenant-scope census) */
+const batchDir = join(lookupStore(index, "RESEARCH").dir, BATCH);
+if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT; nothing read"); process.exit(3); }
+const io = Object.freeze({
+  batch: BATCH,
+  subject: SUBJECT,
+  tenantId: SCOPE.tenantId,
+  rows: (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } },
+  json: (f) => { try { return JSON.parse(readFileSync(join(batchDir, f), "utf8")); } catch { return null; } },
+  own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
+  exists: (f) => existsSync(join(batchDir, f)),
+  list: process.argv.includes("--list"),
+});
+const out = await PARTS[PART].run(io);
+console.log(`${PARTS[PART].title} — the client's own stored records; read-only, nothing fetched, sent or written`);
+for (const l of out) console.log(`  ${l}`);

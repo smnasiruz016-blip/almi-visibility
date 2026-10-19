@@ -21,6 +21,12 @@ test("C2 · every planned page built at once, and no other; a MERGED combination
   assert.equal(b.get("/a/x").sections, 1, "the merged combination is not a section of its page");
   assert.ok(![...b.values()].some((p) => /OPPORTUNITY|DEMAND/.test(p.html)), "a plan label on a page");
   assert.deepEqual(plannedPages(plan).map((p) => p.path), ["/a/x", "/a/y"]);
+  /* RR-293: the plan's own shape names claims by id — each id's words, source and day reach the draft; an unknown id is named, never empty */
+  const byId = { ...plan, rows: [{ ...plan.rows[0], answer: ["c1", "c9"] }], claimsById: new Map([["c1", { claimId: "c1", text: "a verified fact", source: { name: "the body", link: "https://body.example/a", readOn: "2026-10-15" } }]]) };
+  const html = buildPlanBatch(byId).get("/a/x").html;
+  assert.match(html, /<p>a verified fact <small>Source: <a href="https:\/\/body.example\/a">the body<\/a>, checked 2026-10-15<\/small><\/p>/);
+  assert.match(html, /\[claim c9: its words are not in the plan's records\]/);
+  assert.ok(!/<p>\s*(<small>|<\/p>)/.test(html), "an empty claim paragraph");
 });
 
 test("C2 · a URL answers only from the built batch: planned 200, unplanned 404 — and asking never builds a page", () => {

@@ -25,9 +25,12 @@ export function approvedPlan({ inputs, rows, json }) {
   const published = [...new Map(rows("joined-pages.jsonl").filter((r) => r.record_type === "joined_page_draft" && r.publishedUrl).map((r) => [r.value, r])).values()];
   const first = inputs?.primary ?? {}, second = inputs?.secondary ?? {};
   const primaries = (first.values ?? []).map((p) => ({ ...p, page: published.find((x) => x.value === p.value)?.publishedUrl ?? null }));
-  const claims = (json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => ({ claimId: c.claimId, primary: p.combination?.[first.name], body: c.body ?? c.source?.body, text: c.text }))));
+  const claims = (json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => ({ claimId: c.claimId, primary: p.combination?.[first.name], body: c.body ?? c.source?.body, text: c.text, source: c.source ? { name: c.source.name ?? null, link: c.source.link ?? null, readOn: c.source.readOn ?? null } : null }))));
   const records = [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...[...rows("search-phrases.jsonl"), ...rows("search-console-exports.jsonl")].filter((x) => x.record_type === "search_phrase")];
-  return planPages({ primaries, secondaries: second.values ?? [], claims, records });
+  /* RR-293: the plan's rows name their answer by claim id only — the claims themselves ride beside the plan, so a draft shows each claim's
+   * words, its source and the day it was read (the RR-292 drafts printed the ids' missing text as empty paragraphs) */
+  const plan = planPages({ primaries, secondaries: second.values ?? [], claims, records });
+  return plan.measured ? Object.freeze({ ...plan, claimsById: new Map(claims.map((c) => [c.claimId, c])) }) : plan;
 }
 
 /** The path a planned page is built at: /<primary>/<secondary> — from its combination, never from a request. */
@@ -46,11 +49,12 @@ export function buildPlanBatch(plan) {
   const out = new Map();
   for (const p of pages) {
     const sections = merged.filter((m) => m.target === p.combination);
-    const claims = p.row.answer ?? [];
+    /* each answer entry is a claim id (the plan's own shape) or a claim; a claim id the plan does not carry is named, never printed empty */
+    const claims = (p.row.answer ?? []).map((c) => (typeof c === "string" ? plan.claimsById?.get(c) ?? { claimId: c, text: `[claim ${c}: its words are not in the plan's records]` } : c));
     const html = [
       `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(p.combination)}</title><meta name="robots" content="noindex"></head><body>`,
       `<h1>${esc(p.combination)}</h1>`,
-      ...claims.map((c) => `<p>${esc(c.text)}${c.body ? ` <small>(${esc(c.body)})</small>` : ""}</p>`),
+      ...claims.map((c) => `<p>${esc(c.text)}${c.source?.link ? ` <small>Source: <a href="${esc(c.source.link)}">${esc(c.source.name ?? c.body ?? c.source.link)}</a>${c.source.readOn ? `, checked ${esc(c.source.readOn)}` : ""}</small>` : c.body ? ` <small>(${esc(c.body)})</small>` : ""}</p>`),
       ...sections.map((m) => `<h2>${esc(m.combination)}</h2><p>${esc(m.reason)}</p>`),
       "</body></html>",
     ].join("\n");

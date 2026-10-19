@@ -28,6 +28,7 @@
  * candidate. A refused one has nothing to write; the run records its DATA GAP / REJECT / BLOCKED reasons and
  * exits 2. This runner used to print "TEXT AS BUILT (before Gate A)" and write the file anyway.
  */
+import { readC20Keep, C20_NOT_DECLARED } from "../src/page/c20-keep.mjs";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -137,7 +138,10 @@ if (requested.length === 0) {
 
 /* 🔴 F34 — THE SAME TENANT'S EXISTING PAGES, BEFORE ANY CANDIDATE IS JUDGED. An unreadable population is handed on as null, so
  * every candidate is REFUSED rather than built as though the site were empty. */
-const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenantResolver() });
+/* F91 C20 (Amendment 7): the pages this run may hold, from the named batch — the line names the RESEARCH store (tenant-scope census) */
+const c20 = BATCH ? readC20Keep(join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH)) : { keep: null, line: C20_NOT_DECLARED };
+console.log(`  ${c20.line}`);
+const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenantResolver(), keep: c20.keep });
 const ep = existing.population;
 console.log(`existing pages        ${ep ? `${ep.pages.length} of this tenant (coverage ${ep.coverageState}) · bound: one stored observation batch, this tenant's partition` : `UNAVAILABLE (${existing.fault}) — every candidate is refused`}`);
 
@@ -153,7 +157,7 @@ if (BATCH) {
   planningRows = rowsOf("planning.jsonl");
   overturned = overturnedIds(rowsOf("meaning-judgements.jsonl"));
 }
-const ae = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
+const ae = readClientActionEvidence({ keep: c20.keep,  tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
 const chosen = decisionsForConstruction(ae);
 /* 🔴 F37 Amendment 2 (C8, RR-208): each chosen need's draft reads ONLY F94's plan for that need — read here, for this run's tenant, read-only */
 const sitePlans = readClientSitePlans({ tenantId: SCOPE.tenantId, actionEvidence: ae, values: PRODUCT.variants ?? [], resolve: createTenantResolver() });

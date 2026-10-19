@@ -14,6 +14,7 @@ import { ACCEPTANCES } from "../config/fboard/acceptances.mjs";
 import { DECLARED } from "../config/fboard/f-board.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
+import { deferredRows, deferredLine } from "../src/fboard/deferred.mjs";
 
 const now = process.argv.find((a) => a.startsWith("--now="))?.slice(6) ?? CORPUS_PROVENANCE.now;
 export function fboardStatus(now) {
@@ -25,6 +26,9 @@ const s = fboardStatus(now);
 console.log(`F-board: ${s.total} rows · ${Object.entries(s.split).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")} · sum ${Object.values(s.split).reduce((a, b) => a + b, 0)}`);
 /* Board Amendment 1 (_handoffs dd91e92): progress is over the REQUIRED rows; the all-rows figure is printed beside it, never silently */
 console.log(`F-progress: ${s.required.passed}/${s.required.denominator} (required rows) · all rows ${s.passed}/${s.denominator}${s.required.notRequired.length ? ` · NOT REQUIRED ${s.required.notRequired.length}: ${s.required.notRequired.map((n) => `${n.featureId} (work state ${n.state}, not passed)`).join(", ")}` : ""}`);
-for (const r of s.board.filter((x) => x.state !== "UNASSESSED")) console.log(`  ${r.featureId} ${r.state}${r.blocker ? ` — ${r.blocker}` : ""}`);
+/* light proof rule 3 (owner, 19 Oct 2026): a VERIFIED row with deferred clauses is shown as VERIFIED (n deferred), on its own line */
+console.log(deferredLine(deferredRows(s.board)));
+const deferredOf = new Map(deferredRows(s.board).map((d) => [d.featureId, d.deferred.length]));
+for (const r of s.board.filter((x) => x.state !== "UNASSESSED")) console.log(`  ${r.featureId} ${r.state}${deferredOf.has(r.featureId) ? ` (${deferredOf.get(r.featureId)} deferred)` : ""}${r.blocker ? ` — ${r.blocker}` : ""}`);
 for (const e of s.errors) console.log(`  ERROR ${e.code} ${e.id ?? ""} — ${e.why}`);
 if (process.argv.includes("--check") && s.errors.length) process.exit(1);

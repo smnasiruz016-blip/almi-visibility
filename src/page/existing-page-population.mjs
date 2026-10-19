@@ -57,10 +57,29 @@ export function populationFromPartition({ tenantId, records, bodies, completenes
     const same = (o) => typeof newest?.content_sha256 === "string" && newest.content_sha256 !== "" && o.content_sha256 === newest.content_sha256 && bodies.has(o.observation_id) && sha256(bodies.get(o.observation_id)) === newest.content_sha256;
     const latest = newest && bodies.has(newest.observation_id) ? newest : obs.filter(same).at(-1) ?? null;
     /* F32 (RR-87): the observation the body came from, so a reader can require that body's fingerprint to be verified */
-    return { pageId: p.page_id, tenantId, html: latest ? bodies.get(latest.observation_id) : "", bodyObservationId: latest ? latest.observation_id : null };
+    return { pageId: p.page_id, url: p.canonical_url ?? null, tenantId, html: latest ? bodies.get(latest.observation_id) : "", bodyObservationId: latest ? latest.observation_id : null };
   });
   const derived = WEAKEST.includes(coverageState) ? coverageState : "UNKNOWN";
   return Object.freeze({ tenantId, coverageState: completeness ? coverageForConsumers(completeness) : derived, pages, completeness, inventory });
+}
+
+/**
+ * 🔴 F91 C20 (Acceptance Amendment 7, RR-289; beta-g decision A): Visibility NEVER plans from, keeps, revives or rebuilds a page generated
+ * before Visibility. When the client's research batch files its current-site list, KEEP holds the pages that may stand in an F91 path's
+ * population — the pages Visibility built (with their own html) and the client's CURRENT live site pages it reads as input — and every other
+ * page the stored crawl holds is a page generated before Visibility: dropped, listed by URL in excludedGenerated, never counting, covering,
+ * serving, holding or blocking a need. The kept population is the whole of what Visibility answers for, so its coverage is COMPLETE.
+ * KEEP null (no current-site list filed) leaves the population as read, and the caller says C20 is NOT DECLARED.
+ */
+const normUrl = (u) => String(u ?? "").replace(/#.*$/, "").replace(/\/$/, "").toLowerCase();
+export const C20_RULE = "F91 C20 (Amendment 7): only pages Visibility built and the client's current live site pages; a page generated before Visibility never stands";
+export function withoutGeneratedPages(population, keep) {
+  if (!population || !keep) return population;
+  const allowed = new Map((keep.pages ?? []).map((p) => [normUrl(p.url), p]));
+  const kept = population.pages.filter((p) => allowed.has(normUrl(p.url ?? p.pageId)));
+  const seen = new Set(kept.map((p) => normUrl(p.url ?? p.pageId)));
+  const added = [...allowed.values()].filter((p) => !seen.has(normUrl(p.url))).map((p) => ({ pageId: p.url, url: p.url, tenantId: population.tenantId, html: p.html ?? "", bodyObservationId: null, origin: p.origin }));
+  return Object.freeze({ ...population, coverageState: "COMPLETE", pages: [...kept, ...added], excludedGenerated: Object.freeze(population.pages.filter((p) => !allowed.has(normUrl(p.url ?? p.pageId))).map((p) => p.url ?? p.pageId)), c20: C20_RULE });
 }
 
 /** The site origins declared to this tenant, and the tenant's declared inventory freshness rule (or null) — declarations only. */
@@ -95,7 +114,7 @@ export function completenessEvent(v) {
  * The decided tenant's existing pages from the stored batch. `scope` is the run's scoped entry (its `tenantId` and
  * `recordPartition`); the partition's quarantine is recorded through it, exactly as bin/detect.mjs records it.
  */
-export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapBatchId = SITEMAP_BATCH_ID, env = process.env, resolve, now = new Date() }) {
+export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapBatchId = SITEMAP_BATCH_ID, env = process.env, resolve, now = new Date(), keep = null }) {
   try {
     const part = readTenantPartition({ batchId, tenantId: scope.tenantId, resolve, env });
     scope.recordPartition?.(part.partition, { collectionKind: "CRAWL_BATCH", collectionRef: batchId });
@@ -122,7 +141,7 @@ export function readExistingPagePopulation({ scope, batchId = BATCH_ID, sitemapB
     });
     const inventory = scopeInventory({ tenantId: scope.tenantId, batchId, records: merged.records, bodies: merged.bodies, unplaced: { undeclared: part.partition.arithmetic.undeclared, ambiguous: part.partition.arithmetic.ambiguous }, batchOf: newer.length ? merged.batchOf : null });
     scope.recordDecision?.(completenessEvent(completeness));
-    return { population: populationFromPartition({ tenantId: scope.tenantId, records: merged.records, bodies: merged.bodies, completeness, inventory }), fault: null, population_of: part.partition.arithmetic.population, newerBatches: merged.newerBatches };
+    return { population: withoutGeneratedPages(populationFromPartition({ tenantId: scope.tenantId, records: merged.records, bodies: merged.bodies, completeness, inventory }), keep), fault: null, population_of: part.partition.arithmetic.population, newerBatches: merged.newerBatches };
   } catch (e) {
     if (e instanceof ObservationBatchFault) return { population: null, fault: e.fault, population_of: null };
     throw e;

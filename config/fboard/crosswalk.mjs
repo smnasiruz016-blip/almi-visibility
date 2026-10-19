@@ -176,11 +176,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F15",
@@ -188,11 +188,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F16",
@@ -212,11 +212,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F18",
@@ -296,11 +296,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F25",
@@ -344,11 +344,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F29",
@@ -368,11 +368,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F31",
@@ -620,11 +620,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F52",
@@ -632,11 +632,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F53",
@@ -644,11 +644,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F54",
@@ -680,11 +680,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F57",
@@ -692,11 +692,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F58",
@@ -704,11 +704,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F59",
@@ -764,11 +764,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F64",
@@ -776,11 +776,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F65",
@@ -788,11 +788,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F66",
@@ -800,11 +800,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F67",
@@ -812,11 +812,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F68",
@@ -824,11 +824,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F69",
@@ -836,11 +836,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F70",
@@ -848,11 +848,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F71",
@@ -860,11 +860,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F72",
@@ -872,11 +872,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F73",
@@ -920,11 +920,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F77",
@@ -968,11 +968,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F81",
@@ -1004,11 +1004,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F84",
@@ -1016,11 +1016,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F85",
@@ -1028,11 +1028,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F86",
@@ -1076,11 +1076,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F90",
@@ -1148,11 +1148,11 @@ export const CROSSWALK = Object.freeze({
       "historicalCommits": [],
       "reusableModules": [],
       "reusableTests": [],
-      "acceptanceRelation": "UNASSESSED",
-      "relationEvidence": "no frozen four-part acceptance — no lawful comparison",
+      "acceptanceRelation": "NEW",
+      "relationEvidence": "a frozen acceptance and no mapped historical contract",
       "freshVerificationRequired": true,
       "authorityImported": false,
-      "notes": "no frozen acceptance — nothing may be compared, imported or implemented"
+      "notes": ""
     },
     {
       "featureId": "F96",

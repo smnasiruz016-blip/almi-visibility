@@ -19,10 +19,6 @@ import { approvedPlan, buildPlanBatch, plannedPages, planPath, servePlanned } fr
 import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
 import { allGates, costGate } from "../page/page-gates.mjs";
 import { guideItemsByValue, buildGuides, buildPlanPages, asPublished } from "../page/one-builder.mjs";
-import { readProductQuestionnaire } from "../questionnaire/product-questionnaire-reader.mjs";
-import { designOf } from "../questionnaire/product-questionnaire.mjs";
-import { ensureSubjectHook } from "../subject-roots.mjs";
-import { join } from "node:path";
 import { GUIDANCE } from "../../config/guidance/guidance-read.mjs";
 import { connectionNow } from "../research/ai-connection.mjs";
 import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
@@ -48,8 +44,8 @@ async function oneBuilderRun(io) {
   const costEntry = { recorded_at: new Date().toISOString(), money: { amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "a local in-memory build of stored test data: no request, no paid call" }, requests: 0 };
   const startedAt = new Date(Date.now() + 1).toISOString();
   const cost = costGate({ entry: costEntry, startedAt, budget: { money: 0, currency: "USD", requests: 0 } });
-  const filed = io.subjectDir ? await (async () => { ensureSubjectHook(); return readProductQuestionnaire({ factsDir: join(io.subjectDir, "facts"), productId: io.subject }); })() : { state: "NONE" };
-  const design = filed.state === "READ" ? designOf(filed.questionnaire) : null;
+  /* the client's own design, read by the entry point that names the subject (its questionnaire); none filed is none */
+  const design = io.design ?? null;
   const guides = guideItemsByValue(io.rows("joined-pages.jsonl"));
   const quotation = new Map((io.json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => [c.claimId, c.quotation ?? null]))));
   const keyFacts = io.json("key-facts.json") ?? [], rates = io.json("conversion-rates.json") ?? [];

@@ -46,7 +46,7 @@ export function buildPlanPages({ plan, guides, keyFacts, rates, quotationOf, des
   return plannedPages(plan).map((p) => {
     const own = new Set((p.row.answer ?? []).map(String));
     const guide = guides.get(p.row.primary);
-    if (!guide) return Object.freeze({ kind: "PLAN", path: p.path, combination: p.combination, label: p.label, refused: "no guide of its own profession is stored to build from" });
+    if (!guide) return Object.freeze({ kind: "PLAN", path: p.path, combination: p.combination, label: p.label, refused: "no guide of its own first value is stored to build from" });
     /* the guide's items that answer with this combination's own claims, each keeping only those claims */
     let items = guide.itemList.map((it) => ({ ...it, claims: it.claims.filter((c) => own.has(c.claimId)) })).filter((it) => it.claims.length > 0);
     /* a DEMAND page asks the searches recorded for it; MERGED combinations are asked on it too */

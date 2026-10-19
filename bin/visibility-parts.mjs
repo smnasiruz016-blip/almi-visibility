@@ -17,6 +17,9 @@ import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore, lookupSubject } from "../src/tenancy/root-registry.mjs";
 import { PARTS } from "../src/report/visibility-parts.mjs";
+import { readProductQuestionnaire } from "../src/questionnaire/product-questionnaire-reader.mjs";
+import { designOf } from "../src/questionnaire/product-questionnaire.mjs";
+import { ensureSubjectHook } from "../src/subject-roots.mjs";
 
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
 const PART = arg("part"), SUBJECT = arg("subject"), BATCH = arg("research-batch");
@@ -30,7 +33,11 @@ if (subject.state !== "DECLARED") { console.error(`🔴 REFUSED — the subject 
 /* the batch directory is bound on the line that names the RESEARCH store, so every read through it is that store's (tenant-scope census) */
 const batchDir = join(lookupStore(index, "RESEARCH").dir, BATCH);
 if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT; nothing read"); process.exit(3); }
+/* RR-294: the client's own design, from the questionnaire filed under THIS declared subject (RESOURCES.subject above) */
+ensureSubjectHook();
+const filed = await readProductQuestionnaire({ factsDir: join(subject.dir, "facts"), productId: SUBJECT });
 const io = Object.freeze({
+  design: filed.state === "READ" ? designOf(filed.questionnaire) : null,
   batch: BATCH,
   subject: SUBJECT,
   tenantId: SCOPE.tenantId,
@@ -39,7 +46,6 @@ const io = Object.freeze({
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
   listBatch: () => readdirSync(batchDir),
-  subjectDir: subject.dir,
   list: process.argv.includes("--list"),
   on: arg("on"),
   compareBatch: COMPARE,

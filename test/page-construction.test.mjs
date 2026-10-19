@@ -228,8 +228,10 @@ test("🟢 GREEN: a family built to clear all four parts is ACCEPTED — and onl
     assert.ok(r.parts.overlap.value <= MAX_SIBLING_OVERLAP);
     assert.equal(r.parts.overlap.comparedWith, 2, "not measured against EVERY sibling");
     assert.ok(typeof r.html === "string" && r.html.includes('data-claim-id="'));
-    // passing Gate A is not permission to create a page
-    assert.equal(r.pageOne.state, "UNSATISFIED");
+    // RR-294: PAGE-1 is SATISFIED in code — the five gates exist and run as build-page's acceptance step; passing Gate A alone is still
+    // not permission to create a page (bin/build-page.mjs judges every accepted construction by all five, test/rr294-one-builder.test.mjs)
+    assert.equal(r.pageOne.state, "SATISFIED");
+    assert.deepEqual([...r.pageOne.missingGateFamilies], []);
   }
 });
 

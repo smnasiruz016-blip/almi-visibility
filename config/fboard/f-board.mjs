@@ -6,7 +6,7 @@
  * event: a frozen acceptance for leaving UNASSESSED, a recorded verification for VERIFIED-PASS, a named blocker for a
  * BLOCKED state. No row carries historical state.
  */
-import { ACCEPTANCES, F62_AMENDMENT_2, F35_AMENDMENT_2, F88_AMENDMENT_1, F60_ORIGINAL, F59_ORIGINAL, F61_ORIGINAL, F96_ORIGINAL, F18_AMENDMENT_2, F91_AMENDMENT_6, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
+import { ACCEPTANCES, F91_AMENDMENT_7, F62_AMENDMENT_2, F35_AMENDMENT_2, F88_AMENDMENT_1, F60_ORIGINAL, F59_ORIGINAL, F61_ORIGINAL, F96_ORIGINAL, F18_AMENDMENT_2, F91_AMENDMENT_6, F18_AMENDMENT_1, F49_ORIGINAL, F88_ORIGINAL, F74_ORIGINAL, F87_ORIGINAL, F50_ORIGINAL, F18_ORIGINAL, F91_AMENDMENT_5, F62_ORIGINAL, F62_AMENDMENT_1, F86_ORIGINAL, F42_ORIGINAL, F54_ORIGINAL, F46_ORIGINAL, F46_AMENDMENT_1, F23_ORIGINAL, F23_AMENDMENT_1, F23_AMENDMENT_2, F11_ORIGINAL, F12_ORIGINAL, F44_ORIGINAL, F44_AMENDMENT_1, F44_AMENDMENT_2, F02_ORIGINAL, F04_ORIGINAL, F07_ORIGINAL, F07_AMENDMENT_1, F07_AMENDMENT_2, F10_ORIGINAL, F10_AMENDMENT_1, F10_AMENDMENT_2, F10_AMENDMENT_3, F10_AMENDMENT_4, F77_ORIGINAL, F48_ORIGINAL, F79_ORIGINAL, F27_ORIGINAL, F27_AMENDMENT_1, F27_AMENDMENT_2, F27_AMENDMENT_3, F91_ORIGINAL, F91_AMENDMENT_1, F91_AMENDMENT_2, F91_AMENDMENT_3, F16_ORIGINAL, F16_AMENDMENT_1, F16_AMENDMENT_2, F16_AMENDMENT_3, F16_AMENDMENT_4, F16_AMENDMENT_5, F13_ORIGINAL, F19_ORIGINAL, F22_ORIGINAL, F22_AMENDMENT_1, F25_ORIGINAL, F25_AMENDMENT_1, F81_ORIGINAL, F33_ORIGINAL, F33_AMENDMENT_1, F35_ORIGINAL, F35_AMENDMENT_1, F34_ORIGINAL, F34_AMENDMENT_1, F91_AMENDMENT_4, F41_ORIGINAL, F41_AMENDMENT_1, F37_ORIGINAL, F40_ORIGINAL, F37_AMENDMENT_1, F40_AMENDMENT_1, F41_AMENDMENT_2, F32_AMENDMENT_1, F32_ORIGINAL, F39_AMENDMENT_1, F39_ORIGINAL, F94_ORIGINAL, F37_AMENDMENT_2, F38_ORIGINAL, F93_ORIGINAL, F92_ORIGINAL, F31_ORIGINAL, F31_AMENDMENT_1, F02_AMENDMENT_1, F02_AMENDMENT_2, F19_AMENDMENT_1, F78_ORIGINAL, F78_AMENDMENT_1, F78_AMENDMENT_2, F07_AMENDMENT_3, F07_AMENDMENT_4 } from "./acceptances.mjs";
 
 export const DECLARED = Object.freeze({
   F01: Object.freeze({
@@ -1352,6 +1352,12 @@ export const DECLARED = Object.freeze({
        * owner decision (otherwise a duplicate); C19's spec compiler and R4 (Amendment 4's open work); the real result printed by every
        * number of C1–C18 under Amendments 5 and 6. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-18", ruling: F91_AMENDMENT_6.ruling, contractSha256: F91_AMENDMENT_6.contractSha256, amends: F91_AMENDMENT_6.amends }),
+      /* RR-289 task A: Amendment 7 (beta-g decision A), frozen ALONE. F91 STAYS IN-PROGRESS. C20 PROVED on the branch by a real run: one filter on
+       * every F91 path (9 paths, 7 read the page population, 0 without the filter) and the declared batch's 27 crawled pages generated before
+       * Visibility all excluded (14 stand: 12 built, 2 current site). REMAINING: C14 — the 182 needs' coverage records decide nothing (CANNOT_DECIDE
+       * 182) because no per-question coverage judgement is recorded against the 14 standing pages; C19 and R4 wait on them (182 HOLD, 0 compiled);
+       * the real result of C1–C18. */
+      Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-19", ruling: F91_AMENDMENT_7.ruling, contractSha256: F91_AMENDMENT_7.contractSha256, amends: F91_AMENDMENT_7.amends }),
     ]),
   }),
   /* 🔴 F13 · Context and axis discovery. Frozen ALONE (_handoffs 0ca24d3, RR-131 §3) before any F13 code; every clause PROVED on the real
@@ -1591,7 +1597,7 @@ export const DECLARED = Object.freeze({
   F62: Object.freeze({
     featureId: "F62",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-03", ruling: F62_ORIGINAL.ruling, contractSha256: F62_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1624,6 +1630,26 @@ export const DECLARED = Object.freeze({
        * outside AlmiWorld": the real data root declares ONE product (two subjects carry no product declaration); C1–C6 are proved on the key cells
        * of that one product only. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F62", on: "2026-10-18", ruling: F62_AMENDMENT_2.ruling, contractSha256: F62_AMENDMENT_2.contractSha256, amends: F62_AMENDMENT_2.amends }),
+      /* RR-289 · light proof rule 3 (owner, 19 Oct 2026): the clauses that need what does not exist yet are DEFERRED-TO-FIRST-CLIENT, never
+       * PROVED; every other clause PROVED on the real records — VERIFIED (1 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F62",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F62_AMENDMENT_2.ruling.sha256, contract: F62_AMENDMENT_2.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "DEFERRED-TO-FIRST-CLIENT", C8: "PROVED", C9: "PROVED" }),
+        deferred: Object.freeze({ C7: "the two-product limb: a declared client OUTSIDE AlmiWorld whose product's applicability differs by country — the owner's two outside test products give none (lamzish builds homes in one country, its own declaration; shamoolfoundation.com is a test subject with no product declared); C7's other limbs (no product named, one product's records never counted for another, count-only) PROVED by the neutrality and isolation tests" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        populations: "REAL (count-only): 24 checks → OFFICIAL 4 · CHECKED_NOT_FOUND 8 · BLOCKED 12 · faults 0; 12 key cells over 9 bodies → OFFICIAL 4 · CHECKED_NOT_FOUND 3 · BLOCKED 5; language and search moved to future rows (C8); RR-289 C7: 0 requests to the outside products",
+        proofs: "test/f62-verdicts.test.mjs, test/f62-applicability.test.mjs, test/f62-assessment.test.mjs",
+        sabotage: "runs/audit/f62-verdicts-sabotage-2026-10-18T1730.txt (sha256 25c9e5d0…): 14 of 14 proved",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F44 · Verified fact supply. Frozen ALONE (_handoffs eecdfe4, RR-113 §9) before any F44 code; IN-PROGRESS until 12 Oct 2026 because
@@ -4102,7 +4128,7 @@ export const DECLARED = Object.freeze({
   F59: Object.freeze({
     featureId: "F59",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F59_ORIGINAL.ruling, contractSha256: F59_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -4122,13 +4148,33 @@ export const DECLARED = Object.freeze({
       }),
       /* RR-287 task F: C1–C3 built and proved on today's 0 links (f59-sabotage 6/6). IN-PROGRESS, waiting on: C4 a second Links export of a
        * different date; C5 links that carry a recorded quality signal; C6 a competitor link file the client supplies. */
+      /* RR-289 · light proof rule 3 (owner, 19 Oct 2026): the clauses that need what does not exist yet are DEFERRED-TO-FIRST-CLIENT, never
+       * PROVED; every other clause PROVED on the real records — VERIFIED (3 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F59",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F59_ORIGINAL.ruling.sha256, contract: F59_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "DEFERRED-TO-FIRST-CLIENT", C5: "DEFERRED-TO-FIRST-CLIENT", C6: "DEFERRED-TO-FIRST-CLIENT" }),
+        deferred: Object.freeze({ C4: "a second Links export of a different date", C5: "links that carry a recorded quality signal (the client's export holds 0 links today)", C6: "a competitor link file the client supplies" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        populations: "REAL (count-only): the client's export of 18 Oct 2026 — 2 Links files, 0 rows → 0 links, 0 domains, stated; 0 refused; 0 faults",
+        proofs: "test/f59-f61-free-links.test.mjs (F59 C1–C4), bin/links-and-mentions.mjs",
+        sabotage: "runs/audit/f59-sabotage-2026-10-18T1759.txt (sha256 f35fd1b1…): 6 of 6 proved",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F61 · Brand mention monitoring. Frozen ALONE (RR-287 task F); free data only. */
   F61: Object.freeze({
     featureId: "F61",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F61_ORIGINAL.ruling, contractSha256: F61_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -4148,6 +4194,26 @@ export const DECLARED = Object.freeze({
       }),
       /* RR-287 task F: C1–C3 built and proved (f61-sabotage 5/5); REAL: 0 public mentions in the client's own data (its own site's 2 pages
        * apart). IN-PROGRESS, waiting on: links or mentions in the client's own data, and C4 a second dated export. */
+      /* RR-289 · light proof rule 3 (owner, 19 Oct 2026): the clauses that need what does not exist yet are DEFERRED-TO-FIRST-CLIENT, never
+       * PROVED; every other clause PROVED on the real records — VERIFIED (2 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F61",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F61_ORIGINAL.ruling.sha256, contract: F61_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "DEFERRED-TO-FIRST-CLIENT", C4: "DEFERRED-TO-FIRST-CLIENT" }),
+        deferred: Object.freeze({ C3: "a real public mention of the brand to resolve (0 today: the client's own data holds none off its own site); the planted namesake control stands", C4: "a second dated export of the client's own" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        populations: "REAL (count-only): queries 50 · stored reads 106 → mentions 0 (LINKED 0, UNLINKED 0) · namesakes 0 · the client's own site 2, apart",
+        proofs: "test/f59-f61-free-links.test.mjs (F61 C1–C4), bin/links-and-mentions.mjs",
+        sabotage: "runs/audit/f61-sabotage-2026-10-18T1758.txt (sha256 e4d4f229…): 5 of 5 proved",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F96 · E-commerce visibility. Frozen ALONE (RR-287 task G); never dropped. */

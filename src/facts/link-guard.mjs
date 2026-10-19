@@ -13,15 +13,18 @@
  */
 import { batchFacts } from "./batch-facts.mjs";
 import { quotationIn } from "./source-reader.mjs";
+import { isBarred } from "./licence-guard.mjs";
 
 export const LINK_GUARD = Object.freeze({ LINK_DIFFERS: "LINK_DIFFERS", QUOTE_NOT_IN_LINKED_TEXT: "QUOTE_NOT_IN_LINKED_TEXT" });
 
-export function linkGuard({ drafts, findings = [], registry = { facts: [] }, intervals = [], reads = [] }) {
+/* RR-288: a link whose licence forbids storing its words (barred, src/facts/licence-guard.mjs) holds no stored text by design — its claim stands
+ * on the link check alone and is listed by name as checked by link only; it is never matched against words the engine may not keep */
+export function linkGuard({ drafts, findings = [], registry = { facts: [] }, intervals = [], reads = [], barred = new Set() }) {
   const factOf = new Map();
   for (const f of batchFacts({ drafts, findings, registry, intervals })) for (const c of f.claims) factOf.set(c, f);
   const texts = new Map();
   for (const r of reads ?? []) if (r?.state === "READ" && typeof r.text === "string" && typeof r.url === "string") texts.set(r.url, [...(texts.get(r.url) ?? []), r.text]);
-  const refused = [];
+  const refused = [], linkOnly = [];
   let claims = 0;
   for (const p of drafts?.pages ?? []) {
     const page = Object.values(p.combination ?? {}).map(String).sort().join("+");
@@ -29,9 +32,10 @@ export function linkGuard({ drafts, findings = [], registry = { facts: [] }, int
       claims += 1;
       const f = factOf.get(c.claimId) ?? null, link = c.source?.link ?? null;
       if (!f || f.link !== link) { refused.push(Object.freeze({ page, claimId: c.claimId, factId: f?.factId ?? null, code: LINK_GUARD.LINK_DIFFERS, pageLink: link, factLink: f?.link ?? null })); continue; }
+      if (isBarred(barred, link)) { linkOnly.push(Object.freeze({ page, claimId: c.claimId, factId: f.factId, link })); continue; }
       const found = (texts.get(link) ?? []).some((t) => f.quotations.some((q) => quotationIn(q, t)));
       if (!found) refused.push(Object.freeze({ page, claimId: c.claimId, factId: f.factId, code: LINK_GUARD.QUOTE_NOT_IN_LINKED_TEXT, pageLink: link, quotations: f.quotations.length, storedTexts: (texts.get(link) ?? []).length }));
     }
   }
-  return Object.freeze({ claims, refused: Object.freeze(refused) });
+  return Object.freeze({ claims, refused: Object.freeze(refused), linkOnly: Object.freeze(linkOnly) });
 }

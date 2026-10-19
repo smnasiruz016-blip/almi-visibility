@@ -48,8 +48,8 @@ Chosen to differ from each other and from the first three: **Pakistan** and **Gh
 | 🔴 **fee, going abroad** | *"Processing fee PAK Rs.10000/-"* |
 | 🔴 **fee, domestic** | Rs.1,000 — **a ten-fold difference that exists only because the destination is foreign** |
 | document 1 | *"Application form for verification of Registration/Good Standing Certificate"* |
-| document 2 | *"Letter/Verification form/email print with complete address of the council/regularity body/ organization where your verification is required/needed to be sent."* |
-| document 3 | *"Photocopy of your PNMC/PNC registration Card and all Nursing, Midwifery, LHV, Post Basic Diplomas, and Degrees."* |
+| document 2 | *"[words of a licence-barred page removed (RR-288)]."* |
+| document 3 | *"[words of a licence-barred page removed (RR-288)]."* |
 | response time | 3 working days |
 
 **Claims found: 6 · machine-readable: YES.** The domestic/foreign fee split is the same shape

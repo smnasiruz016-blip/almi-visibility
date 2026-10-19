@@ -15,7 +15,7 @@ import { isAbsolute, resolve } from "node:path";
 import { PRIVATE_SOURCES, PRIVATE_SOURCES_ENV } from "../../config/private-sources.mjs";
 
 export const TEXT_AT = "PRIVATE_SOURCES";
-export const TEXT_MISSING = Object.freeze({ ABSENT: "PRIVATE_TEXT_ABSENT", HASH_DIFFERS: "PRIVATE_TEXT_HASH_DIFFERS", ROOT_ABSENT: "PRIVATE_SOURCES_ROOT_ABSENT" });
+export const TEXT_MISSING = Object.freeze({ WITHHELD: "LICENCE_FORBIDS_STORING_ITS_WORDS", ABSENT: "PRIVATE_TEXT_ABSENT", HASH_DIFFERS: "PRIVATE_TEXT_HASH_DIFFERS", ROOT_ABSENT: "PRIVATE_SOURCES_ROOT_ABSENT" });
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const ENGINE = resolve(new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 
@@ -35,10 +35,13 @@ export function publicCopy(record) {
 /** Public records with their private texts joined: by measurement key, and only a text whose sha256 the public record states. */
 export function withPrivateTexts(publicRows, privateRows, { privateRoot = "DECLARED" } = {}) {
   const byKey = new Map((privateRows ?? []).filter((r) => typeof r?.text === "string" && typeof r?.measurement_key === "string").map((r) => [r.measurement_key, r]));
+  const withheld = new Set((privateRows ?? []).filter((r) => r?.text === null && typeof r?.textWithheld === "string").map((r) => r.measurement_key));
   return (publicRows ?? []).map((r) => {
     if (r?.textAt !== TEXT_AT) return r;
     if (privateRoot !== "DECLARED") return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.ROOT_ABSENT });
     const p = byKey.get(r.measurement_key);
+    /* RR-288: a read whose licence forbids storing its words keeps no text by design — named, never ABSENT */
+    if (!p && withheld.has(r.measurement_key)) return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.WITHHELD });
     if (!p) return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.ABSENT });
     if (sha256(p.text) !== r.sha256) return Object.freeze({ ...r, text: null, textMissing: TEXT_MISSING.HASH_DIFFERS });
     return Object.freeze({ ...r, text: p.text });

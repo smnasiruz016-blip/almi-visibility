@@ -367,9 +367,10 @@ test("V7 · the REAL population: 46 governed = 45 routed + 1 checked exemption +
    * bin/search-console-export.mjs, which appends the client's export only through the governed boundary (BOUNDARY_ROUTED 70 → 71). */
   /* 133/72 → 134/72 on 18 October (RR-286): bin/page-plan.mjs (F91 Amendment 6), READ_ONLY_DIAGNOSTIC — it prints the plan's counts and writes
    * nothing (61 → 62). No caller moved class. */
-  assert.equal(rows.length, 134);
+  /* 134/72 → 135/72 on 19 October (RR-287): bin/links-and-mentions.mjs joined — read-only (F59, F60, F61), READ_ONLY_DIAGNOSTIC 62 -> 63 */
+  assert.equal(rows.length, 135);
   assert.equal(governed.length, 72);
-  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 62);
+  assert.equal(rows.filter((r) => r.cls === "READ_ONLY_DIAGNOSTIC").length, 63);
   const by = Object.fromEntries(CALLER_CLASSES.map((c) => [c, governed.filter((r) => r.callerClass === c).length]));
   /* 43/2 → 44/1 on 26 September (F10), for a MEASURED reason: bin/heldout-evaluation.mjs now routes its scoring run through the
    * boundary (BOUNDARY_ROUTED); no entry point was added and no other caller moved class. */

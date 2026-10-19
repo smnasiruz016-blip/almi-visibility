@@ -101,6 +101,18 @@ test("REAL · the client's batch: every opportunity from a recorded source, OFFI
   console.log(`  REAL (count-only): ${JSON.stringify(r.counts)} · unlinked mentions ${u.state} over ${u.readsWithText} read(s) with text (private texts ${PRIV.state}) · sent ${r.sent}`);
 });
 
+test("ENTRY · bin/links-and-mentions.mjs: counts only — no page, source or mention printed; a bad call is a usage exit and reads nothing", { skip: HERE ? false : "the declared batch is not on this machine" }, async () => {
+  const { spawnSync } = await import("node:child_process");
+  const go = (args) => spawnSync(process.execPath, ["bin/links-and-mentions.mjs", "--subject=almi-oet", ...args, "--tenant=tenant:93b991d5afa33b16ccb9166b249593b6", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8" });
+  const r = go(["--research-batch=rr254-test-pages-2026-10-12", "--entities=entities-2026-10-18.json"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /F59 links {8}2026-10-18: 0 link\(s\), 0 domain\(s\)/);
+  assert.match(r.stdout, /F60 citations {4}192 opportunit\(ies\) from 57 kept source\(s\) over 12 page\(s\) · refused 0 · dropped 49 · sent 0/);
+  assert.match(r.stdout, /F61 mentions {5}0 \(LINKED 0 · UNLINKED 0\)/);
+  assert.doesNotMatch(r.stdout, /https?:\/\//, "a page, source or mention was printed");
+  assert.equal(go(["--research-batch=rr254-test-pages-2026-10-12", "--entities=other.json"]).status, 2);
+});
+
 test("the production trail was not written by this file", () => { assert.equal(trailSha(), TRAIL_BEFORE); });
 
 /* re-measured on 18 Oct 2026 (RR-287): 57 official sources (each cited by a verified claim as the responsible body's own) give 192 opportunities over the 12 published pages; 49 recorded sources carry no recorded class and are dropped, named */

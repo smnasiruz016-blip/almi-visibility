@@ -1,5 +1,5 @@
 /**
- * 🔴 LIGHT PROOF RULE 3 (owner decision of 19 Oct 2026, _handoffs AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md): a clause that needs
+ * 🔴 LIGHT PROOF RULE 3 (the owner's light-proof decision of 19 Oct 2026, recorded in the governance repository): a clause that needs
  * something that does not exist yet is DEFERRED-TO-FIRST-CLIENT, never PROVED; a row with every other clause proved may be VERIFIED, and the
  * board shows it as "VERIFIED (n deferred)". Read from the row's own latest VERIFIED event — nothing is inferred. Pure.
  */

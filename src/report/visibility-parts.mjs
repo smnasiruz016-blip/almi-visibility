@@ -17,6 +17,9 @@ import { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED as LAB_NOT_MEASUR
 import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-exports.mjs";
 import { approvedPlan, buildPlanBatch, plannedPages, planPath, servePlanned } from "../page/plan-batch.mjs";
 import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
+import { allGates } from "../page/page-gates.mjs";
+import { buildPreview, factsOf, PREVIEW_ORIGIN } from "../page/owner-preview.mjs";
+import { GUIDANCE } from "../../config/guidance/guidance-read.mjs";
 import { connectionNow } from "../research/ai-connection.mjs";
 import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
 import { inferFollowUps, competitorsOf, inferDifficulty, DIFFICULTY_METHOD, INFERRED, napOf, napConsistency, benchmark } from "../research/follow-ups-and-competitors.mjs";
@@ -312,6 +315,52 @@ export const PARTS = Object.freeze({
   "setup-options": Object.freeze({
     title: "CLIENT SETUP · SEARCH-DATA OPTIONS",
     run: (io) => optionsLines(setupOf(io)),
+  }),
+  /* RR-293 · PAGE-1 · src/page/page-gates.mjs — all five gates over the stored TEST DATA (owner decision 3: no product attached): the live
+   * pages as read, the plan's raw drafts, and the owner preview built from the same plan. D (cost) is per build run, shown on its own line. */
+  "page-gates": Object.freeze({
+    title: "PAGE-1 · THE FIVE PAGE GATES OVER THE STORED TEST DATA",
+    run: (io) => {
+      const on = io.on ?? new Date().toISOString().slice(0, 10);
+      const inputsFile = (io.listBatch?.() ?? []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
+      const plan = inputsFile ? approvedPlan({ inputs: io.json(inputsFile), rows: io.rows, json: io.json }) : { measured: false };
+      if (!plan.measured) return ["NOT MEASURED — no plan inputs in the batch"];
+      const sec = io.rows("live-security.jsonl").find((r) => r.kind === "ROBOTS");
+      /* the live pages: their needs from the coverage records, their answer from the drafts of their own value */
+      const latest = new Map();
+      for (const r of io.rows("live-pages.jsonl").sort((a, b) => String(a.recorded_at).localeCompare(String(b.recorded_at)))) if (r.url && r.html) latest.set(r.url, r);
+      const cov = io.rows("planning.jsonl").filter((r) => r.record_type === "planning_coverage");
+      const drafts = io.json("page-drafts.json")?.pages ?? [];
+      const live = [...latest.values()].map((r) => {
+        const value = r.pageId;
+        const draft = drafts.find((d) => Object.values(d.combination ?? {}).includes(value));
+        return { id: r.url, url: r.url, html: r.html, needs: [...new Set(cov.filter((c) => (c.pages ?? []).some((p) => p.pageId === r.url)).map((c) => c.needId))], mainQuery: (/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(r.html) ?? [])[1]?.replace(/<[^>]+>/g, "").trim(), answer: (draft?.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => c.claimId)), facts: null };
+      });
+      const batch = buildPlanBatch(plan);
+      const planned = plannedPages(plan);
+      const claimsOf = (row) => (row.answer ?? []).map((c) => (typeof c === "string" ? plan.claimsById?.get(c) : c)).filter(Boolean);
+      const raw = planned.map((p) => ({ id: p.path, url: `${PREVIEW_ORIGIN}${p.path}/`, html: batch.get(p.path).html, needs: [], mainQuery: p.combination, answer: (p.row.answer ?? []).map(String), facts: factsOf(claimsOf(p.row)) }));
+      const previewOf = (pv) => pv.pages.map((p) => ({ id: p.path, url: p.url, html: pv.files.get(`${p.path.slice(1)}index.html`), needs: [], mainQuery: p.combination, answer: p.answer, facts: factsOf(p.claims) }));
+      const siteOf = (pv) => ({ robotsTxt: pv.files.get("robots.txt"), sitemapUrls: pv.urls, serve: (path) => servePlanned(path, batch), extraPages: [{ url: pv.urls[0], html: pv.files.get("index.html") }] });
+      /* the owner preview: every planned page made publish-ready and gated; then the preview of the pages that passed, gated again */
+      const all = buildPreview(plan, { on });
+      const first = allGates(previewOf(all), { guidance: GUIDANCE, on, site: siteOf(all), cost: Object.freeze({ gate: "COST", pass: true }) });
+      const passing = new Set(first.filter((r) => r.pass).map((r) => r.id.replace(/\/$/, "")));
+      const final = buildPreview(plan, { on, only: passing });
+      const sets = [["live pages (the 12 guides and the hub)", live, { robotsTxt: sec?.read?.body ?? null, sitemapUrls: null, serve: null }], ["raw plan drafts", raw, siteOf(all)], ["every planned page, made publish-ready", previewOf(all), siteOf(all)], ["the owner preview (the pages that passed)", previewOf(final), siteOf(final)]];
+      const lines = [`guidance ${GUIDANCE.quotes.length} quote(s) from ${GUIDANCE.pages.filter((p) => p.state === "READ").length} page(s) read on ${GUIDANCE.on} (BLOCKED ${GUIDANCE.pages.filter((p) => p.state === "BLOCKED").length}) · valid until ${GUIDANCE.quotes[0]?.validUntil}`];
+      for (const [label, pages, site] of sets) {
+        const res = allGates(pages, { guidance: GUIDANCE, on, site, cost: Object.freeze({ gate: "COST", pass: true }), existingFirst: () => true });
+        const per = (g) => res.filter((r) => r.gates[g].pass).length;
+        const reasons = (g) => Object.entries(res.flatMap((r) => r.gates[g].checks ?? []).filter((c) => c.result !== "PASS").reduce((m, c) => { const k = `${c.name}${c.result === "NOT MEASURED" ? " (NOT MEASURED)" : ""}`; m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => `${k} ${n}`).join(" · ");
+        lines.push(`${label}: ${pages.length} page(s) · pass A ${per("A")} · B ${per("B")} · C ${per("C")} · E ${per("E")} · all (with D) ${res.filter((r) => r.pass).length}`);
+        for (const g of ["A", "B", "C"]) { const r = reasons(g); if (r) lines.push(`  ${g} fails: ${r}`); }
+        const signals = res.flatMap((r) => r.gates.A.signals ?? []).length;
+        if (signals) lines.push(`  A review signals (not verdicts): ${signals}`);
+      }
+      lines.push("D (cost) is a gate of each BUILD run: the owner-preview build records its cost entry before it starts and is refused over its budget; this read-only gate run builds and writes nothing");
+      return lines;
+    },
   }),
   /* F67 · the quick sample — the same checks */
   "score-quick": Object.freeze({

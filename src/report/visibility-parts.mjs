@@ -10,6 +10,7 @@ import { needMeasure, supplyMeasure, visibilityMeasure, demandMeasure, demandEvi
 import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
 import { renderReport } from "./visibility-report-html.mjs";
 import { KINDS, consentGate, evidenceCounts } from "../intake/client-supplied.mjs";
+import { crawlItem, diffRuns } from "./change-and-scale.mjs";
 import { admitObservation, perSystem, shareOfVoice, influenceGraph, gapsOf, actionsForGaps } from "../research/ai-visibility.mjs";
 
 /** F66–F68 · the stored evidence of the client's own live pages, by URL */
@@ -123,6 +124,23 @@ export const PARTS = Object.freeze({
         `F53 graph           nodes ${g.nodes} · links ${g.links} · ${Object.entries(g.kinds).map(([k, v]) => `${k} ${v}`).join(" · ") || "empty (no admitted observation)"}`,
         `F56 descriptions    ${io.rows("ai-brand-descriptions.jsonl").length} filed`,
         `F57 actions         gaps ${gaps.length} · actions ${actions.length}${actions.length ? `: ${Object.entries(actions.reduce((m, a) => ((m[a.action] = (m[a.action] ?? 0) + 1), m), {})).map(([k, v]) => `${k} ${v}`).join(" · ")}` : ""}`,
+      ];
+    },
+  }),
+  /* F30 · src/report/change-and-scale.mjs — this batch's crawl against the compared batch's crawl of the same check */
+  "changes": Object.freeze({
+    title: "F30 · CHANGES SINCE THE LAST RUN",
+    run: (io) => {
+      const items = (rows) => rows.filter((r) => r.record_type === "observation" && r.method === "crawl.fetch").map(crawlItem);
+      const cur = items(io.rows("crawl.jsonl")), prev = items(io.compareRows("crawl.jsonl"));
+      /* the same check: only the items this run re-checked are compared — an item the earlier run held but this one did not ask for is not "removed" */
+      const asked = new Set(cur.map((i) => i.key));
+      const d = diffRuns(prev.filter((i) => asked.has(i.key)), cur);
+      return [
+        `runs         this ${io.batch} (${cur.length} item(s)) · last ${io.compareBatch ?? "none"} (${prev.length} item(s))`,
+        `rule         ${d.rule ?? "-"}: ${d.ruleWords ?? d.claim}`,
+        `changes      added ${d.added.length} · removed ${d.removed.length} · changed ${d.changed.length} · unchanged ${d.unchanged} (suppressed)`,
+        ...d.changed.map((c) => `  CHANGED ${c.key} · ${c.fields.join(", ")}`),
       ];
     },
   }),

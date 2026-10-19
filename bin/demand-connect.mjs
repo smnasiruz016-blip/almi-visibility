@@ -13,6 +13,7 @@
  * the batch's planning.jsonl only through the governed boundary (APPEND_PLANNING_DEMAND), only with --confirm. Nothing is fetched. The
  * readback prints counts only, and nothing here is a page.
  */
+import { readC20Keep } from "../src/page/c20-keep.mjs";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
@@ -83,7 +84,10 @@ if (JUDGED) {
   toWrite = [...toWrite, ...j.records];
 }
 /* 🔴 C14 · THE COVERAGE RECORD, FOR EVERY NEED — after the connections and their answers, over THIS tenant's existing pages */
-const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenantResolver() });
+/* F91 C20 (Amendment 7): the pages this run may hold, from its own batch — a page generated before Visibility never stands */
+const c20 = readC20Keep(batchDir);
+console.log(`  ${c20.line}`);
+const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenantResolver(), keep: c20.keep });
 const after = [...held(), ...toWrite];
 const coverage = coverageRecords({ subject: SUBJECT, rows: after, tenantId: SCOPE.tenantId, population: existing.population, judgements: after.filter((x) => x?.record_type === "coverage_judgement"), on: ON, overturned });
 const heldKeys = new Set(held().map((x) => x.measurement_key));

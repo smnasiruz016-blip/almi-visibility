@@ -266,7 +266,7 @@ test("T93-C6 · F93 C6 THE BOUND, ONE TENANT, READ-ONLY: no real tenant's invent
 const OTHER_ROWS = Object.freeze({
   "src/page/draft-render.mjs": "fa5ebe27a4dbc8499be502bdfc302b8f584b0ca12b436f95f99f962a99c54a3b",
   "src/page/construct.mjs": "24d1fc41da3ada728b5218d33a54d510994df9f9a72a001e9ceafe97dd440b4f",
-  "bin/build-page.mjs": "fd7519d21f22a554563fcf88290f463e4f509a3199b4244cdee49942dd369d98", /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
+  "bin/build-page.mjs": "e8fa401c71f313086059879caa5fb3bd4d3c66b79f2798145ac6de450533f727", /* RR-289: F91 C20 (Amendment 7) — the population filter, F93 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/page/quality-judgements.mjs": "f4511418885bfbb3994e842dd6ba42610e49b8e6368401f0791ca79cb482fda2",
   "src/page/content-brief.mjs": "5771c6955fcc621430391b9c34a525a74673e81a3ff4d3b05cf429d358ad5c06",
   "src/page/content-brief-evidence.mjs": "b1af103909fa3ef4782686380c4d1c5e14c473f5e73e1080f29fb1c06c37abe6",

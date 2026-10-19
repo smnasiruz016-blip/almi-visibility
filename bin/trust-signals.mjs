@@ -10,6 +10,7 @@
  * src/page/trust-signals-evidence.mjs. A missing signal is a finding; anything not recorded is NOT MEASURED, named; nothing is invented,
  * written or published. Count-only: no page content, host or URL.
  */
+import { readC20Keep, C20_NOT_DECLARED } from "../src/page/c20-keep.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
@@ -46,7 +47,10 @@ if (BATCH) {
 }
 
 const resolve = createTenantResolver();
-const ae = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve, reviews: [], planningRows, overturned, decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
+/* F91 C20 (Amendment 7): the pages this run may hold, from the named batch — the line names the RESEARCH store (tenant-scope census) */
+const c20 = BATCH ? readC20Keep(join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH)) : { keep: null, line: C20_NOT_DECLARED };
+console.log(`  ${c20.line}`);
+const ae = readClientActionEvidence({ keep: c20.keep,  tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve, reviews: [], planningRows, overturned, decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
 if (ae.fault) { console.error(`🔴 REFUSED — F35's evidence is unavailable (${ae.fault})`); process.exit(2); }
 const r = readClientTrust({ tenantId: SCOPE.tenantId, chosen: ae.compiled?.forConstruction ?? [], resolve });
 if (r.fault) { console.error(`🔴 REFUSED — F31's population is unavailable (${r.fault})`); process.exit(2); }

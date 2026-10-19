@@ -13,6 +13,7 @@
  * 🔴 Every action is a RECOMMENDATION; nothing is created, published, removed or written. Count-only: no page content, host or URL.
  * Evidence: src/page/action-evidence.mjs; decision: src/page/action-decision.mjs.
  */
+import { readC20Keep, C20_NOT_DECLARED } from "../src/page/c20-keep.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { createTenantResolver } from "../src/tenancy/resolver.mjs";
@@ -50,7 +51,10 @@ if (BATCH) {
 }
 
 /* no semantic review is recorded and no store exists (F32): [] is that recorded fact, so MERGE and REDIRECT name the missing review */
-const r = readClientActionEvidence({ tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } /* F43: no publication date, improvement or re-measurement is recorded; F82 supplies the indexing checks */ });
+/* F91 C20 (Amendment 7): the pages this run may hold, from the named batch — the line names the RESEARCH store (tenant-scope census) */
+const c20 = BATCH ? readC20Keep(join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH)) : { keep: null, line: C20_NOT_DECLARED };
+console.log(`  ${c20.line}`);
+const r = readClientActionEvidence({ keep: c20.keep,  tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } /* F43: no publication date, improvement or re-measurement is recorded; F82 supplies the indexing checks */ });
 const line = (label, s) => console.log(`  ${label.padEnd(15)} ${s.population} · CHOSEN ${s.chosen} · HOLD ${s.hold} · CANNOT_DECIDE ${s.cannotDecide} · ${Object.entries(s.byAction).filter(([, n]) => n > 0).map(([a, n]) => `${a} ${n}`).join(" · ") || "no action chosen"}`);
 console.log("F35 · ACTION DECISIONS — recommendations only, count-only");
 console.log(`  bound           ${r.bound}`);

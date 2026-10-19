@@ -131,10 +131,11 @@ export function decideGroupedNeeds({ tenantId, product, population, planningRows
   });
 }
 
-export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews, decayEvidence, planningRows = null, overturned = new Set(), duplicationReviews = [], rationaleReviews = [] }) {
+export function readClientActionEvidence({ tenantId, product, records = [], resolve, env = process.env, now = new Date(), demand = null, reviews, decayEvidence, planningRows = null, overturned = new Set(), duplicationReviews = [], rationaleReviews = [], keep = null }) {
   /* RR-89: the recorded semantic reviews (F32's shape). None is recorded today and no store exists — the caller passes [] and says so */
   if (!Array.isArray(reviews)) throw new TypeError("reviews must be passed explicitly — an empty list is a recorded fact, not a default");
-  const { population, fault } = readExistingPagePopulation({ scope: { tenantId }, resolve, env, now });
+  /* F91 C20 (Amendment 7): KEEP from the caller's batch (src/page/c20-keep.mjs) — a page generated before Visibility never stands */
+  const { population, fault } = readExistingPagePopulation({ scope: { tenantId }, resolve, env, now, keep });
   /* F43 (RR-91): each page's post-publication and removal evidence, from recorded performance only — NOINDEX and REMOVE read it */
   const decay = population ? new Map(readClientDecay({ tenantId, resolve, values: product.variants ?? [], decayEvidence, env, now }).assessments.map((a) => [a.pageId, a])) : new Map();
   if (!population) return { fault, needs: [], pages: [], bound: `recorded data only · population UNAVAILABLE (${fault})` };

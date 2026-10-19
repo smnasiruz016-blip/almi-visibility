@@ -1869,6 +1869,383 @@ export const F10_AMENDMENT_4 = Object.freeze({
   contractSha256: "d2a49c47f83c9f8847867f60b86b1081a29fd136aa364e6932c88fd26a6ba4af",
   amends: Object.freeze({ ruling: F10_AMENDMENT_3.ruling, contractSha256: F10_AMENDMENT_3.contractSha256 }),
 });
+/* 🔴 F14 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F14 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. It supersedes the earlier, never-pinned F14 acceptance (16855d2) and its Amendment 1, named in its preamble. Pinned from the committed blob by parseContract (file f4b264b6…, contract aaaf39a8…). */
+export const F14_ORIGINAL = Object.freeze({
+  featureId: "F14",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F14_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "f4b264b6130574ae97a0f85c70c40a2da966df9f539f81817636b5f837e8db3a" }),
+  authority: Object.freeze({ propositionId: "F14_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F14"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F14 · Demand evidence research",
+  input: "For one declared client: the demand observations stored in its research batch (search phrases, public questions, research-derived questions and Search Console rows), as stored. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · EVERY OBSERVATION DESCRIBED] Each demand observation in the store is shown with its method, date, population, limitation and confidence; a field the record does not hold is named as missing, never filled in.\n[C2 · PUBLIC-SEARCH FIELDS] A public-search observation also carries surface, ecosystem, country, language, window, bound and OBSERVED or INFERRED.\n[C3 · REFUSED WHEN INCOMPLETE] A new demand record missing any required field is refused, with the missing field named.",
+  failure: "[C1] A demand observation is shown without one of the five, or a missing field is filled in instead of named. [C2] A public-search observation lacks one of these without being named, or is marked neither OBSERVED nor INFERRED. [C3] A record missing a required field is accepted, or refused without the field named. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real batch; every demand observation described, each missing field counted by name. [C2] PROOF: the real public-search observations of the batch; each one's fields or its named gaps. [C3] PROOF: a planted record missing each field in turn is refused, named (firing control). Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F14 moves only through the production validator and the audit trail.",
+  contractSha256: "aaaf39a84d81fd573dc87abf85b635768b1f85cacc13da11263eb545426dab76",
+});
+/* 🔴 F15 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F15 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file ea3eede1…, contract 72316543…). */
+export const F15_ORIGINAL = Object.freeze({
+  featureId: "F15",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F15_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "ea3eede11743b4a667d13f1e0da5c416ebc1c25faf3f166bcd9b6ee2b8ed9f46" }),
+  authority: Object.freeze({ propositionId: "F15_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F15"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F15 · Supply / visibility / demand / need separation",
+  input: "For one declared client: its research batch's needs, the records each is drawn from, its published pages and its own Search Console rows, as stored. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · FOUR MEASURES, FOUR FUNCTIONS] Supply, visibility, demand and need are each measured by their own function, from their own records, and printed apart.\n[C2 · DEMAND NEEDS THREE KINDS] Demand is STRONG only when at least 3 independent evidence categories agree, MONITOR when they conflict, and UNKNOWN when there are fewer than 3.\n[C3 · A REAL RUN] A real run on the declared batch prints the four measures separately.",
+  failure: "[C1] Two measures share one function or one number, or a measure is printed blended with another. [C2] Demand reads STRONG on fewer than 3 categories or on conflict, or UNKNOWN is shown as weak or zero demand. [C3] The run prints a blended score, or prints from an empty population as a result. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real batch; the four printed separately, each with its own denominator. [C2] PROOF: the real needs classed; planted needs with 2, 3 and conflicting categories each read their own state (firing control). [C3] PROOF: one real run over the declared batch. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F15 moves only through the production validator and the audit trail.",
+  contractSha256: "72316543113223e91327a97bdb7f1165ab8ded07d41ce98e71ee196851cecf45",
+});
+/* 🔴 F17 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F17 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 2790cf59…, contract b9f9e935…). */
+export const F17_ORIGINAL = Object.freeze({
+  featureId: "F17",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F17_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "2790cf59961a3b83903ba6ae896a07bb277e1483c8b04a50aa7003f89b0e0ddd" }),
+  authority: Object.freeze({ propositionId: "F17_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F17"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F17 · Second-search and information-gap detection",
+  input: "For one declared client: its recorded needs and the questions its own published pages answer, as stored; and any next-question sequence the client supplies from a lawful source it holds. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · INFERRED FOLLOW-UPS] Follow-up needs are inferred only from recorded needs and the pages that answer them, and each is marked INFERRED with the records it is inferred from.\n[C2 · OBSERVED SEQUENCES APART] An observed next-question sequence is its own record kind, with its source, date and bound, never counted as an inferred one.\n[C3 · ABSENCE IS NOT OPPORTUNITY] A competitor's absence alone never makes an opportunity.",
+  failure: "[C1] A follow-up need has no record behind it, or is not marked INFERRED. [C2] An observed sequence lacks its source, date or bound, or is counted together with inferred follow-ups. [C3] An opportunity rests only on a competitor not covering a topic. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real batch; every inferred follow-up names its records. [C2] PROOF: a planted observed sequence is kept apart and an incomplete one refused (firing control); real sequences DEFERRED-TO-FIRST-CLIENT. [C3] PROOF: a planted absence-only gap produces no opportunity (firing control). Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F17 moves only through the production validator and the audit trail.",
+  contractSha256: "b9f9e93531228a95d2eb9fb39b2c62e1ff31aa3f4f7db787e672a2054231c7e7",
+});
+/* 🔴 F24 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F24 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file d9a759c8…, contract f18aa0af…). */
+export const F24_ORIGINAL = Object.freeze({
+  featureId: "F24",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F24_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "d9a759c813f2cda441a95c2e1cf79988410e72681bfe259b6c18567ce560d78c" }),
+  authority: Object.freeze({ propositionId: "F24_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F24"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F24 · Core Web Vitals and page speed",
+  input: "For one declared client: its own pages, rendered locally by the engine's own local lab check (Owner answer Q2: a free, local lab check only), and any field data the client supplies. No outside speed service, no key.",
+  expected: "[C1 · A RECORDED LAB RUN] A local lab run records its tool, device, date and bound with each measurement.\n[C2 · LAB AND FIELD NEVER MIXED] Field and lab measurements are separate record kinds and are never averaged or merged.\n[C3 · NO FIELD DATA IS NOT MEASURED] Missing field data prints NOT MEASURED, never a lab figure in its place and never 0.",
+  failure: "[C1] A lab measurement lacks its tool, device, date or bound. [C2] A lab and a field value are averaged, merged or shown as one kind. [C3] Missing field data prints a number, a lab figure or 0. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a real local lab run over the client's own rendered pages. [C2] PROOF: a planted field record next to a lab record stays apart (firing control). [C3] PROOF: the real run prints field data NOT MEASURED; real field data DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F24 moves only through the production validator and the audit trail.",
+  contractSha256: "f18aa0afc5a4105042fbc7f09938c7f1fc899add7065d8adbf46820817a400c3",
+});
+/* 🔴 F28 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F28 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file e70bceba…, contract 3a9b9d16…). */
+export const F28_ORIGINAL = Object.freeze({
+  featureId: "F28",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F28_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "e70bcebae200604c44b72bce3af92efa498c2bd1a6be49fc08e55b4ae716b91b" }),
+  authority: Object.freeze({ propositionId: "F28_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F28"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F28 · Log and crawler-behaviour intelligence",
+  input: "For one declared client: a server log file the client supplies under a recorded consent (Owner answer Q3), and its own sitemap, as stored. The engine never connects to the client's server or analytics. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · SUPPLIED UNDER CONSENT] A log file is read only when the client supplied it under a recorded consent; otherwise it is refused, named.\n[C2 · VISITS, WASTE AND UNFOUND] A report counts crawler visits by crawler, wasted URLs (visited but not in the sitemap or returning an error) and sitemap URLs never visited.\n[C3 · NO LOG IS NOT MEASURED] A client with no supplied log reads NOT MEASURED, never 0 visits.",
+  failure: "[C1] A log is read without a consent record, or from anywhere but the client's supplied file. [C2] A count is missing, a wasted or unfound URL goes unnamed, or a crawler is guessed from anything but the log line. [C3] A missing log reads as 0 or as a result. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a planted log without consent is refused (firing control). [C2] PROOF: a fixture log classed; real logs DEFERRED-TO-FIRST-CLIENT. [C3] PROOF: the real client today: NOT MEASURED, stated. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F28 moves only through the production validator and the audit trail.",
+  contractSha256: "3a9b9d1658b2c80026cd28ef39a58bb414317d4cf687b2a1df770f0ef81347e3",
+});
+/* 🔴 F30 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F30 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. It supersedes the earlier, never-pinned F30 acceptance of 3 Oct 2026 (RR-138), named in its preamble. Pinned from the committed blob by parseContract (file 91e596e1…, contract f9648c28…). */
+export const F30_ORIGINAL = Object.freeze({
+  featureId: "F30",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F30_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "91e596e1a6759d19a17468986f14577bc970ca7eb7696b26707859567efa56e4" }),
+  authority: Object.freeze({ propositionId: "F30_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F30"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F30 · Scheduled recrawl and change detection",
+  input: "For one declared client: the stored runs of its declared checks (its stored crawls), as stored. No scheduler is installed on a live host. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · DIFF AGAINST THE LAST RUN] A re-run of a declared check is compared with the last stored run of the same check.\n[C2 · UNCHANGED IS SUPPRESSED] Unchanged results are not shown again; only added, removed and changed items are listed, each named.\n[C3 · A REAL RUN] A real run on two stored crawls lists the changed pages only.",
+  failure: "[C1] A re-run is compared with anything but the last stored run of the same check. [C2] An unchanged item is shown as a change, or a change goes unnamed. [C3] The real run lists unchanged pages, or runs on one crawl and claims a change. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: two real stored crawls compared. [C2] PROOF: a planted unchanged pair yields 0 changes, a planted change is named (firing control). [C3] PROOF: one real run over two stored crawls; a live scheduler DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F30 moves only through the production validator and the audit trail.",
+  contractSha256: "f9648c2812fabe03c9b35dd6b10f9b5adb4d3a7262f96c3d8d246bc1d071cee6",
+});
+/* 🔴 F51 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F51 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 0157fada…, contract 9695efda…). */
+export const F51_ORIGINAL = Object.freeze({
+  featureId: "F51",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F51_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "0157fada2f349d745dbfac994fa23b303122f6a778e3b329476adef0089ade8d" }),
+  authority: Object.freeze({ propositionId: "F51_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F51"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F51 · Multi-engine AI visibility tracking",
+  input: "For one declared client: AI-answer observations from the client's OWN AI connection when the client connects it (its key or subscription, cost on the client), or filed by hand (Owner answer Q1, CHANGED); each with prompt, system, date, sampling and cited URLs. AlmiWorld never pays for a client's AI calls.",
+  expected: "[C1 · A COMPLETE OBSERVATION] Each observation carries prompt, system, date, sampling and cited URLs, and its route: the client's own connection or a hand filing.\n[C2 · COUNTED PER SYSTEM] Mention, omission and citation are counted per system, each over its own sample.\n[C3 · REFUSED WITHOUT DATE OR METHOD] An observation without its date or method is refused, named.",
+  failure: "[C1] An observation lacks one of these, or its route. [C2] Counts of two systems are merged, or a count has no sample. [C3] An observation without its date or method is kept. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real observations filed; a planted incomplete one refused (firing control). [C2] PROOF: real observations counted per system; real AI answer data from the client's own connection DEFERRED-TO-FIRST-CLIENT. [C3] PROOF: a planted observation without a date is refused (firing control). Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F51 moves only through the production validator and the audit trail.",
+  contractSha256: "9695efda6f436db0b295318661e0faec33f57aebe38bd19a2705e58a71200fad",
+});
+/* 🔴 F52 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F52 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 40c9d996…, contract 03c02d82…). */
+export const F52_ORIGINAL = Object.freeze({
+  featureId: "F52",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F52_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "40c9d99655bd2932bcb9469f8d20c977966c790c3b77761b43e027c271d9b987" }),
+  authority: Object.freeze({ propositionId: "F52_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F52"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F52 · AI share of voice and competitor comparison",
+  input: "For one declared client: the AI-answer observations of F51 and its declared competitors, as stored.",
+  expected: "[C1 · SHARE OVER FILED SAMPLES] Share is computed only over the filed samples and prints the sample size.\n[C2 · NEVER UNIVERSAL] A share is never stated as universal: the wording names its sample and systems.\n[C3 · NO SAMPLES IS NOT MEASURED] No samples reads NOT MEASURED, never 0 %.",
+  failure: "[C1] A share is printed without its sample size or over anything but filed samples. [C2] A share is worded as true of all AI answers. [C3] No samples reads 0 % or a number. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real filed samples; a planted sample set gives its exact share (firing control). [C2] PROOF: a wording test over every printed line. [C3] PROOF: the real client: NOT MEASURED when no sample is filed. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F52 moves only through the production validator and the audit trail.",
+  contractSha256: "03c02d829e85fdba09671ffbad76104bfd2ef9d75bb17c866e0f615329912d97",
+});
+/* 🔴 F53 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F53 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file d5d14471…, contract 898c9361…). */
+export const F53_ORIGINAL = Object.freeze({
+  featureId: "F53",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F53_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "d5d14471b94b6778da41955f3c0061d8e06de52066ad7e8facb21ebf1fb7f30a" }),
+  authority: Object.freeze({ propositionId: "F53_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F53"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F53 · AI citation and source influence graph",
+  input: "For one declared client: the AI-answer observations of F51, as stored.",
+  expected: "[C1 · LINKS FROM OBSERVATIONS] The links prompt → answer → mention → citation → source → gap → action are built only from filed observations.\n[C2 · NEVER INVENTED] A link that was not observed is absent, never inferred.\n[C3 · A GRAPH PRINTS] A fixture graph prints with its nodes and links counted.",
+  failure: "[C1] A link is built from anything but a filed observation. [C2] An unobserved link appears in the graph. [C3] The graph prints from an empty population as a result. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real observations; every link traces to one. [C2] PROOF: a planted observation set: no link beyond what it holds (firing control). [C3] PROOF: a fixture graph; the real graph DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F53 moves only through the production validator and the audit trail.",
+  contractSha256: "898c9361ecf2767eeee6db670b60c0093956aad314f3960dc9d62c650c017c89",
+});
+/* 🔴 F56 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F56 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file f6c303a3…, contract 8dfd6fd5…). */
+export const F56_ORIGINAL = Object.freeze({
+  featureId: "F56",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F56_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "f6c303a3dfd484f3928412a9491b3b31c3e46d3f55fa62215bb241ece3542be6" }),
+  authority: Object.freeze({ propositionId: "F56_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F56"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F56 · AI sentiment and narrative monitoring",
+  input: "For one declared client: the AI-answer observations of F51 holding a description of the brand, as stored.",
+  expected: "[C1 · SOURCE AND UNCERTAINTY] Each description is stored with its observation id and an uncertainty label.\n[C2 · NO DESCRIPTION WITHOUT EVIDENCE] No description is produced without the observation it comes from.",
+  failure: "[C1] A description lacks its observation id or its uncertainty label. [C2] A description appears with no observation behind it. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: real observations; a planted description without its id is refused (firing control). [C2] PROOF: a test: no observation, no description; real observations DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F56 moves only through the production validator and the audit trail.",
+  contractSha256: "8dfd6fd5310c8b718cd9185df48856f19ad044803f8d539d26b902d15b037cc3",
+});
+/* 🔴 F57 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F57 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 90689ada…, contract 9282c8ba…). */
+export const F57_ORIGINAL = Object.freeze({
+  featureId: "F57",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F57_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "90689ada922b5720bf5513c5628a7bb85f430c3553b992c880afee8931897120" }),
+  authority: Object.freeze({ propositionId: "F57_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F57"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F57 · AI recommendation engine",
+  input: "For one declared client: the AI gaps measured from F51–F53 records, and F35's own-page action rules.",
+  expected: "[C1 · EACH ACTION NAMES ITS GAP] Each action names the gap record it answers.\n[C2 · NO GAP, NO ACTION] No gap gives no action.\n[C3 · F35'S OWN RULES] Actions reuse F35's own-page action rules, never generic AI content.",
+  failure: "[C1] An action names no gap record. [C2] An action appears with no gap. [C3] An action is produced by any rule but F35's, or is generic content. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: planted gaps; each action names its gap. [C2] PROOF: a test: an empty gap set gives 0 actions. [C3] PROOF: the action for each gap comes from F35's own rules; real gaps DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F57 moves only through the production validator and the audit trail.",
+  contractSha256: "9282c8ba6e3c8cdc84e2910ff672862e0abf9a3a1fa4cdd5b3b51b69cee3b976",
+});
+/* 🔴 F58 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F58 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file dceac0d1…, contract 36c247a5…). */
+export const F58_ORIGINAL = Object.freeze({
+  featureId: "F58",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F58_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "dceac0d15587e87705e6c112d781262058b2d45e781b7076713f5ff16da580d7" }),
+  authority: Object.freeze({ propositionId: "F58_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F58"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F58 · Competitor discovery and coverage comparison",
+  input: "For one declared client: its declared competitors and the result surfaces already observed and stored, with its own pages. No fresh search (no Google search allowed for this row). Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · FROM DECLARED OR OBSERVED SURFACES] Competitors come only from the client's declaration or from stored observed result surfaces, each with its source.\n[C2 · DIFFICULTY IS INFERRED] Each query states an INFERRED difficulty with its method.\n[C3 · A REAL COMPARISON] A real run on stored observations compares coverage: the useful pages a competitor has that the client lacks.",
+  failure: "[C1] A competitor comes from anywhere else, or lacks its source. [C2] A difficulty is stated as observed, or without its method. [C3] A gap is claimed without a stored observation behind it. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real declaration and stored observations; a planted unsourced competitor refused (firing control). [C2] PROOF: real queries; each difficulty labelled INFERRED with its method. [C3] PROOF: one real run over stored observations; fresh result surfaces DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F58 moves only through the production validator and the audit trail.",
+  contractSha256: "36c247a50e343a57b35b7e9f57bf045b4182c45eaa575cdab0ab8f7f7cea74e8",
+});
+/* 🔴 F63 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F63 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file c238f38b…, contract 3691e699…). */
+export const F63_ORIGINAL = Object.freeze({
+  featureId: "F63",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F63_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "c238f38bed3066f1486a957aad6e454f45f495a453846953dace155a048136e2" }),
+  authority: Object.freeze({ propositionId: "F63_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F63"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F63 · Local rank and map visibility",
+  input: "For one declared client: its declared locations and rank observations made through Visibility's own browser route (Owner decision 2 of RR-291: Google searches, at most 20 in all, shared with F16, at least 20 s apart, a fresh profile; stop at any captcha or unusual-traffic page and record BLOCKED).",
+  expected: "[C1 · A DECLARED LOCATION AND SURFACE] A rank record needs a declared location and the surface it was observed on, with its date and query.\n[C2 · NONE FILED IS NOT MEASURED] With no rank observation filed, rank reads NOT MEASURED; a blocked observation reads BLOCKED with its reason, never a rank.",
+  failure: "[C1] A rank record lacks a declared location, surface, date or query. [C2] A missing or blocked observation reads as a rank or 0. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real browser-route observations; a planted record without a location refused (firing control). [C2] PROOF: the real browser-route run: each query's rank, NOT MEASURED or BLOCKED, stated. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F63 moves only through the production validator and the audit trail.",
+  contractSha256: "3691e699bd35d04cca296842851b713c2a8f1a503027a952e22d1a0564a2c633",
+});
+/* 🔴 F64 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F64 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 99969a02…, contract 9b102cc2…). */
+export const F64_ORIGINAL = Object.freeze({
+  featureId: "F64",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F64_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "99969a023dde2262bb882557df866266f9d9b5ab32ba326f46425ed62b15a1c0" }),
+  authority: Object.freeze({ propositionId: "F64_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F64"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F64 · Business profile and NAP consistency",
+  input: "For one declared client: its own pages as stored and any listing file the client supplies. No third-party listing is read. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · FROM OWN PAGES AND SUPPLIED LISTINGS] Name, address and phone are read only from the client's own pages and client-supplied listings.\n[C2 · MISMATCHES WITH BOTH SOURCES] Each mismatch is listed with both sources.\n[C3 · NOT APPLICABLE WITHOUT AN ADDRESS] A client with no address reads NOT APPLICABLE for the address, by name.",
+  failure: "[C1] A NAP value comes from anywhere else. [C2] A mismatch is listed without both sources, or goes unlisted. [C3] A client with no address reads as an address mismatch or 0. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real stored pages. [C2] PROOF: planted pages with a differing phone give a mismatch naming both (firing control). [C3] PROOF: the real client classed; third-party listing reads DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F64 moves only through the production validator and the audit trail.",
+  contractSha256: "9b102cc215e3ca6873c101cf7094246fb413c889cd18c0cec2974f2d9271a314",
+});
+/* 🔴 F65 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F65 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file b6f202ec…, contract bf6d33ea…). */
+export const F65_ORIGINAL = Object.freeze({
+  featureId: "F65",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F65_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "b6f202ecb0cbb60c3a3c4f3f5e4c13caef968c0c34d4a1ac02dcd6b4af239d6e" }),
+  authority: Object.freeze({ propositionId: "F65_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F65"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F65 · Review and local reputation",
+  input: "For one declared client: a review export the client supplies, as stored.",
+  expected: "[C1 · FROM A SUPPLIED EXPORT ONLY] Review count, recency, themes and response state are read only from a client-supplied export.\n[C2 · NO SOLICITING OR WRITING] No code solicits, writes or posts a review anywhere.",
+  failure: "[C1] A review is read from anywhere else. [C2] Any code path solicits, writes or posts a review. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a fixture export summarised; a real export DEFERRED-TO-FIRST-CLIENT. [C2] PROOF: a census of the engine's code: no review write or solicitation path. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F65 moves only through the production validator and the audit trail.",
+  contractSha256: "bf6d33ea858e75371335a9bcd97d3c61be5127a22b453429a12951677aec046d",
+});
+/* 🔴 F66 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F66 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 0910b156…, contract 874669ca…). */
+export const F66_ORIGINAL = Object.freeze({
+  featureId: "F66",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F66_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "0910b156edeff4e8dee9834ca7af80b171a58587f55a0edd2f5745b0051b305f" }),
+  authority: Object.freeze({ propositionId: "F66_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F66"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F66 · Instant Website Visibility Score",
+  input: "For one URL of one declared client: the evidence already stored for it (its stored crawl, renders and findings). No live public form. Nothing fetched, searched, sent, published or bought.",
+  expected: "[C1 · FROM STORED EVIDENCE] The score of one URL is computed from its stored evidence only.\n[C2 · EVERY POINT TRACES] Each point traces to a check, under F68.\n[C3 · A REAL RUN] A real run on a stored client crawl prints the score, the findings and the next actions.",
+  failure: "[C1] A score uses anything but the URL's stored evidence. [C2] A point traces to no check. [C3] The run prints a score without findings or actions, or from an empty population. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a real stored URL scored. [C2] PROOF: the real score's points each name their check. [C3] PROOF: one real run; the live public URL form DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F66 moves only through the production validator and the audit trail.",
+  contractSha256: "874669ca35ac16b86f6b15f50b8bacfc441c96bbcb486c8228cb809c86c0c84a",
+});
+/* 🔴 F67 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F67 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file f81c6bc9…, contract 08319936…). */
+export const F67_ORIGINAL = Object.freeze({
+  featureId: "F67",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F67_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "f81c6bc91c2e6e46a1c28d567d2dae7f80b5abd03b39970511676c2e0d389481" }),
+  authority: Object.freeze({ propositionId: "F67_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F67"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F67 · Quick and full modes",
+  input: "For one declared client: the same stored evidence the full check reads.",
+  expected: "[C1 · THE SAME CHECK FUNCTIONS] Both modes call the same check functions.\n[C2 · SAMPLE AND SKIPPED STATED] Quick mode prints its sample size and what it skipped.",
+  failure: "[C1] Quick mode calls a check the full mode does not, or its own copy of one. [C2] Quick mode omits its sample size or what it skipped. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a census: the quick path calls only the full path's check functions. [C2] PROOF: a real quick run prints both. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F67 moves only through the production validator and the audit trail.",
+  contractSha256: "08319936c9debcd92b03d07595c93130ced1cede0a72411f5ec4b2b35e64c6bd",
+});
+/* 🔴 F68 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F68 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 06883ea2…, contract 868a1bef…). */
+export const F68_ORIGINAL = Object.freeze({
+  featureId: "F68",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F68_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "06883ea21b26e53a9ef7e42f752850d567f68384db94a006150b021d255fbb46" }),
+  authority: Object.freeze({ propositionId: "F68_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F68"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F68 · Transparent scoring and denominator",
+  input: "For one declared client: a score's stored check results.",
+  expected: "[C1 · WEIGHTS AND CHECKS PRINTED] The report prints the weights, the evaluated checks and the NOT MEASURED values.\n[C2 · THE DENOMINATOR EXCLUDES NOT MEASURED] The denominator excludes NOT MEASURED checks, and says so.",
+  failure: "[C1] A weight, an evaluated check or a NOT MEASURED value is missing from the report. [C2] A NOT MEASURED check counts in the denominator, or the exclusion is not stated. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real score's report. [C2] PROOF: a planted NOT MEASURED check leaves the denominator unchanged (firing control). Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F68 moves only through the production validator and the audit trail.",
+  contractSha256: "868a1bef0a896f488a1577f1372bbc6fa51677032ecdd18585368b54c44b3a18",
+});
+/* 🔴 F69 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F69 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file ad119643…, contract 31bbe20b…). */
+export const F69_ORIGINAL = Object.freeze({
+  featureId: "F69",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F69_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "ad11964342c139bc7a7ad27b3a3d06b21da4b1f39b2596c68fc8af07ca991257" }),
+  authority: Object.freeze({ propositionId: "F69_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F69"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F69 · Benchmarks and comparison",
+  input: "For one declared client: its declared competitors with stored evidence, as stored.",
+  expected: "[C1 · PEERS ONLY FROM DECLARED COMPETITORS] Peers come only from declared competitors with stored evidence.\n[C2 · SAMPLE AND LIMITS PRINTED] The sample size and the limits are printed.\n[C3 · FEWER THAN 3 IS NO BENCHMARK] Fewer than 3 peers prints \"no benchmark\".",
+  failure: "[C1] A peer is taken from anywhere else, or without stored evidence. [C2] A benchmark is printed without its sample size or its limits. [C3] A benchmark is printed over fewer than 3 peers. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real declaration classed. [C2] PROOF: a planted peer set of 3 prints both (firing control). [C3] PROOF: the real client: its peer count and the verdict; a real peer set DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F69 moves only through the production validator and the audit trail.",
+  contractSha256: "31bbe20b5e81eb3711c4ed043a8e46e36e2b68a35723a599dafe378bceedaba9",
+});
+/* 🔴 F70 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F70 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 95e9d96a…, contract b4c862c8…). */
+export const F70_ORIGINAL = Object.freeze({
+  featureId: "F70",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F70_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "95e9d96a2a4b20e7b9f26e88e82994c61c291558890776210f0fae467695079c" }),
+  authority: Object.freeze({ propositionId: "F70_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F70"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F70 · Downloadable report",
+  input: "For one declared client: a real stored run's findings and their evidence ids.",
+  expected: "[C1 · A STATIC ACCESSIBLE FILE] The report is one static HTML file with ordered headings, alt text and tables with header rows.\n[C2 · EVERY FINDING LINKS ITS EVIDENCE] Every finding links its evidence id.\n[C3 · FROM A REAL STORED RUN] The report is generated from a real stored run.",
+  failure: "[C1] A heading is skipped, an image lacks alt text, or a table has no header row. [C2] A finding names no evidence id. [C3] The report is generated from a fixture or an empty run as a result. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real report checked. [C2] PROOF: the real report: each finding's evidence id present. [C3] PROOF: one real report written from a stored run. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F70 moves only through the production validator and the audit trail.",
+  contractSha256: "b4c862c841144937f04cf82561143d1a101883b7de7466ba0ba63fca14857e4b",
+});
+/* 🔴 F71 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F71 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 46926b84…, contract 048012f3…). */
+export const F71_ORIGINAL = Object.freeze({
+  featureId: "F71",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F71_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "46926b845a9646b184f63d1dbc752ba92f2c6e6aae19303b54412f71b2336d03" }),
+  authority: Object.freeze({ propositionId: "F71_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F71"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F71 · Optional lead and consultation",
+  input: "For one declared client's report: the lead setting (OFF by default) and any consent record. No live form (no deploy).",
+  expected: "[C1 · OFF BY DEFAULT] Lead capture is OFF by default; when on, only with an unticked consent box (Owner answer Q4).\n[C2 · NO SCORE CHANGE] The score is identical with lead capture on or off.\n[C3 · NO CONTACT WITHOUT CONSENT] No contact data is stored without a consent record.",
+  failure: "[C1] Lead capture is on by default, or the consent box is ticked in advance. [C2] The score differs between on and off. [C3] Contact data is stored without a consent record. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the default setting read; the rendered box is unticked. [C2] PROOF: a test: the same evidence scored both ways. [C3] PROOF: a planted submission without consent is refused (firing control); a live form DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F71 moves only through the production validator and the audit trail.",
+  contractSha256: "048012f38979bb7375529f539ed712d9b21f78633897d4f195085cc8bf394549",
+});
+/* 🔴 F72 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F72 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file fea5c84a…, contract 3fedc315…). */
+export const F72_ORIGINAL = Object.freeze({
+  featureId: "F72",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F72_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "fea5c84a1d950da15f137b72ac951bd7d1bb4c999b6532cd651c10c489d4b69a" }),
+  authority: Object.freeze({ propositionId: "F72_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F72"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F72 · Client dashboard and white-label",
+  input: "For each declared tenant: its own stores only; an agency's name and colours when the client chooses one (Owner answer Q5). No hosted dashboard (no deploy).",
+  expected: "[C1 · ONE TENANT'S STORE ONLY] A static view per tenant reads only that tenant's store.\n[C2 · BRANDING NEVER CHANGES EVIDENCE] Branding changes only the name and colours, never the evidence or the method lines.",
+  failure: "[C1] A view reads another tenant's store. [C2] Branding changes an evidence or a method line. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a tenant-isolation census over the view's reads; a cross-tenant read refused (firing control). [C2] PROOF: a test: the branded and plain views hold the same evidence lines; a hosted dashboard DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F72 moves only through the production validator and the audit trail.",
+  contractSha256: "3fedc315e423846ebd3b1ea932541715741bead24336dbc3bc392f69e9a9f5b5",
+});
+/* 🔴 F76 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F76 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file af479042…, contract a6016b47…). */
+export const F76_ORIGINAL = Object.freeze({
+  featureId: "F76",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F76_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "af479042c8981bbee1b4143c29adbd2ef64ecbd0260ad45ddbee5bd5b84cda3f" }),
+  authority: Object.freeze({ propositionId: "F76_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F76"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F76 · Controlled draft and publishing",
+  input: "For one declared client: its page drafts, approval records and published versions, as stored. Submission to Search Console uses the client's own connection when the client connects it; until connected, the engine writes the sitemap file only (Owner answer Q6). CC never types a login. No live publish.",
+  expected: "[C1 · AN APPROVAL PER PAGE] Publishing needs an approval record per page.\n[C2 · CAPPED COHORTS, NO GENERATE-ALL] Cohort size is capped and there is no generate-all or publish-all path.\n[C3 · ROLLBACK] Rollback restores the previous version exactly.\n[C4 · SITEMAP UNTIL CONNECTED] Until the client's own Search Console connection exists, the engine writes the sitemap file only, and submits nothing.",
+  failure: "[C1] A page is published without its own approval record. [C2] A cohort exceeds its cap, or a generate-all path exists. [C3] Rollback leaves any byte of the new version. [C4] A submission is attempted without the client's own connection. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a planted page without approval is refused (firing control). [C2] PROOF: a census of the publishing code; an over-cap cohort refused. [C3] PROOF: a test: publish then roll back restores the previous bytes. [C4] PROOF: the real client: sitemap written locally, submission NOT CONNECTED; a live submission DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F76 moves only through the production validator and the audit trail.",
+  contractSha256: "a6016b47dd9feb038b167ec092e5628ddfc1f86e37a99d7de2759b97457d781f",
+});
+/* 🔴 F80 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F80 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file f54aa7e3…, contract d7752bda…). */
+export const F80_ORIGINAL = Object.freeze({
+  featureId: "F80",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F80_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "f54aa7e3f65824662feb139b1ec65bde552f2c57dd41e0c52201313753f02011" }),
+  authority: Object.freeze({ propositionId: "F80_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F80"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F80 · API, webhooks and exports",
+  input: "For one declared tenant: its own stores, as stored (Owner answer Q7: the first version is read-only exports).",
+  expected: "[C1 · READ-ONLY EXPORTS PER TENANT] JSON and CSV exports are written per tenant, read-only: no write action exists through the API.\n[C2 · A VERSIONED SCHEMA] Each export carries a stable, versioned schema.\n[C3 · CROSS-TENANT REFUSED] A cross-tenant read is refused.",
+  failure: "[C1] An export holds a write action, or another tenant's data. [C2] An export lacks its schema version, or its fields drift from the schema. [C3] A cross-tenant read succeeds. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a real export of one tenant's records. [C2] PROOF: the real export checked against its schema. [C3] PROOF: a planted cross-tenant request refused (firing control); webhooks DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F80 moves only through the production validator and the audit trail.",
+  contractSha256: "d7752bdabce14692643493b8df1e58e7c385f86ac9c247821b4d9a3ad2eb9d8d",
+});
+/* 🔴 F83 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F83 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 4bae3e42…, contract dfceed40…). */
+export const F83_ORIGINAL = Object.freeze({
+  featureId: "F83",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F83_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "4bae3e42e6711405cbb0853463985ecc302f945b741d2c39d95c51a20f5486fb" }),
+  authority: Object.freeze({ propositionId: "F83_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F83"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F83 · Experiment and change-impact",
+  input: "For one declared client: stored before and after measurements of a change, each with its date.",
+  expected: "[C1 · BEFORE AND AFTER DATED] Before and after values are stored with their dates.\n[C2 · NO CAUSE WITHOUT A CONTROL] The wording never says \"caused\" without a control group.",
+  failure: "[C1] A before or after value lacks its date. [C2] A line claims cause without a control group. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the real stored measurements paired. [C2] PROOF: a wording test over every printed line; real before/after data DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F83 moves only through the production validator and the audit trail.",
+  contractSha256: "dfceed40f7c7d4f1de502d2c505c1b76feaaf2dbd96153a2e95d54adc45348fb",
+});
+/* 🔴 F84 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F84 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file eae119e3…, contract 70079bbc…). */
+export const F84_ORIGINAL = Object.freeze({
+  featureId: "F84",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F84_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "eae119e38bbec39387ebd756b84d84b145f405cd32ea435e364bbc06bdfadace" }),
+  authority: Object.freeze({ propositionId: "F84_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F84"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F84 · Funnel and business outcomes",
+  input: "For one declared client: an outcome export the client supplies under a recorded consent (Owner answer Q3). The engine never connects to the client's analytics.",
+  expected: "[C1 · SUPPLIED AND CONSENTED ONLY] Outcomes are read only from a client-supplied, consented export.\n[C2 · NO EXPORT IS NOT MEASURED] No export reads NOT MEASURED, never 0.",
+  failure: "[C1] An outcome is read without consent, or from anywhere else. [C2] No export reads 0 or a number. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a planted export without consent refused (firing control); a fixture export linked. [C2] PROOF: the real client: NOT MEASURED, stated; a real export DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F84 moves only through the production validator and the audit trail.",
+  contractSha256: "70079bbc2ff48fcf79ff4556e76432883ecedd63c09a69ca8378ea9f7bd06bd4",
+});
+/* 🔴 F85 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F85 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 6b0ced90…, contract 5d0f87f9…). */
+export const F85_ORIGINAL = Object.freeze({
+  featureId: "F85",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F85_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "6b0ced904bd4e37a08d2203bcac60583d44bfd299bb7cba35dbd852d5afd8d8e" }),
+  authority: Object.freeze({ propositionId: "F85_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F85"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F85 · Controlled scaling and backpressure",
+  input: "For one declared client: its cohort records and each cohort's threshold, as stored.",
+  expected: "[C1 · NEXT COHORT WAITS FOR PROOF] The next cohort is refused while the last cohort's threshold is unmet.\n[C2 · A FAILED COHORT PAUSES] A failed cohort sets PAUSED.",
+  failure: "[C1] A next cohort starts while the last threshold is unmet. [C2] A failed cohort does not set PAUSED. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a planted unmet cohort refuses the next (firing control). [C2] PROOF: a test: a failed cohort sets PAUSED; real cohort results DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F85 moves only through the production validator and the audit trail.",
+  contractSha256: "5d0f87f91db594651e13507fff6423acd5233f19d682443cc9ecb5caeb471881",
+});
+/* 🔴 F89 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F89 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 21b0bbb0…, contract b1b8b0a8…). */
+export const F89_ORIGINAL = Object.freeze({
+  featureId: "F89",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F89_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "21b0bbb0d810d22e309231c048f5b921894489940e7c56e8303a46994db010d3" }),
+  authority: Object.freeze({ propositionId: "F89_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F89"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F89 · Final independent audit and done declaration",
+  input: "The board and every row's frozen acceptance, as committed.",
+  expected: "[C1 · A SEPARATE AUDITOR] Each row is checked against its frozen contract by a separate agent that did not build the row (Owner answer Q8).\n[C2 · EVERY DEFERRED CLAUSE LISTED] The declaration lists every deferred clause by row.\n[C3 · NO HIDDEN BLOCKER] No row hides a blocker: every row that is not VERIFIED is named with its reason.",
+  failure: "[C1] A row is checked by the agent that built it, or against anything but its frozen contract. [C2] A deferred clause is missing from the declaration. [C3] A row is left out or shown as done while it is not. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: the audit record names its auditor and the frozen contract of each row. [C2] PROOF: the declaration's deferred list equals the board's. [C3] PROOF: a board census. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F89 moves only through the production validator and the audit trail.",
+  contractSha256: "b1b8b0a8199b748dce9d9cd9523a39dd2c42812539ab39e427b3737e1c9e8faa",
+});
+/* 🔴 F95 · FROZEN 19 Oct 2026 (_handoffs 3848531, RR-291), committed before any F95 code: the owner-approved draft (RR-291 decision 1) carried under the four headings. Pinned from the committed blob by parseContract (file 93e070a7…, contract ac97974d…). */
+export const F95_ORIGINAL = Object.freeze({
+  featureId: "F95",
+  ruling: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_F95_ACCEPTANCE_2026-10-19.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "93e070a73dab2fba2fcf0edcb01b2c08f1b831373fbb6cc353c45202b0887532" }),
+  authority: Object.freeze({ propositionId: "F95_ACCEPTANCE", scope: Object.freeze(["ALMIVISIBILITY", "F95"]) }),
+  frozenOn: "2026-10-19",
+  feature: "F95 · Client-received question intake",
+  input: "For one declared client: a file of the questions its customers asked, supplied under a recorded consent, as stored.",
+  expected: "[C1 · CONSENTED, WORDING AND DATE KEPT] Intake is from a client-supplied file under a recorded consent, keeping the original wording and date.\n[C2 · KEPT APART] Client-received questions are counted and kept apart from public, research and owned search evidence.",
+  failure: "[C1] A question is taken without consent, or its wording or date is changed. [C2] A client-received question is counted as public, research or owned search evidence. And for any clause: it is proved only on an empty population when a real one is required, or only by a control that cannot fire.",
+  evidence: "[C1] PROOF: a planted file without consent refused (firing control); a fixture file taken in word for word. [C2] PROOF: a test: the counts stay apart; a real client file DEFERRED-TO-FIRST-CLIENT. Light proof (owner, 19 Oct 2026): one real run over real records plus the row's own tests, each with a firing control; a clause that needs what does not exist yet is DEFERRED-TO-FIRST-CLIENT, named, and never PROVED. F95 moves only through the production validator and the audit trail.",
+  contractSha256: "ac97974dc2a864df757a3cdd5a07db897a61fa206eda5163d3b38c80c8d3d0d3",
+});
 export const ACCEPTANCES = Object.freeze({
   F01: Object.freeze({
     featureId: "F01",
@@ -2034,4 +2411,33 @@ export const ACCEPTANCES = Object.freeze({
   F59: F59_ORIGINAL,
   F61: F61_ORIGINAL,
   F96: F96_ORIGINAL,
+  F14: F14_ORIGINAL,
+  F15: F15_ORIGINAL,
+  F17: F17_ORIGINAL,
+  F24: F24_ORIGINAL,
+  F28: F28_ORIGINAL,
+  F30: F30_ORIGINAL,
+  F51: F51_ORIGINAL,
+  F52: F52_ORIGINAL,
+  F53: F53_ORIGINAL,
+  F56: F56_ORIGINAL,
+  F57: F57_ORIGINAL,
+  F58: F58_ORIGINAL,
+  F63: F63_ORIGINAL,
+  F64: F64_ORIGINAL,
+  F65: F65_ORIGINAL,
+  F66: F66_ORIGINAL,
+  F67: F67_ORIGINAL,
+  F68: F68_ORIGINAL,
+  F69: F69_ORIGINAL,
+  F70: F70_ORIGINAL,
+  F71: F71_ORIGINAL,
+  F72: F72_ORIGINAL,
+  F76: F76_ORIGINAL,
+  F80: F80_ORIGINAL,
+  F83: F83_ORIGINAL,
+  F84: F84_ORIGINAL,
+  F85: F85_ORIGINAL,
+  F89: F89_ORIGINAL,
+  F95: F95_ORIGINAL,
 });

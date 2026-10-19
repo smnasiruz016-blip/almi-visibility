@@ -43,6 +43,8 @@ const jsonl = (p) => (existsSync(p) ? readFileSync(p, "utf8").split("\n").filter
 /* Each connector entry point in its CONNECTOR mode, with arguments that pass every usage check — written by hand; A2-1 proves the set
  * is exactly the census population. */
 const CONNECTOR_MODE = Object.freeze([
+  /* RR-291: F16 C7 / F63 through the engine's own browser route (bin/answer-surfaces.mjs) — one more connector entry point */
+  ["bin/answer-surfaces.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
   ["bin/collect-public-questions.mjs", [S, `--research-batch=${BATCH}`]],
   ["bin/crawl.mjs", [`--research-batch=${BATCH}`, S, "--live", "--i-have-the-owners-green"]],
   ["bin/gsc-ingest.mjs", ["--property=sc-domain:fixture-world.invalid", S]],
@@ -117,6 +119,7 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
   assert.deepEqual(rows.map((r) => r.file), CONNECTOR_MODE.map(([f]) => f), "the hand-written connector-mode table is not the census population");
   /* written by hand: each entry point's connector mode and the kinds of every way it can end before its gate */
   const expected = {
+    "bin/answer-surfaces.mjs": ["live", ["USAGE"]],
     "bin/collect-public-questions.mjs": ["ALWAYS", ["SEAM", "USAGE"]],
     "bin/crawl.mjs": ["live", ["USAGE", "USAGE", "CONFINEMENT", "CONFINEMENT"]],
     "bin/gsc-ingest.mjs": ['arg("source") === null', []],

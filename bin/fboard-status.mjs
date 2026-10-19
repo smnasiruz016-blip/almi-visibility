@@ -15,6 +15,8 @@ import { DECLARED } from "../config/fboard/f-board.mjs";
 import { AUTHORITY_CORPUS, CORPUS_PROVENANCE } from "../config/authority/corpus.mjs";
 import { buildBoard, boardErrors, progress } from "../src/fboard/board.mjs";
 import { deferredRows, deferredLine } from "../src/fboard/deferred.mjs";
+import { doneDeclaration, declarationLines } from "../src/fboard/done-declaration.mjs";
+import { NOT_REQUIRED } from "../config/fboard/required-path.mjs";
 
 const now = process.argv.find((a) => a.startsWith("--now="))?.slice(6) ?? CORPUS_PROVENANCE.now;
 export function fboardStatus(now) {
@@ -30,5 +32,7 @@ console.log(`F-progress: ${s.required.passed}/${s.required.denominator} (require
 console.log(deferredLine(deferredRows(s.board)));
 const deferredOf = new Map(deferredRows(s.board).map((d) => [d.featureId, d.deferred.length]));
 for (const r of s.board.filter((x) => x.state !== "UNASSESSED")) console.log(`  ${r.featureId} ${r.state}${deferredOf.has(r.featureId) ? ` (${deferredOf.get(r.featureId)} deferred)` : ""}${r.blocker ? ` — ${r.blocker}` : ""}`);
+/* F89 (RR-291): --declaration prints the done declaration — every deferred clause by row, every row not VERIFIED with its recorded reason */
+if (process.argv.includes("--declaration")) for (const l of declarationLines(doneDeclaration(s.board, { notRequired: NOT_REQUIRED }))) console.log(l);
 for (const e of s.errors) console.log(`  ERROR ${e.code} ${e.id ?? ""} — ${e.why}`);
 if (process.argv.includes("--check") && s.errors.length) process.exit(1);

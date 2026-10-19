@@ -106,10 +106,11 @@ test("C8-1 · the census: every entry point the F03 census finds opening a conne
   /* RR-268 (re-measured): 11 -> 12 — F44's source reader (bin/source-facts.mjs) opens a connector; metered, its own recorder, its own ledger */
   /* F27 Amendment 3 (re-measured): 12 -> 13 — the bounded live check of the client's LIVE pages (bin/live-security.mjs) opens a connector; metered, its own recorder, its own ledger */
   /* F22 Amendment 1 (re-measured): 13 -> 14 — the renders of the client's built pages (bin/render-built-pages.mjs) open a connector in live mode; metered, its own recorder, its own ledger */
-  assert.equal(rows.length, 14, "the population moved — re-measure");
+  /* RR-291 (re-measured): 14 -> 15 — F16 C7 / F63 through the engine's own browser route (bin/answer-surfaces.mjs) opens a connector in live mode; metered, its own recorder, its own ledger */
+  assert.equal(rows.length, 15, "the population moved — re-measure");
   /* RR-263: + 1 connector site, bin/link-status.mjs = 13 · RR-268: + 1, bin/source-facts.mjs = 14 · F27 A3: + 1, bin/live-security.mjs = 15 */
   /* F22 A1: + 1, bin/render-built-pages.mjs = 16 */
-  assert.equal(rows.reduce((n, r) => n + r.sites, 0), 16);
+  assert.equal(rows.reduce((n, r) => n + r.sites, 0), 17); /* RR-291: bin/answer-surfaces.mjs, one opening site — 16 -> 17 */
   for (const r of rows) assert.deepEqual([r.metered, r.recorder, r.ownLedger], [true, true, true], `${r.file} is not complete`);
   /* FIRING CONTROL: a stand-in entry point that opens a connector bare, records under another name and names the shared ledger */
   const planted = [{ file: "bin/planted.mjs", text: 'const SCOPE = scopedEntryPoint({ entry: "bin/planted.mjs", governed: true, resources: [RESOURCES.connector(S, "PUBLIC_SITE"), RESOURCES.costLedger()] });\nconst RUN_COST = runCost({ entryPoint: "bin/elsewhere.mjs", scope: SCOPE });\nconst C = openConnector({ scope: SCOPE, subjectId: S, kind: "PUBLIC_SITE" });\n' }];

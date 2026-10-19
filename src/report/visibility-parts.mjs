@@ -9,8 +9,10 @@ import { demandEvidence } from "../research/demand-observation-evidence.mjs";
 import { needMeasure, supplyMeasure, visibilityMeasure, demandMeasure, demandEvidenceOf } from "../research/four-measures.mjs";
 import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
 import { renderReport } from "./visibility-report-html.mjs";
-import { KINDS, consentGate, evidenceCounts } from "../intake/client-supplied.mjs";
+import { KINDS, consentGate, evidenceCounts } from "../research/client-supplied.mjs";
 import { crawlItem, diffRuns } from "./change-and-scale.mjs";
+import { loadPlaywright, startDocumentServer, launchOfflineChromium } from "../render/renderer.mjs";
+import { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED as LAB_NOT_MEASURED } from "../render/lab-speed.mjs";
 import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-exports.mjs";
 import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
 import { inferFollowUps, competitorsOf, inferDifficulty, DIFFICULTY_METHOD, INFERRED, napOf, napConsistency, benchmark } from "../research/follow-ups-and-competitors.mjs";
@@ -151,8 +153,7 @@ export const PARTS = Object.freeze({
   "page-speed": Object.freeze({
     title: "F24 · PAGE SPEED (LAB, LOCAL)",
     run: async (io) => {
-      const { loadPlaywright, startDocumentServer, launchOfflineChromium } = await import("../render/renderer.mjs");
-      const { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED: NM } = await import("../render/lab-speed.mjs");
+      const NM = LAB_NOT_MEASURED;
       const latest = new Map();
       for (const r of io.rows("live-pages.jsonl").sort((a, b) => String(a.recorded_at).localeCompare(String(b.recorded_at)))) if (r.url && r.html) latest.set(r.url, r.html);
       const documents = [...latest].sort(([a], [b]) => a.localeCompare(b)).map(([url, html]) => ({ url, html }));

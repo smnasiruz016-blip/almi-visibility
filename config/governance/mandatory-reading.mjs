@@ -120,7 +120,7 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-28_61_89_ARTIFACT_TRANSFER_FEATURE_LISTS_NEXT_FEATURE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-09-28_COMPLETE_ROWS_WITH_WORK_ONE_BY_ONE.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_RULING_2026-09-28_SPECIFICATION_AMENDMENT_1_F90.md", loader: "authority register (CURRENT record) — Specification Amendment 1: F90, denominator 90" }),
-  Object.freeze({ repo: "governance", path: "AlmiVisibility_F14_ACCEPTANCE_2026-09-28.md", loader: "authority register (CURRENT record) — F14 acceptance, frozen; F14 PAUSED by owner decision 2" }),
+  /* RR-291: AlmiVisibility_F14_ACCEPTANCE_2026-09-28.md left the required set — superseded by the RR-291 F14 acceptance (never pinned) */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F19_ACCEPTANCE_2026-09-28.md", loader: "authority register (CURRENT record) — F19 acceptance, frozen; F19 PARKED pending the owner's GREEN for a live crawl" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F06_FROZEN_ACCEPTANCE_2026-09-24.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F07_FROZEN_ACCEPTANCE_2026-09-23.md", loader: "F-board acceptance F07" }),
@@ -348,7 +348,7 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-141_COMPLETE_F25_ONLY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-142_FRESH_WINDOW_COMPLETE_F25_ONLY.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-143_F25_ONLY_REPLACE_THE_IMPOSSIBLE_RENDER_PLAN.md", loader: "authority register (CURRENT record)" }),
-  Object.freeze({ repo: "governance", path: "AlmiVisibility_F30_ACCEPTANCE_2026-10-03.md", loader: "authority register (CURRENT record)" }),
+  /* RR-291: AlmiVisibility_F30_ACCEPTANCE_2026-10-03.md left the required set — superseded by the RR-291 F30 acceptance (never pinned) */
   /* RR-145 (3 Oct 2026): the two CURRENT records admitted by the migration at _handoffs dd91e92 — command RR-145 and the owner's
    * product-scope decision, the authority Board Amendment 1 (config/fboard/required-path.mjs) is pinned to. */
   Object.freeze({ repo: "governance", path: "AlmiVisibility_CC_COMMAND_2026-10-03_RR-145_OWNER_PRODUCT_SCOPE_CORRECTION_F25_LEAVES_THE_REQUIRED_PATH.md", loader: "authority register (CURRENT record)" }),

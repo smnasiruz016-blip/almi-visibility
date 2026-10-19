@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { KINDS, consentGate, crawlerReport, reviewSummary, reviewWritersCensus, outcomesByPage, intakeQuestions, evidenceCounts, CLIENT_RECEIVED, NOT_MEASURED } from "../src/intake/client-supplied.mjs";
+import { KINDS, consentGate, crawlerReport, reviewSummary, reviewWritersCensus, outcomesByPage, intakeQuestions, evidenceCounts, CLIENT_RECEIVED, NOT_MEASURED } from "../src/research/client-supplied.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 

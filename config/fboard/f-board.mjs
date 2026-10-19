@@ -4575,7 +4575,7 @@ export const DECLARED = Object.freeze({
         lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
         populations: "REAL: the client's manifest names no server log — NOT MEASURED, never 0; a planted log without consent refused",
-        proofs: "test/f28-f65-f84-f95-client-supplied.test.mjs (consent gate, F28 C2 fixture, REAL), src/intake/client-supplied.mjs, bin/visibility-parts.mjs --part=client-supplied",
+        proofs: "test/f28-f65-f84-f95-client-supplied.test.mjs (consent gate, F28 C2 fixture, REAL), src/research/client-supplied.mjs, bin/visibility-parts.mjs --part=client-supplied",
         sabotage: "none new: light proof rule 2 (one real run plus its own tests with firing controls)",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),

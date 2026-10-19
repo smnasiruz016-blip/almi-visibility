@@ -4157,8 +4157,8 @@ export const DECLARED = Object.freeze({
     state: "ACCEPTANCE-FROZEN",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F96_ORIGINAL.ruling, contractSha256: F96_ORIGINAL.contractSha256 }),
-      /* RR-287 task G: frozen only — no build now (beta-g decision G). AlmiOET is NOT APPLICABLE by name: it sells a subscription, no listed
-       * product. The row stays open, waiting for a declared client that sells listed products and files its own feed, listing export and crawl. */
+      /* RR-287 task G: frozen only — no build now (beta-g decision G). The declared product is NOT APPLICABLE by name in the acceptance: it sells a subscription, no
+       * listed product. The row stays open, waiting for a declared client that sells listed products and files its own feed, listing export and crawl. */
     ]),
   }),
 });

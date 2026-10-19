@@ -144,6 +144,29 @@ export const PARTS = Object.freeze({
       ];
     },
   }),
+  /* F24 · src/render/lab-speed.mjs — the local lab over the client's own stored page HTML; field data its own kind */
+  "page-speed": Object.freeze({
+    title: "F24 · PAGE SPEED (LAB, LOCAL)",
+    run: async (io) => {
+      const { loadPlaywright, startDocumentServer, launchOfflineChromium } = await import("../render/renderer.mjs");
+      const { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED: NM } = await import("../render/lab-speed.mjs");
+      const latest = new Map();
+      for (const r of io.rows("live-pages.jsonl").sort((a, b) => String(a.recorded_at).localeCompare(String(b.recorded_at)))) if (r.url && r.html) latest.set(r.url, r.html);
+      const documents = [...latest].sort(([a], [b]) => a.localeCompare(b)).map(([url, html]) => ({ url, html }));
+      const lab = await runLab({ documents, pw: await loadPlaywright(), on: io.on ?? new Date().toISOString().slice(0, 10), startDocumentServer, launchOfflineChromium });
+      if (lab.unavailable) return [`LAB  NOT MEASURED — ${lab.unavailable}`];
+      const field = io.rows("field-speed.jsonl");
+      const findings = documents.map((d) => speedFinding(d.url, [...lab.records, ...field]));
+      const med = (k) => { const v = lab.records.map((r) => r.metrics[k]).filter((x) => typeof x === "number").sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : NM; };
+      return [
+        `LAB    ${lab.records.length} page(s) · tool ${lab.tool} · device ${DEVICE.name} · date ${lab.records[0]?.on ?? "-"}`,
+        `bound  ${LAB_BOUND}`,
+        `median FCP ${med("fcpMs")} ms · LCP ${med("lcpMs")} ms · CLS ${med("cls")} · load ${med("loadMs")} ms · DOM nodes ${med("domNodes")}`,
+        `FIELD  ${field.length ? `${field.length} record(s)` : `${NM} — no field data supplied (it needs the client's own key or export)`}; pages with field data ${findings.filter((f) => f.field !== NM).length} of ${findings.length}`,
+        ...(io.list ? findings.map((f) => `  ${f.url} · lab LCP ${f.lab.metrics?.lcpMs ?? NM} ms · field ${f.field === NM ? NM : "present"}`) : []),
+      ];
+    },
+  }),
   /* F67 · the quick sample — the same checks */
   "score-quick": Object.freeze({
     title: "F67 · VISIBILITY SCORE (QUICK)",

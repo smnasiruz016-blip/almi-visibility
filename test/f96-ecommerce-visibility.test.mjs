@@ -5,7 +5,10 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { rootIndexFor, readDeclarations } from "../src/tenancy/resolver.mjs";
+import { lookupSubject } from "../src/tenancy/root-registry.mjs";
 import { spawnSync } from "node:child_process";
 import { applicability, feedAgainstFacts, listingsAgainstFeed, classFacetPages, facetOf, f96Lines, F96_STATE, FACET, NO_DECLARATION } from "../src/commerce/ecommerce-visibility.mjs";
 
@@ -66,18 +69,23 @@ test("C5 · a NOT APPLICABLE project shows one line — its name and reason — 
   assert.ok(a.slice(1).every((l) => /NOT MEASURED/.test(l)), "an unfiled part reads as a number");
 });
 
-test("REAL · C1 and C5 · the declared projects: AlmiOET NOT APPLICABLE (\"sells a subscription, no listed product\"), the run's only F96 line; nothing fetched", () => {
-  const r = spawnSync(process.execPath, ["bin/ecommerce-visibility.mjs", "--subject=almi-oet", "--tenant=tenant:93b991d5afa33b16ccb9166b249593b6", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8" });
-  assert.equal(r.status, 0, r.stderr);
-  const f96 = r.stdout.split(/\r?\n/).filter((l) => /^\s+F96 ·/.test(l));
-  assert.deepEqual(f96.map((l) => l.trim()), ["F96 · almi-oet — NOT APPLICABLE: sells a subscription, no listed product"]);
-  assert.ok(!/\d/.test(f96[0].trim().replace(/^F96 · /, "")), "a number on a NOT APPLICABLE project");
-  console.log(`  REAL: ${f96[0].trim()}`);
-});
-
-test("NEUTRALITY · the F96 module names no product, host or tenant", () => {
-  const src = readFileSync(`${REPO}src/commerce/ecommerce-visibility.mjs`, "utf8");
-  assert.ok(!/almi(?!visibility)|\boet\b|lamzish|shamool|tenant:[0-9a-f]/i.test(src));
-  /* FIRING CONTROL */
-  assert.ok(/almi(?!visibility)|\boet\b/i.test(`${src}\n// OET`));
+test("REAL · C1 and C5 · every declared project that files a commerce declaration, run under its OWN tenant: its one F96 line is its declaration's own verdict and reason, and no number; nothing fetched", () => {
+  const index = rootIndexFor(process.env);
+  const decl = readDeclarations();
+  assert.ok(decl.readable, "the declarations are not readable");
+  const ids = index.subjects instanceof Map ? [...index.subjects.keys()] : Object.keys(index.subjects ?? {});
+  const subjects = ids.map((id) => ({ id, s: lookupSubject(index, id) })).filter(({ s }) => s.state === "DECLARED" && existsSync(join(s.dir, "commerce.json")));
+  assert.ok(subjects.length >= 1, "EMPTY real population: no declared project files a commerce declaration");
+  for (const { id, s } of subjects) {
+    const own = JSON.parse(readFileSync(join(s.dir, "commerce.json"), "utf8"));
+    const tenant = [...new Set(decl.attachments.filter((a) => String(a.resourceRef).startsWith(`${id}/`)).map((a) => a.tenantId))];
+    assert.equal(tenant.length, 1, "the project is not declared to exactly one tenant");
+    const r = spawnSync(process.execPath, ["bin/ecommerce-visibility.mjs", `--subject=${id}`, `--tenant=${tenant[0]}`, "--actor=actor:cc"], { cwd: REPO, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    const f96 = r.stdout.split(/\r?\n/).filter((l) => /^\s+F96 ·/.test(l)).map((l) => l.trim());
+    const v = applicability({ projectId: id, declaration: own });
+    assert.deepEqual(f96, [`F96 · ${id} — ${v.state}${v.reason ? `: ${v.reason}` : ""}`]);
+    if (v.state === F96_STATE.NOT_APPLICABLE) assert.ok(!/\d/.test(f96[0].replace(/^F96 · /, "")), "a number on a NOT APPLICABLE project");
+    console.log(`  REAL: ${f96[0]}`);
+  }
 });

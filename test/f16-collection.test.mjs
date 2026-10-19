@@ -350,7 +350,8 @@ test("REAL · the real data root: collection runs and collected questions per de
   });
   console.log(`REAL · ${out.length} declared subject(s) · ${JSON.stringify(out)}`);
   assert.equal(out.reduce((a, x) => a + x.fixture, 0), 0, "a fixture run entered the real population");
-  assert.equal(buildBoard(CAPABILITIES, DECLARED).find((r) => r.featureId === "F16").state, "IN-PROGRESS");
+  /* RR-290 T4: F16 VERIFIED under the completion rule and light proof rule 3 (11 deferred: C7, C17–C26) — the real counts above are unchanged */
+  assert.equal(buildBoard(CAPABILITIES, DECLARED).find((r) => r.featureId === "F16").state, "VERIFIED-PASS");
 });
 
 test("the production trail is untouched by every proof above", () => {

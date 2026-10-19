@@ -98,10 +98,11 @@ test("A3·5 · F91 ENTERED UNASSESSED with no events or acceptance; its only mov
   assert.equal(acc.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_7_2026-10-19.md", "F91 carries an acceptance that is not its own");
   assert.equal(acc.amends.ruling.path, "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_6_2026-10-18.md", "F91's amendment does not amend F91's own previous acceptance");
   assert.ok(acc.frozenOn > "2026-09-30", "F91's acceptance predates the amendment that brought it in");
-  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED"]);
+  assert.deepEqual(DECLARED.F91.events.map((e) => e.kind), ["ACCEPTANCE_FROZEN", "IMPLEMENTATION", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "ACCEPTANCE_AMENDED", "VERIFIED"]); /* RR-290: F91 VERIFIED (1 deferred: C19's real limb) */
   assert.deepEqual([DECLARED.F91.events[2].on, DECLARED.F91.events[3].on, DECLARED.F91.events[4].on, DECLARED.F91.events[5].on, DECLARED.F91.events[6].on, DECLARED.F91.events[7].on, DECLARED.F91.events[8].on], ["2026-10-02", "2026-10-03", "2026-10-05", "2026-10-05", "2026-10-17", "2026-10-18", "2026-10-19"]);
   assert.deepEqual([DECLARED.F91.events[0].on, DECLARED.F91.events[1].from, DECLARED.F91.events[1].to], ["2026-10-01", "UNASSESSED", "IN-PROGRESS"]);
-  assert.equal(row.state, "IN-PROGRESS");
-  assert.ok(!row.events.some((e) => e.kind === "VERIFIED"), "F91 was verified");
+  /* RR-290 T2: F91 VERIFIED under the completion rule and light proof rule 3 — on its own Amendment 7, with C19's real limb deferred */
+  assert.equal(row.state, "VERIFIED-PASS");
+  assert.equal(row.events.filter((e) => e.kind === "VERIFIED").length, 1, "F91 verified more than once");
   assert.equal(CROSSWALK.entries.find((e) => e.featureId === "F91").acceptanceRelation, "NEW");
 });

@@ -50,6 +50,8 @@ import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.m
 import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { approvedPlan, plannedPages, approvedKeys, allSlugsOverPlan } from "../src/page/plan-batch.mjs";
+import { acceptByPageGates, costGate } from "../src/page/page-gates.mjs";
+import { GUIDANCE } from "../config/guidance/guidance-read.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
@@ -125,6 +127,9 @@ try {
 
 const outDir = confineToRepo(flag("out"), { label: "--out" });
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
+/* PAGE-1 gate D: the run's cost, recorded before construction starts */
+const RUN_COST_ENTRY = Object.freeze({ recorded_at: new Date().toISOString(), money: Object.freeze({ amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "a local page construction: no request, no paid call" }), requests: 0 });
+const RUN_STARTED_AT = new Date(Date.now() + 1).toISOString();
 if (outDir) announceWritePermission(permission);
 
 const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
@@ -189,7 +194,12 @@ if (argv.includes("--all-slugs")) {
 }
 console.log(`F35 decisions         ${chosen.decisions.length} chosen CREATE (${chosen.decisions.filter((d) => d.spec).length} compiled) · section proposals ${ae.compiled?.sectionProposals?.length ?? 0}${chosen.why ? ` — ${chosen.why}` : ""}`);
 
-const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, plans /* F37 C8: F94's plans; a draft with none says so */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
+const constructed = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, plans /* F37 C8: F94's plans; a draft with none says so */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
+/* 🔴 PAGE-1 (RR-294 beta-g decision C): the five page gates are this runner's acceptance step — every page construction accepted is judged in
+ * the form it would go live; one that fails any gate is REFUSED, its HTML withdrawn so nothing of it is written, each failing check named.
+ * The run is costed before construction starts (gate D): a local build, no request, no paid call. */
+const results = acceptByPageGates(constructed, { itemsOf: (c) => (Array.isArray(c.trace) ? [...Map.groupBy(c.trace, (t) => t.needId)].map(([needId, claims]) => ({ needId, heading: { wording: needId }, claims })) : null), guidance: GUIDANCE, on: new Date().toISOString().slice(0, 10), cost: costGate({ entry: RUN_COST_ENTRY, startedAt: RUN_STARTED_AT, budget: { money: 0, currency: "USD", requests: 0 } }), urlOf: (c) => `https://preview.invalid/${c.slug}/`, site: { robotsTxt: "User-agent: *\nAllow: /\n", sitemapUrls: constructed.map((c) => `https://preview.invalid/${c.slug}/`), serve: (path) => ({ status: constructed.some((c) => `/${c.slug}` === path.replace(/\/$/, "")) ? 200 : 404 }) } });
+for (const c of results.filter((x) => x.pageGates === "REFUSED")) console.log(`  PAGE GATES REFUSED ${c.slug}: ${c.rejects.filter((r) => r.part === "pageGates").map((r) => r.reason).join(" · ")}`);
 /* C6 — one recorded decision per candidate the check judged, through this run's own guard sink, exactly once. */
 const judgedInConstruction = new Set();
 for (const c of results) {
@@ -224,7 +234,7 @@ for (const c of results) {
   for (const n of c.notTested) console.log(`  ${NOT_TESTED}  ${n.part}: ${n.reason}`);
   if (c.parts.facts?.notVerified.length) console.log(`  cited but not VERIFIED: ${c.parts.facts.notVerified.join(" · ")}`);
   if (c.parts.whyThisUrl) console.log(`  ${c.parts.whyThisUrl.notEnforced}`);
-  console.log(`  ${c.pageOne.id} ${c.pageOne.state}: ${c.pageOne.statement} — missing: ${c.pageOne.missingGateFamilies.join(", ")}`);
+  console.log(`  ${c.pageOne.id} ${c.pageOne.state}: ${c.pageOne.statement} — missing: ${c.pageOne.missingGateFamilies.join(", ") || "none"}`);
   console.log(`  §5A fact text copied into the spec: ${c.copies.length} DETECTED · ${c.copiesNotTested.length} value(s) NOT TESTED · ${c.copiesFullyChecked} fully checked and clean`);
   for (const n of c.copiesNotTested) console.log(`    NOT TESTED  ${n.claimId} (${n.field}): ${n.reason}`);
 }

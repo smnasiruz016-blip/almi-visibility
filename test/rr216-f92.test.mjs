@@ -271,8 +271,8 @@ const OTHER_ROWS = Object.freeze({
   "src/audit/indexability-reader.mjs": "ece3a59630ac652ea555f88c14b56c0ff2a17f4eac043723b13957b007b6d9b3",
   "src/adapter/sitemap-subject.mjs": "a40673d45c94c5559465bd0aa0396e7d8753628983d26972821e712478b8ec05",
   "src/page/draft-render.mjs": "fa5ebe27a4dbc8499be502bdfc302b8f584b0ca12b436f95f99f962a99c54a3b",
-  "src/page/construct.mjs": "24d1fc41da3ada728b5218d33a54d510994df9f9a72a001e9ceafe97dd440b4f",
-  "bin/build-page.mjs": "a4936f901310d918f2870697417c16b5c8bfdfcb380c9f17e93db2e3fc86c5dd", /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F92 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
+  "src/page/construct.mjs": "075c6c1d31228dfe248a679130f200e4861decfe007c353a789edbf7c2159561", /* RR-294: PAGE-1 SATISFIED (the five gates are build-page's acceptance step) */
+  "bin/build-page.mjs": "76fc84e122acb6152f0cae27bb88ff4f7a96c0694195910b0368802b139a6ec3", /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F92 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/page/answer-first.mjs": "b5f49a4990243970152ddc1af14dbe6e73b0cb692d512b41b10f68a282114a1f",
   "src/page/answer-first-evidence.mjs": "7f5e9748bfa666ad97edd4c758999b1f1eedb3ad52aadc9a0b447e64d0ca8c2d",
   "src/page/quality-judgements.mjs": "f4511418885bfbb3994e842dd6ba42610e49b8e6368401f0791ca79cb482fda2",

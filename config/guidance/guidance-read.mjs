@@ -2,6 +2,7 @@
  * 🔴 RTP-1 P20 · THE GUIDANCE READ (owner decision 2 of RR-293 and its addition) — the quotes the page gates rest on (src/page/page-gates.mjs).
  * Each quote is one sentence, checked word for word against the page text read on 2026-10-19, with its page, attribution, licence as stated,
  * the sha256 of the text read, and its freshness window: after validUntil the checks that rest on it REFUSE until it is read again.
+ * RR-294 decision E: the Bing Webmaster Guidelines are read from the owner's client file (never fetched), quotes B1–B7.
  * No page text is kept here. The full record: _handoffs AlmiVisibility_GUIDANCE_READ_2026-10-19.json.
  */
 export const GUIDANCE = Object.freeze({
@@ -165,8 +166,10 @@ export const GUIDANCE = Object.freeze({
    "id": "bing-webmaster-guidelines",
    "company": "Microsoft",
    "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
-   "state": "BLOCKED",
-   "reason": "CHALLENGE_PAGE (a bot check) — not worked around"
+   "state": "READ",
+   "readOn": "2026-10-19",
+   "sha256Text": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "note": "BLOCKED on the web (a bot check, RR-293); read from the owner's client file (RR-294 decision E)"
   }
  ],
  "quotes": [
@@ -417,6 +420,99 @@ export const GUIDANCE = Object.freeze({
    "licence": "no licence stated on the page — one short sentence quoted, with attribution",
    "readOn": "2026-10-19",
    "textSha256": "6dea6e300aa93a2167053d988a0163e33ab04dae81c1b1000b7d6bed800f8b00",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B1",
+   "quote": "Avoid serving the same content across multiple URLs.",
+   "gates": [
+    "A",
+    "B"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B2",
+   "quote": "Missing, duplicate, or overly short title tags and meta descriptions may reduce indexing reliability, ranking, and eligibility for grounding results and citations.",
+   "gates": [
+    "C"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B3",
+   "quote": "Ensure each important URL is reachable through crawlable internal links.",
+   "gates": [
+    "C"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B4",
+   "quote": "Avoid long introductions before addressing the main topic.",
+   "gates": [
+    "C"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B5",
+   "quote": "Markup must accurately reflect visible content.",
+   "gates": [
+    "C"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B6",
+   "quote": "Content should be created for users, not to manipulate ranking systems or trigger citations or AI responses.",
+   "gates": [
+    "A",
+    "C"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
+   "validUntil": "2027-04-17"
+  },
+  {
+   "id": "B7",
+   "quote": "Use XML sitemaps to indicate which URLs matter and when content changes.",
+   "gates": [
+    "C"
+   ],
+   "url": "client-file:_handoffs/client-files/bing-guidelines.txt",
+   "attribution": "Microsoft, Bing Webmaster Guidelines (text supplied by the owner as a client file)",
+   "licence": "no licence stated in the supplied text — one short sentence quoted, with attribution",
+   "readOn": "2026-10-19",
+   "textSha256": "8aa99f16f43d12e509752ea0a17c034ee9cc73789db29b1dd298325d0445186a",
    "validUntil": "2027-04-17"
   }
  ]

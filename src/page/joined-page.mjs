@@ -78,6 +78,9 @@ export const REFUSAL = Object.freeze({
   NOT_APPROVED: "PRODUCT_STATEMENT_IS_NOT_AN_APPROVED_ANSWER",
   NO_SITE: "PRODUCT_DECLARES_NO_OFFICIAL_SITE_TO_LINK",
   KEY_FACT: "KEY_FACT_VALUE_IS_NOT_IN_ITS_RECORDED_CLAIM",
+  /* RR-294 (the owner's addition 1): a card's shown value must stand WORD FOR WORD in its claim's own verbatim quotation of the source —
+   * our restatement of the claim is not the source, and a value that is only in it is refused */
+  KEY_FACT_QUOTE: "KEY_FACT_VALUE_IS_NOT_IN_ITS_VERBATIM_QUOTATION",
   CONVERSION: "CONVERSION_WITHOUT_ITS_AMOUNT_IN_THE_CLAIM_OR_ITS_DATED_SOURCED_RATE",
   STALE_RATE: "CONVERSION_RATE_IS_STALE_AND_MUST_BE_REFRESHED",
   COMPARISON: "COMPARISON_CELL_IS_NOT_IN_ITS_RECORDED_CLAIM_OR_NAMES_NO_SHOWN_CONVERSION",
@@ -223,12 +226,16 @@ export function titleWordsTraced({ title, phrases = [], lastChecked = null }) {
 
 /** Law 3 · key-fact cards: a recorded value that stands, word for word, inside the recorded claim it names, under that item's own recorded
  * question; anything else is refused. */
-export function keyFactCards({ facts = [], items = [] }) {
+export function keyFactCards({ facts = [], items = [], quotationOf = null }) {
   const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId, question: it.heading.shown ?? it.heading.wording }])));
   const cards = [], refused = [];
+  /* word for word: the same words in the same order — whitespace collapsed and letter case folded, nothing else */
+  const flat = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
   for (const f of facts) {
     const c = claims.get(f?.claimId);
     if (!c || !present(f.value) || !String(c.text ?? "").includes(f.value)) { refused.push(Object.freeze({ claimId: f?.claimId ?? null, code: REFUSAL.KEY_FACT })); continue; }
+    /* RR-294: with the quotations handed in, the value must stand in its claim's own verbatim quotation (whitespace only collapsed) */
+    if (typeof quotationOf === "function" && !flat(quotationOf(c.claimId)).includes(flat(f.value))) { refused.push(Object.freeze({ claimId: c.claimId, code: REFUSAL.KEY_FACT_QUOTE, value: f.value.trim(), quotation: flat(quotationOf(c.claimId)) || null })); continue; }
     cards.push(Object.freeze({ claimId: c.claimId, needId: c.needId, label: c.question, value: f.value.trim(), source: c.source, link: c.link, readOn: c.readOn }));
   }
   return Object.freeze({ cards: Object.freeze(cards), refused: Object.freeze(refused) });
@@ -287,9 +294,18 @@ export function comparisonTables({ tables = [], items = [], converted = [] }) {
 }
 
 /** Law 6 · the FAQPage data: exactly the visible questions and the visible answer text of each item. */
-export function faqOf(items) {
-  return Object.freeze(items.map((it) => Object.freeze({ question: it.heading.shown ?? it.heading.wording, answer: it.claims.filter((c) => present(c.text)).map((c) => c.text.trim()).join(" ") })));
+export function faqOf(items, converted = []) {
+  /* RR-294 (the owner's addition 2): a question that ASKS in the reader's currency ("in rupees") is answered in it in the FAQ too — its dated
+   * estimate first, as on the page. Any other answer's FAQ data stays the source's words alone (RR-256: an estimate is not the answer). */
+  return Object.freeze(items.map((it) => {
+    const mine = converted.filter((v) => it.claims.some((c) => c.claimId === v.claimId));
+    const lead = asksForCurrency(it.heading.wording, mine) ? mine.map((v) => v.text) : [];
+    return Object.freeze({ question: it.heading.shown ?? it.heading.wording, answer: [...lead, ...it.claims.filter((c) => present(c.text)).map((c) => c.text.trim())].join(" ") });
+  }));
 }
+/** RR-294: a question that asks for the reader's currency (e.g. "in rupees") — its answer leads with the converted figure. */
+export const asksForCurrency = (wording, converted) => converted.some((v) => new RegExp(`\\b(${v.to}|${CURRENCY_WORDS[v.to] ?? v.to})\\b`, "i").test(String(wording ?? "")));
+const CURRENCY_WORDS = Object.freeze({ PKR: "rupees?" });
 
 /**
  * JOIN · one page per page candidate, from F35's construction set, under the page law.
@@ -307,7 +323,7 @@ export function faqOf(items) {
  *   leadOf         what a need is RECORDED to lead with (LEAD), or null (RR-262)
  */
 export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
-  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, checkedNotFoundOf = () => [], fillerPhrases = [], relatedFor = () => [] }) {
+  design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, checkedNotFoundOf = () => [], fillerPhrases = [], relatedFor = () => [], quotationOf = null }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
   for (const c of construction) {
@@ -346,12 +362,12 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const fallback = (first.some((it) => it.heading.tier === "OBSERVED") ? first.filter((it) => it.heading.tier === "OBSERVED") : first).map((it) => it.heading);
     const title = composed.title ?? fallback.map((h) => h.wording).join(" · ");
     const titleTrace = composed.title ? composed.trace : Object.freeze(fallback.map((h) => Object.freeze({ part: h.wording, from: `recorded-question:${h.questionId}` })));
-    const kf = keyFactCards({ facts: keyFactsFor(value), items });
+    const kf = keyFactCards({ facts: keyFactsFor(value), items, quotationOf });
     const cv = conversions({ rates: ratesFor(value), items, on });
     const cmp = comparisonTables({ tables: comparisonsFor(value), items, converted: cv.shown });
     const recheck = Object.freeze(Object.fromEntries(items.flatMap((it) => it.claims.map((c) => [c.claimId, recheckOf(c.claimId) ?? null]))));
     const unanswered = Object.freeze([...unansweredFor(value)]);
-    const faq = faqOf(items);
+    const faq = faqOf(items, cv.shown);
     const intro = Object.freeze([present(productLine) ? productLine.trim() : null, `${items.length} question${items.length === 1 ? "" : "s"} answered below, each with its source.`].filter(Boolean));
     /* RR-286: the page's internal links, from the batch's filed link plan (F94's rule: the hub and every recorded page of the same need) */
     const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown, related: relatedFor(value) });
@@ -594,9 +610,13 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const productCards = (it) => it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p>${cta}</div>`);
   /* an item that leads with the product's own statements: its cards, then ONE call-to-action button for the item */
   const leadCards = (it) => [...it.statements.map((s) => `<div class="product" data-answer-id="${esc(s.answerId)}"><p>${esc(s.text)}</p></div>`), ...(cta ? [`<p class="lead-action">${cta}</p>`] : [])];
+  const conversionLine = (c) => converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`);
+  /* RR-294 (the owner's addition 2): a question asked in the reader's currency ("in rupees") is answered in it FIRST */
+  const leadsInCurrency = (it) => asksForCurrency(it.heading.wording, converted.filter((v) => it.claims.some((c) => c.claimId === v.claimId)));
   const item = (it) => [
     `<details data-need-id="${esc(it.needId)}"${it === items[0] ? " open" : ""}>`,
     `<summary>${esc(it.heading.shown ?? it.heading.wording)}</summary>`,
+    ...(leadsInCurrency(it) ? it.claims.flatMap(conversionLine) : []),
     /* RR-262: an item recorded to lead with the product's own statements shows its product cards first, then its one sourced line */
     ...(it.lead === LEAD.PRODUCT ? leadCards(it) : []),
     /* RR-269 §3: what was checked and not found, with the official pages checked, linked; never in the FAQ structured data. On a general-view
@@ -604,7 +624,7 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
      * the sourced answer comes first and the line follows it */
     ...(it.generalView ? (it.checkedNotFound ?? []).map(checkedLine) : []),
     ...it.claims.filter((c) => present(c.text)).flatMap((c) => [`<p data-claim-id="${esc(c.claimId)}">${esc(c.text.trim())} ${source(c)}</p>`,
-      ...converted.filter((v) => v.claimId === c.claimId).map((v) => `<p class="also" data-conversion-of="${esc(c.claimId)}">${esc(v.text)} ${v.steps.map((s) => `<a class="src" href="${esc(s.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(s.source)}</a><span class="src"> · 1 ${esc(s.from)} = ${s.rate} ${esc(s.to)}, ${esc(s.rateDate)}</span>`).join(" ")}</p>`)]),
+      ...(leadsInCurrency(it) ? [] : conversionLine(c))]),
     ...tables.filter((t) => t.need === it.needKey).map(table),
     ...(it.generalView ? [] : (it.checkedNotFound ?? []).map(checkedLine)),
     /* RR-265: the general view, after the sourced sentences, labelled; its source is the client AI's research record */
@@ -614,11 +634,17 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
     `</details>`,
   ].filter(Boolean).join("\n");
   const ld = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.question, acceptedAnswer: { "@type": "Answer", text: f.answer } })) }).replace(/</g, "\\u003c");
-  return [`<!doctype html>`, `<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${esc(title)}</title><style>${styleOf(design)}</style>`,
+  /* RR-294: the page's own description — its first sourced answer, cut at a word (gate C: a meta description present and unique) */
+  /* the page's first question with its first answer — a fee line many pages share is never a page's whole description */
+  const firstItem = items.find((it) => it.claims.some((c) => present(c.text)));
+  const firstAnswer = firstItem ? `${firstItem.heading.shown ?? firstItem.heading.wording} ${firstItem.claims.map((c) => String(c.text ?? "").trim()).find(present)}` : "";
+  const description = firstAnswer.length > 155 ? `${firstAnswer.slice(0, 152).replace(/\s+\S*$/, "")}…` : firstAnswer;
+  return [`<!doctype html>`, `<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${esc(title)}</title>${description ? `<meta name="description" content="${esc(description)}">` : ""}<style>${styleOf(design)}</style>`,
     `<script type="application/ld+json">${ld}</script></head><body>`,
     `<p class="stamp">${esc(stamp)}</p>`, header, `<main>`,
     `<section class="hero"><h1>${esc(title)}</h1>${intro.map((l) => `<p>${esc(l)}</p>`).join("")}${cta}</section>`,
-    cards.length ? `<section><h2>${STRUCTURE.keyFacts}</h2><ul class="cards">${cards.map((c) => `<li class="card" data-claim-id="${esc(c.claimId)}"><span class="k">${esc(c.label)}</span><span class="v">${esc(c.value)}</span>${source(c)}</li>`).join("")}</ul></section>` : "",
+    /* RR-294 (the owner's addition 2): a fee card shows the official fee in its own currency AND its dated rupee estimate, with the rate's source */
+    cards.length ? `<section><h2>${STRUCTURE.keyFacts}</h2><ul class="cards">${cards.map((c) => { const v = converted.find((x) => x.claimId === c.claimId); return `<li class="card" data-claim-id="${esc(c.claimId)}"><span class="k">${esc(c.label)}</span><span class="v">${esc(c.value)}${v ? ` <small data-conversion-of="${esc(c.claimId)}">(about ${esc(v.to)} ${v.amount.toLocaleString("en-US")}; rate: ${esc(v.steps.map((s) => s.short).join(" and "))}, ${esc(v.rateDate)})</small>` : ""}</span>${source(c)}</li>`; }).join("")}</ul></section>` : "",
     `<section><h2>${STRUCTURE.questions}</h2>${lastChecked ? `<p class="checked">${STRUCTURE.lastChecked}: ${esc(lastChecked)}</p>` : ""}`, ...items.map(item), `</section>`,
     /* RR-286: the related guides and the hub — words on every link, relative to the client's own site */
     related.length ? `<section class="related"><h2>${STRUCTURE.related}</h2><ul>${related.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></section>` : "",

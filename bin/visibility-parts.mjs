@@ -39,6 +39,7 @@ const io = Object.freeze({
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
   listBatch: () => readdirSync(batchDir),
+  subjectDir: subject.dir,
   list: process.argv.includes("--list"),
   on: arg("on"),
   compareBatch: COMPARE,

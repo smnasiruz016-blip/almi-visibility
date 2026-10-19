@@ -90,6 +90,8 @@ const overturned = overturnedIds(rowsOf("meaning-judgements.jsonl"));
 const json = (f) => { try { return JSON.parse(readFileSync(join(batchDir, f), "utf8")); } catch { return null; } };
 const proposed = json("page-drafts.json"), reviewsIn = json("reviews.json");
 if (!Array.isArray(proposed?.pages) || !Array.isArray(reviewsIn)) { console.error("🔴 REFUSED — INTAKE_FILE_UNREADABLE: page-drafts.json or reviews.json is not readable in the batch; nothing written"); process.exit(3); }
+/* RR-294: each claim's own verbatim quotation of its source — a key-fact card's value must stand in it */
+const quotationOfClaim = new Map(proposed.pages.flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => [c.claimId, c.quotation ?? null]))));
 const { plan } = await readProductPlan(product);
 const officialSites = Array.isArray(product.officialSites) ? product.officialSites : [];
 /* RR-264: a page's title may also be planned over THIS batch's STORED phrase records (F11, search-phrases.jsonl), each named by its source and
@@ -215,7 +217,7 @@ const linkPlan = linkPlanFile ? JSON.parse(readFileSync(join(batchDir, linkPlanF
 if (linkPlanFile) console.log(`  link plan        ${linkPlanFile}: ${Object.keys(linkPlan).length} page(s)`);
 const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, relatedFor: (value) => (Array.isArray(linkPlan[value]) ? linkPlan[value] : []), orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, checkedNotFoundOf: (needId) => cnf.byNeed.get(needToKey.get(needId)) ?? [], fillerPhrases,
-  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
+  phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), quotationOf: (claimId) => quotationOfClaim.get(claimId) ?? null, ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
   statementsFor: (needId) => productStatements({ answerIds: helpOf.get(needToKey.get(needId)) ?? [], approved, officialSite: officialSites[0] ?? null, productName: proposed.productName ?? null }) });
 /* the stored moves of a cancelled page stand in the survivor after every rebuild */

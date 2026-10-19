@@ -20,7 +20,8 @@ export const AI_SEARCH_BOTS = Object.freeze(["OAI-SearchBot", "Claude-SearchBot"
 export const OVERLAP_SIGNAL = Object.freeze({ at: 0.4, justification: "the owner's v3 §14.2 (RTP-1 S5): textual overlap above 40 per cent triggers review, never rejection on the percentage alone" });
 /** The title review line, with its justification: the guidance sets no limit (G6) but asks for concise titles (G5) and truncates to the device. */
 export const TITLE_REVIEW_AT = Object.freeze({ chars: 70, justification: "no limit is set by the guidance (G6), which asks for concise titles (G5) and truncates long ones to the device width; 70 characters is this engine's recorded review line" });
-const TOP_WORDS = 120, MIN_TEXT_WORDS = 100;
+/* RR-294 (beta-g decision A): no word or fact count anywhere — "near the top" is a position, never a minimum length */
+const TOP_WORDS = 120;
 
 const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const visibleText = (html) => String(html ?? "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim();
@@ -54,6 +55,18 @@ export function semanticDuplication(pages, { guidance, on }) {
       if (sameIntent && sameAnswer) checks.push(check(`not the same as ${q.id}`, false, `the same intent and the same answer as ${q.id} — MERGE into it, never a second page`, cites));
       const j = jaccard(sh.get(p.id), sh.get(q.id));
       if (j >= OVERLAP_SIGNAL.at) signals.push(`overlap ${Math.round(j * 100)}% with ${q.id} — a review SIGNAL (${OVERLAP_SIGNAL.justification}), not the verdict`);
+    }
+    /* RR-294 (beta-g decision B): a page must add something no other page already says — a page whose questions AND answers all stand on
+     * another page that says more has no question of its own beyond it, and is MERGED into it */
+    if (Array.isArray(p.questions) && (p.answer ?? []).length) {
+      const pq = new Set(p.questions.map(norm)), pa = new Set(p.answer);
+      for (const q of pages) {
+        if (q === p || !Array.isArray(q.questions)) continue;
+        const qq = new Set(q.questions.map(norm)), qa = new Set(q.answer ?? []);
+        const covered = [...pq].every((x) => qq.has(x)) && [...pa].every((x) => qa.has(x));
+        const more = qq.size > pq.size || qa.size > pa.size;
+        if (covered && more) { checks.push(check(`a question of its own beyond ${q.id}`, false, `no question or answer of its own beyond ${q.id} — MERGE into it`, cites)); break; }
+      }
     }
     out.set(p.id, Object.freeze({ gate: GATES.A, pass: checks.every((c) => c.result === "PASS"), checks, signals }));
   });
@@ -99,9 +112,16 @@ export function technical(pages, { guidance, on, site }) {
     const title = (/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html) ?? [])[1]?.trim() ?? "";
     /* the page's OWN text: navigation, header and footer do not count toward it (a list of links is not content) */
     const text = visibleText(html.replace(/<(nav|header|footer)\b[\s\S]*?<\/\1>/gi, " "));
-    const words = text.split(" ").filter(Boolean);
-    const firstP = (/<\/h1>[\s\S]*?<p\b[^>]*>([\s\S]*?)<\/p>/i.exec(html) ?? [])[1];
-    const firstPAt = firstP ? visibleText(html.slice(0, html.indexOf(firstP))).split(" ").length : Infinity;
+    /* RR-294 (beta-g decision A): NO word or fact count. The direct answer near the top is the page's first sourced answer — a key-fact card
+     * or an answer line, each carrying data-claim-id — standing within the first TOP_WORDS words of the page's own text */
+    const own = html.replace(/<(nav|header|footer)\b[\s\S]*?<\/\1>/gi, " ");
+    const firstAt = own.search(/<[^>]+data-claim-id=/i);
+    const firstPAt = firstAt < 0 ? Infinity : visibleText(own.slice(own.search(/<body\b/i) >= 0 ? own.search(/<body\b/i) : 0, firstAt)).split(" ").filter(Boolean).length;
+    const cardsShown = (own.match(/<li class="card"[\s\S]*?<\/li>/gi) ?? []).filter((li) => /class="src"[^>]*href=|href="[^"]+"[^>]*class="src"/.test(li) && /\d{4}-\d{2}-\d{2}/.test(li));
+    /* every question planned for the page is answered — sourced and dated, or by its recorded CHECKED_NOT_FOUND line */
+    const items = Array.isArray(p.items) ? p.items : null;
+    const unanswered = items === null ? null : items.filter((it) => !(it.claims ?? []).some((c) => c.link && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "")) && !(it.checkedNotFound ?? []).length).map((it) => it.heading?.wording ?? it.needId);
+    const inHtml = items === null ? null : items.flatMap((it) => it.claims ?? []).filter((c) => c.text && !norm(text).includes(norm(String(c.text).slice(0, 80)).split(" ").slice(0, -1).join(" "))).length;
     const out_ = new Set(linksOf(p).filter((l) => urls.has(l) && l !== p.url));
     const facts = p.facts ?? null; /* [{ hasSource, hasDate }] when the page's facts are known */
     const meta = metaOf.get(p.id);
@@ -117,8 +137,10 @@ export function technical(pages, { guidance, on, site }) {
       check("internal links in", inbound.get(p.url) > 0, "no other page of the set links to it", [c("G9")]),
       check("internal links out", out_.size > 0, "it links to no other page of the set", [c("G10")]),
       check("listed in the sitemap", sitemap === null ? null : sitemap.has(p.url), "not in the sitemap", [c("G4")]),
-      check("readable without scripts", words.length >= MIN_TEXT_WORDS, `${words.length} words without scripts (at least ${MIN_TEXT_WORDS})`, [c("G11"), c("G13")]),
-      check("a direct answer near the top", firstPAt <= TOP_WORDS && norm(visibleText(firstP ?? "")).split(" ").length >= 8, firstP ? `the first paragraph starts after ${firstPAt} words` : "no paragraph after the main heading", [c("G13")]),
+      check("answers in the page itself, no script needed", inHtml === null ? null : inHtml === 0, `${inHtml} answer line(s) not in the page's HTML`, [c("G11"), c("B5")]),
+      check("every planned question answered, sourced and dated", unanswered === null ? null : unanswered.length === 0, `not answered with a source and date: ${(unanswered ?? []).join(" · ")}`, [c("G2"), c("B6")]),
+      check("key facts shown as cards", cardsShown.length > 0, "no key-fact card with its source and checked date", [c("B6")]),
+      check("a direct answer near the top", firstPAt <= TOP_WORDS, firstAt < 0 ? "no sourced answer on the page" : `the first sourced answer starts after ${firstPAt} words`, [c("G13"), c("B4")]),
       check("facts with visible sources and dates", facts === null ? null : facts.length > 0 && facts.every((f) => f.hasSource && f.hasDate), facts === null ? "NOT MEASURED" : `${facts.filter((f) => !(f.hasSource && f.hasDate)).length} of ${facts.length} fact(s) without a visible source and date`, [c("G2")]),
       check("a URL not in the plan is 404", notPlanned === null ? null : notPlanned.status === 404, "an unplanned URL answered", []),
     ];
@@ -146,5 +168,23 @@ export function allGates(pages, { guidance, on, site, cost, existingFirst = () =
   return pages.map((p) => {
     const g = { A: a.get(p.id), B: b.get(p.id), C: c.get(p.id), D: cost, E: Object.freeze({ gate: GATES.E, pass: existingFirst(p) === true }) };
     return Object.freeze({ id: p.id, url: p.url, gates: g, pass: Object.values(g).every((x) => x.pass) });
+  });
+}
+
+/**
+ * PAGE-1 · THE ACCEPTANCE STEP of bin/build-page.mjs (RR-294 beta-g decision C): every candidate construction ACCEPTED is judged by all five
+ * gates in the form it would go live (its noindex line made a canonical link to its URL); one that fails any gate is REFUSED — its HTML
+ * withdrawn, so nothing of it is written — with each failing check named. A refusal is a result, not an error.
+ */
+export function acceptByPageGates(results, { guidance, on, site, cost, urlOf, itemsOf = () => null, existingFirst = () => true }) {
+  const asLive = (html, url) => String(html ?? "").replace(/<meta name="robots" content="noindex[^"]*">/, `<link rel="canonical" href="${url}">`);
+  const candidates = results.filter((c) => c.verdict === "ACCEPTED" && typeof c.html === "string");
+  const pages = candidates.map((c) => { const items = itemsOf(c); return { id: c.slug, url: urlOf(c), html: asLive(c.html, urlOf(c)), needs: [], mainQuery: c.slug, questions: items ? items.flatMap((it) => (it.questions ?? []).map((q) => q.wording ?? q)) : null, answer: items ? items.flatMap((it) => (it.claims ?? []).map((x) => x.claimId)) : [], items, facts: items ? items.flatMap((it) => (it.claims ?? []).map((x) => ({ hasSource: Boolean(x.link), hasDate: /^\d{4}-\d{2}-\d{2}$/.test(x.readOn ?? "") }))) : null }; });
+  const judged = new Map(allGates(pages, { guidance, on, site, cost, existingFirst }).map((r) => [r.id, r]));
+  return results.map((c) => {
+    const r = judged.get(c.slug);
+    if (!r || r.pass) return Object.freeze({ ...c, pageGates: r ? "PASS" : "NOT JUDGED (not accepted by construction)" });
+    const failed = Object.values(r.gates).flatMap((g) => (g.checks ?? [{ name: g.gate, result: g.pass ? "PASS" : "FAIL" }]).filter((x) => x.result !== "PASS").map((x) => `${g.gate}: ${x.reason ?? x.name}`));
+    return Object.freeze({ ...c, verdict: "REFUSED", html: null, pageGates: "REFUSED", rejects: [...(c.rejects ?? []), ...failed.map((reason) => ({ part: "pageGates", reason }))] });
   });
 }

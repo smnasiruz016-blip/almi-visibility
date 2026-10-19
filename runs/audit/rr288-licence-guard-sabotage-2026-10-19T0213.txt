@@ -1,0 +1,12 @@
+RR-288 sabotage run · 2026-10-19T02:13:55.251Z
+population: 4 source sabotage(s) over test/rr288-licence-guard.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 4 of 4
+PRE-FLIGHT (span occurrences in the code live now): L1=1 L2=1 L3=1 L4=1 · all exactly once: true
+production trail sha256 before: 7463400d3b21ff7d7ac47ba75f457ff892fdf33683ededf2982dda201ac17a29
+
+L1 R1 · a source whose record forbids storing its words is not barred [src/facts/licence-guard.mjs] → test/rr288-licence-guard.test.mjs: landed true · named test "R1 · WHICH SOURCES · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing R1,R2,R3,R4,REAL · restored true · PROVED
+L2 R2 · a barred read keeps its text [src/facts/licence-guard.mjs] → test/rr288-licence-guard.test.mjs: landed true · named test "R2 · THE READER KEEPS NO TEXT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing R2 · restored true · PROVED
+L3 R3 · a barred extraction keeps its words [src/facts/licence-guard.mjs] → test/rr288-licence-guard.test.mjs: landed true · named test "R3 · THE EXTRACTION KEEPS NO SENTENCE OR QUOTATION · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing R3 · restored true · PROVED
+L4 R4 · a claim quoting a barred source is built [src/facts/licence-guard.mjs] → test/rr288-licence-guard.test.mjs: landed true · named test "R4 · THE BUILD REFUSES A CLAIM QUOTING A BARRED SOURCE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing R4 · restored true · PROVED
+
+proved 4 of 4 (source 4 of 4) · residue 0 · production trail sha256 after: 7463400d3b21ff7d7ac47ba75f457ff892fdf33683ededf2982dda201ac17a29 · unchanged true

@@ -18,6 +18,7 @@
  * Pure apart from what it is handed: it opens no connector, reads no credential, writes nothing. The page text it returns is for the
  * caller to keep PRIVATELY in the research batch, with its sha256, URL and read date.
  */
+import { withheldRead, withheldExtraction } from "./licence-guard.mjs";
 import { createHash } from "node:crypto";
 import { normaliseText, MIN_SUBSTANTIVE_BODY } from "./quote-match.mjs";
 import { createRobotsCache, USER_AGENT } from "../crawl/robots.mjs";
@@ -334,14 +335,14 @@ export function dueOn(f, on) {
 }
 
 /** The stored record of one read — the page text kept privately in the batch, with its sha256, URL and read date (C10). */
-export function readRecord({ read, tenantId, on, run }) {
+export function readRecord({ read, tenantId, on, run, barred = new Set() }) {
   const id = sha256(JSON.stringify([read.url, read.state, read.sha256 ?? read.reason, on])).slice(0, 24);
-  return Object.freeze({ record_type: SOURCE_READ_RECORD, read_id: id, measurement_key: `${SOURCE_READ_RECORD}:${id}`, tenantId, url: read.url, host: hostOf(read.url), route: read.route, state: read.state,
+  return withheldRead(Object.freeze({ record_type: SOURCE_READ_RECORD, read_id: id, measurement_key: `${SOURCE_READ_RECORD}:${id}`, tenantId, url: read.url, host: hostOf(read.url), route: read.route, state: read.state,
     ...(read.state === READ_STATE.READ ? { sha256: read.sha256, chars: read.chars, text: read.text, landedUrl: read.landedUrl ?? read.url } : { reason: read.reason, detail: read.detail ?? null }),
     ...(read.engineBlocked ? { engineBlocked: read.engineBlocked } : {}),
     /* RR-269: how the read reached the engine, and what it was — a PDF's page count, a capture's file, a client file's day and currency */
     via: read.via ?? VIA.ENGINE, ...Object.fromEntries(["document", "pages", "capture", "clientFile", "currency"].filter((k) => read[k] !== undefined).map((k) => [k, read[k]])),
-    readOn: read.via === VIA.CAPTURE || read.via === VIA.CLIENT_FILE ? read.readOn : on, recorded_at: `${on}T00:00:00Z`, run });
+    readOn: read.via === VIA.CAPTURE || read.via === VIA.CLIENT_FILE ? read.readOn : on, recorded_at: `${on}T00:00:00Z`, run }), barred); /* RR-288 R2: a licence-barred source keeps no text */
 }
 /** The stored record of one fact's recheck — beside the fact, never in place of it (C11). */
 export function recheckRecord({ result, tenantId, on, run }) {
@@ -356,13 +357,13 @@ export const EXTRACTION = Object.freeze({ RE_ADMITTED: "RE_ADMITTED", NEW_FOR_NE
  * C9 + C10 · the stored record of one proposal and the engine's verdict on it (extractFacts) — beside the facts, never in place of one. `route`
  * names the AI that proposed it (the client's own); `factLink` is the source of the fact the proposal names (null for a new fact).
  */
-export function extractionRecord({ proposal, result, factLink, route, tenantId, on, run }) {
+export function extractionRecord({ proposal, result, factLink, route, tenantId, on, run, barred = new Set() }) {
   const a = result.admitted[0] ?? null, r = result.rejected[0] ?? null;
   const outcome = !a ? EXTRACTION.REJECTED : proposal.fact && factLink === proposal.source ? EXTRACTION.RE_ADMITTED : EXTRACTION.NEW_FOR_NEED;
   const id = sha256(JSON.stringify([proposal.proposalId, proposal.fact ?? null, proposal.source, proposal.sentence, proposal.quotation, on])).slice(0, 24);
-  return Object.freeze({ record_type: EXTRACTION_RECORD, extraction_id: id, measurement_key: `${EXTRACTION_RECORD}:${id}`, tenantId, proposalId: proposal.proposalId, fact: proposal.fact ?? null, need: proposal.need ?? null,
+  return withheldExtraction(Object.freeze({ record_type: EXTRACTION_RECORD, extraction_id: id, measurement_key: `${EXTRACTION_RECORD}:${id}`, tenantId, proposalId: proposal.proposalId, fact: proposal.fact ?? null, need: proposal.need ?? null,
     source: proposal.source, host: hostOf(proposal.source), sentence: proposal.sentence ?? null, quotation: proposal.quotation ?? null, route, outcome,
-    ...(a ? { pageSha256: a.pageSha256, readOnPage: a.readOn } : { reason: r?.reason ?? (result.state === "NOT_READ" ? REJECT.NO_PAGE_TEXT : REJECT.NO_QUOTATION) }), recorded_at: `${on}T00:00:00Z`, run });
+    ...(a ? { pageSha256: a.pageSha256, readOnPage: a.readOn } : { reason: r?.reason ?? (result.state === "NOT_READ" ? REJECT.NO_PAGE_TEXT : REJECT.NO_QUOTATION) }), recorded_at: `${on}T00:00:00Z`, run }), barred); /* RR-288 R3: no sentence or quotation of a licence-barred source */
 }
 
 /** Counts per state and per source host — count-only, as the row's output is. */

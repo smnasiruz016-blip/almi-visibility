@@ -37,7 +37,7 @@ it may be the institution or the Ministry of Health.
 
 | what | requirement |
 |---|---|
-| **Verification of certificates** | *"Receipt of payment of **N66,875** to Nursing and Midwifery Council of Nigeria through REMITA"* + application letter stating purpose and destination, completed verification form, photocopy of current licence, photocopies of certificates of registration, photocopy of birth certificate or declaration of age |
+| **Verification of certificates** | *"[words of a licence-barred page removed (RR-288)]"* + application letter stating purpose and destination, [words of a licence-barred page removed (RR-288)] |
 | **Authentication** | *"Receipt of payment of **N8,750** … through REMITA(TSA)"* + two copies of the above |
 | **Letter of Good Standing** | *"Original evidence of payment of **N8,750** … through REMITA (TSA)"* + the verification requirements |
 | 🔴 **Verification and Letter of Good Standing to NMC-UK** | its **own** line, *"Receipt of payment of **N17,500**"* and its own document list |

@@ -49,7 +49,10 @@ import { performance } from "node:perf_hooks";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
-import { lookupStore, lookupConnector } from "../src/tenancy/root-registry.mjs";
+import { lookupStore, lookupConnector, lookupSubject } from "../src/tenancy/root-registry.mjs";
+import { loadRegistry } from "../src/facts/registry.mjs";
+import { ensureSubjectHook } from "../src/subject-roots.mjs";
+import { barredSources } from "../src/facts/licence-guard.mjs";
 import { openConnector, pacingRecord } from "../src/tenancy/connectors.mjs";
 import { writePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
@@ -114,6 +117,10 @@ if (registries.length !== 1) { console.error(`🔴 REFUSED — FACT_REGISTRY_NOT
 const drafts = json("page-drafts.json"), findings = json("findings.json"), registry = json(registries[0]), intervals = json("recheck-intervals.json");
 if (!Array.isArray(drafts?.pages) || !Array.isArray(findings) || !Array.isArray(registry?.facts)) { console.error("🔴 REFUSED — INTAKE_FILE_UNREADABLE: page-drafts.json, findings.json or the fact registry is not readable in the batch; no request was made"); process.exit(3); }
 const facts = batchFacts({ drafts, findings, registry, intervals: Array.isArray(intervals) ? intervals : [] });
+/* RR-288 (owner decision 1): the sources whose own records say their licence forbids storing their words — no text, sentence or quotation of them is ever kept */
+const subjectRoot = lookupSubject(index, SUBJECT);
+ensureSubjectHook(); /* the registry modules import the engine's own record helpers, as productFromArgv lets them */
+const BARRED = subjectRoot.state === "DECLARED" && existsSync(join(subjectRoot.dir, "facts")) ? barredSources((await loadRegistry(join(subjectRoot.dir, "facts"), SUBJECT)).records) : new Set();
 /* RR-269 §2: a filed read list names the sources of this run — none outside it is read; a list that is not readable refuses */
 const listed = READ_LIST ? json(READ_LIST) : null;
 if (READ_LIST && !(Array.isArray(listed?.sources) && listed.sources.length > 0 && listed.sources.every((u) => /^https?:\/\/\S+$/.test(String(u))))) { console.error("🔴 REFUSED — READ_LIST_UNREADABLE: the batch's read list names no readable source URLs; no request was made"); process.exit(3); }
@@ -189,7 +196,7 @@ const append = (records, file) => executeGovernedWrite(governedStoreAppend({ ...
   targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
 const kept = (g) => g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED";
 /* RR-274: the full read first, privately; then its public copy (no text) — a public record never names a text that is not kept */
-const fullReads = [...reads.values()].map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run: runId }));
+const fullReads = [...reads.values()].map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run: runId, barred: BARRED }));
 const gp = appendPrivate(fullReads, "source-reads.jsonl", instant);
 if (!kept(gp)) { console.error(`  🔴 ${gp.outcome} — the texts did NOT persist privately; nothing public was written`); process.exit(1); }
 const g = append(fullReads.map(publicCopy), "source-reads.jsonl");
@@ -271,7 +278,7 @@ async function recheckImported({ got, cited, imported, instant, run }) {
     targetClass: "GENERATED_CONFIG", action: "APPEND_SOURCE_FACTS", occurredAt: instant, correlationId: `run:source-facts:${file}:${instant}`, discipline: "APPEND_IF_NEW" }));
   const ok = (g) => g.outcome === "COMMITTED" || g.outcome === "ALREADY_COMMITTED";
   /* RR-274: the full read privately first, then its public copy (no text) */
-  const fullReads = got.map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run }));
+  const fullReads = got.map((r) => readRecord({ read: r, tenantId: SCOPE.tenantId, on: ON, run, barred: BARRED }));
   const gp = appendPrivate(fullReads, "source-reads.jsonl", instant);
   if (!ok(gp)) { console.error(`  🔴 ${gp.outcome} — the imported texts did NOT persist privately; nothing public was written`); process.exit(1); }
   const g = put(fullReads.map(publicCopy), "source-reads.jsonl");
@@ -299,7 +306,7 @@ async function extractRun() {
     const read = readOf.get(p?.source);
     /* the stored read, as the reader returned it: its text, hash and day — the proposer is handed this one proposal, nothing else */
     const result = await extractFacts({ read: read?.state === READ_STATE.READ ? { ...read, readOn: read.readOn } : null, propose: async () => [p] });
-    records.push(extractionRecord({ proposal: p, result, factLink: p?.fact ? linkOf.get(p.fact) ?? null : null, route: filed.route, tenantId: SCOPE.tenantId, on: ON, run }));
+    records.push(extractionRecord({ proposal: p, result, factLink: p?.fact ? linkOf.get(p.fact) ?? null : null, route: filed.route, tenantId: SCOPE.tenantId, on: ON, run, barred: BARRED }));
   }
   const was = facts.filter((f) => lastCheck.get(f.factId)?.state === RECHECK.REJECTED);
   const readmitted = was.filter((f) => records.some((r) => r.fact === f.factId && r.outcome === EXTRACTION.RE_ADMITTED));

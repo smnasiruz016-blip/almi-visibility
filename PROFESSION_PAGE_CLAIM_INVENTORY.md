@@ -48,8 +48,7 @@ the UK, Ireland and Canada do not.
 | claim | verbatim |
 |---|---|
 | OET requirement | *"Listening: B (350 - 450)"* · *"Reading: B (350 - 450)"* · *"Writing: C+ (300 - 340)"* · *"Speaking: B (350 - 450)"* |
-| 🔴 profession-specific | *"OET **(Nursing)** with Grade B in three components and C+ in one component."* |
-| recognised countries | *"Australia · Canada · New Zealand · The United States of America · United Kingdom"* — **five.** India absent |
+| 🔴 profession-specific | *"[words of a licence-barred page removed (RR-288)]"* — **five.** India absent |
 
 **Two things worth keeping.** First, NMBI names the **Nursing** version of the test — so "which
 version of OET does this regulator want" is a genuinely **per-profession** claim, not a shared

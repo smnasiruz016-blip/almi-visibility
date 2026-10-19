@@ -595,7 +595,11 @@ test("REAL · the declared batch's stored recheck: every fact its pages use has 
   assert.equal(latest.find((c) => c.factId === "snapshot:bc-pk-ielts-fee-2020-21")?.state, RECHECK.CHANGED, "C11: no real CHANGED case is stored");
   const routeReads = reads.filter((r) => r.readOn === "2026-10-17" && r.route === ROUTE.BROWSER);
   assert.ok(routeReads.filter((r) => r.state === READ_STATE.READ).length >= 1 && routeReads.every((r) => r.state === READ_STATE.READ ? r.engineBlocked : /save it as a PDF/.test(r.detail ?? "")), "C8: no real browser-route read, or a stop without the client's line");
-  assert.ok(reads.filter((r) => r.state === READ_STATE.READ).every((r) => r.sha256 === createHash("sha256").update(r.text).digest("hex") && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn)), "a stored read lost its text, hash or date");
+  /* RR-288 (owner decision 1): a read whose licence forbids storing its words keeps NO text — only its URL, read date and sha256, named */
+  const withheld = reads.filter((r) => r.state === READ_STATE.READ && r.textMissing === TEXT_MISSING.WITHHELD);
+  assert.equal(withheld.length, 3, "the three licence-barred reads are not the ones withheld");
+  assert.ok(withheld.every((r) => r.text === null && /^[0-9a-f]{64}$/.test(r.sha256) && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn)), "a withheld read lost its hash or date, or kept its text");
+  assert.ok(reads.filter((r) => r.state === READ_STATE.READ && !withheld.includes(r)).every((r) => r.sha256 === createHash("sha256").update(r.text).digest("hex") && /^\d{4}-\d{2}-\d{2}$/.test(r.readOn)), "a stored read lost its text, hash or date");
 });
 
 test("RR-282 · STORED RECHECK · REAL: the 3 British Council facts and ahpra-2026, rechecked from their stored texts alone, read as their kept live rechecks did — with no request at all", async (t) => {

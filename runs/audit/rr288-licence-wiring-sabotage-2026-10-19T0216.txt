@@ -1,0 +1,10 @@
+RR-288 sabotage run · 2026-10-19T02:16:46.334Z
+population: 2 source sabotage(s) over test/rr288-licence-guard.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 2 of 2
+PRE-FLIGHT (span occurrences in the code live now): W1=1 W2=1 · all exactly once: true
+production trail sha256 before: 7463400d3b21ff7d7ac47ba75f457ff892fdf33683ededf2982dda201ac17a29
+
+W1 R2 · the reader stores a read without the licence step [src/facts/source-reader.mjs] → test/rr288-licence-guard.test.mjs: landed true · named test "R2 · THE READER KEEPS NO TEXT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing R2 · restored true · PROVED
+W2 R3 · the extraction is stored without the licence step [src/facts/source-reader.mjs] → test/rr288-licence-guard.test.mjs: landed true · named test "R3 · THE EXTRACTION KEEPS NO SENTENCE OR QUOTATION · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing R3 · restored true · PROVED
+
+proved 2 of 2 (source 2 of 2) · residue 0 · production trail sha256 after: 7463400d3b21ff7d7ac47ba75f457ff892fdf33683ededf2982dda201ac17a29 · unchanged true

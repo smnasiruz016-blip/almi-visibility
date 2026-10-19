@@ -36,6 +36,9 @@ import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore, lookupSubject } from "../src/tenancy/root-registry.mjs";
+import { loadRegistry } from "../src/facts/registry.mjs";
+import { ensureSubjectHook } from "../src/subject-roots.mjs";
+import { barredSources, claimsQuotingBarred } from "../src/facts/licence-guard.mjs";
 import { writePermission, LOCAL } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
@@ -109,7 +112,14 @@ const privateBatchDir = join(PRIVATE.dir, relative(lookupStore(index, "RESEARCH"
 const privateRows = (f) => { try { return readFileSync(join(privateBatchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
 const registries = readdirSync(batchDir).filter((f) => /^facts-registry-\d{4}-\d{2}-\d{2}\.json$/.test(f));
 if (registries.length > 1) { console.error(`🔴 REFUSED — FACT_REGISTRY_AMBIGUOUS: the batch files ${registries.length} fact registries; nothing written`); process.exit(3); }
-const guard = linkGuard({ drafts: proposed, findings: Array.isArray(json("findings.json")) ? json("findings.json") : [], registry: registries.length ? json(registries[0]) ?? { facts: [] } : { facts: [] },
+/* RR-288 (owner decision 1): the sources whose own records say their licence forbids storing their words — a claim quoting one is REFUSED
+ * (src/facts/licence-guard.mjs R4); a claim citing one stands on its link alone (the link guard, never against words the engine may not keep) */
+const subjectRoot = lookupSubject(index, SUBJECT);
+ensureSubjectHook(); /* the registry modules import the engine's own record helpers, as productFromArgv lets them */
+const BARRED = subjectRoot.state === "DECLARED" && existsSync(join(subjectRoot.dir, "facts")) ? barredSources((await loadRegistry(join(subjectRoot.dir, "facts"), SUBJECT)).records) : new Set();
+const quoting = claimsQuotingBarred((proposed.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => n.answer?.claims ?? [])), BARRED);
+if (quoting.refused.length) { console.error(`🔴 REFUSED — ${quoting.refused.length} claim(s) quote a source whose licence forbids storing its words (${quoting.refused.slice(0, 10).map((r) => r.claimId).join(", ")}); nothing written`); process.exit(3); }
+const guard = linkGuard({ barred: BARRED, drafts: proposed, findings: Array.isArray(json("findings.json")) ? json("findings.json") : [], registry: registries.length ? json(registries[0]) ?? { facts: [] } : { facts: [] },
   intervals: Array.isArray(json("recheck-intervals.json")) ? json("recheck-intervals.json") : [], reads: withPrivateTexts(rowsOf("source-reads.jsonl"), privateRows("source-reads.jsonl"), { privateRoot: PRIVATE.state }) });
 if (guard.refused.length) {
   const by = Object.entries(Object.groupBy(guard.refused, (r) => r.code)).map(([k, v]) => `${k} ${v.length}`).join(" · ");
@@ -119,7 +129,7 @@ if (guard.refused.length) {
 }
 
 console.log(`JOINED TEST PAGES — ${X.stamp} · this subject's product only, from stored records; nothing fetched`);
-console.log(`  link guard       ${guard.claims} claim(s): each rechecked at the link its page shows, its quotation in a stored text of that link (RR-281)`);
+console.log(`  link guard       ${guard.claims} claim(s): each rechecked at the link its page shows, its quotation in a stored text of that link (RR-281); ${guard.linkOnly.length} on a licence-barred link checked by link only, none quoting it (RR-288)`);
 console.log(`  exception        ${X.exception.effect} · owner record ${X.exception.record.repo}:${X.exception.record.path}@${X.exception.record.commit.slice(0, 7)} · the declared page specs are set aside with them`);
 
 /* 2 · F10's stored decisions (Acceptance Amendment 4) — read, honoured, never made here */

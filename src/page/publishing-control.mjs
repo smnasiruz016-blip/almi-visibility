@@ -30,10 +30,15 @@ export function planCohort({ pages, approvals, cap = PUBLISH_COHORT_CAP }) {
   return refusals.length ? Object.freeze({ state: "REFUSED", refusals }) : Object.freeze({ state: "MAY_PUBLISH", pages: Object.freeze([...pages]), approvals: Object.freeze(pages.map((p) => byPage.get(p))) });
 }
 
-/** C3 · roll back: the version before the latest, exactly as it was stored. */
+/**
+ * C3 · roll back: the version before the latest, exactly as it was stored. A store may record the same build again (the publication
+ * re-records it): the previous VERSION is the latest one whose bytes differ from the latest — never the latest again (RR-292).
+ */
 export function rollback(versions) {
   if (!Array.isArray(versions) || versions.length < 2) return Object.freeze({ state: "REFUSED", reason: "no previous version to restore" });
-  const prev = versions.at(-2);
+  const latest = versions.at(-1).html;
+  const prev = [...versions].reverse().find((v) => v.html !== latest);
+  if (!prev) return Object.freeze({ state: "REFUSED", reason: "every stored version is the latest's bytes — no earlier version to restore" });
   return Object.freeze({ state: "RESTORED", html: prev.html, sha256: sha(prev.html), restoredFrom: prev.versionId ?? null });
 }
 

@@ -1,0 +1,15 @@
+F76 C2 · PLAN-BATCH SABOTAGE HARNESS (RR-292) · 2026-10-19T18:57:09.482Z
+
+S1 src/page/plan-batch.mjs · RED yes · named test "a URL answers only from the built batch" RED · by assertion yes · failing: C2 · a URL answers only from the built batch: planned 200, unplanned 404 — and asking never builds a page | REAL · C2 · the client's own F91 plan: every planned page built at once as a local draft, every planned URL 200, every unplanned URL 404, nothing written or published
+   restored src/page/plan-batch.mjs · sha256 54b323ab1714b2cd… EQUAL
+S2 src/page/plan-batch.mjs · RED yes · named test "every planned page built at once, and no other" RED · by assertion yes · failing: C2 · every planned page built at once, and no other; a MERGED combination is a section, never a page; no OPPORTUNITY label on a page | C2 · a URL answers only from the built batch: planned 200, unplanned 404 — and asking never builds a page | C2 · build-page --all-slugs reads the approved plan only: a chosen need is built only when the plan holds its page; no plan, none | REAL · C2 · the client's own F91 plan: every planned page built at once as a local draft, every planned URL 200, every unplanned URL 404, nothing written or published
+   restored src/page/plan-batch.mjs · sha256 54b323ab1714b2cd… EQUAL
+S3 src/page/plan-batch.mjs · RED yes · named test "build-page --all-slugs reads the approved plan only" RED · by assertion yes · failing: C2 · build-page --all-slugs reads the approved plan only: a chosen need is built only when the plan holds its page; no plan, none
+   restored src/page/plan-batch.mjs · sha256 54b323ab1714b2cd… EQUAL
+S5 src/page/publishing-control.mjs · RED yes · named test "C3 · rollback restores the previous version" RED · by assertion yes · failing: C3 · rollback restores the previous version byte for byte | REAL · C1, C3, C4 · the client's own publication record, stored builds and connection
+   restored src/page/publishing-control.mjs · sha256 905b3be1a6112e2f… EQUAL
+S4 bin/build-page.mjs · RED yes · named test "build-page --all-slugs reads the approved plan only" RED · by assertion yes · failing: C2 · build-page --all-slugs reads the approved plan only: a chosen need is built only when the plan holds its page; no plan, none
+   restored bin/build-page.mjs · sha256 a4936f901310d918… EQUAL
+
+GREEN again after restore: yes
+RESULT: 5 of 5 proved

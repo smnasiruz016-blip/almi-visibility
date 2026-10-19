@@ -61,8 +61,16 @@ export function admitLeadSubmission(s) {
   return Object.freeze({ state: "ACCEPTED", kept: Object.freeze({ contact: String(s.contact ?? ""), consent: Object.freeze({ ticked: true, text: c.text, at: c.at }) }) });
 }
 
+/** RR-292 · the client's search-data options at setup (src/report/search-data-options.mjs), as a section of the report file. */
+export function setupSection(options) {
+  if (!options) return "";
+  return [`<h2 id="setup">Search data: your options</h2>`, `<p>${esc(options.note)}</p>`, `<ul>`,
+    ...options.options.map((o) => `<li><strong>(${o.id}) ${esc(o.name)}</strong> — ${esc(o.state)}<br>What it gives: ${esc(o.gives)}<br>Cost: ${esc(o.cost)}<br>Limits: ${esc(o.limits)}</li>`),
+    `</ul>`, `<p>Search discovery: ${esc(options.discovery)}</p>`].join("\n");
+}
+
 /** F70 · the whole file. */
-export function renderReport({ title, run, findings, brand = null, lead = LEAD_DEFAULT, on }) {
+export function renderReport({ title, run, findings, brand = null, lead = LEAD_DEFAULT, on, setup = null }) {
   const b = brandOf(brand);
   return `<!doctype html>
 <html lang="en">
@@ -77,6 +85,7 @@ export function renderReport({ title, run, findings, brand = null, lead = LEAD_D
 <main>
 <h1>${esc(title)}</h1>
 ${evidenceSection(run, findings)}
+${setupSection(setup)}
 ${leadSection(lead)}
 </main>
 </body>

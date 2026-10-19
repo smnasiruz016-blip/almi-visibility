@@ -10,7 +10,7 @@
  *
  * Generic: it names no client, product or host.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
@@ -38,6 +38,7 @@ const io = Object.freeze({
   json: (f) => { try { return JSON.parse(readFileSync(join(batchDir, f), "utf8")); } catch { return null; } },
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
+  listBatch: () => readdirSync(batchDir),
   list: process.argv.includes("--list"),
   on: arg("on"),
   compareBatch: COMPARE,

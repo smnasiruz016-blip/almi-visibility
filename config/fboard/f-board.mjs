@@ -1303,7 +1303,7 @@ export const DECLARED = Object.freeze({
   F91: Object.freeze({
     featureId: "F91",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       /* named EXPLICITLY since 2 Oct 2026: ACCEPTANCES.F91 now points at Amendment 1, and these 1 Oct events must keep naming the original */
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F91_ORIGINAL.ruling, contractSha256: F91_ORIGINAL.contractSha256 }),
@@ -1358,6 +1358,27 @@ export const DECLARED = Object.freeze({
        * 182) because no per-question coverage judgement is recorded against the 14 standing pages; C19 and R4 wait on them (182 HOLD, 0 compiled);
        * the real result of C1–C18. */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F91", on: "2026-10-19", ruling: F91_AMENDMENT_7.ruling, contractSha256: F91_AMENDMENT_7.contractSha256, amends: F91_AMENDMENT_7.amends }),
+      /* RR-290 · T2: F91's C14 judging pass recorded; C19 and R4 run on the real needs. Completion rule (owner, 19 Oct 2026) and light proof rule 3: a clause that needs what does not exist yet is
+       * DEFERRED-TO-FIRST-CLIENT, never PROVED, and never blocks completion; every other clause PROVED on the real records — VERIFIED (1 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F91",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F91_AMENDMENT_7.ruling.sha256, contract: F91_AMENDMENT_7.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "PROVED", C8: "PROVED", C9: "PROVED", C10: "PROVED", C11: "PROVED", C12: "PROVED", C13: "PROVED", C14: "PROVED", C15: "PROVED", C16: "PROVED", C17: "PROVED", C18: "PROVED", C19: "DEFERRED-TO-FIRST-CLIENT", C20: "PROVED", C21: "PROVED", C22: "PROVED", C23: "PROVED", C24: "PROVED", C25: "PROVED" }),
+        deferred: Object.freeze({ C19: "a REAL need F35 chooses CREATE or ADD SECTION / IMPROVE, or holds only for want of a declared spec — 0 of the 182 today (KEEP 179, HOLD 3 for an unsupported central answer); the compiler's fixture proofs and the REAL check that it compiles exactly what F35 admits stand" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-290.md", commit: "4582d30a88895556797d4484234cfd03ffb87629", sha256: "3a4b946cfb02a0d7a3774c74f6a64b9cc79a55a388bf4a35ef0139198a2cfe5d" }),
+        populations: "REAL (count-only): 331 per-question coverage judgements (METHOD 289 from the recorded build's need ids, AGENT 42) over the 14 pages C20 lets stand → 182 coverage records: FULL 179 · NONE 3 (the 3 New Zealand questions) · F35: KEEP 179 · HOLD 3 (central answer unsupported) · compiled 0 · page plan: 60 candidates → DEMAND 11 · OPPORTUNITY 20 · MERGED 29 · 0 duplicate or thin · C20: 27 crawled pages excluded, 14 stand",
+        proofs: "test/rr290-f91-c14-real.test.mjs (C14, C19 REAL), test/rr288-f91-c20-census.test.mjs (C20), the 21 F91 test files (256 of 256), bin/demand-connect.mjs, bin/page-plan.mjs",
+        sabotage: "runs/audit/f91-sabotage-rr130-2026-10-02.txt (sha256 37579085…): 35 of 35 proved · runs/audit/f91-connection-sabotage-rr153-2026-10-04.txt (sha256 23c1a845…): 25 of 25 proved · runs/audit/f91-a6-sabotage-2026-10-18T0647.txt (sha256 ad4f2f90…): 8 of 8 proved",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   /* 🔴 F13 · Context and axis discovery. Frozen ALONE (_handoffs 0ca24d3, RR-131 §3) before any F13 code; every clause PROVED on the real
@@ -1568,7 +1589,7 @@ export const DECLARED = Object.freeze({
   F81: Object.freeze({
     featureId: "F81",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-02", ruling: F81_ORIGINAL.ruling, contractSha256: F81_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -1585,6 +1606,27 @@ export const DECLARED = Object.freeze({
         baseCiRun: "36965874939",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_CC_COMMAND_2026-10-02_RR-132_CONFIRM_33_PREPARE_F81_HONESTLY_KEEP_CLOSING_ROWS.md", commit: "d9ee137ffcf7e0eb436403db5dcb6e47b7ee05e9", sha256: "482d50d914f4fbd549940b71a4eac33931113870af6bf09dd3e0dd14455654e7" }),
+      }),
+      /* RR-290 · T4 (beta-g decision C): rule 3, clause by clause. Completion rule (owner, 19 Oct 2026) and light proof rule 3: a clause that needs what does not exist yet is
+       * DEFERRED-TO-FIRST-CLIENT, never PROVED, and never blocks completion; every other clause PROVED on the real records — VERIFIED (2 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F81",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F81_ORIGINAL.ruling.sha256, contract: F81_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "DEFERRED-TO-FIRST-CLIENT", C3: "PROVED", C4: "DEFERRED-TO-FIRST-CLIENT", C5: "PROVED", C6: "PROVED", C7: "PROVED" }),
+        deferred: Object.freeze({ C2: "the device and country limbs: the client's own Search Console pulls by device and by country, each carrying the page, through its own authorised connection (a credential); query and page PROVED TRACKED", C4: "a second dated pull of the client's own Search Console (one recorded point today)" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-290.md", commit: "4582d30a88895556797d4484234cfd03ffb87629", sha256: "3a4b946cfb02a0d7a3774c74f6a64b9cc79a55a388bf4a35ef0139198a2cfe5d" }),
+        populations: "REAL (count-only; one declared client's partition of the owned store): query and page TRACKED (page rows 103), country and device NOT MEASURED, the trend NOT MEASURED, site-wide rows never its own",
+        proofs: "test/f81-search-performance.test.mjs (12 of 12, its REAL test among them), bin/search-performance.mjs",
+        sabotage: "runs/audit/f81-sabotage-rr132-2026-10-02.txt (sha256 e61edb00…): 17 of 17 proved",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),
@@ -1735,7 +1777,7 @@ export const DECLARED = Object.freeze({
         sabotage: "runs/audit/f44-source-reader-sabotage-2026-10-17T0342.txt (sha256 4ab2312a…): 73 of 73 proved, residue 0, production trail unchanged, on the final code (the window launched by the opened connector, F03); with it the connector module's limbs f03 F3-S5 F3-S11, f04 F4-S10, f19-generic-crawl 8/8 and f27-live L22 L23, each proved (FAST MODE F8)",
         declaredLimit: "3 fee facts read CHANGED because their recorded quotations carry a capture's table separators the page text does not — the fees themselves are on today's page; one page was flagged for rebuild by that, and nothing was rebuilt",
         /* RR-278 (17 Oct 2026): the close-out — the limit above is closed and C8 is proved again on the final code */
-        closeOut: "RR-278: the 3 quotations re-recorded word for word from the page text (data-public 16c0264, quotation-corrections-2026-10-17.json); the C8 run repeated on the final code (main 722b64b, the window launched by an opened CITED_SOURCES connector): the same 8 sources, READ 5 (4 through the window) and BLOCKED 3 with the save line, as before; 29 rechecks — CURRENT 18, CHANGED 1 (the dated snapshot only), BLOCKED 10, REJECTED 0; 0 pages flagged; cost entry on time (23 requests: engine 11, browser route 12). The one regulator quotation the 15 Oct capture lacked is found word for word in the regulator's own PDF document read by the engine on 16 Oct (private text kept).",
+        closeOut: "RR-278: the 3 quotations re-recorded word for word from the page text (data-public a6635ee, formerly 16c0264 before the RR-290 history clean; quotation-corrections-2026-10-17.json); the C8 run repeated on the final code (main 722b64b, the window launched by an opened CITED_SOURCES connector): the same 8 sources, READ 5 (4 through the window) and BLOCKED 3 with the save line, as before; 29 rechecks — CURRENT 18, CHANGED 1 (the dated snapshot only), BLOCKED 10, REJECTED 0; 0 pages flagged; cost entry on time (23 requests: engine 11, browser route 12). The one regulator quotation the 15 Oct capture lacked is found word for word in the regulator's own PDF document read by the engine on 16 Oct (private text kept).",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
@@ -1746,7 +1788,7 @@ export const DECLARED = Object.freeze({
   F16: Object.freeze({
     featureId: "F16",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       /* named EXPLICITLY since 4 Oct 2026: ACCEPTANCES.F16 now points at Amendment 1, and these 1 Oct events must keep naming the original */
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-01", ruling: F16_ORIGINAL.ruling, contractSha256: F16_ORIGINAL.contractSha256 }),
@@ -1775,6 +1817,27 @@ export const DECLARED = Object.freeze({
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F16", on: "2026-10-04", ruling: F16_AMENDMENT_4.ruling, contractSha256: F16_AMENDMENT_4.contractSha256, amends: F16_AMENDMENT_4.amends }),
       /* RR-170: F16's own Acceptance Amendment 5 (_handoffs 91ef421), approved by its hash and frozen ALONE — research-derived questions (C27–C32) */
       Object.freeze({ kind: "ACCEPTANCE_AMENDED", featureId: "F16", on: "2026-10-05", ruling: F16_AMENDMENT_5.ruling, contractSha256: F16_AMENDMENT_5.contractSha256, amends: F16_AMENDMENT_5.amends }),
+      /* RR-290 · T4 (beta-g decision C): rule 3, clause by clause. Completion rule (owner, 19 Oct 2026) and light proof rule 3: a clause that needs what does not exist yet is
+       * DEFERRED-TO-FIRST-CLIENT, never PROVED, and never blocks completion; every other clause PROVED on the real records — VERIFIED (11 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F16",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F16_AMENDMENT_5.ruling.sha256, contract: F16_AMENDMENT_5.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "PROVED", C5: "PROVED", C6: "PROVED", C7: "DEFERRED-TO-FIRST-CLIENT", C8: "PROVED", C9: "PROVED", C10: "PROVED", C11: "PROVED", C12: "PROVED", C13: "PROVED", C14: "PROVED", C15: "PROVED", C16: "PROVED", C17: "DEFERRED-TO-FIRST-CLIENT", C18: "DEFERRED-TO-FIRST-CLIENT", C19: "DEFERRED-TO-FIRST-CLIENT", C20: "DEFERRED-TO-FIRST-CLIENT", C21: "DEFERRED-TO-FIRST-CLIENT", C22: "DEFERRED-TO-FIRST-CLIENT", C23: "DEFERRED-TO-FIRST-CLIENT", C24: "DEFERRED-TO-FIRST-CLIENT", C25: "DEFERRED-TO-FIRST-CLIENT", C26: "DEFERRED-TO-FIRST-CLIENT", C27: "PROVED", C28: "PROVED", C29: "PROVED", C30: "PROVED", C31: "PROVED", C32: "PROVED" }),
+        deferred: Object.freeze({ C7: "result-page (SERP) observations the engine may not harvest (no Google search; RR-89 §1.3) — a client's own authorised result-page export", C17: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C18: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C19: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C20: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C21: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C22: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C23: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C24: "the client's own AI connection under an owner provider record and its own fresh owner GREEN with its exact plan (a credential and money not spent); proved on a FAKE provider and FAKE source transport", C25: "a live run of the one adapter under its issued record and a funded budget (money not spent); proved on fakes", C26: "a live run of the one adapter under its issued record and a funded budget (money not spent); proved on fakes" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-290.md", commit: "4582d30a88895556797d4484234cfd03ffb87629", sha256: "3a4b946cfb02a0d7a3774c74f6a64b9cc79a55a388bf4a35ef0139198a2cfe5d" }),
+        populations: "REAL (count-only): 17 research batches, 6141 records read → 27 public question records (agent-observed, two batches of one subject); collection on the real declared subjects with a FAKE transport (0 real requests); the RR-254 batch's research-derived questions and relevance assessments (348)",
+        proofs: "test/f16-*.test.mjs, test/rr157-meaning.test.mjs, test/rr158-overturn.test.mjs (113 of 113)",
+        sabotage: "runs/audit/f16-sabotage-2026-10-11T0937.txt (sha256 4c1e6712…): 21 of 21 proved · runs/audit/f16-collection-sabotage-rr155-2026-10-04.txt (sha256 b2c47fdd…): 23 of 23 proved · runs/audit/f16-product-led-sabotage-rr146-2026-10-03.txt (sha256 eb761c14…): 20 of 20 proved · runs/audit/rr157-sabotage-2026-10-11T1246.txt (sha256 0b4f0687…): 18 of 18 proved · runs/audit/rr158-sabotage-2026-10-11T0924.txt (sha256 66d24f9d…): 10 of 10 proved",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
   F21: Object.freeze({
@@ -4220,11 +4283,47 @@ export const DECLARED = Object.freeze({
   F96: Object.freeze({
     featureId: "F96",
     board: "F_BOARD",
-    state: "ACCEPTANCE-FROZEN",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-18", ruling: F96_ORIGINAL.ruling, contractSha256: F96_ORIGINAL.contractSha256 }),
       /* RR-287 task G: frozen only — no build now (beta-g decision G). The declared product is NOT APPLICABLE by name in the acceptance: it sells a subscription, no
        * listed product. The row stays open, waiting for a declared client that sells listed products and files its own feed, listing export and crawl. */
+      Object.freeze({
+        kind: "IMPLEMENTATION",
+        featureId: "F96",
+        on: "2026-10-19",
+        from: "ACCEPTANCE-FROZEN",
+        to: "IN-PROGRESS",
+        route: "ACCEPTANCE-FROZEN -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "ACCEPTANCE_FROZEN_AND_REPAIR_BEGUN",
+        acceptanceUnchanged: Object.freeze({ ruling: F96_ORIGINAL.ruling.sha256, contract: F96_ORIGINAL.contractSha256 }),
+        branch: "rr290",
+        baseSha: "2deb1242635546391c000f6087438980cf014982",
+        baseCiRun: "39207230783",
+        baseCiConclusion: "success",
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-290.md", commit: "4582d30a88895556797d4484234cfd03ffb87629", sha256: "3a4b946cfb02a0d7a3774c74f6a64b9cc79a55a388bf4a35ef0139198a2cfe5d" }),
+      }),
+      /* RR-290 · T3 (beta-g decision B): F96 built (src/commerce/ecommerce-visibility.mjs, bin/ecommerce-visibility.mjs). Completion rule (owner, 19 Oct 2026) and light proof rule 3: a clause that needs what does not exist yet is
+       * DEFERRED-TO-FIRST-CLIENT, never PROVED, and never blocks completion; every other clause PROVED on the real records — VERIFIED (3 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F96",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "ACCEPTANCE-FROZEN -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F96_ORIGINAL.ruling.sha256, contract: F96_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "DEFERRED-TO-FIRST-CLIENT", C3: "DEFERRED-TO-FIRST-CLIENT", C4: "DEFERRED-TO-FIRST-CLIENT", C5: "PROVED" }),
+        deferred: Object.freeze({ C2: "a declared client that sells listed products and files its own feed with verified product facts (none exists today)", C3: "that client's own merchant-listing export", C4: "that client's own crawl holding paginated or filter URLs" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-290.md", commit: "4582d30a88895556797d4484234cfd03ffb87629", sha256: "3a4b946cfb02a0d7a3774c74f6a64b9cc79a55a388bf4a35ef0139198a2cfe5d" }),
+        populations: "REAL (count-only): 3 declared projects, each run under its own tenant — the declared product NOT APPLICABLE by its own commerce declaration (it sells no listed product), the two other declared projects NOT APPLICABLE (no commerce declaration); each shows its one F96 line and no number; another tenant's project refused by F02",
+        proofs: "test/f96-ecommerce-visibility.test.mjs (C1–C5 with firing controls; C1 and C5 REAL), bin/ecommerce-visibility.mjs",
+        sabotage: "none new: light proof rule 2 (one real run plus its own tests) — F96 touches no fact, quotation, link, licence, publishing, secret or tenant-isolation code",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
+      }),
     ]),
   }),
 });

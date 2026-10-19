@@ -10,6 +10,7 @@ import { needMeasure, supplyMeasure, visibilityMeasure, demandMeasure, demandEvi
 import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
 import { renderReport } from "./visibility-report-html.mjs";
 import { KINDS, consentGate, evidenceCounts } from "../intake/client-supplied.mjs";
+import { admitObservation, perSystem, shareOfVoice, influenceGraph, gapsOf, actionsForGaps } from "../research/ai-visibility.mjs";
 
 /** F66–F68 · the stored evidence of the client's own live pages, by URL */
 const storedEvidence = (io) => evidenceByUrl({ pageReads: io.rows("live-pages.jsonl"), securityReads: io.rows("live-security.jsonl"), linkObs: io.rows("link-status.jsonl") });
@@ -94,6 +95,34 @@ export const PARTS = Object.freeze({
         `supplied files      ${(manifest?.files ?? []).length} in the manifest · of a kind these parts read: ${(manifest?.files ?? []).filter((f) => Object.values(KINDS).includes(f.kind)).length}`,
         line("F28 server log", KINDS.SERVER_LOG), line("F65 review export", KINDS.REVIEW_EXPORT), line("F84 outcome export", KINDS.OUTCOME_EXPORT), line("F95 questions", KINDS.CUSTOMER_QUESTIONS),
         `F95 evidence apart  ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(" · ")}`,
+      ];
+    },
+  }),
+  /* F51 · F52 · F53 · F56 · F57 · src/research/ai-visibility.mjs — the client's filed AI-answer observations (its own AI connection, or by
+   * hand); the engine's browser-route observations (RR-291 decision 2, for F16) are offered too, and refused for their route, named */
+  "ai-visibility": Object.freeze({
+    title: "F51 · F52 · F53 · F56 · F57 · AI VISIBILITY",
+    run: (io) => {
+      const filed = io.rows("ai-observations.jsonl");
+      const route = io.rows("answer-surface-observations.jsonl").filter((r) => r.surface === "AI_ANSWER" && r.state === "OBSERVED")
+        .map((r) => ({ observationId: r.observation_id, prompt: r.query, system: r.surfaceId, date: r.on, sampling: "one answer per question", method: "the engine's browser route", citedUrls: (r.leads ?? []).map((l) => l.address), route: r.route }));
+      const verdicts = [...filed, ...route].map((o) => ({ o, v: admitObservation(o) }));
+      const admitted = verdicts.filter((x) => x.v.state === "ADMITTED").map((x) => x.v.observation);
+      const refused = verdicts.filter((x) => x.v.state === "REFUSED");
+      const brandDomains = io.own("answer-surfaces.json")?.ownDomains ?? [];
+      const gaps = gapsOf(admitted, { brandDomains });
+      const planning = io.rows("planning.jsonl");
+      const cov = new Map(planning.filter((r) => r.record_type === "planning_coverage").map((r) => [r.needId, r]));
+      const actions = actionsForGaps(gaps, { coverageOf: (id) => cov.get(id) ?? null, needOf: (id) => (cov.has(id) ? { needId: id, pageCandidate: id, questions: 1, tier: "OBSERVED", centralSupported: true } : null) });
+      const sov = shareOfVoice(admitted, { brand: io.subject });
+      const g = influenceGraph(admitted, gaps, actions);
+      return [
+        `F51 observations    filed ${filed.length} · offered from the browser route ${route.length} · admitted ${admitted.length} · refused ${refused.length}${refused.length ? ` (${[...new Set(refused.map((x) => x.v.missing.join(", ")))].join(" | ")})` : ""}`,
+        `F51 per system      ${admitted.length ? JSON.stringify(perSystem(admitted, { brandDomains })) : "NOT MEASURED — no admitted observation"}`,
+        `F52 share           ${sov.line}`,
+        `F53 graph           nodes ${g.nodes} · links ${g.links} · ${Object.entries(g.kinds).map(([k, v]) => `${k} ${v}`).join(" · ") || "empty (no admitted observation)"}`,
+        `F56 descriptions    ${io.rows("ai-brand-descriptions.jsonl").length} filed`,
+        `F57 actions         gaps ${gaps.length} · actions ${actions.length}${actions.length ? `: ${Object.entries(actions.reduce((m, a) => ((m[a.action] = (m[a.action] ?? 0) + 1), m), {})).map(([k, v]) => `${k} ${v}`).join(" · ")}` : ""}`,
       ];
     },
   }),

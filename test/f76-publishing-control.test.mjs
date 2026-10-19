@@ -1,8 +1,8 @@
 /**
  * F76 · Controlled draft and publishing (acceptance _handoffs AlmiVisibility_F76_ACCEPTANCE_2026-10-19.md; RR-291, light proof; owner answer
  * Q6). C1–C4 with firing controls; REAL on the client's own publication record and stored builds (count-only). The census names the one
- * existing path that drafts every declared page of a product at once (bin/build-page.mjs --all-slugs, owner ruling of 14 Sep 2026): C2's
- * "no generate-all path" is NOT proved while it stands — an owner question (RR-291).
+ * existing path that drafts every declared page of a product at once (bin/build-page.mjs --all-slugs, owner ruling of 14 Sep 2026). RR-292
+ * (beta-g decision A) gave C2 its meaning: that path reads the APPROVED PLAN ONLY — proved in test/f76-plan-batch.test.mjs.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -40,6 +40,10 @@ test("C3 · rollback restores the previous version byte for byte", () => {
   assert.deepEqual([r.state, r.html, r.restoredFrom], ["RESTORED", "<p>v1</p>", "1"]);
   /* FIRING CONTROL: one version only — nothing to restore */
   assert.equal(rollback([{ html: "x" }]).state, "REFUSED");
+  /* RR-292: the latest re-recorded (the publication records the same build again) — the previous VERSION is the earlier, different one */
+  const re = rollback([{ html: "<p>v1</p>", versionId: "1" }, { html: "<p>v2</p>", versionId: "2" }, { html: "<p>v2</p>", versionId: "2b" }]);
+  assert.deepEqual([re.state, re.html, re.restoredFrom], ["RESTORED", "<p>v1</p>", "1"]);
+  assert.equal(rollback([{ html: "same" }, { html: "same" }]).state, "REFUSED");
 });
 
 test("C4 · without the client's own connection nothing is submitted; the sitemap is written", () => {

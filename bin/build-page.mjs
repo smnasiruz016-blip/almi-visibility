@@ -23,6 +23,9 @@
  * 🔴 --all-slugs loops the declared specs of ONE product (owner ruling, 14 September 2026). Each candidate
  * is judged on its own and every refusal is recorded separately. No cross-product loop, no cohort, no batch
  * publish, no page-count target. It exists to produce the DATA GAP list, not output.
+ * 🔴 RR-292 (F76 C2's meaning, beta-g decision A): --all-slugs reads the APPROVED PLAN ONLY — the owner-declared specs, and a need F35
+ * chose only when the batch's F91 plan holds its page (src/page/plan-batch.mjs allSlugsOverPlan). It never builds every combination; a
+ * URL not in the plan is never built, on any request (servePlanned answers 404).
  *
  * 🔴 FAILS CLOSED. constructCandidates (src/page/construct.mjs) hands back HTML only for an ACCEPTED
  * candidate. A refused one has nothing to write; the run records its DATA GAP / REJECT / BLOCKED reasons and
@@ -45,7 +48,8 @@ import { previewForOwner } from "../src/page/content-brief.mjs";
 import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
 import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
 import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { approvedPlan, plannedPages, approvedKeys, allSlugsOverPlan } from "../src/page/plan-batch.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
@@ -163,7 +167,26 @@ const chosen = decisionsForConstruction(ae);
 const sitePlans = readClientSitePlans({ tenantId: SCOPE.tenantId, actionEvidence: ae, values: PRODUCT.variants ?? [], resolve: createTenantResolver() });
 const plans = sitePlans.plans ?? [];
 console.log(`F94 site plans        ${plans.length} plan(s) · refused ${sitePlans.refused?.length ?? 0}${sitePlans.fault ? ` — UNAVAILABLE (${sitePlans.fault})` : ""} · a draft with no plan says so; its internal links and URL are NOT MEASURED`);
-if (argv.includes("--all-slugs")) requested = [...requested, ...chosen.decisions.filter((d) => d.spec && !requested.includes(d.slug)).map((d) => d.slug)];
+/* 🔴 RR-292 · F76 C2 (beta-g decision A): --all-slugs builds ONLY over the approved plan — the product's owner-declared page specs, and
+ * the pages of the batch's own F91 plan (DEMAND, OPPORTUNITY; src/page/plan-batch.mjs). A need F35 chose is added only when the plan holds
+ * its page; with no plan filed, none is added, and each is named. Nothing is ever built for every combination, or for an unplanned URL. */
+let approvedPages = null;
+if (argv.includes("--all-slugs") && BATCH) {
+  const dir = join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
+  const inputsFile = (existsSync(dir) ? readdirSync(dir) : []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
+  if (inputsFile) {
+    const readJson = (f) => { try { return JSON.parse(readFileSync(join(dir, f), "utf8")); } catch { return null; } };
+    const readRows = (f) => (existsSync(join(dir, f)) ? createJsonlStore(join(dir, f)).readAll() : []);
+    const plan = approvedPlan({ inputs: readJson(inputsFile), rows: readRows, json: readJson });
+    approvedPages = approvedKeys(plan);
+    console.log(`approved plan         ${plannedPages(plan).length} planned page(s) — F91 plan of ${BATCH} (${inputsFile}); a planned page no declared spec or chosen need builds is built by the plan batch (bin/visibility-parts.mjs --part=plan-batch), never on request`);
+  }
+}
+if (argv.includes("--all-slugs")) {
+  const o = allSlugsOverPlan({ requested, chosen: chosen.decisions, approved: approvedPages });
+  if (o.notInPlan.length) console.log(`not in the approved plan  ${o.notInPlan.length} chosen need(s) NOT built (${approvedPages ? "the plan does not hold their page" : "no F91 plan is filed in the batch"}): ${o.notInPlan.join(", ")}`);
+  requested = o.requested;
+}
 console.log(`F35 decisions         ${chosen.decisions.length} chosen CREATE (${chosen.decisions.filter((d) => d.spec).length} compiled) · section proposals ${ae.compiled?.sectionProposals?.length ?? 0}${chosen.why ? ` — ${chosen.why}` : ""}`);
 
 const results = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, plans /* F37 C8: F94's plans; a draft with none says so */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });

@@ -5333,8 +5333,7 @@ export const DECLARED = Object.freeze({
   F76: Object.freeze({
     featureId: "F76",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
-    blocker: "OWNER QUESTION (RR-291): bin/build-page.mjs --all-slugs drafts every declared page of one product at once (owner ruling 14 Sep 2026); C2 says there is no generate-all path — does a draft-only loop count?",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-19", ruling: F76_ORIGINAL.ruling, contractSha256: F76_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -5351,6 +5350,26 @@ export const DECLARED = Object.freeze({
         baseCiRun: "39221141023",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
+      }),
+      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (1 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F76",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F76_ORIGINAL.ruling.sha256, contract: F76_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED", C4: "DEFERRED-TO-FIRST-CLIENT" }),
+        deferred: Object.freeze({ C4: "submission through the client's own Search Console connection (none connected; owner answer Q6) and a live publish (no deploy) — its PROOF names them; the real client reads NOT CONNECTED and the sitemap is built" }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        command: Object.freeze({"repo":"_handoffs","path":"AlmiVisibility_OWNER_DECISION_2026-10-19_RR-292.md","commit":"4b6d47a623f467aa39522afaa01e3561e01a5fe1","sha256":"7f9f44bee31146b545d4a0db9e18ee834e66d893e87dd5bf15688d373c606dd9"}),
+        populations: "REAL: C2's meaning (beta-g decision A of RR-292) — the batch is the approved F91 plan only: 31 of 31 planned pages (DEMAND 11, OPPORTUNITY 20) built at once as local drafts, 0 written, 0 published; 31 of 31 planned URLs 200; 30 of 30 unplanned URLs (each MERGED combination's own path, and one no combination holds) 404, none built on request; build-page --all-slugs reads the approved plan only (owner-declared specs, and a chosen need only when the plan holds its page). C1: the real publication of 12 pages, each with its own approval under the RR-271 decision, under the cap. C3: 12 of 12 pages roll back to their previous DIFFERENT stored build (a re-recorded build is skipped — the earlier rollback returned the latest again, fixed in RR-292), checked by SHA-256 apart from rollback() itself. C4: NOT CONNECTED, sitemap of 12 URLs built",
+        proofs: "test/f76-plan-batch.test.mjs (4 of 4; REAL), test/f76-publishing-control.test.mjs (5 of 5; REAL), src/page/plan-batch.mjs, src/page/publishing-control.mjs, bin/build-page.mjs, bin/visibility-parts.mjs --part=plan-batch and --part=publishing",
+        sabotage: "runs/audit/f76-plan-batch-sabotage-2026-10-19T185714.txt: 5 of 5 proved (unplanned URL served, MERGED built as a page, chosen need outside the plan, build-page's old path, rollback returning the latest) — each named test RED by assertion, every file restored by raw-byte hash; two earlier 4-of-4 runs of the same harness (1854, 1856) kept",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

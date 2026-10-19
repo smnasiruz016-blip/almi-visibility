@@ -5,6 +5,7 @@
  *
  * Generic: it names no client, product or host.
  */
+import { createHash } from "node:crypto";
 import { demandEvidence } from "../research/demand-observation-evidence.mjs";
 import { needMeasure, supplyMeasure, visibilityMeasure, demandMeasure, demandEvidenceOf } from "../research/four-measures.mjs";
 import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
@@ -14,12 +15,32 @@ import { crawlItem, diffRuns } from "./change-and-scale.mjs";
 import { loadPlaywright, startDocumentServer, launchOfflineChromium } from "../render/renderer.mjs";
 import { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED as LAB_NOT_MEASURED } from "../render/lab-speed.mjs";
 import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-exports.mjs";
+import { approvedPlan, buildPlanBatch, plannedPages, planPath, servePlanned } from "../page/plan-batch.mjs";
+import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
+import { connectionNow } from "../research/ai-connection.mjs";
 import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
 import { inferFollowUps, competitorsOf, inferDifficulty, DIFFICULTY_METHOD, INFERRED, napOf, napConsistency, benchmark } from "../research/follow-ups-and-competitors.mjs";
 import { admitObservation, perSystem, shareOfVoice, influenceGraph, gapsOf, actionsForGaps } from "../research/ai-visibility.mjs";
 
 /** F66–F68 · the stored evidence of the client's own live pages, by URL */
 const storedEvidence = (io) => evidenceByUrl({ pageReads: io.rows("live-pages.jsonl"), securityReads: io.rows("live-security.jsonl"), linkObs: io.rows("link-status.jsonl") });
+/** F76 C3's independent check: the last stored build whose SHA-256 differs from the latest's — computed apart from rollback() itself */
+const prevDistinct = (versions) => {
+  const h = (s) => createHash("sha256").update(s).digest("hex");
+  const last = versions.length ? h(versions.at(-1).html) : null;
+  for (let i = versions.length - 2; i >= 0; i -= 1) if (h(versions[i].html) !== last) return versions[i];
+  return null;
+};
+/** RR-292 · the client's search-data options, each from its own stored records — nothing fetched */
+const setupOf = (io) => {
+  const exports = io.rows("search-console-exports.jsonl").filter((r) => r.record_type === "search_console_export").sort((a, b) => String(a.exportedOn).localeCompare(String(b.exportedOn)));
+  /* the client's own AI connection: the latest event of each of its connectors (src/research/ai-connection.mjs connectionNow) */
+  const conn = io.rows("ai-connection.jsonl");
+  const ids = [...new Set(conn.filter((r) => r.value?.subject === io.subject).map((r) => r.value.connectorId))];
+  const aiConnected = ids.some((id) => connectionNow(conn, { subject: io.subject, connectorId: id }) === "CONNECTED") ? "CONNECTED" : "NOT CONNECTED";
+  /* option 1: no search-API key of the client's is declared, and no price page is read in this round (beta-g decision B) */
+  return searchDataOptions({ apiKey: null, price: null, searchConsole: exports.at(-1) ?? null, aiSearch: { state: aiConnected } });
+};
 /** F66–F68 · one score run printed: every weight, every evaluated check, every NOT MEASURED value, the denominator and its rule */
 const scoreLines = (s, list) => [
   `mode ${s.mode.toUpperCase()}  sample ${s.sampleSize} of ${s.of} URL(s)${s.skipped.length ? ` · skipped ${s.skipped.length}: ${s.skipped.join(", ")}` : " · skipped none"}`,
@@ -87,7 +108,7 @@ export const PARTS = Object.freeze({
     raw: true,
     run: (io) => {
       const s = runMode({ mode: "full", evidenceByUrl: storedEvidence(io) });
-      return renderReport({ title: `Visibility report · ${io.subject}`, run: s, findings: findingsOf(s.results), on: io.on ?? "today", brand: io.brand ?? null, lead: io.lead ?? undefined }).split("\n");
+      return renderReport({ title: `Visibility report · ${io.subject}`, run: s, findings: findingsOf(s.results), on: io.on ?? "today", brand: io.brand ?? null, lead: io.lead ?? undefined, setup: setupOf(io) }).split("\n");
     },
   }),
   /* F28 · F65 · F84 · F95 · src/intake/client-supplied.mjs — the client's supplied files, each kind behind its consent gate */
@@ -240,8 +261,10 @@ export const PARTS = Object.freeze({
       const plan = planCohort({ pages, approvals });
       const builds = new Map();
       for (const r of io.rows("joined-pages.jsonl")) if (r.record_type === "joined_page_draft" && typeof r.html === "string") { const k = String(r.value); if (!builds.has(k)) builds.set(k, []); builds.get(k).push({ html: r.html, versionId: r.measurement_key }); }
-      const rolled = pages.map((p) => ({ p, r: rollback(builds.get(p) ?? []), prev: (builds.get(p) ?? []).at(-2) }));
-      const exact = rolled.filter((x) => x.r.state === "RESTORED" && x.r.html === x.prev.html).length;
+      const rolled = pages.map((p) => ({ p, r: rollback(builds.get(p) ?? []), prev: prevDistinct(builds.get(p) ?? []) }));
+      /* independent of rollback's own output: the restored bytes hash to the previous stored build's own bytes, and differ from the latest */
+      const shaOf = (s) => createHash("sha256").update(s).digest("hex");
+      const exact = rolled.filter((x) => x.r.state === "RESTORED" && x.prev && x.r.sha256 === shaOf(x.prev.html) && x.r.html !== (builds.get(x.p) ?? []).at(-1).html).length;
       const sub = submissionState(io.own("search-console-connection.json"));
       const map = sitemapXml((list?.pages ?? []).map((p) => p.url));
       return [
@@ -260,6 +283,35 @@ export const PARTS = Object.freeze({
       if (e.state !== "EXPORTED") return [`REFUSED — ${e.faults.length} schema fault(s): ${e.faults.slice(0, 5).join("; ")}`];
       return [`tenant ${io.tenantId} · schema ${EXPORT_SCHEMA.name} ${EXPORT_SCHEMA.version} · rows ${e.rows} · JSON ${e.json.length} bytes · CSV ${e.csv.length} bytes · actions ${API_ACTIONS.join(", ")} (read-only)`, ...(io.list ? [e.json] : [])];
     },
+  }),
+  /* F76 C2 (RR-292) · src/page/plan-batch.mjs — every page of the approved F91 plan built at once, locally; any other URL 404 */
+  "plan-batch": Object.freeze({
+    title: "F76 · THE PLAN BATCH (LOCAL DRAFTS; NOTHING PUBLISHED)",
+    run: (io) => {
+      const inputsFile = (io.listBatch?.() ?? []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
+      if (!inputsFile) return ["NOT MEASURED — the batch files no plan inputs; nothing is built"];
+      const plan = approvedPlan({ inputs: io.json(inputsFile), rows: io.rows, json: io.json });
+      if (!plan.measured) return [`NOT MEASURED — the plan misses ${plan.missing}; nothing is built`];
+      const batch = buildPlanBatch(plan);
+      const planned = plannedPages(plan);
+      const merged = plan.rows.filter((r) => r.label === "MERGED");
+      /* the unplanned URLs asked: every MERGED combination's own path, and one path no combination holds */
+      const unplanned = [...merged.map(planPath), "/no-such/combination"];
+      const answers = unplanned.map((p) => servePlanned(p, batch));
+      const plannedAnswers = planned.map((p) => servePlanned(p.path, batch));
+      return [
+        `plan          ${inputsFile}: DEMAND ${plan.counts.DEMAND} · OPPORTUNITY ${plan.counts.OPPORTUNITY} · MERGED ${plan.counts.MERGED} (sections, never pages)`,
+        `built         ${batch.size} of ${planned.length} planned page(s), at once, as local drafts · claims ${[...batch.values()].reduce((s, p) => s + p.claims, 0)} · merged sections ${[...batch.values()].reduce((s, p) => s + p.sections, 0)} · written 0 · published 0`,
+        `planned URLs  ${plannedAnswers.filter((a) => a.status === 200).length} of ${plannedAnswers.length} answer 200 from the built batch`,
+        `unplanned     ${answers.filter((a) => a.status === 404).length} of ${answers.length} URL(s) answer 404 — none built on request`,
+        ...(io.list ? [...batch].map(([p, x]) => `  ${p} · ${x.combination} · ${x.claims} claim(s) · ${x.sections} section(s) · sha256 ${x.sha256.slice(0, 12)}`) : []),
+      ];
+    },
+  }),
+  /* RR-292 · src/report/search-data-options.mjs — the client's three search-data options at setup, each from its own stored records */
+  "setup-options": Object.freeze({
+    title: "CLIENT SETUP · SEARCH-DATA OPTIONS",
+    run: (io) => optionsLines(setupOf(io)),
   }),
   /* F67 · the quick sample — the same checks */
   "score-quick": Object.freeze({

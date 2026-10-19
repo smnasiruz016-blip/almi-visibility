@@ -15,7 +15,8 @@ import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
-import { planPages, planFaults, LABEL } from "../src/page/page-plan.mjs";
+import { planFaults, LABEL } from "../src/page/page-plan.mjs";
+import { approvedPlan } from "../src/page/plan-batch.mjs";
 
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
 const SUBJECT = arg("subject"), BATCH = arg("research-batch"), INPUTS = arg("inputs");
@@ -28,13 +29,10 @@ if (!existsSync(join(batchDir, INPUTS))) { console.error("🔴 REFUSED — NO_PL
 const json = (f) => JSON.parse(readFileSync(join(batchDir, f), "utf8"));
 const rows = (f) => { try { return readFileSync(join(batchDir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
 const inputs = json(INPUTS);
-const published = [...new Map(rows("joined-pages.jsonl").filter((r) => r.record_type === "joined_page_draft" && r.publishedUrl).map((r) => [r.value, r])).values()];
 /* the inputs name their two dimensions: the primary's values each have the page a combination merges into */
-const first = inputs.primary ?? {}, second = inputs.secondary ?? {};
-const primaries = (first.values ?? []).map((p) => ({ ...p, page: published.find((x) => x.value === p.value)?.publishedUrl ?? null }));
-const claims = (json("page-drafts.json").pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => ({ claimId: c.claimId, primary: p.combination?.[first.name], body: c.body ?? c.source?.body, text: c.text }))));
-const records = [...rows("questions.jsonl"), ...rows("research-derived-questions.jsonl"), ...[...rows("search-phrases.jsonl"), ...rows("search-console-exports.jsonl")].filter((x) => x.record_type === "search_phrase")];
-const plan = planPages({ primaries, secondaries: second.values ?? [], claims, records });
+/* RR-292: the plan is read by the ONE reader every batch build uses (src/page/plan-batch.mjs approvedPlan) */
+const plan = approvedPlan({ inputs, rows, json });
+const claims = (json("page-drafts.json").pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => ({ claimId: c.claimId, primary: p.combination?.[inputs.primary?.name], body: c.body ?? c.source?.body, text: c.text }))));
 if (!plan.measured) { console.log(`F91 · PAGE PLAN — NOT MEASURED: missing ${plan.missing}`); process.exit(0); }
 const faults = planFaults(plan, { claims });
 console.log("F91 · PAGE PLAN (Amendment 6) — DEMAND, OPPORTUNITY or MERGED for every requested combination; nothing written or published");

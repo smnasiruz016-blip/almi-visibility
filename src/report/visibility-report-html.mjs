@@ -50,6 +50,17 @@ export function leadSection(lead = LEAD_DEFAULT) {
   return [`<h2 id="deeper">Ask for a deeper check</h2>`, `<form method="post" action="${esc(lead.action ?? "#")}"><p><label>Email <input type="email" name="email"></label></p>`, `<p><label><input type="checkbox" name="consent" value="yes"> I agree to be contacted about this report.</label></p>`, `<p><button type="submit">Send</button></p></form>`].join("\n");
 }
 
+/**
+ * F71 C3 · a lead submission is kept only WITH its consent record: the box ticked by the person, the words they agreed to, and when. Without
+ * one it is REFUSED and nothing of it is kept — not the address, not a part of it.
+ */
+export function admitLeadSubmission(s) {
+  const c = s?.consent;
+  const ok = c && c.ticked === true && typeof c.text === "string" && c.text.trim() !== "" && typeof c.at === "string" && /^\d{4}-\d{2}-\d{2}T/.test(c.at);
+  if (!ok) return Object.freeze({ state: "REFUSED", reason: "NO_CONSENT_RECORD", kept: null });
+  return Object.freeze({ state: "ACCEPTED", kept: Object.freeze({ contact: String(s.contact ?? ""), consent: Object.freeze({ ticked: true, text: c.text, at: c.at }) }) });
+}
+
 /** F70 · the whole file. */
 export function renderReport({ title, run, findings, brand = null, lead = LEAD_DEFAULT, on }) {
   const b = brandOf(brand);

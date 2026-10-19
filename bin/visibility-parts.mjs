@@ -37,7 +37,10 @@ const io = Object.freeze({
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
   list: process.argv.includes("--list"),
+  on: arg("on"),
 });
 const out = await PARTS[PART].run(io);
+/* a raw part (the F70 report file) is printed as it is — save it with "> report.html" */
+if (PARTS[PART].raw) { process.stdout.write(out.join("\n")); process.exit(0); }
 console.log(`${PARTS[PART].title} — the client's own stored records; read-only, nothing fetched, sent or written`);
 for (const l of out) console.log(`  ${l}`);

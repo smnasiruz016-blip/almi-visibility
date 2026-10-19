@@ -8,6 +8,8 @@
 import { demandEvidence } from "../research/demand-observation-evidence.mjs";
 import { needMeasure, supplyMeasure, visibilityMeasure, demandMeasure, demandEvidenceOf } from "../research/four-measures.mjs";
 import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
+import { renderReport } from "./visibility-report-html.mjs";
+import { KINDS, consentGate, evidenceCounts } from "../intake/client-supplied.mjs";
 
 /** F66–F68 · the stored evidence of the client's own live pages, by URL */
 const storedEvidence = (io) => evidenceByUrl({ pageReads: io.rows("live-pages.jsonl"), securityReads: io.rows("live-security.jsonl"), linkObs: io.rows("link-status.jsonl") });
@@ -70,6 +72,29 @@ export const PARTS = Object.freeze({
       const s = runMode({ mode: "full", evidenceByUrl: storedEvidence(io) });
       const f = findingsOf(s.results);
       return [...scoreLines(s, io.list), `findings ${f.length} (each with its check, evidence id and next action)`, ...f.slice(0, io.list ? f.length : 5).map((x) => `  ${x.url} · ${x.check} (weight ${x.weight}) · ${x.finding} → ${x.action} · evidence ${x.evidenceId}`)];
+    },
+  }),
+  /* F70 · src/report/visibility-report-html.mjs — the one static HTML file, printed whole (save it as a file); bad findings first */
+  "report": Object.freeze({
+    title: "F70 · DOWNLOADABLE REPORT",
+    raw: true,
+    run: (io) => {
+      const s = runMode({ mode: "full", evidenceByUrl: storedEvidence(io) });
+      return renderReport({ title: `Visibility report · ${io.subject}`, run: s, findings: findingsOf(s.results), on: io.on ?? "today", brand: io.brand ?? null, lead: io.lead ?? undefined }).split("\n");
+    },
+  }),
+  /* F28 · F65 · F84 · F95 · src/intake/client-supplied.mjs — the client's supplied files, each kind behind its consent gate */
+  "client-supplied": Object.freeze({
+    title: "F28 · F65 · F84 · F95 · CLIENT-SUPPLIED FILES",
+    run: (io) => {
+      const manifest = io.json("client-files/manifest.json");
+      const line = (label, kind) => { const g = consentGate(manifest, kind); return `${label.padEnd(20)} ${g.state}${g.state === "NOT MEASURED" ? " — the client supplied no such file" : ` · admitted ${g.admitted.length} · refused ${g.refused.length}${g.refused.length ? ` (${g.refused.map((r) => `${r.file}: ${r.reason}`).join(", ")})` : ""}`}`; };
+      const counts = evidenceCounts({ publicQuestions: io.rows("questions.jsonl").length, researchDerived: io.rows("research-derived-questions.jsonl").length, ownedSearch: io.rows("search-console-exports.jsonl").filter((r) => r.record_type === "search_phrase").length, clientReceived: [] });
+      return [
+        `supplied files      ${(manifest?.files ?? []).length} in the manifest · of a kind these parts read: ${(manifest?.files ?? []).filter((f) => Object.values(KINDS).includes(f.kind)).length}`,
+        line("F28 server log", KINDS.SERVER_LOG), line("F65 review export", KINDS.REVIEW_EXPORT), line("F84 outcome export", KINDS.OUTCOME_EXPORT), line("F95 questions", KINDS.CUSTOMER_QUESTIONS),
+        `F95 evidence apart  ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(" · ")}`,
+      ];
     },
   }),
   /* F67 · the quick sample — the same checks */

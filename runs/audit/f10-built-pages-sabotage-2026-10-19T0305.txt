@@ -1,0 +1,8 @@
+F10 built-pages sabotage run · 2026-10-19T03:04:16.938Z
+population: 101 sabotages over test/f10-built-pages.test.mjs + test/rr253-joined-pages.test.mjs · bound: one span per sabotage, applied ALONE; each run killed after 600 s
+PRE-FLIGHT (span occurrences in the code live now): B01=1 B02=1 B03=1 B04=1 B05=1 B06=1 B07=1 B08=1 B09=1 B10=1 B11=1 B12=1 B13=1 B14=1 B15=1 B17=1 B18=1 B19=1 B16=1 T01=1 T02=1 T03=1 T04=1 T05=1 T06=1 T07=1 T10=1 T11=1 T12=1 T13=1 T14=1 T15=1 T16=1 T17=1 T18=1 T19=1 T20=1 T21=1 T22=1 T23=1 R01=1 R02=1 R03=1 R04=1 R05=1 R06=1 V01=1 V02=1 V03=1 V04=1 V05=1 V06=1 V07=1 V08=1 V09=1 V10=1 V11=1 V12=1 V13=1 U01=1 U02=1 U03=1 U04=1 U05=1 U06=1 U07=1 U08=1 X01=1 X02=1 X03=1 X04=1 X05=1 X06=1 X07=1 X08=1 X09=1 X10=1 X11=1 X12=1 X13=1 X14=1 X15=1 Y01=1 Y02=1 Y03=1 Y04=1 Y05=1 Y06=1 Z01=1 Z02=1 Z03=1 Z04=1 Z05=1 Z06=1 Z07=1 Z08=1 Z09=1 Z10=1 Z11=1 Z12=1 Z13=1 · all exactly once: true
+production trail sha256 before: 1a42c198c30937890e500dc176295f38ce5742a455edf37700876d0dd38a78cd
+
+B16 RR-264 a title plan that names no stored phrase does not stop the builder bin/build-joined-pages.mjs: landed true · named test "TITLE PLAN · FIRING CONTROL (RR-264)" red true · failing 1 · reason AssertionError · restored by sha256 true · PROVED
+
+proved 1 of 1 (--only=B16; 101 limbs in all) · residue 0 · production trail sha256 after: 1a42c198c30937890e500dc176295f38ce5742a455edf37700876d0dd38a78cd · unchanged true

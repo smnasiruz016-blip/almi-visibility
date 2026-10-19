@@ -11,6 +11,8 @@ import { runMode, findingsOf, evidenceByUrl } from "./visibility-score.mjs";
 import { renderReport } from "./visibility-report-html.mjs";
 import { KINDS, consentGate, evidenceCounts } from "../intake/client-supplied.mjs";
 import { crawlItem, diffRuns } from "./change-and-scale.mjs";
+import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-exports.mjs";
+import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
 import { inferFollowUps, competitorsOf, inferDifficulty, DIFFICULTY_METHOD, INFERRED, napOf, napConsistency, benchmark } from "../research/follow-ups-and-competitors.mjs";
 import { admitObservation, perSystem, shareOfVoice, influenceGraph, gapsOf, actionsForGaps } from "../research/ai-visibility.mjs";
 
@@ -223,6 +225,39 @@ export const PARTS = Object.freeze({
       const rep = napConsistency(values);
       const show = (v) => (typeof v === "string" ? v : v.state === "CONSISTENT" ? `CONSISTENT "${v.value}" on ${v.sources} statement(s)` : `MISMATCH ${v.pairs.map((p) => `"${p.a.value}" (${p.a.source}) vs "${p.b.value}" (${p.b.source})`).join("; ")}`);
       return [`own pages read      ${latest.size} · NAP statements ${values.length}`, `name                ${show(rep.name)}`, `address             ${show(rep.address)}`, `phone               ${show(rep.phone)}`];
+    },
+  }),
+  /* F76 · src/page/publishing-control.mjs — the real publication record classed, rollback on the stored builds, the sitemap until connected */
+  "publishing": Object.freeze({
+    title: "F76 · CONTROLLED PUBLISHING",
+    raw: false,
+    run: (io) => {
+      const list = io.json("published-pages-2026-10-16.json");
+      const pages = (list?.pages ?? []).map((p) => p.page);
+      /* each listed page stands on the decision record the list names — one approval per page, never one for "all" */
+      const approvals = (list?.pages ?? []).map((p) => ({ pageId: p.page, approvedBy: "the owner", on: "2026-10-16", decision: list.decision }));
+      const plan = planCohort({ pages, approvals });
+      const builds = new Map();
+      for (const r of io.rows("joined-pages.jsonl")) if (r.record_type === "joined_page_draft" && typeof r.html === "string") { const k = String(r.value); if (!builds.has(k)) builds.set(k, []); builds.get(k).push({ html: r.html, versionId: r.measurement_key }); }
+      const rolled = pages.map((p) => ({ p, r: rollback(builds.get(p) ?? []), prev: (builds.get(p) ?? []).at(-2) }));
+      const exact = rolled.filter((x) => x.r.state === "RESTORED" && x.r.html === x.prev.html).length;
+      const sub = submissionState(io.own("search-console-connection.json"));
+      const map = sitemapXml((list?.pages ?? []).map((p) => p.url));
+      return [
+        `C1 C2 cohort        ${pages.length} page(s) of the real publication (${list?.decision ?? "no decision"}) → ${plan.state}${plan.refusals ? `: ${plan.refusals.join("; ")}` : ""} · cap ${PUBLISH_COHORT_CAP}`,
+        `C3 rollback         ${exact} of ${pages.length} page(s) restored byte for byte to their previous stored build`,
+        `C4 submission       ${sub.state}${sub.line ? ` — ${sub.line}` : ""} · sitemap ${(map.match(/<url>/g) ?? []).length} URL(s), ${map.length} bytes`,
+      ];
+    },
+  }),
+  /* F80 · src/export/tenant-exports.mjs — the tenant's own results, JSON and CSV, versioned, read-only */
+  "export": Object.freeze({
+    title: "F80 · READ-ONLY EXPORT",
+    run: (io) => {
+      const s = runMode({ mode: "full", evidenceByUrl: storedEvidence(io) });
+      const e = tenantExport({ tenantId: io.tenantId, results: s.results.map(({ needs, ...r }) => r), generatedAt: io.on ?? "today", bounds: { pages: s.of, checks: s.results.length } });
+      if (e.state !== "EXPORTED") return [`REFUSED — ${e.faults.length} schema fault(s): ${e.faults.slice(0, 5).join("; ")}`];
+      return [`tenant ${io.tenantId} · schema ${EXPORT_SCHEMA.name} ${EXPORT_SCHEMA.version} · rows ${e.rows} · JSON ${e.json.length} bytes · CSV ${e.csv.length} bytes · actions ${API_ACTIONS.join(", ")} (read-only)`, ...(io.list ? [e.json] : [])];
     },
   }),
   /* F67 · the quick sample — the same checks */

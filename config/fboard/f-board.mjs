@@ -4603,7 +4603,7 @@ export const DECLARED = Object.freeze({
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
       }),
-      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (1 deferred) */
+      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (2 deferred) */
       Object.freeze({
         kind: "VERIFIED",
         featureId: "F30",
@@ -4614,8 +4614,8 @@ export const DECLARED = Object.freeze({
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
         acceptanceUnchanged: Object.freeze({ ruling: F30_ORIGINAL.ruling.sha256, contract: F30_ORIGINAL.contractSha256 }),
-        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "DEFERRED-TO-FIRST-CLIENT" }),
-        deferred: Object.freeze({ C3: "the scheduler on a live host (no deploy) — its PROOF names it; the real run over two stored crawls it also names is done (5 compared, 0 changed)" }),
+        clauses: Object.freeze({ C1: "DEFERRED-TO-FIRST-CLIENT", C2: "PROVED", C3: "DEFERRED-TO-FIRST-CLIENT" }),
+        deferred: Object.freeze({ C3: "the scheduler on a live host (no deploy) — its PROOF names it; the real run over two stored crawls it also names is done (5 compared, 0 changed)", C1: "the engine does not yet check that the compared batch is the LAST stored run of the same check — it compares the batch the caller names (independent audit, RR-291); the comparison itself is proved on two real crawls" }),
         lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
         populations: "REAL (count-only): two stored crawls of the same check (30 Sep and 2 Oct 2026, the same 5 seeds) compared under recorded rule F30-R1 — added 0 · removed 0 · changed 0 · unchanged 5, suppressed; one run alone claims no change",
@@ -4647,7 +4647,7 @@ export const DECLARED = Object.freeze({
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
       }),
-      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (1 deferred) */
+      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (2 deferred) */
       Object.freeze({
         kind: "VERIFIED",
         featureId: "F51",
@@ -4658,8 +4658,8 @@ export const DECLARED = Object.freeze({
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
         acceptanceUnchanged: Object.freeze({ ruling: F51_ORIGINAL.ruling.sha256, contract: F51_ORIGINAL.contractSha256 }),
-        clauses: Object.freeze({ C1: "PROVED", C2: "DEFERRED-TO-FIRST-CLIENT", C3: "PROVED" }),
-        deferred: Object.freeze({ C2: "real AI answer data from the client's own AI connection or filed by hand (none today; owner answer Q1)" }),
+        clauses: Object.freeze({ C1: "DEFERRED-TO-FIRST-CLIENT", C2: "DEFERRED-TO-FIRST-CLIENT", C3: "PROVED" }),
+        deferred: Object.freeze({ C2: "real AI answer data from the client's own AI connection or filed by hand (none today; owner answer Q1)", C1: "real observations filed by hand or through the client's own AI connection (0 today — the 3 browser-route answers were refused for their route); planted incomplete observations refused (independent audit, RR-291)" }),
         lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
         populations: "REAL: 0 observations filed by hand or through the client's own AI connection; the 3 AI answers the engine's browser route observed (RR-291 decision 2) offered and REFUSED, named — their route is neither the client's connection nor a hand filing, and they carry no mention flag",
@@ -5014,7 +5014,7 @@ export const DECLARED = Object.freeze({
         deferred: Object.freeze({ C1: "a real review export supplied by the client (none today); the summary is proved on a fixture export" }),
         lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
-        populations: "REAL: no review export supplied — NOT MEASURED; census of src/ and bin/: 0 review write, post or solicitation paths",
+        populations: "REAL: no review export supplied — NOT MEASURED; census of src/ and bin/ (call names split from camelCase, comments and declared patterns skipped): 0 review write, post or solicitation paths; 5 planted write paths under other names each turn it red (firing controls, after the independent audit)",
         proofs: "test/f28-f65-f84-f95-client-supplied.test.mjs (F65 C1 fixture, C2 census)",
         sabotage: "none new: light proof rule 2 (one real run plus its own tests with firing controls)",
         afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
@@ -5175,7 +5175,7 @@ export const DECLARED = Object.freeze({
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
       }),
-      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (1 deferred) */
+      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (2 deferred) */
       Object.freeze({
         kind: "VERIFIED",
         featureId: "F69",
@@ -5186,8 +5186,8 @@ export const DECLARED = Object.freeze({
         route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
         reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
         acceptanceUnchanged: Object.freeze({ ruling: F69_ORIGINAL.ruling.sha256, contract: F69_ORIGINAL.contractSha256 }),
-        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "DEFERRED-TO-FIRST-CLIENT" }),
-        deferred: Object.freeze({ C3: "a real peer set of at least 3 declared competitors with stored evidence — its PROOF names it; the real client prints \"no benchmark — 0 declared competitor(s)\"" }),
+        clauses: Object.freeze({ C1: "DEFERRED-TO-FIRST-CLIENT", C2: "PROVED", C3: "DEFERRED-TO-FIRST-CLIENT" }),
+        deferred: Object.freeze({ C3: "a real peer set of at least 3 declared competitors with stored evidence — its PROOF names it; the real client prints \"no benchmark — 0 declared competitor(s)\"", C1: "a declared competitor with stored evidence to class (0 declared today — the same empty set as F58 C1; independent audit, RR-291)" }),
         lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
         populations: "REAL: the declaration classed — 0 declared competitors with stored evidence → no benchmark; planted peers of 3 give the median with sample and limits",
@@ -5334,6 +5334,7 @@ export const DECLARED = Object.freeze({
     featureId: "F76",
     board: "F_BOARD",
     state: "IN-PROGRESS",
+    blocker: "OWNER QUESTION (RR-291): bin/build-page.mjs --all-slugs drafts every declared page of one product at once (owner ruling 14 Sep 2026); C2 says there is no generate-all path — does a draft-only loop count?",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-19", ruling: F76_ORIGINAL.ruling, contractSha256: F76_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -5533,7 +5534,7 @@ export const DECLARED = Object.freeze({
   F89: Object.freeze({
     featureId: "F89",
     board: "F_BOARD",
-    state: "IN-PROGRESS",
+    state: "VERIFIED-PASS",
     events: Object.freeze([
       Object.freeze({ kind: "ACCEPTANCE_FROZEN", on: "2026-10-19", ruling: F89_ORIGINAL.ruling, contractSha256: F89_ORIGINAL.contractSha256 }),
       Object.freeze({
@@ -5550,6 +5551,26 @@ export const DECLARED = Object.freeze({
         baseCiRun: "39221141023",
         baseCiConclusion: "success",
         command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
+      }),
+      /* RR-291 · light proof rule 3 and the completion rule: every clause PROVED on the real records or DEFERRED-TO-FIRST-CLIENT, named — VERIFIED (0 deferred) */
+      Object.freeze({
+        kind: "VERIFIED",
+        featureId: "F89",
+        population: "REAL",
+        on: "2026-10-19",
+        from: "IN-PROGRESS",
+        to: "VERIFIED-PASS",
+        route: "UNASSESSED -> IN-PROGRESS -> VERIFIED-PASS (two movements; no jump)",
+        reason: "EVERY_CLAUSE_OF_THE_FROZEN_ACCEPTANCE_PROVED_OR_DEFERRED_TO_FIRST_CLIENT",
+        acceptanceUnchanged: Object.freeze({ ruling: F89_ORIGINAL.ruling.sha256, contract: F89_ORIGINAL.contractSha256 }),
+        clauses: Object.freeze({ C1: "PROVED", C2: "PROVED", C3: "PROVED" }),
+        deferred: Object.freeze({  }),
+        lightProof: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_LIGHT_PROOF.md", commit: "c7b89e6eb9ae238986ae24df4ba452d9cd7bae9c", sha256: "710adcacba610bf7148cddb0fb0d6fa71f8b84f678f3f14ff433e40aec1fe7a6" }),
+        command: Object.freeze({ repo: "_handoffs", path: "AlmiVisibility_OWNER_DECISION_2026-10-19_RR-291.md", commit: "3848531732106c7c0f0868203c30f6454ce880cb", sha256: "9b0c0604c09cf191b93ec1e5017fb4ded06b758e1546d44e81bb33c8a91cea86" }),
+        populations: "REAL: the independent audit record (_handoffs AlmiVisibility_F89_INDEPENDENT_AUDIT_2026-10-19.json, commit 1393756, sha256 311ff811…) by a separate agent that built no audited row — 86 clauses of 28 rows and F16's RR-291 event, each citing its frozen contract sha256 (all 30 match): AGREE 82, DISAGREE 4, every disagreement accepted by the builder; the declaration over the real board lists every deferred clause by row, equal to fboard-status, and names every row not VERIFIED with its reason (F25 NOT REQUIRED, F76 its owner-question blocker); F89 module and test built by the auditor (5 of 5, mutation-checked 5 ways)",
+        proofs: "test/f89-done-declaration.test.mjs (C1–C3 with firing controls; REAL with F89_AUDIT_RECORD), src/fboard/done-declaration.mjs, _handoffs AlmiVisibility_F89_INDEPENDENT_AUDIT_2026-10-19.md (sha256 326a6e98…)",
+        sabotage: "none new: light proof rule 2 (one real run plus its own tests with firing controls)",
+        afterMerge: "main CI green on the exact merged SHA; a red main run means this record is wrong and must be reverted",
       }),
     ]),
   }),

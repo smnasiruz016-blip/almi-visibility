@@ -30,7 +30,7 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { createCostLedger } from "../src/cost/ledger.mjs";
 import { runCost, ownLedgerRef } from "../src/cost/run-cost.mjs";
 import { openBrowserRoute } from "../src/facts/browser-route.mjs";
-import { browserRead, BLOCK } from "../src/facts/source-reader.mjs";
+import { browserRead, BLOCK, ROUTE_STOPS } from "../src/facts/source-reader.mjs";
 import { loadPlaywright } from "../src/render/renderer.mjs";
 import { surfacesOf, SURFACE, BOUNDS, formSurfaceQueries, formAiQuestions, planRefusals, webSearchSeen, aiAnswerSeen, ownPosition, observationRecord, surfaceCensus } from "../src/research/answer-surfaces.mjs";
 
@@ -66,8 +66,10 @@ const aiPlan = ["ai-answer-a", "ai-answer-b"].flatMap((surfaceId) => ai.queries.
  * (--asked-unkept=web:N,ai:N names them — RR-291's first run read 6 AI questions and kept none, its write refused for a missing key) */
 const stored = (() => { try { return readFileSync(join(batchDir, "answer-surface-observations.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })();
 const unkept = Object.fromEntries((arg("asked-unkept") ?? "").split(",").filter(Boolean).map((p) => p.split(":")).map(([k, n]) => [k, Number(n) || 0]));
-const priorWeb = stored.filter((r) => r.surface === SURFACE.WEB_SEARCH && r.state === "OBSERVED").length + (unkept.web ?? 0);
-const priorAi = stored.filter((r) => r.surface === SURFACE.AI_ANSWER && r.state === "OBSERVED").length + (unkept.ai ?? 0);
+/* an opened page counts: OBSERVED, or stopped at a wall when it was asked (not one left unasked after its host stopped) */
+const opened = (r) => r.state === "OBSERVED" || (ROUTE_STOPS.includes(r.reason) && !/not asked/.test(r.detail ?? ""));
+const priorWeb = stored.filter((r) => r.surface === SURFACE.WEB_SEARCH && opened(r)).length + (unkept.web ?? 0);
+const priorAi = stored.filter((r) => r.surface === SURFACE.AI_ANSWER && opened(r)).length + (unkept.ai ?? 0);
 const refused = planRefusals({ web: [...Array(priorWeb).fill(null), ...web], ai: [...Array(priorAi).fill(null), ...aiPlan] });
 console.log(`  already asked    web ${priorWeb} · AI ${priorAi} (stored, and named as asked but not kept)`);
 console.log("F16 C7 · F63 · ANSWER SURFACES — the engine's own browser route; domains, features and addresses only, never a page's text");
@@ -102,7 +104,9 @@ try {
       : ROUTE ? await browserRead(url, { route: robotsSeen.has(host) ? { ...ROUTE, robots: undefined } : ROUTE, state, on: ON, pace }) : { state: "BLOCKED", reason: BLOCK.NO_ROUTE, detail: "the route could not open" };
     robotsSeen.add(host);
     if (read.state !== "READ" && [BLOCK.ROBOTS_DISALLOWED, BLOCK.ROBOTS_UNREADABLE].includes(read.reason)) state.stoppedHosts.set(host, read.reason);
-    if (read.state === "READ") asked[p.surfaceId] += 1;
+    /* a question counts against the owner's bound when its page was OPENED — read, or stopped at a wall (captcha, bot check, login,
+     * consent); one never opened (robots, a host stopped earlier) does not (independent audit, RR-291: the captcha read was uncounted) */
+    if (!stoppedFor && (read.state === "READ" || ROUTE_STOPS.includes(read.reason))) asked[p.surfaceId] += 1;
     const kind = SURFACES[p.surfaceId].kind;
     const seen = read.state !== "READ" ? null : kind === SURFACE.WEB_SEARCH ? webSearchSeen(read.text, { surfaceHost: new URL(url).hostname }) : aiAnswerSeen(read.text, { surfaceHost: new URL(url).hostname });
     const mine = seen && kind === SURFACE.WEB_SEARCH ? { domains: surfaces.ownDomains ?? [], ...ownPosition(seen.results, surfaces.ownDomains) } : null;

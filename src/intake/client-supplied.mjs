@@ -65,6 +65,16 @@ export function reviewSummary(rows, { on }) {
   return Object.freeze({ count: rows.length, latest, daysSinceLatest: latest && on ? Math.round((Date.parse(on) - Date.parse(latest)) / 86_400_000) : null, themes, responded: answered, unanswered: rows.length - answered });
 }
 
+/**
+ * F65 C2 · the census: any code that writes, posts, submits, sends, solicits, requests or asks for a review — by a call name, an option, an
+ * address or a message — is a review write path. A file may say it does none in a comment: comments are not code, and are skipped.
+ */
+const REVIEW_WRITE = /\b(post|write|submit|send|solicit|request|ask|create|leave|publish|reply)[\w-]*\s*(?:[\w-]+\s*){0,2}\breviews?\b|\breviews?[\w-]*\s*(?:\.|\s)\s*(?:post|create|submit|write|publish|reply)\b|\/reviews?\/(?:new|create|submit|reply)\b|\brequest-?review\b/i;
+export function reviewWritersCensus(files) {
+  /* a comment, or a declared pattern line (const NAME = /…/flags;), is not a write path */
+  return files.filter((f) => String(f.text).split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l) && !/^\s*const [A-Z_]+ = \/.*\/[a-z]*;\s*$/.test(l)).some((l) => REVIEW_WRITE.test(l.replace(/([a-z])([A-Z])/g, "$1 $2")))).map((f) => f.path);
+}
+
 /* ── F84 · an outcome export: visits, leads or sales per page, as exported ── */
 export function outcomesByPage(rows) {
   const m = {};

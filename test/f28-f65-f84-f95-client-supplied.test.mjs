@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { KINDS, consentGate, crawlerReport, reviewSummary, outcomesByPage, intakeQuestions, evidenceCounts, CLIENT_RECEIVED, NOT_MEASURED } from "../src/intake/client-supplied.mjs";
+import { KINDS, consentGate, crawlerReport, reviewSummary, reviewWritersCensus, outcomesByPage, intakeQuestions, evidenceCounts, CLIENT_RECEIVED, NOT_MEASURED } from "../src/intake/client-supplied.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
 
@@ -44,8 +44,11 @@ test("F65 C1–C2 · a review export summarised; and no code path writes, posts 
   const s = reviewSummary([{ date: "2026-10-01", response: "thanks" }, { date: "2026-10-10" }], { on: "2026-10-19" });
   assert.deepEqual([s.count, s.latest, s.daysSinceLatest, s.responded, s.unanswered, s.themes], [2, "2026-10-10", 9, 1, 1, NOT_MEASURED]);
   const files = (d) => readdirSync(join(REPO, d), { recursive: true }).filter((f) => /\.mjs$/.test(f)).map((f) => join(d, String(f)));
-  const hits = [...files("src"), ...files("bin")].filter((f) => /\b(postReview|writeReview|submitReview|solicitReview|requestReview|askForReview)\b/.test(readFileSync(join(REPO, f), "utf8")));
+  const hits = reviewWritersCensus([...files("src"), ...files("bin")].map((f) => ({ path: f, text: readFileSync(join(REPO, f), "utf8") })));
   assert.deepEqual(hits, []);
+  /* FIRING CONTROLS: planted write paths under other names each turn the census red; a comment saying "no review is posted" does not */
+  for (const code of ["await api.post(`/reviews/new`, body);", "sendReviewRequest(customer);", "client.reviews.create({ rating: 5 });", "await askCustomerForReview(id);", "publish the review now()"]) assert.deepEqual(reviewWritersCensus([{ path: "planted.mjs", text: code }]), ["planted.mjs"], code);
+  assert.deepEqual(reviewWritersCensus([{ path: "c.mjs", text: " * no code path here posts or solicits a review" }]), []);
 });
 
 test("F84 C1 · outcomes per page, as exported; F95 C1–C2 · wording and date kept word for word, counted apart", () => {

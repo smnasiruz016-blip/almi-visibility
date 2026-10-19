@@ -64,6 +64,9 @@ export const STATE_VOCABULARY = Object.freeze({
   serializeEvidenceState: { class: "A", where: "src/evidence/evidence-state.mjs", reason: "the canonical model's stable serialisation" },
   parseEvidenceState: { class: "A", where: "src/evidence/evidence-state.mjs", reason: "the canonical model's parser, re-validating what it reads" },
   moneyState: { class: "A", where: "src/evidence/evidence-state-adapters.mjs", reason: "the canonical adapter for one money figure" },
+  /* RR-291 */
+  demandState: { class: "C", where: "src/research/four-measures.mjs (F15)", unknownMeans: "fewer than 3 independent evidence categories show people asking the need — never weak demand, never zero", reason: "a demand-strength dimension (STRONG / MONITOR / UNKNOWN), kept apart from supply, visibility and need" },
+  submissionState: { class: "C", where: "src/page/publishing-control.mjs (F76)", reason: "a connection dimension (CONNECTED / NOT CONNECTED): whether the client's own Search Console connection exists; nothing is submitted without it" },
   actionState: { class: "I", where: "src/evidence/evidence-state.mjs (COUPLED_DIMENSIONS)", reason: "a name in the list of dimensions forbidden INSIDE an evidence state — not a field" },
   workflowState: { class: "I", where: "src/evidence/evidence-state.mjs (COUPLED_DIMENSIONS)", reason: "a name in the list of dimensions forbidden INSIDE an evidence state — not a field" },
 });

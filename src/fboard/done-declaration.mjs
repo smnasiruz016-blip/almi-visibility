@@ -1,5 +1,5 @@
 /**
- * 🔴 F89 · FINAL INDEPENDENT AUDIT AND DONE DECLARATION (acceptance _handoffs AlmiVisibility_F89_ACCEPTANCE_2026-10-19.md, RR-291; owner
+ * 🔴 F89 · FINAL INDEPENDENT AUDIT AND DONE DECLARATION (its frozen acceptance of 19 Oct 2026, ACCEPTANCES.F89, RR-291; owner
  * answer Q8: the final audit is made by a separate agent that did not build the rows).
  *
  *   C1 · an audit record is accepted only when it names its auditor, that auditor is not the builder, and it cites the frozen contract

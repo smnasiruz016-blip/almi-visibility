@@ -10,6 +10,7 @@
  * Neither overwrites an earlier file. The method of test/helpers/rr172-sabotage.mjs, unchanged.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -29,18 +30,19 @@ const read = (p) => readFileSync(join(REPO, p));
 
 const CREATE = '  return decided(subject, chosen("CREATE", "NO_SUITABLE_PAGE_DISTINCT_USEFUL_ESTABLISHED_AND_DUPLICATION_RESOLVED",';
 const NOCMP = '  if (!comparisons.length) return Object.freeze({ state: DUPLICATION.NO_COMPARISON,';
-const KEEPL = '  if (coverage.coverage === "FULL" && coverage.relevantQuestionMissing !== true) return decided(subject, chosen("KEEP", "FULL_COVERAGE_AND_NO_NEEDED_GAP",';
-const PARTL = '  if (coverage.coverage === "PARTIAL" || coverage.relevantQuestionMissing === true) return decided(';
+/* RR-287 (F35 Amendment 2): KEEPL, PARTL, DUPL and ALLOW restated to the lines the amendment rewrote — the same protections */
+const KEEPL = '  if (!ownPage && coverage.coverage === "FULL" && coverage.relevantQuestionMissing !== true) return decided(subject, chosen("KEEP", "FULL_COVERAGE_AND_NO_NEEDED_GAP",';
+const PARTL = '  if (!ownPage && (coverage.coverage === "PARTIAL" || coverage.relevantQuestionMissing === true)) return decided(';
 const UNSUP = '  if (need.centralSupported !== true) return hold(subject, ["the central answer is unsupported (F35 C8b; F91 C18)"], extra);';
-const DUPL = '  if (duplication?.state === DUPLICATION.DUPLICATE) return decided(subject, chosen("CONNECT", "A_DUPLICATE_CANDIDATE_CONNECTS_TO_THE_EXISTING_SUITABLE_PAGE", [duplication.against, duplication.ref]), extra);';
-const ALLOW = '  if (![DUPLICATION.NO_COMPARISON, DUPLICATION.RESOLVED].includes(duplication?.state)) return hold(subject, ["the duplication verdict is not recorded"], extra);';
+const DUPL = '  if (duplication?.state === DUPLICATION.DUPLICATE && !(ownPage && pages.includes(duplication.against))) return decided(subject, chosen("CONNECT", "A_DUPLICATE_CANDIDATE_CONNECTS_TO_THE_EXISTING_SUITABLE_PAGE", [duplication.against, duplication.ref]), extra);';
+const ALLOW = '  if (![DUPLICATION.NO_COMPARISON, DUPLICATION.RESOLVED].includes(duplication?.state) && !(ownPage && duplication?.state === DUPLICATION.DUPLICATE)) return hold(subject, ["the duplication verdict is not recorded"], extra);';
 const RTEL = '  if (rightToExist.outcome !== "ESTABLISHED") return hold(subject,';
 const SERVED = "  return out(O.KEEP, R.SERVED, found);";
 const SABOTAGES = [
   /* ── F35 C3 AS AMENDED ── */
   ["S01", "F35 C3 · a need meeting all four limbs is refused CREATE for want of demand", [[AD, CREATE, `  if (!(need.demandCategories >= 3)) return hold(subject, ["fewer than three demand categories"], extra);\n${CREATE}`]], "T3a"],
   ["S02", "F35 C3 · CREATE with right-to-exist not ESTABLISHED", [[AD, RTEL, '  if (false) return hold(subject,']], "T3b"],
-  ["S03", "F35 C3 · CREATE where coverage is not NONE (FULL falls through)", [[AD, KEEPL, KEEPL.replace('if (coverage.coverage === "FULL"', 'if (false && coverage.coverage === "FULL"')]], "T3b"],
+  ["S03", "F35 C3 · CREATE where coverage is not NONE (FULL falls through)", [[AD, KEEPL, KEEPL.replace('if (!ownPage && coverage.coverage === "FULL"', 'if (false && coverage.coverage === "FULL"')]], "T3b"],
   ["S04", "F35 C3 · CREATE with the duplication verdict unresolved (every need read as having no comparison page)", [[AD, NOCMP, NOCMP.replace("if (!comparisons.length)", "if (true)")]], "T3b"],
   ["S05", "F35 C3 · a decision lacks its tier", [[AD, "  const extra = { tier: need.tier };", "  const extra = {};"]], "T3c"],
   ["S06", "F35 C3 · a need with no comparison page is held for that alone (D1)", [[AD, NOCMP, NOCMP.replace("state: DUPLICATION.NO_COMPARISON,", "state: DUPLICATION.REFUSED,")]], "T3d"],
@@ -160,6 +162,6 @@ const trailAfter = sha(read(TRAIL));
 const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${RUN.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(dirname(EVIDENCE), { recursive: true });
-writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(EVIDENCE, badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && proved === RUN.length ? 0 : 1;

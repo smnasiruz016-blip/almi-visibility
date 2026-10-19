@@ -338,6 +338,11 @@ export const PINNED_HISTORICAL_LINES = Object.freeze([
    * search wording — the frozen words, copied byte for byte and pinned by contractSha256; the same declared blind spot, by exact sha256 only,
    * 1 line, one file. */
   Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "9d496e18663281cdb27c800340037e5f30ed638895725eb074af1703e2b322c9", why: "F91 Amendment 6's frozen acceptance, EVIDENCE (the owner's example, d43bd7f)" }),
+  /* RR-287: the frozen words of F96's acceptance and of F62's Amendment 2, copied byte for byte and pinned by contractSha256 — the same declared blind spot, by exact sha256 only */
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "937827873107dab8fa0041187d39e8a18348c9c063cd589b789a90b92a41f490", why: "F96's frozen acceptance, EVIDENCE (the owner-approved draft names the declared product NOT APPLICABLE, 5fc98cf)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "053a5152209f642050a0fcee7fa05a396b039395cd61452acf8b8b50b7e39cca", why: "F62 Amendment 2's frozen acceptance, EXPECTED (beta-g decision B names the key, b8b7c3d)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "8188ce4251d21e0c8a73eb2be96ed491a72ffe133222a955f153d70fd0b3a708", why: "F62 Amendment 2's frozen acceptance, FAILURE (b8b7c3d)" }),
+  Object.freeze({ file: "config/fboard/acceptances.mjs", sha256: "885a67ec74c6711bb7654b5e52ee6e32f925bc5a7d305ba559304a997cf34f31", why: "F62 Amendment 2's frozen acceptance, EVIDENCE (b8b7c3d)" }),
   /* in the census's own order (files sorted: config/ before src/), so each pin is matched in turn */
   Object.freeze({ file: "src/checklist/classification.mjs", sha256: "945c24967dd7f9cc4a784ac06b215b4b2828353200458f22d0a643c79995f51d", why: "the historical ledger (frozen; F02 command §3: do not alter the historical 61/38 ledger)" }),
 ]);

@@ -1,0 +1,14 @@
+F59 sabotage run · 2026-10-18T17:55:19.032Z
+population: 6 source sabotage(s) over test/f59-f61-free-links.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 6 of 6
+PRE-FLIGHT (span occurrences in the code live now): B1=1 B2=1 B3=1 B4=1 B5=1 B6=1 · all exactly once: true
+production trail sha256 before: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae
+
+B1 C1 · a link from another source is admitted [src/research/backlinks.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F59 C1 · FROM THE CLIENT'S OWN EXPORT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F59 C1 · restored true · PROVED
+B2 C1 · a link without its window is admitted [src/research/backlinks.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F59 C1 · FROM THE CLIENT'S OWN EXPORT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F59 C1 · restored true · PROVED
+B3 C2 · counted rows with no record read as 0 [src/research/backlinks.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F59 C2 · ZERO IS A RESULT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F59 C2 · restored true · PROVED
+B4 C2 · 0 links reads NOT MEASURED [src/research/backlinks.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F59 C2 · ZERO IS A RESULT · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F59 C2 · restored true · PROVED
+B5 C3 · links are not grouped by referring domain [src/research/backlinks.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F59 C3 · REFERRING DOMAINS AND ANCHORS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F59 C3 · restored true · PROVED
+B6 C4 · new and lost claimed from one export [src/research/backlinks.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F59 C4 · NEW AND LOST WAIT FOR A SECOND EXPORT:" red true · its failure AssertionError · SyntaxError false · failing F59 C4,REAL · restored true · PROVED
+
+proved 6 of 6 (source 6 of 6) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true

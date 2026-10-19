@@ -371,7 +371,8 @@ test("R3-CI · the full suite runs as CI runs it: the tracked workflow runs node
 test("R3-BOARD · F35 and F34 move only through the production validator and the audit trail: each REOPENED is on the board and in the trail; a VERIFIED-PASS row carries a REAL VERIFIED event after it, every clause PROVED", async () => {
   const { DECLARED } = await import("../config/fboard/f-board.mjs");
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  for (const [f, n] of [["F35", 9], ["F34", 7]]) {
+  /* RR-287: F35 PROVED again under its Amendment 2 — C1–C9 and C3 AS AMENDED 2: 10 clauses */
+  for (const [f, n] of [["F35", 10], ["F34", 7]]) {
     const row = DECLARED[f];
     /* RR-249: F34 has a later REOPENED (C6, CONCRETE_CONTRADICTORY_EVIDENCE); this test is about RR-174's, on 2026-10-05 */
     const reopened = row.events.filter((e) => e.kind === "REOPENED" && e.on === "2026-10-05").at(-1);

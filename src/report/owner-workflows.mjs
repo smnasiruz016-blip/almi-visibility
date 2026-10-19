@@ -15,10 +15,17 @@ export const OWNER_WORKFLOWS = Object.freeze([
   Object.freeze({ kind: "OPERATIONS_REPORT", pattern: /^runs\/ops\/operations-report-\d{4}-\d{2}-\d{2}\.txt$/, type: "text/plain", why: "F87: one project's operations, for the owner to review" }),
   Object.freeze({ kind: "SABOTAGE_EVIDENCE", pattern: /^runs\/audit\/[^/]+-sabotage-[^/]+\.txt$/, type: "text/plain", why: "the proof a guard can fail, for the owner to inspect" }),
   Object.freeze({ kind: "AUDIT_EVIDENCE", pattern: /^runs\/audit\/[^/]+\.(txt|md)$/, type: "text/plain", why: "other audit evidence the owner inspects" }),
-  Object.freeze({ kind: "EVIDENCE_EXPORT", pattern: /^runs\/export\/[^/]+\.md$/, type: "text/plain", why: "the evidence export and ruling sheets, for review and approval" }),
+  /* RR-287 (F88 Amendment 1): an export run into its own dated folder (--out) is the same kind — a fresh run never rewrites an earlier one */
+  Object.freeze({ kind: "EVIDENCE_EXPORT", pattern: /^runs\/export\/(\d{4}-\d{2}-\d{2}[^/]*\/)?[^/]+\.md$/, type: "text/plain", why: "the evidence export and ruling sheets, for review and approval" }),
   Object.freeze({ kind: "OWNER_REPORT", pattern: /^runs\/report\/[^/]+\.html$/, type: "text/html", why: "the owner's report page" }),
-  Object.freeze({ kind: "OWNER_VERIFICATION", pattern: /^runs\/owner-verification\/[^/]+\.txt$/, type: "text/plain", why: "a verification record shown to the owner" }),
+  /* RR-287 (F88 Amendment 1): no engine code writes this kind today — its stored files are checked as stored; no fresh run exists */
+  Object.freeze({ kind: "OWNER_VERIFICATION", pattern: /^runs\/owner-verification\/[^/]+\.txt$/, type: "text/plain", why: "a verification record shown to the owner", writer: null }),
 ]);
+/* RR-287 (F88 Amendment 1) · each kind's writer in the engine today, by entry point — or null: HISTORICAL ONLY, named */
+export const WRITERS = Object.freeze({
+  OPERATIONS_REPORT: "bin/project-operations.mjs", SABOTAGE_EVIDENCE: "test/helpers/*-sabotage*.mjs (through badFindingsFirst)",
+  AUDIT_EVIDENCE: "test/helpers/evidence-once.mjs and the evidence writers through badFindingsFirst", EVIDENCE_EXPORT: "bin/export.mjs", OWNER_REPORT: "bin/report.mjs", OWNER_VERIFICATION: null,
+});
 export const UNLISTED = "UNLISTED";
 export const PHONE = Object.freeze({ width: 430, height: 932, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
 export const DESKTOP = Object.freeze({ width: 1280, height: 900, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
@@ -92,4 +99,28 @@ export function badFirstFailures(file, text, type) {
   if (/^#{1,6}\s/.test(lines[0] ?? "") && second > 0) firstSectionEnd = second;
   else { const blank = all.findIndex((l, i) => i > 0 && l.trim() === ""); const opening = blank < 0 ? lines.length : all.slice(0, blank).filter((l) => l.trim() !== "").length; firstSectionEnd = opening + 1; }
   return badAt < firstSectionEnd ? [] : [Object.freeze({ file, failure: FAIL.BAD_NOT_FIRST, line: badAt + 1 })];
+}
+
+/**
+ * C5 · THE WRITERS' SIDE (beta-g decision C, RR-287): a plain-text report the engine writes is passed through this before it is written.
+ * Every line holding a bad finding or anything NOT DONE is copied, word for word, into an opening block: at the very top, or — when the
+ * report opens with a heading — directly under that title, before any second heading. Nothing is removed or reworded; a report with no bad
+ * finding, or one that already says it first, is returned byte for byte.
+ */
+/** F88 Amendment 1 · the failures of files NOT on the historical list — the only ones a fresh run can answer for; none is forgiven by kind. */
+export function freshFailures(failures, historical = []) {
+  const old = new Set((historical ?? []).map((h) => h.file));
+  return (failures ?? []).filter((f) => !old.has(f.file));
+}
+
+export const BAD_FIRST_TITLE ="BAD FINDINGS AND NOT DONE — first:";
+export function badFindingsFirst(text) {
+  const s = String(text ?? "");
+  const lines = s.split(/\r?\n/);
+  const bad = lines.filter((l) => l.trim() !== "" && isBad(l));
+  if (!bad.length || badFirstFailures("report", s, "text/plain").length === 0) return s;
+  const eol = s.includes("\r\n") ? "\r\n" : "\n";
+  const block = [BAD_FIRST_TITLE, ...bad.map((l) => `  ${l.trim()}`), ""];
+  if (/^#{1,6}\s/.test(lines[0] ?? "")) return [lines[0], "", ...block, ...lines.slice(1)].join(eol);
+  return [...block, ...lines].join(eol);
 }

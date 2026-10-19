@@ -10,6 +10,7 @@
  * Evidence: runs/audit/rr80-sabotage-<date>T<hhmm>.txt, one file per run (RR-246); the 28 Sep run's file is kept as it was.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -84,6 +85,6 @@ const residue = [...originals].filter(([p, b]) => !read(p).equals(b)).length;
 lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
 /* RR-246: each run writes its OWN evidence file and never overwrites an earlier one (this used to rewrite the 28 Sep record every run) */
-writeFileSync(join(REPO, "runs", "audit", `rr80-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`), lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(join(REPO, "runs", "audit", `rr80-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`), badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.join("\n"));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

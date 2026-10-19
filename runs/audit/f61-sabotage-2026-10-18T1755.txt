@@ -1,0 +1,17 @@
+BAD FINDINGS AND NOT DONE — first:
+  M3 C3 · a namesake counts as the client [src/research/brand-mentions.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F61 C3 · THE INTENDED ENTITY, NOT A NAMESAKE · FIRING CONTROL:" red true · its failure TypeError · SyntaxError false · failing F61 C3 · restored true · NOT PROVED
+  proved 4 of 5 (source 4 of 5) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true
+
+F61 sabotage run · 2026-10-18T17:55:24.867Z
+population: 5 source sabotage(s) over test/f59-f61-free-links.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 5 of 5
+PRE-FLIGHT (span occurrences in the code live now): M1=1 M2=1 M3=1 M4=1 M5=1 · all exactly once: true
+production trail sha256 before: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae
+
+M1 C1 · a mention without its date counts [src/research/brand-mentions.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F61 C1 + C2 · FROM THE CLIENT'S OWN DATA, LINKED AND UNLINKED APART · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F61 C1 + C2 · restored true · PROVED
+M2 C2 · every mention reads LINKED [src/research/brand-mentions.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F61 C1 + C2 · FROM THE CLIENT'S OWN DATA, LINKED AND UNLINKED APART · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F61 C1 + C2 · restored true · PROVED
+M3 C3 · a namesake counts as the client [src/research/brand-mentions.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F61 C3 · THE INTENDED ENTITY, NOT A NAMESAKE · FIRING CONTROL:" red true · its failure TypeError · SyntaxError false · failing F61 C3 · restored true · NOT PROVED
+M4 C1 · the client's own site counts as a public mention [src/research/brand-mentions.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F61 C1 · THE CLIENT'S OWN SITE IS NOT A PUBLIC MENTION · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F61 C1,REAL · restored true · PROVED
+M5 C1 · a query that does not name the brand counts [src/research/brand-mentions.mjs] → test/f59-f61-free-links.test.mjs: landed true · named test "F61 C1 + C2 · FROM THE CLIENT'S OWN DATA, LINKED AND UNLINKED APART · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing F61 C1 + C2,REAL · restored true · PROVED
+
+proved 4 of 5 (source 4 of 5) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true

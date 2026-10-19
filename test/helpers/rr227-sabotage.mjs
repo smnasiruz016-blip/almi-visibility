@@ -13,6 +13,7 @@
  * Neither overwrites an earlier file. The engine of test/helpers/rr225-sabotage.mjs, with one change: each limb runs ITS OWN test file.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -182,6 +183,6 @@ const total = RUN.length + (!ONLY || ONLY === "CENSUS" ? census.of : 0);
 const totalProved = proved + (!ONLY || ONLY === "CENSUS" ? census.proved : 0);
 lines.push("", `proved ${totalProved} of ${total} (source ${proved} of ${RUN.length}${!ONLY || ONLY === "CENSUS" ? ` · census controls ${census.proved} of ${census.of}` : ""}) · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(dirname(EVIDENCE), { recursive: true });
-writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(EVIDENCE, badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && totalProved === total ? 0 : 1;

@@ -102,7 +102,7 @@ export function duplicationFor({ needId, comparisons = [], reviews = [] }) {
  * @param {{ need: { needId: string, pageCandidate: string, questions: number, tier: string, centralSupported: boolean },
  *           coverage: object|null, rightToExist: object|null, duplication: object }} input
  */
-export function decideGroupedNeed({ need, coverage, rightToExist, duplication }) {
+export function decideGroupedNeed({ need, coverage, rightToExist, duplication, plan = null }) {
   const subject = Object.freeze({ kind: "GROUPED_NEED", needId: need.needId, pageCandidate: need.pageCandidate });
   const extra = { tier: need.tier };
   /* C9 (A1): every page decision starts from a recorded relevant question */
@@ -111,20 +111,58 @@ export function decideGroupedNeed({ need, coverage, rightToExist, duplication })
   if (!coverage) return hold(subject, ["no coverage record for this need (F91 C14) — existing pages first (C8a)"], extra);
   if (!["FULL", "PARTIAL", "NONE"].includes(coverage.coverage)) return hold(subject, [`coverage is ${coverage.coverage} (${coverage.reason}) — the coverage record decides nothing (F35 C9)`], extra);
   const pages = (coverage.pages ?? []).map((p) => p.pageId);
+  /* Amendment 2 (C3): F91's plan gives this need its OWN page (DEMAND or OPPORTUNITY) — that page carries the FULL answer, and every existing
+   * page that covers it keeps only a short summary and a link; the need is never KEPT or ADDED as a full second answer on those pages */
+  const ownPage = OWN_PAGE.includes(plan?.label);
   /* P19: FULL and no needed gap → KEEP / NO NEW PAGE, on the coverage record — no quality measurement is needed for a need (F35-7) */
-  if (coverage.coverage === "FULL" && coverage.relevantQuestionMissing !== true) return decided(subject, chosen("KEEP", "FULL_COVERAGE_AND_NO_NEEDED_GAP", [coverage.measurement_key, ...pages]), extra);
+  if (!ownPage && coverage.coverage === "FULL" && coverage.relevantQuestionMissing !== true) return decided(subject, chosen("KEEP", "FULL_COVERAGE_AND_NO_NEEDED_GAP", [coverage.measurement_key, ...pages]), extra);
+  /* Amendment 2 (C3): MERGED by the plan → a section of the page it merges into — never a page of its own */
+  if (plan?.label === PLAN_MERGED) return decided(subject, chosen("ADD SECTION", "MERGED_BY_THE_PLAN_INTO_ITS_LARGER_PAGE_NEVER_ITS_OWN", [plan.target, coverage.measurement_key, ...pages]), { ...extra, into: plan.target });
   /* P19: PARTIAL, or a relevant question missing from a suitable page → IMPROVE / ADD SECTION — never CREATE */
-  if (coverage.coverage === "PARTIAL" || coverage.relevantQuestionMissing === true) return decided(subject, chosen("ADD SECTION", "A_RELEVANT_QUESTION_MISSING_FROM_A_SUITABLE_PAGE", [coverage.measurement_key, ...pages]), extra);
-  /* coverage NONE */
-  if (duplication?.state === DUPLICATION.DUPLICATE) return decided(subject, chosen("CONNECT", "A_DUPLICATE_CANDIDATE_CONNECTS_TO_THE_EXISTING_SUITABLE_PAGE", [duplication.against, duplication.ref]), extra);
+  if (!ownPage && (coverage.coverage === "PARTIAL" || coverage.relevantQuestionMissing === true)) return decided(subject, chosen("ADD SECTION", "A_RELEVANT_QUESTION_MISSING_FROM_A_SUITABLE_PAGE", [coverage.measurement_key, ...pages]), extra);
+  /* coverage NONE — or, under Amendment 2, the need's own page; a duplicate of a covering page is answered by that page keeping only a summary */
+  if (duplication?.state === DUPLICATION.DUPLICATE && !(ownPage && pages.includes(duplication.against))) return decided(subject, chosen("CONNECT", "A_DUPLICATE_CANDIDATE_CONNECTS_TO_THE_EXISTING_SUITABLE_PAGE", [duplication.against, duplication.ref]), extra);
   if (need.centralSupported !== true) return hold(subject, ["the central answer is unsupported (F35 C8b; F91 C18)"], extra);
   if (rightToExist === null || rightToExist === undefined) return hold(subject, [NO_DECLARED_SPEC_HOLD], extra);
   if (rightToExist.parts?.specific?.state === "FAIL" && rightToExist.parts.specific.kind === "REJECT") return decided(subject, chosen("REJECT", "RIGHT_TO_EXIST_REFUSED_AS_SUBSTITUTION_OR_TEMPLATE", [rightToExist.parts.specific.reason]), extra);
   if (rightToExist.outcome !== "ESTABLISHED") return hold(subject, [`right-to-exist is ${rightToExist.outcome}${rightToExist.undecided?.length ? `: ${rightToExist.undecided.join(", ")}` : ""}`], extra);
   if (duplication?.state === DUPLICATION.REFUSED) return hold(subject, [duplication.ref], { ...extra, duplicationRefusal: duplication.ref });
-  if (![DUPLICATION.NO_COMPARISON, DUPLICATION.RESOLVED].includes(duplication?.state)) return hold(subject, ["the duplication verdict is not recorded"], extra);
+  if (![DUPLICATION.NO_COMPARISON, DUPLICATION.RESOLVED].includes(duplication?.state) && !(ownPage && duplication?.state === DUPLICATION.DUPLICATE)) return hold(subject, ["the duplication verdict is not recorded"], extra);
+  /* Amendment 2 (C3): the need's own page by the plan — CREATE it with the FULL answer; each covering page keeps a summary and a link */
+  if (ownPage && pages.length) return decided(subject, chosen("CREATE", "OWN_PAGE_BY_THE_PLAN_COVERING_PAGES_KEEP_A_SUMMARY_AND_A_LINK", [plan.page, coverage.measurement_key, rightToExist.reason, duplication.ref, ...pages]), { ...extra, label: plan.label, guides: guideSummaries(pages, plan.page) });
   /* C3 as amended: no suitable existing page · DISTINCT and USEFUL · right-to-exist ESTABLISHED · duplication resolved → CREATE */
-  return decided(subject, chosen("CREATE", "NO_SUITABLE_PAGE_DISTINCT_USEFUL_ESTABLISHED_AND_DUPLICATION_RESOLVED", [coverage.measurement_key, rightToExist.reason, duplication.ref]), extra);
+  return decided(subject, chosen("CREATE", "NO_SUITABLE_PAGE_DISTINCT_USEFUL_ESTABLISHED_AND_DUPLICATION_RESOLVED", [coverage.measurement_key, rightToExist.reason, duplication.ref]), ownPage ? { ...extra, label: plan.label } : extra);
+}
+
+/* ── 🔴 F35 AMENDMENT 2 (RR-287, beta-g decision A) — NO DUPLICATE BETWEEN A COMBINATION'S OWN PAGE AND A GUIDE ──────────────────────────
+ * F91's plan (Amendment 6) labels every requested combination DEMAND, OPPORTUNITY or MERGED INTO <page>. A combination with its OWN page
+ * (DEMAND or OPPORTUNITY) carries the FULL answer there; the existing guide that covers it keeps only a 1–2 line summary of it and a link to
+ * that page (IMPROVE + LINK, recommendations — nothing is written here); a MERGED combination is a section of its larger page, never a page
+ * of its own. The plan's own words are read: no product, primary or secondary is named here. */
+export const OWN_PAGE = Object.freeze(["DEMAND", "OPPORTUNITY"]);
+const PLAN_MERGED = "MERGED";
+export const GUIDE_KEEPS = "a 1–2 line summary of this combination and a link to its own page — the full answer lives once, on that page";
+const guideSummaries = (pages, ownPage) => Object.freeze(pages.map((pageId) => Object.freeze({ pageId, actions: Object.freeze([chosen("IMPROVE", "KEEP_ONLY_A_SUMMARY_OF_A_COMBINATION_WITH_ITS_OWN_PAGE", [ownPage]), chosen("LINK", "LINK_TO_THE_COMBINATION_S_OWN_PAGE", [ownPage])]), keeps: GUIDE_KEEPS })));
+
+/**
+ * Amendment 2 over a whole plan: for every requested combination, what the existing guides must do. `guideOf(primary)` names the existing
+ * page that covers a primary value (the larger page a combination merges into), or null. Own page → that guide keeps a summary and a link;
+ * MERGED → a section of its target, never CREATE; NOT MEASURED → nothing, named. Recommendations only; the live guides are not changed.
+ */
+export function guideObligations({ plan, guideOf = () => null }) {
+  if (!plan?.measured) return Object.freeze({ measured: false, missing: plan?.missing ?? "F91's plan" });
+  const rows = plan.rows.map((r) => {
+    const base = { combination: r.combination, label: r.label };
+    if (OWN_PAGE.includes(r.label)) { const g = guideOf(r.primary); return Object.freeze({ ...base, ownPage: r.page, guide: g, guideActions: g ? guideSummaries([g], r.page)[0].actions : Object.freeze([]), why: g ? GUIDE_KEEPS : "no existing guide covers it — nothing to shorten" }); }
+    if (r.label === PLAN_MERGED) return Object.freeze({ ...base, into: r.target, action: "ADD SECTION", why: "a section of its larger page, never a page of its own" });
+    return Object.freeze({ ...base, why: r.reason });
+  });
+  const own = rows.filter((r) => OWN_PAGE.includes(r.label));
+  return Object.freeze({
+    measured: true, rows: Object.freeze(rows),
+    counts: Object.freeze({ combinations: rows.length, ownPages: own.length, guideSummaries: own.filter((r) => r.guide).length, noGuide: own.filter((r) => !r.guide).length, sections: rows.filter((r) => r.action === "ADD SECTION").length, guides: new Set(own.map((r) => r.guide).filter(Boolean)).size }),
+    standing: STANDING, liveGuidesChanged: 0,
+  });
 }
 
 /**

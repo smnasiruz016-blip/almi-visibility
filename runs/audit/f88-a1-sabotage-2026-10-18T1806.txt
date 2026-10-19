@@ -1,0 +1,13 @@
+F88 sabotage run · 2026-10-18T18:07:09.730Z
+population: 5 source sabotage(s) over test/f88-owner-workflows.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 5 of 5
+PRE-FLIGHT (span occurrences in the code live now): H1=1 H2=1 H3=1 H4=1 H5=1 · all exactly once: true
+production trail sha256 before: cb2cd42fbdf9ae09a1ad823653f2939181741a72895283a03e8b2cfea92baef6
+
+H1 C7 · the shared step leaves a late bad finding late [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "A1 C5 · THE WRITERS' SIDE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A1 C5 · restored true · PROVED
+H2 C7 · under a title, the copy goes last [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "A1 C5 · THE WRITERS' SIDE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A1 C5 · restored true · PROVED
+H3 C7 · the shared step rewords a bad finding [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "A1 C5 · THE WRITERS' SIDE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A1 C5 · restored true · PROVED
+H4 C8 · the historical list forgives every file [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "A1 · HISTORICAL · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A1 · restored true · PROVED
+H5 C7 · a kind with no writer is not named historical-only [src/report/owner-workflows.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "A1 C1 · EVERY KIND NAMES ITS WRITER," red true · its failure AssertionError · SyntaxError false · failing A1 C1,REAL · restored true · PROVED
+
+proved 5 of 5 (source 5 of 5) · residue 0 · production trail sha256 after: cb2cd42fbdf9ae09a1ad823653f2939181741a72895283a03e8b2cfea92baef6 · unchanged true

@@ -15,6 +15,7 @@
  * NOT part of `npm test` (it reads the data root as checked out). Generic: names no site, product or population size.
  * Evidence: runs/audit/render-plan-preflight-<evidence batch>-<day>.txt (count-only; never overwritten).
  */
+import { badFindingsFirst } from "../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -130,7 +131,7 @@ test("RENDER PLAN PREFLIGHT · every prerequisite of the requested collection, p
   mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
   let evidence = join(REPO, "runs", "audit", `render-plan-preflight-${EV}-${new Date().toISOString().slice(0, 10)}.txt`);
   if (existsSync(evidence)) evidence = evidence.replace(/\.txt$/, `-${Date.now()}.txt`);
-  writeFileSync(evidence, [`render plan preflight · ${new Date().toISOString()} · engine ${headOf(REPO)} · data ${headOf(DATA_ROOT)} · count-only`, ...lines, ""].join("\n"));
+  writeFileSync(evidence, badFindingsFirst([`render plan preflight · ${new Date().toISOString()} · engine ${headOf(REPO)} · data ${headOf(DATA_ROOT)} · count-only`, ...lines, ""].join("\n")));
   console.log(lines.join("\n"));
   assert.ok(ok.every(Boolean), "a prerequisite failed — the run must not be asked for");
   assert.equal(trailSha(), TRAIL_BEFORE);

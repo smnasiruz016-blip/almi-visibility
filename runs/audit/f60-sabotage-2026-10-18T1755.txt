@@ -1,0 +1,15 @@
+F60 sabotage run · 2026-10-18T17:55:10.882Z
+population: 7 source sabotage(s) over test/f60-earned-citations.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 7 of 7
+PRE-FLIGHT (span occurrences in the code live now): E1=1 E2=1 E3=1 E4=1 E5=1 E6=1 E7=1 · all exactly once: true
+production trail sha256 before: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae
+
+E1 C1 · a stored read is not recorded as a source [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C1 · SOURCES FROM RECORDS ONLY · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C1,REAL · restored true · PROVED
+E2 C2 · a link seller is kept [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C2 · LEGITIMATE ONLY · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2 · restored true · PROVED
+E3 C2 · a source with no recorded class is kept [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C2 · LEGITIMATE ONLY · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2,C3,REAL · restored true · PROVED
+E4 C2 · any cited source is taken as official [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C2 · LEGITIMATE ONLY · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C2,C3,REAL · restored true · PROVED
+E5 C3 · a kept source no page answers is not dropped [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C3 · WHY THIS PAGE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C3 · restored true · PROVED
+E6 C4 · a supplied file's mention is ignored [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C4 · UNLINKED MENTIONS FROM SUPPLIED DATA · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing C4 · restored true · PROVED
+E7 C5 · the list says something was sent [src/research/earned-citations.mjs] → test/f60-earned-citations.test.mjs: landed true · named test "C5 · NOTHING SENT:" red true · its failure AssertionError · SyntaxError false · failing C5 · restored true · PROVED
+
+proved 7 of 7 (source 7 of 7) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true

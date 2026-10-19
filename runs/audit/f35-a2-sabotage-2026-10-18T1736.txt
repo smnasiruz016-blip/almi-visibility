@@ -1,0 +1,15 @@
+F35 sabotage run · 2026-10-18T17:36:16.404Z
+population: 7 source sabotage(s) over test/f35-a2-guide-summary.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 7 of 7
+PRE-FLIGHT (span occurrences in the code live now): A1=1 A2=1 A3=1 A4=1 A5=1 A6=1 A7=1 · all exactly once: true
+production trail sha256 before: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae
+
+A1 C3 A2 · the plan's own-page label is ignored [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · OWN PAGE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A2 C3 · restored true · PROVED
+A2 C3 A2 · a MERGED combination gets its own page [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · MERGED · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A2 C3 · restored true · PROVED
+A3 C3 A2 · an own page is created with no guide told to shorten [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · OWN PAGE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A2 C3 · restored true · PROVED
+A4 C3 A2 · a duplicate of a page that does not cover the need is answered by a summary [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · THE OTHER LIMBS STILL BIND:" red true · its failure AssertionError · SyntaxError false · failing A2 C3 · restored true · PROVED
+A5 C3 A2 · the guide keeps its summary but gives no link [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · OWN PAGE · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A2 C3 · restored true · PROVED
+A6 C3 A2 · over a plan, a MERGED combination is created [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · OVER A WHOLE PLAN · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A2 C3,REAL · restored true · PROVED
+A7 C3 A2 · over a plan, the covering guide is never named [src/page/action-decision.mjs] → test/f35-a2-guide-summary.test.mjs: landed true · named test "A2 C3 · OVER A WHOLE PLAN · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A2 C3,REAL · restored true · PROVED
+
+proved 7 of 7 (source 7 of 7) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true

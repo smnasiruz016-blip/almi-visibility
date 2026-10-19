@@ -1,0 +1,8 @@
+F61 sabotage run · 2026-10-18T17:56:22.872Z
+population: 5 source sabotage(s) over test/f59-f61-free-links.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): NOT GREEN — no sabotage is run · files green 0 of 1 · named tests seen GREEN 5 of 5
+PRE-FLIGHT (span occurrences in the code live now): M1=1 M2=1 M3=1 M4=1 M5=1 · all exactly once: true
+production trail sha256 before: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae
+
+
+proved 0 of 5 (source 0 of 5) · residue 0 · production trail sha256 after: 255513cbb68a0d1f8ac15b991cefa23c5c2aecbfa6b30b9a248c505cecdef3ae · unchanged true

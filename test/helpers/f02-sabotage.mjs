@@ -12,6 +12,7 @@
  * inside the test context, and the harness hashes the trail before and after.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -94,7 +95,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   if (outArg) {
     const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const text = renderEvidence(run, { title: "F02 SABOTAGE EVIDENCE — one defect per tenant-isolation enforcement limb (§8)", head }) + `\nEXECUTION ASSERTION: ${executed} of ${list.length} sabotages executed.\n`;
-    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), text, { flag: "wx" });
+    writeFileSync(outArg.includes(":") || outArg.startsWith("/") ? outArg : join(REPO, outArg), badFindingsFirst(text), { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad === 0 && executed === list.length && probeFailed.length === 0 && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

@@ -1,12 +1,13 @@
 /**
  * 🔴 F62 · C9 · THE VERDICT JUDGE CAN FAIL — one sabotage per protection of C9 of F62's Acceptance Amendment 1 (_handoffs 94a6d17, RR-283
- * item 9) in src/research/applicability-verdicts.mjs; the named test of test/f62-verdicts.test.mjs must turn red by an AssertionError.
+ * item 9) and of C1–C5 and C9 of its Amendment 2 (RR-287, V9–V14; V1–V8 restated to the refusals' new name, the same protections) in src/research/applicability-verdicts.mjs; the named test of test/f62-verdicts.test.mjs must turn red by an AssertionError.
  * Each span found EXACTLY ONCE, applied ALONE, restored by raw-byte sha256, the production trail hashed before and after. The engine of
  * test/helpers/rr282-batch-append-sabotage.mjs.
  *
  *   node test/helpers/f62-verdicts-sabotage.mjs --deliberate [--practice] [--only=<id>]     NOT part of `npm test`
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -25,14 +26,20 @@ const read = (p) => readFileSync(join(REPO, p));
 
 /* [id, limb, [[file, from, to], …], test file, named-test prefix, reason (optional)] */
 const SABOTAGES = [
-  ["V1", "C9 · a paraphrase decides a check", [[AV, "if (!present(v.excerpt) || !quotationIn(v.excerpt, r.text)) return unknown(", "if (!present(v.excerpt)) return unknown("]], T, "C9 · OFFICIAL · FIRING CONTROL:"],
-  ["V2", "C9 · another body's page decides a check", [[AV, "if (!cited.includes(v.page)) return unknown(VERDICT_REFUSAL.NOT_A_CITED_PAGE, \"the excerpt's page", "if (false) return unknown(VERDICT_REFUSAL.NOT_A_CITED_PAGE, \"the excerpt's page"]], T, "C9 · OFFICIAL · FIRING CONTROL:"],
-  ["V3", "C9 · an outcome not stated decides a check", [[AV, "if (!STATED.includes(v.outcome)) return unknown(", "if (false) return unknown("]], T, "C9 · OFFICIAL · FIRING CONTROL:"],
-  ["V4", "C9 · a cited page never read counts as checked", [[AV, "if (cited.length === 0 || unread.length) return unknown(", "if (cited.length === 0) return unknown("]], T, "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:"],
-  ["V5", "C9 · a CHECKED_NOT_FOUND line naming nothing stands", [[AV, "if (!present(v.notFound)) return unknown(", "if (false) return unknown("]], T, "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:"],
-  ["V6", "C9 · a readable page is taken as BLOCKED", [[AV, "    return unknown(VERDICT_REFUSAL.NOT_BLOCKED,", "    return Object.freeze({ ...base, kind: VERDICT_KIND.BLOCKED, page: v.page, reason: \"x\" }); unknown(VERDICT_REFUSAL.NOT_BLOCKED,"]], T, "C9 · BLOCKED · FIRING CONTROL:"],
-  ["V7", "C9 · two verdicts for one check — one is chosen", [[AV, "if (mine.length > 1) return unknown(", "if (false) return unknown("]], T, "C9 · ONE VERDICT PER CHECK:"],
-  ["V8", "C9 · read back: another body's verdict decides a check", [[AV, "if (v && v.kind === VERDICT_KIND.OFFICIAL && v.body === c.body && sameScope(v.scope, c.scope)) return", "if (v && v.kind === VERDICT_KIND.OFFICIAL) return"]], T, "C9 · READ BACK · FIRING CONTROL (RR-286):"],
+  ["V1", "C9 · a paraphrase decides a check", [[AV, "if (!present(v.excerpt) || !quotationIn(v.excerpt, r.text)) return refuse(", "if (!present(v.excerpt)) return refuse("]], T, "C9 · OFFICIAL · FIRING CONTROL:"],
+  ["V2", "C9 · another body's page decides a check", [[AV, "if (!cited.includes(v.page)) return refuse(VERDICT_REFUSAL.NOT_A_CITED_PAGE, \"the excerpt's page", "if (false) return refuse(VERDICT_REFUSAL.NOT_A_CITED_PAGE, \"the excerpt's page"]], T, "C9 · OFFICIAL · FIRING CONTROL:"],
+  ["V3", "C9 · an outcome not stated decides a check", [[AV, "if (!STATED.includes(v.outcome)) return refuse(", "if (false) return refuse("]], T, "C9 · OFFICIAL · FIRING CONTROL:"],
+  ["V4", "C9 · a cited page never read counts as checked", [[AV, "if (cited.length === 0 || unread.length) return refuse(", "if (cited.length === 0) return refuse("]], T, "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:"],
+  ["V5", "C9 · a CHECKED_NOT_FOUND line naming nothing stands", [[AV, "if (!present(v.notFound)) return refuse(", "if (false) return refuse("]], T, "C9 · CHECKED_NOT_FOUND · FIRING CONTROL:"],
+  ["V6", "C9 · a readable page is taken as BLOCKED", [[AV, "    return refuse(VERDICT_REFUSAL.NOT_BLOCKED,", "    return Object.freeze({ ...base, kind: VERDICT_KIND.BLOCKED, page: v.page, reason: \"x\" }); refuse(VERDICT_REFUSAL.NOT_BLOCKED,"]], T, "C9 · BLOCKED · FIRING CONTROL:"],
+  ["V7", "C9 · two verdicts for one check — one is chosen", [[AV, "if (mine.length > 1) return refuse(", "if (false) return refuse("]], T, "C9 · ONE VERDICT PER CHECK:"],
+  ["V8", "C9 · read back: another body's verdict decides a check", [[AV, "const mine = v && v.body === c.body && sameScope(v.scope, c.scope);", "const mine = Boolean(v);"]], T, "C9 · READ BACK · FIRING CONTROL (RR-286, Amendment 2):"],
+  ["V9", "A2 C3/C9 · a licence-barred page's held text decides a check", [[AV, "if (barred.length && (!v || v.kind !== VERDICT_KIND.OFFICIAL || barred.includes(v.page))) return", "if (false) return"]], T, "A2 · LICENCE · FIRING CONTROL:"],
+  ["V10", "A2 C1/C9 · a check's state is named UNKNOWN", [[AV, "if (mine && v.kind) return Object.freeze({ ...c, outcome: v.kind,", "if (mine && v.kind) return Object.freeze({ ...c, outcome: \"UNKNOWN\","]], T, "A2 · NO UNKNOWN:"],
+  ["V11", "A2 C4 · one body's verdict decides another body's cell (the body dropped from the key)", [[AV, "const id = JSON.stringify([c.body, keys.map((k) => key[k])]);", "const id = JSON.stringify([keys.map((k) => key[k])]);"]], T, "A2 · THE KEY · FIRING CONTROL:"],
+  ["V12", "A2 C4 · a cell NOT NAMED for a key decides a named value", [[AV, "onKey.keys.every((k) => c.key[k] === (key?.[k] ?? NOT_NAMED))", "onKey.keys.every((k) => c.key[k] === NOT_NAMED || c.key[k] === key?.[k])"]], T, "A2 · THE KEY · FIRING CONTROL:"],
+  ["V13", "A2 C1 · disagreeing OFFICIAL verdicts in one cell — one is chosen", [[AV, "if (outcomes.length > 1) return Object.freeze({ ...at, fault:", "if (false) return Object.freeze({ ...at, fault:"]], T, "A2 · THE KEY · FIRING CONTROL:"],
+  ["V14", "A2 C2 · a fault is not counted apart", [[AV, "FAULTS: rows.filter((r) => !r.kind).length }),\n  });\n}", "FAULTS: 0 }),\n  });\n}"]], T, "C9 · ONE VERDICT PER CHECK:"],
 ];
 
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;
@@ -108,6 +115,6 @@ const total = RUN.length;
 const totalProved = proved;
 lines.push("", `proved ${totalProved} of ${total} (source ${proved} of ${RUN.length}) · residue ${residue} · production trail sha256 after: ${trailAfter} · unchanged ${trailAfter === trailBefore}`);
 mkdirSync(dirname(EVIDENCE), { recursive: true });
-writeFileSync(EVIDENCE, lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(EVIDENCE, badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore && totalProved === total ? 0 : 1;

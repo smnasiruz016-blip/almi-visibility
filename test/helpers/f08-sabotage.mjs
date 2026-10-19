@@ -16,6 +16,7 @@
  * difference fails the whole run, whatever each sabotage reported.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -320,7 +321,8 @@ export function runSabotages(list, { log = console.log } = {}) {
   return { results, prodBefore, prodAfter, productionUntouched: PRODUCTION.every((p) => prodBefore[p] === prodAfter[p]), dirty, residue };
 }
 
-export function renderEvidence({ results, prodBefore, prodAfter, productionUntouched, dirty, residue }, { title, head }) {
+export function renderEvidence(...a) { return badFindingsFirst(renderEvidenceText(...a)); }
+function renderEvidenceText({ results, prodBefore, prodAfter, productionUntouched, dirty, residue }, { title, head }) {
   const proved = results.filter((r) => r.verdict === "RED, named test, intended reason" && r.restoredClean);
   const out = [];
   out.push(title, "");

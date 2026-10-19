@@ -6,6 +6,7 @@
  *   node test/helpers/f19-census-controls.mjs --deliberate        evidence: runs/audit/f19-real-census-controls-rr135-2026-10-02.txt (count-only)
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdtempSync, cpSync, rmSync, mkdirSync, existsSync } from "node:fs";
 import { join, sep } from "node:path";
 import { tmpdir } from "node:os";
@@ -62,6 +63,6 @@ lines.push(`proved ${proved} of ${CONTROLS.length} · the real data root was not
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
 let out = join(REPO, "runs", "audit", "f19-real-census-controls-rr135-2026-10-02.txt");
 if (existsSync(out)) out = out.replace(/\.txt$/, `-${Date.now()}.txt`);
-writeFileSync(out, lines.join("\n") + "\n");
+writeFileSync(out, badFindingsFirst(lines.join("\n") + "\n"));
 console.log(lines.join("\n"));
 process.exit(proved === CONTROLS.length ? 0 : 1);

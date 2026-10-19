@@ -1,0 +1,9 @@
+RR-199 R6b sabotage run · 2026-10-18T23:50:01.690Z
+population: 1 sabotage(s) over test/rr194-t2.test.mjs + test/rr195-r6b.test.mjs + test/rr196-r6b.test.mjs + test/rr197-r6b.test.mjs + test/f90-falsifiability.test.mjs + test/rr100-check-boundaries.test.mjs + test/rr102-content-check-boundaries.test.mjs + test/issue-writer-census.test.mjs + test/class-split.test.mjs + test/populations.test.mjs + test/consequence-register.test.mjs + test/row60-ruling-sheet.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): D1-view-signals=1 · all exactly once: true
+production trail + committed outputs (sheet, report, both stores) sha256 before: 46eb3077ec6a6bd094ee9108cb2daa8fde27128b508005da7389b6b67b8c8430
+
+D1-view-signals RR-196 · the report view drops the page list [src/report/view.mjs]: landed true · named test "DECISION 1 · the owner's REPORT view" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing DECISION · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail + committed outputs sha256 after: 46eb3077ec6a6bd094ee9108cb2daa8fde27128b508005da7389b6b67b8c8430 · unchanged true

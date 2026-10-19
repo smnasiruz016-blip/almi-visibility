@@ -9,6 +9,7 @@
  * Evidence: runs/audit/f86-acceptance-suite-<date>T<hhmm>.txt, written once (wx). Nothing fetched; nothing tracked written.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -62,5 +63,5 @@ const trailAfter = sha(readFileSync(join(REPO, TRAIL)));
 const tracked = git(REPO, "status", "--porcelain", "--untracked-files=no").stdout === statusBefore;
 say(`  trail unchanged ${trailAfter === trailBefore} · tracked files unchanged ${tracked}${clone ? ` · clone ${clone.verdict}` : ""}`);
 const ok = suiteVerdict(verdicts).verdict === VERDICT.PASS && trailAfter === trailBefore && tracked && (!clone || clone.verdict === VERDICT.PASS);
-if (!IN_CLONE) { mkdirSync(dirname(EVIDENCE), { recursive: true }); writeFileSync(EVIDENCE, `F86 acceptance suite run · ${new Date().toISOString()}\n${lines.join("\n")}\n`, { flag: "wx" }); }
+if (!IN_CLONE) { mkdirSync(dirname(EVIDENCE), { recursive: true }); writeFileSync(EVIDENCE, badFindingsFirst(`F86 acceptance suite run · ${new Date().toISOString()}\n${lines.join("\n")}\n`), { flag: "wx" }); }
 process.exitCode = ok ? 0 : 1;

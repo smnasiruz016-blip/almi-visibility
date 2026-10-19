@@ -10,6 +10,7 @@
  * not create). Module-level probes touch no store at all. The harness hashes the production trail around the run.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -207,7 +208,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
       + `\nPROBE CONTROL (clean tree): ${cleanProbe.length - bad.length} of ${cleanProbe.length} probes report no defect.\n`
       + run.results.map((r) => `  ${r.id}  ran ${!String(r.verdict).startsWith("NOT RUN")} · bytes landed ${r.landed} · defect took effect ${r.tookEffect} · named RED ${r.namedFailed} · pinned reason ${r.reason} · ${r.verdict} · restored ${r.restoredClean}  — ${r.what}`).join("\n")
       + `\nRAN ${ran} of ${list.length} · LANDED ${landed} of ${list.length} · COULD-FAIL ${couldFail} of ${list.length} · PROVED ${proved} of ${list.length}\n`;
-    writeFileSync(join(REPO, outArg), text, { flag: "wx" });
+    writeFileSync(join(REPO, outArg), badFindingsFirst(text), { flag: "wx" });
     console.log(`evidence written: ${outArg}`);
   }
   process.exit(bad.length === 0 && ran === list.length && landed === list.length && proved === list.length && run.residue.length === 0 && run.productionUntouched ? 0 : 1);

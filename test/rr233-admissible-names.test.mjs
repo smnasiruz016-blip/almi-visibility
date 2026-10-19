@@ -125,7 +125,8 @@ test("N4 · the admitted set is unchanged: 432 corpus records by the same rule; 
   /* RR-284 migration: 511 -> 517 — the RR-284 command and owner decision, beta-g decision B's F87 supersession record, and the F74, F50 and F18 acceptances (_handoffs 2815f25) */
   /* RR-285 migration: 517 -> 522 — the RR-285 command and owner decision, F18's Amendment 1, and the F49 and F88 acceptances (_handoffs 38cf14d) */
   /* RR-286 migration: 522 -> 526 — the RR-286 command and owner decision, F18's Amendment 2 and F91's Amendment 6 (_handoffs c808ce5) */
-  assert.equal(AUTHORITY_CORPUS.length, 526, "the corpus population moved — re-measure");
+  /* RR-287 migration: 526 -> 534 — the RR-287 owner decision; F62 A2, F35 A2 and F88 A1; F60, F59, F61 and F96's frozen acceptances */
+  assert.equal(AUTHORITY_CORPUS.length, 534, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;

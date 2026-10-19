@@ -10,6 +10,7 @@
  * runs/audit/f78-sabotage-2026-09-29.txt is kept as it was.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -95,6 +96,6 @@ lines.push("", `proved ${proved} of ${SABOTAGES.length} · residue ${residue} ·
 mkdirSync(join(REPO, "runs", "audit"), { recursive: true });
 /* RR-244: each run writes its OWN evidence file and never overwrites an earlier one (the 29 Sep run's evidence stays as it was; this file
  * used to rewrite it on every run) */
-writeFileSync(join(REPO, "runs", "audit", `f78-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`), lines.join("\n") + "\n", { flag: "wx" });
+writeFileSync(join(REPO, "runs", "audit", `f78-sabotage-${new Date().toISOString().slice(0, 16).replace(":", "")}.txt`), badFindingsFirst(lines.join("\n") + "\n"), { flag: "wx" });
 console.log(lines.at(-1));
 process.exitCode = residue === 0 && trailAfter === trailBefore ? 0 : 1;

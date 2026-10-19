@@ -2,12 +2,14 @@
 /**
  * F62 · C9 · THE VERDICT OF EACH DERIVED CHECK, FROM THE VERBATIM OFFICIAL TEXT (Acceptance Amendment 1, _handoffs 94a6d17, RR-283 item 9).
  *
- *   node bin/applicability-verdicts.mjs --product=<id> --research-batch=<id> --verdicts=applicability-verdicts-YYYY-MM-DD.json --on=YYYY-MM-DD --tenant=<id> --actor=<id>
+ *   node bin/applicability-verdicts.mjs --product=<id> --research-batch=<id> --verdicts=applicability-verdicts-YYYY-MM-DD.json [--key=applicability-key-YYYY-MM-DD.json] --on=YYYY-MM-DD --tenant=<id> --actor=<id>
  *                                                                                                  READ-ONLY; nothing fetched or written
  *
  * Every derived check of the product (bin/applicability.mjs) is judged against the verdict filed for it in the batch and the batch's stored
  * reads (their private texts joined): OFFICIAL with its excerpt word for word in the deciding body's own page, CHECKED_NOT_FOUND, BLOCKED,
- * or UNKNOWN with the refusal named (src/research/applicability-verdicts.mjs). Counts only: no body, excerpt or page is printed.
+ * or a FAULT with its refusal named — never a verdict (src/research/applicability-verdicts.mjs). F62 Amendment 2 (RR-287): no state is
+ * UNKNOWN; with --key=applicability-key-YYYY-MM-DD.json the verdicts are also counted per deciding body × the filed key (cellsOnKey).
+ * Counts only: no body, excerpt or page is printed. A run with any fault exits 4.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -19,14 +21,14 @@ import { lookupStore } from "../src/tenancy/root-registry.mjs";
 import { privateSourcesRoot, withPrivateTexts } from "../src/facts/private-texts.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
 import { readDerivedDeclaration } from "../src/research/applicability-declaration-reader.mjs";
-import { judgeChecks, checksWithVerdicts } from "../src/research/applicability-verdicts.mjs";
+import { judgeChecks, checksWithVerdicts, cellsOnKey } from "../src/research/applicability-verdicts.mjs";
 import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
 
 const USAGE = "node bin/applicability-verdicts.mjs --product=<id> --research-batch=<id> --verdicts=applicability-verdicts-YYYY-MM-DD.json --on=YYYY-MM-DD";
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? null;
 const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
-const BATCH = arg("research-batch"), FILE = arg("verdicts"), ON = arg("on");
-if (!BATCH || !/^applicability-verdicts-\d{4}-\d{2}-\d{2}\.json$/.test(FILE ?? "") || !/^\d{4}-\d{2}-\d{2}$/.test(ON ?? "")) { console.error(`usage: ${USAGE} — nothing read`); process.exit(2); }
+const BATCH = arg("research-batch"), FILE = arg("verdicts"), ON = arg("on"), KEY = arg("key");
+if (!BATCH || !/^applicability-verdicts-\d{4}-\d{2}-\d{2}\.json$/.test(FILE ?? "") || !/^\d{4}-\d{2}-\d{2}$/.test(ON ?? "") || (KEY !== null && !/^applicability-key-\d{4}-\d{2}-\d{2}\.json$/.test(KEY))) { console.error(`usage: ${USAGE} — nothing read`); process.exit(2); }
 const SCOPE = scopedEntryPoint({ entry: "bin/applicability-verdicts.mjs", governed: false, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.researchBatch(BATCH), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID)] });
 const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 const index = rootIndexFor(process.env);
@@ -49,6 +51,13 @@ console.log(`  checks           ${j.counts.checks} derived on ${ON}`);
 console.log(`  official         ${j.counts.OFFICIAL}: REQUIRED ${j.counts.REQUIRED} · ACCEPTED ${j.counts.ACCEPTED} · NOT_REQUIRED ${j.counts.NOT_REQUIRED} — each with its excerpt word for word in the body's own stored page`);
 console.log(`  not found        ${j.counts.CHECKED_NOT_FOUND} — each naming what was not found, the pages checked and the date`);
 console.log(`  blocked          ${j.counts.BLOCKED} — each with its page and reason; never NOT_REQUIRED`);
-console.log(`  unknown          ${j.counts.UNKNOWN}${j.counts.UNKNOWN ? ` — refused: ${[...new Set(j.rows.filter((r) => r.kind === "UNKNOWN").map((r) => r.refused))].join(", ")}` : ""}`);
-{ const back = checksWithVerdicts({ declaration, judged: j }).byOutcome; console.log(`  checks' outcomes REQUIRED ${back.REQUIRED} · ACCEPTED ${back.ACCEPTED} · NOT_REQUIRED ${back.NOT_REQUIRED} · UNKNOWN ${back.UNKNOWN} — each OFFICIAL verdict read back into its check (RR-286); every other check UNKNOWN with its reason`); }
+console.log(`  faults           ${j.counts.FAULTS}${j.counts.FAULTS ? ` — refused: ${[...new Set(j.rows.filter((r) => !r.kind).map((r) => r.fault))].join(", ")}; a fault is never a verdict` : ""}`);
+{ const back = checksWithVerdicts({ declaration, judged: j }).byOutcome; console.log(`  checks' states   REQUIRED ${back.REQUIRED} · ACCEPTED ${back.ACCEPTED} · NOT_REQUIRED ${back.NOT_REQUIRED} · CHECKED_NOT_FOUND ${back.CHECKED_NOT_FOUND} · BLOCKED ${back.BLOCKED} — each verdict read back into its check; every check labelled (Amendment 2)`); }
+if (KEY) {
+  if (!existsSync(join(batchDir, KEY))) { console.error("🔴 REFUSED — NO_KEY_FILED: the batch holds no such key file; nothing counted per key"); process.exit(3); }
+  const k = cellsOnKey({ declaration, judged: j, facts, keys: JSON.parse(readFileSync(join(batchDir, KEY), "utf8")).keys });
+  console.log(k.measured ? `  key cells        ${k.counts.cells} over ${k.counts.bodies} deciding bod(ies): OFFICIAL ${k.counts.OFFICIAL} (ACCEPTED ${k.counts.ACCEPTED}, REQUIRED ${k.counts.REQUIRED}, NOT_REQUIRED ${k.counts.NOT_REQUIRED}) · CHECKED_NOT_FOUND ${k.counts.CHECKED_NOT_FOUND} · BLOCKED ${k.counts.BLOCKED} · faults ${k.counts.FAULTS} — ${k.bound}` : `  key cells        NOT MEASURED — missing ${k.missing}`);
+  if (k.measured && k.counts.FAULTS) process.exitCode = 4;
+}
+if (j.counts.FAULTS) process.exitCode = 4;
 console.log(`  private texts    ${PRIVATE.state === "DECLARED" ? "joined" : "ABSENT — an official verdict cannot be judged without them"}`);

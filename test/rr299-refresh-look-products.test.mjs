@@ -49,7 +49,8 @@ test("A · REAL: the 4 stored CHANGED rechecks, from the STORED page text (no ou
   const rows = (f) => readFileSync(f, "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l));
   const q = new Map(JSON.parse(readFileSync(join(DATA, "page-drafts.json"), "utf8")).pages.flatMap((p) => p.needs.flatMap((n) => n.answer.claims.map((c) => [`claim:${c.claimId}`, c.quotation]))));
   for (const s of JSON.parse(readFileSync(join(DATA, "historical-snapshots-2026-10-17.json"), "utf8")).snapshots ?? []) q.set(`snapshot:${s.snapshotId}`, s.quotation);
-  const done = withNewValues({ rechecks: rows(join(DATA, "fact-rechecks.jsonl")).filter((r) => r.state === "CHANGED"), reads: rows(PRIVATE), quotationOf: (id) => q.get(id) ?? null });
+  /* the 4 rechecks of RR-299 are those read on or before 17 Oct 2026 (RR-302 C3 read the British Council page again on 20 Oct: one more) */
+  const done = withNewValues({ rechecks: rows(join(DATA, "fact-rechecks.jsonl")).filter((r) => r.state === "CHANGED" && r.readOn <= "2026-10-17"), reads: rows(PRIVATE), quotationOf: (id) => q.get(id) ?? null });
   assert.deepEqual(done.map((r) => [r.factId, r.newValue.state, r.newValue.value ?? null]), [
     ["claim:n-cheaper-ielts-1", "SAME", "75,600"], ["claim:n-cheaper-ielts-2", "SAME", "76,240"], ["claim:n-cheaper-ielts-3", "SAME", "72,000"], ["snapshot:bc-pk-ielts-fee-2020-21", "NOT_READABLE", null]]);
 });

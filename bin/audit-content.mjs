@@ -18,7 +18,7 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 import { measure, shingles, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
-import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK, detectCannibalization, reportCannibalization } from "../src/audit/content-checks.mjs";
+import { EXACT_DUPLICATE, NEAR_DUPLICATE, ORPHAN_LINK, detectCannibalization, reportCannibalization } from "../src/audit/content-checks.mjs";
 import { registeredChecks } from "../src/audit/check.mjs";
 import { canonicalUrl, targetPageId } from "../src/evidence/ids.mjs";
 import { pagesFromRun, deriveEdges, inboundOf, unpackGraph, ZERO_INBOUND_DEFINITION } from "../src/crawl/inbound.mjs";
@@ -117,7 +117,7 @@ const bump = (id, verdict) => {
 for (const p of pages) {
   const ctx = { openedAt, bodyHtml: p.html, byHash, twinObservationIds: [], peers, anchorObservationId: p.observation.observation_id };
   const page = { canonical_url: p.canonical, page_id: targetPageId(p.canonical) };
-  for (const check of [EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE]) {
+  for (const check of [EXACT_DUPLICATE, NEAR_DUPLICATE]) { /* RR-302: no word-count check */
     const finding = await check.run({ page, observations: [p.observation], siteContext: ctx });
     if (finding === null) {
       bump(check.id, null);

@@ -9,7 +9,9 @@ export const STEPS = Object.freeze([
   { n: 4, id: "articlesPerDay", title: "Articles per day", ask: "How many articles a day (default 1; 0 pauses articles)." },
   { n: 5, id: "publishMode", title: "Publishing", ask: "Publish automatically after every gate passes (default), or show me first." },
   { n: 6, id: "aiConnection", title: "Your AI connection", ask: "The NAME of the environment variable that holds your own AI key (e.g. ANTHROPIC_API_KEY). Never type the key itself here." },
-  { n: 7, id: "start", title: "Start", ask: "Check your answers and start." },
+  /* RR-302 C1: the client's own YouTube channel — optional; the key stays in the computer's settings, the app keeps only its NAME */
+  { n: 7, id: "youtube", title: "YouTube (optional)", ask: "Your YouTube channel's @handle, and the NAME of the environment variable that holds your own YouTube key (YOUTUBE_API_KEY). Leave the handle empty to skip. Never type the key itself here." },
+  { n: 8, id: "start", title: "Start", ask: "Check your answers and start." },
 ]);
 
 /** Validate one setup answer — plain words when it is refused. */
@@ -22,6 +24,8 @@ export function checkStep(id, v) {
     case "publishMode": return Object.values(PUBLISH_MODE).includes(v?.mode) ? null : "Choose: publish automatically after the gates, or show me first.";
     /* a NAME only: a value that looks like a key is refused and never stored */
     case "aiConnection": return /^[A-Z][A-Z0-9_]{2,63}$/.test(v?.keyName ?? "") ? null : "Type the NAME of the variable (capital letters, digits and _), never the key itself.";
+    /* RR-302 C1: an empty handle skips YouTube; a handle is @name or a UC… channel id; the key's NAME only — a value that looks like a key is refused, never stored */
+    case "youtube": return (v?.handle ?? "") === "" ? null : !/^(@[\w.-]{3,100}|UC[\w-]{10,40})$/.test(v.handle) ? "Type the channel's @handle (for example @mychannel), or leave it empty." : /^[A-Z][A-Z0-9_]{2,63}$/.test(v?.keyName ?? "") ? null : "Type the NAME of the variable (capital letters, digits and _), never the key itself.";
     case "start": return null;
     default: return "Unknown step.";
   }

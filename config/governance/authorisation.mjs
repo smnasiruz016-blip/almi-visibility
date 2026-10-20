@@ -128,6 +128,9 @@ export const ACTIONS = Object.freeze({
   /* RR-159 (4 Oct 2026): F16 C17 — the client's own AI provider connection, opened only by the collection entry point after its preflight; a
    * classification only */
   OPEN_CONNECTOR_AI_PROVIDER: A("RESEARCH", "EXTERNAL_SOURCE"),
+  /* RR-302 C1 (20 Oct 2026): the client's own YouTube channel through the YouTube Data API with the client's own key, opened only by
+   * bin/youtube-channel.mjs; a read of the channel's videos, never a youtube.com page */
+  OPEN_CONNECTOR_YOUTUBE_DATA_API: A("RESEARCH", "EXTERNAL_SOURCE"),
   ...many("GOVERNED_STATE", "RUN_EVIDENCE", [
     "WRITE_BODY_ARCHIVE", "APPEND_CONTENT_AUDIT_FINDINGS", "APPEND_ROBOTS_AND_DNS_FINDINGS", "APPEND_ACTIONS_TIMING_OBSERVATION",
     "APPEND_COST_LEDGER_BACKFILL", "APPEND_CRAWL_OBSERVATIONS", "WRITE_CRAWL_BODY", "APPEND_CRAWL_RUN_RECORD", "APPEND_CRAWL_COST_ENTRY",

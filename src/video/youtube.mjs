@@ -66,16 +66,17 @@ export function importStudioExport(csvText, { importedOn }) {
  * is NEVER opened here: `fetchImpl` must be handed in by the client's resolved connector (F03 — the one place a connection is opened);
  * without it the reader is DEFERRED too.
  */
-export function youtubeApi({ env = process.env, fetchImpl = null } = {}) {
-  const key = env[KEY_NAME];
-  if (!key) return Object.freeze({ state: "DEFERRED", why: `DEFERRED — no YouTube Data API key in the environment (${KEY_NAME}); import a YouTube Studio export instead, or add the key` });
+export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_NAME } = {}) {
+  const key = env[keyName];
+  if (!key) return Object.freeze({ state: "DEFERRED", why: `DEFERRED — no YouTube Data API key in the environment (${keyName}); import a YouTube Studio export instead, or add the key` });
   if (typeof fetchImpl !== "function") return Object.freeze({ state: "DEFERRED", why: "DEFERRED — the key is set, but no connection was handed in by the client's resolved YouTube connector" });
   const get = async (path, params) => { const u = new URL(`https://www.googleapis.com/youtube/v3/${path}`); for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v); u.searchParams.set("key", key); const r = await fetchImpl(u, { headers: { Accept: "application/json" } }); if (!r.ok) throw new Error(`the YouTube Data API answered HTTP ${r.status}`); return r.json(); };
   return Object.freeze({
     state: "READY",
     /** The channel's videos (its uploads playlist), with title, description, tags, publish time, duration and views — the API only. */
     async channelVideos(channelId, { max = 50 } = {}) {
-      const ch = await get("channels", { part: "contentDetails,snippet", id: channelId });
+      /* RR-302 C1: a channel is named by its id (UC…) or its @handle — the API's own forHandle, never a youtube.com page */
+      const ch = await get("channels", { part: "contentDetails,snippet", ...(String(channelId).startsWith("@") ? { forHandle: channelId } : { id: channelId }) });
       const uploads = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
       if (!uploads) return [];
       const pl = await get("playlistItems", { part: "contentDetails", playlistId: uploads, maxResults: String(Math.min(max, 50)) });
@@ -85,6 +86,17 @@ export function youtubeApi({ env = process.env, fetchImpl = null } = {}) {
       return (v.items ?? []).map((x) => Object.freeze({ videoId: x.id, title: x.snippet.title, description: x.snippet.description, tags: x.snippet.tags ?? [], publishedAt: x.snippet.publishedAt, durationSec: isoSeconds(x.contentDetails.duration), views: Number(x.statistics?.viewCount ?? 0), thumbnailText: undefined, channelTitle: x.snippet.channelTitle }));
     },
   });
+}
+/**
+ * RR-302 C1 · the reader through the client's OPENED YouTube connector (src/tenancy/connectors.mjs, kind YOUTUBE_DATA_API): its paced,
+ * origin-limited fetch, and the key read from the ONE variable its declaration names — read here and handed straight in, never kept or
+ * printed. A connector of another kind, or one that names no credential, is refused; a missing key is DEFERRED, named.
+ */
+export const YOUTUBE_CONNECTOR_KIND = "YOUTUBE_DATA_API";
+export function youtubeReaderFrom(connector, { env = process.env } = {}) {
+  if (connector?.kind !== YOUTUBE_CONNECTOR_KIND) return Object.freeze({ state: "REFUSED", why: `REFUSED — not a ${YOUTUBE_CONNECTOR_KIND} connector` });
+  if (!connector.credentialName) return Object.freeze({ state: "REFUSED", why: "REFUSED — the YouTube connector declares no credential name" });
+  return youtubeApi({ env, fetchImpl: connector.fetch, keyName: connector.credentialName });
 }
 const isoSeconds = (d) => { const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(String(d ?? "")); return m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : null; };
 

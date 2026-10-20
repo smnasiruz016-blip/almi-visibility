@@ -100,7 +100,7 @@ const LAWS = ["law1ClientDesign", "law2Hero", "law3KeyFacts", "law4QuestionsAndA
 
 /* ================= RR-265 ================= */
 
-test("TO THE POINT · FIRING CONTROL (RR-265): an answer opens with ONE short sentence and every sourced line is one short sentence; a declared filler phrase fails, named — each fault alone", () => {
+test("TO THE POINT · FIRING CONTROL (RR-265): an answer opens with ONE sentence and every sourced line is one sentence; a declared filler phrase fails, named — each fault alone; a long single sentence is never refused for its words (RR-302)", () => {
   const two = [built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." })]), built("n2", "alpha", [["Where is it?", OBS]])];
   const ok = joined(two)[0];
   assert.equal(ok.checks.toThePoint.state, "PASS", ok.checks.toThePoint.why);
@@ -108,9 +108,10 @@ test("TO THE POINT · FIRING CONTROL (RR-265): an answer opens with ONE short se
   assert.deepEqual([filler.checks.toThePoint.state, /filler phrase\(s\): "it is important to note" \(n1\)/.test(filler.checks.toThePoint.why)], ["FAIL", true], "a declared filler phrase passed, or was not named");
   assert.equal(joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It is important to note that it costs 5 XTS a month." })])])[0].checks.toThePoint.state, "PASS", "a phrase no list declares was refused");
   const twoSentences = joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month. The price is listed in XTS." })])])[0];
-  assert.deepEqual([twoSentences.checks.toThePoint.state, /an answer opens with more than one short sentence: n1/.test(twoSentences.checks.toThePoint.why), /a sourced line is not one short sentence: n1-1/.test(twoSentences.checks.toThePoint.why)], ["FAIL", true, true]);
+  assert.deepEqual([twoSentences.checks.toThePoint.state, /an answer opens with more than one sentence: n1/.test(twoSentences.checks.toThePoint.why), /a sourced line is not one sentence: n1-1/.test(twoSentences.checks.toThePoint.why)], ["FAIL", true, true]);
   const long = joined([built("n1", "alpha", [["How much does it cost?", OBS]], [label("n1-1", { text: "It costs 5 XTS a month." }), label("n1-2", { text: `It ${"is very ".repeat(15)}cheap.` })])])[0];
-  assert.deepEqual([long.checks.toThePoint.state, /a sourced line is not one short sentence: n1-2/.test(long.checks.toThePoint.why), /opens with/.test(long.checks.toThePoint.why)], ["FAIL", true, false], "a sourced line over the word limit passed, or the opening was blamed");
+  /* RR-302 · the owner's law, no word count: one long sentence is ONE sentence — it is never refused for how many words it has */
+  assert.equal(long.checks.toThePoint.state, "PASS", long.checks.toThePoint.why);
 });
 
 const CNF = judgeCheckedNotFound({ id: "cnf-1", needs: ["n1"], line: "No official ranking of the two tests by difficulty was found on the official pages checked on 15 October 2026.", checked: [{ url: "https://example.org/a", name: "Owner A" }, { url: "https://example.org/b", name: "Owner B" }], checkedOn: "2026-10-15" }).record;
@@ -575,7 +576,7 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     assert.ok(faq && faq.answer === it.claims[0].text.trim() && it.statements.every((st) => !JSON.stringify(faqInPage(p.html)).includes(st.text)), `${p.value}: the FAQ data of the product-led item is not its sourced line only`);
   }
   const live = { shared: { length: (proposed.sameNeed ?? []).length } };
-  console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, faq: p.faqCount, keyFacts: p.keyFacts.length, words: p.wordCount, unanswered: p.unanswered.length, titleComposed: p.titleComposed, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: failed(p).length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), ledNeeds: led.length, recordedJudgementsNoLongerRead: live.shared.length, retiredCancellationRecords: cancels.length })}`);
+  console.log(`  REAL (count-only): ${JSON.stringify({ pages: pages.map((p) => ({ value: p.value, items: p.items, questions: p.questions, faq: p.faqCount, keyFacts: p.keyFacts.length, unanswered: p.unanswered.length, titleComposed: p.titleComposed, pass: Object.values(p.checks).filter((v) => v.state === "PASS").length, fail: failed(p).length, notMeasured: Object.values(p.checks).filter((v) => v.state === "NOT MEASURED").length })), ledNeeds: led.length, recordedJudgementsNoLongerRead: live.shared.length, retiredCancellationRecords: cancels.length })}`);
 });
 
 /* ================= the entry point and its census ================= */

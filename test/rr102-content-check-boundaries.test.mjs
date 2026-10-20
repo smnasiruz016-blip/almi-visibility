@@ -15,8 +15,8 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { NEAR_DUPLICATE_THRESHOLD, TEMPLATE_DOMINANCE_THRESHOLD } from "../src/audit/content-checks.mjs";
-import { THIN_UNIQUE_WORD_FLOOR, measure, shingles } from "../src/audit/shell.mjs";
+import { NEAR_DUPLICATE_THRESHOLD } from "../src/audit/content-checks.mjs";
+import { measure, shingles } from "../src/audit/shell.mjs";
 import { registeredChecks } from "../src/audit/check.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -24,7 +24,8 @@ const TRAIL = join(REPO, "audit-trail", "events.jsonl");
 const trailSha = () => (existsSync(TRAIL) ? createHash("sha256").update(readFileSync(TRAIL)).digest("hex") : "absent");
 const TRAIL_BEFORE = trailSha();
 const CHECKS = new Map(registeredChecks().map((c) => [c.id, c]));
-export const F90_CONTENT_DETECTORS = Object.freeze(["exact-duplicate", "thin-content", "near-duplicate", "template-dominance"]);
+/* RR-302 · the owner's law, no word count: thin-content and template-dominance are removed */
+export const F90_CONTENT_DETECTORS = Object.freeze(["exact-duplicate", "near-duplicate"]);
 
 const P = "https://a.example/p";
 const Q = "https://a.example/q";
@@ -40,16 +41,10 @@ const page = (bodyWords, shellWords = 10) => `<html><head><title>T</title></head
 /* exact-duplicate: byHash is the site's content_sha256 → [canonical URLs] map the runner builds */
 const dup = (byHash) => ({ observations: obs({}, { content_sha256: "h1" }), siteContext: ctx({ byHash: new Map(byHash) }) });
 
-/* thin-content: unique body words ON the floor */
-const thin = (n) => ({ siteContext: ctx({ bodyHtml: page(n) }) });
-
 /* near-duplicate: 107 body words give exactly 100 shingles; a peer holding k of them scores k/100 */
 const NEAR_BODY = page(107);
 const MINE = [...shingles(measure(NEAR_BODY).bodyText)];
 const near = (k, url = Q) => ({ siteContext: ctx({ bodyHtml: NEAR_BODY, peers: [{ url, shingles: new Set(MINE.slice(0, k)) }] }) });
-
-/* template-dominance: shell words / all words, ON the threshold */
-const tmpl = (shell, body) => ({ siteContext: ctx({ bodyHtml: page(body, shell) }) });
 
 /* each condition: one or more [justInside, justOutside] pairs */
 const PAIRS = {
@@ -60,10 +55,6 @@ const PAIRS = {
       [dup([["h1", [P, Q]]]), dup([["h1", [P, P]]])],
     ],
   },
-  /* RR-194 · T-2: version 2's condition ids — the same lines, now each records a REVIEW SIGNAL (UNKNOWN), never a FAIL */
-  "thin-content": {
-    "below-unique-word-review-signal": [[thin(THIN_UNIQUE_WORD_FLOOR - 1), thin(THIN_UNIQUE_WORD_FLOOR)]],
-  },
   "near-duplicate": {
     "body-similarity-at-or-above-review-signal": [
       [near(90), near(89)],
@@ -71,19 +62,12 @@ const PAIRS = {
       [near(100, Q), near(100, P)],
     ],
   },
-  "template-dominance": {
-    "shell-share-at-or-above-review-signal": [[tmpl(75, 25), tmpl(74, 26)]],
-  },
 };
 
 test("the fixtures sit exactly on each numeric line (a pair that is not on the line proves nothing)", () => {
-  assert.equal(measure(page(THIN_UNIQUE_WORD_FLOOR - 1)).bodyUniqueWordCount, THIN_UNIQUE_WORD_FLOOR - 1);
-  assert.equal(measure(page(THIN_UNIQUE_WORD_FLOOR)).bodyUniqueWordCount, THIN_UNIQUE_WORD_FLOOR);
   assert.equal(MINE.length, 100);
   assert.equal(90 / 100, NEAR_DUPLICATE_THRESHOLD);
-  assert.equal(measure(page(25, 75)).shellShare, TEMPLATE_DOMINANCE_THRESHOLD);
-  assert.ok(measure(page(26, 74)).shellShare < TEMPLATE_DOMINANCE_THRESHOLD);
-  for (const h of [page(1), NEAR_BODY, page(25, 75)]) assert.equal(measure(h).confident, true);
+  for (const h of [page(1), NEAR_BODY]) assert.equal(measure(h).confident, true);
 });
 
 test("every content detector behind F90's actionable findings declares a structured boundary", () => {
@@ -99,13 +83,11 @@ test("DRIFT GUARD: each content check's declared conditions and the proved pairs
 /* RR-194 · T-2: the declared condition is now a REVIEW SIGNAL's — the live constant still sits in it, on both sides of the line */
 test("DRIFT GUARD: each declared review signal is the LIVE constant the code compares against, and says it is never a FAIL", () => {
   const when = (id) => CHECKS.get(id).boundary.fires[0].when;
-  assert.match(when("thin-content"), new RegExp(`below the ${THIN_UNIQUE_WORD_FLOOR}-word review signal .*never a FAIL \\(void at ${THIN_UNIQUE_WORD_FLOOR} or more\\)`));
   assert.match(when("near-duplicate"), new RegExp(`at or above the ${NEAR_DUPLICATE_THRESHOLD} review signal .*never a FAIL \\(void below ${NEAR_DUPLICATE_THRESHOLD}\\)`));
-  assert.match(when("template-dominance"), new RegExp(`at or above the ${TEMPLATE_DOMINANCE_THRESHOLD} review signal of the page's words .*never a FAIL \\(void below ${TEMPLATE_DOMINANCE_THRESHOLD}\\)`));
 });
 
 /* RR-194 · T-2: exact-duplicate still FAILs; the three version-2 checks "fire" by recording a REVIEW SIGNAL — UNKNOWN, its value carried */
-const T2 = new Set(["thin-content", "near-duplicate", "template-dominance"]);
+const T2 = new Set(["near-duplicate"]); /* RR-302: thin and template removed */
 for (const id of F90_CONTENT_DETECTORS) {
   test(`BOTH DIRECTIONS · ${id}: just inside each declared condition it fires; just outside it does not`, async () => {
     for (const [cond, pairs] of Object.entries(PAIRS[id])) {
@@ -122,7 +104,7 @@ for (const id of F90_CONTENT_DETECTORS) {
   });
 }
 
-test("CLEAN CONTROL: one page clean on all four at once raises nothing", async () => {
+test("CLEAN CONTROL: one page clean on every content check at once raises nothing", async () => {
   const clean = { observations: obs({}, { content_sha256: "h1" }), siteContext: ctx({ bodyHtml: page(400, 10), byHash: new Map([["h1", [P]], ["h2", [Q]]]), peers: [{ url: Q, shingles: new Set(["x y z"]) }] }) };
   for (const id of F90_CONTENT_DETECTORS) assert.equal(await run(id, clean), null, `${id} fired on the clean control`);
 });
@@ -131,7 +113,7 @@ test("an UNMEASURED input is never a finding across the boundary: a missing hash
   assert.equal((await run("exact-duplicate", { siteContext: ctx({ byHash: new Map([["h1", [P, Q]]]) }) }))?.verdict, "UNKNOWN");
   const unrecognised = `<html><body><p>${ws(5)}</p></body></html>`; // no main/article and no chrome
   const empty = `<html><body><nav>${ws(80, "s")}</nav><main></main></body></html>`;
-  for (const id of ["thin-content", "near-duplicate", "template-dominance"]) {
+  for (const id of ["near-duplicate"]) {
     for (const bodyHtml of [null, unrecognised, empty]) {
       const u = await run(id, { siteContext: ctx({ bodyHtml, peers: [{ url: Q, shingles: new Set(MINE) }] }) });
       assert.equal(u?.verdict, "UNKNOWN", `${id} on ${bodyHtml === null ? "no body" : "an unconfident split"}`);

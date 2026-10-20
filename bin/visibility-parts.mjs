@@ -51,6 +51,7 @@ const io = Object.freeze({
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
   listBatch: () => readdirSync(batchDir),
+  text: (f) => { try { return readFileSync(join(batchDir, f), "utf8"); } catch { return null; } },
   /* bound on the lines that name the RESEARCH store (batchDir, privateBatchDir): THIS research batch's own stored reads and their private texts */
   storedReads: () => withPrivateTexts((() => { try { return readFileSync(join(batchDir, "source-reads.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })(), (() => { try { return readFileSync(join(privateBatchDir, "source-reads.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })(), { privateRoot: PRIVATE.state }),
   list: process.argv.includes("--list"),

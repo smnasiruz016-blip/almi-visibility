@@ -71,7 +71,7 @@ test("SOCIAL POSTS: 2–3 ready-to-copy posts per article, each with the article
 test("MONTHLY REPORT · the test project: one phone-readable page, bad news first; made, refreshed, NOT CONNECTED (never zero), next month's real topics", { skip: SKIP }, () => {
   const { report } = rr297Run();
   const heads = report.lines.filter((l) => l.startsWith("## "));
-  assert.deepEqual(heads, ["## Needs your attention", "## Made this month", "## Refreshed this month", "## Search (your Search Console)", "## Planned for next month"]);
+  assert.deepEqual(heads, ["## Needs your attention", "## Made this month", "## Refreshed this month", "## Search (your Search Console)", "## YouTube", "## Planned for next month"] /* RR-301: YouTube joins the report */);
   const t = report.lines.join("\n");
   assert.ok(t.includes(NOT_CONNECTED) && !/\b0 impressions\b/.test(t));
   assert.match(t, /Article \(2026-10-21\): Can I take the Widgetry licence exam online\?/);

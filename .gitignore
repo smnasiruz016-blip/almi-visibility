@@ -72,3 +72,6 @@ runs/_profession-cache/
 *.operations/
 # F87 (RR-284): the operations report names a project's own sources; a local file the owner reads, never committed.
 runs/ops/
+
+# RR-300: the site's LOCAL lead store and run file — never committed
+.site-data/

@@ -30,15 +30,62 @@ export function verifyStripeSignature({ header, body, secret, nowS }) {
 }
 
 const STATUS = { active: "ACTIVE", trialing: "ACTIVE", past_due: "PAST_DUE", unpaid: "PAST_DUE", canceled: "CANCELED", incomplete: "PAST_DUE", incomplete_expired: "CANCELED" };
-/** Apply one verified Stripe event to the accounts. Returns the account changed, or null for an event this service does not use. */
-export function applyEvent(accounts, event) {
+/**
+ * RR-303 A · THE ALMIWORLD WAY (almi-billing-router README; almi-oet src/lib/billing): every Stripe event reaches the product through the
+ * network's ONE event destination, the router, which forwards it signed with the product's own secret (X-Almi-Router-Signature,
+ * "t=…,v1=…", HMAC-SHA256 over "t.body", 5-minute replay guard; the secret named ROUTER_WEBHOOK_SECRET).
+ */
+export const ROUTER_KEY_NAME = "ROUTER_WEBHOOK_SECRET";
+export function verifyRouterSignature({ header, body, secret, nowS }) {
+  if (!secret || typeof header !== "string") return { ok: false, why: "no router signature or no secret" };
+  const parts = Object.fromEntries(header.split(",").map((kv) => kv.split("=")).filter((x) => x.length === 2));
+  const t = Number(parts.t);
+  if (!t || !parts.v1 || Math.abs(nowS - t) > TOLERANCE_S) return { ok: false, why: "the router signature's time is outside the tolerance" };
+  const want = Buffer.from(createHmac("sha256", secret).update(`${t}.${body}`).digest("hex"));
+  const got = Buffer.from(parts.v1);
+  return got.length === want.length && timingSafeEqual(got, want) ? { ok: true, why: null } : { ok: false, why: "the router signature does not match" };
+}
+/** The Stripe price ids of the four plans, each in the variable NAMED here (almi-oet's STRIPE_PRICE_ID_* pattern) — never a literal id. */
+export const PRICE_ENV = Object.freeze({ visibility_1: "STRIPE_PRICE_ID_VISIBILITY_1", visibility_5: "STRIPE_PRICE_ID_VISIBILITY_5", visibility_10: "STRIPE_PRICE_ID_VISIBILITY_10", visibility_unlimited: "STRIPE_PRICE_ID_VISIBILITY_UNLIMITED" });
+const isPlan = (id) => PLANS.some((p) => p.id === id);
+/** The plan of a subscription: the plan our checkout stamped in its metadata, else the price's lookup key, else its price id by the env map. */
+export function planOf(o, env = process.env) {
+  if (isPlan(o?.metadata?.plan)) return o.metadata.plan;
+  const price = o?.items?.data?.[0]?.price;
+  if (isPlan(price?.lookup_key)) return price.lookup_key;
+  const hit = Object.entries(PRICE_ENV).find(([, name]) => env[name] && env[name] === price?.id);
+  return hit ? hit[0] : null;
+}
+const periodEndOf = (o) => new Date(((o.current_period_end ?? o.items?.data?.[0]?.current_period_end) ?? 0) * 1000).toISOString();
+
+/**
+ * Apply one verified Stripe event to the accounts. Returns the account changed, or null for an event this service does not use.
+ * A subscription that is paid makes the licence ACTIVE; a cancel makes it CANCELED; a failed payment makes it PAST_DUE — either ends it.
+ */
+export function applyEvent(accounts, event, { env = process.env } = {}) {
   const o = event?.data?.object ?? {};
+  const bySubscription = (id) => (id ? Object.keys(accounts).find((a) => accounts[a].subscription === id) ?? null : null);
+  if (event.type === "invoice.payment_failed") {
+    const meta = o.subscription_details?.metadata ?? o.parent?.subscription_details?.metadata ?? {};
+    const sub = typeof o.subscription === "string" ? o.subscription : o.parent?.subscription_details?.subscription ?? null;
+    const account = meta.almiworld_account ?? bySubscription(sub);
+    if (!account || !accounts[account]) return null;
+    accounts[account] = { ...accounts[account], status: "PAST_DUE" };
+    return account;
+  }
   const account = o.metadata?.almiworld_account ?? o.client_reference_id ?? null;
   if (!account) return null;
+  if (event.type === "checkout.session.completed") {
+    /* the link only: the session names the account and its subscription; the licence turns ACTIVE on the subscription's own event */
+    const plan = isPlan(o.metadata?.plan) ? o.metadata.plan : null;
+    if (!plan) return null;
+    accounts[account] = { plan, status: accounts[account]?.status ?? "PENDING", periodEnd: accounts[account]?.periodEnd ?? new Date(0).toISOString(), subscription: o.subscription ?? accounts[account]?.subscription ?? null };
+    return account;
+  }
   if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
-    const lookup = o.items?.data?.[0]?.price?.lookup_key ?? null;
-    if (!PLANS.some((p) => p.id === lookup)) return null;
-    accounts[account] = { plan: lookup, status: event.type === "customer.subscription.deleted" ? "CANCELED" : STATUS[o.status] ?? "PAST_DUE", periodEnd: new Date((o.current_period_end ?? 0) * 1000).toISOString(), subscription: o.id ?? null };
+    const plan = planOf(o, env);
+    if (!plan) return null;
+    accounts[account] = { plan, status: event.type === "customer.subscription.deleted" ? "CANCELED" : STATUS[o.status] ?? "PAST_DUE", periodEnd: periodEndOf(o), subscription: o.id ?? null };
     return account;
   }
   return null;

@@ -112,7 +112,7 @@ export function gauge(score) {
 const areaList = (byCategory) => `<ul class="areas">${AREAS.map(([k, name]) => { const v = byCategory?.[k] ?? null; return `<li><span class="n">${name}</span>${v === null ? '<span class="v nm">Not measured</span>' : v >= 80 ? `<span class="v good">✓ ${v}</span>` : `<span class="v warn">⚠ ${v}</span>`}</li>`; }).join("")}</ul>`;
 
 /** The hero's score card: SAMPLE before a test; the real result after one — the same gauge and areas; the test form inside it. */
-export function scoreCard({ result = null, error = null, values = {}, back = "/free-test" } = {}) {
+export function scoreCard({ result = null, error = null, values = {}, back = "/free-test", emailOn = false } = {}) {
   const real = Boolean(result);
   const s = real ? result : SAMPLE;
   return `<div class="scorecard" id="test"><div class="top"><p class="label">${real ? "Your website score" : "Sample estimate"}</p><span class="badge${real ? " real" : ""}">${real ? "Your result" : "Sample"}</span></div>
@@ -121,13 +121,16 @@ ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 <form class="testform" method="post" action="/free-test"><input type="hidden" name="back" value="${back === "/" ? "/" : "/free-test"}">
 <div><label class="f" for="url">Your website address</label><input id="url" name="url" type="text" inputmode="url" autocomplete="url" placeholder="yourwebsite.com" required value="${esc(values.url ?? "")}"></div>
-<div><label class="f" for="email">Email for the full report <span class="note">(optional)</span></label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="${esc(values.email ?? "")}"></div>
-<label class="tick"><input type="checkbox" name="marketing" value="yes"> <span>${esc(MARKETING_LINE)}</span></label>
+${emailOn ? `<div><label class="f" for="email">Email for the full report <span class="note">(optional)</span></label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="${esc(values.email ?? "")}"></div>
+<label class="tick"><input type="checkbox" name="marketing" value="yes"> <span>${esc(MARKETING_LINE)}</span></label>` : ""}
 ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}
 <button class="pill big" type="submit">Test my site</button>
-<p class="fine">Free: ${LIMITS.testsPerPersonPerDay} tests a day, up to ${LIMITS.pagesPerTest} pages each. The result shows with or without an email. ${esc(PRIVACY_LINE)} <a href="/privacy">Privacy</a></p>
+<p class="fine">Free: ${LIMITS.testsPerPersonPerDay} tests a day, up to ${LIMITS.pagesPerTest} pages each.${emailOn ? ` The result shows with or without an email. ${esc(PRIVACY_LINE)}` : " No email needed."} <a href="/privacy">Privacy</a></p>
 </form></div>`;
 }
+
+/** RR-303 B: what the visitor is told about the email — only what happened. */
+export const emailNotice = (e) => (!e ? "" : e.sent ? `<p class="card" role="status" style="margin-top:20px">We have emailed your full report to <b>${esc(e.to)}</b>.</p>` : `<p class="card" role="status" style="margin-top:20px">We could not send the email just now — nothing was sent. Your result is shown here.</p>`);
 
 /** One page, AlmiOET's frame: skip link, sticky header (brand · family strip · product links · mobile menu), the page, the footer. */
 export function frame({ path, title, description, body, noindex = false }) {
@@ -163,16 +166,16 @@ export const FEATURES = Object.freeze([
   ["A Windows app", "Install it like any Windows program. Your data stays on your computer, and a newer version installs itself only when you agree."],
 ]);
 export const YOUTUBE = "Visibility checks your own channel — missing titles, descriptions, chapters, thumbnail text and links back to your product page — and suggests titles, tags and chapters only from your real search phrases and questions. It writes a short video script from each article; you make the video. It reads your channel only through your own YouTube key or a YouTube Studio export you import — never by scraping youtube.com.";
-const priceCards = () => `<ul class="cards">${PLANS.map((p) => `<li class="card center"><div class="price">$${p.price}<small> / month</small></div><p><b>${esc(p.products)}</b></p><p><a class="pill" href="/buy/${p.id}">Buy</a></p></li>`).join("")}</ul><p class="note center" style="margin-top:16px">${PRICES_SOURCE} Per month, in US dollars. Every plan has every feature — plans differ only in how many products you add. There is no free trial; the website test is free for everyone.</p>`;
+const priceCards = () => `<ul class="cards">${PLANS.map((p) => `<li class="card center"><div class="price">$${p.price}<small> / month</small></div><p><b>${esc(p.products)}</b></p><form method="post" action="/api/billing/checkout"><input type="hidden" name="plan" value="${p.id}"><button class="pill" type="submit">Buy</button></form></li>`).join("")}</ul><p class="note center" style="margin-top:16px">${PRICES_SOURCE} Per month, in US dollars. Every plan has every feature — plans differ only in how many products you add. There is no free trial; the website test is free for everyone.</p>`;
 
-export const home = ({ result = null, error = null, values = {} } = {}) => frame({ path: "/", title: "AlmiVisibility — is your website easy to find on Google and in AI answers?", description: "Test your website free: a visibility score out of 100 for technical basics, content, accessibility, links and security — then AlmiVisibility builds the sourced pages your customers search for.",
+export const home = ({ result = null, error = null, values = {}, emailOn = false, emailed = null } = {}) => frame({ path: "/", title: "AlmiVisibility — is your website easy to find on Google and in AI answers?", description: "Test your website free: a visibility score out of 100 for technical basics, content, accessibility, links and security — then AlmiVisibility builds the sourced pages your customers search for.",
   body: `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · Website visibility</p>
 <h1>Is your website easy to find on Google and in <span style="color:var(--coralDeep)">AI answers?</span></h1>
 <p class="lead">Test it free in a minute. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of your pages, scores what it can measure, and shows what to fix first. Then it builds the pages your customers are searching for — every fact with its source and the date it was checked.</p>
 <div class="cta"><a class="pill big" href="#test">Test my site free</a><a class="pill ghost" href="/features">See what it does</a></div>
-<p class="small">${esc(NO_PROMISE)}</p></div>
-<div>${scoreCard({ result, error, values, back: "/" })}</div></div></section>
+<p class="small">${esc(NO_PROMISE)}</p>${emailNotice(emailed)}</div>
+<div>${scoreCard({ result, error, values, back: "/", emailOn })}</div></div></section>
 ${section("paper", `<h2>What AlmiVisibility does</h2><p class="sub">Clear, correct pages that search engines and AI answers can trust — built from your own product's real questions.</p>${cardList([
   ["It reads your real questions", "The questions people search for about your product — from your own Search Console, your own search key, or your own AI search. Never questions it made up."],
   ["It answers from sources", "Each answer is built from official sources, with the source named and the date it was checked. Numbers and conditions stay exactly as the source says them."],
@@ -189,12 +192,12 @@ ${section("paper", `<h2>How it works</h2>${cardList([
 ${section("", `<h2>Simple plans</h2>${priceCards()}`)}
 ${section("", `<div class="final"><h2>See where your website stands</h2><p>Free, in about a minute. No account needed.</p><p><a class="pill big" href="#test">Test my site</a></p></div>`)}` });
 
-export const freeTest = ({ result = null, error = null, left = null, values = {}, leadSaved = null } = {}) => frame({ path: "/free-test", title: "Free website visibility test — AlmiVisibility", description: `Enter your website and get an instant visibility score out of 100 and what to fix first. Up to ${LIMITS.pagesPerTest} pages, ${LIMITS.testsPerPersonPerDay} tests a day, free.`,
+export const freeTest = ({ result = null, error = null, left = null, values = {}, emailOn = false, emailed = null } = {}) => frame({ path: "/free-test", title: "Free website visibility test — AlmiVisibility", description: `Enter your website and get an instant visibility score out of 100 and what to fix first. Up to ${LIMITS.pagesPerTest} pages, ${LIMITS.testsPerPersonPerDay} tests a day, free.`,
   body: `<section class="hero"><div class="wrap grid2"><div><p class="eyebrow">Free website test</p><h1>How visible is my website?</h1>
 <p class="lead">Enter your website. We read up to ${LIMITS.pagesPerTest} of its pages — politely, following its robots.txt — and show your score and what to fix first.</p>
 <p class="small">${BUILT_ON} We never log in, never fill in forms and never read a page your robots.txt asks us not to. ${esc(NO_PROMISE)}</p>
-${leadSaved ? `<p class="card" style="margin-top:20px">Thank you — we have your request for the full report at <b>${esc(leadSaved)}</b>.</p>` : ""}</div>
-<div>${scoreCard({ result, error, values })}</div></div></section>${result ? resultDetail(result, left) : ""}` });
+${emailNotice(emailed)}</div>
+<div>${scoreCard({ result, error, values, emailOn })}</div></div></section>${result ? resultDetail(result, left) : ""}` });
 
 function resultDetail(r, left) {
   return `<section class="band paper" id="result"><div class="wrap prose result-detail" style="margin:0 auto"><h2 style="text-align:left">Your result for ${esc(r.url)}</h2>
@@ -248,8 +251,16 @@ export const terms = () => frame({ path: "/terms", title: "Terms — AlmiVisibil
 <h2>Plans and payment</h2><p>Plans are paid monthly. There is no free trial. You can cancel at any time; your data stays on your computer.</p>
 <h2>The free website test</h2><p>Test only websites you are allowed to test. We follow each site's robots.txt and read at most ${LIMITS.pagesPerTest} pages.</p></div></section>` });
 
-export const buyNotConnected = (plan) => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,
-  body: `<section class="page"><div class="wrap prose"><h1>Checkout is not connected here</h1><p>This copy of the site has no payment connection${plan ? ` for the plan ${esc(plan)}` : ""}. Nothing was charged.</p><p><a class="pill" href="/pricing">Back to the plans</a></p></div></section>` });
+export const buyNotConnected = (plan, state = "DEFERRED") => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,
+  body: `<section class="page"><div class="wrap prose"><h1>Checkout is not connected here</h1><p>${state === "REFUSED" ? "This plan cannot be bought here." : `This copy of the site has no payment connection${plan ? ` for the plan ${esc(plan)}` : ""}.`} Nothing was charged.</p><p><a class="pill" href="/pricing">Back to the plans</a></p></div></section>` });
+/** RR-303 A: after a paid checkout — the buyer's licence key and where it goes in the app. The page names no price and no card. */
+export const buySuccess = (c) => frame({ path: "/buy/success", title: "Thank you — AlmiVisibility", description: "Your AlmiVisibility licence key.", noindex: true,
+  body: c ? `<section class="page"><div class="wrap prose"><h1>Thank you — your plan is being switched on</h1><p>Your licence key (keep it private):</p><p class="card" style="font-family:Consolas,monospace;font-size:18px;word-break:break-all">${esc(c.licenceKey)}</p>
+<h2>Put it in the app</h2><ol><li><a href="/download">Download AlmiVisibility</a> and install it.</li><li>Open it, choose <b>Your plan</b> on the home screen, paste the key and press <b>Save</b>.</li><li>Your plan shows as active once the payment is confirmed (usually within a minute).</li></ol></div></section>`
+    : `<section class="page"><div class="wrap prose"><h1>We could not find this checkout</h1><p>If you paid, the licence key is in your Stripe receipt email from AlmiWorld's support — <a href="https://almiworld.com/contact-us/">contact us</a>.</p></div></section>` });
+/** RR-303 B: unsubscribe — one button; nothing happens on opening the link. */
+export const unsubscribe = ({ token, done = null }) => frame({ path: "/unsubscribe", title: "Unsubscribe — AlmiVisibility", description: "Stop emails from AlmiVisibility.", noindex: true,
+  body: `<section class="page"><div class="wrap prose"><h1>${done === true ? "You are unsubscribed" : done === false ? "This link is not known" : "Stop emails from AlmiVisibility"}</h1>${done === null ? `<form method="post" action="/unsubscribe?t=${encodeURIComponent(token)}"><button class="pill" type="submit">Unsubscribe</button></form>` : done ? "<p>We will not email you again.</p>" : "<p>Nothing was changed.</p>"}</div></section>` });
 
 /* ── the private admin — almi-oet's admin: its own heading, a left sidebar of sections, noindex ───────────────────────────────── */
 const ADMIN_NAV = [["/admin", "Overview"], ["/admin/leads", "Leads"], ["/admin/tests", "Free tests"], ["/admin/sales", "Licences and sales"]];
@@ -274,4 +285,4 @@ export const adminLeads = ({ leads, storeKind, who }) => adminFrame("/admin/lead
 <div class="tablewrap"><table class="t"><tr><th>Email</th><th>Site</th><th>Date</th><th>Marketing</th></tr>${leads.map((l) => `<tr><td>${esc(l.email)}</td><td>${esc(l.testedUrl ?? "")}</td><td>${esc(String(l.at).slice(0, 10))}</td><td>${l.marketing === true ? "yes" : "no"}</td></tr>`).join("") || '<tr><td colspan="4">No leads yet.</td></tr>'}</table></div>`, who);
 export const adminTests = ({ tests, storeKind, who }) => adminFrame("/admin/tests", "Free tests", `<p class="note">Store: ${esc(storeKind)} · ${tests.length} test(s) · the visitor is never recorded.</p>
 <div class="tablewrap"><table class="t"><tr><th>Site</th><th>Score</th><th>Pages</th><th>Date</th></tr>${tests.map((t) => `<tr><td>${esc(t.site)}</td><td>${t.score === null || t.score === undefined ? "Not measured" : `${t.score} / 100`}</td><td>${t.pages}</td><td>${esc(String(t.at).slice(0, 16).replace("T", " "))}</td></tr>`).join("") || '<tr><td colspan="4">No tests yet.</td></tr>'}</table></div>`, who);
-export const adminSales = ({ who }) => adminFrame("/admin/sales", "Licences and sales", `<div class="card"><h3>Not connected yet</h3><p>Licences and sales appear here once AlmiWorld's Stripe products exist and the payment connection is set. Nothing is counted until then — this is not zero sales.</p></div>`, who);
+export const adminSales = ({ who, licences = {}, connected = false }) => adminFrame("/admin/sales", "Licences and sales", connected || Object.keys(licences).length ? `<p class="note">${Object.keys(licences).length} licence(s) · each from a Stripe subscription through the AlmiWorld billing router.</p><div class="tablewrap"><table class="t"><tr><th>Licence key</th><th>Plan</th><th>Status</th><th>Paid until</th></tr>${Object.entries(licences).map(([k, v]) => `<tr><td>${esc(k.slice(0, 9))}…</td><td>${esc(v.plan)}</td><td>${esc(v.status)}</td><td>${esc(String(v.periodEnd).slice(0, 10))}</td></tr>`).join("") || '<tr><td colspan="4">No licence yet.</td></tr>'}</table></div>` : `<div class="card"><h3>Not connected yet</h3><p>Licences and sales appear here once AlmiWorld's Stripe prices exist and the payment connection is set. Nothing is counted until then — this is not zero sales.</p></div>`, who);

@@ -56,9 +56,29 @@ async function home() {
   $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
   <div class="products">${H.products.map((p) => `<button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site)}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles} · Last report: ${esc(p.lastReport)}</div></button>`).join("") || `<div class="meta">No product yet.</div>`}</div>
-  <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button></p><div class="err" id="err"></div>`;
+  <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button></p><div class="err" id="err"></div>`;
   document.querySelectorAll(".product").forEach((b) => (b.onclick = () => open(b.dataset.id)));
   $("#add").onclick = () => addProduct();
+  $("#plan").onclick = () => planScreen();
+}
+/* RR-303 A: the licence key from the page shown after a purchase — saved in the app; never shown back */
+function planScreen() {
+  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_).</p>
+  <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div><p class="meta" id="ok"></p></div>`;
+  $("#home").onclick = home;
+  $("#save").onclick = async () => { const r = await post("/api/account", { licenceKey: $("#k1").value }); if (r.refused) return ($("#err").textContent = r.refused); $("#k1").value = ""; $("#ok").textContent = r.line; };
+}
+/* RR-303 D: YouTube settings — any time, for this product */
+async function youtubeSettings() {
+  const y = await get(`/api/products/${encodeURIComponent(P)}/youtube`);
+  $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>YouTube settings</h2><p class="ask">Your channel's @handle, and the NAME of the Windows variable that holds your own YouTube key. Never type the key itself here.</p>
+  <label>Channel @handle<input id="y1" list="pilots" value="${esc(y.handle)}" placeholder="@yourchannel"></label><datalist id="pilots">${y.pilots.map((p) => `<option value="${esc(p.handle)}">${esc(p.name)} (${esc(p.tier)})</option>`).join("")}</datalist>
+  <label>Name of the key variable<input id="y2" value="${esc(y.keyName)}"></label><p class="meta">Key in this computer's settings: ${y.keySet ? "found" : "not found — add it, then close and open AlmiVisibility again"}</p>
+  <button id="save">Save</button> <button class="ghost" id="run">Save and read my channel now</button><div class="err" id="err"></div></div>`;
+  $("#back").onclick = () => work("YouTube");
+  const save = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/youtube`, { handle: $("#y1").value.trim(), keyName: $("#y2").value.trim() }); if (r.refused) { $("#err").textContent = r.refused; return false; } S = await get(`/api/products/${encodeURIComponent(P)}/state`); return true; };
+  $("#save").onclick = async () => { if (await save()) $("#err").textContent = "Saved."; };
+  $("#run").onclick = async () => { if (await save()) work("YouTube"); };
 }
 function company() {
   $("#app").innerHTML = `<div class="card"><h2>Your company</h2><p class="ask">Its name and its main website — your products are listed under it. Your own logo is optional.</p>
@@ -104,12 +124,18 @@ async function work(tab) {
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
   const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, YouTube: v.youtube, Articles: S.articleSettings };
   $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site)}</div>
-  <nav>${Object.keys(tabs).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="upd">Check for updates</button></nav>
+  <nav>${Object.keys(tabs).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="upd">Check for updates</button></nav>
   <div class="card"><h2>${esc(tab)}</h2><ul>${tabs[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
+  $("#yts").onclick = youtubeSettings;
   $("#upd").onclick = async () => { const r = await get("/api/update"); $("#u").innerHTML = `<p>${esc(r.line)}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await post("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${esc(x.line ?? x.refused)}</p>`; }; };
 }
 const hash = location.hash.slice(1);
-if (hash.startsWith("product=")) { open(decodeURIComponent(hash.slice(8))); get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; }); } else home();
+const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });
+/* RR-303: #plan opens "Your plan"; #youtube=<product id> opens that product's YouTube settings (a link straight to a screen) */
+if (hash.startsWith("product=")) { open(decodeURIComponent(hash.slice(8))); header(); }
+else if (hash === "plan") { planScreen(); header(); }
+else if (hash.startsWith("youtube=")) { P = decodeURIComponent(hash.slice(8)); get(`/api/products/${encodeURIComponent(P)}/state`).then((st) => { S = st; youtubeSettings(); }); header(); }
+else home();
 </script>
 </body></html>

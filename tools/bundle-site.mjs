@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+/**
+ * 🔴 RR-303 F · THE VERCEL BUNDLE OF almivisibility.almiworld.com — PREPARED, NEVER DEPLOYED FROM HERE. This repository deploys nowhere
+ * (vercel.json, test/no-deployments.test.mjs, U-DEP-3); the site goes live from a SEPARATE folder this tool writes, only after the owner's
+ * GREEN: every module site/app.mjs reaches (followed import by import), its data and images, a Vercel function (api/index.mjs) that runs
+ * the same handler, and that folder's own vercel.json (every path to the function; no build step).
+ *   node tools/bundle-site.mjs <an EMPTY or new output folder>
+ * It refuses a folder that holds anything (it never overwrites a file). It writes no key and reads none.
+ */
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const ASSETS = ["site/family.generated.json", "desktop/brand/almiworld-logo.png", "installer/almiworld.ico"];
+
+/** Every repository file site/app.mjs reaches through static and string imports, and the assets the site reads at runtime. */
+export function siteFiles() {
+  const seen = new Set();
+  const walk = (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const text = readFileSync(join(REPO, file), "utf8");
+    for (const m of text.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+["'](\.{1,2}\/[^"']+)["']/g)) walk(relative(REPO, resolve(REPO, dirname(file), m[1])).replace(/\\/g, "/"));
+  };
+  walk("site/app.mjs");
+  return [...seen, ...ASSETS].sort();
+}
+
+export const FUNCTION = `/* RR-303 F · the Vercel function: the same handler the local server runs (site/app.mjs). Keys are read by NAME from the project's environment. */
+import { createApp } from "../site/app.mjs";
+const handle = createApp();
+export default function handler(req, res) { return handle(req, res); }
+`;
+export const VERCEL_JSON = { $schema: "https://openapi.vercel.sh/vercel.json", functions: { "api/index.mjs": { includeFiles: "{site,src,services,desktop,installer,config}/**", maxDuration: 60 } }, rewrites: [{ source: "/(.*)", destination: "/api/index" }] };
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const out = process.argv[2];
+  if (!out) { console.error("usage: node tools/bundle-site.mjs <an empty or new output folder>"); process.exit(2); }
+  if (existsSync(out) && readdirSync(out).length) { console.error(`REFUSED — ${out} is not empty; the bundle never overwrites a file`); process.exit(2); }
+  const files = siteFiles();
+  for (const f of files) { mkdirSync(dirname(join(out, f)), { recursive: true }); copyFileSync(join(REPO, f), join(out, f)); }
+  mkdirSync(join(out, "api"), { recursive: true });
+  writeFileSync(join(out, "api", "index.mjs"), FUNCTION);
+  writeFileSync(join(out, "vercel.json"), JSON.stringify(VERCEL_JSON, null, 2) + "\n");
+  writeFileSync(join(out, "package.json"), JSON.stringify({ name: "almivisibility-site", private: true, type: "module", engines: { node: "24.x" } }, null, 2) + "\n");
+  console.log(`bundle: ${files.length} file(s) + api/index.mjs + vercel.json + package.json → ${out} · NOT deployed`);
+}

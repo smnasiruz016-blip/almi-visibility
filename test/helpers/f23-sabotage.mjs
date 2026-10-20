@@ -84,7 +84,8 @@ const SABOTAGES = [
   ["S49", "C8 a failed request is retried", LS, FETCH, "try { return await fetchImpl(url, { method: limits.method, redirect: \"manual\", headers: { \"User-Agent\": userAgent }, signal: controller.signal }).catch(() => fetchImpl(url, { method: limits.method, redirect: \"manual\", headers: { \"User-Agent\": userAgent }, signal: controller.signal })); } finally { clearTimeout(timer); }", LIM],
   ["S50", "C8 a refused request is stored as an observation", ADP, "  if (r.state === \"NOT MEASURED\") return place(`${rule}.not-measured`, \"UNKNOWN\",", "  if (false) return place(`${rule}.not-measured`, \"UNKNOWN\",", REC],
   ["S51", "C8 an observation that names no run is placed", ADP, "  if (!present(r.run)) return unmapped(\"a link-status observation names the run that made it\", rule);\n", "", REC],
-  ["S52", "C8 the connector kind of the check is not a declared kind", REG, "\"LINK_DESTINATIONS\"]);", "\"LINK_DESTINATION\"]);", REC],
+  /* RR-302: restated — the kinds list now continues after LINK_DESTINATIONS (YOUTUBE_DATA_API joined); the same protection */
+  ["S52", "C8 the connector kind of the check is not a declared kind", REG, "\"LINK_DESTINATIONS\",", "\"LINK_DESTINATION\",", REC],
   ["S53", "C8 the entry point goes on without --live", BINS, "if (!live) { console.log(\"  NOT RUN — no --live: the plan only; no request was made and nothing was written\"); process.exit(0); }\n", "", PP],
   ["S54", "C8 the entry point does not stop when the distinct addresses outnumber the limit", BINS, " NO REQUEST WAS MADE.`); process.exit(3); }\nif (!live)", " NO REQUEST WAS MADE.`); }\nif (!live)", PP],
   ["S55", "C8 a connector that does not reach the batch is used for it", BINS, "if (declared.state !== \"DECLARED\" || !(declared.connector.reaches ?? []).some((x) => x.resourceKind === \"RESEARCH_BATCH\" && x.resourceRef === BATCH)) {", "if (declared.state !== \"DECLARED\") {", PP],

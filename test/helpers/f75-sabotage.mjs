@@ -29,7 +29,8 @@ const SABOTAGES = [
   ["K03", "C1: an unreadable population still drafts tickets", R, "if (unreadable.length) return {", "if (false) return {", C1F],
   ["K04", "C2: every ticket is DEVELOPER", D, ': content.has(check.id) ? "CONTENT" : "DEVELOPER";', ': "DEVELOPER";', C2],
   ["K05", "C2: an unregistered detector's kind is guessed", D, "const kind = !check ? null :", 'const kind = !check ? "DEVELOPER" :', C2],
-  ["K06", "C2: the content-supply list drops a check", CC, "NEAR_DUPLICATE.id, TEMPLATE_DOMINANCE.id]);", "NEAR_DUPLICATE.id]);", C2L],
+  /* RR-302: restated — the list is item 12's two checks left after the owner's no-word-count law; the same protection (a check dropped) */
+  ["K06", "C2: the content-supply list drops a check", CC, "[EXACT_DUPLICATE.id, NEAR_DUPLICATE.id]);", "[EXACT_DUPLICATE.id]);", C2L],
   ["K07", "C3: only the first finding's evidence is kept", D, "fs.flatMap((f) => (Array.isArray(f.evidence) ? f.evidence : []))", "(Array.isArray(fs[0].evidence) ? fs[0].evidence : [])", C3],
   ["K08", "C3: a finding without evidence is not named", D, ".filter((f) => !Array.isArray(f.evidence) || f.evidence.length === 0)", ".filter(() => false)", C3],
   ["K09", "C3: the affected population counts findings, not pages", D, "affectedPages: pages.size,", "affectedPages: fs.length,", C3],

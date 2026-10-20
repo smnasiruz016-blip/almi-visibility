@@ -61,6 +61,8 @@ const CONNECTOR_MODE = Object.freeze([
   /* RR-268: F44's source reader (bin/source-facts.mjs) — one more connector entry point, measured by the census below */
   ["bin/source-facts.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
   ["bin/source-integrity.mjs", [P, "--live"]],
+  /* RR-302 C1: the client's own YouTube channel (bin/youtube-channel.mjs) — one more connector entry point */
+  ["bin/youtube-channel.mjs", [S, "--channel=@fixture-channel", "--on=2026-09-01", "--live"]],
   ["subjects/almi-oet/tools/build-corpus.mjs", ["--out", ".test-scratch/rr244-a2-corpus"]],
   /* RR-295: subjects/almi-oet/tools/nursing-chain.mjs removed with the old page template */
 ]);
@@ -74,6 +76,8 @@ function world(extra = []) {
   sub.connectors.push({ connectorId: "questions", kind: "QUESTION_SOURCE_API", credential: null, reaches: [{ resourceKind: "SITE_ORIGIN", resourceRef: FIXTURE_SUBJECT_ORIGIN }] });
   /* RR-263: and the link-status check's connector, reaching the batch these runs name */
   sub.connectors.push({ connectorId: "link-destinations", kind: "LINK_DESTINATIONS", credential: null, reaches: [{ resourceKind: "RESEARCH_BATCH", resourceRef: BATCH }] });
+  /* RR-302 C1: and the client's YouTube connection — its key NAMED, never held; it reaches only the fixture origin here (no request is made) */
+  sub.connectors.push({ connectorId: "youtube", kind: "YOUTUBE_DATA_API", credential: { mechanism: "ENV_REFERENCE", name: "YOUTUBE_API_KEY" }, reaches: [{ resourceKind: "SITE_ORIGIN", resourceRef: FIXTURE_SUBJECT_ORIGIN }] });
   writeFileSync(join(W.root, "roots.json"), JSON.stringify(reg, null, 2) + "\n");
   const research = reg.stores.find((s) => s.store === "RESEARCH").path;
   for (const b of [BATCH, EVIDENCE]) mkdirSync(join(W.root, research, b), { recursive: true });
@@ -139,6 +143,8 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     /* RR-282: one more usage exit before the gate — --stored beside --live, --extract, --import or --read-list, or --facts without --stored */
     "bin/source-facts.mjs": ["live || (EXTRACT && permission.mayWrite)", ["USAGE", "USAGE", "USAGE", "USAGE", "USAGE", "USAGE"]],
     "bin/source-integrity.mjs": ["live", ["CONFINEMENT", "CONFINEMENT", "USAGE"]],
+    /* RR-302 C1: one usage exit before the gate (the subject, a channel id or @handle, the day, a product page) */
+    "bin/youtube-channel.mjs": ["live", ["USAGE"]],
     "subjects/almi-oet/tools/build-corpus.mjs": ["ALWAYS", ["CONFINEMENT"]],
   };
   for (const r of rows) {

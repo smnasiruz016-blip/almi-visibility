@@ -469,8 +469,9 @@ test("F02 · the tenant-scope census is unchanged: 123 entry points, 99 SCOPED �
   /* RR-291: two production entry points joined — bin/visibility-parts.mjs (read-only parts of 20 rows) and bin/answer-surfaces.mjs (F16 C7, F63:
    * the engine's own browser route), each SCOPED to its subject and research batch — 136 -> 138, SCOPED 112 -> 114 */
   /* RR-295: three production entry points left — subjects/almi-oet/tools/nursing-chain.mjs, profession-chain.mjs and placement-measure.mjs, removed with the old page template (owner decision 3) — 138 -> 135, SCOPED 114 -> 111 */
-  assert.equal(rows.length, 135);
-  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [111, 18, 6, 0]);
+  /* RR-302 C1: one production entry point joined — bin/youtube-channel.mjs (the client's own YouTube channel; SCOPED to its subject, its connector and its ledger) — 135 -> 136, SCOPED 111 -> 112 */
+  assert.equal(rows.length, 136);
+  assert.deepEqual([by.SCOPED, by.EXCLUDED, by.NOT_TENANT_GOVERNED, by.UNSCOPED ?? 0], [112, 18, 6, 0]);
   const crawl = classifyEntryPoint("bin/crawl.mjs", readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8"));
   assert.equal(crawl.cls, "SCOPED", crawl.why);
   const planted = readFileSync(join(REPO, "bin", "crawl.mjs"), "utf8").replace("RESOURCES.researchBatch(researchBatch), ", "");

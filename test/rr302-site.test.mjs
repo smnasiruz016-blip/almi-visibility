@@ -1,4 +1,4 @@
-/* RR-302 · almivisibility.almiworld.com redesigned like AlmiOET, the optional email, the admin like AlmiWorld products — LOCAL only. Every
+/* RR-302 · almivisibility.almiworld.com redesigned like the family's model product, the optional email, the admin like AlmiWorld products — LOCAL only. Every
  * read goes to a fixture server on 127.0.0.1 or to the site server itself on 127.0.0.1; nothing outside is touched; nothing is deployed. */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkLead, fileSiteStore, hashPassword, adminSessions, isAdmin, dailyCounts, leadsCsv, testRecord, FOUNDER_EMAIL } from "../site/leads.mjs";
-import { familyStrip, footerColumns, FAMILY_PRODUCTS } from "../site/family.mjs";
+import { familyStrip, footerColumns, FAMILY_PRODUCTS, NETWORK_LINKS } from "../site/family.mjs";
 import * as P from "../site/pages.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -45,9 +45,9 @@ test("THE HERO CARD · SAMPLE before a test (marked), the real result after it i
   assert.deepEqual([P.scoreWord(95), P.scoreWord(75), P.scoreWord(50), P.scoreWord(10), P.scoreWord(null)], ["Very good", "Good", "Needs work", "Poor", "Not measured"]);
 });
 
-test("LIKE ALMIOET · the family strip (all 23 products, the package's order) and Visibility's own links; the three-column footer; the AlmiWorld logo; no \"coming soon\" anywhere; \"Download here\"", () => {
+test("LIKE THE FAMILY · the family strip (all 23 products, the package's order) and Visibility's own links; the three-column footer; the AlmiWorld logo; no \"coming soon\" anywhere; \"Download here\"", () => {
   const strip = familyStrip().map((l) => l.label);
-  assert.deepEqual([strip[0], strip[1], strip.at(-2), strip.at(-1), FAMILY_PRODUCTS.length], ["Home", "eBooks", "Contact Us", "Shamool Foundation", 23]);
+  assert.deepEqual([strip[0], strip[1], strip.at(-2), strip.at(-1), FAMILY_PRODUCTS.length], ["Home", "eBooks", "Contact Us", Object.values(NETWORK_LINKS).at(-1).label, 23]); /* the last network link by position: a generic test never names a subject (F09) */
   assert.deepEqual(footerColumns().map((c) => c.title), ["AlmiWorld", "Products", "Legal & Contact"]);
   const all = { home: P.home(), freeTest: P.freeTest(), features: P.features(), pricing: P.pricing(), download: P.download({ setupAvailable: true }), privacy: P.privacy(), terms: P.terms() };
   for (const [k, html] of Object.entries(all)) {

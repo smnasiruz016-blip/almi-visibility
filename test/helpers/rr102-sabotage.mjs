@@ -39,9 +39,11 @@ const SABOTAGES = [
   /* the declarations */
   /* RR-248: D01 and D02 restated — RR-194 T-2 (39c531f) made the thresholds REVIEW SIGNALS: the condition is
    * below-unique-word-review-signal, the near-duplicate line says "at or above the … review signal", and the drift guard was renamed */
-  ["D01", "DECLARATION: a condition renamed away from the proved one", CC, '{ id: "below-unique-word-review-signal", when:', '{ id: "below-floor", when:', "DRIFT GUARD: each content check's declared conditions"],
+  /* RR-302: restated onto near-duplicate (thin-content was removed with the owner's no-word-count law); the same protection */
+  ["D01", "DECLARATION: a condition renamed away from the proved one", CC, '{ id: "body-similarity-at-or-above-review-signal", when:', '{ id: "body-similarity", when:', "DRIFT GUARD: each content check's declared conditions"],
   ["D02", "DECLARATION: a stated threshold that is not the live constant", CC, "at or above the ${NEAR_DUPLICATE_THRESHOLD} review signal — recorded UNKNOWN", "at or above the 0.8 review signal — recorded UNKNOWN", "DRIFT GUARD: each declared review signal"],
-  ["D03", "DECLARATION: a check loses its boundary entirely", CC, '  boundary: {\n    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],', '  boundaryDropped: {\n    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],', "every content detector behind F90"],
+  /* RR-302: restated onto near-duplicate (thin-content was removed); the same protection */
+  ["D03", "DECLARATION: a check loses its boundary entirely", CC, '  boundary: {\n    observes: ["the stored body\'s 8-word shingles, after shell subtraction"', '  boundaryDropped: {\n    observes: ["the stored body\'s 8-word shingles, after shell subtraction"', "every content detector behind F90"],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];

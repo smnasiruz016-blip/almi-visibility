@@ -68,7 +68,8 @@ export function openConnector({ scope, subjectId, kind, resolve = null }) {
    * Generic: the origins come from the subject's own declaration, whoever the client is. */
   /* RR-155: a QUESTION_SOURCE_API connector likewise reaches ONLY the origins it declares */
   /* RR-159: a client's AI_PROVIDER connection likewise reaches ONLY the origin it declares */
-  const origins = ["PUBLIC_SITE", "QUESTION_SOURCE_API", "AI_PROVIDER"].includes(l.connector.kind) ? siteOriginsOf(l.connector) : null;
+  /* RR-302 C1: a client's YOUTUBE_DATA_API connection likewise reaches ONLY the origin it declares (the API's, never youtube.com) */
+  const origins = ["PUBLIC_SITE", "QUESTION_SOURCE_API", "AI_PROVIDER", "YOUTUBE_DATA_API"].includes(l.connector.kind) ? siteOriginsOf(l.connector) : null;
   return Object.freeze({
     connectorId: l.connector.connectorId,
     kind: l.connector.kind,

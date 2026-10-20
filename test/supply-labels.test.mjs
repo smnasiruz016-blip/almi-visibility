@@ -27,11 +27,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { registeredChecks } from "../src/audit/check.mjs";
-import { RECOMMENDATION_FIELDS, THIN_CONTENT, EXACT_DUPLICATE, TEMPLATE_DOMINANCE, NEAR_DUPLICATE, ORPHAN_LINK } from "../src/audit/content-checks.mjs";
+import { RECOMMENDATION_FIELDS, EXACT_DUPLICATE, NEAR_DUPLICATE, ORPHAN_LINK } from "../src/audit/content-checks.mjs";
 import "../src/audit/technical-checks.mjs";
 import "../src/audit/sitemap-check.mjs";
 import "../src/audit/checks.mjs";
-import { THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
+import { measure, shingles } from "../src/audit/shell.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -57,7 +57,8 @@ test("population: the guard runs over EVERY registered check, not a hand-picked 
   const ids = registeredChecks().map((c) => c.id).sort();
   // 🔴 Count the population before trusting a zero from it. A guard over four
   // checks while the system holds sixteen is a guard with twelve blind spots.
-  assert.ok(ids.length >= 15, `only ${ids.length} checks registered — the population is too small to be the system`);
+  /* RR-302: two word-count checks (thin-content, template-dominance) were removed — the floor moves down by exactly those two */
+  assert.ok(ids.length >= 13, `only ${ids.length} checks registered — the population is too small to be the system`);
   for (const c of registeredChecks()) {
     assert.ok(c.firingFixture, `${c.id} has no firing fixture`);
     assert.ok(c.cleanControl, `${c.id} has no clean control`);
@@ -71,11 +72,9 @@ test("population: the guard runs over EVERY registered check, not a hand-picked 
  */
 test("🔴 no supply label emits a recommendation, an action, or a demand claim", async () => {
   const cases = [
-    [THIN_CONTENT, CTX({ bodyHtml: shellHeavy(words(40)) })],
-    [TEMPLATE_DOMINANCE, CTX({ bodyHtml: shellHeavy(words(100)) })],
     [EXACT_DUPLICATE, CTX({ byHash: new Map([["hash-a", ["https://e.example.com/a", "https://e.example.com/b"]]]) })],
     [ORPHAN_LINK, CTX({ inboundCount: 0 })],
-    [NEAR_DUPLICATE, CTX({ bodyHtml: shellHeavy(words(400)), corpusBodies: new Map([["other", shellHeavy(words(400))]]) })],
+    [NEAR_DUPLICATE, CTX({ bodyHtml: shellHeavy(words(400)), peers: [{ url: "https://e.example.com/b", shingles: shingles(measure(shellHeavy(words(400))).bodyText) }] })],
   ];
 
   const findings = [];
@@ -83,7 +82,7 @@ test("🔴 no supply label emits a recommendation, an action, or a demand claim"
     const f = await check.run({ page: { canonical_url: "https://e.example.com/a", page_id: "p1" }, observations: OBS, siteContext: ctx });
     if (f) findings.push(f);
   }
-  assert.ok(findings.length >= 4, `only ${findings.length} findings — the law would be vacuous`);
+  assert.ok(findings.length >= 3, `only ${findings.length} findings — the law would be vacuous`); /* RR-302: thin and template removed */
 
   for (const f of findings) {
     for (const field of RECOMMENDATION_FIELDS) {
@@ -96,25 +95,8 @@ test("🔴 no supply label emits a recommendation, an action, or a demand claim"
   }
 });
 
-/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
-test("🔴 the thin signal prints its own bound beside the count (LAW-BOUND-1)", async () => {
-  const f = await THIN_CONTENT.run({
-    page: { canonical_url: "https://e.example.com/a" },
-    observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
-  });
-  assert.deepEqual([f.verdict, f.signal.bound], ["UNKNOWN", THIN_UNIQUE_WORD_FLOOR]);
-  assert.match(f.summary, new RegExp(`review signal: ${THIN_UNIQUE_WORD_FLOOR}`));
-});
-
-test("CONTROL: the SAME shell with a large body does NOT fire — the shell is subtracted, not counted", async () => {
-  const f = await THIN_CONTENT.run({
-    page: { canonical_url: "https://e.example.com/a" },
-    observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(900)) }),
-  });
-  assert.equal(f, null, "a 900-word body under a 2,000-word shell fired as thin — the shell is being counted");
-});
+/* RR-302 · the owner's law, no word count: the thin signal and its control are removed with the check. The real half below reads the
+ * findings STORED before — history, not a live check. */
 
 /* ================================================================== *
  * THE REAL HALF — the 495-page corpus run of 12 September 2026.

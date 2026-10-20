@@ -30,25 +30,20 @@ const SABOTAGES = [
   /* exact-duplicate */
   ["N01", "exact-duplicate NARROW: another URL with the same hash no longer fires", CC, "if (twins.length === 0) return null;", "if (true) return null;", BOTH("exact-duplicate")],
   ["W01", "exact-duplicate WIDEN: the page's own URL counts as a twin", CC, ".filter((u) => u !== page.canonical_url);", ".filter(() => true);", BOTH("exact-duplicate")],
-  /* thin-content */
-  ["N02", "thin NARROW: the floor moves in by one word", CC, "if (m.bodyUniqueWordCount >= THIN_UNIQUE_WORD_FLOOR) return null;", "if (m.bodyUniqueWordCount >= THIN_UNIQUE_WORD_FLOOR - 1) return null;", BOTH("thin-content")],
-  ["W02", "thin WIDEN: the floor moves out by one word", CC, "if (m.bodyUniqueWordCount >= THIN_UNIQUE_WORD_FLOOR) return null;", "if (m.bodyUniqueWordCount >= THIN_UNIQUE_WORD_FLOOR + 1) return null;", BOTH("thin-content")],
   /* near-duplicate */
   ["N03", "near NARROW: a similarity exactly at the threshold no longer fires", CC, "if (!best || best.score < NEAR_DUPLICATE_THRESHOLD) return null;", "if (!best || best.score <= NEAR_DUPLICATE_THRESHOLD) return null;", BOTH("near-duplicate")],
   ["W03", "near WIDEN: a similarity just below the threshold fires", CC, "if (!best || best.score < NEAR_DUPLICATE_THRESHOLD) return null;", "if (!best || best.score < NEAR_DUPLICATE_THRESHOLD - 0.01) return null;", BOTH("near-duplicate")],
   ["W04", "near WIDEN: a peer at the page's own URL is compared", CC, "if (other.url === page.canonical_url) continue;", "if (false) continue;", BOTH("near-duplicate")],
-  /* template-dominance */
-  ["N04", "template NARROW: a share exactly at the threshold no longer fires", CC, "if (m.shellShare < TEMPLATE_DOMINANCE_THRESHOLD) return null;", "if (m.shellShare <= TEMPLATE_DOMINANCE_THRESHOLD) return null;", BOTH("template-dominance")],
-  ["W05", "template WIDEN: a share just below the threshold fires", CC, "if (m.shellShare < TEMPLATE_DOMINANCE_THRESHOLD) return null;", "if (m.shellShare < TEMPLATE_DOMINANCE_THRESHOLD - 0.01) return null;", BOTH("template-dominance")],
   /* UNMEASURED stays UNKNOWN */
   ["U01", "UNMEASURED: a missing hash becomes silence, not UNKNOWN", CC, "if (!mine?.content_sha256) {", "if (false) {", "an UNMEASURED input"],
-  ["U02", "UNMEASURED: thin no longer refuses an unconfident split", CC, "    if (!m.confident) {\n      /**\n       * 🔴 TWO DIFFERENT UNKNOWNS", "    if (false) {\n      /**\n       * 🔴 TWO DIFFERENT UNKNOWNS", "an UNMEASURED input"],
   /* the declarations */
   /* RR-248: D01 and D02 restated — RR-194 T-2 (39c531f) made the thresholds REVIEW SIGNALS: the condition is
    * below-unique-word-review-signal, the near-duplicate line says "at or above the … review signal", and the drift guard was renamed */
-  ["D01", "DECLARATION: a condition renamed away from the proved one", CC, '{ id: "below-unique-word-review-signal", when:', '{ id: "below-floor", when:', "DRIFT GUARD: each content check's declared conditions"],
+  /* RR-302: restated onto near-duplicate (thin-content was removed with the owner's no-word-count law); the same protection */
+  ["D01", "DECLARATION: a condition renamed away from the proved one", CC, '{ id: "body-similarity-at-or-above-review-signal", when:', '{ id: "body-similarity", when:', "DRIFT GUARD: each content check's declared conditions"],
   ["D02", "DECLARATION: a stated threshold that is not the live constant", CC, "at or above the ${NEAR_DUPLICATE_THRESHOLD} review signal — recorded UNKNOWN", "at or above the 0.8 review signal — recorded UNKNOWN", "DRIFT GUARD: each declared review signal"],
-  ["D03", "DECLARATION: a check loses its boundary entirely", CC, '  boundary: {\n    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],', '  boundaryDropped: {\n    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],', "every content detector behind F90"],
+  /* RR-302: restated onto near-duplicate (thin-content was removed); the same protection */
+  ["D03", "DECLARATION: a check loses its boundary entirely", CC, '  boundary: {\n    observes: ["the stored body\'s 8-word shingles, after shell subtraction"', '  boundaryDropped: {\n    observes: ["the stored body\'s 8-word shingles, after shell subtraction"', "every content detector behind F90"],
 ];
 
 const files = [...new Set(SABOTAGES.map((s) => s[2]))];

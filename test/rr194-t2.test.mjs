@@ -13,7 +13,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, T2_VERSION, REVIEW_SIGNAL_JUSTIFICATIONS } from "../src/audit/content-checks.mjs";
+import { NEAR_DUPLICATE, T2_VERSION } from "../src/audit/content-checks.mjs";
+import { registeredChecks } from "../src/audit/check.mjs";
 import { planReassessment, REFUSAL, T2_DETECTORS } from "../src/audit/t2-reassessment.mjs";
 import { lifecycleOf } from "../src/evidence/lifecycle.mjs";
 import { evidenceStateOf } from "../src/evidence/evidence-state-adapters.mjs";
@@ -48,19 +49,17 @@ const words = (n, p = "w") => Array.from({ length: n }, (_, i) => `${p}${i}`).jo
 const page = (body, nav = words(30, "n")) => `<html><body><nav>${nav}</nav><main>${body}</main></body></html>`;
 const ctx = (bodyHtml, peers) => ({ page: { canonical_url: "https://fixture.invalid/a" }, observations: [{ observation_id: "o1" }], siteContext: { bodyHtml, openedAt: NOW, peers } });
 
-test("T2-CHECKS · version 2: below 350 / at 0.9 / at 0.75 each records a REVIEW SIGNAL (UNKNOWN, its value carried) — never a FAIL; the clean side records nothing", async () => {
-  for (const c of [THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE]) assert.equal(c.version, T2_VERSION, `${c.id} is not version 2`);
-  const thin = await THIN_CONTENT.run(ctx(page(words(40))));
-  assert.deepEqual([thin.verdict, thin.detector_version, thin.signal.name, thin.signal.value, thin.signal.bound, thin.signal.decides], ["UNKNOWN", "2", "unique-body-words", 40, 350, "nothing"]);
-  assert.equal(thin.signal.justification, REVIEW_SIGNAL_JUSTIFICATIONS["thin-content"]);
-  assert.equal(await THIN_CONTENT.run(ctx(page(words(400)))), null, "a page past the signal recorded something");
+/* RR-302 · the owner's law, no word count: thin-content (350 unique words) and template-dominance (the shell's share of the WORDS) are removed;
+ * near-duplicate stays version 2 — its 0.9 records a REVIEW SIGNAL, never a FAIL. The stored version-1 findings below are history. */
+test("T2-CHECKS · version 2: near-duplicate at 0.9 records a REVIEW SIGNAL (UNKNOWN, its value carried) — never a FAIL; thin-content and template-dominance are gone (RR-302)", async () => {
+  assert.equal(NEAR_DUPLICATE.version, T2_VERSION);
+  const ids = registeredChecks().map((c) => c.id);
+  assert.deepEqual(["thin-content", "template-dominance"].filter((id) => ids.includes(id)), [], "a word-count check is still registered");
   const body = words(200, "b");
   const { shingles } = await import("../src/audit/shell.mjs");
   const near = await NEAR_DUPLICATE.run(ctx(page(body), [{ url: "https://fixture.invalid/b", shingles: shingles(body) }]));
-  assert.deepEqual([near.verdict, near.signal.name, near.signal.value >= 0.9], ["UNKNOWN", "body-similarity", true]);
-  const tpl = await TEMPLATE_DOMINANCE.run(ctx(page(words(10), words(300, "n"))));
-  assert.deepEqual([tpl.verdict, tpl.signal.name, tpl.signal.value >= 0.75], ["UNKNOWN", "shell-share", true]);
-  for (const r of [thin, near, tpl]) assert.equal(evidenceStateOf(r).state, "UNKNOWN", "a review signal placed as anything but UNKNOWN (reached, not established)");
+  assert.deepEqual([near.verdict, near.signal.name, near.signal.value >= 0.9, near.signal.decides], ["UNKNOWN", "body-similarity", true, "nothing"]);
+  assert.equal(evidenceStateOf(near).state, "UNKNOWN", "a review signal placed as anything but UNKNOWN (reached, not established)");
 });
 
 /* ================= the plan (pure) ================= */

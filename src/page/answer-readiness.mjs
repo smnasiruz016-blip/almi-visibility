@@ -5,7 +5,7 @@
  * NOT_MEASURED with its reason — never one merged score:
  *
  *   CLARITY             every answer line is one sentence, to the point, with no internal record label — the page laws the engine
- *                       already applies to every built answer line (src/page/joined-page.mjs: sentencesOf, TO_THE_POINT_MAX_WORDS,
+ *                       already applies to every built answer line (src/page/joined-page.mjs: sentencesOf,
  *                       RECORD_LABELS); no new rule is made here
  *   EXTRACTABILITY      the page's FAQ structured data parses (the engine's own reader, faqInPage), every entry holds a question and an
  *                       answer, and every answer line holds its words in the page's own HTML text
@@ -18,7 +18,7 @@
  * Pure: the page's HTML in, the five results out. No fetch, no write, no clock. It reads the engine's own page markup (the renderer of
  * src/page/joined-page.mjs) and names no product, client or host. Nothing here claims ranking or citation by any AI engine.
  */
-import { RECORD_LABELS, TO_THE_POINT_MAX_WORDS, sentencesOf, faqInPage } from "./joined-page.mjs";
+import { RECORD_LABELS, sentencesOf, faqInPage } from "./joined-page.mjs";
 
 export const READINESS = Object.freeze({ PASS: "PASS", FAIL: "FAIL", NOT_MEASURED: "NOT_MEASURED" });
 export const READINESS_CHECKS = Object.freeze(["clarity", "extractability", "provenance", "entityConsistency", "directAnswer"]);
@@ -54,13 +54,12 @@ export function questionsOf(html) {
   return [...String(html).matchAll(/<details\b[^>]*>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g)].map((m) => Object.freeze({ question: textOf(m[1]), after: m[2] }));
 }
 
-/** CLARITY — the engine's own page laws on every answer line: one sentence, at most TO_THE_POINT_MAX_WORDS words, no record label. */
+/** CLARITY — the engine's own page laws on every answer line: one sentence, no record label (RR-302: never a word count). */
 export function clarityCheck(html) {
   const lines = factsOf(html).filter((f) => f.kind === "answer line").map((f) => ({ id: f.id, text: answerTextOf(f.inner) }));
   const failures = lines.flatMap(({ id, text }) => {
     const why = [];
     if (!(sentencesOf(text).length === 1 && /[.!?]$/.test(text))) why.push(`not one sentence (${sentencesOf(text).length})`);
-    if (text.split(/\s+/).filter(Boolean).length > TO_THE_POINT_MAX_WORDS) why.push(`more than ${TO_THE_POINT_MAX_WORDS} words`);
     if (RECORD_LABELS.test(text)) why.push("an internal record label is shown");
     return why.length ? [`${id}: ${why.join("; ")}`] : [];
   });

@@ -44,6 +44,8 @@ export const CONNECTOR_CALL_CLASS = Object.freeze({
   AI_PROVIDER: "METERED",
   /* RR-263: an unauthenticated GET of a public web address a client's own page links to — no account, no key, no billing relationship */
   LINK_DESTINATIONS: "UNMETERED_PUBLIC",
+  /* RR-302 C1: the YouTube Data API is keyed and counted against a daily quota by its provider — METERED */
+  YOUTUBE_DATA_API: "METERED",
 });
 const GATE = /\bcreatePaidProviderGate\(/;
 const FAKE = /\bcreateFakePaidProvider\(/;

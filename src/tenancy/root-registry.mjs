@@ -38,7 +38,8 @@ export const REGISTRY_SCHEMA_VERSION = 1;
 export const STORE_KINDS = Object.freeze(["PROJECT_DECLARATIONS", "OBSERVATIONS", "CAPTURES", "RESEARCH"]);
 /** What a connector does, generically. An entry point constructs a connector of ONE kind, named in its own code. */
 export const CONNECTOR_KINDS = Object.freeze(["PUBLIC_SITE", "CITED_SOURCES", "SEARCH_CONSOLE_API", "QUESTION_SOURCE_API", /* RR-159 · F16 C17: the client's own AI provider connection */ "AI_PROVIDER",
-  /* RR-263 · F23 C8: the destinations the links of a client's own built and live pages point at — a bounded status check, nothing else */ "LINK_DESTINATIONS"]);
+  /* RR-263 · F23 C8: the destinations the links of a client's own built and live pages point at — a bounded status check, nothing else */ "LINK_DESTINATIONS",
+  /* RR-302 C1: the client's own YouTube channel, through the YouTube Data API with the client's own key (named, never held) — never youtube.com pages */ "YOUTUBE_DATA_API"]);
 /** How a credential may be named. The only mechanism is a reference to an environment variable BY ITS NAME. */
 export const CREDENTIAL_MECHANISMS = Object.freeze(["ENV_REFERENCE"]);
 

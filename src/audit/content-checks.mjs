@@ -113,85 +113,9 @@ export const EXACT_DUPLICATE = registerCheck({
   },
 });
 
-/* ------------------------------------------------------------------ *
- * 12b — THIN, after shell subtraction.
- * ------------------------------------------------------------------ */
-
-export const THIN_CONTENT = registerCheck({
-  id: "thin-content",
-  version: T2_VERSION,
-  description:
-    `VERSION 2 (RR-194): the body unique-word count, measured AFTER shell subtraction, below the ${THIN_UNIQUE_WORD_FLOOR}-word REVIEW SIGNAL ` +
-    "is recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field) with its value — never a FAIL. An observed content-supply label — it implies nothing about demand (item 8).",
-  firingFixture: "a page with a 2,000-word shell and a 40-word body — must fire",
-  cleanControl:
-    "a page with the SAME 2,000-word shell and a 900-word body — must NOT fire. This is the control " +
-    "that proves the shell is being subtracted rather than counted.",
-  /* RR-102: read from run() — the only firing path is a confident shell subtraction whose body unique-word count is under the floor.
-   * An absent body, an empty body and an unrecognised layout are UNKNOWN, never a finding. The floor in `when` is the live constant. */
-  boundary: {
-    observes: ["the stored body, split into shell and body by src/audit/shell.mjs"],
-    fires: [{ id: "below-unique-word-review-signal", when: `shell subtraction is confident and the body's unique-word count is below the ${THIN_UNIQUE_WORD_FLOOR}-word review signal — recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field), never a FAIL (void at ${THIN_UNIQUE_WORD_FLOOR} or more)` }],
-  },
-  run({ page, observations, siteContext }) {
-    const html = siteContext.bodyHtml;
-    if (html == null) {
-      return unknown({
-        issueClass: "thin-content",
-        canonicalUrl: page.canonical_url,
-        reasonCode: "MISSING_INPUT",
-        evidence: observations.map((o) => o.observation_id),
-        detector: "thin-content",
-        detectorVersion: T2_VERSION,
-        openedAt: siteContext.openedAt,
-        summary: "the stored body is not available to this run",
-      });
-    }
-    const m = measure(html);
-    if (!m.confident) {
-      /**
-       * 🔴 TWO DIFFERENT UNKNOWNS, AND THEY MUST NOT SHARE A REASON CODE.
-       *
-       * EMPTY_BODY — we found the container and it holds no text. On a RAW_HTML
-       * crawl that is almost certainly a client-rendered page, and reporting it
-       * as THIN would be our blind spot written down as a fact about the page.
-       * Found twice on the real corpus (`body=0, shell=85`).
-       *
-       * UNRECOGNISED_LAYOUT — our parser could not tell body from shell. That
-       * is a tool failure and says nothing at all (LAW-ABSENT-1).
-       */
-      const emptyBody = m.reason === "EMPTY_BODY";
-      return unknown({
-        issueClass: "thin-content",
-        canonicalUrl: page.canonical_url,
-        reasonCode: emptyBody ? "NEEDS_RENDERED_HTML" : "TOOL_FAILED",
-        evidence: observations.map((o) => o.observation_id),
-        detector: "thin-content",
-        detectorVersion: T2_VERSION,
-        openedAt: siteContext.openedAt,
-        summary: emptyBody
-          ? `the body is EMPTY in raw HTML (${m.why}). A client-rendered page is indistinguishable from an ` +
-            "empty one without executing JavaScript, and every record is RAW_HTML — so this is UNKNOWN, not thin."
-          : `shell subtraction is not confident on this page: ${m.why}. ${SHELL_DEFINITION}`,
-      });
-    }
-    if (m.bodyUniqueWordCount >= THIN_UNIQUE_WORD_FLOOR) return null;
-    /* RR-194 · T-2: a REVIEW SIGNAL, never a FAIL — the value and the signal's justification travel with it */
-    return reviewSignal({
-      issueClass: "thin-content",
-      canonicalUrl: page.canonical_url,
-      signal: { name: "unique-body-words", value: m.bodyUniqueWordCount, bound: THIN_UNIQUE_WORD_FLOOR, justification: REVIEW_SIGNAL_JUSTIFICATIONS["thin-content"] },
-      evidence: observations.map((o) => o.observation_id),
-      detector: "thin-content",
-      detectorVersion: T2_VERSION,
-      openedAt: siteContext.openedAt,
-      // 🔴 LAW-BOUND-1: the signal prints beside the result, every time.
-      summary:
-        `REVIEW SIGNAL: ${m.bodyUniqueWordCount} unique body words [review signal: ${THIN_UNIQUE_WORD_FLOOR} — decides nothing]; ` +
-        `shell was ${m.shellWordCount} words (${((m.shellShare ?? 0) * 100).toFixed(0)}% of the page). ${REVIEW_SIGNAL_JUSTIFICATIONS["thin-content"]}. ${SHELL_DEFINITION}`,
-    });
-  },
-});
+/* 🔴 RR-302 · the owner's law, no word count (_handoffs AlmiVisibility_OWNER_DECISION_2026-10-21_RR-302.md, C2): item 12b THIN CONTENT (a unique-body-word count below
+ * 350) is REMOVED, with item 12d TEMPLATE DOMINANCE (the shell's share of the page's WORDS). A page is never judged by how many words it
+ * has. The findings they recorded before stay in the stores as history; nothing raises a new one. */
 
 /* ------------------------------------------------------------------ *
  * 12c — NEAR-DUPLICATE, over body shingles.
@@ -248,58 +172,10 @@ export const NEAR_DUPLICATE = registerCheck({
   },
 });
 
-/* ------------------------------------------------------------------ *
- * 12d — TEMPLATE DOMINANCE.
- * ------------------------------------------------------------------ */
-
-export const TEMPLATE_DOMINANCE = registerCheck({
-  id: "template-dominance",
-  version: T2_VERSION,
-  description: `VERSION 2 (RR-194): a shell share at or above the ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% REVIEW SIGNAL is recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field) with its share — never a FAIL.`,
-  firingFixture: "a page that is 90% chrome by word count — must fire",
-  cleanControl: "a page that is 20% chrome — must NOT fire",
-  /* RR-102: read from run() — shell words / (shell words + body words) compared with the live threshold, inclusively. A non-confident
-   * subtraction or a page with no words at all is UNKNOWN, never a finding. */
-  boundary: {
-    observes: ["the stored body's shell and body word counts, from src/audit/shell.mjs"],
-    fires: [{ id: "shell-share-at-or-above-review-signal", when: `shell subtraction is confident and the shell is at or above the ${TEMPLATE_DOMINANCE_THRESHOLD} review signal of the page's words — recorded UNKNOWN as a REVIEW SIGNAL (its value carried in its signal field), never a FAIL (void below ${TEMPLATE_DOMINANCE_THRESHOLD})` }],
-  },
-  run({ page, observations, siteContext }) {
-    const html = siteContext.bodyHtml;
-    if (html == null) {
-      return unknown({
-        issueClass: "template-dominance", canonicalUrl: page.canonical_url, reasonCode: "MISSING_INPUT",
-        evidence: observations.map((o) => o.observation_id),
-        detector: "template-dominance", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
-      });
-    }
-    const m = measure(html);
-    if (!m.confident || m.shellShare === null) {
-      return unknown({
-        issueClass: "template-dominance", canonicalUrl: page.canonical_url, reasonCode: "TOOL_FAILED",
-        evidence: observations.map((o) => o.observation_id),
-        detector: "template-dominance", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
-        summary: `shell subtraction is not confident: ${m.why}`,
-      });
-    }
-    if (m.shellShare < TEMPLATE_DOMINANCE_THRESHOLD) return null;
-    /* RR-194 · T-2: a REVIEW SIGNAL, never a FAIL */
-    return reviewSignal({
-      issueClass: "template-dominance", canonicalUrl: page.canonical_url,
-      signal: { name: "shell-share", value: Number(m.shellShare.toFixed(3)), bound: TEMPLATE_DOMINANCE_THRESHOLD, justification: REVIEW_SIGNAL_JUSTIFICATIONS["template-dominance"] },
-      evidence: observations.map((o) => o.observation_id),
-      detector: "template-dominance", detectorVersion: T2_VERSION, openedAt: siteContext.openedAt,
-      summary:
-        `REVIEW SIGNAL: shell is ${(m.shellShare * 100).toFixed(0)}% of the page's words ` +
-        `[review signal: ${TEMPLATE_DOMINANCE_THRESHOLD * 100}% — decides nothing]. ${REVIEW_SIGNAL_JUSTIFICATIONS["template-dominance"]}. ${SHELL_DEFINITION}`,
-    });
-  },
-});
-
 /* 🔴 F75 (RR-103) — THE CONTENT-SUPPLY CHECKS, DECLARED HERE, BESIDE THEM: item 12's four (duplicate, near-duplicate, thin, template).
  * A ticket raised by one of these is a CONTENT ticket; every other registered check makes a DEVELOPER ticket (acceptance _handoffs
  * 01275a9). The orphan check below is item 26 (internal links), not content supply, and is deliberately not listed. */
-export const CONTENT_SUPPLY_CHECK_IDS = Object.freeze([EXACT_DUPLICATE.id, THIN_CONTENT.id, NEAR_DUPLICATE.id, TEMPLATE_DOMINANCE.id]);
+export const CONTENT_SUPPLY_CHECK_IDS = Object.freeze([EXACT_DUPLICATE.id, NEAR_DUPLICATE.id]); /* RR-302: thin and template removed (no word count) */
 
 /* ------------------------------------------------------------------ *
  * ITEM 13 — CANNIBALIZATION, DETECTION MODE ONLY.

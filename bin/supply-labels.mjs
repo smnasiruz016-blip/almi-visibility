@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ITEM 8 — HEAVY / THIN / EMPTY over the REAL corpus, and the guard that keeps
+ * ITEM 8 — HAS TEXT / EMPTY over the REAL corpus (RR-302: no word count), and the guard that keeps
  * a supply label from becoming a demand claim.
  *
  * ── 🔴 WHAT ITEM 8 ACTUALLY FORBIDS ─────────────────────────────────────────
@@ -34,8 +34,8 @@ import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedStoreAppend } from "../src/governance/governed-run.mjs";
 import { isoSeconds } from "../src/audit-trail/store.mjs";
 
-import { EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
-import { measure, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
+import { EXACT_DUPLICATE, NEAR_DUPLICATE, RECOMMENDATION_FIELDS } from "../src/audit/content-checks.mjs";
+import { measure, SHELL_DEFINITION } from "../src/audit/shell.mjs";
 import { batchFile } from "../src/crawl/observation-batch.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { partitionRecords } from "../src/crawl/batch-partition.mjs";
@@ -115,11 +115,12 @@ for (const p of pages) {
 }
 
 const openedAt = new Date().toISOString();
-const CHECKS = [EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE];
+const CHECKS = [EXACT_DUPLICATE, NEAR_DUPLICATE]; /* RR-302: the owner's law, no word count — thin and template removed */
 
 const findings = [];
-/* RR-194 · T-2: BELOW_SIGNAL replaces THIN — 350 is a review signal (PG-A1, RTP-1 S10), a label never a verdict on the page */
-const labels = { HEAVY: 0, BELOW_SIGNAL: 0, EMPTY: 0, UNKNOWN: 0 };
+/* RR-302 · the owner's law, no word count: HEAVY / BELOW_SIGNAL (a unique-word count against 350) are REMOVED — a page either has text of
+ * its own (HAS_TEXT) or none (EMPTY), or it is UNKNOWN. No page is labelled by how many words it has. */
+const labels = { HAS_TEXT: 0, EMPTY: 0, UNKNOWN: 0 };
 const unknownReasons = {};
 let withBody = 0;
 
@@ -155,28 +156,12 @@ for (const p of pages) {
     unknownReasons[r] = (unknownReasons[r] ?? 0) + 1;
     continue;
   }
-  /**
-   * 🔴 THE FIELD IS `bodyUniqueWordCount`, AND READING THE WRONG ONE IS SILENT.
-   *
-   * This first read `m.uniqueWords`, which `measure()` does not return. It was
-   * `undefined`, `undefined < 350` is `false`, and so **every page fell through
-   * to HEAVY**: 387 HEAVY, 0 THIN, and a census that looked entirely healthy.
-   *
-   * Nothing threw. What caught it was that the SAME RUN's `thin-content` check
-   * fired 118 times while this census reported 0 — two counters over one corpus
-   * disagreeing. That is why both are printed side by side below and why a test
-   * asserts they agree: a lone counter has nothing to be wrong against.
-   */
-  const words = m.bodyUniqueWordCount;
-  if (typeof words !== "number") {
-    throw new TypeError(
-      `measure() returned no bodyUniqueWordCount for ${p.canonical_url} — refusing to label a page ` +
-        "from a field that does not exist. A missing field silently labels everything HEAVY.",
-    );
+  /* 🔴 the field is `bodyUniqueWordCount` — a missing field must throw, never fall through to a label (it once labelled everything) */
+  if (typeof m.bodyUniqueWordCount !== "number") {
+    throw new TypeError(`measure() returned no bodyUniqueWordCount for ${p.canonical_url} — refusing to label a page from a field that does not exist`);
   }
-  if (words === 0) labels.EMPTY += 1;
-  else if (words < THIN_UNIQUE_WORD_FLOOR) labels.BELOW_SIGNAL += 1;
-  else labels.HEAVY += 1;
+  if (m.bodyUniqueWordCount === 0) labels.EMPTY += 1;
+  else labels.HAS_TEXT += 1;
 }
 
 /* ---- 🔴 THE GUARD, OVER THE REAL FINDINGS -------------------------------- */
@@ -224,31 +209,17 @@ console.log(`ITEM 8 — SUPPLY LABELS OVER THE REAL CORPUS\n`);
 console.log(`corpus dir : ${CORPUS}`);
 console.log(`pages      : ${pages.length}   with a stored body: ${withBody}`);
 console.log(`[bound: shell definition = ${SHELL_DEFINITION}]`);
-console.log(`[bound: review signal = ${THIN_UNIQUE_WORD_FLOOR} unique words, AFTER shell subtraction — it decides nothing (RR-194 T-2)]\n`);
+console.log(`[bound: no word count — a page has text of its own, or none (RR-302)]\n`);
 
-console.log(`  HEAVY   ${String(labels.HEAVY).padStart(4)}`);
-console.log(`  BELOW_SIGNAL ${String(labels.BELOW_SIGNAL).padStart(4)}   (below the ${THIN_UNIQUE_WORD_FLOOR}-word review signal — a label, never a verdict)`);
+console.log(`  HAS_TEXT ${String(labels.HAS_TEXT).padStart(4)}`);
 console.log(`  EMPTY   ${String(labels.EMPTY).padStart(4)}`);
 console.log(`  UNKNOWN ${String(labels.UNKNOWN).padStart(4)}   ${Object.entries(unknownReasons).map(([k, v]) => `${k}=${v}`).join("  ") || ""}`);
 console.log(`  total   ${String(Object.values(labels).reduce((a, b) => a + b, 0)).padStart(4)}`);
 
 console.log(`\n🔴 THESE NUMBERS SAY NOTHING ABOUT DEMAND.`);
 console.log(`   They are a census of WHAT CONTENT EXISTS on pages we crawled. Not one of them`);
-console.log(`   is evidence that anybody wants a page, that a THIN page should be expanded, or`);
+console.log(`   is evidence that anybody wants a page, that a page should be expanded, or`);
 console.log(`   that an EMPTY one is an opportunity. No demand was measured, so none is reported.`);
-
-/**
- * 🔴 THE CROSS-CHECK. The census above and the `thin-content` check below count
- * the same thing by different routes. They must agree, and when they did not it
- * was the census that was wrong.
- */
-/* RR-194 · T-2: thin-content version 2 records a REVIEW_SIGNAL (UNKNOWN), never a FAIL — the cross-check counts those */
-const thinFails = findings.filter((f) => f.issue_class === "thin-content" && f.detector_version === "2" && f.signal?.name === "unique-body-words").length;
-const agree = thinFails === labels.BELOW_SIGNAL;
-console.log(`\nCROSS-CHECK — two counters over one corpus`);
-console.log(`  census BELOW_SIGNAL  : ${labels.BELOW_SIGNAL}`);
-console.log(`  thin-content signals : ${thinFails}`);
-console.log(`  ${agree ? "they agree" : "🔴 THEY DISAGREE — one of them is wrong, and neither number may be quoted"}`);
 
 console.log(`\nfindings: ${findings.length} → ${OUT}  (this run: ${writes.appended} new, ${writes.resighted} re-sighting(s))`);
 const byClass = {};

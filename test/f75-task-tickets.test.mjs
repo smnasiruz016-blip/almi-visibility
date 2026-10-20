@@ -80,8 +80,8 @@ test("C2 · CONTENT for a declared content-supply check, DEVELOPER for any other
   assert.deepEqual(d.byKind, { DEVELOPER: 1, CONTENT: 1, "NOT MEASURED": 1 });
 });
 
-test("C2 · the declared content-supply list is exactly item 12's four checks, each registered — the orphan (item 26) is not content", () => {
-  assert.deepEqual([...CONTENT_SUPPLY_CHECK_IDS].sort(), ["exact-duplicate", "near-duplicate", "template-dominance", "thin-content"]);
+test("C2 · the declared content-supply list is exactly item 12's checks left after RR-302 (no word count), each registered — the orphan (item 26) is not content", () => {
+  assert.deepEqual([...CONTENT_SUPPLY_CHECK_IDS].sort(), ["exact-duplicate", "near-duplicate"]); /* RR-302: thin-content and template-dominance removed */
   const live = new Set(registeredChecks().map((c) => c.id));
   for (const id of CONTENT_SUPPLY_CHECK_IDS) assert.ok(live.has(id), `${id} is not registered`);
   assert.equal(CONTENT_SUPPLY_CHECK_IDS.includes("orphan-within-crawled-set"), false);

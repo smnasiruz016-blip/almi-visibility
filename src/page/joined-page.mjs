@@ -68,11 +68,10 @@ export const ANSWER_KIND = Object.freeze({ SOURCED: "SOURCED", GENERAL_VIEW: "GE
 /** part b of a general view: at least this many sourced sentences, after its part a (a CHECKED_NOT_FOUND line) */
 export const GENERAL_VIEW_MIN_SOURCED = 1;
 /* RR-265 (owner decision RR-265 item 7, standing): TO THE POINT. Every answer opens with ONE short sentence — the direct answer; every
- * sourced line is one sentence of at most TO_THE_POINT_MAX_WORDS words; no filler phrase of the client's DECLARED list stands in an answer.
- * Whether the first sentence answers its question is the research agent's recorded judgement; the engine measures its shape. */
-export const TO_THE_POINT_MAX_WORDS = 30;
+ * sourced line is ONE sentence; no filler phrase of the client's DECLARED list stands in an answer. Whether the first sentence answers its
+ * question is the research agent's recorded judgement; the engine measures its shape.
+ * 🔴 RR-302 · the owner's law, no word count: the 30-word cap CC had added here (the owner's RR-265 words set no number) is REMOVED. */
 export const sentencesOf = (text) => String(text ?? "").trim().split(/(?<=[.!?])\s+(?=[A-Z(])/).filter(Boolean);
-const wordsIn = (s) => String(s ?? "").trim().split(/\s+/).filter(Boolean).length;
 const PEOPLE_SAY = /\b(people|most|many|everyone|candidates|students|test[- ]takers)\b[^.]{0,30}\b(say|says|said|think|thinks|feel|feels|find|finds|agree|agrees|believe|believes|report|reports)\b/i;
 export const REFUSAL = Object.freeze({
   NOT_APPROVED: "PRODUCT_STATEMENT_IS_NOT_AN_APPROVED_ANSWER",
@@ -96,7 +95,6 @@ const hash =(x) => createHash("sha256").update(JSON.stringify(x)).digest("hex").
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 /** the page's own escaping, for a reader that must find a wording in a built page exactly as the page shows it (F10, src/page/built-page-needs.mjs) */
 export const escapeText = esc;
-const words = (text) => String(text).split(/\s+/).filter(Boolean).length;
 const visibleText = (html) => html.replace(/<(script|style)[\s\S]*?<\/\1>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"");
 export const valueOf = (combination) => Object.values(combination ?? {}).map(String).sort().join("+");
 /** The page value a compiled need's recorded page candidate names — the same value valueOf gives its combination — or null. */
@@ -425,7 +423,7 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     pages.push(Object.freeze({ record_type: JOINED_RECORD, /* RR-259: the files a page is served with are part of what it is — the same HTML with another logo file is another draft */
       /* RR-269: and its gate results are part of what it is — the same HTML judged under a changed gate law is another record, never
        * swallowed by the earlier one with its stale verdicts */
-      measurement_key: `${JOINED_RECORD}:${hash([...(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html]), gateStates(checks)])}`, ...value_, wordCount: words(visibleText(html)), unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
+      measurement_key: `${JOINED_RECORD}:${hash([...(assetsOf(design).length ? [value_, html, assetsOf(design)] : [value_, html]), gateStates(checks)])}`, ...value_, unanswered, keyFacts: kf.cards, keyFactsRefused: kf.refused, assets: assetsOf(design), conversions: cv.shown, conversionsRefused: cv.refused, comparisons: cmp.shown, comparisonsRefused: cmp.refused, recheck, itemList: Object.freeze(items), checks, html, trace: Object.freeze(trace) }));
   }
   return Object.freeze(pages);
 }
@@ -540,14 +538,14 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
     /* RR-265: TO THE POINT — the first sentence of every answer is one short sentence; every sourced line is one short sentence; no
      * declared filler phrase stands in an answer (each one is named) */
     toThePoint: (() => {
-      const shortOne = (t) => { const s = sentencesOf(t); return s.length === 1 && wordsIn(s[0]) <= TO_THE_POINT_MAX_WORDS; };
+      const shortOne = (t) => sentencesOf(t).length === 1; /* RR-302: one sentence — never a word count */
       const opening = (it) => (it.lead === LEAD.PRODUCT ? it.statements[0]?.text : it.claims.find((c) => present(c.text))?.text);
       const firstBad = items.filter((it) => !shortOne(opening(it) ?? "")).map((it) => it.needKey);
       const lineBad = items.flatMap((it) => it.claims.filter((c) => present(c.text) && !shortOne(c.text)).map((c) => c.claimId));
       const filler = (Array.isArray(fillerPhrases) ? fillerPhrases : []).filter(present).map((p) => p.trim().toLowerCase());
       const hits = items.flatMap((it) => [...it.claims.map((c) => c.text), it.generalView?.text].filter(present).flatMap((t) => filler.filter((p) => t.toLowerCase().includes(p)).map((p) => `"${p}" (${it.needKey})`)));
       return state(firstBad.length === 0 && lineBad.length === 0 && hits.length === 0, [hits.length ? `filler phrase(s): ${[...new Set(hits)].join(", ")}` : null,
-        firstBad.length ? `an answer opens with more than one short sentence: ${firstBad.join(", ")}` : null, lineBad.length ? `a sourced line is not one short sentence: ${lineBad.join(", ")}` : null].filter(Boolean).join("; "));
+        firstBad.length ? `an answer opens with more than one sentence: ${firstBad.join(", ")}` : null, lineBad.length ? `a sourced line is not one sentence: ${lineBad.join(", ")}` : null].filter(Boolean).join("; "));
     })(),
     /* RR-265: every general view is labelled where it stands, follows at least two sourced sentences, is not in the FAQ data and
      * attributes no view to people; a page without one does not measure it */

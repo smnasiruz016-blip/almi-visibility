@@ -84,12 +84,13 @@ const fields = {
   articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=1>`,
   publishMode: () => `<label><input type=radio name=m value=AUTO_AFTER_GATES checked style="width:auto"> Publish automatically after every gate passes (default)</label><label><input type=radio name=m value=REVIEW_FIRST style="width:auto"> Show me first</label>`,
   aiConnection: () => `<input id=f1 placeholder="e.g. ANTHROPIC_API_KEY">`,
+  youtube: () => `<label>Channel @handle (optional)<input id=f1 placeholder="@yourchannel"></label><label>Name of the key variable<input id=f2 value="YOUTUBE_API_KEY"></label>`,
   start: () => `<p>Visibility will start working on ${esc(S.product.name)}. Nothing is published before it passes every gate.</p>`,
 };
 const value = (id) => ({
   product: () => ({ name: $("#f1").value, site: $("#f2").value, what: $("#f3").value }), searchData: () => ({ option: Number($("#f1").value) }),
   languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }), articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
-  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }), aiConnection: () => ({ keyName: $("#f1").value.trim() }), start: () => ({}),
+  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }), aiConnection: () => ({ keyName: $("#f1").value.trim() }), youtube: () => ({ handle: $("#f1").value.trim(), keyName: $("#f2").value.trim() }), start: () => ({}),
 })[id]();
 async function open(id) { P = id; S = await get(`/api/products/${encodeURIComponent(id)}/state`); if (S.started) return work("Reports"); step = S.steps.findIndex((x) => !S.setup[x.id] || (x.id === "product" && !S.setup.product?.what)); if (step < 0) step = S.steps.length - 1; setup(); }
 function setup() {
@@ -101,7 +102,7 @@ function setup() {
 }
 async function work(tab) {
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
-  const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, Articles: S.articleSettings };
+  const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, YouTube: v.youtube, Articles: S.articleSettings };
   $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site)}</div>
   <nav>${Object.keys(tabs).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="upd">Check for updates</button></nav>
   <div class="card"><h2>${esc(tab)}</h2><ul>${tabs[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div id="u"></div></div>`;

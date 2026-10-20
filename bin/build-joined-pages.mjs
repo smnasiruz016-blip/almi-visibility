@@ -226,7 +226,7 @@ for (const { record: p, ...m } of built) {
   if (m.moved) console.log(`  page ${p.value} — stored moves ${m.moved}: already on the rebuilt page ${m.alreadyHeld} · placed ${m.placed} · with no item on the rebuilt page ${m.noItem} (kept in the stored record only)`);
   const states = Object.entries(p.checks).map(([k, v]) => `${k} ${v.state}`);
   const n = (s) => Object.values(p.checks).filter((v) => v.state === s).length;
-  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), FAQ ${p.faqCount}, key facts ${p.keyFacts.length}, ${p.wordCount} word(s) · title ${p.titleComposed ? "COMPOSED from search phrases" : "from recorded questions (no search phrase recorded)"} · unanswered need(s) ${p.unanswered.length}${p.unanswerable ? ` (UNANSWERABLE with source and day ${p.unanswerable})` : ""} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
+  console.log(`  page ${p.value} — ${p.items} item(s), ${p.questions} question(s), FAQ ${p.faqCount}, key facts ${p.keyFacts.length} · title ${p.titleComposed ? "COMPOSED from search phrases" : "from recorded questions (no search phrase recorded)"} · unanswered need(s) ${p.unanswered.length}${p.unanswerable ? ` (UNANSWERABLE with source and day ${p.unanswerable})` : ""} · gates PASS ${n("PASS")} · FAIL ${n("FAIL")} · NOT MEASURED ${n("NOT MEASURED")}`);
   console.log(`    ${states.join(" · ")}`);
 }
 /* RR-265: a general view that is not labelled where it stands (or breaks its other rules) fails the build — no page is written */

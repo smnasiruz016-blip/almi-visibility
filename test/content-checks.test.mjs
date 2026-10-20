@@ -2,14 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { measure, extractBody, shingles, jaccard, SHELL_DEFINITION, THIN_UNIQUE_WORD_FLOOR } from "../src/audit/shell.mjs";
+import { measure, extractBody, shingles, jaccard, SHELL_DEFINITION } from "../src/audit/shell.mjs";
 import {
-  EXACT_DUPLICATE, THIN_CONTENT, NEAR_DUPLICATE, TEMPLATE_DOMINANCE, ORPHAN_LINK,
+  EXACT_DUPLICATE, NEAR_DUPLICATE, ORPHAN_LINK,
   detectCannibalization, RECOMMENDATION_FIELDS, NEAR_DUPLICATE_THRESHOLD,
 } from "../src/audit/content-checks.mjs";
 import { buildInventory } from "../src/crawl/inventory.mjs";
 import { targetPageId, canonicalUrl } from "../src/evidence/ids.mjs";
 import { createJsonlStore } from "../src/evidence/store.mjs";
+import { registeredChecks } from "../src/audit/check.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
@@ -66,56 +67,25 @@ test("🔴 an unrecognisable layout is NOT CONFIDENT — and a check reading it 
   assert.equal(e.confident, false);
   assert.match(e.why, /indistinguishable/);
 
-  const f = await THIN_CONTENT.run({
+  const f = await NEAR_DUPLICATE.run({
     page: { canonical_url: "https://e.example.com/x" },
     observations: OBS,
-    siteContext: CTX({ bodyHtml: "<html><body><div>some words with no main and no chrome</div></body></html>" }),
+    siteContext: CTX({ bodyHtml: "<html><body><div>some words with no main and no chrome</div></body></html>", peers: [] }),
   });
   assert.equal(f.verdict, "UNKNOWN");
   assert.equal(f.reason_code, "TOOL_FAILED");
-});
-
-/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
-test("the definition is printed in every result that uses it", async () => {
-  const f = await THIN_CONTENT.run({
-    page: { canonical_url: "https://e.example.com/x" },
-    observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
-  });
-  assert.ok(f.summary.includes(SHELL_DEFINITION), "the shell definition must travel with the number");
-  assert.match(f.summary, new RegExp(`review signal: ${THIN_UNIQUE_WORD_FLOOR}`), "LAW-BOUND-1: the signal prints beside the result");
 });
 
 /* ================================================================== *
  * ITEM 12 — EVERY CHECK: FIRING FIXTURE **AND** SILENT CLEAN CONTROL.
  * ================================================================== */
 
-/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
-test("🔴 THIN — FIRES (records a REVIEW SIGNAL, never a FAIL) on a 40-word body inside a 2,000-word shell", async () => {
-  const f = await THIN_CONTENT.run({
-    page: { canonical_url: "https://e.example.com/thin" }, observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(40)) }),
-  });
-  assert.deepEqual([f.verdict, f.detector_version, f.signal.name, f.signal.value, f.signal.bound], ["UNKNOWN", "2", "unique-body-words", 40, THIN_UNIQUE_WORD_FLOOR]);
-});
-
-test("🔴 THIN — CLEAN CONTROL: the SAME 2,000-word shell with a 900-word body stays SILENT", async () => {
-  const f = await THIN_CONTENT.run({
-    page: { canonical_url: "https://e.example.com/fat" }, observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(900)) }),
-  });
-  assert.equal(f, null, "🔴 FALSE POSITIVE: the shell is being counted as body");
-});
-
-test("🔴 THIN — an EMPTY body in raw HTML is UNKNOWN, never thin", async () => {
-  // Found on the real corpus: body=0, shell=85. A client-rendered page looks
-  // identical to an empty one without executing JavaScript.
-  const f = await THIN_CONTENT.run({
-    page: { canonical_url: "https://e.example.com/spa" }, observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy("") }),
-  });
-  assert.equal(f.verdict, "UNKNOWN");
-  assert.equal(f.reason_code, "NEEDS_RENDERED_HTML");
+/* RR-302 · the owner's law, no word count: thin-content and template-dominance are REMOVED — neither is registered, and no registered
+ * check's boundary observes a word count */
+test("🔴 RR-302 · NO WORD COUNT: thin-content and template-dominance are not registered; no check observes a word count", () => {
+  const ids = registeredChecks().map((c) => c.id);
+  for (const gone of ["thin-content", "template-dominance"]) assert.equal(ids.includes(gone), false, `${gone} is still registered`);
+  for (const c of registeredChecks()) assert.doesNotMatch(JSON.stringify(c.boundary ?? {}), /word count|unique-word|words?\b.*floor/i, `${c.id} observes a word count`);
 });
 
 test("🔴 EXACT DUPLICATE — FIRES on a shared hash, SILENT on distinct hashes", async () => {
@@ -157,21 +127,6 @@ test("🔴 NEAR-DUPLICATE — CLEAN CONTROL: an identical 2,000-word SHELL with 
   assert.equal(f, null, "🔴 FALSE POSITIVE: two pages were called near-duplicates because they share a navigation");
 });
 
-/* RR-194 · T-2 (RTP-1 S10, P20, P21; PG-A1): version 2 decides nothing on 350 / 0.9 / 0.75 — the same fixture now records a REVIEW SIGNAL (UNKNOWN, its value carried in `signal`), never a FAIL */
-test("🔴 TEMPLATE DOMINANCE — FIRES (records a REVIEW SIGNAL, never a FAIL) at 90% chrome, SILENT at 20%", async () => {
-  const fired = await TEMPLATE_DOMINANCE.run({
-    page: { canonical_url: "https://e.example.com/a" }, observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(100)) }),
-  });
-  assert.deepEqual([fired.verdict, fired.signal.name], ["UNKNOWN", "shell-share"]);
-
-  const silent = await TEMPLATE_DOMINANCE.run({
-    page: { canonical_url: "https://e.example.com/b" }, observations: OBS,
-    siteContext: CTX({ bodyHtml: shellHeavy(words(9000)) }),
-  });
-  assert.equal(silent, null);
-});
-
 test("jaccard on two empty sets is null, not 1 — nothing compared is not perfect similarity", () => {
   assert.equal(jaccard(new Set(), new Set()), null);
 });
@@ -183,15 +138,14 @@ test("jaccard on two empty sets is null, not 1 — nothing compared is not perfe
 test("🔴 NO content check may emit a recommendation — 'thin' is not 'opportunity'", async () => {
   const findings = [];
   for (const [check, ctx] of [
-    [THIN_CONTENT, CTX({ bodyHtml: shellHeavy(words(40)) })],
-    [TEMPLATE_DOMINANCE, CTX({ bodyHtml: shellHeavy(words(100)) })],
+    [NEAR_DUPLICATE, CTX({ bodyHtml: shellHeavy(words(400)), peers: [{ url: "https://e.example.com/b", shingles: shingles(measure(shellHeavy(words(400))).bodyText) }] })],
     [EXACT_DUPLICATE, CTX({ byHash: new Map([["hash-a", ["https://e.example.com/a", "https://e.example.com/b"]]]) })],
     [ORPHAN_LINK, CTX({ inboundCount: 0 })],
   ]) {
     const f = await check.run({ page: { canonical_url: "https://e.example.com/a" }, observations: OBS, siteContext: ctx });
     if (f) findings.push(f);
   }
-  assert.ok(findings.length >= 4, "the law would be vacuous with no findings to check");
+  assert.ok(findings.length >= 3, "the law would be vacuous with no findings to check");
   for (const f of findings) {
     for (const field of RECOMMENDATION_FIELDS) {
       assert.ok(!(field in f), `${f.issue_class} emitted "${field}" — a supply label was converted into a demand conclusion`);

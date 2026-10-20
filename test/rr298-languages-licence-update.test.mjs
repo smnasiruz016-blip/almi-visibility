@@ -125,7 +125,11 @@ test("C · UPDATE: only a NEWER, signed version is offered; a tampered package o
 });
 
 test("C · FIRST RUN: seven steps, one at a time; the AI connection takes a key NAME only — a key value is refused and never stored", () => {
-  assert.deepEqual(STEPS.map((s) => s.id), ["product", "searchData", "languages", "articlesPerDay", "publishMode", "aiConnection", "start"]);
+  assert.deepEqual(STEPS.map((s) => s.id), ["product", "searchData", "languages", "articlesPerDay", "publishMode", "aiConnection", "youtube", "start"]); /* RR-302 C1: the optional YouTube step */
+  assert.equal(checkStep("youtube", { handle: "" }), null);
+  assert.equal(checkStep("youtube", { handle: "@Almiworld-world", keyName: "YOUTUBE_API_KEY" }), null);
+  for (const v of ["AIzaSyFakeLookingValue123", "my key"]) assert.match(checkStep("youtube", { handle: "@x-channel", keyName: v }), /NAME of the variable/);
+  assert.match(checkStep("youtube", { handle: "https://youtube.com/@x" }), /@handle/);
   assert.equal(checkStep("product", { name: "Widgetry Prep", site: "https://widgetry.example", what: "a test project" }), null);
   assert.ok(checkStep("product", { name: "x", site: "widgetry.example", what: "y" }));
   assert.equal(checkStep("searchData", { option: 2 }), null);

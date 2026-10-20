@@ -20,6 +20,7 @@ import { STEPS, checkStep } from "./setup.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
+import { youtubeApi, channelCheck, youtubeForReport, KEY_NAME as YOUTUBE_KEY_NAME } from "../src/video/youtube.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const arg = (n, d = null) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
@@ -49,6 +50,24 @@ const limitLine = planLimitLine;
 
 const page = () => readFileSync(join(HERE, "ui.html"), "utf8").replace("/*SUNRISE*/", cssVariables());
 let updateFound = null;
+/**
+ * RR-302 C1 · the YouTube tab: the client's own channel (its @handle from setup) read through the YouTube Data API with the client's own key,
+ * found in this computer's settings by the NAME setup recorded (YOUTUBE_API_KEY). The key is read here and handed straight in — never shown,
+ * stored or logged. No key → the line saying where to add it. Never a youtube.com page.
+ */
+async function youtubeView(s) {
+  const yt = s.setup?.youtube;
+  if (!yt?.handle) return ["YouTube is not set up — it is optional. Add your channel's @handle in the setup (step 7)."];
+  const keyName = yt.keyName || YOUTUBE_KEY_NAME;
+  const api = youtubeApi({ env: process.env, keyName, fetchImpl: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(15000) }) });
+  if (api.state !== "READY") return [`Channel ${yt.handle}: the key is not added yet. Add it in Windows as a user environment variable named ${keyName}, then close and open AlmiVisibility again.`];
+  try {
+    const videos = await api.channelVideos(yt.handle);
+    const read = { ok: true, source: "YOUTUBE_DATA_API", importedOn: new Date().toISOString().slice(0, 10), videos };
+    return youtubeForReport(read, channelCheck(videos, { productUrl: s.product?.site ?? null })).lines;
+  } catch (e) { return [`Channel ${yt.handle}: YouTube could not be read now (${/answered HTTP \d+/.exec(String(e?.message))?.[0] ?? "no answer"}). Nothing was changed.`]; }
+}
+
 const server = createServer((req, res) => {
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
   let body = "";
@@ -96,7 +115,7 @@ const server = createServer((req, res) => {
           const { id: step, value } = json();
           const why = checkStep(step, value);
           if (why) return send(400, { refused: why });
-          if (step === "start") { if (STEPS.slice(0, 6).some((x) => !s.setup[x.id])) return send(400, { refused: "Answer every step first." }); s.started = true; }
+          if (step === "start") { if (STEPS.filter((x) => x.id !== "start").some((x) => !s.setup[x.id])) return send(400, { refused: "Answer every step first." }); s.started = true; }
           else s.setup[step] = value;
           if (step === "product") s.product = { name: value.name, site: value.site };
           store.write(id, s);
@@ -107,6 +126,7 @@ const server = createServer((req, res) => {
           preview: (s.preview ?? []).length ? s.preview.map((p) => `${p.title} — ${p.url}`) : ["No page or article yet — they appear here before they go live."],
           approvals: (s.approvals ?? []).length ? s.approvals : [s.setup.publishMode?.mode === PUBLISH_MODE.REVIEW_FIRST ? "Nothing waits for your approval yet." : "Publishing is automatic after the gates — nothing waits for you."],
           monthly: ["The monthly report appears at the end of the first month: bad news first, then what was made and refreshed, the search data, and next month's topics."],
+          youtube: await youtubeView(s),
         });
       }
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }

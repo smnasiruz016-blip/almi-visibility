@@ -61,10 +61,15 @@ export function importStudioExport(csvText, { importedOn }) {
   return Object.freeze({ ok: true, source: "YOUTUBE_STUDIO_EXPORT", importedOn, videos: Object.freeze(videos), columns: Object.freeze(head.map((h) => h.trim())) });
 }
 
-/** The client's own API key, by NAME. With no key the reader is DEFERRED, named; the key is never printed, logged or hashed. */
-export function youtubeApi({ env = process.env, fetchImpl = fetch } = {}) {
+/**
+ * The client's own API key, by NAME. With no key the reader is DEFERRED, named; the key is never printed, logged or hashed. The connection
+ * is NEVER opened here: `fetchImpl` must be handed in by the client's resolved connector (F03 — the one place a connection is opened);
+ * without it the reader is DEFERRED too.
+ */
+export function youtubeApi({ env = process.env, fetchImpl = null } = {}) {
   const key = env[KEY_NAME];
   if (!key) return Object.freeze({ state: "DEFERRED", why: `DEFERRED — no YouTube Data API key in the environment (${KEY_NAME}); import a YouTube Studio export instead, or add the key` });
+  if (typeof fetchImpl !== "function") return Object.freeze({ state: "DEFERRED", why: "DEFERRED — the key is set, but no connection was handed in by the client's resolved YouTube connector" });
   const get = async (path, params) => { const u = new URL(`https://www.googleapis.com/youtube/v3/${path}`); for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v); u.searchParams.set("key", key); const r = await fetchImpl(u, { headers: { Accept: "application/json" } }); if (!r.ok) throw new Error(`the YouTube Data API answered HTTP ${r.status}`); return r.json(); };
   return Object.freeze({
     state: "READY",

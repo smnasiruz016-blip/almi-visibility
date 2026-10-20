@@ -166,8 +166,10 @@ export function costGate({ entry, startedAt, budget }) {
 export function allGates(pages, { guidance, on, site, cost, existingFirst = () => true }) {
   const a = semanticDuplication(pages, { guidance, on }), b = cannibalization(pages, { guidance, on }), c = technical(pages, { guidance, on, site });
   return pages.map((p) => {
-    const g = { A: a.get(p.id), B: b.get(p.id), C: c.get(p.id), D: cost, E: Object.freeze({ gate: GATES.E, pass: existingFirst(p) === true }) };
-    return Object.freeze({ id: p.id, url: p.url, gates: g, pass: Object.values(g).every((x) => x.pass) });
+    /* RR-297: no cost entry handed in is a FAIL of gate D, named — never a crash, never a pass */
+    const d = cost ?? Object.freeze({ gate: GATES.D, pass: false, checks: Object.freeze([Object.freeze({ name: "the run's cost recorded before it starts", result: "FAIL", reason: "no cost entry was recorded for this run" })]) });
+    const g = { A: a.get(p.id), B: b.get(p.id), C: c.get(p.id), D: d, E: Object.freeze({ gate: GATES.E, pass: existingFirst(p) === true }) };
+    return Object.freeze({ id: p.id, url: p.url, gates: g, pass: Object.values(g).every((x) => x?.pass === true) });
   });
 }
 

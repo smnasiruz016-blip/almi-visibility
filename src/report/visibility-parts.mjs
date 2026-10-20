@@ -18,6 +18,9 @@ import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-expor
 import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
 import { allGates, costGate } from "../page/page-gates.mjs";
 import { articleSettings, settingsView, articlesForDay } from "../page/articles.mjs";
+import { refreshPlan } from "../page/refresh.mjs";
+import { postsForArticle, AUTO_POSTING } from "../page/social-posts.mjs";
+import { monthlyReport, searchFromExport } from "./monthly-report.mjs";
 import { guideItemsByValue, buildGuides, asPublished, gateInput } from "../page/one-builder.mjs";
 import { GUIDANCE } from "../../config/guidance/guidance-read.mjs";
 import { connectionNow } from "../research/ai-connection.mjs";
@@ -396,6 +399,41 @@ export const PARTS = Object.freeze({
       const r = articlesForDay({ day, settings: own ?? {}, topics: topics.topics, existing, design: built.design, keyFacts: io.json("key-facts.json") ?? [], quotationOf: (id) => quotation.get(id) ?? null,
         site: built.design?.siteAddress ?? "https://preview.invalid", guidance: GUIDANCE, robotsTxt: sec?.read?.body ?? null, cost: costGate({ entry: { recorded_at: new Date().toISOString(), money: { amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "an in-memory article build: no request, no paid call" }, requests: 0 }, startedAt: new Date(Date.now() + 1).toISOString(), budget: { money: 0, currency: "USD", requests: 0 } }) });
       return [...lines, ...(r.articles.length ? r.articles.map((a) => `today ${day}: "${a.question}" · ${a.gates} · ${a.publish.state}`) : [`today ${day}: ${r.none}`])];
+    },
+  }),
+  /* RR-297 · AUTO-REFRESH (src/page/refresh.mjs) over the batch's stored rechecks and its stored guides — read-only: what WOULD be rebuilt,
+   * and what is only reported (a BLOCKED or REJECTED recheck, or a CHANGED one with no new wording recorded); nothing is written */
+  "refresh": Object.freeze({
+    title: "AUTO-REFRESH · WHAT A CHANGED SOURCE FACT REBUILDS",
+    run: async (io) => {
+      const built = await oneBuilderRun(io);
+      if (built.missing) return [`NOT MEASURED — ${built.missing}`];
+      const pages = built.pages.map((p) => ({ url: p.url, title: p.title, items: p.items, questions: p.questions, html: p.html, gate: gateInput(p) }));
+      const r = refreshPlan({ rechecks: io.rows("fact-rechecks.jsonl"), pages });
+      const by = r.reported.reduce((m, x) => ((m[x.reason ?? x.state] = (m[x.reason ?? x.state] ?? 0) + 1), m), {});
+      return [`rebuilt ${r.changes.length} change(s) over ${new Set(r.changes.flatMap((c) => c.pages)).size} page(s) · reported, no page changed: ${r.reported.length} (${Object.entries(by).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"})`,
+        ...(io.list ? r.reported.map((x) => `  ${x.line}`) : [])];
+    },
+  }),
+  /* RR-297 · SOCIAL POSTS (src/page/social-posts.mjs) — ready to copy; posting is the client's own action (auto-posting DEFERRED) */
+  "social-posts": Object.freeze({
+    title: "SOCIAL POSTS · READY TO COPY (THE CLIENT POSTS THEM)",
+    run: (io) => {
+      const articles = io.json("articles.json");
+      if (!Array.isArray(articles?.articles)) return [AUTO_POSTING, "NOT MEASURED — the batch files no articles (articles.json); no post is written"];
+      return [AUTO_POSTING, ...articles.articles.flatMap((a) => { const r = postsForArticle(a); return [`${a.url}: ${r.posts.length} post(s) · refused ${r.refused.length}`, ...(io.list ? r.posts.map((p) => `  [${p.network}] ${p.text.replace(/\n+/g, " / ")}`) : [])]; })];
+    },
+  }),
+  /* RR-297 · THE MONTHLY CLIENT REPORT (src/report/monthly-report.mjs) — bad news first; search data from the stored Search Console export,
+   * or NOT CONNECTED (never zero) */
+  "monthly-report": Object.freeze({
+    title: "THE MONTHLY CLIENT REPORT",
+    run: async (io) => {
+      const rows = io.rows("search-console-exports.jsonl");
+      const search = searchFromExport(rows.find((r) => r.record_type === "search_console_export"), rows.filter((r) => r.record_type === "search_phrase"));
+      const built = await oneBuilderRun(io);
+      const refresh = built.missing ? { notes: [], reported: [] } : refreshPlan({ rechecks: io.rows("fact-rechecks.jsonl"), pages: built.pages.map((p) => ({ url: p.url, items: p.items })) });
+      return monthlyReport({ product: io.subject, month: io.on ?? new Date().toISOString().slice(0, 7), search, refresh: { notes: [], reported: refresh.reported } }).lines;
     },
   }),
   /* F67 · the quick sample — the same checks */

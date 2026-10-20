@@ -234,8 +234,8 @@ test("C5 · the real tree: every page-producing path is found and classified, ea
   assert.deepEqual(r.faults, []);
   assert.ok(r.scanned > 100, `the census scanned only ${r.scanned} files`);
   /* RR-295: the one page builder is the only producer; its importers are the runner and the in-memory gate report */
-  assert.deepEqual(r.importers, ["bin/build-page.mjs", "src/page/articles.mjs", "src/report/visibility-parts.mjs"]); /* RR-296: the daily articles build through the one builder */
-  assert.equal(r.rows.filter((x) => x.class === "ROUTED").length, 3 + r.registered.filter((f) => PAGE_PRODUCTION[f]?.class === "ROUTED" && !r.importers.includes(f)).length);
+  assert.deepEqual(r.importers, ["bin/build-page.mjs", "src/page/articles.mjs", "src/page/refresh.mjs", "src/report/visibility-parts.mjs"]); /* RR-297: the auto-refresh rebuilds through the one builder */ /* RR-296: the daily articles build through the one builder */
+  assert.equal(r.rows.filter((x) => x.class === "ROUTED").length, 4 + r.registered.filter((f) => PAGE_PRODUCTION[f]?.class === "ROUTED" && !r.importers.includes(f)).length);
   assert.equal(r.rows.filter((x) => x.class === "CHECKS").length, 0);
 });
 

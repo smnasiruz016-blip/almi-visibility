@@ -130,3 +130,6 @@ export function indexPage({ url, title, pages }) {
   const esc = (x) => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   return Object.freeze({ url, html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title)}</title></head><body><h1>${esc(title)}</h1><ul>${pages.map((p) => `<li><a href="${esc(p.url)}">${esc(p.title ?? p.url)}</a></li>`).join("")}</ul></body></html>` });
 }
+
+/** RR-297: the one renderer, for a page whose items were changed in place (an auto-refresh) — the same page method, nothing else */
+export const renderItems = (args) => renderPage(args);

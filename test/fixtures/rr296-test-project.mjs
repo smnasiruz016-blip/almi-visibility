@@ -44,11 +44,26 @@ export const NEEDS = (existingClaim) => Object.freeze([
 /** The product's real questions for articles: each seen in a recorded source, with its sourced answer. */
 export const TOPICS = Object.freeze([
   { topicId: "t-online", label: "DEMAND", question: "Can I take the Widgetry licence exam online?", seenIn: "search_phrase:widgetry-online", claims: [ONLINE] },
-  { topicId: "t-attempts", label: "OPPORTUNITY", question: "How many times can I sit the Widgetry licence exam in a year?", seenIn: "public_question:widgetry-attempts", claims: [ATTEMPTS] },
+  { topicId: "t-attempts", label: "OPPORTUNITY", question: "How many times can I sit the Widgetry licence exam in a year?", seenIn: "public_question:widgetry-attempts", claims: [ATTEMPTS, FEE] }, /* RR-297: the fee is shown here too, so a fee change refreshes a page AND an article */
   { topicId: "t-id", label: "DEMAND", question: "What ID do I need on Widgetry licence exam day?", seenIn: "search_phrase:widgetry-id", claims: [ID],
     /* an opinion: shown only under "General view — not an official fact" */
     generalView: { text: "Arriving early can make exam day calmer.", source: "the test project's own research (an opinion, not a fact)" } },
   /* day 4's only candidates: one already answered by a new page, one with no recorded question (made up) */
   { topicId: "t-fee-again", label: "DEMAND", question: "How much does the Widgetry licence exam cost?", seenIn: "search_phrase:widgetry-fee", claims: [FEE] },
   { topicId: "t-made-up", label: "DEMAND", question: "Why is Widgetry the best licence?", seenIn: "", claims: [FEE] },
+]);
+
+/** RR-297: real questions recorded but not yet answered with a source — next month's planned topics (none is made up) */
+export const NEXT_TOPICS = Object.freeze([
+  { topicId: "t-book", label: "DEMAND", question: "How do I book the Widgetry licence exam?", seenIn: "search_phrase:widgetry-book", claims: [] },
+  { topicId: "t-retake", label: "OPPORTUNITY", question: "How soon can I retake the Widgetry licence exam?", seenIn: "public_question:widgetry-retake", claims: [] },
+]);
+
+/** RR-297: the rechecks of a later day — the fee CHANGED (re-read, with its new wording), one BLOCKED, one REJECTED, one CHANGED with no new wording recorded */
+export const RECHECKS = Object.freeze([
+  { record_type: "fact_recheck", factId: "claim:w-fee-1", state: "CHANGED", url: "https://board.widgetry.example/fees", readOn: "2026-10-25",
+    newClaim: { text: "The Widgetry licence exam costs WB$135.", quotation: "The exam fee is WB$135 per sitting.", readOn: "2026-10-25", cardValue: "WB$135" } },
+  { record_type: "fact_recheck", factId: "claim:w-valid-1", state: "BLOCKED", reason: "BOT_CHECK", url: "https://board.widgetry.example/results" },
+  { record_type: "fact_recheck", factId: "claim:w-id-1", state: "REJECTED", reason: "NO_RECORDED_WORD_FOR_WORD_QUOTATION", url: "https://board.widgetry.example/id" },
+  { record_type: "fact_recheck", factId: "claim:w-online-1", state: "CHANGED", url: "https://board.widgetry.example/online", readOn: "2026-10-25" },
 ]);

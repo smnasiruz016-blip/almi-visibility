@@ -18,7 +18,7 @@ export function searchFromExport(exportRecord, phrases = []) {
 }
 
 /** The report: { product, month, made: { pages: [{url,title}], articles: [{url,question,day}] }, refresh: { notes, reported }, refused: [lines], search, nextTopics: [questions] } */
-export function monthlyReport({ product, month, made = { pages: [], articles: [] }, refresh = { notes: [], reported: [] }, refused = [], search = null, nextTopics = [] }) {
+export function monthlyReport({ product, month, made = { pages: [], articles: [] }, refresh = { notes: [], reported: [] }, refused = [], search = null, nextTopics = [], youtube = null }) {
   const s = search ?? { connected: false, line: NOT_CONNECTED };
   /* a long list is counted by its reason, so a phone page stays readable — every one is still counted, none dropped */
   const rep = refresh.reported;
@@ -29,6 +29,8 @@ export function monthlyReport({ product, month, made = { pages: [], articles: []
     ["Made this month", [...made.pages.map((p) => `Page: ${p.title} — ${p.url}`), ...made.articles.map((a) => `Article (${a.day}): ${a.question} — ${a.url}`)].concat(made.pages.length + made.articles.length ? [] : ["No page or article was made this month."])],
     ["Refreshed this month", refresh.notes.length ? refresh.notes : ["No source fact changed, so no page was refreshed."]],
     ["Search (your Search Console)", s.connected ? [`${s.source}: ${s.impressions} impressions, ${s.clicks} clicks over ${s.window?.days} days (${s.window?.from} to ${s.window?.to}).`, ...s.topPages.map((p) => `Top page: ${p.url} — ${p.impressions} impressions, ${p.clicks} clicks`), ...s.topQueries.map((q) => `Query seen: ${q}`), `Note: ${s.queryNumbers}.`] : [s.line]],
+    /* RR-301: the client's YouTube channel (src/video/youtube.mjs youtubeForReport), or NOT CONNECTED — never zero */
+    ["YouTube", youtube?.connected ? youtube.lines : [youtube?.line ?? "YouTube: NOT CONNECTED — no YouTube API key and no Studio export imported (this is not zero)"]],
     ["Planned for next month", nextTopics.length ? nextTopics.map((q) => `Topic: ${q}`) : ["No unanswered real question is recorded yet — no topic is planned (none is made up)."]],
   ];
   const lines = [`${product} — monthly report, ${month}`, ...sections.flatMap(([h, xs]) => [`## ${h}`, ...xs.map((x) => `- ${x}`)]), "This report states what happened; it promises no ranking or result."];

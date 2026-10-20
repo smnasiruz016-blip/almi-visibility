@@ -21,6 +21,7 @@ import { articleSettings, settingsView, articlesForDay } from "../page/articles.
 import { refreshPlan, refreshRun } from "../page/refresh.mjs";
 import { withNewValues } from "../facts/source-reader.mjs";
 import { LANGUAGES, checkTranslation } from "../page/languages.mjs";
+import { youtubeApi, importStudioExport, channelCheck, videoSeo, youtubeForReport, KEY_NAME as YOUTUBE_KEY_NAME } from "../video/youtube.mjs";
 import { postsForArticle, AUTO_POSTING } from "../page/social-posts.mjs";
 import { monthlyReport, searchFromExport } from "./monthly-report.mjs";
 import { guideItemsByValue, buildGuides, asPublished, gateInput } from "../page/one-builder.mjs";
@@ -459,6 +460,23 @@ export const PARTS = Object.freeze({
       if (!Array.isArray(t?.pages)) return [...lines, "NOT MEASURED — the batch files no translations (translations.json); a client's translation runs on the client's own AI connection"];
       for (const p of t.pages) for (const x of p.translations ?? []) { const r = checkTranslation(p.source, x); lines.push(`  ${p.url} · ${x.lang}: ${r.ok ? "OK" : `REFUSED — ${r.why}`}`); }
       return lines;
+    },
+  }),
+  /* RR-301 · YOUTUBE (src/video/youtube.mjs): the client's own channel, from its YouTube Studio export (youtube-studio-export.csv) or its
+   * own API key (named, DEFERRED with none) — the channel check and the video SEO from the batch's recorded phrases and questions; read-only */
+  "youtube": Object.freeze({
+    title: "YOUTUBE · THE CLIENT'S OWN CHANNEL",
+    run: (io) => {
+      const api = youtubeApi();
+      const csv = io.text?.("youtube-studio-export.csv") ?? null;
+      const lines = [`API key (${YOUTUBE_KEY_NAME}): ${api.state === "READY" ? "set — the reader is ready (not run in this part)" : api.why}`];
+      if (!csv) return [...lines, "Studio export: NOT MEASURED — the batch files no youtube-studio-export.csv; nothing is read from youtube.com"];
+      const imp = importStudioExport(csv, { importedOn: io.on ?? new Date().toISOString().slice(0, 10) });
+      if (!imp.ok) return [...lines, `Studio export REFUSED — ${imp.why}`];
+      const phrases = [...io.rows("search-phrases.jsonl")].filter((p) => p.phrase).map((p) => ({ text: p.phrase, ref: p.measurement_key ?? p.phrase_id }));
+      const questions = io.rows("questions.jsonl").filter((q) => q.value?.original).map((q) => ({ text: q.value.original, ref: q.measurement_key }));
+      const check = channelCheck(imp.videos, {});
+      return [...lines, ...youtubeForReport(imp, check).lines, ...imp.videos.map((v) => { const s = videoSeo(v, { phrases, questions }); return `  ${v.videoId}: tags from records ${s.tags.length} · title ${s.title.suggest ? "suggested" : "kept"}`; })];
     },
   }),
   /* F67 · the quick sample — the same checks */

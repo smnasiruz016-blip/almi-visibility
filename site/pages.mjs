@@ -102,6 +102,7 @@ ${[
   ["Auto-refresh", "When a source changes a fact, every page and article that shows it is rebuilt with the new value, its source and the new checked date. If the new value cannot be read word for word, nothing changes and you are told."],
   ["Social posts", "Two or three short posts for each article, ready to copy to Facebook or LinkedIn — each with the article's link and one sourced fact. You post them yourself."],
   ["A monthly report", "One plain page a month, readable on a phone, bad news first: what was made, what was refreshed, your own search numbers (or “not connected” — never a zero), and next month's topics."],
+  ["YouTube, too", "Visibility checks your own channel — missing titles, descriptions, chapters, thumbnail text and links back to your product page — and suggests titles, tags and chapters only from your real search phrases and questions. It writes a short video script from each article; you make the video. It reads your channel through your own YouTube key or a YouTube Studio export you import."],
   ["Three ways to bring your search data", "Your own search API key, your own Google Search Console, or your own AI search account. You choose; the cost of your own connection stays yours."],
   ["Your own AI connection", "Writing and translating run on your own AI account. Your key stays in your computer's settings — the app asks only for its name, never the key itself."],
   ["A Windows app", "Install it like any Windows program. Your data stays on your computer, and a newer version installs itself only when you agree."],

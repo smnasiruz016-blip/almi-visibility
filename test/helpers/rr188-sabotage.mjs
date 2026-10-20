@@ -37,7 +37,7 @@ const SABOTAGES = [
   ["S02", "C1 · F40 accepts a draft whose checks are not the ones construction judged (it could rebuild or change them)", [[QJ, "  if (!judgedBy || JSON.stringify(", "  if (false && JSON.stringify("]], "T40-C1"],
   ["S03", "C1 · F40 judges a draft for a need F35 did not choose", [[QJ, "  if (!isChosenCreate(decision) || decision.subject?.needId !== spec?.subject) return refuse(", "  if (false) return refuse("]], "T40-C1"],
   ["S04", "C1 · a FAILING F37 check is not carried (markup dropped from technical indexability)", [[QJ, 'verdict: worst(["technical", "internalLinks", "markup"].map((k) => fromCheck(checks[k])))', 'verdict: worst(["technical", "internalLinks"].map((k) => fromCheck(checks[k])))'], [QJ, 'detail: Object.fromEntries(["technical", "internalLinks", "markup"].map(', 'detail: Object.fromEntries(["technical", "internalLinks"].map(']], "T40-C1"],
-  ["S05", "C1 · the runner judges drafts other than F35's chosen construction set", [[BP, "const judged = chosen.decisions.filter((d) => d.spec).map(", "const judged = (ae.compiled?.forConstruction ?? []).map("]], "T40-C1"],
+  /* S05: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* ── C2 ── */
   ["S06", "C2 · answer sufficiency is judged by length", [[QJ, "  const sufficiency = centralUnknown.length ? VERDICT.FAIL : fromCheck(checks.directAnswer);", "  const sufficiency = centralUnknown.length || String(draft.html).length > 3000 ? VERDICT.FAIL : fromCheck(checks.directAnswer);"]], "T40-C2"],
   ["S07", "C2 · a draft whose central part is UNKNOWN is judged sufficient", [[QJ, "  const sufficiency = centralUnknown.length ? VERDICT.FAIL : fromCheck(checks.directAnswer);", "  const sufficiency = fromCheck(checks.directAnswer);"]], "T40-C2"],
@@ -61,7 +61,7 @@ const SABOTAGES = [
   ["S22", "C5 · a NOT MEASURED judgement is counted as passing", [[QJ, "states.some((s) => s !== VERDICT.PASS) ? VERDICT.NOT_MEASURED : VERDICT.PASS);", "states.some((s) => s === CANNOT_DECIDE) ? VERDICT.NOT_MEASURED : VERDICT.PASS);"]], "T40-C5"],
   ["S23", "C5 · a fixture judgement is carried into a real run", [[QJ, '  if (s.kind === "FIXTURE" && population !== POPULATION.FIXTURE) return notMeasured(', "  if (false) return notMeasured("]], "T40-C5"],
   ["S24", "C5 · a judgement made by an unregistered provider is accepted", [[QJ, "!(registeredProviders.includes(s.provider) && present(s.callRef))", "!present(s.callRef)"]], "T40-C5"],
-  ["S25", "C5 / runner · the real run judges as a FIXTURE population", [[BP, "population: POPULATION.REAL }) }));", "population: POPULATION.FIXTURE }) }));"]], "T40-C1"],
+  /* S25: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* ── C6 ── */
   ["S26", "C6 · F40 imports a threshold constant to decide", [[QJ, IMPORTS, `${IMPORTS}\nimport { MIN_FACTS } from "../gate-a/facts.mjs";`]], "T40-C6"],
   ["S27", "C6 · a length number decides", [[QJ, "  if (!Number.isInteger(round) || round < 0) return refuse(", '  if (draft.html.length < 350) return refuse("too short");\n  if (!Number.isInteger(round) || round < 0) return refuse(']], "T40-C6"],

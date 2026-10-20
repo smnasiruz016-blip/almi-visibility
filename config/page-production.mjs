@@ -2,7 +2,7 @@
  * 🔴 F34 C5 · EVERY PAGE-PRODUCING PATH, CLASSIFIED (acceptance _handoffs 53f74b4).
  *
  * The census (tools/existing-page-first-census.mjs) DISCOVERS its population from the source — every git-tracked module outside
- * test/ that statically imports the candidate-page renderer (src/page/render.mjs) or constructor (src/page/construct.mjs) — and
+ * test/ that statically imports the one page builder (src/page/one-builder.mjs; RR-295 — the old renderer and constructor are removed) — and
  * adds every entry of the permitted page-writer register. Each file it finds must be named here, or the census fails:
  *
  *   CHECKS                the library that applies the existing-page check itself
@@ -21,8 +21,10 @@
  * This list is a classification, not the population: a path missing from it is found by the census, never excused by it.
  */
 const SHARED = {
-  "src/page/construct.mjs": Object.freeze({ class: "CHECKS", marks: Object.freeze(["existingPageFirst(", "state: existing.mayProduce ? PASS", "rightToExist({", "informationGainForCandidate(", "state: gain.outcome === GAIN_OUTCOME.ESTABLISHED ? PASS"]), why: "part 5 of every candidate: ACCEPTED needs the existing-page check to pass" }),
-  "bin/build-page.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["existingPages: ep", "if (ev) SCOPE.recordDecision(ev)", "gainEvidence: NO_RECORDED_GAIN_EVIDENCE"]), why: "hands the same tenant's population to constructCandidates and records each stopped candidate" }),
+  /* RR-295: the old constructor (src/page/construct.mjs) and renderer (src/page/render.mjs) are removed; the ONE page builder
+   * (src/page/one-builder.mjs buildGuides) rebuilds only a page that exists, and refuses a NEW one (NO_EXISTING_PAGE) — the existing-page law */
+  "bin/build-page.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["const notBuilt = built.filter((g) => g.refused);", "const candidates = built.filter((g) => !g.refused)", "acceptByPageGates(candidates"]), why: "builds only through the one builder, which refuses a page with no existing address; the rest are judged by the five page gates before any write" }),
+  "src/report/visibility-parts.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["gb.filter((g) => !g.refused)", "allGates(gated"]), why: "builds the stored guides in memory through the one builder (a page with no existing address refused) and gates them; it writes nothing" }),
   "bin/crawl.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores the bodies of pages a crawl FETCHED, as served — evidence of an existing page, never a new one" }),
   "bin/report.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "the owner's report view about the evidence store — not a page of any subject" }),
 };

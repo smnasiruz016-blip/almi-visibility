@@ -17,7 +17,6 @@ import { renderCompiledDraft } from "../src/page/draft-render.mjs";
 import { judgeDraft, CRITERIA, METHOD_SOURCE, VERDICT, CANNOT_DECIDE, NOT_JUDGED, POPULATION, JUDGED_KIND } from "../src/page/quality-judgements.mjs";
 import { previewForOwner, PREVIEW } from "../src/page/content-brief.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
-import { constructCandidates, decisionsForConstruction, ACCEPTED } from "../src/page/construct.mjs";
 import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
 import { coverageJudgementRecords } from "../src/page/grouped-need-coverage.mjs";
 import { possibleCombinations } from "../src/page/page-opportunities.mjs";
@@ -91,97 +90,10 @@ const gainFor = (slug, withGain) => ({
 });
 const fj = (name, verdict = VERDICT.PASS) => ({ name, verdict, criterionId: CRITERIA[name].id, observation: `the fixture judge's recorded observation (${verdict})`, source: { kind: "FIXTURE", ref: `fixture-judge:${name}` } });
 /** the production path: construction, F37's own render of the same spec, F40's own judgement of it */
-function judged({ withGain = true, judgements = [fj("engaging"), fj("hookable")] } = {}) {
-  const c = chosen();
-  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug, withGain), decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, plans: [PLAN_OF(c.d.decision)], now: NOW })[0];
-  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: PLAN_OF(c.d.decision) });
-  const q = judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: d, parts: r.parts, population: POPULATION.FIXTURE, judgements });
-  return { c, r, d, q, brief: Object.freeze({ subject: Object.freeze({ kind: "GROUPED_NEED", id: c.needId }), state: "READY" }) };
-}
 
 /* ================= F40 C8 ================= */
-test("T40-C8 · F40 C8 THE RECORD NAMES THE EXACT CONTENT IT JUDGED: contentSha256 is the sha256 of the HTML judged; one character changed gives another; a NOT JUDGED result for a presented draft carries it; no verdict changes; R5's fixtures re-run unchanged; the four pins re-derived from the code", () => {
-  const { c, r, d, q } = judged();
-  assert.equal(q.judged, true, q.why);
-  assert.equal(q.contentSha256, html256(d.html), "the record's contentSha256 is not the sha256 of the content it judged");
-  const changed = { ...d, html: d.html.replace("</h1>", " </h1>") };
-  const q2 = judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: changed, parts: r.parts, population: POPULATION.FIXTURE, judgements: [fj("engaging"), fj("hookable")] });
-  assert.equal(q2.contentSha256, html256(changed.html));
-  assert.notEqual(q2.contentSha256, q.contentSha256, "one character changed did not change contentSha256");
-  /* a NOT JUDGED result for a presented draft carries the hash of what was presented */
-  const refused = judgeDraft({ spec: c.d.spec, decision: { ...c.d.decision, decision: "CANNOT_DECIDE", actions: [] }, draft: d, parts: r.parts, population: POPULATION.FIXTURE });
-  assert.deepEqual([refused.verdict, refused.contentSha256], [NOT_JUDGED, html256(d.html)]);
-  assert.equal(judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: { ...d, html: "" }, parts: r.parts, population: POPULATION.FIXTURE }).contentSha256, null, "a draft with no content was given a hash");
-  /* the field decides nothing: every verdict field is what F40 decides for these inputs, hand-written */
-  assert.deepEqual([q.gate.verdict, q.gate.blockers.length, ...Object.values(q.assessments).map((a) => a.verdict), ...Object.values(q.judgements).map((j) => j.verdict)],
-    [VERDICT.PASS, 0, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS, VERDICT.PASS]);
-  /* RR-192: the one restated fixture field — l.76's gain review gains needsGuidance: false (F32 C3 / F39 C3 as amended), proved to leave every
-   * F40 and F41 verdict and blocker identical (main's code on the old fixture = the new code on the new one). It is removed, exactly once,
-   * before the unchanged pin is compared — any other change still fails. */
-  const rr184 = withoutR40Board(undoRR208(readFileSync(join(REPO, "test/rr184-r5.test.mjs"), "utf8"))); /* RR-208: the fixture restate reversed, nothing else */
-  const ADDED = "documentedDistinctValue: \"a different need\", needsGuidance: false, ref:";
-  assert.equal(rr184.split(ADDED).length - 1, 1, "the RR-192 restatement is not exactly one field");
-  assert.equal(sha(rr184.replace(ADDED, "documentedDistinctValue: \"a different need\", ref:")), RR184_TEST_SHA, "R5's fixtures changed — they must re-run unchanged");
-  /* the four pins, re-derived from the code */
-  assert.equal(sha(JSON.stringify({ CRITERIA, METHOD_SOURCE })), PIN.criteria, "F40's criteria changed");
-  const qj = readFileSync(join(REPO, "src/page/quality-judgements.mjs"), "utf8").replace(/\r\n/g, "\n");
-  for (const name of ["fillerJudgement", "repetitionJudgement", "recordedJudgement"]) { const s = qj.indexOf(`function ${name}(`); assert.equal(sha(qj.slice(s, qj.indexOf("\n}\n", s) + 2)), PIN[name], `F40's ${name} changed`); }
-});
-
 /* ================= F41 C9 ================= */
-test("T41-C9 · F41 C9 A PREVIEW ONLY ON A FULL F40 PASS FOR THE SAME SUBJECT AND CONTENT: a PASS draft is put forward; one judgement FAIL, one NOT MEASURED, distinct value CANNOT DECIDE are each NOT_PUT_FORWARD with F40's verdict and blockers word for word; other content, no contentSha256 and no F40 result are refused; the runner hands F40's result to the preview", () => {
-  const ok = judged();
-  assert.equal(ok.r.verdict, ACCEPTED, JSON.stringify(ok.r.rejects));
-  assert.equal(previewForOwner({ construction: ok.r, brief: ok.brief, f40: ok.q }).state, PREVIEW.PUT_FORWARD);
-  for (const [label, x] of [["one judgement FAIL", judged({ judgements: [fj("engaging", VERDICT.FAIL), fj("hookable")] })], ["one NOT MEASURED", judged({ judgements: [fj("engaging")] })]]) {
-    const p = previewForOwner({ construction: x.r, brief: x.brief, f40: x.q });
-    assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, `${label} was put forward`);
-    assert.deepEqual(p.missing.slice(-1 - x.q.gate.blockers.length), [`F40 gate ${x.q.gate.verdict}`, ...x.q.gate.blockers], `${label}: F40's verdict or blockers not carried word for word`);
-  }
-  /* distinct value CANNOT DECIDE: construction refuses first, and F40's CANNOT DECIDE is carried, never counted as a pass */
-  const cd = judged({ withGain: false });
-  assert.equal(cd.q.assessments.distinctValue.verdict, CANNOT_DECIDE);
-  const pcd = previewForOwner({ construction: cd.r, brief: cd.brief, f40: cd.q });
-  assert.equal(pcd.state, PREVIEW.NOT_PUT_FORWARD);
-  assert.ok(pcd.missing.includes("distinctValue CANNOT DECIDE"), "CANNOT DECIDE was not carried");
-  /* other content, no contentSha256, no F40 result */
-  for (const [label, f40, re] of [["other content", { ...ok.q, contentSha256: "0".repeat(64) }, /F40's result is for other content/], ["no contentSha256", { ...ok.q, contentSha256: undefined }, /names no contentSha256/], ["no F40 result", null, /no F40 result for this draft/]]) {
-    const p = previewForOwner({ construction: ok.r, brief: ok.brief, f40 });
-    assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, `${label} was put forward`);
-    assert.ok(p.missing.some((m) => re.test(m)), `${label}: the reason is not named — ${p.missing.join(" | ")}`);
-  }
-  /* F41 never re-judges: a result F40 recorded as PASS is read as PASS, and one recorded FAIL stays FAIL, whatever the draft holds */
-  assert.equal(previewForOwner({ construction: ok.r, brief: ok.brief, f40: { ...ok.q, gate: { verdict: VERDICT.FAIL, blockers: ["engagingPresentation FAIL"] } } }).state, PREVIEW.NOT_PUT_FORWARD, "F41 overrode F40's FAIL");
-  /* the runner's own path */
-  const bin = readFileSync(join(REPO, "bin/build-page.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-  assert.match(bin, /const pv = previewForOwner\(\{ construction, brief: null, f40: q \}\);/, "the runner does not hand F40's result for that draft to the preview");
-});
-
 /* ================= the owner's strict subject match — each case its own test ================= */
-test("T41-C9-KIND · STRICT SUBJECT: a brief whose subject is not of the kind F40 judges is NOT_PUT_FORWARD, the reason named", () => {
-  const ok = judged();
-  assert.equal(JUDGED_KIND, "GROUPED_NEED");
-  const p = previewForOwner({ construction: ok.r, brief: { ...ok.brief, subject: { kind: "PAGE", id: ok.c.needId } }, f40: ok.q });
-  assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, "a brief of another kind was put forward");
-  assert.ok(p.missing.includes("the brief's subject is of kind PAGE, not the kind F40 judges (GROUPED_NEED)"), p.missing.join(" | "));
-});
-
-test("T41-C9-NOID · STRICT SUBJECT: a brief whose subject has no id is NOT_PUT_FORWARD, the reason named", () => {
-  const ok = judged();
-  for (const id of [undefined, ""]) {
-    const p = previewForOwner({ construction: ok.r, brief: { ...ok.brief, subject: { kind: "GROUPED_NEED", id } }, f40: ok.q });
-    assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, "a brief with no subject id was put forward");
-    assert.ok(p.missing.includes("the brief's subject has no id to match F40's subject"), p.missing.join(" | "));
-  }
-});
-
-test("T41-C9-OTHERID · STRICT SUBJECT: a brief whose subject id differs from F40's subject is NOT_PUT_FORWARD, the reason named", () => {
-  const ok = judged();
-  const p = previewForOwner({ construction: ok.r, brief: { ...ok.brief, subject: { kind: "GROUPED_NEED", id: "need:another" } }, f40: ok.q });
-  assert.equal(p.state, PREVIEW.NOT_PUT_FORWARD, "a brief for another subject was put forward");
-  assert.ok(p.missing.includes(`F40's result is for subject ${ok.c.needId}, not this brief's subject need:another`), p.missing.join(" | "));
-});
-
 test("R188-BOARD · F40 and F41 move only through the production validator and the audit trail: each reopened by its own amendment on 6 Oct, VERIFIED-PASS only with a REAL VERIFIED event after it, every clause PROVED", async () => {
   const { DECLARED } = await import("../config/fboard/f-board.mjs");
   const trail = readFileSync(TRAIL, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));

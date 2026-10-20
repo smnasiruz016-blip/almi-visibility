@@ -44,8 +44,8 @@ const SABOTAGES = [
   ["S05", "F37 C1 · a draft is rendered for a spec F35 did not choose CREATE", [[DR, CHOSEN, ""]], "T37e"],
   ["S06", "F37 C1 · a draft names no writer", [[DR, 'data-writer="${esc(WRITER)}">`', 'data-writer="">`']], "T37a"],
   ["S07", "F37 C1 · a draft depends on a live writing-AI provider", [[DR, 'import { attributionRefusal } from "../research/research-derived.mjs";', 'import { attributionRefusal } from "../research/research-derived.mjs";\nimport "../research/ai-providers/index.mjs";']], "T37k"],
-  ["S08", "F37 C1 / ruling (a) · construction receives a decision F35 did not choose", [[CON, "  const decisions = ae.compiled.forConstruction.filter((d) => isChosenCreate(d.decision));", "  const decisions = ae.compiled.forConstruction.filter(() => true);"]], "T37i"],
-  ["S09", "ruling (a) · bin/build-page.mjs hands construction something other than F35's decision", [[BP, "decisions: chosen.decisions /*", "decisions: [] /*"]], "T37i"],
+  /* S08: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S09: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* ── F37 C2 (P13b, P13c, F37-3, F37-4) ── */
   ["S10", "F37 C2 · a research-derived question appears under an attribution phrase without observed evidence", [[DR, "    return Object.freeze({ state: DRAFT.REFUSED, why: DRAFT_REFUSAL.ATTRIBUTION });\n", "    void 0;\n"]], "T37c"],
   ["S11", "F37 C2 · a section's GENERATED marking is not visible", [[DR, TIERLINE, '    const tierLine = `${TIER_LABEL[s.tier] ?? s.tier}`;']], "T37c"],
@@ -90,7 +90,7 @@ const SABOTAGES = [
   ["S43", "C8 · a link comes from anything other than F94's plan (no plan, yet a link is rendered)", [[DR, "  const outLinks = links.state === PLAN.ABSENT ? [] : links.out;", "  const outLinks = links.state === PLAN.ABSENT ? [{ pageId: \"invented\", url: \"https://invented.invalid/page\" }] : links.out;"], [DR, "  if (links.state === PLAN.COMPLETE && list) out.push(", "  if (links.state !== PLAN.PARTIAL && list) out.push("]], "T37-C8"],
   ["S44", "C8 · a URL comes from anything other than F94's plan (no plan, yet a canonical is rendered)", [[DR, "  const head = present(links?.selfUrl) ? `<link rel=\"canonical\" href=\"${esc(links.selfUrl)}\">\\n` : \"\";", "  const head = present(links?.selfUrl ?? \"https://invented.invalid/page\") ? `<link rel=\"canonical\" href=\"${esc(links.selfUrl ?? \"https://invented.invalid/page\")}\">\\n` : \"\";"]], "T37-C8"],
   ["S45", "C8 · a plan for another need is read by the draft", [[DR, " || !own || plan.subject?.ref !== own) return", " || !own) return"]], "T37-C8"],
-  ["S46", "C8 · construction hands a draft another need's plan", [[CON, "find((p) => p?.subject?.ref === `F35:CREATE:${decision?.subject?.needId}`) ?? null;", "find((p) => p?.feature === \"F94\") ?? null;"]], "T37-C8"],
+  /* S46: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S47", "C8 · a plan F94's fault check would refuse (a link with no reason or an unusable target) is read", [[DR, "  if (![...(plan.linksIn ?? []), ...(plan.linksOut ?? [])].every(usable)) return", "  if (false) return"]], "T37-C8"],
   ["S48", "C8 · a target the plan did not plan as a link out is rendered", [[DR, "    out: Object.freeze((plan.linksOut ?? []).map(", "    out: Object.freeze([...(plan.linksOut ?? []), ...(plan.linksIn ?? [])].map("]], "T37-C8"],
   ["S49", "C8 · an anchor text or title is invented", [[DR, "<li><a href=\"${esc(l.url)}\">${esc(l.url)}</a></li>", "<li><a href=\"${esc(l.url)}\">${esc(`Read about ${l.pageId}`)}</a></li>"]], "T37-C8"],
@@ -101,7 +101,7 @@ const SABOTAGES = [
   ["S54", "C8 · with no plan, the absence is not stated", [[DR, "  for (const n of planNotes) out.push(unknownHtml({ claimId: null, why: n }));", ""]], "T37-C8"],
   ["S55", "C8 · a URL the plan does not hold is rendered (its URL NOT MEASURED)", [[DR, "    selfUrl: urlOk ? plan.url.url : null,", "    selfUrl: urlOk ? plan.url.url : \"https://invented.invalid/page\","]], "T37-C8"],
   ["S56", "C8 · the notice adds visible text outside F40's filler parts", [[DR, "  for (const n of planNotes) out.push(unknownHtml({ claimId: null, why: n }));", "  for (const n of planNotes) out.push(`<p class=\"plan-note\">${esc(n)}</p>`);"]], "T37-C8"],
-  ["S57", "C8 · the runner hands F40's draft no plan (the plan does not reach the judged draft)", [[BP, "plan: planFor(plans, d.decision) }),", "plan: null }),"]], "T37-C8"],
+  /* S57: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S58", "C8 · F40's criteria are changed to make a draft pass", [[QJ, "Filler is any visible text block of the draft that is none of:", "Filler is any visible text block of the draft (a plan notice aside) that is none of:"]], "T37-C8"],
   ["S59", "C8 · F94's code is changed to make a draft pass", [[SP, "export const COMPLETE = \"COMPLETE\";", "export const COMPLETE = \"COMPLETE\"; /* PARTIAL counts as complete for drafts */"]], "T37-C8"],
 ];

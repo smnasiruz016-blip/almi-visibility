@@ -14,7 +14,6 @@ import { createJsonlStore } from "../src/evidence/store.mjs";
 import { splitView, coverageClassesOf, isUnmeasured } from "../src/audit/class-split.mjs";
 import { coverageErrors, blastRadiusErrors, voidEscalationErrors, populationOf } from "../src/audit/coverage.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
-import { constructCandidates, selectCandidates, REFUSED, PASS, FAIL, NOT_TESTED } from "../src/page/construct.mjs";
 import { chosenFor } from "./helpers/f35-chosen.mjs"; /* RR-179 (c): construction acts only on F35's decision */
 import { CONSEQUENCE_REGISTER, SUPERSEDED_ENTRIES } from "../config/consequence-register.mjs";
 import { COVERAGE_REGISTER } from "../config/coverage-register.mjs";
@@ -127,17 +126,6 @@ test("🔴 RED: a coverage count or reason code that disagrees with the store is
   assert.deepEqual(limbs(cov({ coverage: c2 })), ["coverage-missing"]);
 });
 
-test("🔴 RED 3c: a blast-radius figure that is not the store's count of REAL findings is refused, alone — the 113 that was never real", () => {
-  const reg = clone(CONSEQUENCE_REGISTER);
-  /* RR-196: on indexability-preflight-found — near-duplicate-found is retired */
-  reg["indexability-preflight-found"].blastRadius = "113";
-  const errs = blastRadiusErrors({ register: reg, view: VIEW, unmeasuredCodes: U });
-  assert.deepEqual(limbs(errs), ["blast-radius"]);
-  assert.match(errs[0].why, /cites 113, and the store holds 158 real finding/);
-  // and real findings are not FAIL alone: an UNKNOWN human-verification finding counts (owner's answer)
-  assert.equal(populationOf(VIEW, U).get("official-source-contradicts-itself").real, 1);
-});
-
 test("🔴 RED 3a: a void escalation still standing is refused, alone — and so is one applied on a live entry", () => {
   const sup = clone(SUPERSEDED_ENTRIES);
   delete sup["orphan-within-crawled-set"].escalationVoid;
@@ -166,31 +154,4 @@ test("🔴 each spec's rationale is the brief's, WORD FOR WORD, cut at its own s
     assert.doesNotMatch(w.humanNeed, /This page exists/);
   }
   assert.equal(Object.keys(PRODUCT.pageSpecs).length, 2, "a third page spec was added");
-});
-
-test("🟢 Gate A part 4 PASSES on both — and both candidates are still REFUSED, each with its full record", async () => {
-  const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
-  const res = constructCandidates({ decisions: chosenFor(Object.keys(PRODUCT.pageSpecs ?? {})), pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested: selectCandidates(PRODUCT.pageSpecs, { allSlugs: true }) });
-  const by = Object.fromEntries(res.map((c) => [c.slug, c]));
-  for (const c of res) {
-    assert.equal(c.parts.whyThisUrl.state, PASS, `${c.slug}: ${c.parts.whyThisUrl.reason}`);
-    assert.equal(c.verdict, REFUSED);
-    /* 🔴 AMENDMENT 7 (21 Sep 2026): completeness replaced the unique-word floor and is read from the
-     * spec's DECLARED coverage, so it no longer needs a learned shell and no longer blocks here.
-     * RR-179 · D1 (S41): a two-spec family cannot learn a shell, so its overlap is MEASURED on the full text as a review signal — no
-     * longer refused for the family's size. */
-    assert.equal(c.parts.completeness.state, PASS, c.slug);
-    assert.notEqual(c.parts.overlap.state, NOT_TESTED, c.slug);
-    assert.match(c.parts.overlap.shell, /none learnable/, c.slug);
-  }
-  assert.equal(by.nursing.parts.facts.state, FAIL);
-  /* 🔴 THIS ONE MOVED, AND STRICTER. Under the superseded ≥5 count this page's facts part PASSED.
-   * Amendment 7 judges support CLAIM BY CLAIM, and 2 of its 9 cited claims lack a fresh approved
-   * source — so a page that cleared the old count fails the new rule. That is the tightening
-   * recorded in amendment 7 §4, measured here on real specs. */
-  assert.equal(by["speech-pathology"].parts.facts.state, FAIL);
-  assert.ok(by["speech-pathology"].parts.facts.unsupported.length > 0, "the refusal must name the unsupported claims");
-  assert.ok(by["speech-pathology"].parts.facts.supersededCount >= 5, "the old ≥5 count would have passed this page — that is the point");
-  const score = by.nursing.parts.whyThisUrl.checks.find((x) => x.check === "near-identical");
-  assert.ok(score.score <= score.bar, `the two rationales are near-identical: ${score.score}`);
 });

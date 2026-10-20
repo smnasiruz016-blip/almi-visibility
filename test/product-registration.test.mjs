@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import { licencesVisibleTo, engineLicences, registerLicences, quotabilityState, requiresCurrentVersion } from "../src/facts/licences.mjs";
 import { registerGaps, declaredGaps, gapRegisterProducts } from "../src/facts/gaps.mjs";
 import { loadRegistry, primaryFacts, derivedFacts } from "../src/facts/registry.mjs";
-import { claimIdsOf } from "../src/page/claim-ids.mjs";
 import { placeClaims, isPerVariant, isSharedAcrossVariants, buildPlacement } from "../src/page/claim-placement.mjs";
 import { registerProduct, registeredProducts, coverage } from "../src/product.mjs";
 
@@ -83,10 +82,6 @@ test("🔴 a gap with no reason is refused — an unexplained gap is a shrug", (
 
 test("🔴 loadRegistry has no default directory", async () => {
   await assert.rejects(() => loadRegistry(), /no default/);
-});
-
-test("🔴 claimIdsOf has no default page", () => {
-  assert.throws(() => claimIdsOf(), /no default page/);
 });
 
 test("🔴 placeClaims has no default page", () => {

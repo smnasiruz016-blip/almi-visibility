@@ -40,8 +40,8 @@ test("(d) every entry declares the number of write sites the census finds in it"
   assert.equal(declared, real.census.hits.PAGE_WRITE.length, "the register's site total and the census disagree");
 });
 
-test("(d) 🔴 SEVEN writers — each either routed with zero sites, or unrouted and seen by the census", () => {
-  assert.equal(PERMITTED_PAGE_WRITERS.length, 7, "a page writer left or joined the register");
+test("(d) 🔴 FOUR writers — each either routed with zero sites, or unrouted and seen by the census (RR-295: the three old-template subject tools are removed)", () => {
+  assert.equal(PERMITTED_PAGE_WRITERS.length, 4, "a page writer left or joined the register");
   /* 🔴 THE COUNT IS NO LONGER PINNED — see no-blind-regeneration for why. A writer cannot leave this register
    * merely by being routed: it stays here, declared routed with zero sites, which is where its gate, destination
    * rule and reason are recorded. */
@@ -74,7 +74,7 @@ test("🔴 every writer names the flag(s) that gate it, and each named flag appe
   const crawl = PERMITTED_PAGE_WRITERS.find((e) => e.file === "bin/crawl.mjs");
   assert.deepEqual(crawl.gateFlags, ["--live", "--i-have-the-owners-green"]);
   assert.match(crawl.gateRuling, /TECHNICAL-OWNER RULING, 12 Sep 2026/);
-  assert.equal(PERMITTED_PAGE_WRITERS.filter((e) => e.gateFlags.join() === "--confirm").length, 6);
+  assert.equal(PERMITTED_PAGE_WRITERS.filter((e) => e.gateFlags.join() === "--confirm").length, 3); /* RR-295: 6 -> 3 */
   assert.match(readFileSync(`${REPO}PHASE_0_FROZEN_GAP_REGISTER.md`, "utf8"), /TECHNICAL-OWNER RULING — THE CRAWLER'S TWO FLAGS SATISFY "DRY-RUN BY DEFAULT"/);
 });
 
@@ -94,14 +94,9 @@ test("(d) every entry states all four things — writes · where · gatedBy · w
 test("🔴 no reason is UNKNOWN now — and the one that was is backed by its written determination", () => {
   assert.deepEqual(PERMITTED_PAGE_WRITERS.filter((e) => !e.whyKnown).map((e) => e.file), []);
   for (const e of PERMITTED_PAGE_WRITERS) assert.doesNotMatch(e.why, /^UNKNOWN\b/);
-  const nc = PERMITTED_PAGE_WRITERS.find((e) => e.file === "subjects/almi-oet/tools/nursing-chain.mjs");
-  assert.match(nc.why, /NURSING_CHAIN_SUPERSESSION\.md/);
-  const doc = readFileSync(`${REPO}NURSING_CHAIN_SUPERSESSION.md`, "utf8");
-  assert.match(doc, /Nothing was removed/);
-  // The load-bearing claim, checked against the source rather than the prose:
-  for (const reader of ["subjects/almi-oet/tools/profession-chain.mjs", "subjects/almi-oet/tools/placement-measure.mjs"]) {
-    assert.match(readFileSync(`${REPO}${reader}`, "utf8"), /runs\/_profession-cache/, `${reader} no longer reads the cache — re-read the determination`);
-  }
+  /* RR-295: the one writer whose reason was once UNKNOWN (subjects/almi-oet/tools/nursing-chain.mjs, NURSING_CHAIN_SUPERSESSION.md) and the
+   * two tools that read its cache rendered pages with the old template — all three are removed with it (owner decision 3) */
+  for (const gone of ["nursing-chain", "profession-chain", "placement-measure"]) assert.equal(PERMITTED_PAGE_WRITERS.some((e) => e.file === `subjects/almi-oet/tools/${gone}.mjs`), false, `${gone} is back in the register`);
 });
 
 test("🔴 CONTROL: an entry whose reason is UNKNOWN must say so in its first word", () => {
@@ -305,9 +300,9 @@ test("(d) 0 writes to a literal path outside this repository", () => {
  * repository. `test/write-confinement.test.mjs` proves the refusal on a real
  * writer; this checks that the register says so for all seven.
  */
-test("(d) 🔴 7 of 7 writers take an operator destination, and 7 of 7 are confined before their first write", () => {
+test("(d) 🔴 4 of 4 writers take an operator destination, and 4 of 4 are confined before their first write (RR-295: 7 -> 4)", () => {
   assert.deepEqual(real.destinationMismatch, []);
-  assert.equal(PERMITTED_PAGE_WRITERS.filter((e) => e.destinationOverridable).length, 7);
+  assert.equal(PERMITTED_PAGE_WRITERS.filter((e) => e.destinationOverridable).length, 4);
   assert.deepEqual(real.unconfined, []);
   for (const e of PERMITTED_PAGE_WRITERS) assert.match(e.where, /confined by confineToRepo/, `${e.file}: the register does not state its confinement`);
 });

@@ -88,7 +88,8 @@ const SABOTAGES = [
   ["S38", "F34 C2 · a served need is let through to production", [[EPF, "mayProduce: outcome === O.NO_EXISTING_PAGE || outcome === O.NOT_COVERED", "mayProduce: outcome === O.NO_EXISTING_PAGE || outcome === O.NOT_COVERED || outcome === O.KEEP"]], "C2 · the SAME need in DIFFERENT WORDS"],
   ["S39", "F34 C3 · a path writes into a product repository", [[EPF, 'export const NAMED_IN_EVENT = 8;', 'export const NAMED_IN_EVENT = 8;\nconst zz = () => writeFileSync("../almi-oet/app/page.html", "");']], "C3 · rediscovery has NO path to an existing page:"],
   ["S40", "F34 C4 · a recorded defect is not routed to IMPROVE", [[EPF, 'p.recordedDefect.trim() !== ""', "false"]], "C4 · an unmeasured existing page is protected"],
-  ["S41", "F34 C5 · a routed path's check is no longer visible to the census", [[CON, "existingPageFirst({", "(existingPageFirst)({"]], "C5 · the real tree:"],
+  /* RR-295: restated onto the one builder's runner — the same protection: the census sees a routed path whose check is gone */
+  ["S41", "F34 C5 · a routed path's check is no longer visible to the census", [["bin/build-page.mjs", "const candidates = built.filter((g) => !g.refused)", "const candidates = built"]], "C5 · the real tree:"],
   ["S42", "F34 C6 · a stopped candidate's decision is not recorded as a REFUSAL", [[EPF, 'eventType: "REFUSAL"', 'eventType: "EVALUATION"']], "C6 · a stopped candidate owes ONE REFUSAL decision"],
 ];
 

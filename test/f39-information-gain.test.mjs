@@ -171,8 +171,9 @@ test("C6 · the gate produces nothing unless information gain is ESTABLISHED, an
   /* the census: every accepting path carries F39, and removing F39 from one fires */
   const files = execFileSync("git", ["-C", REPO, "ls-files", "*.mjs"], { encoding: "utf8" }).split("\n").filter((f) => f && !f.startsWith("test/")).map((file) => ({ file, text: readFileSync(join(REPO, file), "utf8") }));
   assert.deepEqual(pageProductionCensus({ files }).faults, []);
-  const stripped = files.map((f) => (f.file === "src/page/construct.mjs" ? { ...f, text: f.text.split("informationGainForCandidate(").join("skipped(") } : f));
-  assert.deepEqual(pageProductionCensus({ files: stripped }).faults.map((x) => x.code), ["ROUTED_WITHOUT_THE_CHECK"], "the census did not see F39 removed from construction");
+  /* RR-295: information gain judges a NEW page; the one builder builds none (it refuses one) — that refusal removed is caught */
+  const stripped = files.map((f) => (f.file === "bin/build-page.mjs" ? { ...f, text: f.text.split("const notBuilt = built.filter((g) => g.refused);").join("const notBuilt = [];") } : f));
+  assert.deepEqual(pageProductionCensus({ files: stripped }).faults.map((x) => x.code), ["ROUTED_WITHOUT_THE_CHECK"], "the census did not see the NEW-page refusal removed from the runner");
 });
 
 /* ================= C7 — same client, verified bodies, bound printed, no call-out ================= */

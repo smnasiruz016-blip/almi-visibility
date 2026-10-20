@@ -55,9 +55,8 @@ export const SUBJECT_PACKAGE = Object.freeze({
   subjectId: "almi-oet",
   /** Every file this package owns. The relocation proof requires each to exist here and not under its old shared path. */
   owns: Object.freeze([
-    Object.freeze({ file: "tools/nursing-chain.mjs", relocatedFrom: "bin/nursing-chain.mjs", state: "LIVE" }),
-    Object.freeze({ file: "tools/profession-chain.mjs", relocatedFrom: "bin/profession-chain.mjs", state: "LIVE" }),
-    Object.freeze({ file: "tools/placement-measure.mjs", relocatedFrom: "bin/placement-measure.mjs", state: "LIVE" }),
+    /* RR-295 (owner decision 3): tools/nursing-chain.mjs, tools/profession-chain.mjs and tools/placement-measure.mjs rendered pages with the
+     * removed old template (src/page/render.mjs) — removed with it; git history keeps them. A page is built only by the one builder. */
     Object.freeze({ file: "tools/acceptance-test.mjs", relocatedFrom: "bin/acceptance-test.mjs", state: "LIVE",
       contract: "one corridor page, a hand-written fact block, Gate A re-run (KEEP/REJECT). NOT the Case Study #1 contract (6/6 RED + 0/3 CONTROL): measured 24 Sep 2026 — neither contract document names this tool, nothing calls it, and its inputs (--corpus --group --page --facts) are a corridor, not a defect set. Relocation changed no corpus, pass mark, input or word of that contract." }),
     /* DEAD (clarification C): no importer, no test, no production caller — measured with a positive control that the same
@@ -115,58 +114,10 @@ export const SUBJECT_PACKAGE = Object.freeze({
       why: "builds the corpus Gate A was first calibrated on (runs/2026-09-10-almioet/GATE_A_RUN_01.md). It stores pages that already exist; it generates none",
       whyKnown: true,
     },
-    {
-      file: "subjects/almi-oet/tools/nursing-chain.mjs",
-      /* 🔴 ROUTED (23 September 2026). One cached sibling page is one target; the candidate page and its chain
-       * report are two more. The pages are still FETCHED and MEASURED either way — a read, which the scope law
-       * permits — and only KEPT when the write is allowed, exactly as before. */
-      routed: true,
-      sites: 0,
-      writes: "(1) a CACHE of the eleven sibling pages it FETCHES from the product site; (2) the candidate page rendered from the registry, plus a chain report",
-      where: `(1) runs/_profession-cache/ — fixed, gitignored; (2) the directory given by --out; ${CONFINED}`,
-      gatedBy: "write-law LOCAL: both writes, and the cache directory itself, sit behind permission.mayWrite, which only --confirm grants. Without it the siblings are fetched and measured but not kept",
-      gateFlags: ["--confirm"],
-      gateToken: "permission.mayWrite",
-      destinationOverridable: true,
-      why: "it is the ONLY writer of runs/_profession-cache, and bin/profession-chain.mjs and bin/placement-measure.mjs both refuse to run without that cache ('this script does not fetch'). Its CHAIN half is superseded — see NURSING_CHAIN_SUPERSESSION.md — but its FETCH half is not, so it cannot be removed as it stands",
-      whyKnown: true,
-    },
-    {
-      file: "subjects/almi-oet/tools/placement-measure.mjs",
-      /* 🔴 ROUTED (23 September 2026). Both bodies are TEXT, measured, so nothing is normalised without proof. */
-      routed: true,
-      sites: 0,
-      writes: "one candidate page with the shared block placed off-page, plus a placement report",
-      where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
-      gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
-      gateFlags: ["--confirm"],
-      gateToken: "permission.mayWrite",
-      destinationOverridable: true,
-      why: "the shared-block extraction measurement (SHARED_BLOCK_EXTRACTION.md): the page is written so a reader can see what the placement did to the page, beside the arithmetic",
-      whyKnown: true,
-    },
-    {
-      file: "subjects/almi-oet/tools/profession-chain.mjs",
-      /* 🔴 ROUTED through the shared governed-write boundary (23 September 2026): two targets, two governed
-       * occurrences, each audited allowed or refused. No direct page-write site remains. */
-      routed: true,
-      sites: 0,
-      writes: "one candidate page for the named profession, rendered from the registry, plus a chain report",
-      where: `the directory given by --out; without --out nothing is written; ${CONFINED}`,
-      gatedBy: "write-law LOCAL: permission.mayWrite, which only --confirm grants",
-      gateFlags: ["--confirm"],
-      gateToken: "permission.mayWrite",
-      destinationOverridable: true,
-      why: "runs the registry → page → Gate A → rollout chain on ANY profession through identical code, so two professions can be compared without the runner differing",
-      whyKnown: true,
-    },
   ]),
   /** F34 C5 · this package's page-producing paths, classified for tools/existing-page-first-census.mjs (merged into
    * config/page-production.mjs, which carries no subject's words). `marks` = the call AND the condition production depends on. */
   pageProduction: Object.freeze({
-    "subjects/almi-oet/tools/nursing-chain.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["rightToExistGate(", "...(existingPage.mayProduce ? [[\"nursing.html\"", "html: candidateHtml, gainEvidence: NO_RECORDED_GAIN_EVIDENCE"]), why: "writes its candidate page only when the gate lets it produce" }),
-    "subjects/almi-oet/tools/profession-chain.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["rightToExistGate(", "...(existingPage.mayProduce ? [[`${which}.html`", "html, gainEvidence: NO_RECORDED_GAIN_EVIDENCE"]), why: "writes its candidate page only when the gate lets it produce" }),
-    "subjects/almi-oet/tools/placement-measure.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["rightToExistGate(", "...(existingPage.mayProduce ? [[\"nursing-placed.html\", placedHtml", "html: placedHtml, gainEvidence: NO_RECORDED_GAIN_EVIDENCE"]), why: "writes its placed candidate page only when the gate lets it produce" }),
     "subjects/almi-oet/tools/build-corpus.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores copies of pages FETCHED from a sitemap, as served — evidence, never a new page" }),
   }),
 });

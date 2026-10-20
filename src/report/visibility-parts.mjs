@@ -15,10 +15,9 @@ import { crawlItem, diffRuns } from "./change-and-scale.mjs";
 import { loadPlaywright, startDocumentServer, launchOfflineChromium } from "../render/renderer.mjs";
 import { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED as LAB_NOT_MEASURED } from "../render/lab-speed.mjs";
 import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-exports.mjs";
-import { approvedPlan, buildPlanBatch, plannedPages, planPath, servePlanned } from "../page/plan-batch.mjs";
 import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
 import { allGates, costGate } from "../page/page-gates.mjs";
-import { guideItemsByValue, buildGuides, buildPlanPages, asPublished } from "../page/one-builder.mjs";
+import { guideItemsByValue, buildGuides, asPublished } from "../page/one-builder.mjs";
 import { GUIDANCE } from "../../config/guidance/guidance-read.mjs";
 import { connectionNow } from "../research/ai-connection.mjs";
 import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
@@ -34,12 +33,11 @@ const prevDistinct = (versions) => {
   for (let i = versions.length - 2; i >= 0; i -= 1) if (h(versions[i].html) !== last) return versions[i];
   return null;
 };
-/** RR-294 · the one builder over the stored test data, and the five gates over every page in the form it would go live. */
+/** RR-294 / RR-295 · the one builder over the stored test data — the 12 guides, the only pages there are (owner decision 3 of RR-295: the
+ * 31 plan drafts were made by the wrong builder and are removed; a plan is made afresh when a product is given) — and the five gates over
+ * every page in the form it would go live. */
 async function oneBuilderRun(io) {
   const on = io.on ?? new Date().toISOString().slice(0, 10);
-  const inputsFile = (io.listBatch?.() ?? []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
-  const plan = inputsFile ? approvedPlan({ inputs: io.json(inputsFile), rows: io.rows, json: io.json }) : { measured: false };
-  if (!plan.measured) return { missing: "no plan inputs in the batch" };
   /* D · this build is costed before it starts: a local, in-memory build — no request, no paid call */
   const costEntry = { recorded_at: new Date().toISOString(), money: { amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "a local in-memory build of stored test data: no request, no paid call" }, requests: 0 };
   const startedAt = new Date(Date.now() + 1).toISOString();
@@ -47,25 +45,20 @@ async function oneBuilderRun(io) {
   /* the client's own design, read by the entry point that names the subject (its questionnaire); none filed is none */
   const design = io.design ?? null;
   const guides = guideItemsByValue(io.rows("joined-pages.jsonl"));
+  if (guides.size === 0) return { missing: "no stored guide in the batch" };
   const quotation = new Map((io.json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => [c.claimId, c.quotation ?? null]))));
   const keyFacts = io.json("key-facts.json") ?? [], rates = io.json("conversion-rates.json") ?? [];
   const links = io.json("internal-links-2026-10-18.json");
-  const stamp = "TEST PAGE · local build of stored test data · not published (RR-294)";
-  const site = design?.siteAddress ?? "https://preview.invalid";
-  const hub = links?.hub ? [{ href: links.hub.href ?? links.hub, label: links.hub.label ?? "All guides" }] : [];
-  const common = { keyFacts, rates, quotationOf: (id) => quotation.get(id) ?? null, design, stamp, on };
-  const urlOf = (p) => `${site}/guides/${p.row.primary}/${p.row.secondary}`;
-  /* F94's rule: a guide links the recorded pages of its own need — now its own plan pages too */
-  const planLinks = (value) => plannedPages(plan).filter((p) => p.row.primary === value).map((p) => ({ href: urlOf(p), label: `${p.row.primary.replace(/-/g, " ")} — ${p.row.secondary.replace(/-/g, " ")}` }));
-  const gb = buildGuides({ guides, ...common, relatedFor: (value) => [...(Array.isArray(links?.pages?.[value]) ? links.pages[value] : []), ...planLinks(value)] });
-  const pb = buildPlanPages({ plan, guides, ...common, urlOf, relatedFor: (p) => [...(guides.get(p.row.primary)?.publishedUrl ? [{ href: guides.get(p.row.primary).publishedUrl, label: guides.get(p.row.primary).title }] : []), ...hub] });
-  const pages = [...gb.map((g) => ({ ...g, id: g.url ?? `guide:${g.value}` })), ...pb.filter((p) => !p.refused).map((p) => ({ ...p, id: p.url }))];
+  const stamp = "TEST PAGE · local build of stored test data · not published";
+  const gb = buildGuides({ guides, keyFacts, rates, quotationOf: (id) => quotation.get(id) ?? null, design, stamp, on, relatedFor: (value) => (Array.isArray(links?.pages?.[value]) ? links.pages[value] : []) });
+  /* F34 (RR-295): a stored page with no existing address is never built — the one builder refuses it, named */
+  const pages = gb.filter((g) => !g.refused).map((g) => ({ ...g, id: g.url }));
   const urls = pages.map((p) => p.url).filter(Boolean);
   const gated = pages.map((p) => ({ id: p.id, url: p.url, html: asPublished(p.html, p.url), needs: [], mainQuery: p.title, questions: p.questions, answer: p.answer, items: p.items, facts: p.items.flatMap((it) => it.claims.map((c) => ({ hasSource: Boolean(c.link), hasDate: /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "") }))) }));
   const sec = io.rows("live-security.jsonl").find((r) => r.kind === "ROBOTS");
   const results = allGates(gated, { guidance: GUIDANCE, on, site: { robotsTxt: sec?.read?.body ?? null, sitemapUrls: urls, serve: (path) => ({ status: urls.some((u) => new URL(u).pathname.replace(/\/$/, "") === path.replace(/\/$/, "")) ? 200 : 404 }) }, cost });
-  const cardsRefusedQuote = [...gb, ...pb].flatMap((p) => (p.cardsRefused ?? []).filter((x) => x.code === "KEY_FACT_VALUE_IS_NOT_IN_ITS_VERBATIM_QUOTATION").map((x) => ({ page: p.value ?? p.combination, claimId: x.claimId, value: x.value, quotation: x.quotation })));
-  return { pages, results, design, cardsRefusedQuote: [...new Map(cardsRefusedQuote.map((x) => [x.claimId, x])).values()], plan, refusedPlan: pb.filter((p) => p.refused) };
+  const cardsRefused = gb.flatMap((p) => (p.cardsRefused ?? []).map((x) => ({ page: p.value, claimId: x.claimId, code: x.code, value: x.value, why: x.why ?? null })));
+  return { pages, results, design, cardsRefused: [...new Map(cardsRefused.map((x) => [x.claimId, x])).values()] };
 }
 /** RR-292 · the client's search-data options, each from its own stored records — nothing fetched */
 const setupOf = (io) => {
@@ -320,30 +313,6 @@ export const PARTS = Object.freeze({
       return [`tenant ${io.tenantId} · schema ${EXPORT_SCHEMA.name} ${EXPORT_SCHEMA.version} · rows ${e.rows} · JSON ${e.json.length} bytes · CSV ${e.csv.length} bytes · actions ${API_ACTIONS.join(", ")} (read-only)`, ...(io.list ? [e.json] : [])];
     },
   }),
-  /* F76 C2 (RR-292) · src/page/plan-batch.mjs — every page of the approved F91 plan built at once, locally; any other URL 404 */
-  "plan-batch": Object.freeze({
-    title: "F76 · THE PLAN BATCH (LOCAL DRAFTS; NOTHING PUBLISHED)",
-    run: (io) => {
-      const inputsFile = (io.listBatch?.() ?? []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
-      if (!inputsFile) return ["NOT MEASURED — the batch files no plan inputs; nothing is built"];
-      const plan = approvedPlan({ inputs: io.json(inputsFile), rows: io.rows, json: io.json });
-      if (!plan.measured) return [`NOT MEASURED — the plan misses ${plan.missing}; nothing is built`];
-      const batch = buildPlanBatch(plan);
-      const planned = plannedPages(plan);
-      const merged = plan.rows.filter((r) => r.label === "MERGED");
-      /* the unplanned URLs asked: every MERGED combination's own path, and one path no combination holds */
-      const unplanned = [...merged.map(planPath), "/no-such/combination"];
-      const answers = unplanned.map((p) => servePlanned(p, batch));
-      const plannedAnswers = planned.map((p) => servePlanned(p.path, batch));
-      return [
-        `plan          ${inputsFile}: DEMAND ${plan.counts.DEMAND} · OPPORTUNITY ${plan.counts.OPPORTUNITY} · MERGED ${plan.counts.MERGED} (sections, never pages)`,
-        `built         ${batch.size} of ${planned.length} planned page(s), at once, as local drafts · claims ${[...batch.values()].reduce((s, p) => s + p.claims, 0)} · merged sections ${[...batch.values()].reduce((s, p) => s + p.sections, 0)} · written 0 · published 0`,
-        `planned URLs  ${plannedAnswers.filter((a) => a.status === 200).length} of ${plannedAnswers.length} answer 200 from the built batch`,
-        `unplanned     ${answers.filter((a) => a.status === 404).length} of ${answers.length} URL(s) answer 404 — none built on request`,
-        ...(io.list ? [...batch].map(([p, x]) => `  ${p} · ${x.combination} · ${x.claims} claim(s) · ${x.sections} section(s) · sha256 ${x.sha256.slice(0, 12)}`) : []),
-      ];
-    },
-  }),
   /* RR-292 · src/report/search-data-options.mjs — the client's three search-data options at setup, each from its own stored records */
   "setup-options": Object.freeze({
     title: "CLIENT SETUP · SEARCH-DATA OPTIONS",
@@ -355,9 +324,6 @@ export const PARTS = Object.freeze({
     title: "PAGE-1 · THE FIVE PAGE GATES OVER THE STORED TEST DATA",
     run: async (io) => {
       const on = io.on ?? new Date().toISOString().slice(0, 10);
-      const inputsFile = (io.listBatch?.() ?? []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
-      const plan = inputsFile ? approvedPlan({ inputs: io.json(inputsFile), rows: io.rows, json: io.json }) : { measured: false };
-      if (!plan.measured) return ["NOT MEASURED — no plan inputs in the batch"];
       const sec = io.rows("live-security.jsonl").find((r) => r.kind === "ROBOTS");
       /* the live pages: their needs from the coverage records, their answer from the drafts of their own value */
       const latest = new Map();
@@ -370,7 +336,7 @@ export const PARTS = Object.freeze({
         return { id: r.url, url: r.url, html: r.html, needs: [...new Set(cov.filter((c) => (c.pages ?? []).some((p) => p.pageId === r.url)).map((c) => c.needId))], mainQuery: (/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(r.html) ?? [])[1]?.replace(/<[^>]+>/g, "").trim(), answer: (draft?.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => c.claimId)), facts: null };
       });
       /* RR-294 (beta-g decision B): there is no second template — every built page comes from the ONE builder (src/page/one-builder.mjs),
-       * the 12 guides and the 31 plan pages alike, gated in the form they would go live, the build costed before it starts (gate D) */
+       * the 12 guides (the 31 plan drafts are removed, RR-295), gated in the form they would go live, the build costed before it starts (gate D) */
       const built = await oneBuilderRun(io);
       const sets = [["live pages (the 12 guides and the hub)", live, { robotsTxt: sec?.read?.body ?? null, sitemapUrls: null, serve: null }, Object.freeze({ gate: "COST", pass: true })]];
       const lines = [`guidance ${GUIDANCE.quotes.length} quote(s) from ${GUIDANCE.pages.filter((p) => p.state === "READ").length} page(s) read (BLOCKED ${GUIDANCE.pages.filter((p) => p.state === "BLOCKED").length}) · valid until ${GUIDANCE.quotes.map((q) => q.validUntil).sort()[0]}`];
@@ -384,32 +350,28 @@ export const PARTS = Object.freeze({
         if (signals) lines.push(`  A review signals (not verdicts): ${signals}`);
       }
       if (built.missing) lines.push(`the one builder: NOT MEASURED — ${built.missing}`);
-      else for (const kind of ["GUIDE", "PLAN"]) {
-        const rs = built.results.filter((r) => built.pages.find((p) => p.id === r.id)?.kind === kind);
+      else {
+        const rs = built.results;
         const per = (g) => rs.filter((r) => r.gates[g].pass).length;
-        lines.push(`the one builder · ${kind === "GUIDE" ? "the 12 guides rebuilt" : "the plan pages"}: ${rs.length} page(s) · pass A ${per("A")} · B ${per("B")} · C ${per("C")} · D ${per("D")} · E ${per("E")} · all ${rs.filter((r) => r.pass).length}`);
+        lines.push(`the one builder · the 12 guides rebuilt: ${rs.length} page(s) · pass A ${per("A")} · B ${per("B")} · C ${per("C")} · D ${per("D")} · E ${per("E")} · all ${rs.filter((r) => r.pass).length}`);
       }
       lines.push("the reasons, page by page: --part=one-builder --list");
       return lines;
     },
   }),
-  /* RR-294 · ONE PAGE BUILDER (src/page/one-builder.mjs) over the stored TEST DATA: the 12 guides rebuilt and the 31 plan pages built by the
-   * same renderer with the client's own design; every page gated in the form it would go live (noindex made canonical, stamps out) */
+  /* RR-294 / RR-295 · ONE PAGE BUILDER (src/page/one-builder.mjs) over the stored TEST DATA: the 12 guides rebuilt by the one renderer with
+   * the client's own design; every page gated in the form it would go live (noindex made canonical, stamps out) */
   "one-builder": Object.freeze({
-    title: "ONE PAGE BUILDER · THE 12 GUIDES AND THE 31 PLAN PAGES, GATED",
+    title: "ONE PAGE BUILDER · THE 12 GUIDES, GATED",
     run: async (io) => {
       const built = await oneBuilderRun(io);
       if (built.missing) return [`NOT MEASURED — ${built.missing}`];
-      const { pages, results } = built;
-      const by = (kind) => results.filter((r) => pages.find((p) => p.id === r.id)?.kind === kind);
+      const { results } = built;
       const reasonsOf = (r) => Object.values(r.gates).flatMap((g) => (g.checks ?? []).filter((c) => c.result !== "PASS").map((c) => c.reason ?? c.name));
-      const lines = [`guidance ${GUIDANCE.quotes.length} quote(s) · design ${built.design ? "the client's own (its questionnaire)" : "NOT FILED"} · key-fact cards refused for their quote ${built.cardsRefusedQuote.length}${built.cardsRefusedQuote.length ? ` (${built.cardsRefusedQuote.map((x) => `${x.page}:${x.claimId} "${x.value}"`).join(", ")})` : ""}`];
-      for (const kind of ["GUIDE", "PLAN"]) {
-        const rs = by(kind);
-        lines.push(`${kind === "GUIDE" ? "guides" : "plan pages"} ${rs.length}: pass all five ${rs.filter((r) => r.pass).length} · A ${rs.filter((r) => r.gates.A.pass).length} · B ${rs.filter((r) => r.gates.B.pass).length} · C ${rs.filter((r) => r.gates.C.pass).length} · D ${rs.filter((r) => r.gates.D.pass).length} · E ${rs.filter((r) => r.gates.E.pass).length}`);
-        const tally = Object.entries(rs.filter((r) => !r.pass).flatMap(reasonsOf).map((x) => x.replace(/https?:\/\/\S+|\d{4}-\d{2}-\d{2}[^\s]*/g, "…").replace(/ beyond \S+/, " beyond its guide").replace(/MERGE into \S+/, "MERGE into its guide")).reduce((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})).sort((a, b) => b[1] - a[1]);
-        for (const [k, n] of tally.slice(0, 6)) lines.push(`  ${n} × ${k}`);
-      }
+      const lines = [`guidance ${GUIDANCE.quotes.length} quote(s) · design ${built.design ? "the client's own (its questionnaire)" : "NOT FILED"} · key-fact cards refused ${built.cardsRefused.length}${built.cardsRefused.length ? ` (${built.cardsRefused.map((x) => `${x.page}:${x.claimId} "${x.value ?? ""}" — ${x.why ?? x.code}`).join(", ")})` : ""}`];
+      lines.push(`guides ${results.length}: pass all five ${results.filter((r) => r.pass).length} · A ${results.filter((r) => r.gates.A.pass).length} · B ${results.filter((r) => r.gates.B.pass).length} · C ${results.filter((r) => r.gates.C.pass).length} · D ${results.filter((r) => r.gates.D.pass).length} · E ${results.filter((r) => r.gates.E.pass).length}`);
+      const tally = Object.entries(results.filter((r) => !r.pass).flatMap(reasonsOf).reduce((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})).sort((a, b) => b[1] - a[1]);
+      for (const [k, n] of tally.slice(0, 6)) lines.push(`  ${n} × ${k}`);
       if (io.list) for (const r of results) lines.push(`  ${r.pass ? "PASS" : "FAIL"} ${r.id} ${r.pass ? "" : `— ${[...new Set(reasonsOf(r))].join("; ")}`}`);
       return lines;
     },

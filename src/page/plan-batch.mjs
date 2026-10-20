@@ -5,16 +5,14 @@
  * The approved plan is F91's plan of the client's research batch (Amendment 6, src/page/page-plan.mjs): its DEMAND and OPPORTUNITY pages,
  * each with its own answer from verified claims; a MERGED combination is a SECTION of the page it merges into, never a page of its own.
  *   · approvedPlan — the plan read from the batch's own stored records (one reader for bin/page-plan.mjs and every batch build);
- *   · buildPlanBatch — every planned page built at once, as a LOCAL draft (nothing written, published or submitted), and no other;
- *   · servePlanned — a URL answers only with a page the batch built: a URL not in the plan is 404, on any request, at any time — there is
- *     no builder behind it (the module holds none), so a request can never generate a page.
+ * 🔴 RR-295 (owner decision 3): the plan-batch DRAFT BUILDER is removed — its 31 drafts were made by the wrong builder, and no page is kept
+ *   from them. What stays is the plan READER (approvedPlan), for the planning records as history; a page is built only by the one builder
+ *   (src/page/one-builder.mjs). No module here renders a page, so no request can ever generate one.
  * Pure. Generic: it names no client, product or host.
  */
-import { createHash } from "node:crypto";
 import { planPages, LABEL } from "./page-plan.mjs";
 
 export const PLANNED = Object.freeze([LABEL.DEMAND, LABEL.OPPORTUNITY]);
-const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /**
@@ -37,49 +35,3 @@ export function approvedPlan({ inputs, rows, json }) {
 export const planPath = (row) => `/${slug(row.primary)}/${slug(row.secondary)}`;
 /** The planned pages of a plan: its DEMAND and OPPORTUNITY rows, each keyed by its path. */
 export const plannedPages = (plan) => (plan?.rows ?? []).filter((r) => PLANNED.includes(r.label)).map((r) => Object.freeze({ path: planPath(r), combination: r.combination, label: r.label, row: r }));
-
-/**
- * Build every planned page at once — and no other. Each draft: its combination as the heading, its own answer (each verified claim's words
- * and the body that states it), and one section per combination MERGED into it (named, never a page of its own). The OPPORTUNITY label is
- * never on the page. Returns Map(path → { html, sha256, combination, sections }) — local, in memory: nothing is written or published.
- */
-export function buildPlanBatch(plan) {
-  const pages = plannedPages(plan);
-  const merged = (plan?.rows ?? []).filter((r) => r.label === LABEL.MERGED);
-  const out = new Map();
-  for (const p of pages) {
-    const sections = merged.filter((m) => m.target === p.combination);
-    /* each answer entry is a claim id (the plan's own shape) or a claim; a claim id the plan does not carry is named, never printed empty */
-    const claims = (p.row.answer ?? []).map((c) => (typeof c === "string" ? plan.claimsById?.get(c) ?? { claimId: c, text: `[claim ${c}: its words are not in the plan's records]` } : c));
-    const html = [
-      `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(p.combination)}</title><meta name="robots" content="noindex"></head><body>`,
-      `<h1>${esc(p.combination)}</h1>`,
-      ...claims.map((c) => `<p>${esc(c.text)}${c.source?.link ? ` <small>Source: <a href="${esc(c.source.link)}">${esc(c.source.name ?? c.body ?? c.source.link)}</a>${c.source.readOn ? `, checked ${esc(c.source.readOn)}` : ""}</small>` : c.body ? ` <small>(${esc(c.body)})</small>` : ""}</p>`),
-      ...sections.map((m) => `<h2>${esc(m.combination)}</h2><p>${esc(m.reason)}</p>`),
-      "</body></html>",
-    ].join("\n");
-    out.set(p.path, Object.freeze({ html, sha256: createHash("sha256").update(html).digest("hex"), combination: p.combination, claims: claims.length, sections: sections.length }));
-  }
-  return out;
-}
-
-/** The keys an approved plan admits: each planned page's combination and its path as a slug ("/a/b" → "a-b"). */
-export const approvedKeys = (plan) => new Set(plannedPages(plan).flatMap((p) => [p.combination, p.path.slice(1).replace(/\//g, "-")]));
-
-/**
- * F76 C2 · what bin/build-page.mjs --all-slugs may build: the product's owner-declared specs (`requested`), and a need F35 chose
- * (`chosen`, each { slug, spec }) ONLY when the approved plan holds its page. `approved` is approvedKeys(plan), or null when no plan is
- * filed — then no chosen need is added. Returns { requested, notInPlan } — every chosen need left out, named.
- */
-export function allSlugsOverPlan({ requested, chosen, approved }) {
-  const extra = (chosen ?? []).filter((d) => d.spec && !requested.includes(d.slug));
-  const inPlan = extra.filter((d) => approved instanceof Set && approved.has(d.slug));
-  return Object.freeze({ requested: [...requested, ...inPlan.map((d) => d.slug)], notInPlan: extra.filter((d) => !inPlan.includes(d)).map((d) => d.slug) });
-}
-
-/** A URL answers only from the built batch: 200 with its page, or 404 — never a page built on request. */
-export function servePlanned(path, batch) {
-  const p = String(path ?? "").split(/[?#]/)[0].replace(/\/+$/, "") || "/";
-  const page = batch.get(p);
-  return page ? Object.freeze({ status: 200, path: p, sha256: page.sha256 }) : Object.freeze({ status: 404, path: p, reason: "not in the approved plan — no page is built on request" });
-}

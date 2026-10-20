@@ -55,7 +55,7 @@ test("T1-NO-COPY · no module outside Gate A's own definitions declares its own 
   assert.doesNotMatch(code("src/discovery/axis-discovery.mjs"), /=\s*0\.4\b|=\s*0\.9\b/, "axis-discovery keeps a local copy");
   assert.match(code("src/discovery/axis-discovery.mjs"), /import \{ OVERLAP_REVIEW_TRIGGER \} from "\.\.\/gate-a\/adaptive\.mjs";/);
   assert.match(code("src/gate-a/why-this-url.mjs"), /export const WHY_NEAR_IDENTICAL = OVERLAP_REVIEW_TRIGGER;/);
-  for (const rel of ["src/gate-a/why-this-url.mjs", "src/page/construct.mjs", "src/discovery/axis-discovery.mjs"]) assert.doesNotMatch(code(rel), THREE, `${rel} still reads a retired decider`);
+  for (const rel of ["src/gate-a/why-this-url.mjs", "src/discovery/axis-discovery.mjs"] /* RR-295: construct.mjs removed */) assert.doesNotMatch(code(rel), THREE, `${rel} still reads a retired decider`);
 });
 
 test("T1-NO-COPY · FIRING CONTROL: a re-declared copy is seen", () => {

@@ -62,7 +62,7 @@ const CONNECTOR_MODE = Object.freeze([
   ["bin/source-facts.mjs", [S, `--research-batch=${BATCH}`, "--on=2026-09-01", "--live"]],
   ["bin/source-integrity.mjs", [P, "--live"]],
   ["subjects/almi-oet/tools/build-corpus.mjs", ["--out", ".test-scratch/rr244-a2-corpus"]],
-  ["subjects/almi-oet/tools/nursing-chain.mjs", [P]],
+  /* RR-295: subjects/almi-oet/tools/nursing-chain.mjs removed with the old page template */
 ]);
 
 /** A world in which the fixture subject also declares a question source and the two research batches these runs name. */
@@ -140,7 +140,6 @@ test("A2-1 · the census: every connector entry point against the Amendment 2 te
     "bin/source-facts.mjs": ["live || (EXTRACT && permission.mayWrite)", ["USAGE", "USAGE", "USAGE", "USAGE", "USAGE", "USAGE"]],
     "bin/source-integrity.mjs": ["live", ["CONFINEMENT", "CONFINEMENT", "USAGE"]],
     "subjects/almi-oet/tools/build-corpus.mjs": ["ALWAYS", ["CONFINEMENT"]],
-    "subjects/almi-oet/tools/nursing-chain.mjs": ["ALWAYS", ["USAGE"]],
   };
   for (const r of rows) {
     const [mode, exits] = expected[r.file];

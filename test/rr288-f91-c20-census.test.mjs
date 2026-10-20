@@ -34,8 +34,9 @@ export function c20Census(read = (f) => readFileSync(join(REPO, f), "utf8")) {
 
 test("C20 · CENSUS · every F91 path that reads the client's page population reads it through the C20 filter — none without it", () => {
   const c = c20Census();
-  assert.equal(c.paths.length, 9, `the F91 paths moved: ${c.paths.join(", ")}`);
-  assert.equal(c.reading.length, 7, "the paths that read the population moved");
+  /* RR-295: bin/build-page.mjs left the F91 paths — it builds only the one builder's stored pages and reads no page population (9 -> 8, 7 -> 6) */
+  assert.equal(c.paths.length, 8, `the F91 paths moved: ${c.paths.join(", ")}`);
+  assert.equal(c.reading.length, 6, "the paths that read the population moved");
   assert.deepEqual(c.unfiltered, [], "an F91 path reads the page population without the C20 filter — a page generated before Visibility could stand");
   /* CONTROL: a planted unfiltered read in a clean F91 path fires */
   const planted = c20Census((f) => { const t = readFileSync(join(REPO, f), "utf8"); return f === "bin/page-plan.mjs" ? `${t}\nreadExistingPagePopulation({ scope });\n` : t; });

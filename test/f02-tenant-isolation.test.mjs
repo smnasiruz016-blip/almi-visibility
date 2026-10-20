@@ -240,7 +240,7 @@ test("L2 · the packages own every relocated file; the old paths are gone; no co
     const underPkg = tracked.filter((f) => f.startsWith(base) && /\/(tools|config)\/[^/]+\.mjs$/.test(f));
     assert.deepEqual(underPkg.filter((f) => !p.owns.some((o) => base + o.file === f)), [], `an unowned file under ${base}`);
   }
-  assert.ok(owned >= 13, `only ${owned} owned files`);
+  assert.ok(owned >= 10, `only ${owned} owned files`); /* RR-295: 13 -> 10 (three old-template tools removed) */
   const oldPaths = pkgs.flatMap((p) => p.owns.map((o) => o.relocatedFrom)).filter((x) => /^(bin|config)\/[^ ]+\.mjs$/.test(x));
   const code = tracked.filter((f) => /^(src|bin|tools|config|subjects)\/.*\.mjs$/.test(f));
   const refs = [];
@@ -255,7 +255,7 @@ test("L2 · the packages own every relocated file; the old paths are gone; no co
 
 test("L3 · every relocated tool FAILS CLOSED without a tenant (exit 3, nothing read) — and the trail does not move", () => {
   const tools = productionEntryPoints().filter((f) => f.startsWith("subjects/"));
-  assert.ok(tools.length >= 9, `only ${tools.length} subject tools`);
+  assert.ok(tools.length >= 6, `only ${tools.length} subject tools`); /* RR-295: 9 -> 6 */
   const before = trailHash();
   for (const f of tools) {
     // --product is given so a tool that requires it reaches the tenant gate; no --tenant is given.

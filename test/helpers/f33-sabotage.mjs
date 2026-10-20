@@ -45,7 +45,7 @@ const SABOTAGES = [
   ["S14", "C5 NOT COVERED is recorded", EPF, 'if (decision.mayProduce) return { eventType: "EVALUATION", action: "DECIDE_NEED_NOT_COVERED_BY_EXISTING_PAGES", outcome: "ALLOWED", reasonCode: decision.reason, metadata };', "if (decision.mayProduce) return null;", "C5 ·", T],
   ["S15", "C5/C6 the runner's recorded decision carries F33", EPF, 'const f33 = need ? ` need=${need.outcome} ev=${evidenceSummary(need) || "none"}` : "";', 'const f33 = need ? " need=?" : "";', "C6 · END TO END", T34],
   ["S16", "C6 the one check reaches F33", EPF, "const need = decideNeedCoverage({ need: candidate?.intent, structure: candidate?.structure, population });", 'const need = { outcome: "NOT_COVERED", reason: "X", pages: [], covering: [], undecided: [] };', "C6 · the one check every routed path calls", T],
-  ["S17", "C6 construction hands F33 the registered structure", CON, "existingPageFirst({ candidate: { slug, intent: me.spec?.variant, structure: { values: variants } }, tenantId, population: existingPages });", "existingPageFirst({ candidate: { slug, intent: me.spec?.variant }, tenantId, population: existingPages });", "F34 · C2 · a candidate whose intent", PC],
+  /* S17: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S18", "C7 a network call in the decision is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "C7 ·", T],
 ];
 

@@ -284,6 +284,7 @@ test("T27 · RR-177: NO R4 PROOF READS THE REAL PARTITIONS — this file and its
 const F41T = readFileSync(join(REPO, "test/f41-content-brief.test.mjs"), "utf8");
 const F36T = readFileSync(join(REPO, "test/f36-right-to-exist.test.mjs"), "utf8");
 const PCT = readFileSync(join(REPO, "test/page-construction.test.mjs"), "utf8");
+const OBT = readFileSync(join(REPO, "test/rr294-one-builder.test.mjs"), "utf8");
 const MINE = readFileSync(new URL(import.meta.url), "utf8");
 const SAB = existsSync(join(REPO, "test/helpers/rr179-sabotage.mjs")) ? readFileSync(join(REPO, "test/helpers/rr179-sabotage.mjs"), "utf8") : "";
 const named = (src, prefix) => new RegExp(`test\\("${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(src);
@@ -304,10 +305,10 @@ test("R41 · F41's 8 unpinned evidence items are each proved by a named test —
 
 test("R36 · F36's unpinned evidence items are each proved by a named test — per clause a production-path test, a firing control and a sabotage; hand-written fixtures; the real declared candidates; CI; the board route", () => {
   const map = {
-    E1_production_path: [[F36T, "C1 · the tools' GATE"], [PCT, "R4c ·"]],
+    E1_production_path: [[F36T, "C1 · the tools' GATE"]], /* RR-295: R4c (construction acts only on F35's decision) is retired with the old builder */
     E2_firing_control: [[F36T, "C1/C2 ·"], [F36T, "C2 · S38"], [F36T, "C2/C4 ·"]],
     E4_hand_written_fixtures: [[F36T, "C3 ·"], [MINE, "T35c ·"]],
-    E5_real_declared_candidates: [[PCT, "🟢 GREEN"]],
+    E5_real_declared_candidates: [[OBT, "REAL · the doctors' guide rebuilt by the ONE builder"]], /* RR-295: the old GREEN (construction) is retired with the old builder */
     E6_full_suite_in_ci: [[MINE, "R4-CI ·"]],
     E7_board_route: [[MINE, "R4-BOARD ·"]],
   };
@@ -321,7 +322,7 @@ test("R35b · F35's I-3 change is proved on fixture pages — the compiled spec 
 });
 
 test("R4-CALLS · the compiler, F35's reader, construction and the brief load no module that can make a network, process, connector or paid call — and the enumeration fires when one is planted", () => {
-  const entries = ["src/page/spec-compiler.mjs", "src/page/action-evidence.mjs", "src/page/construct.mjs", "src/page/content-brief.mjs"];
+  const entries = ["src/page/spec-compiler.mjs", "src/page/action-evidence.mjs", "src/page/content-brief.mjs"] /* RR-295: construct.mjs removed with the old builder */;
   assert.deepEqual(decisionCallPaths({ entries }).faults, []);
   const planted = decisionCallPaths({ entries, read: (f) => { const t = existsSync(join(REPO, f)) ? readFileSync(join(REPO, f), "utf8") : null; return f === entries[0] ? `${t}\nawait fetch(u);\n` : t; } });
   assert.deepEqual(planted.faults.map((x) => x.code), ["RAW_NETWORK_CALL"]);

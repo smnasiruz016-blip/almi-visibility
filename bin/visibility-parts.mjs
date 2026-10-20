@@ -11,7 +11,8 @@
  * Generic: it names no client, product or host.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import { privateSourcesRoot, withPrivateTexts } from "../src/facts/private-texts.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
@@ -32,6 +33,10 @@ const subject = lookupSubject(index, SUBJECT);
 if (subject.state !== "DECLARED") { console.error(`🔴 REFUSED — the subject is not declared (${subject.state}); nothing read`); process.exit(3); }
 /* the batch directory is bound on the line that names the RESEARCH store, so every read through it is that store's (tenant-scope census) */
 const batchDir = join(lookupStore(index, "RESEARCH").dir, BATCH);
+/* RR-299: the batch's stored page texts, joined from the PRIVATE sources root at this batch's own path (as bin/build-joined-pages.mjs does) */
+const PRIVATE = privateSourcesRoot(process.env);
+/* bound on a line that names the RESEARCH store: these are THIS research batch's own texts, decided by RESOURCES.researchBatch above */
+const privateBatchDir = join(PRIVATE.dir, relative(lookupStore(index, "RESEARCH").rootPath, batchDir));
 if (!existsSync(batchDir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT; nothing read"); process.exit(3); }
 /* RR-294: the client's own design, from the questionnaire filed under THIS declared subject (RESOURCES.subject above) */
 ensureSubjectHook();
@@ -46,6 +51,8 @@ const io = Object.freeze({
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
   listBatch: () => readdirSync(batchDir),
+  /* bound on the lines that name the RESEARCH store (batchDir, privateBatchDir): THIS research batch's own stored reads and their private texts */
+  storedReads: () => withPrivateTexts((() => { try { return readFileSync(join(batchDir, "source-reads.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })(), (() => { try { return readFileSync(join(privateBatchDir, "source-reads.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })(), { privateRoot: PRIVATE.state }),
   list: process.argv.includes("--list"),
   on: arg("on"),
   compareBatch: COMPARE,

@@ -1,61 +1,114 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AlmiVisibility</title>
 <style>
-:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1d24;--muted:#5b5b66;--line:#e2e2e6;--accent:#0d7a6f;--bad:#a12020}
-@media (prefers-color-scheme:dark){:root{--bg:#16161a;--card:#1f1f25;--ink:#ececf1;--muted:#a3a3ad;--line:#33333b;--accent:#3cc2b2;--bad:#ff8a8a}}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Segoe UI",sans-serif}
-header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
-header b{font-size:18px} header small{color:var(--muted)}
-main{max-width:760px;margin:24px auto;padding:0 16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
-h2{margin:0 0 6px;font-size:18px} p.ask{color:var(--muted);margin:0 0 14px}
-input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box;margin:4px 0 10px;background:var(--card);color:var(--ink)}
-button{font:inherit;padding:9px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
-button.ghost{background:transparent;color:var(--accent)} .err{color:var(--bad);margin-top:8px}
-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px} nav button{padding:6px 12px}
-ul{padding-left:18px} .steps{color:var(--muted);font-size:13px;margin-bottom:8px} label{display:block}
+/*SUNRISE*/
+body{margin:0;background:var(--cream);color:var(--text);font:15px/1.55 var(--font);min-height:100vh;display:flex;flex-direction:column}
+main{flex:1 0 auto;width:100%;box-sizing:border-box}
+h1,h2,h3{color:var(--ink);margin:0 0 6px} h1{font-size:22px} h2{font-size:18px}
+header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--white);border-bottom:3px solid var(--peach);flex-wrap:wrap}
+header img.maker{height:44px;width:auto}
+header .app{font-weight:700;color:var(--ink);font-size:16px}
+header .lic{margin-left:auto;color:var(--muted);font-size:13px;max-width:420px}
+@media (max-width:560px){header .lic{margin-left:0;flex-basis:100%}}
+.band{height:6px;background:linear-gradient(90deg,var(--coral),var(--sunrise),var(--peach))}
+main{max-width:860px;margin:22px auto;padding:0 16px}
+.card{background:var(--white);border:1px solid var(--peach);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 1px 0 rgba(26,26,46,.04)}
+.company{display:flex;align-items:center;gap:14px}
+.company img{height:48px;width:auto;border-radius:8px;border:1px solid var(--peach)}
+.company .site{color:var(--muted)}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.product{background:var(--white);border:1px solid var(--peach);border-radius:16px;padding:16px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.product:hover,.product:focus{border-color:var(--sunrise);outline:none;box-shadow:0 0 0 3px var(--teal)}
+.product .addr{color:var(--muted);font-size:13px;word-break:break-all}
+.badge{display:inline-block;background:var(--peach);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:12px;margin:8px 0}
+.meta{font-size:13px;color:var(--muted)}
+.limit{background:var(--peach);color:var(--ink);border-radius:12px;padding:10px 14px;margin:14px 0}
+button{font:inherit;font-weight:600;padding:10px 18px;border-radius:999px;border:0;background:var(--coral);color:var(--ink);cursor:pointer}
+button.alt{background:var(--sunrise)} button.ghost{background:transparent;border:1px solid var(--coral);color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+button[disabled]{opacity:.55;cursor:not-allowed}
+input,select{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radius:10px;width:100%;box-sizing:border-box;margin:4px 0 12px;background:var(--white);color:var(--ink)}
+label{display:block;color:var(--ink)} .ask{color:var(--muted);margin:0 0 14px} .steps{color:var(--muted);font-size:13px}
+.err{color:#9F1D1D;margin-top:8px;font-weight:600}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+footer{background:var(--night);color:var(--cream);padding:14px 20px;font-size:13px;text-align:center} footer b{color:var(--gold)}
+@media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
+@media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22}}
 </style></head>
 <body>
-<header><b>AlmiVisibility</b><small id="ver"></small><small id="lic" style="margin-left:auto"></small></header>
+<header><img class="maker" src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully"><span class="app">Visibility</span><span class="lic" id="lic"></span></header>
+<div class="band"></div>
 <main id="app"></main>
+<footer>Made by <b>AlmiWorld</b> · live beautifully · <span id="ver"></span></footer>
 <script>
 const $ = (s) => document.querySelector(s);
-const api = async (p, o) => { const r = await fetch(p, o && { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); return r.json(); };
-let S, step = 0;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const get = (p) => fetch(p).then((r) => r.json());
+const post = async (p, o) => { const r = await fetch(p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); return r.json(); };
+let P = null, S = null, step = 0;
+
+/* ── the first screen: the client's company and its products ── */
+async function home() {
+  const H = await get("/api/home");
+  $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence;
+  if (!H.company) return company();
+  const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
+  $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
+  <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
+  <div class="products">${H.products.map((p) => `<button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site)}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles} · Last report: ${esc(p.lastReport)}</div></button>`).join("") || `<div class="meta">No product yet.</div>`}</div>
+  <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button></p><div class="err" id="err"></div>`;
+  document.querySelectorAll(".product").forEach((b) => (b.onclick = () => open(b.dataset.id)));
+  $("#add").onclick = () => addProduct();
+}
+function company() {
+  $("#app").innerHTML = `<div class="card"><h2>Your company</h2><p class="ask">Its name and its main website — your products are listed under it. Your own logo is optional.</p>
+  <label>Company name<input id="c1"></label><label>Main website<input id="c2" placeholder="https://"></label><label>Your logo (PNG, optional)<input id="c3" type="file" accept="image/png"></label>
+  <button id="save">Continue</button><div class="err" id="err"></div></div>`;
+  $("#save").onclick = async () => {
+    const f = $("#c3").files[0]; const logoPng = f ? await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); }) : null;
+    const r = await post("/api/company", { name: $("#c1").value, site: $("#c2").value, logoPng }); if (r.refused) return ($("#err").textContent = r.refused); home();
+  };
+}
+function addProduct() {
+  $("#app").innerHTML = `<div class="card"><h2>Add a product</h2><p class="ask">Its name and its own address (for example a subdomain of your site).</p>
+  <label>Product name<input id="p1"></label><label>Its address<input id="p2" placeholder="https://"></label><button id="go">Add and set it up</button> <button class="ghost" id="back">Back</button><div class="err" id="err"></div></div>`;
+  $("#back").onclick = home;
+  $("#go").onclick = async () => { const r = await post("/api/products", { name: $("#p1").value, site: $("#p2").value }); if (r.refused) return ($("#err").textContent = r.refused); open(r.product.id); };
+}
+
+/* ── one product's own work ── */
 const fields = {
-  product: () => `<label>Name<input id=f1></label><label>Website<input id=f2 placeholder="https://"></label><label>What it does<input id=f3></label>`,
+  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name)}"></label><label>Its address<input id=f2 value="${esc(S.setup.product?.site)}"></label><label>What it does<input id=f3 value="${esc(S.setup.product?.what)}"></label>`,
   searchData: () => `<select id=f1><option value=1>1 — Search API key (your own key)</option><option value=2>2 — Google Search Console (your own connection)</option><option value=3>3 — Your AI search (your own AI account)</option></select>`,
   languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${l.code === "en" ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
   articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=1>`,
   publishMode: () => `<label><input type=radio name=m value=AUTO_AFTER_GATES checked style="width:auto"> Publish automatically after every gate passes (default)</label><label><input type=radio name=m value=REVIEW_FIRST style="width:auto"> Show me first</label>`,
   aiConnection: () => `<input id=f1 placeholder="e.g. ANTHROPIC_API_KEY">`,
-  start: () => `<p>Visibility will start working on your product. Nothing is published before it passes every gate${S.setup.publishMode?.mode === "REVIEW_FIRST" ? " and you approve it" : ""}.</p>`,
+  start: () => `<p>Visibility will start working on ${esc(S.product.name)}. Nothing is published before it passes every gate.</p>`,
 };
 const value = (id) => ({
-  product: () => ({ name: $("#f1").value, site: $("#f2").value, what: $("#f3").value }),
-  searchData: () => ({ option: Number($("#f1").value) }),
-  languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }),
-  articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
-  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }),
-  aiConnection: () => ({ keyName: $("#f1").value.trim() }),
-  start: () => ({}),
+  product: () => ({ name: $("#f1").value, site: $("#f2").value, what: $("#f3").value }), searchData: () => ({ option: Number($("#f1").value) }),
+  languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }), articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
+  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }), aiConnection: () => ({ keyName: $("#f1").value.trim() }), start: () => ({}),
 })[id]();
+async function open(id) { P = id; S = await get(`/api/products/${encodeURIComponent(id)}/state`); if (S.started) return work("Reports"); step = S.steps.findIndex((x) => !S.setup[x.id] || (x.id === "product" && !S.setup.product?.what)); if (step < 0) step = S.steps.length - 1; setup(); }
 function setup() {
   const st = S.steps[step];
-  $("#app").innerHTML = `<div class=card><div class=steps>Step ${st.n} of ${S.steps.length}</div><h2>${st.title}</h2><p class=ask>${st.ask}</p>${fields[st.id]()}<div style="display:flex;gap:8px;margin-top:8px">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next>${st.id === "start" ? "Start" : "Next"}</button></div><div class=err id=err></div></div>`;
-  if ($("#back")) $("#back").onclick = () => { step--; setup(); };
-  $("#next").onclick = async () => { const r = await api("/api/setup", { id: st.id, value: value(st.id) }); if (r.refused) { $("#err").textContent = r.refused; return; } if (st.id === "start") return boot(); step++; setup(); };
+  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><div class="steps">${esc(S.product.name)} · step ${st.n} of ${S.steps.length}</div><h2>${esc(st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
+  <div style="display:flex;gap:8px;margin-top:8px">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next>${st.id === "start" ? "Start" : "Next"}</button></div><div class=err id=err></div></div>`;
+  $("#home").onclick = home; if ($("#back")) $("#back").onclick = () => { step--; setup(); };
+  $("#next").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: st.id, value: value(st.id) }); if (r.refused) return ($("#err").textContent = r.refused); S = await get(`/api/products/${encodeURIComponent(P)}/state`); if (st.id === "start") return work("Reports"); step++; setup(); };
 }
-async function view(tab) {
-  const v = await fetch("/api/views").then((r) => r.json());
-  const lic = await fetch("/api/licence").then((r) => r.json());
-  const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, "Plan and licence": [lic.line, ...S.plans], Articles: S.articleSettings };
-  $("#app").innerHTML = `<nav>${Object.keys(tabs).map((t) => `<button class=${t === tab ? "" : "ghost"} data-t="${t}">${t}</button>`).join("")}<button class=ghost id=upd>Check for updates</button></nav><div class=card><h2>${tab}</h2><ul>${tabs[tab].map((x) => `<li>${x}</li>`).join("")}</ul><div id=u></div></div>`;
-  document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => view(b.dataset.t)));
-  $("#upd").onclick = async () => { const r = await fetch("/api/update").then((x) => x.json()); $("#u").innerHTML = `<p>${r.line}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await api("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${x.line ?? x.refused}</p>`; }; };
-  $("#lic").textContent = lic.line;
+async function work(tab) {
+  const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
+  const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, Articles: S.articleSettings };
+  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site)}</div>
+  <nav>${Object.keys(tabs).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="upd">Check for updates</button></nav>
+  <div class="card"><h2>${esc(tab)}</h2><ul>${tabs[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div id="u"></div></div>`;
+  $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
+  $("#upd").onclick = async () => { const r = await get("/api/update"); $("#u").innerHTML = `<p>${esc(r.line)}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await post("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${esc(x.line ?? x.refused)}</p>`; }; };
 }
-async function boot() { S = await fetch("/api/state").then((r) => r.json()); $("#ver").textContent = "version " + S.version; if (!S.started) { step = S.steps.findIndex((x) => !S.setup[x.id]); if (step < 0) step = S.steps.length - 1; setup(); } else view("Reports"); }
-boot();
+const hash = location.hash.slice(1);
+if (hash.startsWith("product=")) { open(decodeURIComponent(hash.slice(8))); get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; }); } else home();
 </script>
 </body></html>

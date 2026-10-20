@@ -62,3 +62,6 @@ export function mayAddProduct(state, productCount) {
 
 /** The plans, in plain words, as the client sees them. */
 export const plansView = () => ["Plans (per month, USD) — there is no free trial:", ...PLANS.map((p) => `  • ${p.words}`), "Payment is by card through Stripe. You can change or cancel your plan at any time."];
+
+/** RR-299 · the plan limit in plain words, on the products home screen. */
+export const planLimitLine = (st, count) => (!st.plan ? st.line : st.plan.products === Infinity ? `Your plan allows unlimited products (${count} added).` : `Your plan allows ${st.plan.products} product${st.plan.products === 1 ? "" : "s"}${count >= st.plan.products ? ". Choose a bigger plan to add more." : ` — ${count} added.`}`);

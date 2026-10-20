@@ -288,6 +288,49 @@ export async function extractFacts({ read, propose }) {
 }
 
 /**
+ * 🔴 RR-299 · THE NEW VALUE OF A CHANGED FACT, read VERBATIM from the re-read page text — never guessed.
+ *   · the old quotation still stands in the text → SAME (the value did not change; the quotation is re-confirmed, with the new date);
+ *   · otherwise the old quotation's own words with its NUMBERS left open (any dash, any spacing) must match the text EXACTLY ONCE → READ:
+ *     the matched words are the new verbatim quotation, and the value takes the new numbers in the same places (every number of the value
+ *     must be a number of the quotation, so a condition or a unit is never dropped);
+ *   · no match, or more than one → NOT_READABLE: the fact stays CHANGED with "new value not readable", and no page changes.
+ * `value` is the shown value of the fact (its key-fact card value, or the quotation's own number).
+ */
+export const NEW_VALUE = Object.freeze({ SAME: "SAME", READ: "READ", NOT_READABLE: "NOT_READABLE" });
+
+/**
+ * RR-299 · a stored CHANGED recheck made before its new value was recorded, completed from the STORED re-read of its page (matched by
+ * the page's sha256) — no outside read. `quotationOf(factId)` gives the fact's current verbatim quotation. A recheck whose page text is
+ * not stored stays CHANGED, "new value not readable".
+ */
+export function withNewValues({ rechecks, reads, quotationOf }) {
+  return rechecks.map((r) => {
+    if (r?.state !== RECHECK.CHANGED || r.newValue || r.newClaim) return r;
+    const read = reads.find((x) => x?.sha256 && x.sha256 === r.pageSha256);
+    const q = quotationOf(r.factId);
+    if (!read || !q) return Object.freeze({ ...r, newValue: Object.freeze({ state: NEW_VALUE.NOT_READABLE, reason: `new value not readable — ${read ? "the fact has no stored quotation" : "the re-read page text is not stored"}` }) });
+    return Object.freeze({ ...r, newValue: newValueOf({ quotation: q, value: (String(q).match(/\d[\d,.]*\d|\d/g) ?? []).at(-1) ?? "", text: read.text }) });
+  });
+}
+export function newValueOf({ quotation, value, text }) {
+  const flat = (s) => String(s ?? "").replace(/[\u2010-\u2015]/g, "-").replace(/\s+/g, " ").trim();
+  const q = flat(quotation), t = flat(text);
+  const nums = (s) => String(s).match(/\d[\d,.]*\d|\d/g) ?? [];
+  if (!q || !t) return Object.freeze({ state: NEW_VALUE.NOT_READABLE, reason: "new value not readable — no quotation or no re-read text" });
+  if (quotationIn(quotation, text) || t.includes(q)) return Object.freeze({ state: NEW_VALUE.SAME, quotation: q, value, reason: "the quotation still stands in the re-read text — the value is unchanged" });
+  const parts = q.split(/(\d[\d,.]*\d|\d)/);
+  const pattern = parts.map((p, i) => (i % 2 ? "(\\d[\\d,.]*\\d|\\d)" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/-/g, "[-\u2010-\u2015]").replace(/ /g, "\\s+"))).join("");
+  const hits = [...t.matchAll(new RegExp(pattern, "g"))];
+  if (hits.length !== 1) return Object.freeze({ state: NEW_VALUE.NOT_READABLE, reason: `new value not readable — the quotation's words ${hits.length ? `match ${hits.length} places` : "are not in the re-read text"}` });
+  const oldN = nums(q), newN = hits[0].slice(1);
+  if (!nums(value).every((n) => oldN.includes(n))) return Object.freeze({ state: NEW_VALUE.NOT_READABLE, reason: "new value not readable — the shown value holds a number its quotation does not" });
+  let v = String(value);
+  oldN.forEach((n, i) => { if (n !== newN[i]) v = v.split(n).join(`\u0000${i}\u0000`); });
+  oldN.forEach((n, i) => { v = v.split(`\u0000${i}\u0000`).join(newN[i]); });
+  return Object.freeze({ state: NEW_VALUE.READ, quotation: hits[0][0], value: v, before: value, reason: null });
+}
+
+/**
  * C11 · the recheck of stored facts. Each fact: { factId, link, quotations: [...], readOn, recheckDays, pages: [...] }. `readOf(url)` returns
  * the read of that source in this run (each URL read once). Exactly one state per fact; nothing stored is rewritten — the result is a new
  * record beside the fact. A CHANGED fact names every page that uses it, flagged for rebuild.
@@ -303,7 +346,9 @@ export async function recheckFacts({ facts, readOf, on }) {
     const missing = quotations.filter((q) => !quotationIn(q, read.text));
     /* RR-269: a capture of part of a page shows what is in the part; a quotation not in it is not shown gone — BLOCKED, named, never CHANGED */
     if (missing.length && read.capture && read.capture.whole !== true) { out.push(Object.freeze({ ...base, state: RECHECK.BLOCKED, reason: BLOCK.CAPTURE_PART, detail: `${missing.length} of ${quotations.length} quotation(s) not in the captured part (${read.capture.file})`, route: read.route, rebuild: Object.freeze([]) })); continue; }
-    out.push(Object.freeze({ ...base, state: missing.length ? RECHECK.CHANGED : RECHECK.CURRENT, quotations: quotations.length, missing: missing.length, pageSha256: read.sha256, route: read.route, readOn: on,
+    /* RR-299: a CHANGED fact also records its NEW verbatim quote and value from the re-read text — or "new value not readable" */
+    const fresh = missing.length ? newValueOf({ quotation: missing[0], value: typeof f.value === "string" ? f.value : (missing[0].match(/\d[\d,.]*\d|\d/g) ?? []).at(-1) ?? "", text: read.text }) : null;
+    out.push(Object.freeze({ ...base, state: missing.length ? RECHECK.CHANGED : RECHECK.CURRENT, quotations: quotations.length, missing: missing.length, pageSha256: read.sha256, route: read.route, readOn: on, ...(fresh ? { newValue: fresh } : {}),
       /* nothing is silently kept: a CHANGED fact flags every page that uses it */
       rebuild: Object.freeze(missing.length ? [...base.pages] : []) }));
   }

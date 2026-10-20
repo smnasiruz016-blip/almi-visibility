@@ -6,7 +6,7 @@
  *   node tools/existing-page-first-census.mjs --check    exit 1 on any fault
  *
  * READ-ONLY. POPULATION: every git-tracked `.mjs` outside test/ whose STATIC imports resolve to the candidate-page renderer
- * (src/page/render.mjs) or constructor (src/page/construct.mjs), plus every file in the permitted page-writer register. Each must
+ * (RR-295: the one page builder, src/page/one-builder.mjs), plus every file in the permitted page-writer register. Each must
  * be classified in config/page-production.mjs; a CHECKS or ROUTED file must really contain every one of its marks — the call AND
  * the condition its production depends on; a NOT_PAGE_PRODUCTION file
  * must not import the renderer or constructor at all.
@@ -23,7 +23,8 @@ import { PAGE_PRODUCTION, PAGE_PRODUCTION_CLASSES } from "../config/page-product
 import { PERMITTED_PAGE_WRITERS } from "../config/permitted-page-writers.mjs";
 
 const REPO = fileURLToPath(new URL("../", import.meta.url));
-export const PRODUCERS = Object.freeze(["src/page/render.mjs", "src/page/construct.mjs"]);
+/* RR-295: the ONE page builder is the producer (the old renderer and constructor are removed) */
+export const PRODUCERS = Object.freeze(["src/page/one-builder.mjs"]);
 
 /** The repo-relative modules a source statically imports (relative specifiers only). */
 export function staticImports(file, text) {
@@ -40,7 +41,7 @@ export function staticImports(file, text) {
  */
 export function pageProductionCensus({ files, register = PERMITTED_PAGE_WRITERS, classes = PAGE_PRODUCTION }) {
   const text = new Map(files.map((f) => [f.file, f.text]));
-  const importers = files.filter((f) => !PRODUCERS.includes(f.file) || f.file === "src/page/construct.mjs")
+  const importers = files.filter((f) => !PRODUCERS.includes(f.file))
     .filter((f) => staticImports(f.file, f.text).some((i) => PRODUCERS.includes(i))).map((f) => f.file);
   const registered = register.map((e) => e.file);
   const population = [...new Set([...importers, ...registered])].sort();

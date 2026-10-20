@@ -45,10 +45,10 @@ const SABOTAGES = [
   ["A09", "a connector-mode run without --confirm makes no request", RC, "if (!permission?.mayWrite) {", "if (false) {", "A2-3 ·"],
   ["A10", "a confirmed run ending in a refusal by the target writes its one cost entry", RC, "if (written || coveredBy) return null;", "if (written || coveredBy || code === 3) return null;", "A2-5 ·"],
   ["A11", "build-corpus: the REPO repair (a confirmed run completes and writes its cost entry)", BC, "repo: ENGINE_ROOT, permission, target: join(OUT, \"corpus-manifest.json\")", "repo: REPO, permission, target: join(OUT, \"corpus-manifest.json\")", "A2-6 ·"],
-  ["A12", "nursing-chain: the REPO repair", NC, "repo: ENGINE_ROOT, permission, target: cached,", "repo: REPO, permission, target: cached,", "A2-6b ·"],
+  /* A12: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["A13", "collect-public-questions: its no --confirm refusal comes after the recorder", CQ, "const SCOPE = scopedEntryPoint({ entry: \"bin/collect-public-questions.mjs\"", "if (!permission.mayWrite) process.exit(2);\nconst SCOPE = scopedEntryPoint({ entry: \"bin/collect-public-questions.mjs\"", "A2-3 ·"],
   ["A14", "render-collect: its storage-permission refusal comes after the recorder", RCO, "const SCOPE = scopedEntryPoint({ entry: \"bin/render-collect.mjs\"", "if (!permission.mayWrite) process.exit(3);\nconst SCOPE = scopedEntryPoint({ entry: \"bin/render-collect.mjs\"", "A2-3 ·"],
-  ["A16", "placement-measure: the REPO repair (a third subject tool, found by A2-6b)", "subjects/almi-oet/tools/placement-measure.mjs", "const REPO = new URL(\"../../../\", import.meta.url)", "const REPO_REMOVED = new URL(\"../../../\", import.meta.url)", "A2-6b ·"],
+  /* A16: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["A15", "the census: nothing ends a gate-passed run before its recorder exists", QM, "const RUN_COST = runCost({ entryPoint: \"bin/quote-match.mjs\"", "if (process.argv.includes(\"--never\")) process.exit(1);\nconst RUN_COST = runCost({ entryPoint: \"bin/quote-match.mjs\"", "A2-1 ·"],
 ];
 const RUN = ONLY ? SABOTAGES.filter((s) => s[0] === ONLY) : SABOTAGES;

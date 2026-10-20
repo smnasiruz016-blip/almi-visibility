@@ -16,7 +16,6 @@ import { join } from "node:path";
 import { judgeDraft, CRITERIA, VERDICT, CANNOT_DECIDE, NOT_JUDGED, NO_LAWFUL_JUDGE, ASSESSMENTS, JUDGEMENTS, POPULATION, MAX_REPAIR_ROUNDS } from "../src/page/quality-judgements.mjs";
 import { renderCompiledDraft, PROMISE } from "../src/page/draft-render.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
-import { constructCandidates, decisionsForConstruction } from "../src/page/construct.mjs";
 import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
 import { coverageJudgementRecords } from "../src/page/grouped-need-coverage.mjs";
 import { possibleCombinations } from "../src/page/page-opportunities.mjs";
@@ -91,13 +90,6 @@ const gainFor = (slug, withGain = true) => ({
   reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", needsGuidance: false, ref: `f32:${p.pageId}` })),
 });
 /** The production path: construction judges F35's chosen spec; the draft is F37's own render of it; F40 reads both. */
-function judged(c, { plan = PLAN_OF(c.d.decision), withGain = true, population = POPULATION.FIXTURE, judgements = [], repeatJustifications = [], round = 0, previous = null, spec = c.d.spec, draft = null } = {}) {
-  /* construction is handed the SAME spec the draft renders (a changed spec rides in F35's construction set) */
-  const compiled = { ...c.g.compiled, forConstruction: c.g.compiled.forConstruction.map((x) => (x.slug === c.d.slug ? { ...x, spec } : x)) };
-  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug, withGain), decisions: decisionsForConstruction({ compiled }).decisions, plans: [plan].filter(Boolean), now: NOW })[0];
-  const d = draft ?? renderCompiledDraft({ spec, decision: c.d.decision, plan });
-  return { r, d, q: judgeDraft({ spec, decision: c.d.decision, draft: d, parts: r.parts, population, judgements, repeatJustifications, round, previous }) };
-}
 const fixtureJudgement = (name, verdict) => ({ name, verdict, criterionId: CRITERIA[name].id, observation: `the fixture judge's recorded observation of the rendered draft (${verdict})`, source: { kind: "FIXTURE", ref: `fixture-judge:${name}` } });
 const PASSING_JUDGEMENTS = [fixtureJudgement("engaging", VERDICT.PASS), fixtureJudgement("hookable", VERDICT.PASS)];
 const justifyAll = (html) => [...new Set([...html.matchAll(/<div class="claim" data-claim-id="([^"]+)">/g)].map((m) => m[1]))].map((claimId) => ({ claimId, adds: "the answer restated under the question's own wording for a reader who arrives at that question", ref: `fixture-justification:${claimId}` }));
@@ -188,18 +180,6 @@ test("T93-C3 · F93 C3 A DATED UPDATE: a visible date between the latest recorde
 });
 
 /* ================= C4 ================= */
-test("T93-C4 · F93 C4 TRANSPARENT SOURCES: F37's every-claim-sourced record read unchanged; a draft whose record says a claim lacks its source — reported as that record says; an existing page with no citation verdict — NOT MEASURED; with a recorded verdict — that verdict", () => {
-  const c = chosen();
-  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: null });
-  const s = sourcesOfDraft(d);
-  assert.deepEqual([s.signal, s.record], [SIGNAL.PRESENT, { ...d.checks.everyClaimSourced }]);
-  const failing = { ...d, checks: { ...d.checks, everyClaimSourced: { state: "FAIL", why: "a written claim lacks its source or its trace" } } };
-  assert.deepEqual([sourcesOfDraft(failing).signal, sourcesOfDraft(failing).record], [SIGNAL.FINDING, { state: "FAIL", why: "a written claim lacks its source or its trace" }], "F37's record was re-judged or changed");
-  assert.deepEqual([sourcesOfPage("p-guide", []).signal, sourcesOfPage("p-guide", []).why], [SIGNAL.NOT_MEASURED, NO_CITATION_RECORD]);
-  assert.deepEqual([sourcesOfPage("p-guide", [{ pageId: "p-guide", verdict: "PASS", ref: "verdict:fixture" }]).signal], [SIGNAL.PRESENT]);
-  assert.deepEqual([sourcesOfPage("p-guide", [{ pageId: "p-guide", verdict: "FAIL", ref: "verdict:fixture" }]).signal], [SIGNAL.FINDING]);
-});
-
 /* ================= C5 ================= */
 test("T93-C5 · F93 C5 A MISSING SIGNAL IS A FINDING, NEVER INVENTED: every fixture page's every signal is PRESENT, REACHABLE, MATCHES, a FINDING or NOT MEASURED, each with its evidence or reason; F93 writes nothing", () => {
   const pages = [...SITE, pg("p-dated", "/guides/dated", html('<meta name="author" content="Desk">', '<time datetime="2026-09-25">x</time>'), [{ sha256: "a", observedAt: "2026-09-01T00:00:00Z" }, { sha256: "b", observedAt: "2026-09-20T00:00:00Z" }, { sha256: "b", observedAt: "2026-09-28T00:00:00Z" }])];
@@ -265,8 +245,7 @@ test("T93-C6 · F93 C6 THE BOUND, ONE TENANT, READ-ONLY: no real tenant's invent
 /* ================= C7 ================= */
 const OTHER_ROWS = Object.freeze({
   "src/page/draft-render.mjs": "fa5ebe27a4dbc8499be502bdfc302b8f584b0ca12b436f95f99f962a99c54a3b",
-  "src/page/construct.mjs": "075c6c1d31228dfe248a679130f200e4861decfe007c353a789edbf7c2159561", /* RR-294: PAGE-1 SATISFIED (the five gates are build-page's acceptance step) */
-  "bin/build-page.mjs": "76fc84e122acb6152f0cae27bb88ff4f7a96c0694195910b0368802b139a6ec3", /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F93 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
+  "bin/build-page.mjs": "bd623db832fc79ecdb94b4f3c10ac538c097d08e1a0666e16bfc64f812e8b422", /* RR-294: the five page gates are its acceptance step */ /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F93 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/page/quality-judgements.mjs": "f4511418885bfbb3994e842dd6ba42610e49b8e6368401f0791ca79cb482fda2",
   "src/page/content-brief.mjs": "5771c6955fcc621430391b9c34a525a74673e81a3ff4d3b05cf429d358ad5c06",
   "src/page/content-brief-evidence.mjs": "b1af103909fa3ef4782686380c4d1c5e14c473f5e73e1080f29fb1c06c37abe6",

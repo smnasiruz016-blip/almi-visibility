@@ -41,10 +41,10 @@ const SABOTAGES = [
   ["S14", "C7 an unverified body measures nothing", IG, `for (const k of BASELINES) b[k] = verdict("NOT_MEASURED", [], MISSING.BODY);`, `for (const k of BASELINES) b[k] = verdict("BEYOND", ["assumed"]);`, "C7 · an unverified"],
   ["S15", "C7 evidence is passed, never defaulted", IG, `throw new TypeError("gain evidence must be passed explicitly`, `return; throw new TypeError("gain evidence must be passed explicitly`, "C7 · an unverified"],
   ["S16", "C6 the tools' gate needs gain ESTABLISHED", GP, "mayProduce: mayProduceCandidate(decision, rte) && informationGain.outcome === GAIN_OUTCOME.ESTABLISHED,", "mayProduce: mayProduceCandidate(decision, rte),", "C6 ·"],
-  ["S17", "C6 construction accepts only an ESTABLISHED gain", CO, "state: gain.outcome === GAIN_OUTCOME.ESTABLISHED ? PASS : gain.outcome === GAIN_OUTCOME.REFUSED ? FAIL : NOT_TESTED,", "state: PASS,", "F36 · C1"],
-  ["S18", "C6 no verified population is never 'no other current page'", CO, "const currentPages = existingPages?.inventory ? verifiedPages(existingPages) : null;", "const currentPages = existingPages?.inventory ? verifiedPages(existingPages) : [];", "F36 · C1"],
-  ["S19", "C6 the census holds F39 on construction", PPC, `"rightToExist({", "informationGainForCandidate(", "state: gain.outcome === GAIN_OUTCOME.ESTABLISHED ? PASS"]`, `"rightToExist({"]`, "C6 ·"],
-  ["S20", "C6 a tool that skips F39 is a census fault", NC, "html: candidateHtml, gainEvidence: NO_RECORDED_GAIN_EVIDENCE", "html: candidateHtml", "C6 ·"],
+  /* S17: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S18: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S19: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S20: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S21", "C5/C7 the entry point prints its bound", BIN, "console.log(`  bound            ${r.bound}`);", "console.log(\"  bound\");", "C5/C7 · THE ENTRY POINT"],
   ["S22", "C7 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "C7 · the decision"],
 ];

@@ -41,9 +41,9 @@ const SABOTAGES = [
   ["S5", "C2 a page naming the intent is matched", NCV, "[PAGE_EVIDENCE.HEADLINE_THIS_ONLY]: PAGE_VERDICTS.COVERS,", "[PAGE_EVIDENCE.HEADLINE_THIS_ONLY]: PAGE_VERDICTS.DIFFERENT,", "C2 · an existing page that names the intent", T],
   ["S6", "C4 recorded defect routes to IMPROVE", EPF, "if (defective.length) {", "if (false) {", "C4 ·", T],
   ["S7", "C6 a stopped candidate owes a decision", EPF, "if (!decision || decision.outcome === EXISTING_PAGE_OUTCOMES.NO_EXISTING_PAGE) return null;", "return null;", "C6 · a stopped candidate", T],
-  ["S8", "C1/C2 construction needs the check to PASS", CON, "state: existing.mayProduce ? PASS : existing.outcome === EXISTING_PAGE_OUTCOMES.REFUSED ? NOT_TESTED : FAIL,", "state: PASS,", "F34 · C1 · construction", PC],
+  /* S8: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* RR-249: the F34 C6 fix — the runner records F35's own F34 decision for a candidate F35 stopped; S9 breaks THAT record (no longer BLOCKED) */
-  ["S9", "C6 the runner records each candidate F35's check stopped (RR-249)", BP, "if (stop) SCOPE.recordDecision(stop);", "if (false) SCOPE.recordDecision(stop);", "C6 · END TO END", T],
+  /* S9: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* RR-248 · CASE (b) — MOVED (beta-g ruling, 11 Oct): since RR-179 (c) (_handoffs a8dc190) and RR-180 (a) (_handoffs 20150be) construction
    * acts only on F35's decision, and F35 judges F34 over the tenant's population before anything reaches construction; the runner's
    * existingPages: ep is read by no path that can change a verdict. The limb breaks F35's population (RR-248's first restatement here,
@@ -52,7 +52,7 @@ const SABOTAGES = [
   ["S11", "population applies the coverage correction", POP, "return c ? c.corrected_value : run.coverageState;", "return run.coverageState;", "population ·", T],
   ["S12", "C1 an unreadable batch is not a population", POP, "if (e instanceof ObservationBatchFault) return { population: null, fault: e.fault, population_of: null };", `if (e instanceof ObservationBatchFault) return { population: { tenantId: scope.tenantId, coverageState: "COMPLETE", pages: [] }, fault: null, population_of: null };`, "C6 · the shared gate", T],
   ["S13", "C6 the shared gate records", POP, "if (ev) scope.recordDecision(ev);", "if (false) scope.recordDecision(ev);", "C6 · the shared gate", T],
-  ["S14", "C5 a subject tool writes only through the gate", NC, `...(existingPage.mayProduce ? [["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"]] : []),`, `["nursing.html", candidateHtml, "WRITE_CHAIN_CANDIDATE_PAGE"],`, "C5 · the real tree", T],
+  /* S14: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S15", "C5 an unclassified path is a fault", CEN, `{ faults.push({ file, code: "UNCLASSIFIED_PAGE_PATH" }); return { file, class: null }; }`, "{ return { file, class: null }; }", "C5 · FIRING CONTROLS", T],
   ["S16", "C5 a routed path must hold its marks", CEN, `c.marks.every((m) => typeof m === "string" && m !== "" && src.includes(m))`, "true", "C5 · FIRING CONTROLS", T],
   ["S17", "C3 a product-repository write is seen", NGC, "test: (line) => ANY_WRITE.test(line) && ESCAPES_REPO.test(line),", "test: () => false,", "C3 ·", T],

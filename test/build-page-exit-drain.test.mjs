@@ -24,7 +24,7 @@ import { declaredWorld } from "./helpers/declared-world.mjs";
 const WORLD = declaredWorld();
 process.on("exit", () => WORLD.cleanup());
 import assert from "node:assert/strict";
-import { readFileSync, mkdtempSync, mkdirSync, rmSync, readdirSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, rmSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 
@@ -168,7 +168,7 @@ test("🔴 CONTROL: the guard FIRES on the unsafe shape, and REFUSES to guess on
  * never a hang, and it is not what (a) claims. The CONTROL below drives the SAME function with a process that prints the same tail and
  * never exits, and it must read HANG.
  */
-const TAIL_MARKER = /ACCEPTED \d+ of \d+ candidate\(s\)/;
+const TAIL_MARKER = /ACCEPTED \d+ of \d+ candidate\(s\)|PASS \d+ of \d+ page\(s\)/; /* RR-295: the one builder's runner prints "PASS n of m page(s)" */
 const HANG_GRACE_MS = 20_000; // 4× the runner's own DRAIN_TIMEOUT_MS fallback (5 s)
 const NEVER_REPORTED_MS = 600_000;
 export function runToExit(argv, { env, graceMs = HANG_GRACE_MS, outerMs = NEVER_REPORTED_MS } = {}) {
@@ -204,23 +204,33 @@ test("🔴 CONTROL (a): the SAME measurement reads HANG for a process that print
   assert.equal(silent.verdict, "NEVER_REPORTED", "a process that never reports was read as something else");
 });
 
+/* RR-295: the runner is the ONE builder's — it builds the stored pages of a named research batch. Its own world: one existing page and one
+ * NEW one (refused by name), so the run is a fail-closed refusal (exit 2) that still prints its whole report. */
+const DRAIN_BATCH = "rr295-drain-batch";
+const drainGuide = (value, url) => ({ record_type: "joined_page_draft", value, title: `Fixture guide ${value}`, publishedUrl: url,
+  itemList: [{ needId: `n-${value}`, needKey: `n-${value}`, heading: { wording: `What does ${value} cost?` }, questions: [{ questionId: `q-${value}`, wording: `What does ${value} cost?` }], claims: [{ claimId: `${value}-1`, text: `It costs AB$500 for ${value}.`, link: "https://body.fixture.invalid/a", source: "A fixture body", readOn: "2026-10-15" }], statements: [] }] });
 test("🔴 BOUNDED EXIT: over a PIPE the runner terminates and does not hang (a); the tail is present (b, not probative on Windows)", async () => {
+  const W = declaredWorld({ extra: [["RESEARCH_BATCH", DRAIN_BATCH]] });
+  const dir = join(W.root, "research", DRAIN_BATCH);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "joined-pages.jsonl"), [drainGuide("alpha", "https://site.fixture.invalid/guides/alpha"), drainGuide("beta", null)].map((x) => JSON.stringify(x)).join("\n") + "\n");
   mkdirSync(join(REPO, ".test-scratch"), { recursive: true });
   const out = mkdtempSync(join(REPO, ".test-scratch", "drain-"));
   let r;
   try {
-    r = await runToExit(WORLD.argv(["bin/build-page.mjs", "--product=almi-oet", "--all-slugs", `--out=${out}`, "--confirm"]), { env: WORLD.envWith() });
+    r = await runToExit(W.argv(["bin/build-page.mjs", "--product=almi-oet", `--research-batch=${DRAIN_BATCH}`, `--out=${out}`, "--confirm"]), { env: W.envWith() });
   } finally {
     rmSync(out, { recursive: true, force: true });
+    W.cleanup();
   }
 
   console.log(`  [BOUNDED EXIT] verdict ${r.verdict} · tail→exit ${r.tailToExitMs} ms (hang bound ${HANG_GRACE_MS} ms after the report)`);
   // (a) — platform-independent, and the reason this test exists alongside the structural one.
   assert.notEqual(r.verdict, "HANG", `(a) HANG: the runner printed its report and did not exit within ${HANG_GRACE_MS}ms — a drain that never completes is worse than a truncated one`);
-  assert.equal(r.verdict, "EXITED", `(a) the runner did not reach and finish its report: ${r.verdict}`);
+  assert.equal(r.verdict, "EXITED", `(a) the runner did not reach and finish its report: ${r.verdict} ${r.stdout}`);
   assert.equal(r.status, 2, "(a) the fail-closed refusal must still exit 2 after draining");
 
   // (b) — meaningful on POSIX CI, NOT probative on Windows where pipe writes are synchronous.
-  assert.match(r.stdout, /ACCEPTED \d+ of \d+ candidate\(s\)/, "(b) the summary tail is missing — probative on POSIX only");
-  assert.match(r.stdout, /\[refused\] nothing written for /, "(b) the refusal tail is missing — probative on POSIX only");
+  assert.match(r.stdout, /PASS \d+ of \d+ page\(s\)/, "(b) the summary tail is missing — probative on POSIX only");
+  assert.match(r.stdout, /🔴 beta — REFUSED: no existing address/, "(b) the refusal is missing — probative on POSIX only");
 });

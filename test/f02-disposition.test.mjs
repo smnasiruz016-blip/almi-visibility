@@ -171,7 +171,8 @@ test("D9 · the UNRESOLVED_OWNER resources (the packet's fourteen) are listed in
   };
   for (const r of rows) assert.ok(ACTIVE.every((t) => !decideForTenant(resolve, t, asResource(r)).allowed), `${r.id} was allowed for a tenant`);
   const T = DECL.attachments.find((a) => a.resourceKind === "FACT_REGISTRY").tenantId;
-  for (const f of ["subjects/almi-oet/tools/nursing-chain.mjs", "subjects/almi-oet/tools/placement-measure.mjs", "subjects/almi-oet/tools/profession-chain.mjs", "subjects/almi-oet/tools/acceptance-test.mjs", "subjects/almi-oet/tools/profession-census.mjs", "subjects/almi-oet/tools/clinical-layer-census.mjs", "bin/freeze-exhibit.mjs"]) {
+  /* RR-295: nursing-chain, placement-measure and profession-chain are removed with the old template */
+  for (const f of ["subjects/almi-oet/tools/acceptance-test.mjs", "subjects/almi-oet/tools/profession-census.mjs", "subjects/almi-oet/tools/clinical-layer-census.mjs", "bin/freeze-exhibit.mjs"]) {
     const r = spawnSync(process.execPath, [f, "--product=almi-oet", `--tenant=${T}`], { cwd: REPO, encoding: "utf8", timeout: 120_000 });
     assert.equal(r.status, 3, `${f} exited ${r.status} — an unresolved resource was treated as operational`);
   }

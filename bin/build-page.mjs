@@ -1,96 +1,42 @@
 #!/usr/bin/env node
 /**
- * ROW 61 — SAFE LOCAL PAGE CONSTRUCTION. Build a declared page spec of a declared product from its fact
- * registry, and ACCEPT it only if every frozen part of Gate A passes.
+ * 🔴 BUILD-PAGE — THE ONE PAGE BUILDER'S RUNNER (RR-295, owner decisions 1 and 3; the STANDING PAGE LAW of RR-294).
  *
- *   node bin/build-page.mjs --product=<id> --slug=<slug>                 judge one declared candidate
- *   node bin/build-page.mjs --product=<id> --all-slugs                   judge every declared candidate of ONE product
- *   node bin/build-page.mjs --product=<id> --slug=<slug> --out=<dir> --confirm   also write it, IF accepted
- *   node bin/build-page.mjs --product=<id> --all-slugs --research-batch=<id>       judge F35's chosen needs too (their compiled drafts)
+ *   node bin/build-page.mjs --product=<id> --research-batch=<id> --tenant=<t> --actor=<a>                      judge every page
+ *   node bin/build-page.mjs --product=<id> --research-batch=<id> --out=<dir> --confirm --tenant=<t> --actor=<a>  also write the passing ones
  *
- * 🔴 RR-180 ruling 3(a) — THIS RUNNER RECEIVES AND ACTS ONLY ON F35'S DECISION. It reads F91's planning store of the named research batch,
- * asks F35 (src/page/action-evidence.mjs) and hands construction F35's construction set (decisionsForConstruction): a draft is built only
- * for a need F35 CHOSE to CREATE. No research batch, or no need chosen → every candidate is refused at that part, and nothing is built.
+ * There is ONE page builder: the one that made the 12 guides (src/page/one-builder.mjs over src/page/joined-page.mjs renderJoined). Every
+ * page this runner builds comes from it, in this order: the client's own website design (its logo, its own header and links), the key-fact
+ * cards, then the questions and answers, each answer with its source and checked date. The old construction template and the page drafts
+ * of the old plan are gone (owner decision 3); this runner builds the pages of the named research batch's stored guides, and nothing else.
  *
- * 🔴 NOTHING IS PUBLISHED. An accepted candidate is written as an HTML file on this machine, inside this
- * repository, behind --confirm. No page is created in any product, no route, no sitemap entry, no deploy,
- * no production write.
+ * 🔴 PAGE-1 — THE FIVE PAGE GATES ARE ITS ACCEPTANCE STEP (src/page/page-gates.mjs acceptByPageGates): every page is judged in the form it
+ * would go live; one failing any gate is REFUSED by name, each failing check named, its HTML withdrawn so nothing of it can be written.
+ * The run is costed before it starts (gate D): a local build, no request, no paid call.
  *
- * 🔴 NO SLUG, NO DEFAULT. A runner with neither --slug nor --all-slugs stops and says so, as --product
- * already does. It used to build one hard-coded spec and could not reach the second spec its own product
- * declares.
- *
- * 🔴 --all-slugs loops the declared specs of ONE product (owner ruling, 14 September 2026). Each candidate
- * is judged on its own and every refusal is recorded separately. No cross-product loop, no cohort, no batch
- * publish, no page-count target. It exists to produce the DATA GAP list, not output.
- * 🔴 RR-292 (F76 C2's meaning, beta-g decision A): --all-slugs reads the APPROVED PLAN ONLY — the owner-declared specs, and a need F35
- * chose only when the batch's F91 plan holds its page (src/page/plan-batch.mjs allSlugsOverPlan). It never builds every combination; a
- * URL not in the plan is never built, on any request (servePlanned answers 404).
- *
- * 🔴 FAILS CLOSED. constructCandidates (src/page/construct.mjs) hands back HTML only for an ACCEPTED
- * candidate. A refused one has nothing to write; the run records its DATA GAP / REJECT / BLOCKED reasons and
- * exits 2. This runner used to print "TEXT AS BUILT (before Gate A)" and write the file anyway.
+ * 🔴 NOTHING IS PUBLISHED. A passing page is written as an HTML file on this machine, inside this repository, behind --confirm, through the
+ * governed write. No product is attached, no route, no sitemap entry, no deploy, no production write.
  */
-import { readC20Keep, C20_NOT_DECLARED } from "../src/page/c20-keep.mjs";
-import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-
-import { writePermission, announceWritePermission, confineToRepo, LOCAL } from "../src/write-law.mjs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { writePermission, announceWritePermission, confineToRepo, LOCAL, REPO_ROOT } from "../src/write-law.mjs";
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { loadRegistry } from "../src/facts/registry.mjs";
-import { selectCandidates, constructCandidates, decisionsForConstruction, planFor, ACCEPTED, NOT_TESTED } from "../src/page/construct.mjs";
-import { readClientSitePlans } from "../src/page/site-plan-evidence.mjs";
-import { renderCompiledDraft } from "../src/page/draft-render.mjs";
-import { judgeDraft, POPULATION, ASSESSMENTS, JUDGEMENTS } from "../src/page/quality-judgements.mjs";
-import { previewForOwner } from "../src/page/content-brief.mjs";
-import { readClientActionEvidence } from "../src/page/action-evidence.mjs";
-import { NO_RECORDED_DECAY_EVIDENCE } from "../src/page/content-decay-evidence.mjs";
-import { readClientIndexation } from "../src/page/indexation-evidence.mjs";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { approvedPlan, plannedPages, approvedKeys, allSlugsOverPlan } from "../src/page/plan-batch.mjs";
+import { guideItemsByValue, buildGuides } from "../src/page/one-builder.mjs";
 import { acceptByPageGates, costGate } from "../src/page/page-gates.mjs";
 import { GUIDANCE } from "../config/guidance/guidance-read.mjs";
+import { readProductQuestionnaire } from "../src/questionnaire/product-questionnaire-reader.mjs";
+import { designOf } from "../src/questionnaire/product-questionnaire.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
-import { createJsonlStore } from "../src/evidence/store.mjs";
-import { overturnedIds } from "../src/research/meaning-judgement.mjs";
-import { NO_RECORDED_GAIN_EVIDENCE } from "../src/page/information-gain.mjs";
 import { productFromArgvOrExit, productIdOrExit } from "../src/product-cli.mjs";
 import { scopedEntryPoint } from "../src/governance/scoped-entry.mjs";
 import { RESOURCES } from "../src/tenancy/scoped-run.mjs";
-import { createTenantResolver } from "../src/tenancy/resolver.mjs";
-import { BATCH_ID } from "../src/crawl/observation-batch.mjs";
-import { SITEMAP_BATCH_ID } from "../src/adapter/sitemap-subject.mjs";
-import { readExistingPagePopulation } from "../src/page/existing-page-population.mjs";
-import { existingPageDecisionEvent } from "../src/page/existing-page-first.mjs";
 
 /**
- * 🔴 THE ONE AUTHORISED EXIT — EVERY EXIT FROM THIS MODULE DRAINS FIRST.
- *
- * `process.exit()` forces the process down "even if there are still asynchronous operations
- * pending ... including I/O operations to process.stdout", and writes to stdout ARE
- * asynchronous when stdout is a pipe — which is exactly what `spawnSync` gives a child, and
- * what CI runs everything through. So a runner that prints its verdict and exits immediately
- * can lose the tail of its own output, and the reader sees a truncated report with a correct
- * exit code: a result that looks complete and is not.
- *
- * 🔴 THIS IS CORRECTED AS AN UNSAFE PROPERTY IN ITS OWN RIGHT, NOT AS A PROVEN ROOT CAUSE.
- * It was found while investigating #99's intermittent CI failure; whether it caused that
- * failure is UNKNOWN and is not claimed here.
- *
- * Why a choke point rather than "drain the paths that print": reachability in JavaScript is
- * where "I cannot determine" multiplies — callbacks, dynamic dispatch, writes inside imported
- * helpers. One helper, every exit routed through it, and a guard that only has to scan for
- * `process.exit(` outside it. Correctness lives in one place instead of three, and the cost —
- * paths that printed nothing also drain — is nothing.
- *
- * 🔴 THE WAIT IS BOUNDED. `process.exitCode` is NOT used: it makes exit depend on the event
- * loop draining, so one stray handle turns a truncated run into a hanging one, and a build
- * binary that hangs is worse than one that truncates. The zero-length write's callback fires
- * after every earlier write has been handled (stream callbacks run in order), and the timer
- * is a floor under the worst case, not a substitute for the drain.
+ * 🔴 THE ONE AUTHORISED EXIT — EVERY EXIT FROM THIS MODULE DRAINS FIRST. `process.exit()` can lose the tail of a piped stdout, so every
+ * exit waits for the zero-length write's callback (stream callbacks run in order), with a bounded timer as a floor, never a hang.
  */
 const DRAIN_TIMEOUT_MS = 5000;
 function exitAfterDrain(code) {
@@ -105,189 +51,90 @@ function exitAfterDrain(code) {
   process.stdout.write("", go);
 }
 
-const USAGE = "node bin/build-page.mjs --product=<id> (--slug=<slug> | --all-slugs) [--research-batch=<id>] [--out=<dir> --confirm]";
-const BATCH = process.argv.find((a) => a.startsWith("--research-batch="))?.slice("--research-batch=".length) ?? null;
-/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
-const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
-/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
-/* F34 — the existing-page check reads this tenant's partition of the stored observation batch, declared here like every read. */
-const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), RESOURCES.collectionPartition("CRAWL_BATCH", BATCH_ID), RESOURCES.collectionPartition("SITEMAP_COLLECTION", SITEMAP_BATCH_ID), ...(BATCH ? [RESOURCES.researchBatch(BATCH)] : []), RESOURCES.evidenceStore()] });
-const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
+/** An early stop: drain, exit, and run nothing after it (exitAfterDrain returns at once; the module must not go on). */
+async function stopHere(code) {
+  exitAfterDrain(code);
+  await new Promise(() => {});
+}
 
+const USAGE = "node bin/build-page.mjs --product=<id> --research-batch=<id> [--out=<dir> --confirm]";
 const argv = process.argv.slice(2);
 const flag = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? null;
-
-let requested;
-try {
-  requested = selectCandidates(PRODUCT.pageSpecs, { slug: flag("slug"), allSlugs: argv.includes("--all-slugs") });
-} catch (e) {
-  console.error(`\n🔴 ${e.message}\n  usage: ${USAGE}\n`);
-  exitAfterDrain(1);
-}
+const BATCH = flag("research-batch");
+/* 🔴 F03 — the subject's data root is decided (RESOURCES.subject) BEFORE its descriptor or any of its files is read. */
+const PRODUCT_ID = productIdOrExit(process.argv, { usage: USAGE });
+if (!BATCH) { console.error(`\n🔴 no --research-batch: the one builder builds the stored guides of a named research batch, and nothing else\n  usage: ${USAGE}\n`); await stopHere(1); }
+/* 🔴 F02 — the tenant scope of everything this entry point reads is decided HERE, before any of it is read. */
+const SCOPE = scopedEntryPoint({ entry: "bin/build-page.mjs", governed: true, resources: [RESOURCES.subject(PRODUCT_ID), ...(BATCH ? [RESOURCES.researchBatch(BATCH)] : [])] });
+const PRODUCT = await productFromArgvOrExit(process.argv, { usage: USAGE, scope: SCOPE });
 
 const outDir = confineToRepo(flag("out"), { label: "--out" });
 const permission = writePermission({ target: LOCAL, argv, env: process.env });
-/* PAGE-1 gate D: the run's cost, recorded before construction starts */
-const RUN_COST_ENTRY = Object.freeze({ recorded_at: new Date().toISOString(), money: Object.freeze({ amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "a local page construction: no request, no paid call" }), requests: 0 });
+/* PAGE-1 gate D: the run's cost, recorded before the build starts */
+const RUN_COST_ENTRY = Object.freeze({ recorded_at: new Date().toISOString(), money: Object.freeze({ amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "a local page build: no request, no paid call" }), requests: 0 });
 const RUN_STARTED_AT = new Date(Date.now() + 1).toISOString();
 if (outDir) announceWritePermission(permission);
 
-const { records } = await loadRegistry(PRODUCT.factsDir, PRODUCT.productId);
-const verifiedInRegistry = records.filter((r) => r.verificationState === "VERIFIED").length;
+/* the batch directory is bound on the line that names the RESEARCH store, so every read through it is that store's (tenant-scope census) */
+const dir = join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
+if (!existsSync(dir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT: the declared research batch has no directory in the RESEARCH store"); await stopHere(3); }
+const json = (f) => { try { return JSON.parse(readFileSync(join(dir, f), "utf8")); } catch { return null; } };
+const rows = (f) => { try { return readFileSync(join(dir, f), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
+
+/* page law 1: the client's own design, as its questionnaire files it — none filed is none, never a default look */
+const filed = await readProductQuestionnaire(PRODUCT);
+const design = filed.state === "READ" ? designOf(filed.questionnaire) : null;
+const guides = guideItemsByValue(rows("joined-pages.jsonl"));
+const quotation = new Map((json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => [c.claimId, c.quotation ?? null]))));
+const linksFile = readdirSync(dir).filter((f) => /^internal-links-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
+const links = linksFile ? json(linksFile) : null;
+const on = new Date().toISOString().slice(0, 10);
 
 const line = (ch = "─") => console.log(ch.repeat(78));
-console.log(`\nSAFE LOCAL PAGE CONSTRUCTION — product ${PRODUCT.productId}`);
+console.log(`\nBUILD-PAGE · THE ONE PAGE BUILDER — product ${PRODUCT.productId} · research batch ${BATCH}`);
 line("═");
-console.log(`declared page specs   ${Object.keys(PRODUCT.pageSpecs).length}   requested ${requested.length}`);
-console.log(`registry records      ${records.length}   VERIFIED ${verifiedInRegistry}`);
-if (requested.length === 0) {
-  console.log(`\n🔴 DATA GAP — ${PRODUCT.productId} declares no page spec. Nothing to construct, and nothing was.`);
-  exitAfterDrain(2);
-}
+console.log(`design                ${design ? "the client's own (its questionnaire)" : "NOT FILED — every page fails page law 1"}`);
+console.log(`stored guides         ${guides.size}`);
+if (guides.size === 0) { console.log("\n🔴 DATA GAP — the batch holds no stored guide. Nothing to build, and nothing was."); await stopHere(2); }
 
-/* 🔴 F34 — THE SAME TENANT'S EXISTING PAGES, BEFORE ANY CANDIDATE IS JUDGED. An unreadable population is handed on as null, so
- * every candidate is REFUSED rather than built as though the site were empty. */
-/* F91 C20 (Amendment 7): the pages this run may hold, from the named batch — the line names the RESEARCH store (tenant-scope census) */
-const c20 = BATCH ? readC20Keep(join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH)) : { keep: null, line: C20_NOT_DECLARED };
-console.log(`  ${c20.line}`);
-const existing = readExistingPagePopulation({ scope: SCOPE, resolve: createTenantResolver(), keep: c20.keep });
-const ep = existing.population;
-console.log(`existing pages        ${ep ? `${ep.pages.length} of this tenant (coverage ${ep.coverageState}) · bound: one stored observation batch, this tenant's partition` : `UNAVAILABLE (${existing.fault}) — every candidate is refused`}`);
-
-/* 🔴 RR-180 ruling 3(a) — F35's decision, read from the named research batch's planning store (F91 C14) as page-actions reads it */
-let planningRows = null, overturned = new Set();
-if (BATCH) {
-  const store = lookupStore(rootIndexFor(process.env), "RESEARCH");
-  if (store.state !== "DECLARED") { console.error(`🔴 REFUSED — the RESEARCH store is ${store.state}`); exitAfterDrain(3); }
-  /* the batch directory is bound on the line that names the RESEARCH store, so every read through it is that store's (tenant-scope census) */
-  const dir = join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
-  if (!existsSync(dir)) { console.error("🔴 REFUSED — RESEARCH_BATCH_ABSENT: the declared research batch has no directory in the RESEARCH store"); exitAfterDrain(3); }
-  const rowsOf = (f) => (existsSync(join(dir, f)) ? createJsonlStore(join(dir, f)).readAll() : []);
-  planningRows = rowsOf("planning.jsonl");
-  overturned = overturnedIds(rowsOf("meaning-judgements.jsonl"));
-}
-const ae = readClientActionEvidence({ keep: c20.keep,  tenantId: SCOPE.tenantId, product: PRODUCT, records, resolve: createTenantResolver(), reviews: [], planningRows, overturned, decayEvidence: { ...NO_RECORDED_DECAY_EVIDENCE, indexing: readClientIndexation({ tenantId: SCOPE.tenantId, resolve: createTenantResolver(), inspections: [] }).indexingChecks ?? [] } });
-const chosen = decisionsForConstruction(ae);
-/* 🔴 F37 Amendment 2 (C8, RR-208): each chosen need's draft reads ONLY F94's plan for that need — read here, for this run's tenant, read-only */
-const sitePlans = readClientSitePlans({ tenantId: SCOPE.tenantId, actionEvidence: ae, values: PRODUCT.variants ?? [], resolve: createTenantResolver() });
-const plans = sitePlans.plans ?? [];
-console.log(`F94 site plans        ${plans.length} plan(s) · refused ${sitePlans.refused?.length ?? 0}${sitePlans.fault ? ` — UNAVAILABLE (${sitePlans.fault})` : ""} · a draft with no plan says so; its internal links and URL are NOT MEASURED`);
-/* 🔴 RR-292 · F76 C2 (beta-g decision A): --all-slugs builds ONLY over the approved plan — the product's owner-declared page specs, and
- * the pages of the batch's own F91 plan (DEMAND, OPPORTUNITY; src/page/plan-batch.mjs). A need F35 chose is added only when the plan holds
- * its page; with no plan filed, none is added, and each is named. Nothing is ever built for every combination, or for an unplanned URL. */
-let approvedPages = null;
-if (argv.includes("--all-slugs") && BATCH) {
-  const dir = join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH);
-  const inputsFile = (existsSync(dir) ? readdirSync(dir) : []).filter((f) => /^page-plan-inputs-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().pop() ?? null;
-  if (inputsFile) {
-    const readJson = (f) => { try { return JSON.parse(readFileSync(join(dir, f), "utf8")); } catch { return null; } };
-    const readRows = (f) => (existsSync(join(dir, f)) ? createJsonlStore(join(dir, f)).readAll() : []);
-    const plan = approvedPlan({ inputs: readJson(inputsFile), rows: readRows, json: readJson });
-    approvedPages = approvedKeys(plan);
-    console.log(`approved plan         ${plannedPages(plan).length} planned page(s) — F91 plan of ${BATCH} (${inputsFile}); a planned page no declared spec or chosen need builds is built by the plan batch (bin/visibility-parts.mjs --part=plan-batch), never on request`);
-  }
-}
-if (argv.includes("--all-slugs")) {
-  const o = allSlugsOverPlan({ requested, chosen: chosen.decisions, approved: approvedPages });
-  if (o.notInPlan.length) console.log(`not in the approved plan  ${o.notInPlan.length} chosen need(s) NOT built (${approvedPages ? "the plan does not hold their page" : "no F91 plan is filed in the batch"}): ${o.notInPlan.join(", ")}`);
-  requested = o.requested;
-}
-console.log(`F35 decisions         ${chosen.decisions.length} chosen CREATE (${chosen.decisions.filter((d) => d.spec).length} compiled) · section proposals ${ae.compiled?.sectionProposals?.length ?? 0}${chosen.why ? ` — ${chosen.why}` : ""}`);
-
-const constructed = constructCandidates({ pageSpecs: PRODUCT.pageSpecs, variants: PRODUCT.variants, records, requested, tenantId: SCOPE.tenantId, existingPages: ep, decisions: chosen.decisions /* 🔴 RR-180 ruling 3(a): F35's construction set, and nothing else */, plans /* F37 C8: F94's plans; a draft with none says so */, gainEvidence: NO_RECORDED_GAIN_EVIDENCE /* F39: none is recorded (no store) — passed EXPLICITLY */ });
-/* 🔴 PAGE-1 (RR-294 beta-g decision C): the five page gates are this runner's acceptance step — every page construction accepted is judged in
- * the form it would go live; one that fails any gate is REFUSED, its HTML withdrawn so nothing of it is written, each failing check named.
- * The run is costed before construction starts (gate D): a local build, no request, no paid call. */
-const results = acceptByPageGates(constructed, { itemsOf: (c) => (Array.isArray(c.trace) ? [...Map.groupBy(c.trace, (t) => t.needId)].map(([needId, claims]) => ({ needId, heading: { wording: needId }, claims })) : null), guidance: GUIDANCE, on: new Date().toISOString().slice(0, 10), cost: costGate({ entry: RUN_COST_ENTRY, startedAt: RUN_STARTED_AT, budget: { money: 0, currency: "USD", requests: 0 } }), urlOf: (c) => `https://preview.invalid/${c.slug}/`, site: { robotsTxt: "User-agent: *\nAllow: /\n", sitemapUrls: constructed.map((c) => `https://preview.invalid/${c.slug}/`), serve: (path) => ({ status: constructed.some((c) => `/${c.slug}` === path.replace(/\/$/, "")) ? 200 : 404 }) } });
-for (const c of results.filter((x) => x.pageGates === "REFUSED")) console.log(`  PAGE GATES REFUSED ${c.slug}: ${c.rejects.filter((r) => r.part === "pageGates").map((r) => r.reason).join(" · ")}`);
-/* C6 — one recorded decision per candidate the check judged, through this run's own guard sink, exactly once. */
-const judgedInConstruction = new Set();
-for (const c of results) {
-  /* RR-179 (c): a candidate F35 did not choose never reaches construction's check — F35's own check decided it (below) */
-  const ev = c.parts.existingPage ? existingPageDecisionEvent(c.parts.existingPage.decision, { entry: "bin/build-page.mjs" }) : null;
-  if (c.parts.existingPage) judgedInConstruction.add(c.slug);
-  if (ev) SCOPE.recordDecision(ev);
-}
-/* 🔴 RR-249 · F34 C6: a candidate an existing page stops INSIDE F35 (KEEP / REJECT / HOLD) gets its recorded decision here — F35's own
- * F34 decision for that declared spec, once; a spec construction judged above was recorded there, never twice. */
-for (const { slug, decision } of ae.existingPageDecisions ?? []) {
-  if (judgedInConstruction.has(slug)) continue;
-  const stop = existingPageDecisionEvent(decision, { entry: "bin/build-page.mjs" });
-  if (stop) SCOPE.recordDecision(stop);
-}
+const built = buildGuides({ guides, keyFacts: json("key-facts.json") ?? [], rates: json("conversion-rates.json") ?? [], quotationOf: (id) => quotation.get(id) ?? null, design,
+  stamp: `TEST PAGE · local build of stored test data · not published (build-page, ${on})`, on, relatedFor: (value) => (Array.isArray(links?.pages?.[value]) ? links.pages[value] : []) });
+/* F34 (RR-295): a stored page with no existing address is a NEW page — refused, named, never built blind */
+const notBuilt = built.filter((g) => g.refused);
+for (const g of notBuilt) console.log(`🔴 ${g.value} — REFUSED: ${g.refused}`);
+const slugOf = (g) => (g.url ? new URL(g.url).pathname.replace(/^\/|\/$/g, "").replace(/\//g, "-") : `guide-${g.value}`);
+const candidates = built.filter((g) => !g.refused).map((g) => Object.freeze({ slug: slugOf(g), verdict: "ACCEPTED", html: g.html, url: g.url, items: g.items, rejects: [], cardsRefused: g.cardsRefused,
+  trace: g.items.flatMap((it) => it.claims.map((c) => ({ needId: it.needId, claimId: c.claimId, text: c.text, source: c.source ?? null, link: c.link ?? null, readOn: c.readOn ?? null }))) }));
+const urls = candidates.map((c) => c.url).filter(Boolean);
+const sec = rows("live-security.jsonl").find((r) => r.kind === "ROBOTS");
+const results = acceptByPageGates(candidates, { guidance: GUIDANCE, on, cost: costGate({ entry: RUN_COST_ENTRY, startedAt: RUN_STARTED_AT, budget: { money: 0, currency: "USD", requests: 0 } }),
+  urlOf: (c) => c.url, itemsOf: (c) => c.items, site: { robotsTxt: sec?.read?.body ?? null, sitemapUrls: urls, serve: (path) => ({ status: urls.some((u) => new URL(u).pathname.replace(/\/$/, "") === path.replace(/\/$/, "")) ? 200 : 404 }) } });
 
 for (const c of results) {
-  console.log(`\n${c.verdict === ACCEPTED ? "✅" : "🔴"} ${c.slug} — ${c.verdict}`);
-  line();
-  console.log(`  template family: ${c.family.rendered} of ${c.family.declared} declared spec(s) rendered · shell ${c.family.shellSource} (${c.family.shellPages} page(s))`);
-  if (c.renderedWords !== null) console.log(`  rendered words ${c.renderedWords}`);
-  for (const [part, p] of Object.entries(c.parts)) {
-    if (part === "existingPage") {
-      console.log(`  ${part.padEnd(12)} ${p.outcome} — ${p.considered ?? p.value} existing page(s) considered, ${p.matched} naming this intent, coverage ${p.coverageState ?? "NONE"}${p.decision.mayProduce ? "" : ` — ${p.decision.reason}`}`);
-      continue;
-    }
-    const measured = p.value === undefined ? "" : ` ${p.value}${p.threshold === undefined ? "" : ` (bar ${p.threshold})`}`;
-    console.log(`  ${part.padEnd(12)} ${p.state}${measured}${p.reason ? ` — ${p.reason}` : ""}`);
-  }
-  for (const g of c.dataGaps) console.log(`  DATA GAP   ${g.part}: ${g.reason}`);
-  for (const r of c.rejects) console.log(`  REJECT     ${r.part}: ${r.reason}`);
-  for (const n of c.notTested) console.log(`  ${NOT_TESTED}  ${n.part}: ${n.reason}`);
-  if (c.parts.facts?.notVerified.length) console.log(`  cited but not VERIFIED: ${c.parts.facts.notVerified.join(" · ")}`);
-  if (c.parts.whyThisUrl) console.log(`  ${c.parts.whyThisUrl.notEnforced}`);
-  console.log(`  ${c.pageOne.id} ${c.pageOne.state}: ${c.pageOne.statement} — missing: ${c.pageOne.missingGateFamilies.join(", ") || "none"}`);
-  console.log(`  §5A fact text copied into the spec: ${c.copies.length} DETECTED · ${c.copiesNotTested.length} value(s) NOT TESTED · ${c.copiesFullyChecked} fully checked and clean`);
-  for (const n of c.copiesNotTested) console.log(`    NOT TESTED  ${n.claimId} (${n.field}): ${n.reason}`);
+  console.log(`${c.verdict === "ACCEPTED" ? "✅" : "🔴"} ${c.slug} — ${c.verdict === "ACCEPTED" ? "PASSES ALL FIVE GATES" : "REFUSED"}`);
+  for (const r of c.rejects) console.log(`    REFUSED  ${r.reason}`);
+  for (const x of c.cardsRefused ?? []) console.log(`    card not shown ${x.claimId}: ${x.code}${x.why ? ` — ${x.why}` : ""}`);
 }
+const accepted = results.filter((c) => c.verdict === "ACCEPTED");
+console.log(`\nPASS ${accepted.length} of ${results.length + notBuilt.length} page(s) · REFUSED ${results.length - accepted.length + notBuilt.length}. A refusal is a result, not an error.`);
 
-const accepted = results.filter((c) => c.verdict === ACCEPTED);
-console.log(`\nACCEPTED ${accepted.length} of ${results.length} candidate(s). A refusal is a result, not an error.`);
-
-/* 🔴 F40 (RR-184) · the quality judgements of each draft F37 rendered for a need F35 chose. The draft is F37's own render of the same
- * spec, with the same F94 plan construction was handed (C8); F40 reads construction's parts for that slug and refuses the draft if its
- * checks are not the ones construction judged. A REAL run: engaging and hookable have no lawful judge today, so each is NOT MEASURED. */
-const judged = chosen.decisions.filter((d) => d.spec).map((d) => ({ slug: d.slug, q: judgeDraft({ spec: d.spec, decision: d.decision,
-  draft: renderCompiledDraft({ spec: d.spec, decision: d.decision, plan: planFor(plans, d.decision) }), parts: results.find((r) => r.slug === d.slug)?.parts, population: POPULATION.REAL }) }));
-console.log(`\nF40 · quality judgements: ${judged.length} draft(s) — five separate assessments each, never a score; a draft that does not pass F40 is never a passing preview`);
-for (const { slug, q } of judged) {
-  if (!q.judged) { console.log(`  ${slug} — NOT JUDGED: ${q.why}`); continue; }
-  console.log(`  ${slug} — F40 gate ${q.gate.verdict}${q.gate.blockers.length ? ` (${q.gate.blockers.join(" · ")})` : ""}`);
-  for (const a of ASSESSMENTS) console.log(`    ${a.padEnd(22)} ${q.assessments[a].verdict}`);
-  for (const n of JUDGEMENTS) console.log(`    judgement ${n.padEnd(12)} ${q.judgements[n].verdict} — ${q.judgements[n].observation ?? q.judgements[n].why} [source: ${q.judgements[n].source?.id ?? "none"}]`);
-}
-
-/* 🔴 F41 C9 (RR-188) · each judged draft's preview, handed F40's result for THAT draft. This runner prepares no brief, so none is READY;
- * the preview states every reason it is not put forward, F40's verdict and blockers word for word. Nothing is published. */
-for (const { slug, q } of judged) {
-  const construction = results.find((r) => r.slug === slug);
-  const pv = previewForOwner({ construction, brief: null, f40: q });
-  console.log(`  preview ${slug} — ${pv.state}${pv.missing?.length ? `: ${pv.missing.join(" | ")}` : ""}`);
-}
-
+let writeFailed = false;
 if (outDir) {
   for (const c of results) {
-    if (c.html === null) {
-      console.log(`[refused] nothing written for ${c.slug}`);
-    } else {
-      /* Routed. Two targets per candidate, two governed occurrences — a whole-file replacement is its own target,
-       * so this is per-TARGET, not per-record. The bare mkdir is gone: the boundary's prepare step makes it. */
-      const PAGE_INSTANT = governedInstant(Date.now());
-      const outcomes = [
-        [`${c.slug}.html`, c.html, "WRITE_CANDIDATE_PAGE"],
-        [`${c.slug}.trace.json`, JSON.stringify(c.trace, null, 2) + "\n", "WRITE_CANDIDATE_TRACE"],
-      ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
-        repo: REPO, permission, target: join(outDir, name), targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
-        action: what, occurredAt: PAGE_INSTANT, correlationId: `run:build-page:${PAGE_INSTANT}`,
-      })));
-      const bad = outcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
-      if (bad) {
-        console.error(`🔴 ${bad.outcome} — ${c.slug} was not written; the governed attempt is on the audit trail`);
-        process.exitCode = 1;
-      } else if (outcomes.every((o) => o.outcome === "REFUSED")) {
-        console.log(`[dry-run] would have written ${join(outDir, `${c.slug}.html`)} — ${permission.reason}`);
-      } else {
-        console.log(`wrote ${join(outDir, `${c.slug}.html`)} and its trace`);
-      }
-    }
+    if (c.html === null) { console.log(`[refused] nothing written for ${c.slug}`); continue; }
+    /* Routed. Two targets per page, two governed occurrences — a whole-file replacement is its own target. */
+    const PAGE_INSTANT = governedInstant(Date.now());
+    const outcomes = [
+      [`${c.slug}.html`, c.html, "WRITE_CANDIDATE_PAGE"],
+      [`${c.slug}.trace.json`, JSON.stringify(c.trace, null, 2) + "\n", "WRITE_CANDIDATE_TRACE"],
+    ].map(([name, body, what]) => executeGovernedWrite(governedFileWrite({ ...SCOPE.writeScope,
+      repo: REPO_ROOT, permission, target: join(outDir, name), targetClass: "OPERATOR_CHOSEN_OUTPUT", bytes: body,
+      action: what, occurredAt: PAGE_INSTANT, correlationId: `run:build-page:${PAGE_INSTANT}`,
+    })));
+    const bad = outcomes.find((o) => o.outcome !== "REFUSED" && o.outcome !== "COMMITTED" && o.outcome !== "ALREADY_COMMITTED");
+    if (bad) { console.error(`🔴 ${bad.outcome} — ${c.slug} was not written; the governed attempt is on the audit trail`); writeFailed = true; }
+    else if (outcomes.every((o) => o.outcome === "REFUSED")) console.log(`[dry-run] would have written ${join(outDir, `${c.slug}.html`)} — ${permission.reason}`);
+    else console.log(`wrote ${join(outDir, `${c.slug}.html`)} and its trace`);
   }
 }
-exitAfterDrain(accepted.length === results.length ? 0 : 2);
+exitAfterDrain(writeFailed ? 1 : accepted.length === results.length && notBuilt.length === 0 ? 0 : 2);

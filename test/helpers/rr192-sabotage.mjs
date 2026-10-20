@@ -78,10 +78,10 @@ const SABOTAGES = [
   ["F39-S14", "F39 C7 an unverified body measures nothing", [["src/page/information-gain.mjs", "for (const k of BASELINES) b[k] = verdict(\"NOT_MEASURED\", [], MISSING.BODY);", "for (const k of BASELINES) b[k] = verdict(\"BEYOND\", [\"assumed\"]);"]], "C7 · an unverified body"],
   ["F39-S15", "F39 C7 evidence is passed, never defaulted", [["src/page/information-gain.mjs", "throw new TypeError(\"gain evidence must be passed explicitly", "return; throw new TypeError(\"gain evidence must be passed explicitly"]], "C7 · an unverified body"],
   ["F39-S16", "F39 C6 the tools' gate needs gain ESTABLISHED", [["src/page/existing-page-population.mjs", "mayProduce: mayProduceCandidate(decision, rte) && informationGain.outcome === GAIN_OUTCOME.ESTABLISHED,", "mayProduce: mayProduceCandidate(decision, rte),"]], "C6 ·"],
-  ["F39-S17", "F39 C6 construction accepts only an ESTABLISHED gain", [["src/page/construct.mjs", "state: gain.outcome === GAIN_OUTCOME.ESTABLISHED ? PASS : gain.outcome === GAIN_OUTCOME.REFUSED ? FAIL : NOT_TESTED,", "state: PASS,"]], "F36 · C1"],
-  ["F39-S18", "F39 C6 no verified population is never 'no other current page'", [["src/page/construct.mjs", "const currentPages = existingPages?.inventory ? verifiedPages(existingPages) : null;", "const currentPages = existingPages?.inventory ? verifiedPages(existingPages) : [];"]], "F36 · C1"],
-  ["F39-S19", "F39 C6 the census holds F39 on construction", [["config/page-production.mjs", "\"rightToExist({\", \"informationGainForCandidate(\", \"state: gain.outcome === GAIN_OUTCOME.ESTABLISHED ? PASS\"]", "\"rightToExist({\"]"]], "C6 ·"],
-  ["F39-S20", "F39 C6 a tool that skips F39 is a census fault", [["subjects/almi-oet/tools/nursing-chain.mjs", "html: candidateHtml, gainEvidence: NO_RECORDED_GAIN_EVIDENCE", "html: candidateHtml"]], "C6 ·"],
+  /* F39-S17: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* F39-S18: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* F39-S19: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* F39-S20: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["F39-S21", "F39 C5/C7 the entry point prints its bound", [["bin/page-information-gain.mjs", "console.log(`  bound            ${r.bound}`);", "console.log(\"  bound\");"]], "C5/C7 · THE ENTRY POINT:"],
   ["F39-S22", "F39 C7 a network call is seen", [["tools/need-coverage-call-paths.mjs", "{ code: \"RAW_NETWORK_CALL\", test: (t) => t.split(\"\\n\").some((l) => RAW_EGRESS.test(l)) },", "{ code: \"RAW_NETWORK_CALL\", test: () => false },"]], "C7 · the decision"],
   /* ── F39 C3 AS AMENDED (Acceptance Amendment 1, RR-192) ── */
@@ -99,7 +99,7 @@ const SABOTAGES = [
   ["T1-08", "T-1 · ROW25's page check gives unique value PASS / FAIL on 350 again", [["src/gate-a/page-quality.mjs", "{ state: m.belowUniqueWordsSignal ? \"BELOW_SIGNAL\" : \"AT_OR_ABOVE_SIGNAL\"", "{ state: m.belowUniqueWordsSignal ? \"FAIL\" : \"PASS\""]], "12 · 13 ·"],
   ["T1-09", "T-1 · ROW25's page check gives sibling overlap FAIL on 0.40 again", [["src/gate-a/page-quality.mjs", "{ state: m.overlapAboveReviewSignal ? \"REVIEW_REQUIRED\" : m.overlapNoisy", "{ state: m.overlapAboveReviewSignal ? \"FAIL\" : m.overlapNoisy"]], "12 · 13 ·"],
   ["T1-10", "T-1 · why-this-url reads Gate A's retired 0.40 decider again", [["src/gate-a/why-this-url.mjs", "import { OVERLAP_REVIEW_TRIGGER } from \"./adaptive.mjs\";", "import { OVERLAP_REVIEW_TRIGGER } from \"./adaptive.mjs\";\nimport { MAX_SIBLING_OVERLAP } from \"./run.mjs\";"], ["src/gate-a/why-this-url.mjs", "export const WHY_NEAR_IDENTICAL = OVERLAP_REVIEW_TRIGGER;", "export const WHY_NEAR_IDENTICAL = MAX_SIBLING_OVERLAP;"]], "T1-NO-COPY · no module"],
-  ["T1-11", "T-1 · construction imports Gate A's retired deciders again", [["src/page/construct.mjs", "} from \"../gate-a/adaptive.mjs\"; /* RR-192 · T-1: Gate A's 350/5/0.40 are no longer imported */", "} from \"../gate-a/adaptive.mjs\";\nimport { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from \"../gate-a/run.mjs\";"]], "T1-NO-COPY · no module"],
+  /* T1-11: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["T1-12", "T-1 · axis-discovery re-declares its own copy of 0.4", [["src/discovery/axis-discovery.mjs", "import { OVERLAP_REVIEW_TRIGGER } from \"../gate-a/adaptive.mjs\";", "const OVERLAP_REVIEW_TRIGGER = 0.4;"]], "T1-NO-COPY · no module"],
 ];
 

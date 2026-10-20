@@ -184,20 +184,6 @@ test("C6 · the shared gate the subject tools call decides, records exactly once
  * for each declared spec (action-evidence rteFor); a candidate that decision stops never reaches construction. Until RR-249 this test
  * asserted NO decision (decisions.length === 0, the defect itself); it now runs the real runner over a research batch F35 judges. */
 const C6_BATCH = "rr249-c6-batch";
-const c6Planning = async () => {
-  const { connectQuestions, coverageRecords } = await import("../src/page/demand-connection.mjs");
-  const { possibleCombinations } = await import("../src/page/page-opportunities.mjs");
-  const P = await subject("almi-oet");
-  const slug = Object.keys(P.pageSpecs)[0];
-  const variant = P.pageSpecs[slug].variant;
-  const possible = possibleCombinations({ dimensions: [{ key: P.axis.key, values: P.variants, source: "the product's own descriptor", applicability: "APPLIES" }] });
-  const q = { record_type: "public_question", question_id: "c6q", measurement_key: "public_question:c6q", recorded_at: "2026-10-01T09:00:00Z",
-    value: { subject: "almi-oet", kind: "OBSERVED", original: "A question a page of this tenant may already answer?", sourceId: "fixture", provenance: { observerType: "SOURCE_ADAPTER_OBSERVED", seenBy: "A SOURCE ADAPTER — the text as the source holds it" } } };
-  const answer = { claims: [{ claimId: "c1", states: "OTHER", source: { kind: "RELATED", name: "a related source", link: "https://related.fixture.invalid/a", readOn: "2026-10-02" }, supports: { finding: "SUPPORTS", ref: "fixture-finding" } }] };
-  const conn = connectQuestions({ subject: "almi-oet", possible, records: [q], drafts: [{ questionId: "c6q", combination: { [P.axis.key]: variant }, answer }], on: "2026-10-05" });
-  const cov = coverageRecords({ subject: "almi-oet", rows: conn.records, tenantId: FIXTURE_TENANT, population: { tenantId: FIXTURE_TENANT, coverageState: "COMPLETE", pages: [] }, on: "2026-10-05" });
-  return { slug, rows: [...conn.records, ...cov] };
-};
 const runC6 = (W, extra) => {
   mkdirSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT), { recursive: true });
   const storeDir = mkdtempSync(join(REPO, TEST_SCRATCH_AUDIT_ROOT, "f34-e2e-"));
@@ -218,43 +204,25 @@ const runC6 = (W, extra) => {
   }
 };
 
-test("C6 · END TO END: the real runner, --confirm, a research batch F35 judges — the candidate an existing page stops INSIDE F35 gets exactly one recorded decision naming the existing pages and the reason, carrying F33's evidence (RR-249); nothing written, on a CONFINED store", async () => {
-  const { slug, rows } = await c6Planning();
-  /* its own world: the batch is declared to the fixture tenant by name (F03 researchBatch), so the file's shared world is unchanged */
+/* RR-295 · the one builder keeps F34's law: it rebuilds only a page that EXISTS (its own recorded address); a stored page with no existing
+ * address would be a NEW page — refused by name, nothing rendered or written for it. (The old runner's F35 path, which these C6 tests
+ * drove, is removed with the old builder: owner decision 3 of RR-295.) */
+const c6Guide = (value, url) => ({ record_type: "joined_page_draft", value, title: `Fixture guide ${value}`, publishedUrl: url,
+  itemList: [{ needId: `n-${value}`, needKey: `n-${value}`, heading: { wording: `What does ${value} cost?` }, questions: [{ questionId: `q-${value}`, wording: `What does ${value} cost?` }], claims: [{ claimId: `${value}-1`, text: `It costs AB$500 for ${value}.`, link: "https://body.fixture.invalid/a", source: "A fixture body", readOn: "2026-10-15" }], statements: [] }] });
+test("C6 · THE ONE BUILDER, END TO END: the real runner, --confirm, a batch holding one existing page and one NEW one — the new one is REFUSED by name and nothing of it is written; the existing one is judged by the five gates before any write (RR-295)", () => {
   const W = declaredWorld({ extra: [["RESEARCH_BATCH", C6_BATCH]] });
   try {
-  const dir = join(W.root, "research", C6_BATCH);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "planning.jsonl"), rows.map((x) => JSON.stringify(x)).join("\n") + "\n");
-  const { r, written, decisions } = runC6(W, [`--research-batch=${C6_BATCH}`]);
-  assert.equal(r.status, 2, r.stdout + r.stderr);
-  assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
-  /* F35 judged the batch's one need on F34's check and stopped it — no CREATE is chosen over a population that is not COMPLETE */
-  assert.match(r.stdout, /F35 decisions {9}0 chosen CREATE/, "F35 chose a page over existing pages it could not rule out");
-  assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
-  assert.deepEqual(written, [], "a candidate page was written over existing pages");
-  /* C6: the stopped candidate's decision is recorded — exactly once, naming the existing pages and the reason */
-  assert.equal(decisions.length, 1, `the stopped candidate ${slug} must have exactly one recorded decision: ${decisions.length}`);
-  const [e] = decisions;
-  assert.deepEqual([e.eventType, e.action, e.outcome], ["REFUSAL", "REFUSE_PAGE_PRODUCTION_EXISTING_PAGE_FIRST", "REFUSED"]);
-  assert.match(e.metadata.resourceRef, /^existing-pages:[0-9a-f]{16}/, "a recorded decision does not name an existing page");
-  assert.match(e.reasonCode, /SERVES|CANNOT_BE_RULED|NOT_RECORDED_COMPLETE/);
-  assert.match(e.metadata.role, /^bin\/build-page\.mjs>EXISTING_PAGE_FIRST$/);
-  /* F33 C5 (RR-84): the recorded decision carries F33's outcome and its per-page evidence counts. */
-  assert.match(e.metadata.classification, /need=(COVERED|CANNOT_DECIDE) ev=[A-Z_:0-9,]+/);
+    const dir = join(W.root, "research", C6_BATCH);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "joined-pages.jsonl"), [c6Guide("alpha", "https://site.fixture.invalid/guides/alpha"), c6Guide("beta", null)].map((x) => JSON.stringify(x)).join("\n") + "\n");
+    const { r, written } = runC6(W, [`--research-batch=${C6_BATCH}`]);
+    assert.equal(r.status, 2, r.stdout + r.stderr);
+    assert.match(r.stdout, /🔴 beta — REFUSED: no existing address is recorded for this stored page — a NEW page needs a fresh plan and the existing-page check/);
+    assert.ok(!written.some((f) => /beta/.test(f)), "a NEW page was written");
+    assert.match(r.stdout, /guides-alpha — (PASSES ALL FIVE GATES|REFUSED)/, "the existing page was not judged by the gates");
+    assert.ok(written.every((f) => /^guides-alpha\./.test(f)), `written: ${written.join(", ")}`);
+    if (/guides-alpha — REFUSED/.test(r.stdout)) assert.deepEqual(written, [], "a page the gates refused was written");
   } finally { W.cleanup(); }
-});
-
-test("C6 · NO RESEARCH BATCH: the real runner, --confirm, no batch named — F35 judges nothing (ruling RR-180 (a)), so no existing-page decision is taken and none is invented; NOTHING written, on a CONFINED store", () => {
-  const { r, written, decisions } = runC6(WORLD, []);
-  assert.equal(r.status, 2, r.stdout + r.stderr);
-  assert.match(r.stdout, /existing pages {8}\d+ of this tenant \(coverage (PARTIAL|UNKNOWN)\)/);
-  /* RR-179 (c): construction acts only on F35's decision; with no batch F35 decides nothing, so neither declared candidate reaches a check */
-  assert.equal((r.stdout.match(/REJECT {5}f35Decision: F35 did not choose CREATE/g) ?? []).length, 2);
-  assert.equal((r.stdout.match(/existingPage +(KEEP|HOLD|IMPROVE) — \d+ existing page\(s\) considered/g) ?? []).length, 0, "a candidate F35 did not judge reached the existing-page check"); /* F34 C7 (RR-174): MONITOR is no longer an F34 outcome */
-  assert.doesNotMatch(r.stdout, /https?:\/\//, "the run printed a URL");
-  assert.deepEqual(written, [], "a candidate page was written over existing pages");
-  assert.equal(decisions.length, 0, `a decision was recorded for a candidate no check judged: ${decisions.length}`);
 });
 
 /* ---- C5 · the census --------------------------------------------------------------------------------------------- */
@@ -265,23 +233,24 @@ test("C5 · the real tree: every page-producing path is found and classified, ea
   const r = pageProductionCensus({ files: tree() });
   assert.deepEqual(r.faults, []);
   assert.ok(r.scanned > 100, `the census scanned only ${r.scanned} files`);
-  assert.deepEqual(r.importers, ["bin/build-page.mjs", "src/page/construct.mjs", "subjects/almi-oet/tools/nursing-chain.mjs", "subjects/almi-oet/tools/placement-measure.mjs", "subjects/almi-oet/tools/profession-chain.mjs"]);
-  assert.equal(r.rows.filter((x) => x.class === "ROUTED").length, 4);
-  assert.equal(r.rows.filter((x) => x.class === "CHECKS").length, 1);
+  /* RR-295: the one page builder is the only producer; its importers are the runner and the in-memory gate report */
+  assert.deepEqual(r.importers, ["bin/build-page.mjs", "src/report/visibility-parts.mjs"]);
+  assert.equal(r.rows.filter((x) => x.class === "ROUTED").length, 2 + r.registered.filter((f) => PAGE_PRODUCTION[f]?.class === "ROUTED" && !r.importers.includes(f)).length);
+  assert.equal(r.rows.filter((x) => x.class === "CHECKS").length, 0);
 });
 
-test("C5 · FIRING CONTROLS: an unclassified renderer, a routed path without its check, and a 'not page production' path that renders — each is a fault", () => {
+test("C5 · FIRING CONTROLS: an unclassified builder path, a routed path without its check, the refusal of a NEW page removed, and a 'not page production' path that builds — each is a fault", () => {
   const files = tree();
-  const planted = [...files, { file: "bin/zz-f34-stand-in.mjs", text: 'import { renderPage } from "../src/page/render.mjs";\n' }];
+  const planted = [...files, { file: "bin/zz-f34-stand-in.mjs", text: 'import { buildGuides } from "../src/page/one-builder.mjs";\n' }];
   assert.deepEqual(pageProductionCensus({ files: planted }).faults.map((f) => f.code), ["UNCLASSIFIED_PAGE_PATH"]);
-  const stripped = files.map((f) => (f.file === "bin/build-page.mjs" ? { ...f, text: f.text.split(PAGE_PRODUCTION["bin/build-page.mjs"].marks[0]).join("existingPages: null") } : f));
+  const stripped = files.map((f) => (f.file === "bin/build-page.mjs" ? { ...f, text: f.text.split(PAGE_PRODUCTION["bin/build-page.mjs"].marks[0]).join("const notBuilt = [];") } : f));
   assert.deepEqual(pageProductionCensus({ files: stripped }).faults, [{ file: "bin/build-page.mjs", code: "ROUTED_WITHOUT_THE_CHECK" }]);
-  /* 🔴 the call kept, the CONDITION removed — the page written whatever the gate said — is a fault too */
-  const unconditional = files.map((f) => (f.file === "subjects/almi-oet/tools/nursing-chain.mjs" ? { ...f, text: f.text.split("...(existingPage.mayProduce ? [[\"nursing.html\"").join("...(true ? [[\"nursing.html\"") } : f));
-  assert.deepEqual(pageProductionCensus({ files: unconditional }).faults, [{ file: "subjects/almi-oet/tools/nursing-chain.mjs", code: "ROUTED_WITHOUT_THE_CHECK" }]);
-  const rendering = files.map((f) => (f.file === "bin/crawl.mjs" ? { ...f, text: `import { renderPage } from "../src/page/render.mjs";\n${f.text}` } : f));
+  /* 🔴 the NEW page let through — the refusal filter removed, every stored page built — is a fault too */
+  const unconditional = files.map((f) => (f.file === "bin/build-page.mjs" ? { ...f, text: f.text.split("const candidates = built.filter((g) => !g.refused)").join("const candidates = built") } : f));
+  assert.deepEqual(pageProductionCensus({ files: unconditional }).faults, [{ file: "bin/build-page.mjs", code: "ROUTED_WITHOUT_THE_CHECK" }]);
+  const rendering = files.map((f) => (f.file === "bin/crawl.mjs" ? { ...f, text: `import { buildGuides } from "../src/page/one-builder.mjs";\n${f.text}` } : f));
   assert.ok(pageProductionCensus({ files: rendering }).faults.some((f) => f.code === "RENDERS_A_CANDIDATE_BUT_CLASSIFIED_NOT_PAGE_PRODUCTION"));
-  assert.deepEqual(staticImports("subjects/a/tools/x.mjs", 'import { a } from "../../../src/page/render.mjs";'), ["src/page/render.mjs"]);
+  assert.deepEqual(staticImports("subjects/a/tools/x.mjs", 'import { a } from "../../../src/page/one-builder.mjs";'), ["src/page/one-builder.mjs"]);
 });
 
 /* ---- C3 · no overwrite path ---------------------------------------------------------------------------------------- */

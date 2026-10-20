@@ -121,20 +121,21 @@ test("all five: one gate failing fails the page; no page text says an engine wil
 
 const BATCH = "rr254-test-pages-2026-10-12";
 const HERE = existsSync(join(lookupStore(rootIndexFor(process.env), "RESEARCH").dir, BATCH, "live-pages.jsonl"));
-test("REAL · the five gates over the stored test data: the 13 missing live meta descriptions caught; the ONE builder’s guides and plan pages gated, every failure named", { skip: HERE ? false : "the stored test data is not on this machine" }, () => {
+test("REAL · the five gates over the stored test data: the 13 missing live meta descriptions caught; the ONE builder’s guides gated, every failure named (RR-295: the 31 plan drafts are removed)", { skip: HERE ? false : "the stored test data is not on this machine" }, () => {
   const r = spawnSync(process.execPath, ["bin/visibility-parts.mjs", "--part=page-gates", "--subject=almi-oet", `--research-batch=${BATCH}`, "--on=2026-10-19", "--tenant=tenant:93b991d5afa33b16ccb9166b249593b6", "--actor=actor:cc"], { cwd: REPO, encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /live pages \(the 12 guides and the hub\): 13 page\(s\)/);
   assert.match(r.stdout, /C fails: a meta description 13 /);
-  /* RR-294: no second template — the guides and the plan pages come from the one builder, each failure named */
+  /* RR-294: no second template — the guides come from the one builder, each failure named. RR-295: no plan page is built (decision 3) */
   const g = /the one builder · the 12 guides rebuilt: 12 page\(s\) · pass A (\d+) · B (\d+) · C (\d+) · D (\d+) · E (\d+) · all (\d+)/.exec(r.stdout);
-  const pl = /the one builder · the plan pages: 31 page\(s\) · pass A (\d+) · B (\d+) · C (\d+) · D (\d+) · E (\d+) · all (\d+)/.exec(r.stdout);
-  assert.ok(g && pl, r.stdout);
+  assert.ok(g, r.stdout);
+  assert.doesNotMatch(r.stdout, /plan pages/, "a plan page was built");
   assert.ok(Number(g[6]) >= 11, "the rebuilt guides pass the gates, bar a named one");
   const ob = spawnSync(process.execPath, ["bin/visibility-parts.mjs", "--part=one-builder", "--subject=almi-oet", `--research-batch=${BATCH}`, "--on=2026-10-19", "--tenant=tenant:93b991d5afa33b16ccb9166b249593b6", "--actor=actor:cc", "--list"], { cwd: REPO, encoding: "utf8" });
   assert.equal(ob.status, 0, ob.stderr);
   const rows = ob.stdout.split(/\r?\n/).filter((l) => /^\s+(PASS|FAIL) /.test(l));
-  assert.equal(rows.length, 43, "12 guides and 31 plan pages");
+  assert.equal(rows.length, 12, "the 12 guides, and no plan page");
+  assert.match(ob.stdout, /key-fact cards refused 0/, "RR-295: every card of the 12 guides is shown — same meaning, every number, unit and condition kept");
   assert.ok(rows.filter((l) => /FAIL/.test(l)).every((l) => / — \S/.test(l)), "every failing page carries its plain reason");
   assert.match(ob.stdout, /design the client's own \(its questionnaire\)/);
   console.log(`  REAL: ${r.stdout.split(/\r?\n/).filter((l) => /page\(s\) ·/.test(l)).map((l) => l.trim()).join(" | ")}`);

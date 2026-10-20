@@ -33,8 +33,8 @@ const SABOTAGES = [
   ["S7", "C4 the unmeasured residue is carried", RTE, "checks: why.checks, notMeasured: NOT_MEASURED_RESIDUE });", "checks: why.checks, notMeasured: null });", "C2/C4 · a specific reason and an unserved need", T],
   ["S8", "C1 the gate's rule needs ESTABLISHED", RTE, "return Boolean(existingPageDecision?.mayProduce) && rte?.outcome === RIGHT_TO_EXIST.ESTABLISHED;", "return Boolean(existingPageDecision?.mayProduce);", "C1 · the gate's rule", T],
   ["S9", "C1 the tools' gate applies the rule", POP, "mayProduce: mayProduceCandidate(decision, rte) && informationGain.outcome === GAIN_OUTCOME.ESTABLISHED,", "mayProduce: decision.mayProduce && informationGain.outcome === GAIN_OUTCOME.ESTABLISHED,", "C1 · the tools' GATE", T],
-  ["S10", "C1 construction's part 4 is the outcome", CON, "const partFour = specific.state === \"PASS\" ? PASS : specific.state === \"FAIL\" ? FAIL : NOT_TESTED;", "const partFour = PASS;", "F36 · C1 · construction reaches", PC],
-  ["S11", "C5 a tool reaches the right-to-exist gate", NC, "const existingPage = rightToExistGate({", "const existingPage = existingPageGate({", "C5 ·", T],
+  /* S10: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S11: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S12", "C6 a network call is seen", CP, `{ code: "RAW_NETWORK_CALL", test: (t) => t.split("\\n").some((l) => RAW_EGRESS.test(l)) },`, `{ code: "RAW_NETWORK_CALL", test: () => false },`, "C6 ·", T],
 ];
 

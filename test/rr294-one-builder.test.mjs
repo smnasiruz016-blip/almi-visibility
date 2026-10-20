@@ -4,10 +4,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { keyFactCards, faqOf, asksForCurrency } from "../src/page/joined-page.mjs";
+import { keyFactCards, faqOf, asksForCurrency, sameMeaning } from "../src/page/joined-page.mjs";
 import { guideItemsByValue, buildGuides, asPublished } from "../src/page/one-builder.mjs";
-import { acceptByPageGates, costGate, AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
-import { PAGE_ONE } from "../src/page/construct.mjs";
+import { acceptByPageGates, costGate, AI_SEARCH_BOTS, PAGE_ONE } from "../src/page/page-gates.mjs";
 import { GUIDANCE } from "../config/guidance/guidance-read.mjs";
 import { rootIndexFor } from "../src/tenancy/resolver.mjs";
 import { lookupStore } from "../src/tenancy/root-registry.mjs";
@@ -17,17 +16,20 @@ const ON = "2026-10-19";
 const item = (needId, wording, claims) => ({ needId, heading: { wording }, questions: [{ questionId: `q-${needId}`, wording }], claims, statements: [] });
 const claim = (claimId, text, extra = {}) => ({ claimId, text, link: "https://body.example/a", source: "A body", readOn: "2026-10-15", ...extra });
 
-test("D · a key fact's value must stand in its own VERBATIM quotation — a paraphrase is refused, named; FIRING CONTROL: the same card passes on the source's words", () => {
-  const items = [item("n1", "What score?", [claim("k1", "It is B (350 or above): grade B (350) in short.")])];
-  const facts = [{ page: "p", claimId: "k1", value: "grade B (350)" }];
-  const quote = { k1: "B (350 or above)" };
-  const refused = keyFactCards({ facts, items, quotationOf: (id) => quote[id] });
-  assert.equal(refused.cards.length, 0);
-  assert.equal(refused.refused[0].code, "KEY_FACT_VALUE_IS_NOT_IN_ITS_VERBATIM_QUOTATION");
-  const passes = keyFactCards({ facts: [{ ...facts[0], value: "B (350 or above)" }], items, quotationOf: (id) => quote[id] });
-  assert.equal(passes.cards.length, 1);
-  /* without a quotation source the old check stands (the value in its own claim's text) — the hole is closed only where quotes are given */
-  assert.equal(keyFactCards({ facts: [{ ...facts[0], value: "grade B" }], items }).cards.length, 1);
+test("D · RR-295 SAME MEANING: a key fact in words of the same meaning as its verbatim quote is SHOWN; a changed or dropped number, unit or condition is REFUSED, named", () => {
+  const card = (value, quote, text = value) => keyFactCards({ facts: [{ page: "p", claimId: "k1", value }], items: [item("n1", "Q?", [claim("k1", text)])], quotationOf: () => quote });
+  /* the owner's three examples (decision 2): each is the source's meaning in other words — shown */
+  for (const [v, q] of [["45 minutes", "45 mins in duration"], ["about 20 minutes", "Approximately 20 minutes"], ["grade B (350)", "A minimum of Grade B (Minimum Score of 350) in all components"], ["grade B (350)", "B (350 or above)"]]) assert.equal(card(v, q).cards.length, 1, `${v} | ${q}`);
+  /* the beta-g safeguard — FIRING CONTROLS: a dropped condition, a changed number, a dropped unit, a dropped "about" — each refused with its reason */
+  for (const [v, q, why] of [["1400", "Dietary 1400 with no elements below 300", /no part below 300/], ["1400 with no part below 250", "Dietary 1400 with no elements below 300", /not in the source/], ["20", "Approximately 20 minutes", /unit "minutes"/], ["20 minutes", "Approximately 20 minutes", /"about"/], ["AU$578", "costs AU$587", /not in the source/]]) {
+    const r = card(v, q);
+    assert.equal(r.cards.length, 0, v);
+    assert.equal(r.refused[0].code, "KEY_FACT_VALUE_IS_NOT_IN_ITS_VERBATIM_QUOTATION");
+    assert.match(r.refused[0].why, why, v);
+  }
+  /* the condition kept, in its own words — shown */
+  assert.equal(card("1400 with no part below 300", "Dietary 1400 with no elements below 300", "an OET score of 1400 in their own test, with no element below 300").cards.length, 1);
+  assert.equal(sameMeaning("1800", "1800 with no elements below 400").same, false);
 });
 
 test("PKR · a question asked in rupees is answered in rupees first, in the page AND in its FAQ data; any other answer's FAQ stays the source's words", () => {
@@ -87,9 +89,9 @@ test("C · build-page's acceptance step: two good pages pass; FIRING CONTROL: a 
   assert.equal(pre[0].verdict, "REFUSED");
 });
 
-test("C · bin/build-page.mjs runs the gates on its constructions BEFORE its write loop, and PAGE-1 is SATISFIED in code", () => {
+test("C · bin/build-page.mjs runs the gates on the one builder's pages BEFORE its write loop, and PAGE-1 is SATISFIED in code", () => {
   const src = readFileSync(join(REPO, "bin/build-page.mjs"), "utf8");
-  const gate = src.indexOf("const results = acceptByPageGates(constructed,");
+  const gate = src.indexOf("const results = acceptByPageGates(candidates,");
   assert.ok(gate > 0 && gate < src.indexOf("for (const c of results)") && gate < src.indexOf("executeGovernedWrite("), "the acceptance step comes before every write");
   assert.equal(PAGE_ONE.state, "SATISFIED");
   assert.deepEqual([...PAGE_ONE.missingGateFamilies], []);

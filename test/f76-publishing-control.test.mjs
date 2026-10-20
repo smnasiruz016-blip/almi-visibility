@@ -23,7 +23,7 @@ test("C1 · a page publishes only with its own approval record", () => {
   assert.equal(planCohort({ pages: ["a"], approvals: [{ ...ok("a"), decision: "" }] }).state, "REFUSED");
 });
 
-test("C2 · a cohort is capped and names its pages — no publish-all; the census names the one draft-all path", () => {
+test("C2 · a cohort is capped and names its pages — no publish-all; the census finds no draft-all path (RR-295: the old one is removed)", () => {
   const many = Array.from({ length: PUBLISH_COHORT_CAP + 1 }, (_, i) => `p${i}`);
   assert.match(planCohort({ pages: many, approvals: many.map(ok) }).refusals[0], /over its cap/);
   assert.match(planCohort({ pages: [], approvals: [] }).refusals[0], /no publish-all/);
@@ -32,7 +32,9 @@ test("C2 · a cohort is capped and names its pages — no publish-all; the censu
   const files = (d) => readdirSync(join(REPO, d), { recursive: true }).filter((f) => /\.mjs$/.test(String(f))).map((f) => join(d, String(f)).replace(/\\/g, "/"));
   const all = [...files("bin"), ...files("src")].filter((f) => /--all-slugs|publishAll|generateAll|--publish-all|--all-pages/.test(readFileSync(join(REPO, f), "utf8")));
   assert.deepEqual(all.filter((f) => /publish/i.test(f)), [], "a publish path acts on every page at once");
-  assert.deepEqual(all.filter((f) => f.startsWith("bin/")), ["bin/build-page.mjs"], "a new generate-all path");
+  /* RR-295: the old runner's --all-slugs draft-all path is removed with the old builder; build-page builds a batch's stored pages, each
+   * judged alone by the five gates, and no bin acts on every page at once */
+  assert.deepEqual(all.filter((f) => f.startsWith("bin/")), [], "a new generate-all path");
 });
 
 test("C3 · rollback restores the previous version byte for byte", () => {

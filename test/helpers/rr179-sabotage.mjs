@@ -72,13 +72,14 @@ const SABOTAGES = [
   ["S31", "F36 C2 · a variable-only reason passes", [[WHY, "  if (need.length === 0) {", "  if (false) {"]], "C1/C2 ·"],
   ["S32", "F36 C3 · right-to-exist ESTABLISHED where an existing page covers the need", [[RTE, '    ? { state: "FAIL", reason: "AN_EXISTING_PAGE_COVERS_THE_NEED', '    ? { state: "PASS", reason: "AN_EXISTING_PAGE_COVERS_THE_NEED']], "C3 ·"],
   ["S33", "F36 C4 · the unmeasurable residue is omitted", [[RTE, "checks: why.checks, notMeasured: NOT_MEASURED_RESIDUE });", "checks: why.checks, notMeasured: null });"]], "C2/C4 · a specific reason and an unserved need"],
-  ["S34", "F36 C5 · construction's path no longer reaches the one function, visibly", [[CON, "    const rte = rightToExist({ slug, spec: me.spec,", "    const rte = (rightToExist)({ slug, spec: me.spec,"]], "C5 · every page-producing path reaches the one function:"],
+  /* RR-295: restated onto the one builder's runner — the same protection: a page-producing path that lets a NEW page through is caught */
+  ["S34", "F36 C5 · the page-producing path no longer refuses a NEW page, visibly", [["bin/build-page.mjs", "const candidates = built.filter((g) => !g.refused)", "const candidates = built"]], "C5 · every page-producing path reaches the one"],
   ["S35", "F36 C6 · the right-to-exist function reaches a network call", [[RTE, 'import { EXISTING_PAGE_OUTCOMES } from "./existing-page-first.mjs";', 'import { EXISTING_PAGE_OUTCOMES } from "./existing-page-first.mjs";\nexport const probe = () => fetch("https://probe.invalid");']], "C6 · the right-to-exist function loads no module"],
   /* ── construction · ruling RR-179 (c), D1 (S41), ruling (d) ── */
-  ["S36", "construction · a spec F35 did not choose is built (ruling c)", [[CON, CHOSEN, "    const chosen = { decision: { subject: { needId: null } } };"]], "R4c"],
+  /* S36: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   ["S37", "construction · a HOLD or a chosen KEEP counts as F35's CREATE (ruling c)", [[AD, '(d.actions ?? []).some((a) => a.action === "CREATE");', "true;"]], "R4c"],
-  ["S38", "construction · a lone page is refused for having no comparison page (D1, S41)", [[CON, "    else if (siblings.length === 0) parts.overlap = { state: PASS,", "    else if (siblings.length === 0) parts.overlap = { state: NOT_TESTED,"]], "🔴 A FAMILY OF ONE"],
-  ["S39", "construction · a small family is refused only because no shell is learnable (D1, S41)", [[CON, "    else if (unrenderedSiblings.length) parts.overlap", "    else if (!shell.shell) parts.overlap = { state: NOT_TESTED, reason: \"no shell\" };\n    else if (unrenderedSiblings.length) parts.overlap"]], "🔴 D1 · a two-spec family"],
+  /* S38: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S39: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* RR-248 · CASE (b) — S40 RETIRED (owner ruling RR-248 Q1 (A), _handoffs 689eea7). Ruling RR-179 (d) held a compiled spec unrendered
    * only UNTIL F37's acceptance was frozen; RR-180 (67a7e15) froze it and built F37's render, so the RENDER_WAITS_FOR_F37 line this limb
    * named is gone and the condition of the ruling has ended. What guards rendering now is F37 C1: rr180 S01 (a written material claim
@@ -86,14 +87,14 @@ const SABOTAGES = [
    * choose CREATE), S08 (construction receives a decision F35 did not choose) and S09 (bin/build-page.mjs hands construction something
    * other than F35's decision), each run on 2026-10-10 with --deliberate: RED by assertion, restored by sha256, 5 of 5 PROVED, then its
    * proof file GREEN. No row state changes. */
-  ["S41", "construction · a compiled spec's existing-page part does not read its coverage record", [[CON, "coverage: me.spec?.basis?.coverage?.outcome ?? null,", "coverage: null,"]], "R4e"],
+  /* S41: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* ── FS-A1 (RTP-1 S39, D2) ── */
   ["S42", "FS-A1 · a tier-4 source is refused for an ordinary claim by its category alone (the registry)", [[VAL, ' && r.life?.status !== "lead" && !isOrdinaryTier4(r)) {', ' && r.life?.status !== "lead") {']], "GREEN (FS-A1):"],
   ["S43", "FS-A1 · a tier-4 source is refused for an ordinary claim by its category alone (Gate A)", [[GF, '  const ordinaryTier4 = Number(tier) === 4 && fact?.claimStates === "OTHER";', "  const ordinaryTier4 = false;"]], "R4f"],
   ["S44", "FS-A1 · a non-official source is cited for a body's rule (the registry)", [[SCH, " && r?.claim?.states === CLAIM_STATES.ORDINARY;", ";"]], "RED: a tier-4 source may not be active for a body's rule,"],
   ["S45", "FS-A1 · a non-official source is cited for a body's rule (Gate A)", [[GF, 'fact?.claimStates === "OTHER";', "fact?.claimStates !== undefined;"]], "R4f"],
-  ["S46", "FS-A1 · a tier-4 source is not labelled SECONDARY", [[RND, "  const label = isOrdinaryTier4(record) ? SECONDARY_LABEL : null;", "  const label = null;"]], "R4f"],
-  ["S47", "FS-A1 · a source that does not support the claim is accepted", [[CON, '    const verified = cited.filter((r) => r.verificationState === "VERIFIED" && RENDERABLE_STATUSES.includes(r.life?.status));', "    const verified = cited.filter((r) => RENDERABLE_STATUSES.includes(r.life?.status));"]], "R4f"],
+  /* S46: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S47: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* ── F41 C1 AS AMENDED (D5) and C8 ── */
   ["S48", "F41 C1 AS AMENDED · the per-item approval gate restored", [[CB, "  const e = evidence ?? {};\n", "  if (!(evidence?.approval)) return Object.freeze({ subject, state: BRIEF_STATE.NOT_ISSUED, standing: STANDING, missing: Object.freeze([\"no recorded approval\"]) });\n  const e = evidence ?? {};\n"]], "T41d"],
   ["S49", "F41 C1 AS AMENDED · a brief is labelled an approval", [[CB, "    standing: STANDING,\n    recommended:", "    standing: STANDING,\n    approval: \"assumed\",\n    recommended:"]], "T41d"],

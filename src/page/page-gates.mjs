@@ -188,3 +188,16 @@ export function acceptByPageGates(results, { guidance, on, site, cost, urlOf, it
     return Object.freeze({ ...c, verdict: "REFUSED", html: null, pageGates: "REFUSED", rejects: [...(c.rejects ?? []), ...failed.map((reason) => ({ part: "pageGates", reason }))] });
   });
 }
+
+/* PAGE-1 (RR-294 beta-g decision C; moved here by RR-295 when the old constructor was removed): the five gate families exist in this module
+ * and run as bin/build-page.mjs's own acceptance step (acceptByPageGates) over the ONE page builder's pages. A page still needs every gate
+ * to pass, and nothing is published by any of it. */
+export const PAGE_ONE = Object.freeze({
+  id: "PAGE-1",
+  state: "SATISFIED",
+  statement:
+    "§3 makes five gates a CONJUNCTION before a new page; all five exist and run as build-page's acceptance step " +
+    "(src/page/page-gates.mjs acceptByPageGates) — a page failing any one is refused, named",
+  missingGateFamilies: Object.freeze([]),
+  gates: Object.freeze(["semantic duplication", "cannibalization", "technical", "cost", "existing page first"]),
+});

@@ -46,8 +46,8 @@ const SABOTAGES = [
   ["S05", "F37 C1 · a draft is rendered for a spec F35 did not choose CREATE", [[DR, CHOSEN, ""]], "T37e"],
   ["S06", "F37 C1 · a draft names no writer", [[DR, 'data-writer="${esc(WRITER)}">`', 'data-writer="">`']], "T37a"],
   ["S07", "F37 C1 · a draft depends on a live writing-AI provider", [[DR, 'import { attributionRefusal } from "../research/research-derived.mjs";', 'import { attributionRefusal } from "../research/research-derived.mjs";\nimport "../research/ai-providers/index.mjs";']], "T37k"],
-  ["S08", "F37 C1 / ruling (a) · construction receives a decision F35 did not choose", [[CON, "  const decisions = ae.compiled.forConstruction.filter((d) => isChosenCreate(d.decision));", "  const decisions = ae.compiled.forConstruction.filter(() => true);"]], "T37i"],
-  ["S09", "ruling (a) · bin/build-page.mjs hands construction something other than F35's decision", [[BP, "decisions: chosen.decisions /*", "decisions: [] /*"]], "T37i"],
+  /* S08: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
+  /* S09: RETIRED by RR-295 (owner decision 3) — its target, the old builder, is removed */
   /* ── F37 C2 (P13b, P13c, F37-3, F37-4) ── */
   ["S10", "F37 C2 · a research-derived question appears under an attribution phrase without observed evidence", [[DR, "    return Object.freeze({ state: DRAFT.REFUSED, why: DRAFT_REFUSAL.ATTRIBUTION });\n", "    void 0;\n"]], "T37c"],
   ["S11", "F37 C2 · a section's GENERATED marking is not visible", [[DR, TIERLINE, '    const tierLine = `${TIER_LABEL[s.tier] ?? s.tier}`;']], "T37c"],

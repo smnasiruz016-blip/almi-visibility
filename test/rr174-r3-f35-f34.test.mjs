@@ -294,8 +294,7 @@ test("T7d · F34 C7 MONITOR IS NO LONGER AN F34 OUTCOME — and M6: KEEP and HOL
   assert.deepEqual(Object.keys(O).sort(), ["HOLD", "IMPROVE", "KEEP", "NOT_COVERED", "NO_EXISTING_PAGE", "REFUSED"]);
   const src = readFileSync(join(REPO, "src/page/existing-page-first.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(src, /MONITOR/, "MONITOR is still in F34's code");
-  const c = readFileSync(join(REPO, "src/page/construct.mjs"), "utf8");
-  assert.match(c, /state: existing\.mayProduce \? PASS : existing\.outcome === EXISTING_PAGE_OUTCOMES\.REFUSED \? NOT_TESTED : FAIL,/, "construction no longer decides by mayProduce");
+  /* RR-295: the old constructor that read mayProduce is removed with the old builder; the one builder refuses every NEW page outright */
   for (const d of [ex([pg("p-alpha", "<h1>Alpha</h1>")]), ex([], "PARTIAL")]) assert.equal(d.mayProduce, false, `${d.outcome} let a page be produced`);
 });
 
@@ -337,7 +336,7 @@ test("R35 · F35's 8 unpinned evidence items are each proved by a named test —
 
 test("R34 · F34's 12 unpinned evidence items are each proved by a named test — per clause a production-path test, a firing control and a sabotage; the real population (served, other wording, not served, uncertain; empty is COULD-NOT-PROVE); the census; no live call; the trail; CI; the board route", () => {
   const map = {
-    E1_production_path: [[F34T, "C6 · END TO END"], [MINE, "T7a ·"]],
+    E1_production_path: [[F34T, "C6 · THE ONE BUILDER, END TO END"], [MINE, "T7a ·"]], /* RR-295: the old runner's C6 path is removed with the old builder */
     E2_firing_control: [[F34T, "C2 · with NO existing page"], [MINE, "T7c ·"]],
     E4_real_population: [[F34T, "REAL ·"]],
     E5_served_other_wording_not_served_uncertain: [[F34T, "C2 · the SAME need in DIFFERENT WORDS"], [MINE, "T7e ·"]],

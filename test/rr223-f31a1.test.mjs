@@ -166,7 +166,7 @@ test("T31-C9-REAL · F31 C9: every real tenant whose newer batches hold no obser
 
 /* ================= C9 · no consumer reads a batch outside F31's reader ================= */
 const mjsUnder = (dir) => readdirSync(join(REPO, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? mjsUnder(`${dir}/${e.name}`) : e.name.endsWith(".mjs") ? [`${dir}/${e.name}`] : []));
-const CONSUMERS = ["src/page/action-evidence.mjs", "src/page/answer-first-evidence.mjs", "src/page/content-brief-evidence.mjs", "src/page/content-decay-evidence.mjs", "src/page/duplication-evidence.mjs", "src/page/indexation-evidence.mjs", "src/page/information-gain-evidence.mjs", "src/page/media-visibility-evidence.mjs", "src/page/site-plan-evidence.mjs", "src/page/structured-data-evidence.mjs", "src/page/trust-signals-evidence.mjs", "bin/build-page.mjs", "bin/demand-connect.mjs", "bin/entity-map.mjs"];
+const CONSUMERS = ["src/page/action-evidence.mjs", "src/page/answer-first-evidence.mjs", "src/page/content-brief-evidence.mjs", "src/page/content-decay-evidence.mjs", "src/page/duplication-evidence.mjs", "src/page/indexation-evidence.mjs", "src/page/information-gain-evidence.mjs", "src/page/media-visibility-evidence.mjs", "src/page/site-plan-evidence.mjs", "src/page/structured-data-evidence.mjs", "src/page/trust-signals-evidence.mjs", "bin/demand-connect.mjs", "bin/entity-map.mjs"];
 const BATCH_READ = /newer-collections\.mjs|readNewerCollections|NEWER_FILES|["'`]crawl\.jsonl["'`]|["'`]bodies\.jsonl["'`]/;
 test("T31-C9-CENSUS · F31 C9: every consumer reads the population through F31's one reader; none reads a newer batch on its own — and the census fires on a planted read", () => {
   for (const f of CONSUMERS) {

@@ -152,11 +152,10 @@ test("C5 · every page-producing path reaches the one function: construction hol
   const r = pageProductionCensus({ files });
   assert.deepEqual(r.faults, []);
   console.log(`  C5 (count-only): ${r.population.length} page-producing path(s) · ROUTED ${r.rows.filter((x) => x.class === "ROUTED").length} · CHECKS ${r.rows.filter((x) => x.class === "CHECKS").length} · faults 0 · bound: ${r.scanned} tracked modules`);
-  const tool = "subjects/almi-oet/tools/nursing-chain.mjs";
-  const noGate = files.map((f) => (f.file === tool ? { ...f, text: f.text.split("rightToExistGate(").join("existingPageGate(") } : f));
-  assert.deepEqual(pageProductionCensus({ files: noGate }).faults, [{ file: tool, code: "ROUTED_WITHOUT_THE_CHECK" }], "a tool that skips right-to-exist was not caught");
-  const noCall = files.map((f) => (f.file === "src/page/construct.mjs" ? { ...f, text: f.text.split("rightToExist({").join("judgeWhyOnly({") } : f));
-  assert.deepEqual(pageProductionCensus({ files: noCall }).faults, [{ file: "src/page/construct.mjs", code: "ROUTED_WITHOUT_THE_CHECK" }], "construction without right-to-exist was not caught");
+  /* RR-295: right-to-exist judges a NEW page. The old constructor and the tools that built new pages with it are removed; the one builder
+   * builds no NEW page at all (it refuses one, NO_EXISTING_PAGE). FIRING CONTROL: that refusal removed from the runner is caught. */
+  const letsNewPagesThrough = files.map((f) => (f.file === "bin/build-page.mjs" ? { ...f, text: f.text.split("const candidates = built.filter((g) => !g.refused)").join("const candidates = built") } : f));
+  assert.deepEqual(pageProductionCensus({ files: letsNewPagesThrough }).faults, [{ file: "bin/build-page.mjs", code: "ROUTED_WITHOUT_THE_CHECK" }], "a runner that builds a NEW page without right-to-exist was not caught");
 });
 
 test("REAL · the real declared candidates, as they are — outcomes count-only, with the missing facts named", async () => {

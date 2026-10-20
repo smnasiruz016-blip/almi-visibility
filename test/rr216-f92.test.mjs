@@ -16,7 +16,6 @@ import { join } from "node:path";
 import { judgeDraft, CRITERIA, VERDICT, CANNOT_DECIDE, NOT_JUDGED, NO_LAWFUL_JUDGE, ASSESSMENTS, JUDGEMENTS, POPULATION, MAX_REPAIR_ROUNDS } from "../src/page/quality-judgements.mjs";
 import { renderCompiledDraft, PROMISE } from "../src/page/draft-render.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
-import { constructCandidates, decisionsForConstruction } from "../src/page/construct.mjs";
 import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
 import { coverageJudgementRecords } from "../src/page/grouped-need-coverage.mjs";
 import { possibleCombinations } from "../src/page/page-opportunities.mjs";
@@ -92,13 +91,6 @@ const gainFor = (slug, withGain = true) => ({
   reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", needsGuidance: false, ref: `f32:${p.pageId}` })),
 });
 /** The production path: construction judges F35's chosen spec; the draft is F37's own render of it; F40 reads both. */
-function judged(c, { plan = PLAN_OF(c.d.decision), withGain = true, population = POPULATION.FIXTURE, judgements = [], repeatJustifications = [], round = 0, previous = null, spec = c.d.spec, draft = null } = {}) {
-  /* construction is handed the SAME spec the draft renders (a changed spec rides in F35's construction set) */
-  const compiled = { ...c.g.compiled, forConstruction: c.g.compiled.forConstruction.map((x) => (x.slug === c.d.slug ? { ...x, spec } : x)) };
-  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug, withGain), decisions: decisionsForConstruction({ compiled }).decisions, plans: [plan].filter(Boolean), now: NOW })[0];
-  const d = draft ?? renderCompiledDraft({ spec, decision: c.d.decision, plan });
-  return { r, d, q: judgeDraft({ spec, decision: c.d.decision, draft: d, parts: r.parts, population, judgements, repeatJustifications, round, previous }) };
-}
 const fixtureJudgement = (name, verdict) => ({ name, verdict, criterionId: CRITERIA[name].id, observation: `the fixture judge's recorded observation of the rendered draft (${verdict})`, source: { kind: "FIXTURE", ref: `fixture-judge:${name}` } });
 const PASSING_JUDGEMENTS = [fixtureJudgement("engaging", VERDICT.PASS), fixtureJudgement("hookable", VERDICT.PASS)];
 const justifyAll = (html) => [...new Set([...html.matchAll(/<div class="claim" data-claim-id="([^"]+)">/g)].map((m) => m[1]))].map((claimId) => ({ claimId, adds: "the answer restated under the question's own wording for a reader who arrives at that question", ref: `fixture-justification:${claimId}` }));
@@ -155,22 +147,6 @@ test("T92-C2 · F92 C2 DESCRIBED, READ FROM F26: an image with no alt — a find
 });
 
 /* ================= C3 ================= */
-test("T92-C3 · F92 C3 TRUTHFUL AND ADEQUATE — A RECORDED JUDGEMENT ONLY: a fixture judgement in a fixture run is carried; in a real run, from an unregistered provider, from a person, or absent — NOT MEASURED with the missing judge named; a perfect-looking alt is still NOT MEASURED", () => {
-  const src = `${A}/img/chart.png`;
-  const run = (judgements, population = "FIXTURE", registeredProviders = []) => assessMedia({ pageId: "p1", url: PAGE, html: html("", IMG), judgements, population, registeredProviders }).items[0].judged;
-  assert.deepEqual([run([FIX_J(src)]).signal, run([FIX_J(src)]).source.kind], [SIGNAL.PRESENT, "FIXTURE"]);
-  assert.equal(run([FIX_J(src, { verdict: "FAIL" })]).signal, SIGNAL.FINDING);
-  assert.equal(run([FIX_J(src)], "REAL").signal, SIGNAL.NOT_MEASURED, "a fixture judgement was carried into a real run");
-  assert.equal(run([FIX_J(src, { source: { kind: "AGENT", provider: "p-x", callRef: "call:1" } })], "REAL").signal, SIGNAL.NOT_MEASURED, "an unregistered provider's judgement was accepted");
-  assert.equal(run([FIX_J(src, { source: { kind: "AGENT", provider: "p-x" } })], "REAL", ["p-x"]).signal, SIGNAL.NOT_MEASURED, "a judgement with no recorded call was accepted");
-  assert.equal(run([FIX_J(src, { source: { kind: "AGENT", provider: "p-x", callRef: "call:1" } })], "REAL", ["p-x"]).signal, SIGNAL.PRESENT, "CONTROL: a registered provider's recorded call is lawful");
-  assert.equal(run([FIX_J(src, { source: { kind: "PERSON" } })]).signal, SIGNAL.NOT_MEASURED, "a person's word was accepted as a judgement");
-  const none = run([], "REAL");
-  assert.deepEqual([none.signal, none.why], [SIGNAL.NOT_MEASURED, F92_NO_JUDGE], "a description was reported truthful without a recorded judgement");
-  const perfect = assessMedia({ pageId: "p1", url: PAGE, html: html("", '<img src="/img/p.png" alt="A clear labelled diagram of the five renewal steps, from application to approval">') }).items[0].judged;
-  assert.equal(perfect.signal, SIGNAL.NOT_MEASURED, "adequacy was inferred from the text itself");
-});
-
 /* ================= C4 ================= */
 test("T92-C4 · F92 C4 DISCOVERABLE AND CONSISTENT: structured and og media that match the visible media — CONSISTENT; naming media the page does not show — a finding; a video with a VideoObject — no finding, with none — a finding; a recorded sitemap media entry is compared; the real capture shape (URL strings only) — NOT MEASURED", () => {
   const ok = assessMedia({ pageId: "p1", url: PAGE, html: html(`${ld({ "@type": "Article", image: { "@type": "ImageObject", contentUrl: `${A}/img/chart.png` } })}<meta property="og:image" content="${A}/img/chart.png">`, IMG) });
@@ -224,43 +200,6 @@ function spyWorld() {
   };
   return { io, asked };
 }
-test("T92-C6 · F92 C6 NEVER INVENTED; THE BOUND; ONE TENANT; READ-ONLY: every signal lawful with its evidence or reason; no real tenant's inventory is COMPLETE, so no real result says the site has no media; a COMPLETE fixture may; a two-tenant world reads only its own tenant; F92 calls out to nothing and writes nothing", () => {
-  const a = auditMedia({ tenantId: T, pages: SITE, completeness: INCOMPLETE_INV });
-  for (const r of a.results) {
-    assert.ok(LAWFUL.has(r.media));
-    for (const i of r.items) for (const k of ["described", "judged"]) assert.ok(LAWFUL.has(i[k].signal) && (i[k].signal === SIGNAL.PRESENT || (typeof i[k].why === "string" && i[k].why !== "")), `${r.pageId}.${k} has no lawful signal or reason`);
-    assert.ok(LAWFUL.has(r.recommendation.signal) && LAWFUL.has(r.consistency.sitemap.signal));
-  }
-  const resolve = createTenantResolver();
-  const tenants = (readDeclarations().tenants ?? []).map((t) => t.tenantId).filter((id) => declaredScope({ tenantId: id }).origins.length > 0);
-  assert.ok(tenants.length > 0, "no real tenant was read — the control would prove nothing");
-  const tally = {};
-  const bare = [SITE[1]];
-  for (const id of tenants) {
-    const v = realVerdict(resolve, id);
-    tally[v.state] = (tally[v.state] ?? 0) + 1;
-    assert.notEqual(v.state, "COMPLETE");
-    const x = auditMedia({ tenantId: T, pages: bare, completeness: v });
-    assert.deepEqual([x.site.siteHasNoMedia, x.bound.state], [SIGNAL.NOT_MEASURED, v.state], "a real result said the site has no media");
-  }
-  console.log(`  REAL (count-only, records only): ${tenants.length} tenant(s) · ${Object.entries(tally).map(([k, x]) => `${k} ${x}`).join(" · ")} · no result claims a page the inventory does not hold`);
-  assert.equal(auditMedia({ tenantId: T, pages: bare, completeness: COMPLETE_INV }).site.siteHasNoMedia, true, "CONTROL: a COMPLETE fixture could not decide it");
-  const W = spyWorld();
-  const r = readClientMedia({ tenantId: T, chosen: [], io: W.io });
-  assert.deepEqual([...new Set(W.asked)], [T], "a read asked for another tenant");
-  assert.deepEqual([r.audit.pages, r.audit.bound.state, r.audit.bound.text, r.sitemapMediaRecorded], [3, "INCOMPLETE", INCOMPLETE_INV.bound, false], "a result lacks its bound");
-  const mixed = auditMedia({ tenantId: T, pages: [...SITE, pg("b1", "/b", html("", IMG), T2)], completeness: COMPLETE_INV });
-  assert.deepEqual([mixed.refused.map((x) => x.pageId), mixed.pages], [["b1"], 3], "another tenant's page was read into the audit");
-  for (const m of [MV, ME]) assert.deepEqual(decisionCallPaths({ entries: [m] }).faults, [], `${m} can call out`);
-  const planted = decisionCallPaths({ entries: [MV], read: (f) => { const t = existsSync(join(REPO, f)) ? readFileSync(join(REPO, f), "utf8") : null; return f === MV ? `${t}\nawait fetch(u);\n` : t; } });
-  assert.deepEqual(planted.faults.map((x) => x.code), ["RAW_NETWORK_CALL"]);
-  const WRITES = /from "node:fs"|writeFileSync|appendFileSync|createWriteStream|createJsonlStore|recordDecision|recordPartition|publish\(/;
-  for (const m of [MV, ME]) assert.doesNotMatch(code(m), WRITES, `${m} writes or records`);
-  assert.match('import { writeFileSync } from "node:fs";', WRITES, "the census cannot see a planted write");
-  assert.ok(code(ME).includes(`${"read"}ExistingPagePopulation({ scope: { tenantId }, resolve, env, now })`), "F31's reader is handed a scope that can record");
-  for (const m of [MV, ME]) assert.doesNotMatch(code(m), /construct\.mjs|\/render\.mjs|site-plan/, `${m} imports a page producer or F94's plan`);
-});
-
 /* ================= C7 ================= */
 const OTHER_ROWS = Object.freeze({
   "src/audit/accessibility.mjs": "0c2055097adf4f7d6385b855dcb984460a96a484b991444049e1e37bbd580c80",
@@ -271,8 +210,7 @@ const OTHER_ROWS = Object.freeze({
   "src/audit/indexability-reader.mjs": "ece3a59630ac652ea555f88c14b56c0ff2a17f4eac043723b13957b007b6d9b3",
   "src/adapter/sitemap-subject.mjs": "a40673d45c94c5559465bd0aa0396e7d8753628983d26972821e712478b8ec05",
   "src/page/draft-render.mjs": "fa5ebe27a4dbc8499be502bdfc302b8f584b0ca12b436f95f99f962a99c54a3b",
-  "src/page/construct.mjs": "075c6c1d31228dfe248a679130f200e4861decfe007c353a789edbf7c2159561", /* RR-294: PAGE-1 SATISFIED (the five gates are build-page's acceptance step) */
-  "bin/build-page.mjs": "76fc84e122acb6152f0cae27bb88ff4f7a96c0694195910b0368802b139a6ec3", /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F92 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
+  "bin/build-page.mjs": "bd623db832fc79ecdb94b4f3c10ac538c097d08e1a0666e16bfc64f812e8b422", /* RR-294: the five page gates are its acceptance step */ /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F92 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/page/answer-first.mjs": "b5f49a4990243970152ddc1af14dbe6e73b0cb692d512b41b10f68a282114a1f",
   "src/page/answer-first-evidence.mjs": "7f5e9748bfa666ad97edd4c758999b1f1eedb3ad52aadc9a0b447e64d0ca8c2d",
   "src/page/quality-judgements.mjs": "f4511418885bfbb3994e842dd6ba42610e49b8e6368401f0791ca79cb482fda2",

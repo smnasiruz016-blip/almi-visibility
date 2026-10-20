@@ -224,18 +224,59 @@ export function titleWordsTraced({ title, phrases = [], lastChecked = null }) {
   return tokens(title).filter((w) => !allowed.has(w));
 }
 
-/** Law 3 · key-fact cards: a recorded value that stands, word for word, inside the recorded claim it names, under that item's own recorded
- * question; anything else is refused. */
+/**
+ * 🔴 SAME MEANING (RR-295, owner decision 2 and its beta-g safeguard): a card may say what its source says in words of the same meaning —
+ * "45 mins" = "45 minutes", "Approximately 20 minutes" = "about 20 minutes", "Grade B (Minimum Score of 350)" = "grade B (350)" — but every
+ * NUMBER, its UNIT, an "about" before it and every CONDITION on it ("with no elements below 300") must be the source's. A dropped or changed
+ * one changes the meaning and is refused, named: "1400" where the source says "1400 with no elements below 300" is refused.
+ * Only these equivalences are taken; nothing else is guessed.
+ */
+const UNIT = "minutes|hours|seconds|days|weeks|months|years|%";
+const canon = (s) => ` ${String(s ?? "").toLowerCase()
+  .replace(/[–—]/g, "-")
+  .replace(/\bwith no (?:elements?|parts?|components?|modules?|sections?|sub-?tests?|skills?) (?:below|under|lower than)\b/g, " nobelow ")
+  .replace(/\bno (?:elements?|parts?|components?|modules?|sections?|sub-?tests?|skills?) (?:below|under|lower than)\b/g, " nobelow ")
+  .replace(/\b(?:approximately|approx\.?|around|roughly)\s/g, "about ")
+  .replace(/\bmins?\b/g, "minutes").replace(/\bhrs?\b/g, "hours").replace(/\bsecs?\b/g, "seconds")
+  .replace(/\b(?:a minimum of|minimum of|minimum scale score of|minimum score of|scale score of|score of|at least|minimum|or above|or higher|or more)\b/g, " ")
+  .replace(/\bgrade\b/g, " ")
+  .replace(/[()[\],;:"*]/g, " ")
+  .replace(/\s+/g, " ").trim()} `;
+export function sameMeaning(value, quote) {
+  const v = canon(value), q = canon(quote);
+  if (!present(String(value ?? "")) || !present(String(quote ?? ""))) return Object.freeze({ same: false, why: "no source quotation to compare with" });
+  if (!q.includes(v)) return Object.freeze({ same: false, why: "a number, unit or word of the value is not in the source" });
+  /* the safeguard: what the source binds to each of the value's numbers — its unit, an "about" before it, a "no part below" after it */
+  for (const n of v.match(/\d[\d,.]*/g) ?? []) {
+    const bound = `(about )?(?<![\\d,.])${n.replace(/[.]/g, "\\.")}(?![\\d,.])(?: ?(${UNIT}))?(?: nobelow ([\\d,.]+))?`;
+    const at = [...q.matchAll(new RegExp(bound, "g"))];
+    const inV = new RegExp(bound).exec(v);
+    if (!at.length || !inV) continue;
+    const kept = at.some((m) => (!m[1] || inV[1]) && (!m[2] || inV[2] === m[2]) && (!m[3] || inV[3] === m[3]));
+    if (!kept) {
+      const m = at[0];
+      const lost = m[3] && !inV[3] ? `the condition "no part below ${m[3]}"` : m[2] && inV[2] !== m[2] ? `the unit "${m[2]}"` : `the word "about"`;
+      return Object.freeze({ same: false, why: `the source binds ${lost} to ${n}; the value drops it` });
+    }
+  }
+  return Object.freeze({ same: true, why: null });
+}
+
+/** Law 3 · key-fact cards: a recorded value that stands inside the recorded claim it names, under that item's own recorded question — word
+ * for word, or in words of the same meaning (RR-295, sameMeaning above); anything else is refused. */
 export function keyFactCards({ facts = [], items = [], quotationOf = null }) {
   const claims = new Map(items.flatMap((it) => it.claims.map((c) => [c.claimId, { ...c, needId: it.needId, question: it.heading.shown ?? it.heading.wording }])));
   const cards = [], refused = [];
-  /* word for word: the same words in the same order — whitespace collapsed and letter case folded, nothing else */
-  const flat = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
   for (const f of facts) {
     const c = claims.get(f?.claimId);
-    if (!c || !present(f.value) || !String(c.text ?? "").includes(f.value)) { refused.push(Object.freeze({ claimId: f?.claimId ?? null, code: REFUSAL.KEY_FACT })); continue; }
-    /* RR-294: with the quotations handed in, the value must stand in its claim's own verbatim quotation (whitespace only collapsed) */
-    if (typeof quotationOf === "function" && !flat(quotationOf(c.claimId)).includes(flat(f.value))) { refused.push(Object.freeze({ claimId: c.claimId, code: REFUSAL.KEY_FACT_QUOTE, value: f.value.trim(), quotation: flat(quotationOf(c.claimId)) || null })); continue; }
+    /* the card belongs to its claim: the value stands in the claim's text, or every number of it does (the meaning is the quote's check below) */
+    const numbersIn = (s) => String(s ?? "").match(/\d[\d,.]*\d|\d/g) ?? [];
+    const ofClaim = present(f.value) && c && (String(c.text ?? "").includes(f.value) || sameMeaning(f.value, c.text).same || (numbersIn(f.value).length > 0 && numbersIn(f.value).every((n) => numbersIn(c.text).includes(n))));
+    if (!c || !ofClaim) { refused.push(Object.freeze({ claimId: f?.claimId ?? null, code: REFUSAL.KEY_FACT })); continue; }
+    /* RR-294 / RR-295: with the quotations handed in, the value must say what its claim's own verbatim quotation says — the same words, or
+     * words of the same meaning with every number, unit and condition kept */
+    const sm = typeof quotationOf === "function" ? sameMeaning(f.value, quotationOf(c.claimId)) : null;
+    if (sm && !sm.same) { refused.push(Object.freeze({ claimId: c.claimId, code: REFUSAL.KEY_FACT_QUOTE, value: f.value.trim(), quotation: String(quotationOf(c.claimId) ?? "").replace(/\s+/g, " ").trim() || null, why: sm.why })); continue; }
     cards.push(Object.freeze({ claimId: c.claimId, needId: c.needId, label: c.question, value: f.value.trim(), source: c.source, link: c.link, readOn: c.readOn }));
   }
   return Object.freeze({ cards: Object.freeze(cards), refused: Object.freeze(refused) });

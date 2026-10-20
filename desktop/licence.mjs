@@ -44,7 +44,10 @@ export function licenceState({ now, check, last = null, publicKeyPem }) {
   }
   if (!lastGood) return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: null, line: "No plan yet — choose a plan to start (there is no free trial)." });
   const l = lastGood.signed.licence;
+  /* RR-303: a verified "no plan yet" answer is NO_PLAN — never "an unknown plan" (a new buyer saw INVALID before the payment landed) */
+  if (l.status === "NO_PLAN") return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: lastGood, line: "No plan yet for this licence key — if you have just paid, it switches on within a minute." });
   const plan = planOf(l.plan);
+  if (l.status === "PENDING" && plan) return Object.freeze({ state: "PENDING", mayStartNewWork: false, plan, last: lastGood, line: `Your plan (${plan.words}) is being confirmed — it switches on as soon as the payment is confirmed.` });
   if (!plan) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence names an unknown plan — new work is paused. Nothing is deleted." });
   if (l.status !== "ACTIVE" || Date.parse(l.periodEnd) < now) return Object.freeze({ state: "ENDED", mayStartNewWork: false, plan, last: lastGood, line: `Your plan (${plan.words}) is not active — new work is paused until it is renewed. Nothing is deleted.` });
   if (check?.reached) return Object.freeze({ state: "ACTIVE", mayStartNewWork: true, plan, last: lastGood, line: `Your plan: ${plan.words}. Licence checked just now.` });

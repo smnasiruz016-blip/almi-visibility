@@ -32,7 +32,8 @@ export function checkLead({ email, marketing, testedUrl, score = null }) {
   const e = typeof email === "string" ? email.trim() : "";
   if (e === "") return { ok: true, lead: null };
   if (e.length > 254 || !EMAIL.test(e)) return { ok: false, why: "That email address does not look right. Leave it empty to see your result without one." };
-  return { ok: true, lead: Object.freeze({ email: e.toLowerCase(), marketing: marketing === true, consentText: PRIVACY_LINE, testedUrl: typeof testedUrl === "string" ? testedUrl.slice(0, 500) : null, score: Number.isFinite(score) ? score : null, at: new Date().toISOString() }) };
+  /* RR-303 B: every lead carries its own unsubscribe token (random; the link in every email) */
+  return { ok: true, lead: Object.freeze({ email: e.toLowerCase(), marketing: marketing === true, consentText: PRIVACY_LINE, testedUrl: typeof testedUrl === "string" ? testedUrl.slice(0, 500) : null, score: Number.isFinite(score) ? score : null, at: new Date().toISOString(), unsubToken: randomBytes(18).toString("base64url"), unsubscribed: false }) };
 }
 /** One free test as logged: the site, its score (null when nothing could be measured), the pages read, the date. No visitor address. */
 export const testRecord = (r) => Object.freeze({ site: String(r.url).slice(0, 500), score: Number.isFinite(r.score) ? r.score : null, pages: r.pagesRead, at: r.testedOn });
@@ -48,6 +49,14 @@ export function fileSiteStore(dir) {
     async listLeads() { return read("leads.json").sort((a, b) => String(b.at).localeCompare(String(a.at))); },
     async addTest(t) { const a = read("tests.json"); a.push(t); write("tests.json", a); return true; },
     async listTests() { return read("tests.json").sort((a, b) => String(b.at).localeCompare(String(a.at))); },
+    /* RR-303 B: unsubscribe by token — marketing NO, nothing more is sent */
+    async unsubscribe(token) { const a = read("leads.json"); let n = 0; for (const l of a) if (token && l.unsubToken === token) { l.marketing = false; l.unsubscribed = true; n++; } write("leads.json", a); return n > 0; },
+    async markEmailed(email, testedUrl, sent) { const a = read("leads.json"); for (const l of a) if (l.email === email && l.testedUrl === testedUrl) l.reportEmailed = sent; write("leads.json", a); },
+    /* RR-303 A: the licences (accounts) and the checkout sessions that name their licence key */
+    async accounts() { const a = read("accounts.json"); return Array.isArray(a) ? {} : a; },
+    async saveAccounts(acc) { write("accounts.json", acc); },
+    async addCheckout(c) { const a = read("checkouts.json"); a.push(c); write("checkouts.json", a); },
+    async checkout(sessionId) { return read("checkouts.json").find((c) => c.sessionId === sessionId) ?? null; },
   });
 }
 
@@ -63,18 +72,30 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
   const init = () => (ready ??= (async () => {
     await q("CREATE TABLE IF NOT EXISTS visibility_leads (email text NOT NULL, marketing boolean NOT NULL, consent_text text NOT NULL, tested_url text, score integer, at timestamptz NOT NULL, PRIMARY KEY (email, tested_url))");
     await q("CREATE TABLE IF NOT EXISTS visibility_free_tests (id bigserial PRIMARY KEY, site text NOT NULL, score integer, pages integer NOT NULL, at timestamptz NOT NULL)");
+    /* RR-303: the unsubscribe token and the report-sent flag; the licences; the checkout sessions */
+    await q("ALTER TABLE visibility_leads ADD COLUMN IF NOT EXISTS unsub_token text, ADD COLUMN IF NOT EXISTS unsubscribed boolean NOT NULL DEFAULT false, ADD COLUMN IF NOT EXISTS report_emailed boolean");
+    await q("CREATE TABLE IF NOT EXISTS visibility_licences (account text PRIMARY KEY, plan text NOT NULL, status text NOT NULL, period_end timestamptz NOT NULL, subscription text)");
+    await q("CREATE TABLE IF NOT EXISTS visibility_checkouts (session_id text PRIMARY KEY, licence_key text NOT NULL, plan text NOT NULL, at timestamptz NOT NULL)");
   })());
   return Object.freeze({
     kind: "NEON",
-    async addLead(l) { await init(); await q("INSERT INTO visibility_leads (email, marketing, consent_text, tested_url, score, at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (email, tested_url) DO NOTHING", [l.email, l.marketing, l.consentText, l.testedUrl, l.score, l.at]); return true; },
+    async addLead(l) { await init(); await q("INSERT INTO visibility_leads (email, marketing, consent_text, tested_url, score, at, unsub_token) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (email, tested_url) DO NOTHING", [l.email, l.marketing, l.consentText, l.testedUrl, l.score, l.at, l.unsubToken]); return true; },
     async listLeads() { await init(); return q("SELECT email, marketing, tested_url AS \"testedUrl\", score, at FROM visibility_leads ORDER BY at DESC"); },
     async addTest(t) { await init(); await q("INSERT INTO visibility_free_tests (site, score, pages, at) VALUES ($1, $2, $3, $4)", [t.site, t.score, t.pages, t.at]); return true; },
     async listTests() { await init(); return q("SELECT site, score, pages, at FROM visibility_free_tests ORDER BY at DESC LIMIT 5000"); },
+    async unsubscribe(token) { await init(); if (!token) return false; return (await q("UPDATE visibility_leads SET marketing = false, unsubscribed = true WHERE unsub_token = $1 RETURNING email", [token])).length > 0; },
+    async markEmailed(email, testedUrl, sent) { await init(); await q("UPDATE visibility_leads SET report_emailed = $3 WHERE email = $1 AND tested_url = $2", [email, testedUrl, sent]); },
+    async accounts() { await init(); return Object.fromEntries((await q("SELECT account, plan, status, period_end AS \"periodEnd\", subscription FROM visibility_licences")).map((r) => [r.account, { plan: r.plan, status: r.status, periodEnd: new Date(r.periodEnd).toISOString(), subscription: r.subscription }])); },
+    async saveAccounts(acc) { await init(); for (const [k, v] of Object.entries(acc)) await q("INSERT INTO visibility_licences (account, plan, status, period_end, subscription) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (account) DO UPDATE SET plan = $2, status = $3, period_end = $4, subscription = $5", [k, v.plan, v.status, v.periodEnd, v.subscription]); },
+    async addCheckout(c) { await init(); await q("INSERT INTO visibility_checkouts (session_id, licence_key, plan, at) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING", [c.sessionId, c.licenceKey, c.plan, c.at]); },
+    async checkout(sessionId) { await init(); const r = await q("SELECT session_id AS \"sessionId\", licence_key AS \"licenceKey\", plan, at FROM visibility_checkouts WHERE session_id = $1", [sessionId]); return r[0] ?? null; },
   });
 }
 
 /** The store for this run: Neon when its variable is set, else the local file store — named either way. */
-export const siteStore = ({ env = process.env, localDir }) => (env[KEY_NAMES.database] ? neonSiteStore(env[KEY_NAMES.database]) : fileSiteStore(localDir));
+/** RR-303 F: on Vercel there is no lasting disk — without the database nothing is stored (named), never a file that vanishes */
+export const disabledStore = () => Object.freeze({ kind: "NOT CONNECTED (no database: VISIBILITY_SITE_DATABASE_URL)", async addLead() { return false; }, async listLeads() { return []; }, async addTest() { return false; }, async listTests() { return []; }, async unsubscribe() { return false; }, async markEmailed() {}, async accounts() { return {}; }, async saveAccounts() { throw new Error("no database"); }, async addCheckout() { throw new Error("no database"); }, async checkout() { return null; } });
+export const siteStore = ({ env = process.env, localDir }) => (env[KEY_NAMES.database] ? neonSiteStore(env[KEY_NAMES.database]) : env.VERCEL ? disabledStore() : fileSiteStore(localDir));
 
 /** Per day: the free tests, the leads, and how many leads said yes to marketing. Newest day first. */
 export function dailyCounts(tests, leads) {

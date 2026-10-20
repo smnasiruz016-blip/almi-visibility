@@ -1,0 +1,148 @@
+{
+ "source": {
+  "package": "@smnasiruz016-blip/almi-data",
+  "version": "0.8.0",
+  "file": "dist/family.js",
+  "sha256": "8cfed9bde1f8e6a16b26a1efd0d4af2dad08c2714039e872f1bd1c0e0f104873"
+ },
+ "products": [
+  {
+   "key": "jobs",
+   "name": "AlmiJob",
+   "href": "https://almijob.almiworld.com/"
+  },
+  {
+   "key": "salary",
+   "name": "Salary Checker",
+   "href": "https://almisalary.almiworld.com/"
+  },
+  {
+   "key": "cv",
+   "name": "AlmiCV",
+   "href": "https://almicv.almiworld.com/"
+  },
+  {
+   "key": "study",
+   "name": "AlmiStudy",
+   "href": "https://almistudy.almiworld.com/"
+  },
+  {
+   "key": "prep",
+   "name": "AlmiPrep",
+   "href": "https://almiprep.almiworld.com/"
+  },
+  {
+   "key": "pte",
+   "name": "AlmiPTE",
+   "href": "https://almipte.almiworld.com/"
+  },
+  {
+   "key": "toefl",
+   "name": "AlmiTOEFL",
+   "href": "https://almitoefl.almiworld.com/"
+  },
+  {
+   "key": "oet",
+   "name": "AlmiOET",
+   "href": "https://almioet.almiworld.com/"
+  },
+  {
+   "key": "det",
+   "name": "AlmiDET",
+   "href": "https://almidet.almiworld.com/"
+  },
+  {
+   "key": "celpip",
+   "name": "AlmiCELPIP",
+   "href": "https://almicelpip.almiworld.com/"
+  },
+  {
+   "key": "french",
+   "name": "AlmiFrench",
+   "href": "https://almifrench.almiworld.com/"
+  },
+  {
+   "key": "spanish",
+   "name": "AlmiSpanish",
+   "href": "https://almispanish.almiworld.com/"
+  },
+  {
+   "key": "japanese",
+   "name": "AlmiJapanese",
+   "href": "https://almijapanese.almiworld.com/"
+  },
+  {
+   "key": "korean",
+   "name": "AlmiKorean",
+   "href": "https://almikorean.almiworld.com/"
+  },
+  {
+   "key": "goethe",
+   "name": "AlmiGoethe",
+   "href": "https://almigoethe.almiworld.com/"
+  },
+  {
+   "key": "portuguese",
+   "name": "AlmiPortuguese",
+   "href": "https://almiportuguese.almiworld.com/"
+  },
+  {
+   "key": "italian",
+   "name": "AlmiItalian",
+   "href": "https://almiitalian.almiworld.com/"
+  },
+  {
+   "key": "dutch",
+   "name": "AlmiDutch",
+   "href": "https://almidutch.almiworld.com/"
+  },
+  {
+   "key": "icelandic",
+   "name": "AlmiIcelandic",
+   "href": "https://almiicelandic.almiworld.com/"
+  },
+  {
+   "key": "danish",
+   "name": "AlmiDanish",
+   "href": "https://almidanish.almiworld.com/"
+  },
+  {
+   "key": "norwegian",
+   "name": "AlmiNorwegian",
+   "href": "https://alminorwegian.almiworld.com/"
+  },
+  {
+   "key": "swedish",
+   "name": "AlmiSwedish",
+   "href": "https://almiswedish.almiworld.com/"
+  },
+  {
+   "key": "swiss",
+   "name": "AlmiSwiss",
+   "href": "https://almiswiss.almiworld.com/"
+  },
+  {
+   "key": "visibility",
+   "name": "AlmiVisibility",
+   "href": "https://almivisibility.almiworld.com/"
+  }
+ ],
+ "network": {
+  "home": {
+   "name": "Home",
+   "href": "https://almiworld.com/"
+  },
+  "ebooks": {
+   "name": "eBooks",
+   "href": "https://almiworld.com/ebooks-2/"
+  },
+  "contact": {
+   "name": "Contact Us",
+   "href": "https://almiworld.com/contact-us/"
+  },
+  "shamool": {
+   "name": "Shamool Foundation",
+   "href": "https://shamoolfoundation.com/"
+  }
+ }
+}

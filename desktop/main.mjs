@@ -10,7 +10,8 @@
  *   node desktop/main.mjs --data=<dir> [--install=<program dir>] [--port=0]
  */
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync } from "node:fs";
+import { PILOT_CHANNELS, YOUTUBE_RAW_DAYS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine } from "./licence.mjs";
@@ -36,8 +37,12 @@ const saveLicence = (last) => { writeFileSync(`${LICENCE_FILE}.tmp`, JSON.string
 const CONFIG = existsSync(join(DATA, "config.json")) ? JSON.parse(readFileSync(join(DATA, "config.json"), "utf8")) : {};
 /* the public keys the app trusts: shipped with it (desktop/keys), or a test folder named in the data folder's config (tests only) */
 const keyPem = (name) => { const f = join(CONFIG.keysDir ?? join(HERE, "keys"), name); return existsSync(f) ? readFileSync(f, "utf8") : null; };
-const LICENCE_URL = CONFIG.licenceUrl ?? "https://licence.almiworld.com/";   // DEFERRED: not deployed until Stripe is set up (owner decision 4 of RR-299)
-const UPDATE_URL = CONFIG.updateChannelUrl ?? "https://updates.almiworld.com/"; // DEFERRED: not deployed until the owner's GREEN
+/* RR-303 F: the licence check and the update channel are the site's own (almivisibility.almiworld.com, not live until the owner's GREEN) */
+const LICENCE_URL = CONFIG.licenceUrl ?? "https://almivisibility.almiworld.com/";
+const UPDATE_URL = CONFIG.updateChannelUrl ?? "https://almivisibility.almiworld.com/updates/";
+const saveConfig = () => { writeFileSync(join(DATA, "config.json.tmp"), JSON.stringify(CONFIG, null, 1)); renameSync(join(DATA, "config.json.tmp"), join(DATA, "config.json")); };
+/* RR-303 A: the licence key a purchase shows (av_…); kept in the app's own config, never shown back or logged */
+export const LICENCE_KEY = /^av_[A-Za-z0-9_-]{20,64}$/;
 
 async function licenceNow() {
   let check = { reached: false };
@@ -55,14 +60,19 @@ let updateFound = null;
  * found in this computer's settings by the NAME setup recorded (YOUTUBE_API_KEY). The key is read here and handed straight in — never shown,
  * stored or logged. No key → the line saying where to add it. Never a youtube.com page.
  */
-async function youtubeView(s) {
+async function youtubeView(s, id) {
   const yt = s.setup?.youtube;
-  if (!yt?.handle) return ["YouTube is not set up — it is optional. Add your channel's @handle in the setup (step 7)."];
+  if (!yt?.handle) return ["YouTube is not set up — it is optional. Open “YouTube settings” to add your channel's @handle."];
   const keyName = yt.keyName || YOUTUBE_KEY_NAME;
   const api = youtubeApi({ env: process.env, keyName, fetchImpl: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(15000) }) });
   if (api.state !== "READY") return [`Channel ${yt.handle}: the key is not added yet. Add it in Windows as a user environment variable named ${keyName}, then close and open AlmiVisibility again.`];
   try {
     const videos = await api.channelVideos(yt.handle);
+    /* raw data stays on this computer, in the product's own folder, 30 days at most (never in git; no score is derived) */
+    const rawDir = join(store.dirOf(id), "youtube-raw");
+    mkdirSync(rawDir, { recursive: true });
+    writeFileSync(join(rawDir, `${new Date().toISOString().slice(0, 10)}.json`), JSON.stringify({ recorded_at: new Date().toISOString(), handle: yt.handle, videos }));
+    for (const f of readdirSync(rawDir)) if (/^\d{4}-\d{2}-\d{2}\.json$/.test(f) && Date.now() - Date.parse(f.slice(0, 10)) > YOUTUBE_RAW_DAYS * 86400000) rmSync(join(rawDir, f));
     const read = { ok: true, source: "YOUTUBE_DATA_API", importedOn: new Date().toISOString().slice(0, 10), videos };
     return youtubeForReport(read, channelCheck(videos, { productUrl: s.product?.site ?? null })).lines;
   } catch (e) { return [`Channel ${yt.handle}: YouTube could not be read now (${/answered HTTP \d+/.exec(String(e?.message))?.[0] ?? "no answer"}). Nothing was changed.`]; }
@@ -83,7 +93,7 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
-        return send(200, { version: VERSION, company: store.company(), products: products.map(productCard), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok });
+        return send(200, { version: VERSION, company: store.company(), products: products.map(productCard), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account) });
       }
       if (req.method === "POST" && u.pathname === "/api/company") {
         const c = json();
@@ -126,9 +136,26 @@ const server = createServer((req, res) => {
           preview: (s.preview ?? []).length ? s.preview.map((p) => `${p.title} — ${p.url}`) : ["No page or article yet — they appear here before they go live."],
           approvals: (s.approvals ?? []).length ? s.approvals : [s.setup.publishMode?.mode === PUBLISH_MODE.REVIEW_FIRST ? "Nothing waits for your approval yet." : "Publishing is automatic after the gates — nothing waits for you."],
           monthly: ["The monthly report appears at the end of the first month: bad news first, then what was made and refreshed, the search data, and next month's topics."],
-          youtube: await youtubeView(s),
+          youtube: await youtubeView(s, id),
         });
       }
+      /* RR-303 A: the licence key from a purchase — saved, never echoed */
+      if (req.method === "POST" && u.pathname === "/api/account") {
+        const { licenceKey } = json();
+        if (!LICENCE_KEY.test(String(licenceKey ?? "").trim())) return send(400, { refused: "That is not a licence key. It starts with av_ — copy it from the page shown after you bought your plan." });
+        CONFIG.account = String(licenceKey).trim(); saveConfig();
+        const st = await licenceNow();
+        return send(200, { ok: true, line: st.line });
+      }
+      /* RR-303 D: YouTube settings — any time, for any product (not only in the first setup) */
+      { const y = /^\/api\/products\/([^/]+)\/youtube$/.exec(u.pathname);
+        if (y) {
+          const yid = decodeURIComponent(y[1]); let ys;
+          try { ys = store.read(yid); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
+          if (!ys) return send(404, { refused: "no such product" });
+          if (req.method === "GET") return send(200, { handle: ys.setup?.youtube?.handle ?? "", keyName: ys.setup?.youtube?.keyName ?? "YOUTUBE_API_KEY", pilots: PILOT_CHANNELS, keySet: Boolean(process.env[ys.setup?.youtube?.keyName || "YOUTUBE_API_KEY"]) });
+          if (req.method === "POST") { const v = json(); const bad = checkStep("youtube", v); if (bad) return send(400, { refused: bad }); ys.setup = { ...ys.setup, youtube: { handle: String(v.handle ?? "").trim(), keyName: String(v.keyName ?? "YOUTUBE_API_KEY").trim() } }; store.write(yid, ys); return send(200, { ok: true }); }
+        } }
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }
       if (req.method === "GET" && u.pathname === "/api/update") { const r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); updateFound = r.manifest ?? null; return send(200, { state: r.state, line: r.line }); }
       if (req.method === "POST" && u.pathname === "/api/update/install") {

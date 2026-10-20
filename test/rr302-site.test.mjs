@@ -22,7 +22,8 @@ test("DECISION 2 · THE EMAIL IS OPTIONAL: no email → no lead (and the result 
   assert.equal(checkLead({ email: " A@Example.com ", marketing: true, testedUrl: "https://x.example/", score: 81 }).lead.email, "a@example.com");
   assert.equal(checkLead({ email: "a@example.com", marketing: true }).lead.marketing, true);
   /* both boxes start empty; the marketing box starts UNTICKED */
-  for (const html of [P.home(), P.freeTest(), P.freeTest({ result: RESULT })]) {
+  /* RR-303 B: the email box shows only while sending works (emailOn) */
+  for (const html of [P.home({ emailOn: true }), P.freeTest({ emailOn: true }), P.freeTest({ result: RESULT, emailOn: true })]) {
     assert.match(html, /<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="">/);
     assert.match(html, /<input type="checkbox" name="marketing" value="yes"> /);
     assert.doesNotMatch(html, /name="marketing"[^>]*checked/);
@@ -102,7 +103,7 @@ test("SERVER · the admin is private (login, HttpOnly SameSite=Strict cookie on 
   const setup = join(dir, "AlmiVisibility-Setup-test.exe");
   writeFileSync(setup, "MZ fixture setup bytes");
   const h = hashPassword("a-test-password-only");
-  const app = spawn(process.execPath, [join(REPO, "site", "server.mjs"), `--data=${dir}`, `--setup=${setup}`], { stdio: "ignore", env: { ...process.env, SITE_ADMIN_PASSWORD_HASH: h, ADMIN_EMAILS: "", VISIBILITY_SITE_DATABASE_URL: "" } });
+  const app = spawn(process.execPath, [join(REPO, "site", "server.mjs"), `--data=${dir}`, `--setup=${setup}`], { stdio: "ignore", env: { ...process.env, SITE_ADMIN_PASSWORD_HASH: h, ADMIN_EMAILS: "", VISIBILITY_SITE_DATABASE_URL: "", RESEND_API_KEY: "re_fakeForThisTestOnly" } }); /* RR-303: sending on (a fake key) so the email is checked — and refused before any test runs */
   try {
     for (let i = 0; i < 50 && !existsSync(join(dir, "run.json")); i++) await new Promise((r) => setTimeout(r, 100));
     const base = `http://127.0.0.1:${JSON.parse(readFileSync(join(dir, "run.json"), "utf8")).port}`;
@@ -126,8 +127,9 @@ test("SERVER · the admin is private (login, HttpOnly SameSite=Strict cookie on 
     /* another site's form is refused */
     assert.equal((await fetch(`${base}/free-test`, { ...form({ url: "example.com" }), headers: { origin: "https://evil.example", "content-type": "application/x-www-form-urlencoded" } })).status, 403);
     /* Buy with no checkout link: 503, nothing charged; an unknown plan: 404 */
-    assert.equal((await fetch(`${base}/buy/visibility_5`, { redirect: "manual" })).status, 503);
-    assert.equal((await fetch(`${base}/buy/free`, { redirect: "manual" })).status, 404);
+    /* RR-303 A: Buy is a form to the checkout — with no Stripe key it charges nothing (503); an unknown plan is refused (400) */
+    assert.equal((await fetch(`${base}/api/billing/checkout`, form({ plan: "visibility_5" }))).status, 503);
+    assert.equal((await fetch(`${base}/api/billing/checkout`, form({ plan: "free" }))).status, 400);
     const dl = await fetch(`${base}/download/AlmiVisibility-Setup.exe`);
     assert.deepEqual([dl.status, await dl.text()], [200, "MZ fixture setup bytes"]);
     assert.equal((await fetch(`${base}/favicon.ico`)).headers.get("content-type"), "image/x-icon");

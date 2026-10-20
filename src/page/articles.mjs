@@ -49,6 +49,19 @@ const normQ = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").t
 const slug = (s) => normQ(s).replace(/ /g, "-").slice(0, 60).replace(/-+$/, "");
 
 /**
+ * 🔴 THE PUBLISH DECISION of a page that passed its gates (an article, or a page an auto-refresh rebuilt — RR-297), by the client's publish
+ * mode, through the publishing control: AUTO — the gates' pass is the approval record, so the one-page cohort MAY_PUBLISH; REVIEW FIRST — no
+ * approval until the client gives one. A page that did not pass is never put forward. Nothing goes live from here.
+ */
+export function publishDecision({ url, day, settings = {}, gatesPassed }) {
+  const s = articleSettings(settings);
+  if (!gatesPassed) return Object.freeze({ cohort: "REFUSED", state: "NOT PUT FORWARD — it did not pass every gate", sitemap: null });
+  const auto = s.publishMode === PUBLISH_MODE.AUTO_AFTER_GATES;
+  const cohort = planCohort({ pages: [url], approvals: auto ? [{ pageId: url, approvedBy: "gates:all-five-and-not-a-duplicate", on: day, decision: PUBLISH_MODE.AUTO_AFTER_GATES }] : [] });
+  return Object.freeze({ cohort: cohort.state, state: auto ? (cohort.state === "MAY_PUBLISH" ? "QUEUED TO PUBLISH (held — no product is attached; nothing goes live)" : "REFUSED") : "WAITING FOR THE CLIENT'S APPROVAL", sitemap: auto ? sitemapXml([url]) : null });
+}
+
+/**
  * One day's articles. `topics` are the product's real questions: { topicId, label: DEMAND|OPPORTUNITY, question, seenIn (the record it was
  * seen in), claims (sourced), generalView? }. `existing` are the pages that stand ({ id, url, claimIds, questions, gate }), `earlier` the
  * articles already made ({ url, claimIds, questions, gate }). Returns { day, articles, none?, considered }.
@@ -84,11 +97,9 @@ export function articlesForDay({ day, settings, topics = [], existing = [], earl
     if (verdict && !verdict.pass && !failed.length) failed.push("the gates refused it");
     if (dup) failed.push(`a duplicate of ${dup.url}`);
     if (failed.length) { why.set(t.topicId, `failed the gates — ${failed[0]}`); continue; }
-    const auto = s.publishMode === PUBLISH_MODE.AUTO_AFTER_GATES;
-    const cohort = planCohort({ pages: [page.url], approvals: auto ? [{ pageId: page.url, approvedBy: "gates:all-five-and-not-a-duplicate", on: day, decision: PUBLISH_MODE.AUTO_AFTER_GATES }] : [] });
+    const publish = publishDecision({ url: page.url, day, settings: s, gatesPassed: true });
     made.push(Object.freeze({ day, topicId: t.topicId, question: t.question, url: page.url, html: page.html, claimIds: page.answer, questions: page.questions, gate: gateInput(page), cards: page.cards.length,
-      gates: "PASS — all five, and not a duplicate", publishMode: s.publishMode,
-      publish: Object.freeze({ cohort: cohort.state, state: auto ? (cohort.state === "MAY_PUBLISH" ? "QUEUED TO PUBLISH (held — no product is attached; nothing goes live)" : "REFUSED") : "WAITING FOR THE CLIENT'S APPROVAL", sitemap: auto ? sitemapXml([page.url]) : null }) }));
+      gates: "PASS — all five, and not a duplicate", publishMode: s.publishMode, publish }));
   }
   if (made.length) return Object.freeze({ day, articles: Object.freeze(made), considered: topics.length });
   const reasons = [...why.values()];

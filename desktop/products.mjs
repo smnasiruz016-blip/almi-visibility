@@ -26,12 +26,12 @@ export function productStore(dataDir) {
   const stateFile = (id) => join(dirOf(id), "state.json");
   const read = (id) => { const f = stateFile(id); if (!existsSync(f)) throw Object.assign(new Error(`no product ${id}`), { code: "NO_SUCH_PRODUCT" }); return JSON.parse(readFileSync(f, "utf8")); };
   const write = (id, state) => atomic(stateFile(id), { ...state, id });
-  const list = () => readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && PRODUCT_ID.test(e.name) && existsSync(join(root, e.name, "state.json"))).map((e) => read(e.name)).sort((a, b) => String(a.created).localeCompare(String(b.created)));
+  const list = () => readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && PRODUCT_ID.test(e.name) && existsSync(join(root, e.name, "state.json"))).map((e) => read(e.name)).sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || String(a.created).localeCompare(String(b.created)));
   const create = ({ name, site }) => {
     let id = slug(name), n = 2;
     while (existsSync(join(root, id))) id = `${slug(name)}-${n++}`;
     mkdirSync(dirOf(id));
-    const state = { id, product: { name, site }, setup: { product: { name, site, what: "" } }, started: false, created: new Date().toISOString(), preview: [], approvals: [], reports: [] };
+    const state = { id, seq: list().reduce((m, p) => Math.max(m, p.seq ?? 0), 0) + 1, product: { name, site }, setup: { product: { name, site, what: "" } }, started: false, created: new Date().toISOString(), preview: [], approvals: [], reports: [] };
     write(id, state);
     return state;
   };

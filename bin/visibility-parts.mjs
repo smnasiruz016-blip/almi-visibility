@@ -51,10 +51,8 @@ const io = Object.freeze({
   own: (f) => { try { return JSON.parse(readFileSync(join(subject.dir, f), "utf8")); } catch { return null; } },
   exists: (f) => existsSync(join(batchDir, f)),
   listBatch: () => readdirSync(batchDir),
-  storedReads: () => {
-    const lines = (p) => { try { return readFileSync(p, "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } };
-    return withPrivateTexts(lines(join(batchDir, "source-reads.jsonl")), lines(join(privateBatchDir, "source-reads.jsonl")), { privateRoot: PRIVATE.state });
-  },
+  /* bound on the lines that name the RESEARCH store (batchDir, privateBatchDir): THIS research batch's own stored reads and their private texts */
+  storedReads: () => withPrivateTexts((() => { try { return readFileSync(join(batchDir, "source-reads.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })(), (() => { try { return readFileSync(join(privateBatchDir, "source-reads.jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })(), { privateRoot: PRIVATE.state }),
   list: process.argv.includes("--list"),
   on: arg("on"),
   compareBatch: COMPARE,

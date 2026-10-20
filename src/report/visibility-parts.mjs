@@ -17,7 +17,8 @@ import { runLab, speedFinding, LAB_BOUND, DEVICE, NOT_MEASURED as LAB_NOT_MEASUR
 import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-exports.mjs";
 import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
 import { allGates, costGate } from "../page/page-gates.mjs";
-import { guideItemsByValue, buildGuides, asPublished } from "../page/one-builder.mjs";
+import { articleSettings, settingsView, articlesForDay } from "../page/articles.mjs";
+import { guideItemsByValue, buildGuides, asPublished, gateInput } from "../page/one-builder.mjs";
 import { GUIDANCE } from "../../config/guidance/guidance-read.mjs";
 import { connectionNow } from "../research/ai-connection.mjs";
 import { planCohort, rollback, sitemapXml, submissionState, PUBLISH_COHORT_CAP } from "../page/publishing-control.mjs";
@@ -374,6 +375,27 @@ export const PARTS = Object.freeze({
       for (const [k, n] of tally.slice(0, 6)) lines.push(`  ${n} × ${k}`);
       if (io.list) for (const r of results) lines.push(`  ${r.pass ? "PASS" : "FAIL"} ${r.id} ${r.pass ? "" : `— ${[...new Set(reasonsOf(r))].join("; ")}`}`);
       return lines;
+    },
+  }),
+  /* RR-296 · DAILY ARTICLES (src/page/articles.mjs): the product's article settings as the client sees them, and the day's articles over the
+   * batch's real questions (article-topics.json), beside the stored guides — read-only: nothing is written, fetched or published */
+  "articles": Object.freeze({
+    title: "ARTICLES · SETTINGS AND THE DAY'S ARTICLES",
+    run: async (io) => {
+      const own = io.json("article-settings.json");
+      const s = articleSettings(own ?? {});
+      const lines = [...settingsView(s), `  (${own ? "the client's own settings, article-settings.json" : "no settings filed — the defaults"})${s.valid ? "" : ` — NOT VALID: ${s.faults.join("; ")}`}`];
+      const topics = io.json("article-topics.json");
+      if (!Array.isArray(topics?.topics)) return [...lines, "today: NOT MEASURED — the batch files no article topics (article-topics.json); nothing is made"];
+      const built = await oneBuilderRun(io);
+      if (built.missing) return [...lines, `today: NOT MEASURED — ${built.missing}`];
+      const existing = built.pages.map((p) => ({ url: p.url, claimIds: p.answer, questions: p.questions, gate: gateInput(p) }));
+      const day = io.on ?? new Date().toISOString().slice(0, 10);
+      const quotation = new Map((io.json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => [c.claimId, c.quotation ?? null]))));
+      const sec = io.rows("live-security.jsonl").find((r) => r.kind === "ROBOTS");
+      const r = articlesForDay({ day, settings: own ?? {}, topics: topics.topics, existing, design: built.design, keyFacts: io.json("key-facts.json") ?? [], quotationOf: (id) => quotation.get(id) ?? null,
+        site: built.design?.siteAddress ?? "https://preview.invalid", guidance: GUIDANCE, robotsTxt: sec?.read?.body ?? null, cost: costGate({ entry: { recorded_at: new Date().toISOString(), money: { amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "an in-memory article build: no request, no paid call" }, requests: 0 }, startedAt: new Date(Date.now() + 1).toISOString(), budget: { money: 0, currency: "USD", requests: 0 } }) });
+      return [...lines, ...(r.articles.length ? r.articles.map((a) => `today ${day}: "${a.question}" · ${a.gates} · ${a.publish.state}`) : [`today ${day}: ${r.none}`])];
     },
   }),
   /* F67 · the quick sample — the same checks */

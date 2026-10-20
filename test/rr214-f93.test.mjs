@@ -245,7 +245,7 @@ test("T93-C6 · F93 C6 THE BOUND, ONE TENANT, READ-ONLY: no real tenant's invent
 /* ================= C7 ================= */
 const OTHER_ROWS = Object.freeze({
   "src/page/draft-render.mjs": "fa5ebe27a4dbc8499be502bdfc302b8f584b0ca12b436f95f99f962a99c54a3b",
-  "bin/build-page.mjs": "bd623db832fc79ecdb94b4f3c10ac538c097d08e1a0666e16bfc64f812e8b422", /* RR-294: the five page gates are its acceptance step */ /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F93 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
+  "bin/build-page.mjs": "3826a9ad9cda3d5571501c18175bc3f8a570afe436c304fd8ac25cbd1c39b6e3", /* RR-294: the five page gates are its acceptance step */ /* RR-294: the five page gates are its acceptance step */ /* RR-294: the five page gates are its acceptance step */ /* RR-292: F76 C2 (beta-g decision A) — --all-slugs reads the approved plan only; this row unchanged */ /* RR-289: F91 C20 (Amendment 7) — the population filter, F93 unchanged */ /* RR-249: F34 re-proved under its same acceptance — C6: F35's stop is recorded (existingPageDecisions / the runner's record) — restated, this row unchanged */
   "src/page/quality-judgements.mjs": "f4511418885bfbb3994e842dd6ba42610e49b8e6368401f0791ca79cb482fda2",
   "src/page/content-brief.mjs": "5771c6955fcc621430391b9c34a525a74673e81a3ff4d3b05cf429d358ad5c06",
   "src/page/content-brief-evidence.mjs": "b1af103909fa3ef4782686380c4d1c5e14c473f5e73e1080f29fb1c06c37abe6",

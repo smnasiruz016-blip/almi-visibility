@@ -23,7 +23,7 @@ import { writePermission, announceWritePermission, confineToRepo, LOCAL, REPO_RO
 import { executeGovernedWrite } from "../src/governance/governed-write.mjs";
 import { governedFileWrite } from "../src/governance/governed-run.mjs";
 import { isoSeconds as governedInstant } from "../src/audit-trail/store.mjs";
-import { guideItemsByValue, buildGuides } from "../src/page/one-builder.mjs";
+import { guideItemsByValue, buildGuides, planNewPages, buildNewPages, withSections, servedBy } from "../src/page/one-builder.mjs";
 import { acceptByPageGates, costGate } from "../src/page/page-gates.mjs";
 import { GUIDANCE } from "../config/guidance/guidance-read.mjs";
 import { readProductQuestionnaire } from "../src/questionnaire/product-questionnaire-reader.mjs";
@@ -95,7 +95,17 @@ console.log(`\nBUILD-PAGE · THE ONE PAGE BUILDER — product ${PRODUCT.productI
 line("═");
 console.log(`design                ${design ? "the client's own (its questionnaire)" : "NOT FILED — every page fails page law 1"}`);
 console.log(`stored guides         ${guides.size}`);
-if (guides.size === 0) { console.log("\n🔴 DATA GAP — the batch holds no stored guide. Nothing to build, and nothing was."); await stopHere(2); }
+/* 🔴 RR-296 · THE NEW-PAGE PATH: the batch's PLANNED needs (planned-needs.json — DEMAND or OPPORTUNITY, each with its own sourced answer
+ * and its planned path) become NEW pages by the same builder; a need whose answer is already on a stored page becomes a SECTION of that page
+ * (its question asked there, the page rebuilt); an unplanned or unsourced need is refused by name; no other URL is ever built (404). */
+const plannedNeeds = json("planned-needs.json");
+const needs = Array.isArray(plannedNeeds?.needs) ? plannedNeeds.needs : [];
+const standing = [...guides.values()].filter((r) => r.publishedUrl).map((r) => ({ id: r.publishedUrl, url: r.publishedUrl, claimIds: r.itemList.flatMap((it) => it.claims.map((c) => c.claimId)), questions: r.itemList.flatMap((it) => it.questions.map((q) => q.wording)) }));
+const newPlan = planNewPages({ needs, existing: standing });
+console.log(`planned needs         ${needs.length} · NEW ${newPlan.filter((p) => p.kind === "NEW").length} · SECTION ${newPlan.filter((p) => p.kind === "SECTION").length} · REFUSED ${newPlan.filter((p) => p.kind === "REFUSED").length}`);
+for (const p of newPlan.filter((x) => x.kind !== "NEW")) console.log(`  ${p.kind === "SECTION" ? "SECTION" : "🔴 REFUSED"} ${p.needId} — ${p.reason}`);
+for (const [value, rec] of guides) guides.set(value, withSections(rec, newPlan));
+if (guides.size === 0 && !newPlan.some((p) => p.kind === "NEW")) { console.log("\n🔴 DATA GAP — the batch holds no stored page and no planned new page. Nothing to build, and nothing was."); await stopHere(2); }
 
 const built = buildGuides({ guides, keyFacts: json("key-facts.json") ?? [], rates: json("conversion-rates.json") ?? [], quotationOf: (id) => quotation.get(id) ?? null, design,
   stamp: `TEST PAGE · local build of stored test data · not published (build-page, ${on})`, on, relatedFor: (value) => (Array.isArray(links?.pages?.[value]) ? links.pages[value] : []) });
@@ -103,12 +113,14 @@ const built = buildGuides({ guides, keyFacts: json("key-facts.json") ?? [], rate
 const notBuilt = built.filter((g) => g.refused);
 for (const g of notBuilt) console.log(`🔴 ${g.value} — REFUSED: ${g.refused}`);
 const slugOf = (g) => (g.url ? new URL(g.url).pathname.replace(/^\/|\/$/g, "").replace(/\//g, "-") : `guide-${g.value}`);
-const candidates = built.filter((g) => !g.refused).map((g) => Object.freeze({ slug: slugOf(g), verdict: "ACCEPTED", html: g.html, url: g.url, items: g.items, rejects: [], cardsRefused: g.cardsRefused,
+const newPages = buildNewPages({ plan: newPlan, keyFacts: json("key-facts.json") ?? [], rates: json("conversion-rates.json") ?? [], quotationOf: (id) => quotation.get(id) ?? null, design,
+  stamp: `TEST PAGE · local build · not published (build-page, ${on})`, on, site: design?.siteAddress ?? plannedNeeds?.site ?? null });
+const candidates = built.filter((g) => !g.refused).concat(newPages).map((g) => Object.freeze({ slug: slugOf(g), verdict: "ACCEPTED", html: g.html, url: g.url, items: g.items, rejects: [], cardsRefused: g.cardsRefused,
   trace: g.items.flatMap((it) => it.claims.map((c) => ({ needId: it.needId, claimId: c.claimId, text: c.text, source: c.source ?? null, link: c.link ?? null, readOn: c.readOn ?? null }))) }));
 const urls = candidates.map((c) => c.url).filter(Boolean);
 const sec = rows("live-security.jsonl").find((r) => r.kind === "ROBOTS");
 const results = acceptByPageGates(candidates, { guidance: GUIDANCE, on, cost: costGate({ entry: RUN_COST_ENTRY, startedAt: RUN_STARTED_AT, budget: { money: 0, currency: "USD", requests: 0 } }),
-  urlOf: (c) => c.url, itemsOf: (c) => c.items, site: { robotsTxt: sec?.read?.body ?? null, sitemapUrls: urls, serve: (path) => ({ status: urls.some((u) => new URL(u).pathname.replace(/\/$/, "") === path.replace(/\/$/, "")) ? 200 : 404 }) } });
+  urlOf: (c) => c.url, itemsOf: (c) => c.items, site: { robotsTxt: sec?.read?.body ?? null, sitemapUrls: urls, serve: servedBy(candidates) } });
 
 for (const c of results) {
   console.log(`${c.verdict === "ACCEPTED" ? "✅" : "🔴"} ${c.slug} — ${c.verdict === "ACCEPTED" ? "PASSES ALL FIVE GATES" : "REFUSED"}`);

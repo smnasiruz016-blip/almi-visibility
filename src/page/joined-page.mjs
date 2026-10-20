@@ -241,6 +241,9 @@ const canon = (s) => ` ${String(s ?? "").toLowerCase()
   .replace(/\b(?:a minimum of|minimum of|minimum scale score of|minimum score of|scale score of|score of|at least|minimum|or above|or higher|or more)\b/g, " ")
   .replace(/\bgrade\b/g, " ")
   .replace(/[()[\],;:"*]/g, " ")
+  /* RR-296: a sentence's end mark is not a word — a value at the end of its source sentence ("… online from home.") still matches; a
+   * decimal point (1.5) is kept */
+  .replace(/[.!?](?!\d)/g, " ")
   .replace(/\s+/g, " ").trim()} `;
 export function sameMeaning(value, quote) {
   const v = canon(value), q = canon(quote);

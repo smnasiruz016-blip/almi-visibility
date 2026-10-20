@@ -1,9 +1,9 @@
 /**
  * 🔴 GENERATED — DO NOT EDIT. bin/authority-migrate.mjs, from COMMITTED bytes only.
- * Governance: _handoffs 5e483981a7b5cc659ffc07c3508888a535a10cec · engine: f1480013f44ba632f23b6f108317d411a146a005 · inclusion rule: config/authority/inclusion.mjs.
+ * Governance: _handoffs 5e483981a7b5cc659ffc07c3508888a535a10cec · engine: b1ee6d801930ee838ac24bc1be384e959f86faad · inclusion rule: config/authority/inclusion.mjs.
  * Paths, structured identity and content hashes only — no governance prose is copied here.
  */
-export const CORPUS_PROVENANCE = Object.freeze({"governanceCommit":"5e483981a7b5cc659ffc07c3508888a535a10cec","engineCommit":"f1480013f44ba632f23b6f108317d411a146a005","now":"2026-10-20","governanceListed":1797,"engineListed":71});
+export const CORPUS_PROVENANCE = Object.freeze({"governanceCommit":"5e483981a7b5cc659ffc07c3508888a535a10cec","engineCommit":"b1ee6d801930ee838ac24bc1be384e959f86faad","now":"2026-10-21","governanceListed":1797,"engineListed":71});
 export const AUTHORITY_CORPUS = Object.freeze([
   {
     "authorityId": "_handoffs:AlmiVisibility_BETA_G_DECISION_2026-10-14_RR-263_EXCESSIVE_AND_WEAK_LINKS.md",
@@ -13994,7 +13994,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "commit": "5e483981a7b5cc659ffc07c3508888a535a10cec",
       "blob": "b38d12679d1213d4172485b967fa8c4fcc80defe"
     },
-    "status": "NOT_APPLICABLE",
+    "status": "CURRENT",
     "supersedes": [],
     "supersededBy": [],
     "contentHash": "1d864af8ad7ac27593c9408826b95f4f3148210b8403d2bb3cc53f9c967c6e7c",
@@ -15832,7 +15832,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_1.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "b6bde7684cae86ed01d06fc55f1b128e35236004"
     },
     "status": "CURRENT",
@@ -15859,7 +15859,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_2.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "492576f32516b6336b4ab2e2ec54b022d0fa4eb4"
     },
     "status": "CURRENT",
@@ -15886,7 +15886,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_3.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "317e3e22b64db3592557638d83360bdf1db9ea21"
     },
     "status": "CURRENT",
@@ -15913,7 +15913,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_4.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "8cae04935a4510ac0be53ff68e6870a02fe2a429"
     },
     "status": "CURRENT",
@@ -15940,7 +15940,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_5.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "e13a19e8a05c33c057fe472c4e40abffe29ae2fc"
     },
     "status": "CURRENT",
@@ -15971,7 +15971,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_6.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "4412472fa672d568bf6da0ab911c2217fe80d2d6"
     },
     "status": "CURRENT",
@@ -15998,7 +15998,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_AMENDMENT_7.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "0c62ea01009f9beafcc2111943648eb10e485ad1"
     },
     "status": "CURRENT",
@@ -16032,7 +16032,7 @@ export const AUTHORITY_CORPUS = Object.freeze([
       "kind": "GOVERNANCE_RECORD",
       "repo": "engine",
       "path": "PASS_BOUNDARIES_SOURCE.md",
-      "commit": "f1480013f44ba632f23b6f108317d411a146a005",
+      "commit": "b1ee6d801930ee838ac24bc1be384e959f86faad",
       "blob": "ceaa49874210403a5cf88d083d5c8d8a850a1fff"
     },
     "status": "CURRENT",

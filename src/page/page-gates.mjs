@@ -23,7 +23,9 @@ export const TITLE_REVIEW_AT = Object.freeze({ chars: 70, justification: "no lim
 /* RR-294 (beta-g decision A): no word or fact count anywhere — "near the top" is a position, never a minimum length */
 const TOP_WORDS = 120;
 
-const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+/* RR-298: letters and digits of ANY script count (Arabic, Urdu, Hindi, Chinese…) — a Latin-only fold erased them, so two different
+ * Arabic questions read as the same query */
+const norm = (s) => String(s ?? "").toLowerCase().normalize("NFC").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 const visibleText = (html) => String(html ?? "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim();
 const tags = (html, t) => String(html ?? "").match(new RegExp(`<${t}\\b[^>]*>`, "gi")) ?? [];
 const attr = (tag, a) => (new RegExp(`\\b${a}\\s*=\\s*["']([^"']*)["']`, "i").exec(tag) ?? [])[1] ?? null;

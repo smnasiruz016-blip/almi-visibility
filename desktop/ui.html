@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AlmiVisibility</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1d24;--muted:#5b5b66;--line:#e2e2e6;--accent:#0d7a6f;--bad:#a12020}
+@media (prefers-color-scheme:dark){:root{--bg:#16161a;--card:#1f1f25;--ink:#ececf1;--muted:#a3a3ad;--line:#33333b;--accent:#3cc2b2;--bad:#ff8a8a}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
+header b{font-size:18px} header small{color:var(--muted)}
+main{max-width:760px;margin:24px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+h2{margin:0 0 6px;font-size:18px} p.ask{color:var(--muted);margin:0 0 14px}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box;margin:4px 0 10px;background:var(--card);color:var(--ink)}
+button{font:inherit;padding:9px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent)} .err{color:var(--bad);margin-top:8px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px} nav button{padding:6px 12px}
+ul{padding-left:18px} .steps{color:var(--muted);font-size:13px;margin-bottom:8px} label{display:block}
+</style></head>
+<body>
+<header><b>AlmiVisibility</b><small id="ver"></small><small id="lic" style="margin-left:auto"></small></header>
+<main id="app"></main>
+<script>
+const $ = (s) => document.querySelector(s);
+const api = async (p, o) => { const r = await fetch(p, o && { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); return r.json(); };
+let S, step = 0;
+const fields = {
+  product: () => `<label>Name<input id=f1></label><label>Website<input id=f2 placeholder="https://"></label><label>What it does<input id=f3></label>`,
+  searchData: () => `<select id=f1><option value=1>1 — Search API key (your own key)</option><option value=2>2 — Google Search Console (your own connection)</option><option value=3>3 — Your AI search (your own AI account)</option></select>`,
+  languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${l.code === "en" ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
+  articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=1>`,
+  publishMode: () => `<label><input type=radio name=m value=AUTO_AFTER_GATES checked style="width:auto"> Publish automatically after every gate passes (default)</label><label><input type=radio name=m value=REVIEW_FIRST style="width:auto"> Show me first</label>`,
+  aiConnection: () => `<input id=f1 placeholder="e.g. ANTHROPIC_API_KEY">`,
+  start: () => `<p>Visibility will start working on your product. Nothing is published before it passes every gate${S.setup.publishMode?.mode === "REVIEW_FIRST" ? " and you approve it" : ""}.</p>`,
+};
+const value = (id) => ({
+  product: () => ({ name: $("#f1").value, site: $("#f2").value, what: $("#f3").value }),
+  searchData: () => ({ option: Number($("#f1").value) }),
+  languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }),
+  articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
+  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }),
+  aiConnection: () => ({ keyName: $("#f1").value.trim() }),
+  start: () => ({}),
+})[id]();
+function setup() {
+  const st = S.steps[step];
+  $("#app").innerHTML = `<div class=card><div class=steps>Step ${st.n} of ${S.steps.length}</div><h2>${st.title}</h2><p class=ask>${st.ask}</p>${fields[st.id]()}<div style="display:flex;gap:8px;margin-top:8px">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next>${st.id === "start" ? "Start" : "Next"}</button></div><div class=err id=err></div></div>`;
+  if ($("#back")) $("#back").onclick = () => { step--; setup(); };
+  $("#next").onclick = async () => { const r = await api("/api/setup", { id: st.id, value: value(st.id) }); if (r.refused) { $("#err").textContent = r.refused; return; } if (st.id === "start") return boot(); step++; setup(); };
+}
+async function view(tab) {
+  const v = await fetch("/api/views").then((r) => r.json());
+  const lic = await fetch("/api/licence").then((r) => r.json());
+  const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, "Plan and licence": [lic.line, ...S.plans], Articles: S.articleSettings };
+  $("#app").innerHTML = `<nav>${Object.keys(tabs).map((t) => `<button class=${t === tab ? "" : "ghost"} data-t="${t}">${t}</button>`).join("")}<button class=ghost id=upd>Check for updates</button></nav><div class=card><h2>${tab}</h2><ul>${tabs[tab].map((x) => `<li>${x}</li>`).join("")}</ul><div id=u></div></div>`;
+  document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => view(b.dataset.t)));
+  $("#upd").onclick = async () => { const r = await fetch("/api/update").then((x) => x.json()); $("#u").innerHTML = `<p>${r.line}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await api("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${x.line ?? x.refused}</p>`; }; };
+  $("#lic").textContent = lic.line;
+}
+async function boot() { S = await fetch("/api/state").then((r) => r.json()); $("#ver").textContent = "version " + S.version; if (!S.started) { step = S.steps.findIndex((x) => !S.setup[x.id]); if (step < 0) step = S.steps.length - 1; setup(); } else view("Reports"); }
+boot();
+</script>
+</body></html>

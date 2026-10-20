@@ -19,6 +19,7 @@ import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
 import { allGates, costGate } from "../page/page-gates.mjs";
 import { articleSettings, settingsView, articlesForDay } from "../page/articles.mjs";
 import { refreshPlan } from "../page/refresh.mjs";
+import { LANGUAGES, checkTranslation } from "../page/languages.mjs";
 import { postsForArticle, AUTO_POSTING } from "../page/social-posts.mjs";
 import { monthlyReport, searchFromExport } from "./monthly-report.mjs";
 import { guideItemsByValue, buildGuides, asPublished, gateInput } from "../page/one-builder.mjs";
@@ -434,6 +435,18 @@ export const PARTS = Object.freeze({
       const built = await oneBuilderRun(io);
       const refresh = built.missing ? { notes: [], reported: [] } : refreshPlan({ rechecks: io.rows("fact-rechecks.jsonl"), pages: built.pages.map((p) => ({ url: p.url, items: p.items })) });
       return monthlyReport({ product: io.subject, month: io.on ?? new Date().toISOString().slice(0, 7), search, refresh: { notes: [], reported: refresh.reported } }).lines;
+    },
+  }),
+  /* RR-298 · LANGUAGES (src/page/languages.mjs): the ten languages and, when the batch files translations (translations.json), each one's
+   * check — the same facts, numbers, currencies and sources; a refused language is not published, and is named */
+  "languages": Object.freeze({
+    title: "LANGUAGES · ONE ANSWER, MANY LANGUAGES",
+    run: (io) => {
+      const lines = [`the ten: ${LANGUAGES.map((l) => `${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}`).join(", ")}`];
+      const t = io.json("translations.json");
+      if (!Array.isArray(t?.pages)) return [...lines, "NOT MEASURED — the batch files no translations (translations.json); a client's translation runs on the client's own AI connection"];
+      for (const p of t.pages) for (const x of p.translations ?? []) { const r = checkTranslation(p.source, x); lines.push(`  ${p.url} · ${x.lang}: ${r.ok ? "OK" : `REFUSED — ${r.why}`}`); }
+      return lines;
     },
   }),
   /* F67 · the quick sample — the same checks */

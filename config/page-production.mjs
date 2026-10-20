@@ -25,6 +25,8 @@ const SHARED = {
    * (src/page/one-builder.mjs buildGuides) rebuilds only a page that exists, and refuses a NEW one (NO_EXISTING_PAGE) — the existing-page law */
   "bin/build-page.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["const notBuilt = built.filter((g) => g.refused);", "const candidates = built.filter((g) => !g.refused)", "acceptByPageGates(candidates"]), why: "builds only through the one builder, which refuses a page with no existing address; the rest are judged by the five page gates before any write" }),
   "src/report/visibility-parts.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["gb.filter((g) => !g.refused)", "allGates(gated"]), why: "builds the stored guides in memory through the one builder (a page with no existing address refused) and gates them; it writes nothing" }),
+  /* RR-296: the daily articles build NEW pages through the one builder — the existing page first (an answered topic is never a page), then the five gates and the duplicate check */
+  "src/page/articles.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["const plan = planNewPages({", "if (p.kind === \"SECTION\") {", "if (failed.length) {"]), why: "builds a day's article only through planNewPages (a topic already answered is refused as a SECTION) and only when all five gates pass and it duplicates no page or earlier article; it writes and publishes nothing" }),
   "bin/crawl.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores the bodies of pages a crawl FETCHED, as served — evidence of an existing page, never a new one" }),
   "bin/report.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "the owner's report view about the evidence store — not a page of any subject" }),
 };

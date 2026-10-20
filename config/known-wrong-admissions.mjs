@@ -27,4 +27,19 @@ export const KNOWN_WRONG_ADMISSIONS = Object.freeze([
     evidenceRecord: "_handoffs a7b58efcd3672efee76a79a2b6dca67d964da309 AlmiVisibility_OWNER_DECISION_2026-10-16_RR-272_F22_LIVE_GREEN_AND_CLEANUPS.md",
     evidenceSha256: "de9f8b5cdb7cf76663602a1141a93e4eaed2b97976c633d6001e78f145aad49c",
   }),
+  /* RR-302 (20 Oct 2026 UTC; 21 Oct in the owner's day): the same cause, by CC's own run — not a code defect */
+  Object.freeze({
+    correctionId: "ADM-2026-10-20-B",
+    wrongAdmissions: 1,
+    /* read from the trail and from the corpus in force (config/authority/corpus.mjs, now 2026-10-21, governance 5e48398) on 20 Oct 2026 UTC */
+    admissions: Object.freeze([
+      "1 268b77efceab64609aceea0e7d1164dd NOT_APPLICABLE -> CURRENT _handoffs:AlmiVisibility_OWNER_DECISION_2026-10-21_RR-302.md",
+    ]),
+    cause: "authority-migrate ran with --now=2026-10-20 (the UTC day) for the owner's decision dated 2026-10-21 (his own day, Pakistan); the record was judged not yet effective, and the record run admitted it so",
+    repair: "authority-migrate re-ran with --now=2026-10-21, the decision's own day; the admission on the trail is represented here, never rewritten",
+    treatment: "REPRESENTED_NOT_REWRITTEN",
+    decision: "OWNER DECISION RR-302 (_handoffs 5e48398): suite and CI once at the end — CI named this admission as a change since that is neither corrected nor a supersession",
+    evidenceRecord: "_handoffs 0b49701 AlmiVisibility_OWNER_DECISION_2026-10-21_RR-302.md",
+    evidenceSha256: "1d864af8ad7ac27593c9408826b95f4f3148210b8403d2bb3cc53f9c967c6e7c",
+  }),
 ]);

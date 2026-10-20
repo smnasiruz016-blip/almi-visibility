@@ -98,7 +98,8 @@ test("REAL (RR-272): each wrong admission the correction names is on the trail w
   const events = realTrail();
   const [c] = KNOWN_WRONG_ADMISSIONS;
   const d = census(AUTHORITY_CORPUS, CORPUS_PROVENANCE.now).dispositions;
-  for (const a of c.admissions) {
+  /* RR-302: every declared correction (ADM-2026-10-20-B joined), each admission it names checked the same way */
+  for (const a of KNOWN_WRONG_ADMISSIONS.flatMap((k) => k.admissions)) {
     const [, id, stored, , inForce, authorityId] = String(a).split(" ");
     const e = events.find((x) => x.eventId === id);
     assert.ok(e && e.action === "ADMIT_AUTHORITY_RECORD" && e.metadata.disposition === stored, `${id} is not on the trail as a ${stored} admission`);
@@ -114,7 +115,8 @@ test("REAL (RR-272): each wrong admission the correction names is on the trail w
   assert.equal(cands.filter((x) => x.family === "A" && x.draft && x.draft.action === "ADMIT_AUTHORITY_RECORD").length, AUTHORITY_CORPUS.length - cands.filter((x) => x.alreadyAudited).length);
   assert.equal(cands.filter((x) => x.alreadyAudited && !held.has(x.alreadyAudited)).length, 0, "an admission was read as audited but is not on the trail");
   const since = cands.filter((x) => x.dispositionSince);
-  const corrected = new Set(correctedAdmissionIds(c));
+  const corrected = new Set(KNOWN_WRONG_ADMISSIONS.flatMap((k) => correctedAdmissionIds(k)));
+  for (const k of KNOWN_WRONG_ADMISSIONS) assert.equal(events.filter((e) => e.action === WRONG_ADMISSIONS_EVENT.action && e.metadata?.correctionId === k.correctionId).length, 1, `${k.correctionId} is not on the trail, once`);
   assert.ok(since.length >= 6 && [...corrected].every((id) => since.some((x) => x.alreadyAudited === id)), "a corrected admission is not named as changed since");
   for (const x of since.filter((y) => !corrected.has(y.alreadyAudited))) assert.equal(x.dispositionSince.inForce, "SUPERSEDED", `${x.sourceId}: a change since that is neither corrected nor a supersession`);
 });

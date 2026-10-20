@@ -25,7 +25,12 @@ export function refreshPlan({ rechecks = [], pages = [] }) {
     const on = pages.filter((p) => shows(p, id)).map((p) => p.url);
     if (r.state === "BLOCKED" || r.state === "REJECTED") { reported.push(Object.freeze({ claimId: id, state: r.state, reason: r.reason ?? null, pages: on, line: `${id}: the recheck was ${r.state}${r.reason ? ` (${r.reason})` : ""} — no page was changed` })); continue; }
     if (r.state !== "CHANGED") continue;
-    const n = r.newClaim;
+    /* RR-299: the recheck's own NEW value, read verbatim from the re-read text (src/facts/source-reader.mjs newValueOf) */
+    if (!r.newClaim && r.newValue?.state === "NOT_READABLE") { reported.push(Object.freeze({ claimId: id, state: "CHANGED", reason: "NEW_VALUE_NOT_READABLE", pages: on, line: `${id}: the source changed, but its new value is not readable (${r.newValue.reason}) — no page was changed` })); continue; }
+    const shown = pages.flatMap((p) => p.items.flatMap((it) => it.claims)).find((c) => c.claimId === id);
+    const fromValue = r.newValue && shown && (r.newValue.state === "SAME" || String(shown.text).includes(r.newValue.before))
+      ? { text: r.newValue.state === "SAME" ? shown.text : String(shown.text).split(r.newValue.before).join(r.newValue.value), quotation: r.newValue.quotation, readOn: r.readOn, ...(r.newValue.state === "READ" ? { cardValue: r.newValue.value } : {}) } : null;
+    const n = r.newClaim ?? fromValue;
     if (!n || typeof n.text !== "string" || !n.text.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(n.readOn ?? "")) { reported.push(Object.freeze({ claimId: id, state: "CHANGED", reason: "NEW_WORDING_NOT_RECORDED", pages: on, line: `${id}: the source changed, but its new wording is not recorded — no page was changed; it waits for the corrected fact` })); continue; }
     if (!on.length) { reported.push(Object.freeze({ claimId: id, state: "CHANGED", reason: "SHOWN_ON_NO_PAGE", pages: [], line: `${id}: the source changed; no page shows this fact` })); continue; }
     changes.push(Object.freeze({ claimId: id, newClaim: n, pages: on, url: r.url ?? null }));

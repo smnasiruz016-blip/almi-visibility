@@ -18,7 +18,8 @@ import { tenantExport, EXPORT_SCHEMA, API_ACTIONS } from "../export/tenant-expor
 import { searchDataOptions, optionsLines } from "./search-data-options.mjs";
 import { allGates, costGate } from "../page/page-gates.mjs";
 import { articleSettings, settingsView, articlesForDay } from "../page/articles.mjs";
-import { refreshPlan } from "../page/refresh.mjs";
+import { refreshPlan, refreshRun } from "../page/refresh.mjs";
+import { withNewValues } from "../facts/source-reader.mjs";
 import { LANGUAGES, checkTranslation } from "../page/languages.mjs";
 import { postsForArticle, AUTO_POSTING } from "../page/social-posts.mjs";
 import { monthlyReport, searchFromExport } from "./monthly-report.mjs";
@@ -409,10 +410,21 @@ export const PARTS = Object.freeze({
     run: async (io) => {
       const built = await oneBuilderRun(io);
       if (built.missing) return [`NOT MEASURED — ${built.missing}`];
-      const pages = built.pages.map((p) => ({ url: p.url, title: p.title, items: p.items, questions: p.questions, html: p.html, gate: gateInput(p) }));
-      const r = refreshPlan({ rechecks: io.rows("fact-rechecks.jsonl"), pages });
+      const pages = built.pages.map((p) => ({ url: p.url, title: p.title, items: p.items, questions: p.questions, html: p.html, related: p.related ?? [], gate: gateInput(p) }));
+      /* RR-299: a stored CHANGED recheck is completed with its NEW value, read verbatim from the STORED re-read text (no outside read) */
+      const quotation = new Map((io.json("page-drafts.json")?.pages ?? []).flatMap((p) => (p.needs ?? []).flatMap((n) => (n.answer?.claims ?? []).map((c) => [`claim:${c.claimId}`, c.quotation ?? null]))));
+      const snaps = io.json("historical-snapshots-2026-10-17.json");
+      for (const s of snaps?.snapshots ?? (Array.isArray(snaps) ? snaps : [])) quotation.set(`snapshot:${s.snapshotId}`, s.quotation ?? null);
+      const rechecks = withNewValues({ rechecks: io.rows("fact-rechecks.jsonl"), reads: io.storedReads?.() ?? [], quotationOf: (id) => quotation.get(id) ?? null });
+      const changed = rechecks.filter((r) => r.state === "CHANGED");
+      const lines = changed.map((r) => `${r.factId}: ${r.newValue?.state === "NOT_READABLE" ? `new value not readable — ${r.newValue.reason.replace(/^new value not readable — /, "")}` : `new value ${r.newValue?.value} (${r.newValue?.state === "SAME" ? "the same as before — " : ""}read verbatim on ${r.readOn})`}`);
+      const sec = io.rows("live-security.jsonl").find((x) => x.kind === "ROBOTS");
+      const r = refreshRun({ rechecks, pages, keyFacts: io.json("key-facts.json") ?? [], quotationOf: (id) => quotation.get(`claim:${id}`) ?? null, design: built.design, on: io.on ?? new Date().toISOString().slice(0, 10),
+        settings: io.json("article-settings.json") ?? {}, guidance: GUIDANCE, robotsTxt: sec?.read?.body ?? null, cost: costGate({ entry: { recorded_at: new Date().toISOString(), money: { amountState: "ZERO_BY_TARIFF", amount: 0, currency: "USD", basis: "an in-memory rebuild: no request, no paid call" }, requests: 0 }, startedAt: new Date(Date.now() + 1).toISOString(), budget: { money: 0, currency: "USD", requests: 0 } }) });
       const by = r.reported.reduce((m, x) => ((m[x.reason ?? x.state] = (m[x.reason ?? x.state] ?? 0) + 1), m), {});
-      return [`rebuilt ${r.changes.length} change(s) over ${new Set(r.changes.flatMap((c) => c.pages)).size} page(s) · reported, no page changed: ${r.reported.length} (${Object.entries(by).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"})`,
+      return [`CHANGED rechecks ${changed.length}:`, ...lines.map((l) => `  ${l}`),
+        `rebuilt locally ${r.rebuilt.length} page(s): ${r.rebuilt.map((p) => `${p.url} — gates ${p.gates}`).join(" · ") || "none"} · byte-identical ${r.untouched.length}`,
+        `reported, no page changed: ${r.reported.length} (${Object.entries(by).map(([k, n]) => `${k} ${n}`).join(" · ") || "none"})`,
         ...(io.list ? r.reported.map((x) => `  ${x.line}`) : [])];
     },
   }),

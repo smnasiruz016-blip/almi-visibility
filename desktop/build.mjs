@@ -24,7 +24,9 @@ mkdirSync(join(stage, "runtime"), { recursive: true });
 copyFileSync(process.execPath, join(stage, "runtime", "node.exe"));
 for (const d of ["src", "config"]) cpSync(join(REPO, d), join(stage, d), { recursive: true });
 mkdirSync(join(stage, "desktop", "keys"), { recursive: true });
-for (const f of ["main.mjs", "setup.mjs", "licence.mjs", "updater.mjs", "ui.html"]) copyFileSync(join(REPO, "desktop", f), join(stage, "desktop", f));
+for (const f of ["main.mjs", "setup.mjs", "licence.mjs", "updater.mjs", "products.mjs", "theme.mjs", "ui.html"]) copyFileSync(join(REPO, "desktop", f), join(stage, "desktop", f));
+mkdirSync(join(stage, "desktop", "brand"), { recursive: true });
+copyFileSync(join(REPO, "desktop", "brand", "almiworld-logo.png"), join(stage, "desktop", "brand", "almiworld-logo.png"));
 for (const f of ["licence-public.pem", "update-public.pem"]) copyFileSync(join(KEYS, f), join(stage, "desktop", "keys", f));
 writeFileSync(join(stage, "package.json"), JSON.stringify({ name: "almivisibility-app", private: true, type: "module", version: VERSION }, null, 1));
 writeFileSync(join(stage, "version.txt"), VERSION);
@@ -33,6 +35,6 @@ ps(`Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.Zip
 const fw = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319";
 writeFileSync(join(OUT, `version-${VERSION}.txt`), VERSION);
 execFileSync(join(fw, "csc.exe"), ["/nologo", "/target:winexe", `/out:${setupExe}`, "/r:System.IO.Compression.dll", "/r:System.IO.Compression.FileSystem.dll", "/r:System.Windows.Forms.dll", "/r:System.Drawing.dll", "/r:Microsoft.CSharp.dll", "/r:System.Core.dll",
-  `/resource:${packageZip},payload.zip`, `/resource:${join(OUT, `version-${VERSION}.txt`)},version.txt`, join(REPO, "installer", "Setup.cs")], { stdio: "pipe" });
+  `/resource:${packageZip},payload.zip`, `/resource:${join(OUT, `version-${VERSION}.txt`)},version.txt`, `/resource:${join(REPO, "desktop", "brand", "almiworld-logo.png")},almiworld-logo.png`, `/win32icon:${join(REPO, "installer", "almiworld.ico")}`, join(REPO, "installer", "Setup.cs")], { stdio: "pipe" });
 rmSync(stage, { recursive: true, force: true });
 console.log(`built ${setupExe} (${Math.round(statSync(setupExe).size / 1048576)} MB) · update package ${packageZip} · UNSIGNED`);

@@ -182,7 +182,13 @@ class Wizard : Form {
   readonly Button cancel = new Button { Left = 460, Top = 250, Width = 85, Text = "Cancel" };
   int step = 0;
   public Wizard() {
-    Text = "AlmiVisibility Setup"; Width = 590; Height = 330; FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; StartPosition = FormStartPosition.CenterScreen;
+    Text = "AlmiVisibility Setup"; Width = 590; Height = 420; FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; StartPosition = FormStartPosition.CenterScreen;
+    BackColor = Color.FromArgb(0xFF, 0xFB, 0xF5); // AlmiWorld's cream (the sunrise palette, RR-299)
+    /* RR-299: the maker's logo (AlmiWorld, "live beautifully") — the owner's own image, embedded in this Setup.exe */
+    var logoStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("almiworld-logo.png");
+    if (logoStream != null) { var logo = new PictureBox { Image = Image.FromStream(logoStream), SizeMode = PictureBoxSizeMode.Zoom, Left = 24, Top = 10, Width = 230, Height = 90, BackColor = Color.White }; Controls.Add(logo); }
+    foreach (Control c in new Control[] { title, text, bar, open }) c.Top += 95;
+    foreach (Button b in new[] { next, cancel }) { b.Top += 95; b.BackColor = Color.FromArgb(0xFF, 0x7A, 0x6B); b.ForeColor = Color.FromArgb(0x1A, 0x1A, 0x2E); b.FlatStyle = FlatStyle.Flat; }
     Controls.AddRange(new Control[] { title, text, bar, open, next, cancel });
     cancel.Click += (s, e) => Close();
     next.Click += (s, e) => Advance();

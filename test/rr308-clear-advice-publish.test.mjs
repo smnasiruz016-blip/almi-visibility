@@ -224,7 +224,7 @@ test("C5 · A SITE THAT CANNOT BE OPENED is a FAILED check — 'Check failed —
   assert.equal(card.fixFirst[0].action, "settings");
   assert.ok(card.areas.every((a) => a.state === "NOT_MEASURED"));
   const ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
-  assert.match(ui, /c\?\.failed \? "" : c\?\.fixFirst\?\.length/, "a failed check could still say Nothing to fix");
+  assert.match(ui, /c\?\.failed \? "" : PL \?/, "a failed check could still say Nothing to fix"); // RR-310: "What to fix first" = the action plan's THIS WEEK
 });
 
 test("D · PUBLISH: four choices, each with 'Choose this if'; a key goes ONLY to its own place; Download writes the files and Undo moves them aside; WordPress / GitHub / Shopify are called the documented way and undone; Edit keeps only plain text; the page that goes out has no draft stamp", async () => {

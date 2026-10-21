@@ -49,7 +49,7 @@ textarea{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radi
 .fcard:hover,.fcard:focus{border-color:var(--sunrise);outline:none;box-shadow:0 0 0 3px var(--teal)} .fcard h3{font-size:16px} .fcard p{margin:4px 0;font-size:13px} .rec{background:var(--sunrise);color:var(--ink);border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700} .needs{color:#9A5B00;font-size:12px;font-weight:600}
 .choice{display:block;border:1px solid var(--peach);border-radius:12px;padding:10px 12px;margin:6px 0;cursor:pointer} .choice input{width:auto;margin-right:8px} .choice .why{font-size:13px;color:var(--muted)}
 .progress{height:8px;background:var(--peach);border-radius:999px;overflow:hidden;margin:6px 0 14px} .progress>div{height:100%;background:var(--coral)}
-.howto{font-size:13px;background:var(--cream);border-radius:10px;padding:8px 10px;margin:4px 0 12px} .tabline{color:var(--muted);margin:-4px 0 12px}
+.howto{font-size:13px;background:var(--cream);border-radius:10px;padding:8px 10px;margin:4px 0 12px} .tabline{color:var(--muted);margin:-4px 0 12px} .item{border:1px solid var(--peach);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff} .item h4{margin:0 0 4px} .item p{margin:4px 0} ul.lines{list-style:none;padding:0} li.probline .item{border-color:var(--sunrise)} .will ol li{margin:8px 0}
 .tour{position:fixed;inset:0;background:rgba(26,26,46,.45);display:flex;align-items:center;justify-content:center;z-index:9} .tour .card{max-width:520px}
 .paste{white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;background:var(--cream);border-radius:8px;padding:8px;overflow-wrap:anywhere}
 /* RR-309: the product box with its Delete; messages coloured by what they say */
@@ -317,7 +317,8 @@ async function youtubeTab() {
   $("#ytbox").innerHTML = `${AI_READY ? "" : `<p class="howto" id="ainote">${esc(a.aiLine)}</p>`}<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${Number(a.channel.videos).toLocaleString()} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}</span></div></div>
   ${a.shared ? `<p class="meta"><b>${esc(a.shared.line)}</b></p>` : ""}
   <div class="score" id="ytscore">${gauge({ score: S2.score, gauge: S2.gauge, word: S2.word })}<div class="areas"><b>Your YouTube score</b><ul>${S2.checks.map((c) => `<li>${c.passed === c.of ? "✓" : "!"} ${esc(c.text)}</li>`).join("")}</ul><p class="meta">${esc(S2.how)}</p></div></div>
-  <div class="card plan"><h3>Do these first this week</h3>${a.doFirst.length ? `<ol>${a.doFirst.map((s) => `<li><b>${esc(s.step)}</b><div class="src">Why: ${esc(s.from)}</div></li>`).join("")}</ol>` : `<p class="meta">Run the research first — the plan is made from it.</p>`}</div>
+  ${a.planItems?.length ? `<div class="card plan"><h3>Do these first this week</h3><p class="meta">Each with the problem, the solution and the text ready to paste.</p>${a.planItems.map(itemHtml).join("")}</div>` : ""}
+  <div class="card plan" ${a.planItems?.length ? "hidden" : ""}><h3>Do these first this week</h3>${a.doFirst.length ? `<ol>${a.doFirst.map((s) => `<li><b>${esc(s.step)}</b><div class="src">Why: ${esc(s.from)}</div></li>`).join("")}</ol>` : `<p class="meta">Run the research first — the plan is made from it.</p>`}</div>
   <p><button id="research">Research my niche now</button> <span class="err" id="rerr"></span></p><p class="meta">${esc(a.quota)} ${a.researchOn ? `Last research: ${esc(a.researchOn.slice(0, 10))}.` : "No research yet."}</p>
   <div class="card" id="ytniche"><h3>${esc(N ? N.title : `What viewers of ${a.niche.label ?? "your niche"} watch most`)}</h3>
   ${a.niche.basis ? `<p class="warn">${esc(a.niche.basis)}</p>` : ""}<p class="meta">${a.niche.basis ? "Your niche, from your product's own topics" : "Your niche, read from your own videos and your channel's description"}: ${esc(a.niche.label ?? "not found yet")}${a.niche.persona?.who ? ` · who: ${esc(a.niche.persona.who)}` : ""}${a.niche.persona?.places?.length ? ` · where: ${esc(a.niche.persona.places.join(", "))}` : ""}.</p>
@@ -376,11 +377,26 @@ async function overview() {
   const c = O.card;
   /* RR-308 C5: a failed check says so — never a score, never "Nothing to fix"; YouTube has its own /100 next to the website's */
   const areasHtml = (c) => `<ul class="areas">${c.areas.map((a) => `<li>${icon(a.state)} <b>${esc(a.area)}</b> — ${esc(a.line)}${a.ticks ? `<ul>${a.ticks.map((t) => `<li class="meta">${t.tick === true ? "✓" : t.tick === false ? "!" : "–"} ${esc(t.line)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ul>`;
-  const ytGauge = c?.youtube?.score !== null && c?.youtube?.score !== undefined ? `<div>${gauge({ score: c.youtube.score, gauge: c.youtube.gauge, word: c.youtube.word })}<div class="meta" style="text-align:center">YouTube</div></div>` : "";
+  /* RR-310 B1: a product with no website — ONE gauge, the YouTube /100, and only the YouTube line */
+  const ytGauge = !c?.youtubeOnly && c?.youtube?.score !== null && c?.youtube?.score !== undefined ? `<div>${gauge({ score: c.youtube.score, gauge: c.youtube.gauge, word: c.youtube.word })}<div class="meta" style="text-align:center">YouTube</div></div>` : "";
+  /* B7: how old the last check is — "Check now" offered when it is older than a day */
+  const ageDays = c?.on ? Math.floor((Date.now() - Date.parse(c.on)) / 864e5) : null;
+  const checkWord = O.noWebsite ? "Check my channel now" : "Check my product now";
   const scoreHtml = O.checking ? checkingHtml(O.progress) : c?.failed ? `<div class="failed"><h3>Check failed — your website could not be opened.</h3><p>${esc(c.why)}${c.suggestion ? ` Did you mean ${esc(c.suggestion)}?` : ""}</p><button id="fixaddr">Fix the address in Settings</button></div>${ytGauge ? `<div class="score">${ytGauge}</div>` : ""}`
-    : c ? `<div class="score"><div>${gauge(c)}${ytGauge ? `<div class="meta" style="text-align:center">Website</div>` : ""}</div>${ytGauge}${areasHtml(c)}</div>
-    <p class="meta">Checked on ${esc(String(c.on).slice(0, 16).replace("T", " at "))} · ${c.pagesRead} page${c.pagesRead === 1 ? "" : "s"} read.${c.notChecked ? ` ${esc(c.notChecked)}` : ""} ${esc(c.noPromise)}</p>` : `<p>No check yet.</p>`;
-  const fix = c?.failed ? "" : c?.fixFirst?.length ? `<h3>What to fix first</h3><ol>${c.fixFirst.map((f, i) => `<li><b>${esc(f.line)}</b> ${f.how ? `<button class="ghost" data-how="${i}">Show me how</button>` : ""} ${f.fixForMe ? `<button class="ghost" data-fix="${esc(f.id)}" data-i="${i}">Fix it for me</button>` : ""}<div id="fx${i}"></div></li>`).join("")}</ol>` : c ? `<h3>What to fix first</h3><p>Nothing to fix was found in this check.</p>` : "";
+    : c ? `<div class="score"><div>${gauge(c)}${ytGauge || c.youtubeOnly ? `<div class="meta" style="text-align:center">${c.youtubeOnly ? "YouTube" : "Website"}</div>` : ""}</div>${ytGauge}${areasHtml(c)}</div>
+    <p class="meta">Checked on ${esc(String(c.on).slice(0, 16).replace("T", " at "))} (${ageDays === 0 ? "today" : ageDays === 1 ? "1 day ago" : `${ageDays} days ago`})${c.youtubeOnly ? "" : ` · ${c.pagesRead} page${c.pagesRead === 1 ? "" : "s"} read`}.${c.notChecked ? ` ${esc(c.notChecked)}` : ""} ${esc(c.noPromise)}</p>
+    ${ageDays >= 1 && !O.checking ? `<div class="warn" id="oldcheck">Your last check is ${ageDays === 1 ? "a day" : `${ageDays} days`} old — what you changed since is not in it. <button id="chk2">Check now</button></div>` : ""}` : `<p>No check yet.</p>`;
+  /* RR-310 A2 + A3 + D: "What I will do for you", then "What to fix first" = the action plan's THIS WEEK, then the rest of the plan */
+  const PL = O.plan, W = O.willDo;
+  const willHtml = W && !c?.failed ? `<div class="card will" id="willdo"><h3>What I will do for you</h3>${W.plain ? `<p class="warn">${esc(W.plain)}</p>` : ""}<ol>${W.lines.map((l) => `<li><b>${esc(l.text)}</b>${l.titles?.length ? `<ul>${l.titles.map((t) => `<li class="meta">${esc(t)}</li>`).join("")}</ul>` : ""}<div class="meta">Now: ${esc(l.status)}</div><button class="ghost" data-do="${esc(l.action)}">Do it for me</button> <span class="domsg"></span></li>`).join("")}</ol>
+    ${W.more ? `<p class="meta">${esc(W.more)}</p>` : ""}<p class="meta"><b>${esc(W.honest)}</b></p>${O.since?.length ? `<details><summary>Done since the last check (${O.since.length})</summary><ul>${O.since.map((d) => `<li class="meta">${esc(d.on.slice(0, 16).replace("T", " "))} — ${esc(d.what)}</li>`).join("")}</ul></details>` : ""}<div id="dobox"></div></div>` : "";
+  const fix = c?.failed ? "" : PL ? `<h3>What to fix first — this week</h3><p class="meta">${esc(PL.order)}</p>${PL.thisWeek.length ? PL.thisWeek.map(itemHtml).join("") : "<p>Nothing to fix was found in this check.</p>"}
+    <p><button id="plansave">Save the action plan as a document</button> <button class="ghost" id="planagain">Make the plan again</button> <span id="planmsg"></span></p>
+    <details id="kw"><summary>Keywords to use (${PL.keywords.reduce((n, g) => n + g.items.length, 0)})</summary>${PL.keywords.map((g) => `<h4>${esc(g.topic)}</h4><ul>${g.items.map((k) => `<li>${esc(k.text)} ${copyBtn(k.text)}<div class="src">From: ${esc(k.source)}${k.on ? `, ${esc(k.on)}` : ""} · how often: ${esc(k.searched ?? "not known")}</div></li>`).join("")}</ul>`).join("") || "<p class=meta>None found yet.</p>"}</details>
+    <details id="tt"><summary>Titles (${PL.titles.existing.length + PL.titles.new.length})</summary><h4>For what you already have</h4>${PL.titles.existing.map(readyHtml).join("") || "<p class=meta>None needed.</p>"}<h4>For new pages and videos</h4>${PL.titles.new.map(readyHtml).join("") || "<p class=meta>None yet.</p>"}</details>
+    <details id="mkl"><summary>Articles and new videos to make (${PL.make.length})</summary><ol>${PL.make.map((m) => `<li><b>${esc(m.title)}</b> ${copyBtn(m.title)} <span class="meta">(${m.kind === "VIDEO" ? "video" : "article"} — ${esc(m.state)})</span>${m.answers.length ? `<div class="meta">Answers: ${esc(m.answers.join(" · "))}</div>` : ""}${m.source ? `<div class="src">From: ${esc(m.source)}</div>` : ""}</li>`).join("")}</ol></details>
+    <details id="rest"><summary>Then the rest, in order of effect (${PL.rest.length})</summary>${PL.rest.map((x, k) => itemHtml(x, k + 5)).join("")}</details>`
+    : O.planning ? `<h3>What to fix first — this week</h3><p class="meta">Making your action plan… (a minute)</p>` : "";
   const F = O.found;
   /* RR-308 C3 + C4: answered on your pages ≠ asked by people; each price with its page and what it is for */
   const found = `<h3>What Visibility found</h3><p><b>${esc(F.line)}</b></p>
@@ -391,16 +407,55 @@ async function overview() {
     ${F.notChecked ? `<p class="meta">${esc(F.notChecked)}</p>` : ""}
     ${F.missing.length ? `<h3>Add more sources</h3><ul>${F.missing.map((m) => `<li><b>${esc(m.what)}</b> — adds: ${esc(m.adds)} <button class="ghost" data-act="${esc(m.action)}">Connect</button></li>`).join("")}</ul>` : ""}`;
   const todo = O.todo.length ? `<h3>To-do</h3><ul>${O.todo.map((t) => `<li>${esc(t.what)} <button class="ghost" data-act="${esc(t.action)}">Add now</button></li>`).join("")}</ul>` : "";
-  $("#ov").innerHTML = `${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : "Check my product now"}</button></p>`}${fix}${todo}
-    <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}<div id="featbox"></div>${found}`;
+  $("#ov").innerHTML = `${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${willHtml}<div id="planbox">${fix}</div>${todo}
+    <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
   if ($("#fixaddr")) $("#fixaddr").onclick = () => act("settings");
-  if (O.checking) setTimeout(() => { if ($("#scorebox") && P === pid) overview(); }, 2000);
+  if (O.checking || (O.planning && !O.plan)) setTimeout(() => { if ($("#scorebox") && P === pid) overview(); }, 2000);
   if ($("#chk")) $("#chk").onclick = async () => { $("#chk").disabled = true; await post(`/api/products/${encodeURIComponent(P)}/check`, {}); overview(); };
+  if ($("#chk2")) $("#chk2").onclick = () => $("#chk").click();
+  wireCopy($("#ov"));
+  if ($("#plansave")) $("#plansave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/plan/save`, {}); note($("#planmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
+  if ($("#planagain")) $("#planagain").onclick = async () => { note($("#planmsg"), "Making the plan again… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/plan`, {}); if (r.refused) return note($("#planmsg"), r.refused, "err"); overview(); };
+  document.querySelectorAll("#ov [data-do]").forEach((b) => (b.onclick = () => doIt(b.dataset.do, b.parentElement.querySelector(".domsg") ?? b.nextElementSibling)));
   document.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => ($(`#fx${b.dataset.how}`).innerHTML = `<p class="howto">${esc(c.fixFirst[+b.dataset.how].how)}</p>`)));
   document.querySelectorAll("[data-fix]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/fix`, { id: b.dataset.fix }); $(`#fx${b.dataset.i}`).innerHTML = pasteHtml(r.items ?? []) || `<p class="meta">${esc(r.refused ?? "Nothing to write for this one.")}</p>`; wireCopy($(`#fx${b.dataset.i}`)); }));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => openFeature(b.dataset.f)));
   document.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act)));
+}
+/* RR-310 A1 · every finding as Problem → Solution → Ready to use (each ready text with Copy and where it came from) */
+function readyHtml(r) { return `<div class="opt"><b>${esc(r.label)}</b>${r.for ? ` <span class="meta">for ${esc(r.for)}</span>` : ""} ${copyBtn(r.text)}<pre>${esc(r.text)}</pre><div class="src">From: ${esc(r.source)}</div></div>`; }
+function itemHtml(i, k) {
+  return `<div class="item"><h4>${k + 1}. ${esc(i.area)}</h4><p><b>Problem:</b> ${esc(i.problem)}</p><p><b>Solution:</b> ${esc(i.solution)}</p>
+  ${i.ready?.length ? `<div><b>Ready to use</b>${i.ready.map(readyHtml).join("")}</div>` : ""}${i.note ? `<p class="meta">${esc(i.note)}</p>` : ""}${i.fixForMe ? `<p><button class="ghost" data-do="${esc(i.fixForMe)}">Fix it for me</button> <span class="domsg"></span></p>` : ""}</div>`;
+}
+/* a check's line: good / not measured as one line; a problem as the three parts */
+const lineHtml = (l) => (l.ok === false ? `<li class="probline">${itemHtml({ area: "", problem: l.problem ?? l.line, solution: l.solution ?? l.how ?? "", ready: l.ready ?? [], note: l.note }, -1).replace(/<h4>0\. <\/h4>/, "")}</li>`
+  : `<li>${l.ok === true ? `<span class="ok-i">✓</span>` : `<span class="nm-i">–</span>`} ${esc(l.line)}</li>`);
+/* RR-310 D · "Do it for me" — each follows the client's own publish choice; AlmiWorld's own products are never published or submitted */
+async function doIt(what, msg) {
+  if (what === "youtube") return work("YouTube");
+  if (what === "social") return openFeature("social");
+  note(msg, "Working…");
+  const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what });
+  if (r.open === "publish-settings") return publishScreen();
+  if (r.open === "approvals") return work("Approvals");
+  if (r.refused) return note(msg, r.refused, "err");
+  if (what === "structure") { const box = $("#dobox") ?? msg; note(msg, r.line, "ok"); box.innerHTML = r.items.length ? r.items.map(itemHtml).join("") : `<p class="meta">Nothing to paste — your pages already have it.</p>`; return wireCopy(box); }
+  if (what === "submit") { note(msg, "Done — see each page below.", "ok"); const box = $("#dobox") ?? msg; box.innerHTML = `<ul>${r.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><table class="prices"><tr><th>Page</th><th>Google</th><th>Bing (IndexNow)</th></tr>${r.pages.map((p) => `<tr><td>${esc(p.title)}<div class="src">${esc(p.url)}</div></td><td>${esc(p.google)}</td><td>${esc(p.bing)}</td></tr>`).join("")}</table><p><button class="ghost" id="inxset">Set up IndexNow (Bing)</button></p>`; $("#inxset").onclick = indexNowScreen; return; }
+  note(msg, r.line, r.ok === false ? "err" : "ok");
+  if (what === "weekly" || what === "create-pages") setTimeout(() => { if ($("#ov")) overview(); }, 1500);
+}
+/* D3 · IndexNow: the key file the client puts on their site, where, and the check; then each page's state */
+async function indexNowScreen() {
+  const X = await get(`/api/products/${encodeURIComponent(P)}/indexnow`);
+  const box = $("#dobox") ?? $("#featbox");
+  if (X.refused) return note(box, X.refused, "err");
+  box.innerHTML = `<div class="card"><h3>Bing and AI search (IndexNow)</h3>${X.almiworld ? `<p class="warn">AlmiWorld's own product: nothing is submitted from here (owner's rule).</p>` : ""}<p>${X.verified ? `<span class="ok-i">✓</span> Your key file is on your site.` : "Bing asks for proof that the site is yours: a small text file on the site itself. The key below is not a secret — it sits on your site for everyone."}</p>
+  <ol>${X.howTo.map((h) => `<li>${esc(h)}</li>`).join("")}</ol><p><b>The text of the file</b> ${copyBtn(X.key)}</p><pre>${esc(X.key)}</pre><p class="meta">Its address: ${esc(X.url)}</p>
+  <p><button id="inxchk">Check my key file</button> <span id="inxmsg"></span></p>${X.pages.length ? `<table class="prices"><tr><th>Page</th><th>Google</th><th>Bing</th></tr>${X.pages.map((p) => `<tr><td>${esc(p.title)}<div class="src">${esc(p.url)}</div></td><td>${esc(p.google)}</td><td>${esc(p.bing)}</td></tr>`).join("")}</table>` : `<p class="meta">No page is published yet.</p>`}</div>`;
+  wireCopy(box);
+  $("#inxchk").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/indexnow/check`, {}); note($("#inxmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
 }
 /* RR-308 C1: two options per page, each with Copy and what it was written from; a page with too little text says so */
 const pasteHtml = (items) => items.map((x) => x.options?.length ? `<div><p class="meta">For ${esc(x.page)} — choose one:</p>${x.options.map((o, k) => `<div class="opt"><b>Option ${k + 1}</b> <span class="meta">(${o.text.length} characters — written from ${esc(o.from)}${o.short ? "; shorter than ideal" : ""})</span> ${copyBtn(o.text)}<div class="paste">${esc(o.text)}</div></div>`).join("")}</div>`
@@ -425,7 +480,7 @@ async function openFeature(f) {
   if (r.open === "google") return googleScreen();
   if (r.open === "publish") return work("Pages and articles");
   if (r.card || r.checking) return overview();
-  if (r.result) return (setTimeout(() => wireCopy(box), 0), box.innerHTML = `<div class="card"><h3>${esc(r.result.title)}</h3><p class="meta">${esc(r.result.read)}</p><ul>${r.result.lines.map((l) => `<li>${l.ok === true ? `<span class="ok-i">✓</span>` : l.ok === false ? `<span class="warn-i">!</span>` : `<span class="nm-i">–</span>`} ${esc(l.line)}${l.how ? `<div class="howto">${esc(l.how)}</div>` : ""}${l.fixForMe?.length ? pasteHtml(l.fixForMe) : ""}</li>`).join("")}</ul>${r.result.note ? `<p class="meta">${esc(r.result.note)}</p>` : ""}</div>`);
+  if (r.result) return (setTimeout(() => wireCopy(box), 0), box.innerHTML = `<div class="card"><h3>${esc(r.result.title)}</h3><p class="meta">${esc(r.result.read)}</p><ul class="lines">${r.result.lines.map(lineHtml).join("")}</ul>${r.result.note ? `<p class="meta">${esc(r.result.note)}</p>` : ""}</div>`);
   if (r.found) return (box.innerHTML = `<div class="card"><h3>Keywords and questions</h3><p><b>${esc(r.found.line)}</b></p><h4>Questions people ask</h4><ul>${r.found.questions.slice(0, 80).map((q) => `<li>${esc(q.text)}<div class="src">From: ${esc(q.source)} · ${esc(q.on)}</div></li>`).join("") || "<li>None yet.</li>"}</ul><h4>Search phrases</h4><ul>${r.found.phrases.slice(0, 120).map((q) => `<li>${esc(q.text)}<div class="src">From: ${esc(q.source)}</div></li>`).join("") || "<li>None yet.</li>"}</ul>${r.found.missing.length ? `<h4>Not connected yet</h4><ul>${r.found.missing.map((m) => `<li>${esc(m.what)} — adds: ${esc(m.adds)}</li>`).join("")}</ul>` : ""}</div>`);
   if (r.pages) {
     const pg = r.pages, by = (k) => pg.plan.filter((x) => x.kind === k);
@@ -437,6 +492,8 @@ async function openFeature(f) {
       <details><summary>Not made — no answer on your pages yet (${by("REFUSED").length})</summary><ul>${by("REFUSED").map((x) => `<li>${esc(x.question)} <span class="src">(${esc(x.demand?.source ?? "")})</span></li>`).join("")}</ul><p class="meta">Write the answer on your site, then press Create SEO pages again.</p></details></div>`);
   }
   if (r.article) return (box.innerHTML = `<div class="card"><h3>Today's article</h3>${r.article.none ? `<p>${esc(r.article.none)}</p>` : `<p><b>${esc(r.article.title)}</b> — a draft for ${esc(r.article.day)}. ${r.article.publishMode === "REVIEW_FIRST" ? "It waits for your yes." : "It stays a draft: Visibility has no connection to your site in this version."}</p><a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(r.article.url)}" target="_blank">Read the article</a>`}</div>`);
+  /* RR-310 B6: posts from the newest videos — their own words, their links */
+  if (r.socialVideos) return (setTimeout(() => wireCopy(box), 0), box.innerHTML = `<div class="card"><h3>Social posts from your videos</h3>${r.none ? `<p>${esc(r.none)}</p>` : r.socialVideos.length ? r.socialVideos.map((s) => `<h4>${esc(s.video)}</h4>${s.posts.map((p) => `<p><b>${esc(p.network)}</b> ${copyBtn(p.text)}</p><div class="paste">${esc(p.text)}</div>`).join("")}<div class="src">From: ${esc(s.from)}</div>`).join("") : "<p>No video found yet.</p>"}<p class="meta">Copy and post them yourself — Visibility does not post for you in this version.</p></div>`);
   if (r.social) return (box.innerHTML = `<div class="card"><h3>Social posts</h3>${r.social.posts.length ? r.social.posts.map((p) => `<p><b>${esc(p.network)}</b></p><div class="paste">${esc(p.text)}</div>`).join("") : `<p>${esc(r.social.refused?.[0]?.why ?? "No post yet.")}</p>`}<p class="meta">Copy and post them yourself — Visibility does not post for you in this version.</p></div>`);
   if (r.report) return (box.innerHTML = `<div class="card"><h3>Monthly report</h3><ul>${r.report.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`);
   box.innerHTML = `<p class="err">${esc(r.refused ?? "Something went wrong — try again.")}</p>`;

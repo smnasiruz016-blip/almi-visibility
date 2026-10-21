@@ -26,7 +26,7 @@ const FAKE_YT = "fake-youtube-key-rr308-1234";
 const FAKE_AI = "fake-ai-key-rr308-5678";
 
 /* ── a channel like the owner's: a Pakistani mom in Denmark, many Shorts, junk hashtags, a greeting on every description ── */
-const v = (id, title, o = {}) => ({ videoId: id, title, description: o.description ?? "Welcome to Mom Diaries and to my new video\nSubscribe for more", tags: o.tags ?? ["day in my life", "mom vlog", "mom diaries", "momdiariesvlogs", "full episode", "saba ibrahim"], publishedAt: o.at ?? "2025-06-01T00:00:00Z", durationSec: o.sec ?? 600, width: o.w ?? 640, height: o.h ?? 360, views: o.views ?? 10, comments: 1, channelId: "UCmomdiaries000000001", channelTitle: "Mom Diaries" });
+const v = (id, title, o = {}) => ({ videoId: id, title, description: o.description ?? "Welcome to Mom Diaries and to my new video\nSubscribe for more", tags: o.tags ?? ["day in my life", "mom vlog", "mom diaries", "momdiariesvlogs", "full episode", "saba ibrahim", "new vlog", "vlog today"], publishedAt: o.at ?? "2025-06-01T00:00:00Z", durationSec: o.sec ?? 600, width: o.w ?? 640, height: o.h ?? 360, views: o.views ?? 10, comments: 1, channelId: "UCmomdiaries000000001", channelTitle: "Mom Diaries" });
 function channelVideos(n = 45) {
   const out = [v("m01", "Grocery haul in Copenhagen | weekly shopping", { views: 9000, description: "Our weekly grocery shopping at the supermarket with the kids.\n#viral" }),
     v("m02", "BIRTHDAY Weekend | Daily Vlog #778 @momdiaries", { views: 7000, description: "Welcome to Mom Diaries and to my new video \"BIRTHDAY Weekend\"\nFacebook : https://www.facebook.com/x" }),
@@ -48,11 +48,14 @@ test("A1 + A3 · THE NICHE comes from the channel's OWN tags and description —
   for (const q of [...qs, ...n.more]) {
     assert.ok(q.split(" ").length <= 4, `a long phrase: ${q}`);
     assert.ok(!q.split(/\s+/).some((w) => JUNK_WORDS.has(w)), `junk: ${q}`);
-    assert.doesNotMatch(q, /saba ibrahim|momdiaries|diaries vlogs|episode|viral/, `not a niche phrase: ${q}`);
+    assert.doesNotMatch(q, /saba ibrahim|momdiaries|diaries vlogs|episode|viral|new vlog|vlog today/, `not a niche phrase: ${q}`);
   }
   assert.ok(n.queries.every((q) => /of your 45 videos|description/.test(q.from)), "a topic without where it came from");
   assert.deepEqual([n.persona.who, n.persona.places[0]], ["Pakistani Mom", "Denmark"]);
   assert.equal(personaOf({ channel: { description: "Tech reviews" }, videos: [] }).who, null, "a 'who' was guessed");
+  /* a channel with no handle: its own name glued into a tag ("momdiaries vlog") is the channel, not its niche */
+  const glued = nicheOf({ channel: { title: "Mom Diaries", description: "" }, videos: channelVideos().map((x) => ({ ...x, tags: ["momdiaries vlog", "mom vlog"] })), product: {} });
+  assert.ok(!glued.queries.some((q) => /momdiaries/.test(q.q)), JSON.stringify(glued.queries));
 });
 
 /* the niche research: top and rising videos of the niche, and comments under them */
@@ -60,7 +63,7 @@ const nv = (id, title, views, o = {}) => ({ videoId: id, title, description: o.d
 const RESEARCH = { readOn: ON, niche: [
   { q: "day in my life", kind: "top", videos: [nv("n1", "Day in my life as a mom in Norway", 900000), nv("n2", "Morning routine with 3 kids | Oslo", 700000), nv("n3", "Grocery haul in Sweden | budget week", 500000), nv("n4", "Morning routine 5am", 400000, { sec: 40, w: 360, h: 640 }), nv("n5", "Cost of living in Denmark 2026", 300000)] },
   { q: "mom vlog", kind: "rising", videos: [nv("n6", "House tour in Copenhagen", 80000), nv("n7", "Cost of living in Norway for a family", 60000), nv("own", "Our own video", 5, { ch: "UCmomdiaries000000001" })] }],
-  topics: [], comments: [{ text: "Which supermarket is cheapest in Denmark?", own: false, videoTitle: "Grocery haul in Sweden | budget week", publishedAt: "2026-09-02", likes: 30 }, { text: "Love your morning routine, so calm!", own: false, videoTitle: "Morning routine with 3 kids | Oslo", publishedAt: "2026-09-03", likes: 5 }, { text: "Who is watching in 2026?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 99 }] };
+  topics: [], comments: [{ text: "Which supermarket is cheapest in Denmark?", own: false, videoTitle: "Grocery haul in Sweden | budget week", publishedAt: "2026-09-02", likes: 30 }, { text: "Love your morning routine, so calm!", own: false, videoTitle: "Morning routine with 3 kids | Oslo", publishedAt: "2026-09-03", likes: 5 }, { text: "Who is watching in 2026?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 99 }, { text: "Anyone else watching this late at night again?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 98 }] };
 
 test("A1 · WHAT VIEWERS OF THE NICHE WATCH MOST: formats with their median views and examples, title patterns, length, Shorts vs long, what viewers ask and praise — every line with its source; the channel's own videos are not counted as the niche", () => {
   const vids = channelVideos();
@@ -74,7 +77,7 @@ test("A1 · WHAT VIEWERS OF THE NICHE WATCH MOST: formats with their median view
   assert.ok(f("morning-routine").examples[0].title && f("morning-routine").examples[0].views === 700000);
   for (const l of s.lines) assert.match(l.from, /read 2026-10-22/, `a line with no source: ${l.what}`);
   assert.ok(s.lines.find((l) => l.what === "What viewers ask").line.includes("Which supermarket is cheapest in Denmark?"));
-  assert.doesNotMatch(JSON.stringify(s.lines), /Who is watching in 2026/, "a remark that is not about the niche");
+  assert.doesNotMatch(JSON.stringify(s.lines), /Who is watching in 2026|Anyone else watching/, "a remark that is not about the niche");
   assert.match(s.lines.find((l) => l.what === "Length").line, /1 Shorts and 6 long videos among the 7 read/);
 });
 
@@ -154,23 +157,28 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
 
 test("C1 · FIX IT FOR ME descriptions: from each page's own sentences, unique per page, complete, 120–160 characters, never '…', never a line the site repeats, never a card fragment; two options each", () => {
   const page = (url, h1, lead) => ({ url, h1, title: h1, description: null, lead, h2: [] });
-  const shared = "17 questions answered below, each with its source.";
+  /* both of a length a description could take (120–160) — only the boilerplate and fragment rules keep them out */
+  const shared = "Each of these seventeen questions is answered below on this page, and each answer comes with its own source and the day it was checked.";
+  const fragment = "Fee AU$587 Source: OET results and scoring · checked 2026-10-15 What is the fee for nurses in Pakistan today, and how is it paid please.";
+  /* longer than 160: it may never be a description, however it is cut */
+  const long = "The OET for nurses tests the English that nurses use every single day on a busy hospital ward, in all four skills, with tasks taken from real care settings and real patients.";
   const pages = [
-    page("https://x.test/a", "OET for nurses", ["The OET for nurses tests the English used every day on a hospital ward, in all four skills, with tasks taken from real care settings.", "Most nurses need a B in each sub-test, and this page shows what each band means for registration in Ireland and the UK.", shared]),
-    page("https://x.test/b", "OET for doctors", ["Doctors take the same Listening and Reading tests as nurses, but their Writing task is a referral letter to another doctor about a patient.", shared, "1800 Source: HCPC — English language proficiency · checked 2026-10-15 What OET score do speech therapists need?"]),
+    page("https://x.test/a", "OET for nurses", [long, "The OET for nurses tests the English used every day on a hospital ward, in all four skills, with tasks taken from real care settings.", "Most nurses need a B in each sub-test, and this page shows what each band means for registration in Ireland and the UK.", shared]),
+    page("https://x.test/b", "OET for doctors", ["Doctors take the same Listening and Reading tests as nurses, but their Writing task is a referral letter to another doctor about a patient.", shared, "1800 Source: HCPC — English language proficiency · checked 2026-10-15 What OET score do speech therapists need?", fragment]),
     page("https://x.test/c", "Short", ["Too short."]),
+    page("https://x.test/d", "Questions", [shared, fragment]),
   ];
   const items = fixForMe("meta-description", { ok: true, pages, design: {} });
   const all = items.flatMap((x) => x.options ?? []).map((o) => o.text);
   assert.ok(items.find((x) => x.page.endsWith("/a")).options.length === 2);
   for (const t of all) {
-    assert.ok(t.length >= 90 && t.length <= LEN.max, `${t.length}: ${t}`);
+    assert.ok(t.length >= 90 && t.length <= 160, `${t.length}: ${t}`);
     assert.doesNotMatch(t, /…|answered below|Source:|checked 2026/, t);
     assert.match(t, /[.!]$/);
   }
   assert.equal(new Set(all).size, all.length, "the same description for two pages");
   assert.match(items.find((x) => x.page.endsWith("/c")).none, /too little text of its own/);
-  assert.ok(boilerplate(pages).size === 1, "the repeated line was not found as boilerplate");
+  assert.equal(boilerplate(pages).size, 2, "the two repeated lines (the shared one and the card fragment) were not found as boilerplate");
 });
 
 /* ── the client's site, on this computer ── */
@@ -320,6 +328,9 @@ test("A + B IN THE APP: research searches the NICHE (top = most viewed in a year
     const ages = new Set(searches.map((x) => Math.round((Date.now() - Date.parse(x.params.publishedAfter)) / 86400000)));
     assert.deepEqual([...ages].sort((p, q) => p - q), [30, 365], "not top (a year) and rising (30 days)");
     assert.ok(searches.every((x) => !/episode|saba ibrahim|viral/.test(x.params.q)), "a junk topic was searched");
+    /* the channel's saved read made a day old: anything that reads the whole channel now calls YouTube — the Overview must not */
+    const raw = join(a.dir, "products", id, "youtube-raw"); const vf = readdirSync(raw).find((f) => /^videos-/.test(f));
+    const vj = JSON.parse(readFileSync(join(raw, vf), "utf8")); vj.recorded_at = new Date(Date.now() - 2 * 86400000).toISOString(); writeFileSync(join(raw, vf), JSON.stringify(vj));
     const before = yt.calls.length;
     const o = await a.get(`/api/products/${id}/overview`);
     assert.equal(yt.calls.length, before, "the Overview read the channel");

@@ -77,7 +77,8 @@ test("C · PRODUCTS: each product in its own folder, read and written only throu
     st.write(a.id, { ...st.read(a.id), setup: { ...st.read(a.id).setup, languages: { codes: ["en", "ar"] } }, started: true });
     assert.equal(st.read(b.id).setup.languages, undefined, "B sees A's answer");
     assert.notEqual(st.dirOf(a.id), st.dirOf(b.id));
-    assert.deepEqual(st.list().map((p) => productCard(p).state), ["Set up — working", "Setting up (1 of 6 steps answered)"]);
+    /* RR-307 D1: a product counts only the steps that fit its answers (with no answer yet to "What do you want to grow?": goal, product, AI assistant) */
+    assert.deepEqual(st.list().map((p) => productCard(p).state), ["Set up — working", "Setting up (1 of 3 steps answered)"]);
     for (const bad of ["..", "../company", "a/../../x", "C:\\x", "", "A", "-x", "x".repeat(41)]) assert.throws(() => st.dirOf(bad), (e) => e.code === "NOT_A_PRODUCT_ID", bad);
     assert.ok(PRODUCT_ID.test(a.id) && PRODUCT_ID.test(b.id));
     /* the second guard, alone: a resolved folder outside (or equal to) the products folder is never a product folder */

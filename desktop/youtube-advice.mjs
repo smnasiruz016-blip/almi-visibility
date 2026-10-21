@@ -25,7 +25,9 @@ const LANGUAGE_WORDS = new Set(["urdu", "hindi", "english", "arabic", "punjabi",
 const ROMAN_URDU = new Set(["hai", "hain", "ka", "ki", "ke", "ko", "mein", "aur", "kya", "kaise", "nahi", "apni", "apna", "hum", "mera", "meri", "gaye", "gayi", "wala", "wali", "liye", "sath", "saath", "kar", "karo", "bhi", "yeh", "ye", "wo"]);
 
 const norm = (s) => String(s ?? "").toLowerCase().normalize("NFKC").replace(/[’']s\b/g, "").replace(/[’']/g, "").replace(/#[\p{L}\p{N}_]+/gu, " ").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-export const tokens = (s) => norm(s).split(" ").filter((w) => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w));
+/* RR-307 (owner): short words count — CV, AI, UK, PR — two-letter words are kept unless they are filler */
+const STOP2 = new Set("of to in on at by an is it be do go my me we us or as if so no up oh ok ka ki ke ko se ye wo na ho hi pe ne ji ek".split(" "));
+export const tokens = (s) => norm(s).split(" ").filter((w) => (w.length > 2 || (w.length === 2 && !STOP2.has(w))) && !STOP.has(w) && !/^\d+$/.test(w));
 const tokenSet = (s) => new Set(tokens(s));
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 const day = (d) => String(d ?? "").slice(0, 10);
@@ -48,6 +50,30 @@ export function topicsFromDeclaration(what, { names = [] } = {}) {
   clauses.sort((a, b) => b.split(" ").length - a.split(" ").length);
   const acronyms = [...text.matchAll(/\b[A-Z]{3,6}\b/g)].map((m) => m[0]).filter((a) => !STOP.has(a.toLowerCase()) && !own.has(a.toLowerCase()));
   return [...new Set([...clauses.slice(0, 1), ...acronyms, ...clauses.slice(1)])].slice(0, 6);
+}
+
+/**
+ * RR-307 (owner, RR-306 defect 2) · the research topics, found AUTOMATICALLY from the product — what it does, its own site's headings and its
+ * own videos' titles — never typed by the client: the declaration's clauses; its short names of 2–6 capital letters (CV, AI, UK, OET, PTE),
+ * each with the word that follows it in the client's own titles or headings when there is one ("Cv builder" → "CV builder"); the word pairs
+ * the client's own titles use most (3+ times); the site's own headings. The product's own name is never a topic.
+ */
+export function autoTopics({ what, names = [], ownTitles = [], siteHeadings = [] }) {
+  const own = new Set(names.flatMap((n) => tokens(n)));
+  const out = topicsFromDeclaration(what, { names }).filter((t) => !/^[A-Z]{2,6}$/.test(t));
+  const texts = [...ownTitles, ...siteHeadings].map((t) => String(t).replace(/#[\p{L}\p{N}_]+/gu, " ").split(/[^\p{L}\p{N}’'-]+/u).filter(Boolean));
+  for (const a of new Set([...String(what ?? "").matchAll(/\b[A-Z]{2,6}\b/g)].map((m) => m[0]).filter((a) => !own.has(a.toLowerCase())))) {
+    const next = new Map();
+    for (const w of texts) for (let i = 0; i + 1 < w.length; i++) if (w[i].toLowerCase() === a.toLowerCase() && tokens(w[i + 1]).length === 1 && !own.has(tokens(w[i + 1])[0])) next.set(w[i + 1].toLowerCase(), (next.get(w[i + 1].toLowerCase()) ?? 0) + 1);
+    const best = [...next.entries()].sort((x, y) => y[1] - x[1])[0];
+    out.push(best ? `${a} ${best[0]}` : a);
+  }
+  const pairs = new Map();
+  for (const w of texts.slice(0, ownTitles.length)) { const seen = new Set(); for (let i = 0; i + 1 < w.length; i++) { const a = tokens(w[i]), b = tokens(w[i + 1]); if (a.length === 1 && b.length === 1 && !own.has(a[0]) && !own.has(b[0])) { const k = `${a[0]} ${b[0]}`; if (!seen.has(k)) { seen.add(k); pairs.set(k, (pairs.get(k) ?? 0) + 1); } } } }
+  out.push(...[...pairs.entries()].filter(([, n]) => n >= 3).sort((x, y) => y[1] - x[1]).slice(0, 4).map(([k]) => k));
+  for (const h of siteHeadings) { const t = [...new Set(tokens(h))].filter((w) => !own.has(w)); if (t.length >= 2) out.push(t.slice(0, 5).join(" ")); }
+  const seen = new Set();
+  return out.filter((t) => { const k = tokens(t).join(" ") || t.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 16);
 }
 
 /** the questions in a text: its sentences that end with "?" or start with a question word — 3+ meaning words, no links */
@@ -89,7 +115,9 @@ export function researchTerms({ research = null, files = [] }) {
 /** C1 · the questions people ask, each with its source: comments under the client's own videos and under the topic's top videos; files */
 export function researchQuestions({ research = null, files = [], product = {}, terms = [] }) {
   const about = new Set([...tokens(product.what), ...terms.slice(0, 15).flatMap((t) => t.phrase.split(" "))]);
-  const relevant = (q) => inScripts(q, product.languages) && tokens(q).some((w) => about.has(w));
+  /* RR-307 (RR-306 defect 3): a real question asks for something — not a remark shaped like one ("Can I just appreciate…", "Am I the only one…") */
+  const REMARK = /^(can i just|am i the only|is it just me|who else|anyone else|does anyone else|isn't it|wasn't it|who is here|who's here|who is watching|who's watching)\b/i;
+  const relevant = (q) => inScripts(q, product.languages) && !REMARK.test(q) && tokens(q).length >= 3 && tokens(q).some((w) => about.has(w));
   const out = [];
   const seen = [];
   const push = (text, source, likes = 0) => {
@@ -116,16 +144,22 @@ export function adviceForVideo(v, { terms, questions, productUrl = null, product
   const allTags = hashtagsIn(`${v.title} ${v.description ?? ""}`);
   const target = linkTargetFor(v, { productUrl, productIsChannel, relatedPages });
   const out = { videoId: v.videoId, title: v.title, kind, views: v.views, items: [] };
-  if (!matched.length) {
-    out.notEnough = "Not enough data for this video: none of the researched phrases or questions share its words. What to do: say in the title what the video is about, or add your topic words in YouTube settings and research again.";
+  /* RR-307 (owner, RR-306 defect 1): main words found ONLY in the video's own tags are not research about THIS video — no title,
+   * description, hashtag or thumbnail advice is made from them (a "#viral #fyp" Short was told #Travel / TRAVEL) */
+  const firstLines = tokenSet(String(v.description ?? "").split(/\n/).filter((l) => l.trim()).slice(0, 2).join(" "));
+  const said = matched.filter((t) => matchScore(t.phrase.split(" "), tset) || matchScore(t.phrase.split(" "), firstLines));
+  const HOW = "Here is how to get it: say in the title (or the first line of the description) what the video is about, then press \"Research now\" — Visibility searches the words people use for it.";
+  if (!said.length) {
+    out.notEnough = matched.length ? `Not enough research for this video yet — its own tags mention "${matched[0].display ?? matched[0].phrase}", but its title and description do not, so no title, hashtag or thumbnail advice is made from that. ${HOW}` : `Not enough research for this video yet — none of the researched phrases or questions share its words. ${HOW}`;
+    if (generic.length) out.items.push({ what: "Hashtags", advice: `Remove ${generic.map((h) => `#${h}`).join(" ")} — they say nothing about this video.`, from: RULES.hashtags.source });
   } else {
+    matched.splice(0, matched.length, ...said);
     const lead = matched[0];
     const leadText = cap(lead.display ?? lead.phrase);
     const cleanTitle = String(v.title).replace(/#[\p{L}\p{N}_]+/gu, (m) => (GENERIC_HASHTAGS.has(m.slice(1).toLowerCase()) ? "" : m)).replace(/\s*[|•]\s*$/, "").replace(/\s{2,}/g, " ").trim();
     const lt = tokens(cleanTitle);
     if (lt.slice(0, lead.phrase.split(" ").length).join(" ") === lead.phrase) out.items.push({ what: "Title", advice: `Keep it — it already starts with the main words people search: "${lead.display ?? lead.phrase}".`, from: lead.sources[0] });
     else if (matchScore(lead.phrase.split(" "), tset)) out.items.push({ what: "Title", advice: `Move the main words "${lead.display ?? lead.phrase}" to the start of the title — people search for them, and the start of a title is what they read first.`, from: lead.sources[0] });
-    else if (!matchScore(lead.phrase.split(" "), tokenSet(String(v.description ?? "").split(/\n/).filter((l) => l.trim()).slice(0, 2).join(" ")))) out.items.push({ what: "Title", advice: `The title does not say in searched words what the video is about. Your own tags say "${lead.display ?? lead.phrase}" — if the video is about that, put those words first in the title.`, from: `${lead.sources[0]} · your video's own tags` });
     else { const s = `${leadText} — ${cleanTitle}`; out.items.push({ what: "Title", advice: s.length <= TITLE_MAX ? s : `${s.slice(0, TITLE_MAX - 1).replace(/\s+\S*$/, "")}…`, from: lead.sources[0] }); }
     const first = String(v.description ?? "").split(/\n/).map((x) => x.trim()).find((x) => x && !/^#/.test(x) && !/^https?:/.test(x));
     const lines = [`${leadText}: ${first ?? cleanTitle}`];
@@ -193,12 +227,14 @@ export function youtubeAdvice({ product, channel, videos, research = null, files
   const notEnough = [];
   if (!research) notEnough.push("Research has not run yet — press \"Research now\". It reads, through the YouTube Data API only, the videos that do well for your topics and the questions people write under them.");
   for (const t of research?.topics ?? []) if (t.videos.length < 2) notEnough.push(`YouTube found too few videos for "${t.q}" — change your topic words in YouTube settings.`);
+  const ideas = newVideoIdeas({ questions, videos });
+  if (research && ideas.length > 0 && ideas.length < 3) notEnough.push(`Only ${ideas.length} new video idea${ideas.length === 1 ? "" : "s"} — fewer, but each is a real question someone asked that none of your videos answers yet. More appear as more questions are read.`);
   if (research && !questions.length) notEnough.push("No questions were found in the comments read. What to do: ask viewers a question at the end of your videos, or add a search-data file (Search Console, Bing or Keyword Planner) in YouTube settings.");
   if (!videos.length) notEnough.push("Your channel has no public videos yet — the advice starts with your first video.");
   const perVideo = videos.slice().sort((a, b) => b.views - a.views).map((v) => adviceForVideo(v, { terms, questions, productUrl, productIsChannel, relatedPages }));
   return Object.freeze({
     readOn, channel: { title: channel.title, videos: videos.length, shorts: videos.filter((v) => videoKind(v) === "SHORT").length, long: videos.filter((v) => videoKind(v) === "LONG").length, unknown: videos.filter((v) => videoKind(v) === "UNKNOWN").length },
     terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15),
-    channelAdvice: channelAdvice({ channel, product, videos, terms, readOn }), perVideo, ideas: newVideoIdeas({ questions, videos }), notEnough, invented: 0,
+    channelAdvice: channelAdvice({ channel, product, videos, terms, readOn }), perVideo, ideas, notEnough, invented: 0,
   });
 }

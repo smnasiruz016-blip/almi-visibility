@@ -17,7 +17,12 @@ import { fileURLToPath } from "node:url";
 import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwnerLicenceText, isOwnerLicence, verifyLicence } from "./licence.mjs";
 import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
-import { STEPS, checkStep, webAddress } from "./setup.mjs";
+import { STEPS, checkStep, webAddress, stepsFor, CHOICES, HOWTO, recommended } from "./setup.mjs";
+import { readSite, addressOpens } from "./site-read.mjs";
+import { scoreCard, foundInfo, fixForMe } from "./product-check.mjs";
+import { googleConnect, importExport } from "./google-connect.mjs";
+import { seoPages, articleOfDay, socialFor, monthReport } from "./seo-pages.mjs";
+import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
@@ -65,6 +70,53 @@ const YT = youtubeApp({ store, dataDir: DATA, keys: KEYS, config: CONFIG });
 /* a YouTube or key error says what happened in plain words — never a URL (the key travels in one) */
 const safeWhy = (e) => (/answered HTTP \d+/.exec(String(e?.message))?.[0] ? `YouTube ${/answered HTTP \d+/.exec(String(e.message))[0]}` : "no answer from YouTube");
 
+/* ── RR-307 · act at once: the check, the score card, what was found, the feature cards, Google, delete ── */
+const GOOGLE = googleConnect({ keys: KEYS, config: CONFIG });
+const allowLocal = CONFIG.testAllowLocalSites === true; // TESTS ONLY: a stand-in site on this computer
+const pfile = (id, name) => join(store.dirOf(id), name);
+const pread = (id, name, d = null) => { try { return JSON.parse(readFileSync(pfile(id, name), "utf8")); } catch { return d; } };
+const pwrite = (id, name, obj) => { writeFileSync(`${pfile(id, name)}.tmp`, JSON.stringify(obj)); renameSync(`${pfile(id, name)}.tmp`, pfile(id, name)); };
+const hasWebsite = (s) => Boolean(s.product?.site) && !/youtube\.com/i.test(s.product.site) && s.setup?.goal?.hasWebsite !== false;
+const checking = new Map(); // product id → a running check (one at a time per product)
+/* RR-307 (owner, 22 Oct): a running check says how far it is — never a second "Check my product now" while one runs */
+const progress = new Map(); // product id → { stage, done, of, secondsLeft, started }
+/** CHECK NOW: read the site (robots obeyed) and/or the confirmed YouTube channel; keep the facts (never the pages' HTML) and the score card */
+async function checkProduct(id) {
+  if (checking.has(id)) return checking.get(id);
+  const started = Date.now();
+  const say = (p) => progress.set(id, { ...p, started });
+  say({ stage: "Starting", done: 0, of: 1, secondsLeft: null }); // before the run: the reader's own first step must not be overwritten
+  const run = (async () => {
+    const s = store.read(id), on = new Date().toISOString();
+    let site = null, youtube = null;
+    if (hasWebsite(s)) { try { site = await readSite({ url: s.product.site, allowLocal, on, onProgress: say }); } catch (e) { site = { ok: false, why: "the site could not be read now" }; } }
+    if (s.setup?.youtube?.confirmed) { say({ stage: "Reading your YouTube channel", done: 0, of: 1, secondsLeft: null }); try { const r = await YT.read(id); youtube = { confirmed: true, videos: r.videos, check: (await import("../src/video/youtube.mjs")).channelCheck(r.videos, {}) }; } catch (e) { youtube = { why: `YouTube could not be read now (${safeWhy(e)})` }; } }
+    else if (s.setup?.youtube?.handle) youtube = { why: "Not measured — confirm your YouTube channel first (YouTube settings)" };
+    const card = scoreCard({ site, youtube, on });
+    if (site?.ok) { const { pageReads, ...keep } = site; pwrite(id, "site-read.json", keep); }
+    pwrite(id, "check.json", card);
+    return card;
+  })().finally(() => { checking.delete(id); progress.delete(id); });
+  checking.set(id, run);
+  return run;
+}
+const progressOf = (id) => { const p = progress.get(id); return p ? { ...p, seconds: Math.round((Date.now() - p.started) / 1000) } : null; };
+const searchConsoleOf = (id) => pread(id, "search-console.json");
+function contextOf(id) {
+  const s = store.read(id), site = pread(id, "site-read.json"), sc = searchConsoleOf(id), files = (() => { try { return JSON.parse(readFileSync(pfile(id, "search-data-files.json"), "utf8")); } catch { return []; } })();
+  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), files: files.length > 0, drafts: Boolean(pread(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
+}
+/** the product's to-do: steps skipped, sources missing */
+function todoOf(id) {
+  const { s, ctx } = contextOf(id);
+  const steps = stepsFor(s.setup);
+  /* a source already connected another way (Search Console data, a confirmed channel) is not a to-do */
+  const done = { searchData: Boolean(searchConsoleOf(id)) || ctx.files, youtube: ctx.youtubeConfirmed, aiConnection: ctx.aiKey };
+  const skipped = steps.filter((x) => x.optional && !done[x.id] && (s.setup[x.id]?.skipped || !s.setup[x.id])).map((x) => ({ what: x.title, action: x.id }));
+  const yt = s.setup?.youtube?.handle && !ctx.youtubeConfirmed ? [{ what: "Confirm your YouTube channel", action: "youtube" }] : [];
+  return [...skipped, ...yt];
+}
+
 const server = createServer((req, res) => {
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
   let body = "";
@@ -89,6 +141,8 @@ const server = createServer((req, res) => {
         /* RR-305 B1: "www.almiworld.com" and "almiworld.com" are accepted; https:// is added */
         c.site = webAddress(c.site);
         if (!c.name?.trim() || !c.site) return send(400, { refused: "Give your company's name and its main website (for example almiworld.com)." });
+        /* RR-307 E3: the address must really open (never a "www." added) — or the client says to save it anyway */
+        if (c.saveAnyway !== true) { const o = await addressOpens(c.site, { allowLocal }); if (!o.ok) return send(400, { refused: `${o.why}${o.suggestion ? ` Did you mean ${o.suggestion}?` : ""}`, suggestion: o.suggestion ?? null, canSaveAnyway: true }); }
         let logoFile = store.company()?.logoFile ?? null;
         if (typeof c.logoPng === "string" && c.logoPng.startsWith("data:image/png;base64,")) { logoFile = "company-logo.png"; writeFileSync(join(DATA, logoFile), Buffer.from(c.logoPng.slice(22), "base64")); }
         store.setCompany({ name: c.name.trim(), site: c.site.trim(), logoFile });
@@ -100,9 +154,18 @@ const server = createServer((req, res) => {
         const may = mayAddProduct(st, count);
         if (!may.ok) return send(403, { refused: limitLine(st, count), licence: st.line });
         const p = json();
-        p.site = webAddress(p.site);
-        if (!p.name?.trim() || !p.site) return send(400, { refused: "Give the product's name and its own address (for example shop.almiworld.com)." });
-        return send(200, { ok: true, product: productCard(store.create({ name: p.name.trim(), site: p.site.trim() })) });
+        /* RR-307 D1: the two plain questions come first — what to grow, and whether there is a website; the website is asked only then */
+        const goal = p.goal ?? null;
+        if (goal && checkStep("goal", goal)) return send(400, { refused: checkStep("goal", goal) });
+        const needsSite = !goal || goal.hasWebsite === true;
+        p.site = p.site ? webAddress(p.site) : null;
+        if (!p.name?.trim() || (needsSite && !p.site)) return send(400, { refused: needsSite ? "Give the product's name and its website (for example shop.almiworld.com)." : "Give the product's name." });
+        if (p.site && p.saveAnyway !== true && !/youtube\.com/i.test(p.site)) { const o = await addressOpens(p.site, { allowLocal }); if (!o.ok) return send(400, { refused: `${o.why}${o.suggestion ? ` Did you mean ${o.suggestion}?` : ""}`, suggestion: o.suggestion ?? null, canSaveAnyway: true }); }
+        const made = store.create({ name: p.name.trim(), site: p.site ? p.site.trim() : null });
+        if (goal) { const st2 = store.read(made.id); st2.setup.goal = { grow: goal.grow, hasWebsite: goal.hasWebsite }; store.write(made.id, st2); }
+        /* RR-307 A1: the check starts the moment the product is added — the client carries on with setup meanwhile */
+        if (p.site) checkProduct(made.id).catch(() => {});
+        return send(200, { ok: true, product: productCard(store.read(made.id)), checking: Boolean(p.site) });
       }
       /* one product's own work: only through its own id, only in its own folder */
       const m = /^\/api\/products\/([^/]+)\/(state|setup|views)$/.exec(u.pathname);
@@ -110,12 +173,16 @@ const server = createServer((req, res) => {
         const id = decodeURIComponent(m[1]);
         let s;
         try { s = store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
-        if (req.method === "GET" && m[2] === "state") return send(200, { id, product: s.product, steps: STEPS, setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
+        if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
         if (req.method === "POST" && m[2] === "setup") {
           const st = await licenceNow();
           if (!st.mayStartNewWork) return send(403, { refused: st.line });
           let { id: step, value } = json();
           if (step === "product" && value && webAddress(value.site)) value.site = webAddress(value.site);
+          if (step === "product" && value && !value.site) value.site = s.setup?.goal?.hasWebsite === false ? (s.product?.site && /youtube\.com/i.test(s.product.site) ? s.product.site : null) : value.site;
+          /* RR-307 E3: a changed website must really open (or "save anyway") */
+          if (step === "product" && value?.site && value.site !== s.product?.site && value.saveAnyway !== true && !/youtube\.com/i.test(value.site)) { const o = await addressOpens(value.site, { allowLocal }); if (!o.ok) return send(400, { refused: `${o.why}${o.suggestion ? ` Did you mean ${o.suggestion}?` : ""}`, suggestion: o.suggestion ?? null, canSaveAnyway: true }); }
+          if (step === "product" && value) delete value.saveAnyway;
           /* RR-306 A2: an optional step skipped — "not now"; it can be changed later from the product's Settings */
           if (value?.skipped === true) { if (!STEPS.find((x) => x.id === step)?.optional) return send(400, { refused: "This step cannot be skipped." }); value = { skipped: true }; }
           const why = checkStep(step, value);
@@ -125,20 +192,88 @@ const server = createServer((req, res) => {
           if (!value?.skipped && step === "aiConnection" && value.provider) { const p = AI_PROVIDERS.find((x) => x.id === value.provider); const bad = keep(p.keyName, value.key); if (bad) return send(400, { refused: bad }); value = { provider: p.id, keyName: p.keyName }; }
           if (!value?.skipped && step === "searchData") { if (Number(value.option) === 1) { const bad = keep(KEY_NAMES.search, value.key); if (bad) return send(400, { refused: bad }); } value = { option: Number(value.option) }; }
           if (step === "youtube" && !value?.skipped && value.handle) { const bad = keep(KEY_NAMES.youtube, value.key); if (bad) return send(400, { refused: bad }); const r = YT.saveSettings(id, { handle: value.handle }); if (!r.ok) return send(400, { refused: r.why }); s = store.read(id); }
-          else if (step === "start") { if (STEPS.filter((x) => x.id !== "start").some((x) => !s.setup[x.id])) return send(400, { refused: "Answer every step first." }); s.started = true; }
+          else if (step === "start") { const open = stepsFor(s.setup).filter((x) => x.id !== "start" && !s.setup[x.id]); if (open.length) return send(400, { refused: `Answer these first: ${open.map((x) => x.title).join(", ")}.` }); s.started = true; }
           else s.setup[step] = step === "youtube" ? { skipped: true } : value;
-          if (step === "product") s.product = { name: value.name, site: value.site };
+          const siteChanged = step === "product" && (value.site ?? null) !== (s.product?.site ?? null);
+          if (step === "product") s.product = { name: value.name, site: value.site ?? null };
           store.write(id, s);
+          /* RR-307 A1: a new or changed website is checked at once */
+          if (siteChanged && value.site) checkProduct(id).catch(() => {});
           return send(200, { ok: true });
         }
         if (req.method === "GET" && m[2] === "views") return send(200, {
-          reports: s.started ? ["Your first report appears after the first day's work."] : ["Finish the setup to start."],
-          preview: (s.preview ?? []).length ? s.preview.map((p) => `${p.title} — ${p.url}`) : ["No page or article yet — they appear here before they go live."],
+          /* RR-307 A1: no "first report after the first day" — the check is made at once, on the product's Overview */
+          reports: pread(id, "check.json") ? [`Last check: ${String(pread(id, "check.json").on).slice(0, 10)} — ${pread(id, "check.json").gauge} (${pread(id, "check.json").word}). Open the Overview for the details.`] : ["No check yet — press \"Check my product now\" on the Overview."],
+          preview: (pread(id, "pages.json")?.drafts ?? []).length ? pread(id, "pages.json").drafts.map((p) => `Draft: ${p.title} — ${p.url}`) : ["No page or article yet. They appear here as drafts when you press \"Create SEO pages\"."],
           approvals: (s.approvals ?? []).length ? s.approvals : [s.setup.publishMode?.mode === PUBLISH_MODE.REVIEW_FIRST ? "Nothing waits for your approval yet." : "Publishing is automatic after the gates — nothing waits for you."],
           monthly: ["The monthly report appears at the end of the first month: bad news first, then what was made and refreshed, the search data, and next month's topics."],
-          youtube: await YT.lines(id),
+          youtube: YT.quickLines(id),
         });
       }
+      /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete)$/.exec(u.pathname);
+        if (r) {
+          const id = decodeURIComponent(r[1]);
+          try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
+          const { s, site, sc, files, ctx } = contextOf(id);
+          if (r[2] === "overview" && req.method === "GET") {
+            const yt = ctx.youtubeConfirmed ? await YT.advice(id).catch(() => null) : null;
+            return send(200, { checking: checking.has(id), progress: progressOf(id), card: ctx.check, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null }, howTo: HOWTO });
+          }
+          /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
+          if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
+          if (r[2] === "fix" && req.method === "POST") { if (!site) return send(400, { refused: "Check your product first." }); return send(200, { items: fixForMe(json().id, site) }); }
+          if (r[2] === "delete" && req.method === "POST") { if (json().confirm !== true) return send(400, { refused: "Say yes to delete." }); const where = store.remove(id); return send(200, { ok: true, line: `${s.product?.name} was deleted. Its data was moved to ${where} — it can be put back from there.` }); }
+          if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`); if (g.ok) CONFIG.googlePendingProduct = id; return send(g.ok ? 200 : 400, g.ok ? g : { refused: g.why }); }
+          if (r[2] === "google/site" && req.method === "POST") { const q = await GOOGLE.queries(json().site); if (!q) return send(400, { refused: "Google did not give the searches for that site — press Connect again." }); pwrite(id, "search-console.json", q); return send(200, { ok: true, line: `Connected ✓ — ${q.queries.length} searches read from Google Search Console (${q.window}).` }); }
+          if (r[2] === "google/export" && req.method === "POST") { const x = importExport(json().files ?? [], { exportedOn: new Date().toISOString().slice(0, 10), source: `${s.product?.name} Search Console` }); if (!x.ok) return send(400, { refused: x.why }); pwrite(id, "search-console.json", x.data); return send(200, { ok: true, line: x.line }); }
+          if (r[2].startsWith("feature/") && req.method === "POST") {
+            const f = r[2].slice(8);
+            const need = menuFor(ctx).cards.find((c) => c.id === f)?.needs ?? [{ what: "a feature this version has" }];
+            if (need.length && f !== "keywords" && f !== "google") return send(200, { needs: need });
+            const yt = ctx.youtubeConfirmed ? await YT.advice(id).catch(() => null) : null;
+            const ytData = yt?.state === "READY" ? yt : null;
+            if (f === "check") { checkProduct(id).catch(() => {}); return send(200, { checking: true, progress: progressOf(id) }); }
+            if (f === "seo-check") return send(200, { result: seoCheck(site, ctx.check) });
+            if (f === "aeo") return send(200, { result: aeoCheck(site) });
+            if (f === "geo") return send(200, { result: geoCheck(site) });
+            if (f === "links") return send(200, { result: linksCheck(site) });
+            if (f === "languages") return send(200, { result: languagesCheck(site, s.setup?.languages?.codes ?? []) });
+            if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }) });
+            if (f === "youtube") return send(200, { open: "youtube" });
+            if (f === "google") return send(200, { open: "google" });
+            if (f === "seo-pages" || f === "articles") {
+              const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString() });
+              pwrite(id, "pages.json", pages);
+              if (f === "seo-pages") return send(200, { pages: { ...pages, drafts: pages.drafts.map(({ html, ...d }) => d) } });
+              const made = pread(id, "articles.json", []);
+              const a = articleOfDay({ pages, earlier: made.map((x) => x.url), day: new Date().toISOString().slice(0, 10) });
+              if (a.url) pwrite(id, "articles.json", [...made, { url: a.url, title: a.title, day: a.day }]);
+              return send(200, { article: a.url ? { ...a, html: undefined, publishMode: s.setup?.publishMode?.mode ?? null } : a });
+            }
+            if (f === "social") { const p = pread(id, "pages.json"); const d = p?.drafts?.[0]; return send(200, { social: socialFor(d, p?.plan?.find((x) => x.kind === "NEW" && d?.title === x.question) ?? p?.plan?.find((x) => x.kind === "NEW")) }); }
+            if (f === "monthly") { const rep = monthReport({ product: s.product?.name, month: new Date().toISOString().slice(0, 7), drafts: pread(id, "pages.json")?.drafts ?? [], searchRecord: sc?.record ?? null, youtube: ytData ? { connected: true, lines: ytData.report } : null }); return send(200, { report: { lines: rep.lines, attention: rep.attention } }); }
+            return send(404, { refused: "not a feature of this version" });
+          }
+        } }
+      /* a draft page, opened in the app to read (never published) */
+      { const r = /^\/api\/products\/([^/]+)\/draft$/.exec(u.pathname);
+        if (r && req.method === "GET") { const id = decodeURIComponent(r[1]); try { store.read(id); } catch (e) { return send(400, { refused: e.message }); } const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, d.html, "text/html; charset=utf-8") : send(404, { refused: "no such draft" }); } }
+      /* RR-307 E1: Google sends the browser back here after the client signed in — the access is kept, then the site is picked in the app */
+      if (req.method === "GET" && u.pathname === "/oauth/google") {
+        const r = await GOOGLE.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
+        const pid = CONFIG.googlePendingProduct ?? "";
+        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${r.ok ? "Signed in to Google ✓" : "Not connected"}</h2><p>${r.ok ? "Go back to AlmiVisibility and pick your site." : String(r.why).replace(/</g, "&lt;")}</p><p><a href="/#google=${encodeURIComponent(pid)}">Back to AlmiVisibility</a></p></body>`, "text/html; charset=utf-8");
+      }
+      if (req.method === "GET" && u.pathname === "/api/google/sites") { const sites = await GOOGLE.sites(); return send(sites ? 200 : 400, sites ? { sites } : { refused: "Not signed in to Google — press Connect." }); }
+      if (req.method === "POST" && u.pathname === "/api/google/client") { const v = json(); if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(String(v.clientId ?? "").trim())) return send(400, { refused: "That is not a Google sign-in client id (it ends with .apps.googleusercontent.com)." }); const k = KEYS.set("GOOGLE_CLIENT_SECRET", v.secret); if (!k.ok) return send(400, { refused: k.why }); CONFIG.googleClientId = String(v.clientId).trim(); saveConfig(); return send(200, { ok: true, status: GOOGLE.status() }); }
+      if (req.method === "POST" && u.pathname === "/api/google/signout") { GOOGLE.signOut(); return send(200, { ok: true }); }
+      if (req.method === "GET" && u.pathname === "/api/choices") return send(200, CHOICES);
+      /* RR-307 G1: the home screen asks too — the cards in general (a product is picked first) */
+      if (req.method === "GET" && u.pathname === "/api/menu") return send(200, menuFor({ hasSite: false, siteRead: null, youtubeConfirmed: false, youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: false, files: false, drafts: false, check: null, aiKey: false }));
+      /* RR-307 D6: the first-run tour, shown once until closed */
+      if (req.method === "GET" && u.pathname === "/api/tour") return send(200, { show: CONFIG.tourSeen !== true });
+      if (req.method === "POST" && u.pathname === "/api/tour") { CONFIG.tourSeen = true; saveConfig(); return send(200, { ok: true }); }
       /* RR-303 A: the licence key from a purchase — saved, never echoed */
       if (req.method === "POST" && u.pathname === "/api/account") {
         const { licenceKey } = json();
@@ -173,7 +308,8 @@ const server = createServer((req, res) => {
             if (!y[2] && req.method === "GET") return send(200, { ...YT.settings(yid), pilots: PILOT_CHANNELS });
             if (!y[2] && req.method === "POST") { const r = YT.saveSettings(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "lookup" && req.method === "POST") return send(200, await YT.lookup(yid, json().handle));
-            if (y[2] === "confirm" && req.method === "POST") { const r = await YT.confirm(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            /* RR-307 (22 Oct): a channel just confirmed is checked at once — the score card never keeps "confirm your channel first" */
+            if (y[2] === "confirm" && req.method === "POST") { const r = await YT.confirm(yid, json()); if (r.ok) (checking.has(yid) ? checking.get(yid).catch(() => {}).then(() => checkProduct(yid)) : checkProduct(yid)).catch(() => {}); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "research" && req.method === "POST") { const r = await YT.research(yid); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "advice" && req.method === "GET") return send(200, await YT.advice(yid));
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }

@@ -131,7 +131,9 @@ test("C · FIRST RUN: seven steps, one at a time; the AI connection takes a key 
   for (const v of ["AIzaSyFakeLookingValue123", "my key"]) assert.match(checkStep("youtube", { handle: "@x-channel", keyName: v }), /NAME of the variable/);
   assert.match(checkStep("youtube", { handle: "https://youtube.com/@x" }), /@handle/);
   assert.equal(checkStep("product", { name: "Widgetry Prep", site: "https://widgetry.example", what: "a test project" }), null);
-  assert.ok(checkStep("product", { name: "x", site: "widgetry.example", what: "y" }));
+  /* RR-305 B1 (owner decision, 21 Oct 2026): an address typed without https:// is ACCEPTED (https:// is added); not-an-address is still refused */
+  assert.equal(checkStep("product", { name: "x", site: "widgetry.example", what: "y" }), null);
+  for (const site of ["widgetry", "not a site", "ftp://widgetry.example", "javascript:alert(1)", ""]) assert.ok(checkStep("product", { name: "x", site, what: "y" }), site);
   assert.equal(checkStep("searchData", { option: 2 }), null);
   assert.equal(checkStep("languages", { codes: ["en", "ur"] }), null);
   assert.ok(checkStep("articlesPerDay", { perDay: -1 }));

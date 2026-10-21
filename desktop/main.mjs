@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwnerLicenceText, isOwnerLicence, verifyLicence } from "./licence.mjs";
 import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
-import { STEPS, checkStep } from "./setup.mjs";
+import { STEPS, checkStep, webAddress } from "./setup.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
@@ -97,7 +97,9 @@ const server = createServer((req, res) => {
       }
       if (req.method === "POST" && u.pathname === "/api/company") {
         const c = json();
-        if (!c.name?.trim() || !/^https?:\/\/[^\s]+$/.test(c.site ?? "")) return send(400, { refused: "Give your company's name and its main website (https://…)." });
+        /* RR-305 B1: "www.almiworld.com" and "almiworld.com" are accepted; https:// is added */
+        c.site = webAddress(c.site);
+        if (!c.name?.trim() || !c.site) return send(400, { refused: "Give your company's name and its main website (for example almiworld.com)." });
         let logoFile = store.company()?.logoFile ?? null;
         if (typeof c.logoPng === "string" && c.logoPng.startsWith("data:image/png;base64,")) { logoFile = "company-logo.png"; writeFileSync(join(DATA, logoFile), Buffer.from(c.logoPng.slice(22), "base64")); }
         store.setCompany({ name: c.name.trim(), site: c.site.trim(), logoFile });
@@ -109,7 +111,8 @@ const server = createServer((req, res) => {
         const may = mayAddProduct(st, count);
         if (!may.ok) return send(403, { refused: limitLine(st, count), licence: st.line });
         const p = json();
-        if (!p.name?.trim() || !/^https?:\/\/[^\s]+$/.test(p.site ?? "")) return send(400, { refused: "Give the product's name and its own address (https://…)." });
+        p.site = webAddress(p.site);
+        if (!p.name?.trim() || !p.site) return send(400, { refused: "Give the product's name and its own address (for example shop.almiworld.com)." });
         return send(200, { ok: true, product: productCard(store.create({ name: p.name.trim(), site: p.site.trim() })) });
       }
       /* one product's own work: only through its own id, only in its own folder */
@@ -123,6 +126,7 @@ const server = createServer((req, res) => {
           const st = await licenceNow();
           if (!st.mayStartNewWork) return send(403, { refused: st.line });
           const { id: step, value } = json();
+          if (step === "product" && value && webAddress(value.site)) value.site = webAddress(value.site);
           const why = checkStep(step, value);
           if (why) return send(400, { refused: why });
           if (step === "start") { if (STEPS.filter((x) => x.id !== "start").some((x) => !s.setup[x.id])) return send(400, { refused: "Answer every step first." }); s.started = true; }

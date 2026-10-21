@@ -26,8 +26,8 @@ const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 /** Build the handler. `dataDir` holds the LOCAL store (local runs only); `setupFile` is a local Setup the Download button serves. */
 export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest } = {}) {
   const store = siteStore({ env, localDir: dataDir });
-  const limiter = dailyLimiter();
-  const admin = adminSessions({ env });
+  const limiter = dailyLimiter({ store });
+  const admin = adminSessions({ env, store });
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png"));
   const ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const localSetup = () => Boolean(setupFile && existsSync(setupFile));
@@ -113,7 +113,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
         if (!pre.ok) return send(400, page({ error: pre.why, values }));
         const t = await testableUrl(f.url);
         if (!t.ok) return send(400, page({ error: t.why, values }));
-        const take = limiter.take(who(req));
+        const take = await limiter.take(who(req));
         if (!take.ok) return send(429, page({ error: take.why, values }));
         const result = await freeTest({ url: t.url });
         await store.addTest(testRecord(result));
@@ -131,7 +131,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
       }
       /* the private admin */
       const token = cookie(req, "av_admin");
-      const me = admin.who(token);
+      const me = await admin.who(token);
       if (u.pathname === "/admin" && req.method === "GET") {
         if (!me) return send(200, P.adminLogin(env[KEY_NAMES.adminHash] ? null : "The admin page is off: no admin password is configured."), undefined, PRIVATE);
         const [tests, leads] = [await store.listTests(), await store.listLeads()];
@@ -139,12 +139,12 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
       }
       if (u.pathname === "/admin/login" && req.method === "POST") {
         const f = formOf(body, req.headers["content-type"]);
-        const r = admin.login(f.email, f.password, env[KEY_NAMES.adminHash], who(req));
+        const r = await admin.login(f.email, f.password, env[KEY_NAMES.adminHash], who(req));
         if (!r.ok) return send(401, P.adminLogin(r.why), undefined, PRIVATE);
         const secure = env.VERCEL || (req.headers["x-forwarded-proto"] ?? "") === "https" ? "; Secure" : "";
         return send(303, "", "text/plain", { location: "/admin", "set-cookie": `av_admin=${r.token}; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=28800${secure}`, ...PRIVATE });
       }
-      if (u.pathname === "/admin/logout" && req.method === "POST") { admin.logout(token); return send(303, "", "text/plain", { location: "/admin", "set-cookie": "av_admin=; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=0", ...PRIVATE }); }
+      if (u.pathname === "/admin/logout" && req.method === "POST") { await admin.logout(token); return send(303, "", "text/plain", { location: "/admin", "set-cookie": "av_admin=; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=0", ...PRIVATE }); }
       /* RR-304: the owner licence — registered by pasting its text (verified with the site's own signing key), revoked from Licences */
       if (req.method === "POST" && (u.pathname === "/admin/licences/owner" || u.pathname === "/admin/licences/revoke")) {
         if (!me) return send(303, "", "text/plain", { location: "/admin", ...PRIVATE });

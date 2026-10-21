@@ -8,7 +8,8 @@
  *     a private, local or link-local address is refused (the test can never be turned on a network it should not see).
  *   · THE RESULT shows what was measured and what was NOT MEASURED (never as zero), and promises no ranking or citation.
  */
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
+import { memoryCounters } from "./leads.mjs";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { createRobotsCache } from "../src/crawl/robots.mjs";
@@ -41,13 +42,18 @@ export async function testableUrl(input, { resolve = (h) => lookup(h, { all: tru
   return { ok: true, url: u.href };
 }
 
-/** The daily limit: a person is a salted hash of their address for TODAY only; the salt is new each start, so nothing links days. */
-export function dailyLimiter({ limit = LIMITS.testsPerPersonPerDay, now = () => Date.now() } = {}) {
-  const salt = randomBytes(16);
-  const counts = new Map();
-  const key = (who) => `${new Date(now()).toISOString().slice(0, 10)}:${createHash("sha256").update(salt).update(String(who)).digest("hex")}`;
+/**
+ * The daily limit: a person is a hash of their address with TODAY's random salt, which the store keeps for today only (older salts are
+ * deleted), so nothing links days. RR-305 B3: counted in the store — every Vercel instance counts the same person once.
+ */
+export function dailyLimiter({ limit = LIMITS.testsPerPersonPerDay, now = () => Date.now(), store = memoryCounters() } = {}) {
   return Object.freeze({
-    take(who) { const k = key(who); const n = counts.get(k) ?? 0; if (n >= limit) return { ok: false, left: 0, why: `The free test can be run ${limit} times a day. Please come back tomorrow.` }; counts.set(k, n + 1); return { ok: true, left: limit - n - 1 }; },
+    async take(who) {
+      const day = new Date(now()).toISOString().slice(0, 10);
+      const k = `${day}:${createHash("sha256").update(await store.daySalt(day)).update(String(who)).digest("hex")}`;
+      const r = await store.limitTake(k, limit, now());
+      return r.ok ? { ok: true, left: limit - r.used } : { ok: false, left: 0, why: `The free test can be run ${limit} times a day. Please come back tomorrow.` };
+    },
   });
 }
 

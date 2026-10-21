@@ -14,10 +14,22 @@ export const STEPS = Object.freeze([
   { n: 8, id: "start", title: "Start", ask: "Check your answers and start." },
 ]);
 
+/**
+ * RR-305 B1 · a website as people type it: "www.almiworld.com" or "almiworld.com" gets https:// added; a full http(s) address is kept as
+ * typed. Null when it is not a web address (spaces, no dotted name when typed without https://).
+ */
+export function webAddress(input) {
+  const t = String(input ?? "").trim();
+  if (!t || /\s/.test(t)) return null;
+  if (/^https?:\/\/[^\s]+$/i.test(t)) return t;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(t)) return null;
+  try { const u = new URL(`https://${t}`); return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(u.hostname) ? `https://${t}` : null; } catch { return null; }
+}
+
 /** Validate one setup answer — plain words when it is refused. */
 export function checkStep(id, v) {
   switch (id) {
-    case "product": return v && v.name?.trim() && /^https?:\/\/[^\s]+$/.test(v.site ?? "") && v.what?.trim() ? null : "Give the product's name, its website (https://…) and what it does.";
+    case "product": return v && v.name?.trim() && webAddress(v.site) && v.what?.trim() ? null : "Give the product's name, its website (for example almiworld.com) and what it does.";
     case "searchData": return [1, 2, 3].includes(Number(v?.option)) ? null : "Choose option 1, 2 or 3.";
     case "languages": { const c = chooseLanguages(v?.codes ?? []); return c.valid ? null : c.faults.join("; "); }
     case "articlesPerDay": { const s = articleSettings({ articlesPerDay: Number(v?.perDay) }); return s.valid ? null : s.faults.join("; "); }

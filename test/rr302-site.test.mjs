@@ -71,19 +71,20 @@ test("LIKE THE FAMILY · the family strip (all 23 products, the package's order)
   for (const k of ["privacy", "terms"]) assert.match(all[k], /DRAFT for AlmiWorld's review — not legal advice/);
 });
 
-test("ADMIN · LIKE ALMIWORLD PRODUCTS: an allowed email AND its password; one answer for either being wrong; failed logins limited; daily counts; a CSV a spreadsheet cannot run", () => {
+test("ADMIN · LIKE ALMIWORLD PRODUCTS: an allowed email AND its password; one answer for either being wrong; failed logins limited; daily counts; a CSV a spreadsheet cannot run", async () => {
   const env = { ADMIN_EMAILS: "Second@Example.com, third@example.com" };
   assert.deepEqual([isAdmin(FOUNDER_EMAIL, {}), isAdmin("second@example.com", env), isAdmin("someone@example.com", env), isAdmin("", env)], [true, true, false, false]);
   const h = hashPassword("a-test-password-only");
+  /* RR-305 B3: the sessions are kept in the store, so every call is awaited */
   const s = adminSessions({ env });
-  assert.match(s.login(FOUNDER_EMAIL, "x", null, "w").why, /admin page is off/);
-  assert.equal(s.login("someone@example.com", "a-test-password-only", h, "w").why, "Wrong email or password.", "a password alone opened the admin");
-  assert.equal(s.login(FOUNDER_EMAIL, "wrong", h, "w2").why, "Wrong email or password.");
-  const ok = s.login("second@example.com", "a-test-password-only", h, "w3");
-  assert.equal(s.who(ok.token), "second@example.com");
-  s.logout(ok.token); assert.equal(s.who(ok.token), null);
-  for (let i = 0; i < 5; i++) s.login(FOUNDER_EMAIL, "wrong", h, "attacker");
-  assert.match(s.login(FOUNDER_EMAIL, "a-test-password-only", h, "attacker").why, /Too many tries/);
+  assert.match((await s.login(FOUNDER_EMAIL, "x", null, "w")).why, /admin page is off/);
+  assert.equal((await s.login("someone@example.com", "a-test-password-only", h, "w")).why, "Wrong email or password.", "a password alone opened the admin");
+  assert.equal((await s.login(FOUNDER_EMAIL, "wrong", h, "w2")).why, "Wrong email or password.");
+  const ok = await s.login("second@example.com", "a-test-password-only", h, "w3");
+  assert.equal(await s.who(ok.token), "second@example.com");
+  await s.logout(ok.token); assert.equal(await s.who(ok.token), null);
+  for (let i = 0; i < 5; i++) await s.login(FOUNDER_EMAIL, "wrong", h, "attacker");
+  assert.match((await s.login(FOUNDER_EMAIL, "a-test-password-only", h, "attacker")).why, /Too many tries/);
   const leads = [{ email: "a@x.co", testedUrl: "https://x.example/", at: "2026-10-20T01:00:00Z", marketing: true }, { email: "=cmd|' /C calc'!A0", testedUrl: "https://y.example/", at: "2026-10-19T01:00:00Z", marketing: false }];
   const tests = [{ at: "2026-10-20T01:00:00Z" }, { at: "2026-10-20T02:00:00Z" }, { at: "2026-10-19T03:00:00Z" }];
   assert.deepEqual(dailyCounts(tests, leads), [{ day: "2026-10-20", tests: 2, leads: 1, marketingYes: 1 }, { day: "2026-10-19", tests: 1, leads: 1, marketingYes: 0 }]);

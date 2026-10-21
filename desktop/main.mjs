@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdir
 import { PILOT_CHANNELS, YOUTUBE_RAW_DAYS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine } from "./licence.mjs";
+import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwnerLicenceText, isOwnerLicence, verifyLicence } from "./licence.mjs";
 import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
 import { STEPS, checkStep } from "./setup.mjs";
@@ -47,7 +47,7 @@ export const LICENCE_KEY = /^av_[A-Za-z0-9_-]{20,64}$/;
 async function licenceNow() {
   let check = { reached: false };
   try { const r = await fetch(new URL(`v1/licence?account=${encodeURIComponent(CONFIG.account ?? "unset")}`, LICENCE_URL), { signal: AbortSignal.timeout(4000) }); if (r.ok) check = { reached: true, signed: await r.json() }; } catch {}
-  const st = licenceState({ now: Date.now(), check, last: licenceLast(), publicKeyPem: keyPem("licence-public.pem") });
+  const st = licenceState({ now: Date.now(), check, last: licenceLast(), publicKeyPem: keyPem("licence-public.pem"), owner: CONFIG.owner ?? null });
   if (st.last) saveLicence(st.last);
   return st;
 }
@@ -142,6 +142,14 @@ const server = createServer((req, res) => {
       /* RR-303 A: the licence key from a purchase — saved, never echoed */
       if (req.method === "POST" && u.pathname === "/api/account") {
         const { licenceKey } = json();
+        /* RR-304: the owner licence (avo_…) — kept only when THIS copy's public key verifies it */
+        if (String(licenceKey ?? "").trim().startsWith("avo_")) {
+          const signed = readOwnerLicenceText(licenceKey);
+          if (!signed || !isOwnerLicence(signed.licence) || !verifyLicence(signed, keyPem("licence-public.pem"))) return send(400, { refused: "This owner licence could not be verified by this copy of Visibility — it was made with a different signing key, or the text is incomplete." });
+          CONFIG.owner = signed; CONFIG.account = signed.licence.account; saveConfig();
+          const st = await licenceNow();
+          return send(200, { ok: true, line: st.line });
+        }
         if (!LICENCE_KEY.test(String(licenceKey ?? "").trim())) return send(400, { refused: "That is not a licence key. It starts with av_ — copy it from the page shown after you bought your plan." });
         CONFIG.account = String(licenceKey).trim(); saveConfig();
         const st = await licenceNow();

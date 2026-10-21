@@ -76,6 +76,8 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
     await q("ALTER TABLE visibility_leads ADD COLUMN IF NOT EXISTS unsub_token text, ADD COLUMN IF NOT EXISTS unsubscribed boolean NOT NULL DEFAULT false, ADD COLUMN IF NOT EXISTS report_emailed boolean");
     await q("CREATE TABLE IF NOT EXISTS visibility_licences (account text PRIMARY KEY, plan text NOT NULL, status text NOT NULL, period_end timestamptz NOT NULL, subscription text)");
     await q("CREATE TABLE IF NOT EXISTS visibility_checkouts (session_id text PRIMARY KEY, licence_key text NOT NULL, plan text NOT NULL, at timestamptz NOT NULL)");
+    /* RR-304: the owner licence — its kind and licensee; it has no expiry */
+    await q("ALTER TABLE visibility_licences ADD COLUMN IF NOT EXISTS kind text, ADD COLUMN IF NOT EXISTS licensee text, ALTER COLUMN period_end DROP NOT NULL");
   })());
   return Object.freeze({
     kind: "NEON",
@@ -85,8 +87,8 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
     async listTests() { await init(); return q("SELECT site, score, pages, at FROM visibility_free_tests ORDER BY at DESC LIMIT 5000"); },
     async unsubscribe(token) { await init(); if (!token) return false; return (await q("UPDATE visibility_leads SET marketing = false, unsubscribed = true WHERE unsub_token = $1 RETURNING email", [token])).length > 0; },
     async markEmailed(email, testedUrl, sent) { await init(); await q("UPDATE visibility_leads SET report_emailed = $3 WHERE email = $1 AND tested_url = $2", [email, testedUrl, sent]); },
-    async accounts() { await init(); return Object.fromEntries((await q("SELECT account, plan, status, period_end AS \"periodEnd\", subscription FROM visibility_licences")).map((r) => [r.account, { plan: r.plan, status: r.status, periodEnd: new Date(r.periodEnd).toISOString(), subscription: r.subscription }])); },
-    async saveAccounts(acc) { await init(); for (const [k, v] of Object.entries(acc)) await q("INSERT INTO visibility_licences (account, plan, status, period_end, subscription) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (account) DO UPDATE SET plan = $2, status = $3, period_end = $4, subscription = $5", [k, v.plan, v.status, v.periodEnd, v.subscription]); },
+    async accounts() { await init(); return Object.fromEntries((await q("SELECT account, plan, status, period_end AS \"periodEnd\", subscription, kind, licensee FROM visibility_licences")).map((r) => [r.account, { plan: r.plan, status: r.status, periodEnd: r.periodEnd === null ? null : new Date(r.periodEnd).toISOString(), subscription: r.subscription, ...(r.kind ? { kind: r.kind, licensee: r.licensee } : {}) }])); },
+    async saveAccounts(acc) { await init(); for (const [k, v] of Object.entries(acc)) await q("INSERT INTO visibility_licences (account, plan, status, period_end, subscription, kind, licensee) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (account) DO UPDATE SET plan = $2, status = $3, period_end = $4, subscription = $5, kind = $6, licensee = $7", [k, v.plan, v.status, v.periodEnd, v.subscription, v.kind ?? null, v.licensee ?? null]); },
     async addCheckout(c) { await init(); await q("INSERT INTO visibility_checkouts (session_id, licence_key, plan, at) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING", [c.sessionId, c.licenceKey, c.plan, c.at]); },
     async checkout(sessionId) { await init(); const r = await q("SELECT session_id AS \"sessionId\", licence_key AS \"licenceKey\", plan, at FROM visibility_checkouts WHERE session_id = $1", [sessionId]); return r[0] ?? null; },
   });

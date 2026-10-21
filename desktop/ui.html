@@ -63,7 +63,7 @@ async function home() {
 }
 /* RR-303 A: the licence key from the page shown after a purchase — saved in the app; never shown back */
 function planScreen() {
-  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_).</p>
+  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_) — or the owner licence (it starts with avo_).</p>
   <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div><p class="meta" id="ok"></p></div>`;
   $("#home").onclick = home;
   $("#save").onclick = async () => { const r = await post("/api/account", { licenceKey: $("#k1").value }); if (r.refused) return ($("#err").textContent = r.refused); $("#k1").value = ""; $("#ok").textContent = r.line; };

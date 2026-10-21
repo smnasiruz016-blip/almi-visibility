@@ -9,11 +9,11 @@
  *     environment it answers DEFERRED and names the missing key — never asks for it, never prints it.
  * Keys are referred to by NAME only: no value is printed, logged or hashed.
  */
-import { createHmac, timingSafeEqual, sign, createPrivateKey } from "node:crypto";
+import { createHmac, timingSafeEqual, sign, createPrivateKey, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { PLANS, licenceBytes } from "../../desktop/licence.mjs";
+import { PLANS, licenceBytes, OWNER } from "../../desktop/licence.mjs";
 
 export const KEY_NAMES = Object.freeze({ webhookSecret: "STRIPE_WEBHOOK_SECRET", stripeSecret: "STRIPE_SECRET_KEY", signingKeyFile: "LICENCE_SIGNING_KEY_FILE" });
 const TOLERANCE_S = 300;
@@ -69,12 +69,13 @@ export function applyEvent(accounts, event, { env = process.env } = {}) {
     const meta = o.subscription_details?.metadata ?? o.parent?.subscription_details?.metadata ?? {};
     const sub = typeof o.subscription === "string" ? o.subscription : o.parent?.subscription_details?.subscription ?? null;
     const account = meta.almiworld_account ?? bySubscription(sub);
-    if (!account || !accounts[account]) return null;
+    if (!account || !accounts[account] || accounts[account].kind === OWNER.kind) return null;
     accounts[account] = { ...accounts[account], status: "PAST_DUE" };
     return account;
   }
   const account = o.metadata?.almiworld_account ?? o.client_reference_id ?? null;
-  if (!account) return null;
+  /* RR-304: no Stripe event ever changes the owner licence */
+  if (!account || accounts[account]?.kind === OWNER.kind) return null;
   if (event.type === "checkout.session.completed") {
     /* the link only: the session names the account and its subscription; the licence turns ACTIVE on the subscription's own event */
     const plan = isPlan(o.metadata?.plan) ? o.metadata.plan : null;
@@ -94,9 +95,25 @@ export function applyEvent(accounts, event, { env = process.env } = {}) {
 /** The signed licence of an account. */
 export function signedLicence({ accounts, account, privateKeyPem, now }) {
   const a = accounts[account];
+  /* RR-304: an OWNER licence answers as itself — unlimited, no expiry — ACTIVE, or REVOKED from the admin */
+  if (a?.kind === OWNER.kind) {
+    const licence = { account, kind: OWNER.kind, licensee: a.licensee, plan: OWNER.plan, status: a.status === "REVOKED" ? "REVOKED" : "ACTIVE", periodEnd: null, issuedAt: new Date(now).toISOString() };
+    return { licence, signature: sign(null, licenceBytes(licence), createPrivateKey(privateKeyPem)).toString("base64") };
+  }
   const licence = a ? { account, plan: a.plan, status: a.status, periodEnd: a.periodEnd, issuedAt: new Date(now).toISOString() } : { account, plan: null, status: "NO_PLAN", periodEnd: new Date(0).toISOString(), issuedAt: new Date(now).toISOString() };
   return { licence, signature: sign(null, licenceBytes(licence), createPrivateKey(privateKeyPem)).toString("base64") };
 }
+
+/**
+ * RR-304 · make the OWNER licence, signed with the licence signing key: a new random licence id (av_owner_…), licensee "AlmiWorld (owner)",
+ * the unlimited plan, ACTIVE, no expiry. Returns the signed licence; ownerLicenceText() turns it into the text the owner pastes.
+ */
+export function makeOwnerLicence({ privateKeyPem, now }) {
+  const licence = { account: `av_owner_${randomBytes(18).toString("base64url")}`, kind: OWNER.kind, licensee: OWNER.licensee, plan: OWNER.plan, status: "ACTIVE", periodEnd: null, issuedAt: new Date(now).toISOString() };
+  return { licence, signature: sign(null, licenceBytes(licence), createPrivateKey(privateKeyPem)).toString("base64") };
+}
+/** The site's record of a verified owner licence (what the admin lists and can revoke). */
+export const ownerRecord = (licence) => ({ kind: OWNER.kind, licensee: licence.licensee, plan: OWNER.plan, status: "ACTIVE", periodEnd: null, subscription: null });
 
 /** The HTTP service, bound to 127.0.0.1 only. `env` is read by key NAME; `dataDir` holds its accounts file. */
 export function licenceService({ env = process.env, dataDir, now = () => Date.now() }) {

@@ -2,7 +2,7 @@
  * 🔴 RR-308 B · A CLEAR YOUTUBE PLAN WITH OPTIONS (owner, 21 Oct 2026: "Koi wazeh mashwara nazar nahien aa raha, options nahien de raha").
  * PURE: it reads what it is handed and fetches nothing.
  *   · THE YOUTUBE SCORE (owner's answer 2, 22 Oct 2026 — updates the 12 Oct "no derived score" rule ONLY in this form): its own /100 = the
- *     share of plain countable checks passed, each check shown with its count ("Has a description: 1,402 of 1,437"). No guess about views,
+ *     share of plain countable checks passed, each check shown with its count ("Every video has a description: 1,402 of 1,437" — RR-310 B5). No guess about views,
  *     reach or earnings.
  *   · "DO THESE FIRST THIS WEEK": 3–5 concrete steps for THIS channel, from the niche research and its own videos.
  *   · PRIORITY: the most-viewed and the newest videos first (20), the rest behind "Show more" — never a wall of 1,437.
@@ -36,12 +36,12 @@ export function youtubeScore(videos, { productUrl = null, productIsChannel = fal
   const withTarget = videos.map((v) => [v, linkTargetFor(v, { productUrl, productIsChannel, relatedPages })]).filter(([, t]) => t);
   const has = (s, u) => String(s ?? "").toLowerCase().includes(String(u).toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, ""));
   const checks = [
-    { id: "description", line: "Has a description", of: videos.length, passed: videos.filter((v) => String(v.description ?? "").trim()).length },
-    { id: "title", line: `Title has words and fits YouTube's ${TITLE_MAX} characters`, of: videos.length, passed: videos.filter((v) => tokens(v.title).length > 0 && String(v.title).length <= TITLE_MAX).length },
-    { id: "generic", line: "No empty hashtags (#viral, #fyp, #trending …)", of: videos.length, passed: videos.filter((v) => !hashtagsIn(`${v.title} ${v.description ?? ""}`).some((h) => GENERIC_HASHTAGS.has(h.toLowerCase()))).length },
-    { id: "hashtag-count", line: `${RULES.hashtags.ignoredAbove} hashtags or fewer (above that YouTube ignores all of them)`, of: videos.length, passed: videos.filter((v) => hashtagsIn(`${v.title} ${v.description ?? ""}`).length <= RULES.hashtags.ignoredAbove).length },
-    { id: "chapters", line: "Long videos have chapters", of: long.length, passed: long.filter((v) => /(^|\n)\s*0?0:00\b/.test(String(v.description ?? ""))).length },
-    { id: "link", line: "Links to your product's page", of: withTarget.length, passed: withTarget.filter(([v, t]) => has(v.description, t.url)).length },
+    { id: "description", line: "Every video has a description", of: videos.length, passed: videos.filter((v) => String(v.description ?? "").trim()).length },
+    { id: "title", line: `Every title has words and fits YouTube's ${TITLE_MAX} characters`, of: videos.length, passed: videos.filter((v) => tokens(v.title).length > 0 && String(v.title).length <= TITLE_MAX).length },
+    { id: "generic", line: "No video uses empty hashtags (#viral, #fyp, #trending …)", of: videos.length, passed: videos.filter((v) => !hashtagsIn(`${v.title} ${v.description ?? ""}`).some((h) => GENERIC_HASHTAGS.has(h.toLowerCase()))).length },
+    { id: "hashtag-count", line: `Every video has ${RULES.hashtags.ignoredAbove} hashtags or fewer (above that YouTube ignores all of them)`, of: videos.length, passed: videos.filter((v) => hashtagsIn(`${v.title} ${v.description ?? ""}`).length <= RULES.hashtags.ignoredAbove).length },
+    { id: "chapters", line: "Every long video has chapters", of: long.length, passed: long.filter((v) => /(^|\n)\s*0?0:00\b/.test(String(v.description ?? ""))).length },
+    { id: "link", line: "Every video about your product links to its page", of: withTarget.length, passed: withTarget.filter(([v, t]) => has(v.description, t.url)).length },
   ].filter((c) => c.of > 0);
   const of = checks.reduce((n, c) => n + c.of, 0), passed = checks.reduce((n, c) => n + c.passed, 0);
   const score = of ? Math.round((passed / of) * 100) : null;
@@ -64,7 +64,7 @@ export function priorityOrder(videos) {
 /* ── one video's own words: its title without hashtags, @names, the channel's own name, episode numbers and emoji ── */
 export function ownWords(v, channel = {}) {
   const name = String(channel.title ?? "").toLowerCase();
-  const clean = (s) => String(s ?? "").replace(/[#@][\p{L}\p{N}_.-]+/gu, " ").replace(/\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}]/gu, " ").replace(/\b(?:daily )?vlog\s*#?\d+\b|\bep(?:isode)?\.?\s*\d+\b|#\d+/gi, " ").replace(/\s+/g, " ").trim();
+  const clean = (s) => String(s ?? "").replace(/[#@]+[\p{L}\p{N}_.-]*/gu, " ") /* RR-310: "##shortsfeed" left a lone "#" */.replace(/\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}]/gu, " ").replace(/\b(?:daily )?vlog\s*#?\d+\b|\bep(?:isode)?\.?\s*\d+\b|#\d+/gi, " ").replace(/\s+/g, " ").trim();
   const parts = String(v.title ?? "").split(/\s*[|•]\s*|\s+[-–—]\s+/).map(clean).filter((p) => p && p.toLowerCase() !== name && tokens(p).length > 0);
   /* the video's own summary: a description line that is not a link, not the title again, not the channel's greeting used on every video */
   const tset = new Set(tokens(v.title));
@@ -167,7 +167,7 @@ export function optionsFor(v, ctx) {
     const thumbnail = [...new Set(pick.map((w) => w.toUpperCase()))].slice(0, 4).join(" ");
     return Object.freeze({ n: i + 1, type: o.type, title, description, hashtags, thumbnail, style: styleOf({ title }), basedOn: [o.from, ...basedOnCommon] });
   });
-  return Object.freeze({ videoId: v.videoId, title: v.title, kind, views: v.views, publishedAt: day(v.publishedAt), options,
+  return Object.freeze({ videoId: v.videoId, title: v.title, kind, views: v.views, publishedAt: day(v.publishedAt), options, firstLine: own.firstLine ?? null, link: target?.url ?? null,
     weak: !own.main && !f ? "This video's title and description say very little — the options use your channel's main topic. Check they fit before you use them." : null });
 }
 
@@ -192,16 +192,58 @@ export function doFirst({ videos, top, score, summary, ideas, persona = {} }) {
   return steps.slice(0, 5);
 }
 
+/**
+ * RR-310 A · EVERY PROBLEM WITH ITS READY TEXT: for each YouTube check that some videos fail, the most-viewed videos that fail it (up to 3),
+ * each with the text to paste — made by optionsFor from the video's own words and the research, never invented. Chapters: YouTube's official
+ * service gives a video's captions only to its owner signed in, so the chapter list is a template with clear blanks.
+ */
+export const CHAPTERS_FROM = "a chapter template with blanks — Visibility cannot read your video's transcript with your YouTube key (YouTube gives captions only to the channel's owner, signed in)";
+export function gapFixes(videos, ctx, opts = {}) {
+  const byViews = videos.slice().sort((a, b) => b.views - a.views);
+  const long = (v) => videoKind(v) === "LONG";
+  const tags = (v) => hashtagsIn(`${v.title} ${v.description ?? ""}`);
+  const fails = {
+    description: (v) => !String(v.description ?? "").trim(),
+    title: (v) => !(tokens(v.title).length > 0 && String(v.title).length <= TITLE_MAX),
+    generic: (v) => tags(v).some((h) => GENERIC_HASHTAGS.has(h.toLowerCase())),
+    "hashtag-count": (v) => tags(v).length > RULES.hashtags.ignoredAbove,
+    chapters: (v) => long(v) && !/(^|\n)\s*0?0:00\b/.test(String(v.description ?? "")),
+    link: (v) => { const t = linkTargetFor(v, opts); return Boolean(t) && !String(v.description ?? "").toLowerCase().includes(String(t.url).toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "")); },
+    /* a title that names no activity and no place (the "clearer title" step) — counted on the most-viewed and newest only */
+    clear: (v) => !placeIn(v.title) && !formatOf(v),
+  };
+  const out = {};
+  for (const [id, bad] of Object.entries(fails)) {
+    const pool = id === "clear" ? priorityOrder(videos).order.slice(0, TOP_N) : byViews;
+    const failing = pool.filter(bad);
+    if (!failing.length) continue;
+    out[id] = { count: failing.length, of: id === "clear" ? pool.length : id === "chapters" ? videos.filter(long).length : id === "link" ? videos.filter((v) => linkTargetFor(v, opts)).length : videos.length,
+      videos: failing.slice(0, 3).map((v) => {
+        const a = optionsFor(v, ctx), o = a.options[0];
+        const src = (what) => [what, ...(o?.basedOn ?? []).slice(1)].join(" · ");
+        const ready = !o ? [] : id === "description" ? [{ kind: "description", label: "Full description", text: o.description, source: src(o.basedOn[0]) }]
+          : id === "title" || id === "clear" ? a.options.map((x) => ({ kind: "title", label: `Title — ${x.type}`, text: x.title, source: src(x.basedOn[0]) }))
+          : id === "generic" || id === "hashtag-count" ? [{ kind: "hashtags", label: "3 hashtags instead", text: o.hashtags.join(" "), source: src("the place, what happens and who in this video") }]
+          : id === "chapters" ? [{ kind: "chapters", label: "Chapters", text: ["0:00 Intro", "?:?? …", "?:?? …"].join("\n"), source: CHAPTERS_FROM }]
+          : id === "link" ? [{ kind: "link", label: "Link line for the description", text: `More: ${a.link}`, source: "the page of your product this video is about (your Settings)" }] : [];
+        return { videoId: v.videoId, title: v.title, views: v.views, ready };
+      }) };
+  }
+  return out;
+}
+
 /** B5 · new video ideas: formats that do well in the niche that the channel has (almost) not covered, and viewers' questions. */
-export function ideasFor({ summary, videos, persona = {}, questions = [], max = 8 }) {
+export function ideasFor({ summary, videos, persona = {}, questions = [], max = 8, topic = null }) {
   const out = [];
   const place = persona.places?.[0] ?? null, who = persona.who ?? null;
   /* "not covered": at most 1 of the channel's own videos (or under 1% of them) says it in its own title or description */
   const few = Math.max(1, Math.floor(videos.length * 0.01));
   for (const f of summary?.formats ?? []) {
-    if (f.own > few || f.count < 2) continue;
+    /* RR-310: "does well" = its median views at least the niche's own median (an exam niche's "Cleaning" at 95 views is not a hit) */
+    if (f.own > few || f.count < 2 || (Number.isFinite(summary.medianAll) && (f.medianViews ?? 0) < summary.medianAll)) continue;
     const e = f.examples[0];
-    out.push({ kind: "FORMAT", title: fit(`${f.title}${place ? ` in ${place}` : ""}${who ? ` | ${who}` : ""}`, TITLE_MAX), why: `"${f.label}" is ${f.count} of the niche's top videos (median ${fmt(f.medianViews)} views${e ? `; e.g. "${fit(e.title, 60)}" by ${e.channel}, ${fmt(e.views)} views, ${e.publishedAt}` : ""}) — you have ${f.own === 0 ? "no such video" : `only ${f.own}`} yet. Source: ${summary.source}.` });
+    /* a bare format word ("Q&A") gets the niche's own topic when there is no place and no persona: "Q&A: IELTS Coaching" */
+    out.push({ kind: "FORMAT", title: fit(`${f.title}${place ? ` in ${place}` : ""}${who ? ` | ${who}` : ""}${!place && !who && topic ? `: ${titleCase(topic)}` : ""}`, TITLE_MAX), why: `"${f.label}" is ${f.count} of the niche's top videos (median ${fmt(f.medianViews)} views${e ? `; e.g. "${fit(e.title, 60)}" by ${e.channel}, ${fmt(e.views)} views, ${e.publishedAt}` : ""}) — you have ${f.own === 0 ? "no such video" : `only ${f.own}`} yet. Source: ${summary.source}.` });
   }
   for (const i of newVideoIdeas({ questions, videos, max })) out.push({ kind: "QUESTION", question: i.title, title: fit(i.title, TITLE_MAX), why: `A viewer asked it and none of your videos answers it yet — ${i.from}.` });
   return out.slice(0, max).map((o) => ({ ...o, title: properNames(o.title) })); // RR-309 B2: names keep their capitals

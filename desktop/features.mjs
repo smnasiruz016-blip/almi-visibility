@@ -7,7 +7,8 @@
  * Publishing ALWAYS follows the client's own choice: RR-308 D publishes a draft only through a connection the client made (desktop/publish.mjs),
  * after the five gates pass again — on "Approve & Publish", or by itself only when the client chose "publish automatically after the gates".
  */
-import { fixForMe, aiReadiness } from "./product-check.mjs";
+import { fixForMe, aiReadiness, FIXES } from "./product-check.mjs";
+import { readyFromFix } from "./action-plan.mjs";
 import { AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
 
@@ -23,7 +24,7 @@ export const FEATURES = Object.freeze([
   { id: "keywords", title: "Keywords and questions", does: "Shows every search phrase and question Visibility has found for this product, with where each came from.", youGet: "Your list of searches and questions, and which sources are still missing.", time: "Instant. Free.", needs: () => [] },
   { id: "articles", title: "Daily article", does: "Makes one article a day from the best next topic people search for.", youGet: "Today's article as a draft, answered from your own pages with sources.", time: "A minute a day. Free.", needs: (c) => [...(!c.hasSite ? [{ what: "your website", action: "settings" }] : []), ...(!c.searchConsole && !c.files && !c.youtubeConfirmed ? [{ what: "what people search", action: "google" }] : [])] },
   { id: "youtube", title: "YouTube advice", does: "Reads your channel and tells you how to make each video easier to find.", youGet: "Advice per video and for the channel, and new video ideas — each with its source.", time: "A minute. Free (uses your own YouTube key).", needs: (c) => [...(!c.youtubeKey ? [{ what: "your YouTube key", action: "youtube" }] : []), ...(!c.youtubeConfirmed ? [{ what: "your YouTube channel", action: "youtube" }] : [])] },
-  { id: "social", title: "Social posts", does: "Writes Facebook and LinkedIn posts from your article, using only its sourced facts.", youGet: "Posts ready to copy.", time: "Instant. Free.", needs: (c) => (!c.drafts ? [{ what: "an article or page draft (Create SEO pages first)", action: "seo-pages" }] : []) },
+  { id: "social", title: "Social posts", does: "Writes Facebook and LinkedIn posts from your article — or, for a YouTube channel, from your newest videos — using only their own words.", youGet: "Posts ready to copy.", time: "Instant. Free.", needs: (c) => (!c.drafts && !(c.noWebsite && c.youtubeConfirmed) ? [{ what: "an article or page draft (Create SEO pages first)", action: "seo-pages" }] : []) },
   { id: "links", title: "Links check", does: "Checks that the links on your site open.", youGet: "Every broken link, and the page it is on.", time: "Uses your last check. Free.", needs: (c) => (!c.siteRead ? [{ what: "a check of your site", action: "check" }] : []) },
   { id: "languages", title: "Languages", does: "Checks which languages your pages say they are in, and whether they point to each other.", youGet: "Your pages' languages against the languages you chose.", time: "Uses your last check. Free.", needs: (c) => (!c.siteRead ? [{ what: "a check of your site", action: "check" }] : []) },
   { id: "monthly", title: "Monthly report", does: "Puts the month together: what was made, your searches, your YouTube — bad news first.", youGet: "One report you can read or share.", time: "Instant. Free.", needs: (c) => (!c.check ? [{ what: "a check of your product", action: "check" }] : []) },
@@ -32,6 +33,8 @@ export const FEATURES = Object.freeze([
   { id: "google", title: "Connect Google Search Console", does: "Brings in the searches people really make before they find you.", youGet: "Your real searches and the pages they open — the base for new pages.", time: "2 minutes, once. Free.", needs: () => [] },
 ].map(Object.freeze));
 
+/* the cards that only work with a website */
+export const WEBSITE_ONLY = new Set(["seo-pages", "seo-check", "aeo", "geo", "articles", "links", "languages", "publish", "google"]);
 /** The cards for one product: each with its needs, and the top 3 recommended from its check. */
 export function menuFor(ctx) {
   const cards = FEATURES.map((f) => ({ id: f.id, title: f.title, does: f.does, youGet: f.youGet, time: f.time, needs: f.needs(ctx) }));
@@ -45,59 +48,96 @@ export function menuFor(ctx) {
   if ((ctx.searchConsole || ctx.files || ctx.youtubeConfirmed) && ctx.hasSite) rec.push("seo-pages");
   if (ctx.youtubeConfirmed) rec.push("youtube");
   if (area("Links")?.state === "WARN") rec.unshift("links");
+  /* RR-310 B3 + B4 (owner; replaces the RR-307 G4 "never hidden" rule for THIS case): a product with no website — the cards that need a
+   * website go into ONE closed section, "Have a website too? These open up"; "Check my site now" says "Check my channel now" */
+  if (ctx.noWebsite === true) {
+    if (ctx.youtubeConfirmed && !rec.includes("social")) rec.push("social");
+    const top = [...new Set(rec)].filter((id) => !WEBSITE_ONLY.has(id)).slice(0, 3);
+    const mine = cards.map((c) => (c.id === "check" ? { ...c, title: "Check my channel now", does: "Reads your YouTube channel and scores it — the share of plain checks your videos pass." } : c));
+    return { question: "What would you like to do now?", recommended: top, cards: mine.filter((c) => !WEBSITE_ONLY.has(c.id)).map((c) => ({ ...c, recommended: top.includes(c.id) })),
+      websiteOnly: { title: "Have a website too? These open up", cards: mine.filter((c) => WEBSITE_ONLY.has(c.id)).map((c) => ({ ...c, recommended: false })) } };
+  }
   const top = [...new Set(rec)].slice(0, 3);
   return { question: "What would you like to do now?", recommended: top, cards: cards.map((c) => ({ ...c, recommended: top.includes(c.id) })) };
 }
 
-/* ── the checks that read the last site read ── */
+/* ── the checks that read the last site read ──
+ * RR-310 A1 (owner): every finding that is not good is THREE parts — problem (the line, with its count), solution (plain steps) and ready
+ * (the text to paste, each with where it came from). A thing Visibility cannot write from the client's own words has no ready text, said. */
+const ready = (text, label, source, extra = {}) => ({ kind: extra.kind ?? "text", label, text, source, ...extra });
+const three = (l) => (l.ok === false ? { ...l, problem: l.line, solution: l.solution ?? l.how ?? "", ready: l.ready ?? [], note: l.note ?? (l.ready?.length ? null : "Nothing to paste for this one — the solution says what to do.") } : l);
+const firstSentences = (s, max = 60) => { const out = []; for (const x of String(s ?? "").split(/(?<=[.!?])\s+/)) { if ((out.join(" ") + " " + x).split(/\s+/).length > max) break; out.push(x); } return out.join(" ") || String(s ?? "").split(/\s+/).slice(0, max).join(" "); };
 export function seoCheck(site, card) {
-  const pages = site.pages;
+  const pages = site.pages, on = String(site.readOn).slice(0, 10);
+  const noindex = pages.filter((p) => p.noindex), noCanon = pages.filter((p) => !p.canonical);
   const lines = [
-    { ok: site.robots.found, line: site.robots.found ? "Your site has a robots file (it tells search engines what they may read)." : "Your site has no robots file — search engines read everything; that is fine, but you cannot steer them." },
-    { ok: site.sitemap.found, line: site.sitemap.found ? `Your sitemap lists ${plural(site.sitemap.urls, "address", "addresses")}.` : "No sitemap found — add one so search engines find every page." },
-    { ok: !pages.some((p) => p.noindex), line: pages.some((p) => p.noindex) ? `${plural(pages.filter((p) => p.noindex).length, "page")} tell search engines not to show them: ${pages.filter((p) => p.noindex).slice(0, 5).map((p) => p.url).join(", ")}` : "Every page read may be shown in search." },
-    { ok: pages.every((p) => p.canonical), line: pages.every((p) => p.canonical) ? "Every page says which address is its main one." : `${plural(pages.filter((p) => !p.canonical).length, "page")} do not say which address is the main one.` },
-    ...card.fixFirst.filter((f) => ["title", "meta-description", "one-h1", "https-only"].includes(f.id)).map((f) => ({ ok: false, line: f.line, how: f.how, fixForMe: f.fixForMe ? fixForMe(f.id, site) : [] })),
+    { ok: site.robots.found, line: site.robots.found ? "Your site has a robots file (it tells search engines what they may read)." : "Your site has no robots file — search engines read everything; that is fine, but you cannot steer them.",
+      solution: "Add a robots.txt file at the root of your site that allows search engines and names your sitemap.", ready: [ready(`User-agent: *\nAllow: /\n\nSitemap: ${site.origin}/sitemap.xml`, "robots.txt", "the robots standard and your site's own address", { kind: "file" })] },
+    { ok: site.sitemap.found, line: site.sitemap.found ? `Your sitemap lists ${plural(site.sitemap.urls, "address", "addresses")}.` : "No sitemap found — add one so search engines find every page.",
+      solution: "Put this file at /sitemap.xml on your site, then submit it in Google Search Console → Sitemaps.", ready: [ready(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.filter((p) => !p.noindex).map((p) => `  <url><loc>${p.url}</loc></url>`).join("\n")}\n</urlset>`, "sitemap.xml", `the ${plural(pages.length, "page")} Visibility read on your site, ${on}`, { kind: "file" })] },
+    { ok: !noindex.length, line: noindex.length ? `${noindex.length} of ${plural(pages.length, "page")} tell search engines not to show them: ${noindex.slice(0, 5).map((p) => p.url).join(", ")}` : "Every page read may be shown in search.",
+      solution: "Remove \"noindex\" from these pages if people should find them in search (your website builder's SEO setting for the page).", ready: noindex.length ? [ready(noindex.map((p) => p.url).join("\n"), "Pages marked noindex", `the check of ${on}`, { kind: "list" })] : [] },
+    { ok: !noCanon.length, line: noCanon.length ? `${noCanon.length} of ${plural(pages.length, "page")} do not say which address is the main one.` : "Every page says which address is its main one.",
+      solution: FIXES.canonical.how, ready: noCanon.slice(0, 5).map((p) => ready(`<link rel="canonical" href="${p.url}">`, "Canonical link (in the page's <head>)", "the page's own address", { kind: "code", for: p.url })) },
+    ...card.fixFirst.filter((f) => ["title", "meta-description", "one-h1", "https-only"].includes(f.id)).map((f) => ({ ok: false, line: f.line, how: f.how, fixForMe: f.fixForMe ? fixForMe(f.id, site) : [],
+      ready: f.fixForMe ? readyFromFix(fixForMe(f.id, site), f.id === "title" ? "title" : "meta description", f.id === "title" ? "Page title" : "Meta description", site.readOn) : [], note: f.fixForMe ? null : "Nothing to paste — this is a setting or a change on the page itself." })),
   ];
-  return { title: "SEO check", lines, read: `${plural(pages.length, "page")} read on ${String(site.readOn).slice(0, 10)}` };
+  return { title: "SEO check", lines: lines.map(three), read: `${plural(pages.length, "page")} read on ${on}` };
 }
 
-export function aeoCheck(site) {
+export function aeoCheck(site, plan = null) {
   const qa = site.pages.flatMap((p) => p.qa.map((x) => ({ ...x, url: p.url })));
   const faqPages = site.pages.filter((p) => p.structuredTypes.includes("FAQPage"));
   const asked = qa.filter((x) => x.from === "a heading on the page");
   const noDirect = asked.filter((x) => !x.a || x.a.split(/\s+/).length > 120);
+  /* FAQ answers: the questions people search, with the answer already on the client's own pages (from the action plan's page plan) */
+  const faq = [...(plan?.thisWeek ?? []), ...(plan?.rest ?? [])].flatMap((i) => i.ready.filter((r) => r.kind === "FAQ answer"));
   return { title: "Answer engines (AEO)", read: `${plural(site.pages.length, "page")} read on ${String(site.readOn).slice(0, 10)}`,
     lines: [
-      { ok: qa.length > 0, line: qa.length ? `${plural(qa.length, "question")} answered on your pages.` : "No questions are answered on your pages yet — answer engines build their answers from questions and answers." },
-      { ok: faqPages.length > 0, line: faqPages.length ? `${plural(faqPages.length, "page")} mark their questions for machines (FAQ markup).` : "No page marks its questions for machines (FAQ markup).", fixForMe: faqPages.length || !qa.some((x) => x.a) ? [] : fixForMe("structured-data", site).filter((x) => /FAQPage/.test(x.paste)) },
-      asked.length ? { ok: noDirect.length === 0, line: noDirect.length ? `${plural(noDirect.length, "question heading")} have no short answer right under them: ${noDirect.slice(0, 4).map((x) => `"${x.q}"`).join(", ")}` : "Every question heading has a short answer right under it." } : { ok: null, line: "No question headings on your pages to measure." },
-    ], questions: qa.slice(0, 50) };
+      { ok: qa.length > 0, line: qa.length ? `${plural(qa.length, "question")} answered on your pages.` : "No questions are answered on your pages yet — answer engines build their answers from questions and answers.",
+        solution: "Add a few questions people ask as headings on your pages, each with a short answer right under it.", ready: faq, note: faq.length ? null : "Visibility writes FAQ answers only from answers already on your pages — connect Search Console or add a search-data file so it knows the questions people ask." },
+      { ok: faqPages.length > 0, line: faqPages.length ? `${plural(faqPages.length, "page")} mark their questions for machines (FAQ markup).` : "No page marks its questions for machines (FAQ markup).", fixForMe: faqPages.length || !qa.some((x) => x.a) ? [] : fixForMe("structured-data", site).filter((x) => /FAQPage/.test(x.paste)),
+        solution: "Paste this block into the page that shows these questions (your website builder's \"custom code\" or \"header\" box).", ready: faqPages.length || !qa.some((x) => x.a) ? [] : readyFromFix(fixForMe("structured-data", site).filter((x) => /FAQPage/.test(x.paste)), "structured data", "FAQ markup", site.readOn) },
+      asked.length ? { ok: noDirect.length === 0, line: noDirect.length ? `${noDirect.length} of ${plural(asked.length, "question heading")} have no short answer right under them: ${noDirect.slice(0, 4).map((x) => `"${x.q}"`).join(", ")}` : "Every question heading has a short answer right under it.",
+        solution: "Right under each question heading, start with a short answer of one or two sentences; the longer explanation can follow.", ready: noDirect.filter((x) => x.a).slice(0, 5).map((x) => ready(`${x.q}\n${firstSentences(x.a)}`, "Short answer (your page's own first sentences)", `your page ${x.url}`, { kind: "FAQ answer", for: x.url })) } : { ok: null, line: "No question headings on your pages to check for a direct answer." },
+    ].map(three), questions: qa.slice(0, 50) };
 }
 
 export function geoCheck(site) {
   const ticks = aiReadiness(site);
   const names = [...new Set(site.pages.map((p) => (p.title ?? "").split(/[|—–-]/).pop().trim()).filter(Boolean))];
+  const counts = new Map(); for (const p of site.pages) { const n = (p.title ?? "").split(/[|—–-]/).pop().trim(); if (n) counts.set(n, (counts.get(n) ?? 0) + 1); }
+  const main = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   return { title: "AI search (GEO)", read: `${plural(site.pages.length, "page")} read on ${String(site.readOn).slice(0, 10)}`,
     lines: [
-      ...ticks.map((t) => ({ ok: t.tick, line: t.line, fixForMe: t.fix && t.tick === false ? fixForMe(t.fix === "robots" ? "ai:robots" : "structured-data", site) : [] })),
-      { ok: names.length <= 2, line: names.length <= 2 ? `Your pages name you the same way (${names[0] ?? "—"}).` : `Your pages name you in ${names.length} different ways (${names.slice(0, 4).join(" · ")}) — AI assistants trust one consistent name.` },
-      { ok: site.pages.some((p) => p.facts.length), line: site.pages.some((p) => p.facts.length) ? "Your pages state facts with numbers (prices, dates, scores) that AI answers can quote." : "Your pages hold few facts with numbers for AI answers to quote." },
-    ], note: `Checked against the AI search bots: ${AI_SEARCH_BOTS.join(", ")}. This version does not ask the AI assistants themselves.` };
+      ...ticks.map((t) => { const fx = t.fix && t.tick === false ? fixForMe(t.fix === "robots" ? "ai:robots" : "structured-data", site) : [];
+        return { ok: t.tick, line: t.line, fixForMe: fx, solution: t.fix === "robots" ? "Allow the AI search bots in your robots.txt — paste these lines into it." : t.fix === "faq" ? "Answer the questions your customers ask on your pages — a question as a heading, the answer right under it." : "Paste this block into your home page's header (your website builder's \"custom code\" box).",
+          ready: readyFromFix(fx, t.fix === "robots" ? "robots.txt lines" : "structured data", t.fix === "robots" ? "Add to robots.txt" : "Structured data", site.readOn) }; }),
+      { ok: names.length <= 2, line: names.length <= 2 ? `Your pages name you the same way (${names[0] ?? "—"}).` : `Your pages name you in ${names.length} different ways (${names.slice(0, 4).join(" · ")}) — AI assistants trust one consistent name.`,
+        solution: "End every page title with the same name — the one most of your pages use already.", ready: main ? [ready(main, "Your name, as most of your pages write it", `the titles of ${counts.get(main)} of your pages`)] : [] },
+      { ok: site.pages.some((p) => p.facts.length), line: site.pages.some((p) => p.facts.length) ? "Your pages state facts with numbers (prices, dates, scores) that AI answers can quote." : "Your pages hold few facts with numbers for AI answers to quote.",
+        solution: "Write your real facts on your pages — prices, dates, how many, how long — in plain sentences.", note: "Visibility does not write your facts: only you know them, and an invented number would be worse than none." },
+    ].map(three), note: `Checked against the AI search bots: ${AI_SEARCH_BOTS.join(", ")}. This version does not ask the AI assistants themselves.` };
 }
 
 export function linksCheck(site) {
   const checked = new Set(site.linkObs.map((o) => o.to)).size;
-  return { title: "Links check", read: `${plural(checked, "link")} checked on ${String(site.readOn).slice(0, 10)}`, lines: site.brokenLinks.length ? site.brokenLinks.map((b) => ({ ok: false, line: `${b.to} does not open (${b.status || "no answer"}) — on ${b.from}` })) : [{ ok: true, line: "Every link checked opens." }] };
+  return { title: "Links check", read: `${plural(checked, "link")} checked on ${String(site.readOn).slice(0, 10)}`, lines: site.brokenLinks.length
+    ? site.brokenLinks.map((b) => three({ ok: false, line: `${b.to} does not open (${b.status || "no answer"}) — on ${b.from}`, solution: `Open ${b.from} in your website builder and change this link to an address that opens, or remove it.`, ready: [ready(b.to, "The broken address (to find it on the page)", `the links check, ${String(site.readOn).slice(0, 10)}`, { for: b.from })] }))
+    : [{ ok: true, line: "Every link checked opens." }] };
 }
 
 export function languagesCheck(site, chosen = []) {
   const langs = new Map(); for (const p of site.pages) { const l = (p.lang ?? "not set").slice(0, 2).toLowerCase(); langs.set(l, (langs.get(l) ?? 0) + 1); }
   const name = (c) => LANGUAGES.find((l) => l.code === c)?.name ?? c;
   const missing = chosen.filter((c) => !langs.has(c));
+  const byLang = [...langs.keys()].filter((l) => l !== "not set");
   return { title: "Languages", read: `${plural(site.pages.length, "page")} read on ${String(site.readOn).slice(0, 10)}`, lines: [
-    { ok: !langs.has("not set"), line: `Your pages say they are in: ${[...langs.entries()].map(([l, n]) => `${l === "not set" ? "no language set" : name(l)} (${n})`).join(", ")}.` },
-    { ok: missing.length === 0, line: missing.length ? `No page found yet in: ${missing.map(name).join(", ")} (you chose ${chosen.map(name).join(", ")}).` : `Every language you chose has pages (${chosen.map(name).join(", ") || "none chosen"}).` },
-    { ok: site.pages.some((p) => p.hreflang.length) || langs.size <= 1, line: site.pages.some((p) => p.hreflang.length) ? "Your language versions point to each other." : langs.size <= 1 ? "One language — nothing to point between." : "Your language versions do not point to each other (hreflang) — search engines may show the wrong one." },
-  ] };
+    { ok: !langs.has("not set"), line: `Your pages say they are in: ${[...langs.entries()].map(([l, n]) => `${l === "not set" ? "no language set" : name(l)} (${n})`).join(", ")}.`,
+      solution: "Set each page's language in your website's settings (it is the lang= part of the page's first line).", ready: chosen.length ? [ready(`<html lang="${chosen[0]}">`, "Page language", "the language you chose in Setup", { kind: "code" })] : [] },
+    { ok: missing.length === 0, line: missing.length ? `No page found yet in: ${missing.map(name).join(", ")} (you chose ${chosen.map(name).join(", ")}).` : `Every language you chose has pages (${chosen.map(name).join(", ") || "none chosen"}).`,
+      solution: "Make your main pages in these languages too — written by a person who speaks them — or remove the language from your choice in Setup.", note: "Visibility does not translate pages: a translation needs a person who knows the language and your product." },
+    { ok: site.pages.some((p) => p.hreflang.length) || langs.size <= 1, line: site.pages.some((p) => p.hreflang.length) ? "Your language versions point to each other." : langs.size <= 1 ? "One language — nothing to point between." : "Your language versions do not point to each other (hreflang) — search engines may show the wrong language.",
+      solution: "On each page, add one line per language version, pointing to that version's address.", ready: byLang.map((l) => { const p = site.pages.find((x) => (x.lang ?? "").slice(0, 2).toLowerCase() === l); return ready(`<link rel="alternate" hreflang="${l}" href="${p.url}">`, `Line for the ${name(l)} version (fill in each page's own address)`, `your page ${p.url}`, { kind: "code" }); }) },
+  ].map(three) };
 }

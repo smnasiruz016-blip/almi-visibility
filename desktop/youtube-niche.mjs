@@ -232,6 +232,6 @@ export function nicheSummary({ niche, research, own = [], ownChannelId = null, s
   if (asks.length) lines.push({ what: "What viewers ask", line: asks.slice(0, 4).map((q) => `"${q.text}"`).join(" · "), from: `comments under the niche's top videos, read ${readOn}` });
   if (praise.size) lines.push({ what: "What viewers praise", line: [...praise.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} (${n} comments)`).join(" · "), from: `comments under the niche's top videos, read ${readOn}` });
   const otherLangs = hidden.videos + hidden.questions;
-  return Object.freeze({ title: `What viewers of ${niche.label} watch most`, readOn, videos: vids.length, lines, hidden, scripts: [...mine],
+  return Object.freeze({ title: `What viewers of ${niche.label} watch most`, readOn, videos: vids.length, lines, hidden, scripts: [...mine], medianAll: median(vids.map((v) => v.views)),
     notShown: otherLangs ? `Not shown: ${otherLangs} in other languages (${hidden.videos} video${hidden.videos === 1 ? "" : "s"} and ${hidden.questions} viewer question${hidden.questions === 1 ? "" : "s"} written in another script than your channel's — ${[...mine].join(", ")})` : null, formats, asks, longMinutes: longMin, shortsShare: Math.round((shorts.length / vids.length) * 100), medianViews: { shorts: median(shorts.map((v) => v.views)), long: median(long.map((v) => v.views)) }, source: src });
 }

@@ -30,6 +30,8 @@ import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { youtubeApp } from "./youtube-app.mjs";
+import { actionPlan, willDo, planDocument, isAlmiWorld } from "./action-plan.mjs";
+import { newIndexNowKey, checkKeyFile, keyFileHowTo, keyFileUrl, indexNow, inSitemap, submissionLines, INDEXNOW_ENDPOINT } from "./submit.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const arg = (n, d = null) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
@@ -102,9 +104,12 @@ async function checkProduct(id) {
     const ytOpts = { productUrl: s.product?.site ?? null, productIsChannel: /youtube\.com/i.test(String(s.product?.site ?? "")), relatedPages: s.setup?.youtube?.relatedPages ?? [] };
     if (s.setup?.youtube?.confirmed) { say({ stage: "Reading your YouTube channel", done: 0, of: 1, secondsLeft: null }); try { const r = await YT.read(id); youtube = { confirmed: true, videos: r.videos, opts: ytOpts, check: (await import("../src/video/youtube.mjs")).channelCheck(r.videos, ytOpts) }; } catch (e) { youtube = { why: `YouTube could not be read now (${safeWhy(e)})` }; } }
     else if (s.setup?.youtube?.handle) youtube = { why: "Not measured — confirm your YouTube channel first (YouTube settings)" };
-    const card = scoreCard({ site, youtube, on });
+    const card = scoreCard({ site, youtube, on, noWebsite: !hasWebsite(s) });
     if (site?.ok) { const { pageReads, ...keep } = site; pwrite(id, "site-read.json", keep); }
     pwrite(id, "check.json", card);
+    /* RR-310 A2: the action plan is made again after every check */
+    say({ stage: "Making your action plan", done: 0, of: 1, secondsLeft: null });
+    if (!card.failed) { try { await buildPlan(id); } catch {} } // a failed check keeps no plan made from an old read
     return card;
   })().finally(() => { checking.delete(id); progress.delete(id); });
   checking.set(id, run);
@@ -114,7 +119,7 @@ const progressOf = (id) => { const p = progress.get(id); return p ? { ...p, seco
 const searchConsoleOf = (id) => pread(id, "search-console.json");
 function contextOf(id) {
   const s = store.read(id), site = pread(id, "site-read.json"), sc = searchConsoleOf(id), files = (() => { try { return JSON.parse(readFileSync(pfile(id, "search-data-files.json"), "utf8")); } catch { return []; } })();
-  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), files: files.length > 0, drafts: Boolean(pread(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
+  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), noWebsite: !hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), files: files.length > 0, drafts: Boolean(pread(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
 }
 /* ── RR-308 D · publishing ── */
 /* each product's connection key has its own NAME in Windows' secure store (two products may be two WordPress sites) */
@@ -122,6 +127,7 @@ const publishKeyName = (kind, id) => { const k = TARGETS.find((x) => x.id === ki
 const downloadsFor = (id) => join(CONFIG.downloadsDir ?? join(homedir(), "Downloads", "AlmiVisibility"), id);
 /** Approve & Publish ONE draft: the five gates judge it again right before (as the client edited it); a failing gate stops it, said */
 async function publishOne(id, url) {
+  if (isAlmiWorld(store.read(id))) return { ok: false, why: ALMIWORLD_NO }; // RR-310 D5
   const conn = pread(id, "publish.json");
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
@@ -151,6 +157,90 @@ function todoOf(id) {
   const yt = s.setup?.youtube?.handle && !ctx.youtubeConfirmed ? [{ what: "Confirm your YouTube channel", action: "youtube" }] : [];
   return [...skipped, ...yt];
 }
+
+/* ── RR-310 · the action plan, "What I will do for you", submitting, the weekly check ── */
+/* AlmiWorld's OWN products (its sites, its channel): the plan is shown, nothing is published or submitted (owner's rule, RR-310 D5) */
+const ALMIWORLD_NO = "AlmiWorld's own product: nothing is published or submitted from here (owner's rule). The plan and the drafts are yours to read.";
+const didIt = (id, what) => pwrite(id, "done.json", [...pread(id, "done.json", []), { on: new Date().toISOString(), what }].slice(-100));
+const planning = new Map();
+/** the product's ACTION PLAN, from its last check, its YouTube advice (read today, or read now) and its page plan — kept in plan.json */
+async function buildPlan(id) {
+  if (planning.has(id)) return planning.get(id);
+  const run = (async () => {
+    const { s, site, sc, files, ctx } = contextOf(id), on = new Date().toISOString();
+    let advice = null;
+    if (ctx.youtubeConfirmed && ctx.youtubeKey) { try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
+    const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
+    const web = hasWebsite(s) && site?.ok ? site : null;
+    const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}) }) : null;
+    const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on });
+    const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
+    pwrite(id, "plan.json", plan);
+    return plan;
+  })().finally(() => planning.delete(id));
+  planning.set(id, run);
+  return run;
+}
+const weeklyOf = (id) => { const w = pread(id, "weekly.json", {}), c = pread(id, "check.json"); const last = c?.on ?? null; return { on: w.on !== false, last, next: last ? new Date(Date.parse(last) + 7 * 864e5).toISOString() : null }; };
+const willDoOf = (id, plan) => { const s = store.read(id), sc = searchConsoleOf(id), inx = pread(id, "indexnow.json");
+  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: isAlmiWorld(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: s.product?.name }); };
+/** Create SEO pages: the drafts (kept in pages.json); published at once only when the client chose "automatically after the gates" */
+async function createPages(id) {
+  const { s, site, sc, files, ctx } = contextOf(id);
+  const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
+  const pages = seoPages({ site, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}) });
+  pwrite(id, "pages.json", pages);
+  /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
+  let auto = null;
+  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !isAlmiWorld(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+  return { pages, auto };
+}
+/** D3 · submit the published pages: Google (the sitemap, through the client's own Search Console) and Bing (IndexNow, the client's key file) */
+async function submitAll(id) {
+  const s = store.read(id);
+  if (isAlmiWorld(s)) return { ok: false, why: ALMIWORLD_NO };
+  const live = pread(id, "published.json", []).filter((r) => r.state === "LIVE" && r.live);
+  if (!live.length) return { ok: false, why: "Nothing is published yet — publish a page first, then submit it." };
+  const site = pread(id, "site-read.json"), origin = site?.origin ?? new URL(s.product.site).origin, sc = searchConsoleOf(id), on = new Date().toISOString();
+  const subs = pread(id, "submissions.json", {}), lines = [];
+  const fx = fetch;
+  /* Google: the sitemap, sent through the client's own connection; each page said "in it" or not */
+  if (sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true) {
+    const g = await GOOGLE.submitSitemap(sc.site, `${origin}/sitemap.xml`);
+    for (const r of live) subs[r.live] = { ...subs[r.live], google: g.ok ? ((await inSitemap({ origin, url: r.live, fetchImpl: fx })) ? { state: "SUBMITTED", on, note: "through your sitemap" } : { state: "FAILED", on, why: "your sitemap was sent, but this page is not in it yet — most website builders add it within a day; press Submit again then" }) : { state: "FAILED", on, why: g.why } };
+    lines.push(g.ok ? `Google: your sitemap was sent through your Search Console (${origin}/sitemap.xml).` : `Google: ${g.why}`);
+  } else { for (const r of live) subs[r.live] = { ...subs[r.live], google: { state: "NOT_YET", why: "connect Google Search Console with \"also tell Google about my new pages\"" } }; lines.push("Google: not sent — connect Google Search Console with \"also tell Google about my new pages\" (Overview → Connect Google)."); }
+  /* Bing: IndexNow, after the key file is checked on the site */
+  const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx);
+  const kf = await checkKeyFile({ origin, key: inx.key, fetchImpl: fx });
+  if (!kf.ok) { pwrite(id, "indexnow.json", { ...inx, verified: false }); for (const r of live) subs[r.live] = { ...subs[r.live], bing: { state: "FAILED", on, why: `your IndexNow key file is not on your site yet (${kf.why})` } }; lines.push(`Bing: not sent — first put your key file on your site: ${keyFileHowTo(origin, inx.key)[0]}`); }
+  else {
+    pwrite(id, "indexnow.json", { ...inx, verified: true });
+    const b = await indexNow({ urls: live.map((r) => r.live), key: inx.key, origin, endpoint: allowLocal && CONFIG.indexNowEndpoint ? CONFIG.indexNowEndpoint : INDEXNOW_ENDPOINT, fetchImpl: fx });
+    for (const r of live) subs[r.live] = { ...subs[r.live], bing: b.ok && b.urls.includes(r.live) ? { state: "SUBMITTED", on, note: "IndexNow" } : { state: "FAILED", on, why: b.why ?? "not on this site" } };
+    lines.push(b.ok ? `Bing: ${b.line} (${b.urls.length} page${b.urls.length === 1 ? "" : "s"}, IndexNow).` : `Bing: ${b.why}.`);
+  }
+  pwrite(id, "submissions.json", subs);
+  didIt(id, `Submitted ${live.length} published page${live.length === 1 ? "" : "s"} — ${lines.join(" ")}`);
+  return { ok: true, lines, pages: submissionLines(live, subs) };
+}
+/* D4 · the weekly check: a product whose last check is a week old is checked again (its plan made again); a client who chose "publish
+ * automatically" also gets the new drafts published and submitted — never for AlmiWorld's own products. Only while the app is open. */
+async function weeklyRound() {
+  for (const p of store.list()) {
+    const id = p.id; if (!weeklyOf(id).on || checking.has(id)) continue;
+    const c = pread(id, "check.json"); if (!c?.on || Date.now() - Date.parse(c.on) < 7 * 864e5) continue;
+    try {
+      await checkProduct(id); didIt(id, "Weekly check: checked again and made the action plan again.");
+      const s = store.read(id);
+      if (hasWebsite(s) && !isAlmiWorld(s) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) {
+        const r = await createPages(id); const n = (r.auto ?? []).filter((x) => x.ok).length;
+        if (n) { didIt(id, `Weekly: published ${n} new page${n === 1 ? "" : "s"} (your choice: automatically after the five checks).`); await submitAll(id); }
+      }
+    } catch {}
+  }
+}
+setTimeout(() => { weeklyRound(); setInterval(weeklyRound, 3600e3).unref(); }, Number.isInteger(CONFIG.weeklyFirstMs) ? CONFIG.weeklyFirstMs : 5 * 60e3).unref();
 
 const server = createServer((req, res) => {
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
@@ -246,7 +336,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -254,10 +344,48 @@ const server = createServer((req, res) => {
           if (r[2] === "overview" && req.method === "GET") {
             /* RR-308: what the YouTube research found, read from the saved research — never the whole channel on every Overview */
             const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
-            return send(200, { checking: checking.has(id), progress: progressOf(id), card: ctx.check, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null }, howTo: HOWTO });
+            /* RR-310: the plan (made after every check; a product checked before RR-310 gets it made now, once), what Visibility will do,
+             * the YouTube-only view of an older card, the weekly state and what was done since the last check */
+            const plan = pread(id, "plan.json");
+            if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) buildPlan(id).catch(() => {});
+            const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
+            const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
+            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, weekly: weeklyOf(id), since, almiworld: isAlmiWorld(s), noWebsite: ctx.noWebsite,
+              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null }, howTo: HOWTO });
           }
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
           if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
+          /* RR-310 A2 · the action plan: made again on request; saved as a document the client keeps */
+          if (r[2] === "plan" && req.method === "POST") { if (!ctx.check) return send(400, { refused: "Check your product first — the plan is made from the check." }); const p = await buildPlan(id); return send(200, { ok: true, plan: p, willDo: willDoOf(id, p) }); }
+          if (r[2] === "plan/save" && req.method === "POST") {
+            const p = pread(id, "plan.json"); if (!p) return send(400, { refused: "There is no action plan yet — press Check now first." });
+            const dir = downloadsFor(id); mkdirSync(dir, { recursive: true });
+            const file = join(dir, `Action plan - ${String(s.product?.name ?? id).replace(/[^\p{L}\p{N} ._-]+/gu, "").trim() || id} - ${String(p.on).slice(0, 10)}.html`);
+            writeFileSync(file, planDocument(p, willDoOf(id, p)));
+            didIt(id, "Saved the action plan as a document.");
+            return send(200, { ok: true, file, line: `Saved ✓ — ${file}. Open it in your browser or in Word.` });
+          }
+          /* RR-310 D · "Do it for me", following the client's own publish choice; never published or submitted for AlmiWorld's own products */
+          if (r[2] === "do" && req.method === "POST") {
+            const what = json().what, aw = isAlmiWorld(s);
+            if (what === "create-pages") { if (!ctx.hasSite || !site) return send(400, { refused: "Check your website first — the pages are answered from it." }); const x = await createPages(id); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length, pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"}${pub ? ` and published ${pub}` : ""}.`); return send(200, { ok: true, line: `${n} draft${n === 1 ? "" : "s"} made${pub ? `, ${pub} published` : ""} — read them under "Pages and articles".${aw ? ` ${ALMIWORLD_NO}` : ""}`, open: "pages" }); }
+            if (what === "structure") { const p = pread(id, "plan.json"); return send(200, { ok: true, items: p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.id === "ai:faq") : [], line: "New pages have the structure built in. For your existing pages, here it is ready to paste:" }); }
+            if (what === "publish") {
+              if (aw) return send(200, { ok: false, refused: ALMIWORLD_NO });
+              if (!pread(id, "publish.json")?.kind) return send(200, { ok: false, open: "publish-settings", line: "First tell Visibility where your site is built." });
+              if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
+              const live = new Set(pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url)), out = [];
+              for (const d of (pread(id, "pages.json")?.drafts ?? []).filter((x) => x.readyAsDraft && !live.has(x.url))) out.push({ url: d.url, ...(await publishOne(id, d.url)) });
+              if (out.some((x) => x.ok)) didIt(id, `Published ${out.filter((x) => x.ok).length} page(s).`);
+              return send(200, { ok: true, line: out.length ? out.map((x) => (x.ok ? x.line : `${x.url}: ${x.why}`)).join(" · ") : "Nothing new to publish — make pages first (line 1)." });
+            }
+            if (what === "submit") { const x = await submitAll(id); return send(200, x.ok ? x : { ok: false, refused: x.why }); }
+            if (what === "weekly") { const w = pread(id, "weekly.json", {}); const on = w.on === false; pwrite(id, "weekly.json", { ...w, on }); return send(200, { ok: true, line: on ? "Weekly check: on — Visibility checks again a week after the last check, while it is open." : "Weekly check: off." }); }
+            return send(400, { refused: "not something Visibility does" });
+          }
+          /* D3 · the IndexNow key file: the key (public by design — it sits on the client's own site), where to put it, and the check */
+          if (r[2] === "indexnow" && req.method === "GET") { if (!ctx.hasSite) return send(400, { refused: "IndexNow needs a website." }); const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx); const origin = site?.origin ?? new URL(s.product.site).origin; return send(200, { key: inx.key, url: keyFileUrl(origin, inx.key), howTo: keyFileHowTo(origin, inx.key), verified: inx.verified === true, pages: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: isAlmiWorld(s) }); }
+          if (r[2] === "indexnow/check" && req.method === "POST") { const inx = pread(id, "indexnow.json"); if (!inx) return send(400, { refused: "Open the IndexNow setup first." }); const origin = site?.origin ?? new URL(s.product.site).origin; const k = await checkKeyFile({ origin, key: inx.key }); pwrite(id, "indexnow.json", { ...inx, verified: k.ok }); return send(200, k.ok ? { ok: true, line: `Your key file is on your site ✓ (${keyFileUrl(origin, inx.key)}).` } : { ok: false, refused: k.why }); }
           if (r[2] === "fix" && req.method === "POST") { if (!site) return send(400, { refused: "Check your product first." }); return send(200, { items: fixForMe(json().id, site) }); }
           /* RR-309 A: delete removes THIS product's folder and THIS product's own publishing keys (named by its id) — never another product's,
            * never the licence, never the keys every product shares (YouTube, AI, search) */
@@ -280,7 +408,7 @@ const server = createServer((req, res) => {
             const ytData = yt?.state === "READY" ? yt : null;
             if (f === "check") { checkProduct(id).catch(() => {}); return send(200, { checking: true, progress: progressOf(id) }); }
             if (f === "seo-check") return send(200, { result: seoCheck(site, ctx.check) });
-            if (f === "aeo") return send(200, { result: aeoCheck(site) });
+            if (f === "aeo") return send(200, { result: aeoCheck(site, pread(id, "plan.json")) });
             if (f === "geo") return send(200, { result: geoCheck(site) });
             if (f === "links") return send(200, { result: linksCheck(site) });
             if (f === "languages") return send(200, { result: languagesCheck(site, s.setup?.languages?.codes ?? []) });
@@ -300,6 +428,8 @@ const server = createServer((req, res) => {
               if (a.url) pwrite(id, "articles.json", [...made, { url: a.url, title: a.title, day: a.day }]);
               return send(200, { article: a.url ? { ...a, html: undefined, publishMode: s.setup?.publishMode?.mode ?? null } : a });
             }
+            /* RR-310 B6: a YouTube-only product: posts from its newest videos (their own words), from the action plan */
+            if (f === "social" && !pread(id, "pages.json")?.drafts?.length && ctx.noWebsite) { const p = pread(id, "plan.json"); return send(200, { socialVideos: p?.social ?? [], none: p ? null : "Press Check now first — the posts are made from your videos." }); }
             if (f === "social") { const p = pread(id, "pages.json"); const d = p?.drafts?.[0]; return send(200, { social: socialFor(d, p?.plan?.find((x) => x.kind === "NEW" && d?.title === x.question) ?? p?.plan?.find((x) => x.kind === "NEW")) }); }
             if (f === "monthly") { const rep = monthReport({ product: s.product?.name, month: new Date().toISOString().slice(0, 7), drafts: pread(id, "pages.json")?.drafts ?? [], searchRecord: sc?.record ?? null, youtube: ctx.youtubeConfirmed ? { connected: true, lines: await YT.lines(id) } : null }); return send(200, { report: { lines: rep.lines, attention: rep.attention } }); }
             return send(404, { refused: "not a feature of this version" });
@@ -311,7 +441,7 @@ const server = createServer((req, res) => {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
           const s = store.read(id), conn = pread(id, "publish.json"), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
-          if (r[2] === "publish" && req.method === "GET") return send(200, { targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
+          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: isAlmiWorld(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });

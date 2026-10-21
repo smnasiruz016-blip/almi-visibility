@@ -54,7 +54,7 @@ export function aiReadiness(site) {
 /**
  * The score card. `site` from readSite (or null), `youtube` = { confirmed, videos, check } (or null). Returns everything the product page shows.
  */
-export function scoreCard({ site = null, youtube = null, on }) {
+export function scoreCard({ site = null, youtube = null, on, noWebsite = false }) {
   /* RR-308 C5 + C6 (owner: "when the site could not be opened, it still said Nothing to fix was found"): a site that could not be opened is a
    * FAILED check, said plainly, with the way to fix it — never "Nothing to fix", never a score */
   if (site && !site.ok && hasSite(site)) return failedCard({ site, youtube, on });
@@ -81,6 +81,9 @@ export function scoreCard({ site = null, youtube = null, on }) {
   for (const t of ai.filter((t) => t.tick === false && t.fix && !byCheck.has(t.fix))) fixFirst.push({ id: `ai:${t.fix}`, line: t.line, how: t.fix === "robots" ? "Allow the AI search bots in your robots.txt (Visibility writes the lines for you)." : t.fix === "faq" ? "Answer the questions your customers ask, on your pages — one question as a heading, the answer right under it." : FIXES["structured-data"].how, fixForMe: t.fix !== "faq" });
   if (site?.brokenLinks?.length) { const f = fixFirst.find((x) => x.id === "links-resolve"); if (f) f.broken = site.brokenLinks.slice(0, 20); }
   if (youtube?.confirmed) for (const c of (youtube.check ?? []).filter((c) => c.findings.length).slice(0, 3)) fixFirst.push({ id: `yt:${c.videoId}`, line: `YouTube "${c.title}": ${c.findings.join("; ")}`, how: "Open the YouTube tab: each video has its own advice, with where it came from.", fixForMe: false });
+  /* RR-310 B1 + B2 (owner): a product with NO website — its gauge is the YouTube /100 and only the YouTube line is shown (the website
+   * lines would all say "Not measured" and hide what IS measured) */
+  if (noWebsite && !site) return Object.freeze({ on, youtubeOnly: true, score: yt.score?.score ?? null, word: yt.score?.word ?? "Not measured", gauge: yt.score?.gauge ?? "Not measured", areas: [yt.area], fixFirst, notMeasured: 0, pagesRead: 0, notChecked: null, youtube: yt.score, noPromise: NO_PROMISE });
   return Object.freeze({ on, score, word: wordFor(score), gauge: score === null ? "Not measured" : `${score}/100`, areas, fixFirst, notMeasured: results.filter((r) => r.result === RESULT.NOT_MEASURED).length, pagesRead: site?.ok ? site.pages.length : 0, notChecked: site?.notChecked?.line ?? null, youtube: yt.score, noPromise: NO_PROMISE });
 }
 const hasSite = (site) => site.why !== undefined;
@@ -129,8 +132,9 @@ export function foundInfo({ site = null, youtube = null, files = [], searchConso
   const questions = [], phrases = [], answered = [];
   if (site?.ok) for (const p of site.pages) for (const x of p.qa) answered.push({ text: x.q, source: `your page ${p.url} (${x.from})`, on: day });
   for (const q of youtube?.questions ?? []) questions.push({ text: q.text, source: q.source, on: day });
-  for (const f of files) (/\?$|^(how|what|why|which|where|when|who|can|is|does|do|kya|kaise)\b/i.test(f.phrase) ? questions : phrases).push({ text: f.phrase, source: `your file ${f.file}`, on: f.on });
-  for (const q of searchConsole?.queries ?? []) phrases.push({ text: q.query, source: `your Search Console (${searchConsole.window ?? "export"})`, on: searchConsole.on });
+  /* RR-310 A2: how often it is searched or shown — only when the source says it (the file's own figure, Search Console's impressions) */
+  for (const f of files) (/\?$|^(how|what|why|which|where|when|who|can|is|does|do|kya|kaise)\b/i.test(f.phrase) ? questions : phrases).push({ text: f.phrase, source: `your file ${f.file}`, on: f.on, searched: f.impressions ? `${Number(f.impressions).toLocaleString("en-US")} (the figure in your file)` : null });
+  for (const q of searchConsole?.queries ?? []) phrases.push({ text: q.query, source: `your Search Console (${searchConsole.window ?? "export"})`, on: searchConsole.on, searched: Number.isFinite(q.impressions) ? `shown ${Number(q.impressions).toLocaleString("en-US")} times in Google search` : null });
   for (const t of youtube?.terms ?? []) phrases.push({ text: t.phrase, source: t.from, on: day });
   const uniq = (xs) => [...new Map(xs.map((x) => [x.text.toLowerCase(), x])).values()];
   const missing = [];

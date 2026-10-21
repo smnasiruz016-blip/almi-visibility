@@ -26,9 +26,11 @@ export const GATE_WORDS = Object.freeze({ [GATES.A]: "not a copy of another page
 /* checks that can only be true once the page is live on the client's site (it is a draft until then) */
 const AFTER_PUBLISHING = /^(listed in the sitemap|a URL not in the plan is 404|internal links in)$/;
 const slug = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "page";
-const casingOf = (site) => { const m = new Map(); for (const p of site.pages) for (const w of [p.title, p.h1, ...p.h2].join(" ").split(/[^\p{L}\p{N}]+/u)) if (w && w !== w.toLowerCase() && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
+const SHOUTED = new Set(["not", "and", "the", "for", "you", "all", "are", "but", "new", "now", "one", "our", "free", "only", "must", "will", "can", "may", "yes", "no", "or", "to", "of", "in", "on", "is", "it", "we", "do", "be", "an", "at", "by", "if", "so", "up", "as", "my", "me", "us", "how", "why", "what", "when", "who", "best", "top", "get", "pass", "test", "exam", "score"]);
+export const casingOf = (site) => { const m = new Map(); for (const p of site.pages) for (const w of [p.title, p.h1, ...p.h2].join(" ").split(/[^\p{L}\p{N}]+/u)) if (w && w !== w.toLowerCase() && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
   /* RR-308: a name the site writes with capitals INSIDE its own sentences ("in New Zealand") keeps them in a page title ("OET for Nurses in new zealand" before) */
-  for (const p of site.pages) for (const s of [...(p.lead ?? []), ...(p.facts ?? [])]) for (const w of String(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(1)) if (/^\p{Lu}\p{Ll}+$/u.test(w) && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
+  /* RR-310: and a short name the site writes with two or more capitals (GPhC, AHPRA, AVBC, NZ) — never a common word in capitals (NOT, FREE) */
+  for (const p of site.pages) for (const s of [...(p.lead ?? []), ...(p.facts ?? [])]) for (const w of String(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(1)) if ((/^\p{Lu}\p{Ll}+$/u.test(w) || (/^\p{Lu}[\p{L}]{1,5}$/u.test(w) && (w.match(/\p{Lu}/gu) ?? []).length >= 2 && !SHOUTED.has(w.toLowerCase()))) && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
   return m; };
 /* RR-309 B2: names keep their capitals in a page's title ("Is OET accepted in canada" → "Canada") — the site's own spelling first, then known names */
 const asQuestion = (s, casing = new Map()) => { const t = properNames(String(s).trim().replace(/\s+/g, " ").split(" ").map((w) => casing.get(w.toLowerCase()) ?? w).join(" ")); return t.charAt(0).toUpperCase() + t.slice(1); };

@@ -15,8 +15,9 @@ import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, 
 import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
 import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS } from "./youtube-niche.mjs";
-import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, TOP_N } from "./youtube-plan.mjs";
+import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N } from "./youtube-plan.mjs";
 import { writeWithAI } from "./ai-write.mjs";
+import { youtubeItems } from "./action-plan.mjs";
 
 export const RAW_DAYS = 30;
 export const MIN_SEARCHES_PER_PRODUCT = 3; // RR-307: a product's fair share of the day's cap is never below 3 searches
@@ -208,16 +209,19 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const more = Math.max(0, order.length - offset - page.length);
       if (offset) return { state: "READY", top: page, more };
       const score = youtubeScore(videos, opts);
-      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions });
+      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions, topic: ctx.niche.queries?.[0]?.q ?? null });
       const report = youtubeForReport({ ok: true, source: "YOUTUBE_DATA_API", importedOn: today(), videos: raw.videos }, channelCheck(raw.videos, opts)).lines;
       const ai = aiOf(s);
-      return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null,
+      const out = { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null,
         channel: { title: y.confirmed.title, videos: videos.length, shorts: videos.filter((v) => videoKind(v) === "SHORT").length, long: videos.filter((v) => videoKind(v) === "LONG").length },
         score, niche: { label: ctx.niche.label, queries: ctx.niche.queries, persona: ctx.persona, basis: ctx.niche.basis ?? null }, aiReady: ai.ready, summary: ctx.summary, doFirst: doFirst({ videos, top: page, score, summary: ctx.summary, ideas, persona: ctx.persona }), ideas, top: page, more,
+        gaps: gapFixes(videos, ctx, opts), // RR-310 A: each failing check with its most-viewed videos and their ready text
         channelAdvice: channelAdvice({ channel: y.confirmed, product: { ...s.setup?.product, site: s.product?.site, languages: lang }, videos, terms, readOn: research?.readOn ?? today() }),
         terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15),
         aiLine: ai.ready ? `AI writing: your ${ai.name} key is connected — press "Write better options with AI" under a video (it uses your own AI account).` : "Better with AI — connect your AI (Settings → Your AI connection). Until then, the options below are written by Visibility's templates, only from your own videos and the research.",
         notEnough: [] };
+      /* RR-310 A: "Do these first this week" = the same items as the action plan's YouTube part (problem, solution, ready text) */
+      return { ...out, planItems: youtubeItems(out).sort((p, q) => q.effect - p.effect).slice(0, 5) };
     },
     /** RR-308 B6: three options for ONE video, written by the client's own AI on the client's click — checked for invented facts */
     async write(id, { videoId }) {

@@ -235,9 +235,10 @@ test("D · PUBLISH: four choices, each with 'Choose this if'; a key goes ONLY to
   assert.equal(keyMayGo({ kind: "github" }, "https://api.github.com/repos/a/b/contents/x"), true);
   assert.equal(keyMayGo({ kind: "shopify", shop: "my-shop.myshopify.com" }, "https://other.myshopify.com/admin/api/x"), false);
   assert.match(checkTarget({ kind: "github", repo: "not a repo" }), /owner\/name/);
-  const draft = { url: "https://x.test/fixture-exam-online", title: "Can I take the Fixture exam online?", html: "<!doctype html><html><head><title>Can I take the Fixture exam online?</title><meta name=\"robots\" content=\"noindex, nofollow\"></head><body><main><h1>Can I take the Fixture exam online?</h1><p class=\"stamp\">Draft made by AlmiVisibility on 2026-10-22 — not published</p><p>Yes.</p></main></body></html>" };
+  const draft = { readyAsDraft: true, url: "https://x.test/fixture-exam-online", title: "Can I take the Fixture exam online?", html: "<!doctype html><html><head><title>Can I take the Fixture exam online?</title><meta name=\"robots\" content=\"noindex, nofollow\"></head><body><main><h1>Can I take the Fixture exam online?</h1><p class=\"stamp\">Draft made by AlmiVisibility on 2026-10-22 — not published</p><p>Yes.</p></main></body></html>" };
   const dir = mkdtempSync(join(tmpdir(), "rr308-dl-"));
   try {
+    assert.match((await publishDraft({ draft: { ...draft, readyAsDraft: false }, target: { kind: "download" }, downloadsDir: dir })).why, /has not passed the five checks/, "a draft that failed a gate was published");
     const d = await publishDraft({ draft, target: { kind: "download" }, downloadsDir: dir });
     assert.equal(d.ok, true);
     const html = readFileSync(join(d.saved, "index.html"), "utf8");

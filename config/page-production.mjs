@@ -35,6 +35,9 @@ const SHARED = {
    * client's pages is a SECTION of that page, never a new one), only the NEW rows built, every draft judged by all five gates; nothing is
    * published or submitted (drafts stay in the product's own folder) */
   "desktop/seo-pages.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["const plan = planNewPages({ needs, existing });", "const news = plan.filter((p) => p.kind === \"NEW\")", "allGates(built.map((b) => gateInput(b))"]), why: "the app's page drafts are built only for NEW rows of the existing-page-first plan and every draft is judged by all five gates; nothing is published" }),
+  /* RR-308 D (owner: "the Publish button is missing"): the app publishes ONLY a draft the five gates passed — judged again right before by its
+   * caller (desktop/main.mjs publishOne, on the client's edited text) and refused here too; the page that leaves is the gated text (asPublished) */
+  "desktop/publish.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["if (draft.readyAsDraft !== true) return { ok: false", "const html = asPublished(draft.html, draft.url);"]), why: "publishes only a draft the five gates passed (judged again right before publishing), and only its gated text; it builds no page" }),
   "bin/crawl.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores the bodies of pages a crawl FETCHED, as served — evidence of an existing page, never a new one" }),
   "bin/report.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "the owner's report view about the evidence store — not a page of any subject" }),
 };

@@ -55,6 +55,8 @@ export function checkTarget(t, { allowLocal = false } = {}) {
  * straight in, never kept). Returns { ok, live, remote } or { ok:false, why }.
  */
 export async function publishDraft({ draft, target, key, fetchImpl = fetch, downloadsDir, allowLocal = false, testBase = null }) {
+  /* only a draft the five gates passed (as judged again right before, by the caller) ever leaves — here too, never only in the caller */
+  if (draft.readyAsDraft !== true) return { ok: false, why: "Not published — this draft has not passed the five checks." };
   const slug = slugOf(draft.url).split("/").pop();
   /* the page as it goes live: the draft stamp and the "do not index" mark removed, its own address as canonical (the same text the gates judged) */
   const html = asPublished(draft.html, draft.url);

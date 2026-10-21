@@ -20,7 +20,9 @@ async function app() {
   writeFileSync(join(dir, "licence-public.pem"), kp.publicKey.export({ type: "spki", format: "pem" }));
   const { makeOwnerLicence } = await import("../services/licence/service.mjs");
   writeFileSync(join(dir, "config.json"), JSON.stringify({ testSecretsInMemory: true, testAllowLocalSites: true, keysDir: dir, owner: makeOwnerLicence({ privateKeyPem: kp.privateKey.export({ type: "pkcs8", format: "pem" }), now: Date.now() }), licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/" }));
-  const p = spawn(process.execPath, [join(REPO, "desktop", "main.mjs"), `--data=${dir}`], { stdio: "ignore" });
+  /* no key from this computer's settings: a key found there by its NAME would hide whether the app's own store kept or removed it */
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/_API_KEY$|^SEARCH_API_KEY$|_TOKEN$|APP_PASSWORD/.test(k)));
+  const p = spawn(process.execPath, [join(REPO, "desktop", "main.mjs"), `--data=${dir}`], { stdio: "ignore", env });
   for (let i = 0; i < 80 && !existsSync(join(dir, "run.json")); i++) await new Promise((r) => setTimeout(r, 100));
   const url = `http://127.0.0.1:${JSON.parse(readFileSync(join(dir, "run.json"), "utf8")).port}`;
   const post = (path, o) => fetch(`${url}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }).then(async (r) => ({ ...(await r.json()), http: r.status }));
@@ -59,6 +61,8 @@ test("A · DELETE ON THE PRODUCT BOX: every box on All products has a visible De
     const reborn = await mk("almiworld youtube");
     assert.equal(reborn, wrongYt);
     assert.equal((await a.get(`/api/products/${reborn}/publish`)).keySaved, false, "the deleted product's own key was kept");
+    /* connecting the new product without pasting a key is refused — its key name holds no key left over from the deleted product */
+    assert.match((await a.post(`/api/products/${reborn}/publish/connect`, { kind: "shopify", shop: "my-shop.myshopify.com" })).refused ?? "", /^Paste the key/, "the deleted product's own key was kept");
   } finally { a.close(); }
 });
 

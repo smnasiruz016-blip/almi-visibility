@@ -14,6 +14,7 @@ import { scoreCard, fixForMe, foundInfo } from "../desktop/product-check.mjs";
 import { importExport, googleConnect, unzip, SCOPE } from "../desktop/google-connect.mjs";
 import { seoPages } from "../desktop/seo-pages.mjs";
 import { FEATURES, menuFor } from "../desktop/features.mjs";
+import { TARGETS } from "../desktop/publish.mjs";
 import { webAddress, STEPS, CHOICES, stepsFor } from "../desktop/setup.mjs";
 import { keyStore, memoryBackend } from "../desktop/secrets.mjs";
 import { evidenceByUrl, runMode } from "../src/report/visibility-score.mjs";
@@ -84,7 +85,8 @@ test("A2 + A3 · THE SCORE CARD: the number is the engine's own score (never a s
     assert.deepEqual([yOnly.score, yOnly.gauge, yOnly.word], [null, "Not measured", "Not measured"]);
     assert.ok(yOnly.areas.filter((a) => a.area !== "YouTube").every((a) => a.state === "NOT_MEASURED"));
     const f = foundInfo({ site, on: ON });
-    assert.match(f.line, /^We found 3 pages, 3 questions people ask and 0 search phrases\.$/);
+    /* RR-308 C3: questions already answered on the site are not "questions people ask" */
+    assert.match(f.line, /^We found 3 pages, 3 questions answered on your pages, 0 questions people ask \(from search data and research\) and 0 search phrases\.$/);
     assert.ok(f.questions.every((q) => q.source && q.on === "2026-10-21"));
     assert.ok(f.missing.some((m) => m.what === "Google Search Console" && m.adds));
   } finally { s.close(); }
@@ -193,7 +195,7 @@ test("D · PLAIN WORDS: the two first questions decide the steps; every choice s
   assert.deepEqual(stepsFor({ goal: { grow: "website", hasWebsite: true } }).map((s) => s.id), ["goal", "product", "searchData", "languages", "articlesPerDay", "publishMode", "aiConnection", "start"]);
   for (const list of Object.values(CHOICES)) for (const c of list) assert.ok(c.chooseIf && c.gives && c.cost && c.needs, c.label);
   /* the words on the screens: the page and the texts it shows (the script's own JSON.stringify / JSON.parse calls are code, not words) */
-  const screen = readFileSync(join(REPO, "desktop", "ui.html"), "utf8").replace(/JSON.(stringify|parse)/g, "") + STEPS.map((s) => `${s.title} ${s.ask}`).join(" ") + JSON.stringify(CHOICES) + FEATURES.map((f) => `${f.title} ${f.does} ${f.youGet} ${f.time}`).join(" ");
+  const screen = readFileSync(join(REPO, "desktop", "ui.html"), "utf8").replace(/JSON.(stringify|parse)/g, "") + STEPS.map((s) => `${s.title} ${s.ask}`).join(" ") + JSON.stringify(CHOICES) + FEATURES.map((f) => `${f.title} ${f.does} ${f.youGet} ${f.time}`).join(" ") + /* RR-308: the publish choices too */ TARGETS.map((t) => `${t.label} ${t.chooseIf} ${t.needs}`).join(" ");
   for (const bad of [/environment variable/i, /NAME of the variable/i, /\bAPI\b/, /\bJSON\b/, /\bOAuth\b/i, /\bendpoint\b/i, /localhost/i, /Credential Manager/]) assert.doesNotMatch(screen, bad, String(bad));
 });
 
@@ -256,8 +258,8 @@ test("E4 · ONE CHANNEL, SEVERAL PRODUCTS: each video goes to the product whose 
     const keys = keyStore({ backend: memoryBackend(), env: {} }); keys.set("YOUTUBE_API_KEY", "fake-youtube-key-rr307-0000");
     const YT = youtubeApp({ store, dataDir: dir, keys, config: { youtubeApiBase: "http://127.0.0.1:1/youtube/v3/" }, fetchImpl });
     const a = await YT.advice(cv), b = await YT.advice(prep);
-    assert.deepEqual(a.perVideo.map((v) => v.title), ["How to write a CV in 10 minutes"]);
-    assert.deepEqual(b.perVideo.map((v) => v.title), ["IELTS speaking part 2 tips"]);
+    assert.deepEqual(a.top.map((v) => v.title), ["How to write a CV in 10 minutes"]);
+    assert.deepEqual(b.top.map((v) => v.title), ["IELTS speaking part 2 tips"]);
     assert.match(a.shared.line, /^This channel serves 2 products \(AlmiCV, AlmiPrep\)\. 1 of its 3 videos is about AlmiCV; 1 is not linked to any product\.$/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -279,21 +281,8 @@ test("RR-307 FIX B2 (22 Oct) · THE TABS NEVER WAIT FOR YOUTUBE: the product's t
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-/* ── the SCREENS themselves (RR-307 fixes, owner 22 Oct): the app's own ui.html script, run against the real app with a stand-in page ──
- * Each element is a plain object; what a screen writes into #app is read back. A screen that throws is a failed test, not a blank page. */
-export async function screen(base) {
-  const { runInNewContext } = await import("node:vm");
-  const html = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
-  const code = html.slice(html.lastIndexOf("<script>") + 8, html.lastIndexOf("</script>"));
-  const els = new Map(), errors = [];
-  const el = (sel) => { if (!els.has(sel)) els.set(sel, { sel, innerHTML: "", textContent: "", value: "", checked: false, disabled: false, style: {}, dataset: {}, files: [], onclick: null, onchange: null, focus() {}, remove() {}, scrollIntoView() {}, prepend(x) { this.innerHTML = `${x.innerHTML ?? ""}${this.innerHTML}`; }, appendChild() {}, querySelector: () => el(`${sel} *`), querySelectorAll: () => [] }); return els.get(sel); };
-  const document = { querySelector: (s) => el(s), querySelectorAll: () => [], createElement: () => el(`new-${els.size}`), body: el("body") };
-  const window = { addEventListener: (k, f) => { if (k === "error" || k === "unhandledrejection") errors.push(f); }, open() {}, scrollTo() {} };
-  const ctx = { document, window, location: { hash: "" }, fetch: (p, o) => fetch(`${base}${p}`, o), console: { error() {}, log() {} }, setTimeout: () => 0, FileReader: class {}, URL, encodeURIComponent, decodeURIComponent, JSON, Math, String, Number, Array, Object, Promise, Set, Map, Boolean, Date, RegExp };
-  runInNewContext(`${code}\n;globalThis.__api = { set: (p, s) => { P = p; S = s; }, youtubeSettings, overview, work, setup, get, stepTo: (i) => { step = i; } };`, ctx);
-  await new Promise((r) => setTimeout(r, 300)); // the first screen (home) settles
-  return { api: ctx.__api, app: () => el("#app").innerHTML, el };
-}
+/* the SCREENS themselves: test/support/ui-screen.mjs (shared with RR-308) */
+import { screen } from "./support/ui-screen.mjs";
 
 test("RR-307 FIX B (22 Oct) · THE YOUTUBE SETTINGS SCREEN OPENS for a YouTube-only product (the Dhanak screen went blank: the screen joined the topics as a list, the app now gives them as an object) — the found topics shown, the client's own extra topics kept apart and saved; a screen that fails says so in plain words, never blank", async () => {
   const a = await app();

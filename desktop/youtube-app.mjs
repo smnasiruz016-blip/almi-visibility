@@ -11,8 +11,12 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY } from "../src/video/youtube.mjs";
-import { youtubeAdvice, autoTopics, tokens } from "./youtube-advice.mjs";
+import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY, videoKind, linkTargetFor } from "../src/video/youtube.mjs";
+import { AI_PROVIDERS } from "./secrets.mjs";
+import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
+import { nicheOf, nicheSummary, onTopic, JUNK_WORDS } from "./youtube-niche.mjs";
+import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, TOP_N } from "./youtube-plan.mjs";
+import { writeWithAI } from "./ai-write.mjs";
 
 export const RAW_DAYS = 30;
 export const MIN_SEARCHES_PER_PRODUCT = 3; // RR-307: a product's fair share of the day's cap is never below 3 searches
@@ -34,7 +38,7 @@ export function phrasesFromFile(name, text, on) {
   return phrases.length ? { ok: true, phrases } : { ok: false, why: "No queries were found in the file." };
 }
 
-export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15000) }), now = () => Date.now() }) {
+export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15000) }), aiFetchImpl = fetch, now = () => Date.now() }) {
   const apiBase = config.youtubeApiBase ?? API_BASE;
   const cap = Number.isInteger(config.youtubeSearchesPerDay) ? config.youtubeSearchesPerDay : DEFAULT_SEARCH_CAP;
   const today = () => new Date(now()).toISOString().slice(0, 10);
@@ -52,9 +56,17 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
   const mismatch = (s, handle) => { const h = handleFromSite(s.product?.site); return h && handle && h.toLowerCase() !== handle.toLowerCase() ? `Careful: your product's address is ${s.product.site}, but you typed ${handle}. They are different channels.` : null; };
   const picture = async (url) => { if (!PICTURE_HOSTS.test(String(url ?? ""))) return null; try { const r = await fetchImpl(url); if (!r.ok) return null; return `data:${r.headers.get("content-type") ?? "image/jpeg"};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`; } catch { return null; } };
   /* RR-307 (RR-306 defect 2): every topic, found automatically; the client may add more, never has to */
-  const topicsOf = (id, s = store.read(id)) => { const y = yt(s); const own = latest(id, "videos-")?.videos ?? []; const site = readJson(join(store.dirOf(id), "site-read.json"), null);
+  /* RR-308 A3: the research topics are the channel's NICHE — short phrases from its own videos' tags and its own description (desktop/
+   * youtube-niche.mjs); before the channel's videos are read, the product's own words (autoTopics). The client may add more, never has to. */
+  const nicheFor = (id, s = store.read(id)) => { const y = yt(s); const own = latest(id, "videos-")?.videos ?? []; return own.length && y.confirmed ? nicheOf({ channel: { ...y.confirmed }, videos: own, product: { name: s.product?.name, what: s.setup?.product?.what } }) : null; };
+  const topicsOf = (id, s = store.read(id)) => { const y = yt(s); const n = nicheFor(id, s);
+    if (n?.queries.length) return [...new Set([...n.queries.map((q) => q.q), ...(y.extraTopics ?? [])])];
+    const own = latest(id, "videos-")?.videos ?? []; const site = readJson(join(store.dirOf(id), "site-read.json"), null);
     const auto = autoTopics({ what: s.setup?.product?.what, names: [s.product?.name, y.confirmed?.title, y.handle], ownTitles: own.map((v) => v.title), siteHeadings: (site?.pages ?? []).flatMap((p) => [p.h1, p.title]).filter(Boolean) });
-    return [...new Set([...auto, ...(y.extraTopics ?? [])])]; };
+    /* short phrases only (a long one keeps its first 3 meaning words); junk ("full episode") never */
+    return [...new Set([...auto.map((t) => (/^[A-Z]{2,6}(\s|$)/.test(t) ? t : tokens(t).slice(0, 3).join(" "))).filter((t) => t && !String(t).split(/\s+/).some((w) => JUNK_WORDS.has(w.toLowerCase()))), ...(y.extraTopics ?? [])])]; };
+  /* the confirmed channel's own description (its "about" text) — asked once from YouTube (1 unit), kept with the confirmation */
+  const describe = async (id, a) => { const s = store.read(id), c = yt(s).confirmed; if (typeof c.description === "string") return c; const ch = await a.channelById(c.channelId); const d = { ...c, description: String(ch.description ?? "").slice(0, 2000) }; s.setup.youtube = { ...yt(s), confirmed: d }; store.write(id, s); return d; };
   const topicState = (id) => readJson(join(store.dirOf(id), "youtube-topics.json"), {});
   /* the day's cap, shared fairly: each product with a confirmed channel gets an equal part (never below 3) */
   const shareOf = () => { const n = store.list().filter((p) => p.setup?.youtube?.confirmed).length; return Math.max(MIN_SEARCHES_PER_PRODUCT, Math.floor(cap / Math.max(1, n))); };
@@ -62,9 +74,18 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
     return { all, searchedToday: done, waiting: wait.map((q) => ({ q, last: st[q] ?? null })), line: `Topics searched today: ${done.length ? done.join(", ") : "none yet"}. ${wait.length ? `Waiting for a later search (oldest first): ${wait.join(", ")}.` : "Every topic is searched."}` }; };
   /* all research of the last 30 days, merged: each topic's latest result; every comment once */
   const researchAll = (id) => { const d = rawDir(id); const files = readdirSync(d).filter((x) => /^research-\d{4}-\d{2}-\d{2}\.json$/.test(x)).sort(); if (!files.length) return null;
-    const topics = new Map(), comments = new Map(); let readOn = null;
-    for (const fn of files) { const r = readJson(join(d, fn), null); if (!r) continue; readOn = r.readOn; for (const tp of r.topics ?? []) topics.set(tp.q, tp); for (const c of r.comments ?? []) comments.set(`${c.videoId}|${c.text}`, c); }
-    return { readOn, topics: [...topics.values()], comments: [...comments.values()] }; };
+    const topics = new Map(), niche = new Map(), comments = new Map(); let readOn = null;
+    for (const fn of files) { const r = readJson(join(d, fn), null); if (!r) continue; readOn = r.readOn; for (const tp of r.topics ?? []) topics.set(tp.q, tp); for (const n of r.niche ?? []) niche.set(`${n.q}|${n.kind}`, n); for (const c of r.comments ?? []) comments.set(`${c.videoId}|${c.text}`, c); }
+    return { readOn, topics: [...topics.values()], niche: [...niche.values()], comments: [...comments.values()] }; };
+  /* RR-308: everything the options are written from — the niche (the channel's own tags and description), who and where it is, the niche
+   * research's summary, the channel's own boilerplate lines (never used as a video's summary) */
+  const contextFor = (s, confirmed, videos, research, opts) => {
+    const niche = nicheOf({ channel: confirmed, videos, product: { name: s.product?.name, what: s.setup?.product?.what } });
+    const summary = research?.niche?.length ? nicheSummary({ niche, research, own: videos, ownChannelId: confirmed.channelId }) : null;
+    return { channel: { ...confirmed, boilerplate: boilerplateOf(videos) }, persona: niche.persona, niche, summary, ...opts, readOn: research?.readOn ?? null };
+  };
+  /* the client's AI connection (Settings → Your AI connection): its provider, the key's NAME, whether a key is saved */
+  const aiOf = (s) => { const c = s.setup?.aiConnection; const p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName); return p && keys.status(p.keyName).saved ? { ready: true, provider: p.id, keyName: p.keyName, name: p.name } : { ready: false }; };
   const keyLine = () => { const k = keys.status(YOUTUBE_KEY); return k.saved ? `Your YouTube key: saved ✓ (ends …${k.ends}) — ${k.where}.` : "Your YouTube key is not saved yet — paste it in YouTube settings."; };
 
   const self = {
@@ -97,7 +118,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const c = await a.lookupHandle(String(handle ?? "").trim());
       if (!c.found || c.channelId !== channelId) return { ok: false, why: c.found ? "That channel changed since it was shown — look it up again." : c.line };
       const s = store.read(id);
-      s.setup = { ...s.setup, youtube: { ...yt(s), handle: c.handle, confirmed: { channelId: c.channelId, title: c.title, handle: c.handle, on: today() } } };
+      s.setup = { ...s.setup, youtube: { ...yt(s), handle: c.handle, confirmed: { channelId: c.channelId, title: c.title, handle: c.handle, description: String(c.description ?? "").slice(0, 2000), on: today() } } };
       store.write(id, s);
       return { ok: true, line: `Saved: ${c.title} (${c.handle}). From now on it is read by its channel ID.` };
     },
@@ -110,28 +131,38 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       prune(id);
       return { ok: true, channel: r.channel, videos: r.videos, pages: r.pages, complete: r.complete };
     },
-    /** C1: the topics' top videos and the questions people write — inside the daily cap */
+    /** RR-308 A · the NICHE research: the channel's own niche (its tags, its description, the product's words), then — through the official
+     *  API, inside the day's cap — each niche phrase's TOP videos (most viewed in the last year) and, for the first two, its RISING ones (most
+     *  viewed in the last 30 days), in the channel's own language when it is not English; then what viewers write under them */
     async research(id) {
       const s = store.read(id), y = yt(s);
       if (!y.confirmed) return { ok: false, why: "Confirm your channel first." };
       const a = api(); if (a.state !== "READY") return { ok: false, why: keyLine() };
       const own = latest(id, "videos-")?.videos ?? (await self.read(id)).videos ?? [];
-      /* RR-307: never-searched topics first, then the oldest; as many as this product's fair share and the day's cap allow */
+      const confirmed = await describe(id, a);
+      const niche = nicheOf({ channel: confirmed, videos: own, product: { name: s.product?.name, what: s.setup?.product?.what } });
       const st = topicState(id), all = topicsOf(id);
       if (!all.length) return { ok: false, why: "No research topics could be found yet — describe what your product does in its Settings." };
       const usedHere = all.filter((q) => st[q] === today()).length;
       const room = Math.min(shareOf() - usedHere, cap - quota().searches);
-      const topics = all.filter((q) => st[q] !== today()).sort((x, z) => String(st[x] ?? "").localeCompare(String(st[z] ?? ""))).slice(0, Math.max(0, room));
-      if (!topics.length) return { ok: false, why: room <= 0 ? `Today's research limit is reached (${quota().searches} of ${cap} searches used; this product's share today: ${shareOf()}). It starts again tomorrow. ${topicLines(id).line}` : `Every topic was searched today. ${topicLines(id).line}` };
-      const out = { readOn: new Date(now()).toISOString(), topics: [], comments: [] };
-      for (const q of topics) out.topics.push({ q, videos: await a.searchTopic(q, { max: 10 }) });
-      for (const v of own.slice().sort((x, z) => (z.comments ?? 0) - (x.comments ?? 0)).slice(0, 10)) if ((v.comments ?? 1) > 0) for (const c of await a.comments(v.videoId)) out.comments.push({ ...c, own: true, videoTitle: v.title });
-      for (const t of out.topics) for (const v of t.videos.slice(0, 2)) for (const c of await a.comments(v.videoId)) out.comments.push({ ...c, own: false, videoTitle: v.title, channelTitle: v.channelTitle });
+      const chosen = all.filter((q) => st[q] !== today()).sort((x, z) => String(st[x] ?? "").localeCompare(String(st[z] ?? ""))).slice(0, Math.max(0, Math.ceil(room * 2 / 3)));
+      if (!chosen.length) return { ok: false, why: room <= 0 ? `Today's research limit is reached (${quota().searches} of ${cap} searches used; this product's share today: ${shareOf()}). It starts again tomorrow. ${topicLines(id).line}` : `Every topic was searched today. ${topicLines(id).line}` };
+      const lang = (s.setup?.languages?.codes ?? []).find((c) => c !== "en") ?? null;
+      const runs = [...chosen.map((q) => ({ q, kind: "top", days: 365 })), ...chosen.slice(0, 2).map((q) => ({ q, kind: "rising", days: 30 }))].slice(0, Math.max(1, room));
+      const out = { readOn: new Date(now()).toISOString(), nicheLabel: niche.label, niche: [], topics: [], comments: [] };
+      /* YouTube's own relevance inside the window (top: a year; rising: 30 days), then only the videos that are ABOUT the phrase, most viewed
+       * first (ordering by views alone returned giant off-topic clips) */
+      for (const r of runs) { const found = await a.searchTopic(r.q, { max: 25, order: "relevance", publishedAfter: new Date(now() - r.days * 86400000).toISOString(), relevanceLanguage: lang }); const videos = found.filter((v) => onTopic(v, r.q)).slice(0, 15); out.niche.push({ q: r.q, kind: r.kind, videos, found: found.length }); if (r.kind === "top") out.topics.push({ q: r.q, videos }); }
+      /* what viewers write: under the channel's own 10 most-commented videos and the niche's top 2 per search — read 5 at a time; one video
+       * that does not answer is skipped, never the whole research (a stalled read once held the research for minutes) */
+      const reads = [...own.slice().sort((x, z) => (z.comments ?? 0) - (x.comments ?? 0)).slice(0, 10).filter((v) => (v.comments ?? 1) > 0).map((v) => ({ v, own: true })),
+        ...out.niche.filter((r) => r.kind === "top").flatMap((t) => t.videos.filter((x) => x.channelId !== confirmed.channelId).slice(0, 2).map((v) => ({ v, own: false })))];
+      for (let i = 0; i < reads.length; i += 5) for (const got of await Promise.all(reads.slice(i, i + 5).map(({ v, own: mine }) => a.comments(v.videoId).then((cs) => cs.map((c) => ({ ...c, own: mine, videoTitle: v.title, ...(mine ? {} : { channelTitle: v.channelTitle }) }))).catch(() => [])))) out.comments.push(...got);
       const prev = readJson(join(rawDir(id), `research-${today()}.json`), null);
-      atomic(join(rawDir(id), `research-${today()}.json`), prev ? { readOn: out.readOn, topics: [...prev.topics.filter((p) => !topics.includes(p.q)), ...out.topics], comments: [...prev.comments, ...out.comments] } : out);
-      atomic(join(store.dirOf(id), "youtube-topics.json"), { ...topicState(id), ...Object.fromEntries(topics.map((q) => [q, today()])) });
+      atomic(join(rawDir(id), `research-${today()}.json`), prev ? { ...out, niche: [...(prev.niche ?? []).filter((p) => !runs.some((r) => r.q === p.q && r.kind === p.kind)), ...out.niche], topics: [...(prev.topics ?? []).filter((p) => !chosen.includes(p.q)), ...out.topics], comments: [...(prev.comments ?? []), ...out.comments] } : out);
+      atomic(join(store.dirOf(id), "youtube-topics.json"), { ...topicState(id), ...Object.fromEntries(chosen.map((q) => [q, today()])) });
       prune(id);
-      return { ok: true, line: `Research done: ${out.topics.length} topic(s), ${out.topics.reduce((n, t) => n + t.videos.length, 0)} top videos, ${out.comments.length} comments read. ${quotaLine()} ${topicLines(id).line}` };
+      return { ok: true, line: `Research done: ${runs.length} searches of your niche (${chosen.join(", ")}), ${out.niche.reduce((n, t) => n + t.videos.length, 0)} videos, ${out.comments.length} comments read. ${quotaLine()} ${topicLines(id).line}` };
     },
     addFile(id, { name, text }) {
       const r = phrasesFromFile(name, text, today());
@@ -140,7 +171,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       return { ok: true, line: `Added ${r.phrases.length} search phrases from ${name}.` };
     },
     /** C: the advice — the channel read today (or now), the latest research (30 days), the files */
-    async advice(id) {
+    async advice(id, { offset = 0 } = {}) {
       const s = store.read(id), y = yt(s);
       if (!y.handle) return { state: "NOT_SET", lines: ["YouTube is not set up — it is optional. Open YouTube settings to add your channel."] };
       if (!keys.status(YOUTUBE_KEY).saved) return { state: "NO_KEY", lines: [keyLine()] };
@@ -163,9 +194,45 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
           line: `This channel serves ${all.length} products (${all.map((p) => p.name).join(", ")}). ${videos.length} of its ${raw.videos.length} videos ${videos.length === 1 ? "is" : "are"} about ${s.product?.name}; ${assigned.filter(([, o]) => o === null).length} ${assigned.filter(([, o]) => o === null).length === 1 ? "is" : "are"} not linked to any product.` };
       }
       const opts = { productUrl: s.product?.site ?? null, productIsChannel: productIsChannel(s), relatedPages: y.relatedPages ?? [] };
-      const adv = youtubeAdvice({ product: { ...s.setup?.product, languages: s.setup?.languages?.codes ?? [] }, channel: y.confirmed, videos, research, files: filesOf(id), ...opts, readOn: new Date(now()).toISOString() });
+      /* RR-308 B: the niche, the plan, the YouTube score, the most-viewed and newest videos first with 3 ready options each — who the
+       * channel is comes from its own description, asked once (a channel confirmed before RR-308 has none kept yet) */
+      const confirmed = typeof y.confirmed.description === "string" ? y.confirmed : await describe(id, api()).catch(() => y.confirmed);
+      const ctx = contextFor(s, confirmed, videos, research, opts);
+      const { order, why } = priorityOrder(videos);
+      const page = order.slice(offset, offset + TOP_N).map((v) => ({ ...optionsFor(v, ctx), why: why.get(v.videoId)?.join(" and ") ?? null }));
+      const more = Math.max(0, order.length - offset - page.length);
+      if (offset) return { state: "READY", top: page, more };
+      const files = filesOf(id), lang = s.setup?.languages?.codes ?? [];
+      const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: lang }, terms });
+      const score = youtubeScore(videos, opts);
+      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions });
       const report = youtubeForReport({ ok: true, source: "YOUTUBE_DATA_API", importedOn: today(), videos: raw.videos }, channelCheck(raw.videos, opts)).lines;
-      return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null, ...adv };
+      const ai = aiOf(s);
+      return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null,
+        channel: { title: y.confirmed.title, videos: videos.length, shorts: videos.filter((v) => videoKind(v) === "SHORT").length, long: videos.filter((v) => videoKind(v) === "LONG").length },
+        score, niche: { label: ctx.niche.label, queries: ctx.niche.queries, persona: ctx.persona }, summary: ctx.summary, doFirst: doFirst({ videos, top: page, score, summary: ctx.summary, ideas, persona: ctx.persona }), ideas, top: page, more,
+        channelAdvice: channelAdvice({ channel: y.confirmed, product: { ...s.setup?.product, site: s.product?.site, languages: lang }, videos, terms, readOn: research?.readOn ?? today() }),
+        terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15),
+        aiLine: ai.ready ? `AI writing: your ${ai.name} key is connected — press "Write better options with AI" under a video (it uses your own AI account).` : "AI writing: not connected — the options below are written by Visibility's templates from your own videos and the research. An AI writes better options: connect your AI key in Settings → Your AI connection.",
+        notEnough: [] };
+    },
+    /** RR-308 B6: three options for ONE video, written by the client's own AI on the client's click — checked for invented facts */
+    async write(id, { videoId }) {
+      const s = store.read(id), y = yt(s);
+      if (!y.confirmed) return { ok: false, why: "Confirm your channel first." };
+      const ai = aiOf(s); if (!ai.ready) return { ok: false, why: "Connect your AI key first (Settings → Your AI connection)." };
+      const raw = latest(id, "videos-"); const v = raw?.videos?.find((x) => x.videoId === videoId); if (!v) return { ok: false, why: "That video was not found in today's read — open the YouTube tab again." };
+      const opts = { productUrl: s.product?.site ?? null, productIsChannel: productIsChannel(s), relatedPages: y.relatedPages ?? [] };
+      const ctx = contextFor(s, y.confirmed, raw.videos, researchAll(id), opts);
+      const target = linkTargetFor(v, opts);
+      return writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, kind: videoKind(v), style: styleOf(v), links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
+    },
+    /** what the research found (its phrases and questions) — for the Overview and the page plan, WITHOUT reading the channel again */
+    foundFor(id) {
+      const s = store.read(id), y = yt(s); if (!y.confirmed) return null;
+      const research = researchAll(id), files = filesOf(id); if (!research && !files.length) return null;
+      const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: s.setup?.languages?.codes ?? [] }, terms });
+      return { state: "READY", confirmed: y.confirmed, terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15) };
     },
     /** RR-307 (22 Oct): the product's tab list says where YouTube stands WITHOUT reading the channel (a channel of 1,437 videos took
      *  half a minute on every tab switch) — the advice is read on the YouTube tab only */

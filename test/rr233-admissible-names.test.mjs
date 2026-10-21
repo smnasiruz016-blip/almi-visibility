@@ -131,8 +131,8 @@ test("N4 · the admitted set is unchanged: 432 corpus records by the same rule; 
   /* RR-290 migration: 538 -> 539 — the RR-290 decision */
   /* RR-291 migrations: 539 -> 569 — the RR-291 decision and the 29 frozen acceptances (the F89 audit record is a JSON beside its .md and admits nothing) */
   /* RR-292 migration: 569 -> 570 — the RR-292 decision */
-  /* RR-293 migration: 570 -> 571 — the RR-293 decision; RR-294 migration: 571 -> 572 — the RR-294 decision; RR-295 migration: 572 -> 573 — the RR-295 decision; RR-296 migration: 573 -> 574 — the RR-296 decision; RR-297 migration: 574 -> 575 — the RR-297 decision; RR-298 migration: 575 -> 576 — the RR-298 decision; RR-299 migration: 576 -> 577 — the RR-299 decision; RR-300 and RR-301 migrations: 577 -> 579 — their two decisions; RR-302 migration: 579 -> 580 — its decision; RR-303 migration: 580 -> 581 — its decision; RR-304 migration: 581 -> 582 — its decision; RR-305 migration: 582 -> 583 — its decision; RR-306 migration: 583 -> 584 — its decision; RR-307 migration: 584 -> 585 — its decision */
-  assert.equal(AUTHORITY_CORPUS.length, 585, "the corpus population moved — re-measure");
+  /* RR-293 migration: 570 -> 571 — the RR-293 decision; RR-294 migration: 571 -> 572 — the RR-294 decision; RR-295 migration: 572 -> 573 — the RR-295 decision; RR-296 migration: 573 -> 574 — the RR-296 decision; RR-297 migration: 574 -> 575 — the RR-297 decision; RR-298 migration: 575 -> 576 — the RR-298 decision; RR-299 migration: 576 -> 577 — the RR-299 decision; RR-300 and RR-301 migrations: 577 -> 579 — their two decisions; RR-302 migration: 579 -> 580 — its decision; RR-303 migration: 580 -> 581 — its decision; RR-304 migration: 581 -> 582 — its decision; RR-305 migration: 582 -> 583 — its decision; RR-306 migration: 583 -> 584 — its decision; RR-307 migration: 584 -> 585 — its decision; RR-308 migration: 585 -> 586 — its decision */
+  assert.equal(AUTHORITY_CORPUS.length, 586, "the corpus population moved — re-measure");
   for (const r of AUTHORITY_CORPUS) {
     const name = r.sourceRef.path.split("/").pop();
     const rules = r.sourceRef.repo === "engine" ? ENGINE_RULES : GOVERNANCE_RULES;

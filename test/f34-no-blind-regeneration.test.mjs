@@ -235,8 +235,9 @@ test("C5 · the real tree: every page-producing path is found and classified, ea
   assert.ok(r.scanned > 100, `the census scanned only ${r.scanned} files`);
   /* RR-295: the one page builder is the only producer; its importers are the runner and the in-memory gate report */
   /* RR-307: the downloadable app's page drafts (desktop/seo-pages.mjs) — the existing page first, NEW rows only, all five gates */
-  assert.deepEqual(r.importers, ["bin/build-page.mjs", "desktop/seo-pages.mjs", "src/page/articles.mjs", "src/page/languages.mjs", "src/page/refresh.mjs", "src/report/visibility-parts.mjs"]); /* RR-297: the auto-refresh rebuilds through the one builder; RR-298: the language versions */ /* RR-296: the daily articles build through the one builder */
-  assert.equal(r.rows.filter((x) => x.class === "ROUTED").length, 6 + r.registered.filter((f) => PAGE_PRODUCTION[f]?.class === "ROUTED" && !r.importers.includes(f)).length);
+  /* RR-308: the app's publishing (desktop/publish.mjs) — only a draft the five gates passed, only its gated text */
+  assert.deepEqual(r.importers, ["bin/build-page.mjs", "desktop/publish.mjs", "desktop/seo-pages.mjs", "src/page/articles.mjs", "src/page/languages.mjs", "src/page/refresh.mjs", "src/report/visibility-parts.mjs"]); /* RR-297: the auto-refresh rebuilds through the one builder; RR-298: the language versions */ /* RR-296: the daily articles build through the one builder */
+  assert.equal(r.rows.filter((x) => x.class === "ROUTED").length, 7 + r.registered.filter((f) => PAGE_PRODUCTION[f]?.class === "ROUTED" && !r.importers.includes(f)).length);
   assert.equal(r.rows.filter((x) => x.class === "CHECKS").length, 0);
 });
 

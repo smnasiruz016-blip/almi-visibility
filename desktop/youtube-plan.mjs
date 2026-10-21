@@ -65,16 +65,29 @@ export function priorityOrder(videos) {
 export function ownWords(v, channel = {}) {
   const name = String(channel.title ?? "").toLowerCase();
   const clean = (s) => String(s ?? "").replace(/[#@]+[\p{L}\p{N}_.-]*/gu, " ") /* RR-310: "##shortsfeed" left a lone "#" */.replace(/\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}]/gu, " ").replace(/\b(?:daily )?vlog\s*#?\d+\b|\bep(?:isode)?\.?\s*\d+\b|#\d+/gi, " ").replace(/\s+/g, " ").trim();
-  const parts = String(v.title ?? "").split(/\s*[|•]\s*|\s+[-–—]\s+/).map(clean).filter((p) => p && p.toLowerCase() !== name && tokens(p).length > 0);
+  /* RR-311 (owner): an obvious misspelling in the video's own words is corrected ("Togather" → "Together"), and said */
+  const fixed = [];
+  const spell = (s) => spellFix(s, fixed);
+  const parts = String(v.title ?? "").split(/\s*[|•]\s*|\s+[-–—]\s+/).map(clean).map(spell).filter((p) => p && p.toLowerCase() !== name && tokens(p).length > 0);
   /* the video's own summary: a description line that is not a link, not the title again, not the channel's greeting used on every video */
   const tset = new Set(tokens(v.title));
   const boiler = channel.boilerplate ?? new Set();
-  const first = String(v.description ?? "").split("\n").map(clean).find((l) => {
-    const t = tokens(l); if (l.length < 15 || /https?:|www\.|\.(com|shop|net|org)\b|^welcome to\b|^subscribe\b|^follow\b|^(facebook|instagram|tiktok|email|contact)\b/i.test(l) || t.length < 3) return false;
-    if (t.filter((w) => tset.has(w)).length / t.length >= 0.6) return false;
-    return !boiler.has(lineKey(l, v));
+  const lines = String(v.description ?? "").split("\n").map(clean).filter((l) => l && !/https?:|www\.|\.(com|shop|net|org)\b|^subscribe\b|^follow\b|^(facebook|instagram|tiktok|email|contact)\b/i.test(l) && !boiler.has(lineKey(l, v)));
+  const first = lines.find((l) => {
+    const t = tokens(l); if (l.length < 15 || /^welcome to\b/i.test(l) || t.length < 3) return false;
+    return t.filter((w) => tset.has(w)).length / t.length < 0.6;
   }) ?? null;
-  return { parts, main: parts[0] ?? null, firstLine: first };
+  /* `text`: everything THIS video says about itself (its title and its own description lines, never the greeting every video carries) —
+   * a place may go into a title only when it is named here (RR-311) */
+  return { parts, main: parts[0] ?? null, firstLine: first ? spell(first) : null, text: `${v.title ?? ""} ${lines.join(" ")}`, lines, fixed: [...new Set(fixed)] };
+}
+/* obvious English misspellings, corrected only when the whole word matches (Roman Urdu is never touched) */
+const MISSPELT = Object.freeze({ togather: "together", togatherness: "togetherness", recieve: "receive", recieved: "received", becuase: "because", beacuse: "because", definately: "definitely", seperate: "separate", untill: "until", alot: "a lot", wich: "which", freind: "friend", freinds: "friends", beleive: "believe", tommorow: "tomorrow", tommorrow: "tomorrow", occured: "occurred", sucess: "success", buisness: "business", enviroment: "environment", goverment: "government", happend: "happened", intrest: "interest", beautifull: "beautiful", beutiful: "beautiful", familly: "family", vlogg: "vlog", restaurent: "restaurant", resturant: "restaurant", vacaction: "vacation", birthady: "birthday", brithday: "birthday", wierd: "weird", thier: "their", arround: "around", shoping: "shopping", travell: "travel", cookng: "cooking", recipie: "recipe", reciepe: "recipe" });
+const PHRASES = Object.freeze([[/\bhappy mew year\b/gi, "Happy New Year"]]);
+export function spellFix(s, fixed = []) {
+  let out = String(s ?? "");
+  for (const [re, to] of PHRASES) out = out.replace(re, (m) => { fixed.push(`${m} → ${to}`); return to; });
+  return out.replace(/\p{L}+/gu, (w) => { const to = MISSPELT[w.toLowerCase()]; if (!to) return w; const cased = w === w.toUpperCase() && w.length > 1 ? to.toUpperCase() : w[0] === w[0].toUpperCase() ? to.charAt(0).toUpperCase() + to.slice(1) : to; fixed.push(`${w} → ${cased}`); return cased; });
 }
 /* a description line with the video's own title and numbers taken out — the same key on many videos = the channel's boilerplate */
 const lineKey = (l, v) => tokens(String(l).toLowerCase().replace(String(v.title ?? "").toLowerCase(), " ")).filter((w) => !/\d/.test(w)).join(" ");
@@ -106,21 +119,24 @@ export function optionsFor(v, ctx) {
   const { channel = {}, persona = {}, niche = {}, summary = null, readOn } = ctx;
   const kind = videoKind(v);
   const own = ownWords(v, channel);
-  const f = formatOf(v);
-  const vPlace = placeIn(`${v.title} ${own.firstLine ?? ""}`);
-  /* the channel's home place only when the video names no other place and is not a trip (a trip elsewhere must not be put in the home country) */
-  const place = vPlace ?? (f?.id !== "travel" ? persona.places?.[0] ?? null : null);
+  /* RR-311: the kind of video from ITS OWN words — the greeting every video carries ("living in Denmark") decides nothing */
+  const f = formatOf({ title: v.title, description: own.lines.slice(0, 2).join(" ") });
+  /* RR-311 (owner, testing 1.3.7): a place goes into a title ONLY when this video's own title or description names it — never the
+   * channel's home from the channel's description ("JAB WE MET in Denmark" was an invented fact). The transcript is not readable with a key. */
+  const vPlace = placeIn(own.text);
+  const place = vPlace;
   const who = persona.who ?? null;
   const activity = activityOf(v, f, own);
   const target = linkTargetFor(v, { productUrl: ctx.productUrl, productIsChannel: ctx.productIsChannel, relatedPages: ctx.relatedPages ?? [] });
   /* the niche's phrases in the video's own spelling (its "CV", not "Cv") */
   const caps = new Map(String(v.title).split(/[^\p{L}\p{N}]+/u).filter((w) => /^[\p{Lu}\d]{2,4}$/u.test(w)).map((w) => [w.toLowerCase(), w]));
   /* a niche phrase that names ANOTHER place than this video's ("pakistani mom in denmark" for a trip to Iceland) is not used for it */
-  const nicheTop = (niche.queries ?? []).map((q) => String(q.q).split(" ").map((w) => caps.get(w.toLowerCase()) ?? w).join(" ")).filter((q) => { const p = placeIn(q); return !p || p === (vPlace ?? (f?.id !== "travel" ? persona.places?.[0] : null)); });
+  const nicheTop = (niche.queries ?? []).map((q) => String(q.q).split(" ").map((w) => caps.get(w.toLowerCase()) ?? w).join(" ")).filter((q) => { const p = placeIn(q); return !p || p === vPlace; }); // RR-311: a phrase naming a place the video does not name is not used for it
   const fmtStat = f && summary?.formats?.find((x) => x.id === f.id);
   const basedOnCommon = [
     own.main ? `this video's own title ("${fit(own.main, 60)}")` : "this video's title says little about it — your channel's main topic is used",
-    ...(vPlace ? [`the place this video names (${vPlace})`] : place ? [`your channel's home (${place}, from ${persona.whoFrom ?? "your channel"})`] : []),
+    ...(vPlace ? [`the place this video names (${vPlace})`] : []),
+    ...(own.fixed.length ? [`spelling corrected: ${own.fixed.join(", ")}`] : []),
     ...(who ? [`who your channel is (${who}, from ${persona.whoFrom})`] : []),
     ...(fmtStat ? [`niche research: "${fmtStat.label}" videos — ${fmtStat.count} of the top ones, median ${fmt(fmtStat.medianViews)} views (${summary.source})`] : nicheTop.length ? [`your niche: ${nicheTop.slice(0, 3).join(", ")} (from your own videos' tags and your channel's description${readOn ? `, read ${day(readOn)}` : ""})`] : []),
   ];
@@ -132,9 +148,10 @@ export function optionsFor(v, ctx) {
   const where = place && subject && !subject.toLowerCase().includes(place.toLowerCase()) ? ` in ${place}` : "";
   const vt = new Set(tokens(`${v.title} ${own.firstLine ?? ""} ${activity ?? ""} ${place ?? ""}`));
   /* a question a viewer really asked (the research's comments, the client's files) that this video's own words answer */
-  const asked = (ctx.questions ?? []).map((q) => ({ q, n: tokens(q.text).filter((w) => vt.has(w)).length })).filter((x) => x.n >= Math.min(2, tokens(x.q.text).length)).sort((a, b) => b.n - a.n || (b.q.likes ?? 0) - (a.q.likes ?? 0))[0]?.q ?? null;
+  const asked = (ctx.questions ?? []).filter((q) => { const p = placeIn(q.text); return !p || p === vPlace; }) // RR-311: not a place this video does not name
+    .map((q) => ({ q, n: tokens(q.text).filter((w) => vt.has(w)).length })).filter((x) => x.n >= Math.min(2, tokens(x.q.text).length)).sort((a, b) => b.n - a.n || (b.q.likes ?? 0) - (a.q.likes ?? 0))[0]?.q ?? null;
   /* else a question in the shape this kind of video answers — made from the video's own words, and said so */
-  const shaped = !subject ? null : f?.id === "travel" && place ? `Is ${place} Worth Visiting?` : f?.id === "cost-of-living" ? `How Much Does Life${where || (place ? ` in ${place}` : "")} Really Cost?` : ["routine", "morning-routine", "night-routine", "day-in-life"].includes(f?.id) ? `What Does a ${who ? `${who}'s` : "Real"} Day${where || (place ? ` in ${place}` : "")} Look Like?` : `${subject}${where}: What Is It Really Like?`;
+  const shaped = !subject ? null : f?.id === "travel" && place ? `Is ${place} Worth Visiting?` : f?.id === "cost-of-living" ? `How Much Does Life${where || (place ? ` in ${place}` : "")} Really Cost?` : ["routine", "morning-routine", "night-routine", "day-in-life"].includes(f?.id) ? `What Does a ${who ? `${who}'s` : "Real"} Day${where || (place ? ` in ${place}` : "")} Look Like?` : null; // RR-311: no "X: What Is It Really Like?" from a title that is not a topic ("JAB WE MET") — a kind it fits, or a filler
   const hook = !subject ? null : kind === "SHORT" ? `Watch This: ${subject}` : `Come With Us: ${subject}${where.length && subject.length + where.length < 44 ? where : ""}`;
   const typed = [
     { type: "Place + activity + who", title: subject ? `${subject}${where}${who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : channel.title ? ` | ${channel.title}` : ""}` : null, from: "the place, what happens and who — main words first" },
@@ -210,7 +227,7 @@ export function gapFixes(videos, ctx, opts = {}) {
     chapters: (v) => long(v) && !/(^|\n)\s*0?0:00\b/.test(String(v.description ?? "")),
     link: (v) => { const t = linkTargetFor(v, opts); return Boolean(t) && !String(v.description ?? "").toLowerCase().includes(String(t.url).toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "")); },
     /* a title that names no activity and no place (the "clearer title" step) — counted on the most-viewed and newest only */
-    clear: (v) => !placeIn(v.title) && !formatOf(v),
+    clear: (v) => !placeIn(v.title) && !formatOf({ title: v.title, description: ownWords(v, ctx.channel ?? {}).lines.slice(0, 2).join(" ") }), // RR-311: its own words, not the greeting
   };
   const out = {};
   for (const [id, bad] of Object.entries(fails)) {

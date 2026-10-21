@@ -101,20 +101,25 @@ test("B3 · A SUCCESS NEVER SHOWS IN RED: every message goes through note() by w
 
 test("B4 · THREE DIFFERENT OPTIONS without AI: 1 · place + activity + who; 2 · a question people ask (a viewer's own question when one fits this video, else a question shaped from its own words — said so); 3 · a short hook; built only from the research and the video's own words; one 'Better with AI' note at the top", () => {
   const ctx = { channel: { title: "Mom Diaries", handle: "@momdiaries" }, persona: { who: "Pakistani Mom", places: ["Denmark"], whoFrom: "your channel's description" }, niche: { queries: [{ q: "pakistani mom in denmark" }, { q: "mom vlog" }] }, summary: null,
-    questions: [{ text: "Which supermarket is cheapest for a grocery haul in Denmark?", source: "a comment under \"Grocery haul in Sweden\", 2026-10-01", likes: 12 }] };
+    questions: [{ text: "Which supermarket is cheapest for a grocery haul?", source: "a comment under \"Grocery haul in Sweden\", 2026-10-01", likes: 12 }] };
   const g = optionsFor(vid("g1", "Grocery haul | weekly shopping", { description: "Our weekly grocery shopping at the supermarket." }), ctx);
   assert.deepEqual(g.options.map((p) => p.type), ["Place + activity + who", "A question people ask", "A short hook"]);
   assert.equal(new Set(g.options.map((p) => p.title.toLowerCase())).size, 3, "two options are the same");
-  assert.equal(g.options[0].title, "Grocery Haul in Denmark | Pakistani Mom Vlog");
-  assert.equal(g.options[1].title, "Which supermarket is cheapest for a grocery haul in Denmark?");
+  /* RR-311 (owner): the video names no place — the channel's home (Denmark, from the channel's description) is NOT put in its title */
+  assert.equal(g.options[0].title, "Grocery Haul | Pakistani Mom Vlog");
+  assert.equal(g.options[1].title, "Which supermarket is cheapest for a grocery haul?");
   assert.match(g.options[1].basedOn[0], /^a question a viewer asked: "Which supermarket/);
   assert.match(g.options[1].description, /^This video answers: Which supermarket/);
   assert.ok(g.options[2].title.length <= 60 && /^Come With Us: /.test(g.options[2].title), g.options[2].title);
   /* no viewer question fits: a question shaped from the video's own words, said plainly */
   const b = optionsFor(vid("b1", "BIRTHDAY Weekend | Daily Vlog #778"), { ...ctx, questions: [] });
-  assert.deepEqual(b.options.map((p) => p.type), ["Place + activity + who", "A question people ask", "A short hook"]);
-  assert.equal(b.options[1].title, "Birthday Weekend in Denmark: What Is It Really Like?");
-  assert.match(b.options[1].basedOn[0], /no viewer has asked it yet/);
+  /* RR-311 (owner): no "X: What Is It Really Like?" from a title that is not a topic — the third option is the niche's words instead */
+  assert.deepEqual(b.options.map((p) => p.type), ["Place + activity + who", "A short hook", "Your niche's words"]);
+  assert.ok(b.options.every((p) => !/What Is It Really Like|Denmark/.test(p.title)), JSON.stringify(b.options.map((p) => p.title)));
+  /* a travel video that names its place still gets the question shaped for it, said so */
+  const t = optionsFor(vid("t2", "Our trip to Iceland", { description: "We drove around Iceland with the kids." }), { ...ctx, questions: [] });
+  assert.equal(t.options.find((p) => p.type === "A question people ask").title, "Is Iceland Worth Visiting?");
+  assert.match(t.options.find((p) => p.type === "A question people ask").basedOn[0], /no viewer has asked it yet/);
   for (const p of [...g.options, ...b.options]) assert.ok(p.hashtags.length === 3 && p.basedOn.length >= 2);
   assert.match(UI, /\$\{AI_READY \? "" : `<p class="howto" id="ainote">\$\{esc\(a\.aiLine\)\}<\/p>`\}/, "the AI note is not once at the top");
   assert.match(UI, /\$\{AI_READY \? `<p><button class="ghost aiw"/, "the AI button is shown under every video without an AI");

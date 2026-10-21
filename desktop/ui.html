@@ -291,8 +291,12 @@ async function setup() {
    the 20 most-viewed and newest videos with 3 ready options each (Copy), the rest behind "Show more" — never a wall of every video */
 const copyBtn = (text) => `<button class="ghost copy" type="button" data-copy="${esc(text)}">Copy</button>`;
 function wireCopy(root = document) { root.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied ✓"; } catch { b.textContent = "Select and copy by hand"; } setTimeout(() => (b.textContent = "Copy"), 1600); })); }
-function optionHtml(o) {
-  return `<div class="opt"><div class="k">Option ${o.n}${o.type ? ` — ${esc(o.type)}` : ""}${o.byAI ? ` <span class="tag">written by your AI</span>` : ""}</div>
+/* RR-311 D1: "Apply to YouTube" on each option when the channel owner turned it on (never AlmiWorld's own channel) */
+let CAN_APPLY = false, SIGNED = false; const OPTS = new Map();
+function optionHtml(o, videoId = null) {
+  if (videoId) OPTS.set(`${videoId}|${o.n}|${o.byAI ? "ai" : "t"}`, o);
+  return `<div class="opt"><div class="k">Option ${o.n}${o.type ? ` — ${esc(o.type)}` : ""}${o.byAI ? ` <span class="tag">Written with your AI</span>` : ""}</div>
+  ${CAN_APPLY && videoId ? `<p><button class="ghost apply" type="button" data-key="${esc(`${videoId}|${o.n}|${o.byAI ? "ai" : "t"}`)}">Apply to YouTube</button></p>` : ""}
   <div class="row"><b>Title</b> ${copyBtn(o.title)}<pre>${esc(o.title)}</pre></div>
   <div class="row"><b>Description</b> ${copyBtn(o.description)}<pre>${esc(o.description)}</pre></div>
   <div class="row"><b>Hashtags</b> ${copyBtn(o.hashtags.join(" "))}<pre>${esc(o.hashtags.join(" "))}</pre></div>
@@ -301,8 +305,41 @@ function optionHtml(o) {
 }
 function videoHtml(v) {
   return `<div class="adv" id="v-${esc(v.videoId)}"><h3>${esc(v.title)} <span class="tag">${v.kind === "SHORT" ? "Short" : v.kind === "LONG" ? "Long video" : "Kind unknown"}</span> <span class="meta">${Number(v.views).toLocaleString()} views · ${esc(v.publishedAt)}${v.why ? ` · ${esc(v.why)}` : ""}</span></h3>
-  ${v.weak ? `<p class="meta">${esc(v.weak)}</p>` : ""}<div class="opts">${v.options.map(optionHtml).join("")}</div>
-  ${AI_READY ? `<p><button class="ghost aiw" type="button" data-v="${esc(v.videoId)}">Write better options with AI</button> <span class="meta aimsg"></span></p>` : ""}</div>`;
+  ${v.weak ? `<p class="meta">${esc(v.weak)}</p>` : ""}<div class="opts">${v.options.map((o) => optionHtml(o, v.videoId)).join("")}</div>
+  <p>${AI_READY ? `<button class="ghost aiw" type="button" data-v="${esc(v.videoId)}">Write better options with AI</button> ` : ""}${SIGNED && v.kind === "LONG" ? `<button class="ghost chap" type="button" data-v="${esc(v.videoId)}">Real chapters from my captions</button> ` : ""}<span class="meta aimsg"></span></p></div>`;
+}
+/* ── RR-311 · the cards a chatbot cannot give: the channel's own data, its sign-in, competitors, keywords, Apply, the coach ── */
+function signinCard(a) {
+  const g = a.signin;
+  if (!g) return "";
+  if (!g.signedIn) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Not signed in yet. Signing in (with the Google account that owns ${esc(a.confirmed.title)}) adds:</p><ul>${(a.signinAdds ?? SIGNIN_ADDS_UI).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+    <p><label><input type="checkbox" id="ytwrite"> Also allow "Apply to YouTube" (Visibility changes a video's title, description or chapters only when you press Apply; Google gives captions only with this permission)</label></p><p><button id="ytsignin">Sign in to YouTube</button> <span id="ytsmsg"></span></p></div>`;
+  return `<div class="card" id="ytsign"><h3>Signed in to YouTube ✓</h3><p class="meta">Your channel's own analytics${g.on ? `, read ${esc(g.on)}` : ""}. Apply to YouTube: <b>${g.write ? "on" : "off"}</b>${a.almiworld ? " (AlmiWorld's own channel: nothing is changed on YouTube from here)" : ""}.${g.reachLine ? ` ${esc(g.reachLine)}` : ""}</p>
+    <p>${g.write ? "" : `<button class="ghost" id="ytwriteon">Turn on Apply to YouTube</button> `}<button class="ghost" id="ytsignout">Sign out</button> <span id="ytsmsg"></span></p></div>`;
+}
+const SIGNIN_ADDS_UI = ["Impressions and click-through rate", "Where viewers stop watching", "The searches that brought viewers", "Countries, ages and traffic sources", "Real chapters from your captions, and Apply to YouTube"];
+function ownDataCard(a) {
+  const o = a.ownData; if (!o) return "";
+  return `<div class="card" id="ytown"><h3>From YOUR channel's data</h3><p class="meta">${esc(o.line)} This is what a chatbot cannot know: your own numbers.</p>${o.findings.length ? `<ol>${o.findings.map((f) => `<li><b>${esc(f.line)}</b>${f.advice ? `<div>${esc(f.advice)}</div>` : ""}${f.examples?.length ? `<div class="src">For example: ${f.examples.map((e) => `"${esc(e.title)}" (${Number(e.views).toLocaleString()} views)`).join(" · ")}</div>` : ""}<div class="src">From YOUR channel's data: ${esc(f.from)}</div></li>`).join("")}</ol>` : `<p class="meta">No group of your videos stands out yet.</p>`}
+    ${a.signin && !a.signin.signedIn ? `<p class="meta">Sign in to YouTube to add retention, the searches that brought viewers, and impressions with click-through rate.</p>` : ""}</div>`;
+}
+function keywordsCard(a) {
+  if (!a.keywords?.length) return "";
+  return `<div class="card" id="ytkw"><h3>Keyword ideas — with a demand estimate</h3><p class="meta">Each number is an <b>estimate</b> from your niche research in your language (${esc(a.language?.label ?? "")}) — not YouTube's own search volume, which YouTube does not give.</p><ul>${a.keywords.map((k) => `<li><b>${esc(k.phrase)}</b> ${copyBtn(k.phrase)}<div class="meta">${esc(k.estimate)}</div><div class="src">From: ${esc(k.source)}</div></li>`).join("")}</ul></div>`;
+}
+function competitorsCard(a) {
+  const c = a.competitors; if (!c) return "";
+  const card = (x) => x.scorecard ? `<div class="item"><h4>${esc(x.title)} <span class="meta">${esc(x.handle ?? "")}</span> <button class="ghost cdel" data-c="${esc(x.channelId)}">Remove</button></h4><p class="meta">${x.scorecard.uploadsPerWeek} uploads a week · last upload ${esc(x.scorecard.lastUpload ?? "—")} · median ${Number(x.scorecard.medianViews ?? 0).toLocaleString()} views (last 20) · titles ~${x.scorecard.patterns.avgLength} characters, ${x.scorecard.patterns.emoji}% with an emoji, ${x.scorecard.patterns.pipe}% with "|"</p><p>Top topics: ${esc(x.scorecard.topTopics.join(", ") || "—")}</p>${x.newOnes?.length ? `<p><b>New uploads:</b> ${x.newOnes.slice(0, 5).map((n) => `"${esc(n.title)}" (${esc(String(n.publishedAt).slice(0, 10))})`).join(" · ")}</p>` : ""}${x.scorecard.best ? `<div class="src">Their best of the last 20: "${esc(x.scorecard.best.title)}" — ${Number(x.scorecard.best.views).toLocaleString()} views</div>` : ""}</div>` : `<div class="item"><h4>${esc(x.title)} <button class="ghost cdel" data-c="${esc(x.channelId)}">Remove</button></h4><p class="meta">Read on the next visit.</p></div>`;
+  return `<div class="card" id="ytcomp"><h3>Your competitors</h3><p class="meta">Pick 3–5 channels in your language and for your audience. Visibility watches their new uploads (alerts here) and keeps a scorecard.</p>${c.list.map(card).join("") || "<p>None picked yet.</p>"}
+    <p><input id="cadd" placeholder="@handle of a channel"> <button class="ghost" id="caddb">Add</button> <span id="cmsg"></span></p>${c.suggestions.length ? `<p class="meta">Suggested — same language, from your niche research:</p><ul>${c.suggestions.map((s) => `<li><b>${esc(s.title)}</b> <span class="meta">(${s.hits} of its videos came up, e.g. "${esc(s.examples[0] ?? "")}")</span> <button class="ghost csug" data-c="${esc(s.channelId)}">Add</button></li>`).join("")}</ul>` : ""}</div>`;
+}
+function appliedCard(a) {
+  if (!a.applied?.length) return "";
+  return `<div class="card" id="ytapplied"><h3>Changed on YouTube — before → after</h3><ul>${a.applied.map((c) => `<li><b>${esc(c.after.title)}</b> <span class="meta">(was "${esc(c.before.title)}", ${esc(String(c.on).slice(0, 10))})</span><div>${esc(c.line)}${c.ctrBefore && c.ctrAfter ? ` · click-through ${(c.ctrBefore.ctr * 100).toFixed(1)}% → ${(c.ctrAfter.ctr * 100).toFixed(1)}%` : ""}</div><button class="ghost undo" data-v="${esc(c.videoId)}">Undo — put the old text back</button></li>`).join("")}</ul></div>`;
+}
+function coachCard(a) {
+  return `<div class="card" id="ytcoach"><h3>Ask the coach about your channel</h3>${AI_READY ? `<p class="meta">Answers come only from your channel's own data and the research — each with its source. It uses your own AI.</p><p><textarea id="cq" rows="2" style="width:100%" placeholder="For example: mera channel kyun nahien barh raha?"></textarea></p><p><button id="cask">Ask</button> <span id="cmsg2"></span></p><div id="cans"></div>` : `<p class="meta">Connect your AI (Settings → Your AI connection) to ask questions about your own channel.</p>`}
+    ${a.aiCost ? `<p class="meta" id="aicost">${esc(a.aiCost)}</p><p class="meta">Monthly limit ($): <input id="capusd" size="5" inputmode="decimal"> <button class="ghost" id="capset">Save</button> <span id="capmsg"></span></p>` : ""}</div>`;
 }
 let AI_READY = false; // RR-309 B4: the AI button under each video only when an AI is connected — otherwise one note at the top
 async function youtubeTab() {
@@ -314,8 +351,9 @@ async function youtubeTab() {
   if (a.state !== "READY") return ($("#ytbox").innerHTML = `<ul>${a.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><button id="yset">Open YouTube settings</button>`, ($("#yset").onclick = youtubeSettings));
   const S2 = a.score, N = a.summary;
   AI_READY = a.aiReady === true;
-  $("#ytbox").innerHTML = `${AI_READY ? "" : `<p class="howto" id="ainote">${esc(a.aiLine)}</p>`}<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${Number(a.channel.videos).toLocaleString()} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}</span></div></div>
-  ${a.shared ? `<p class="meta"><b>${esc(a.shared.line)}</b></p>` : ""}
+  SIGNED = a.signin?.signedIn === true; CAN_APPLY = SIGNED && a.signin.write === true && !a.almiworld;
+  $("#ytbox").innerHTML = `${AI_READY ? "" : `<p class="howto" id="ainote">${esc(a.aiLine)}</p>`}<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${Number(a.channel.videos).toLocaleString()} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}${a.language ? ` · language: ${esc(a.language.label)}` : ""}</span></div></div>
+  ${a.shared ? `<p class="meta"><b>${esc(a.shared.line)}</b></p>` : ""}${signinCard(a)}${ownDataCard(a)}
   <div class="score" id="ytscore">${gauge({ score: S2.score, gauge: S2.gauge, word: S2.word })}<div class="areas"><b>Your YouTube score</b><ul>${S2.checks.map((c) => `<li>${c.passed === c.of ? "✓" : "!"} ${esc(c.text)}</li>`).join("")}</ul><p class="meta">${esc(S2.how)}</p></div></div>
   ${a.planItems?.length ? `<div class="card plan"><h3>Do these first this week</h3><p class="meta">Each with the problem, the solution and the text ready to paste.</p>${a.planItems.map(itemHtml).join("")}</div>` : ""}
   <div class="card plan" ${a.planItems?.length ? "hidden" : ""}><h3>Do these first this week</h3>${a.doFirst.length ? `<ol>${a.doFirst.map((s) => `<li><b>${esc(s.step)}</b><div class="src">Why: ${esc(s.from)}</div></li>`).join("")}</ol>` : `<p class="meta">Run the research first — the plan is made from it.</p>`}</div>
@@ -324,14 +362,47 @@ async function youtubeTab() {
   ${a.niche.basis ? `<p class="warn">${esc(a.niche.basis)}</p>` : ""}<p class="meta">${a.niche.basis ? "Your niche, from your product's own topics" : "Your niche, read from your own videos and your channel's description"}: ${esc(a.niche.label ?? "not found yet")}${a.niche.persona?.who ? ` · who: ${esc(a.niche.persona.who)}` : ""}${a.niche.persona?.places?.length ? ` · where: ${esc(a.niche.persona.places.join(", "))}` : ""}.</p>
   ${N ? (N.empty ? `<p>${esc(N.empty)}</p>` : `<ul>${N.lines.map((l) => `<li><b>${esc(l.what)}:</b> ${esc(l.line)}${l.examples?.length ? `<div class="src">For example: ${l.examples.map((e) => `"${esc(e.title)}" — ${esc(e.channel)}, ${Number(e.views).toLocaleString()} views, ${esc(e.publishedAt)}`).join(" · ")}</div>` : ""}<div class="src">Source: ${esc(l.from)}</div></li>`).join("")}</ul>${N.notShown ? `<p class="meta">${esc(N.notShown)}</p>` : ""}`) : `<p class="meta">Press "Research my niche now": Visibility searches YouTube (through its official service, inside your daily limit) for the top and rising videos of your niche and reads what viewers ask under them.</p>`}</div>
   <div class="card" id="ytideas"><h3>New video ideas</h3>${a.ideas.length ? `<ol>${a.ideas.map((i) => `<li><b>${esc(i.title)}</b> ${copyBtn(i.title)}<div class="src">Why: ${esc(i.why)}</div></li>`).join("")}</ol>` : `<p class="meta">${a.researchOn ? "No format of your niche is missing from your channel, and no unanswered viewer question was found in this research." : "They come from the niche research — press \"Research my niche now\"."}</p>`}</div>
-  <h3 style="margin-top:14px">Your videos — most viewed and newest first (${a.top.length} of ${Number(a.channel.videos).toLocaleString()})</h3><p class="meta">Each video has 3 ready options. Pick one, press Copy, and paste it in YouTube Studio.</p>
+  ${keywordsCard(a)}${competitorsCard(a)}${appliedCard(a)}${coachCard(a)}
+  ${a.thumbnailGuide ? `<p class="howto">${esc(a.thumbnailGuide)}</p>` : ""}
+  <h3 style="margin-top:14px">Your videos — most viewed and newest first (${a.top.length} of ${Number(a.channel.videos).toLocaleString()})</h3><p class="meta">${CAN_APPLY ? "Each video has its ready options. Press \"Apply to YouTube\" on the one you like — you see the change first, the old text is kept, and Undo puts it back." : "Each video has its ready options. Pick one, press Copy, and paste it in YouTube Studio."}</p>
+  ${CAN_APPLY ? `<p><button class="ghost" id="bulk">Apply option 1 to the top ${a.top.length} videos…</button></p><div id="bulkbox"></div>` : ""}
   <div id="vlist">${a.top.map(videoHtml).join("")}</div>${a.more ? `<button class="ghost" id="more">Show more (${Number(a.more).toLocaleString()} more videos)</button>` : ""}
   ${a.channelAdvice.length ? `<h3 style="margin-top:14px">Your channel</h3>${a.channelAdvice.map((x) => `<div><span class="k">${esc(x.what)}</span> ${copyBtn(x.advice)}<pre>${esc(x.advice)}</pre><div class="src">From: ${esc(x.from)}</div></div>`).join("")}` : ""}`;
   wireCopy($("#ytbox"));
-  const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/write`, { videoId: b.dataset.v }); if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, "err"); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true })).join("") + box.innerHTML; note(msg, `${r.options.length} options written by your AI, each checked against this video's own words and the research.`, "ok"); wireCopy(box); }));
-  wireAI($("#ytbox"));
+  const U = `/api/products/${encodeURIComponent(P)}/youtube`;
+  const wireApply = (root) => root.querySelectorAll(".apply").forEach((b) => (b.onclick = async () => {
+    const [videoId] = b.dataset.key.split("|"), o = OPTS.get(b.dataset.key); const box = document.createElement("div"); b.parentElement.after(box);
+    const pre = await post(`${U}/apply`, { items: [{ videoId, title: o.title, description: o.description }] });
+    if (!pre.ok) return note(box, pre.refused, "err");
+    const r0 = pre.rows[0]; if (!r0.before) return note(box, r0.why ?? "Not found on YouTube.", "err");
+    box.innerHTML = `<div class="warn"><b>Before:</b> ${esc(r0.before.title)}<br><b>After:</b> ${esc(r0.after.title)}<p class="meta">The description changes too. The old text is kept; Undo puts it back.</p><button class="applynow">Apply now</button> <button class="ghost applyno">Cancel</button> <span class="amsg"></span></div>`;
+    box.querySelector(".applyno").onclick = () => box.remove();
+    box.querySelector(".applynow").onclick = async () => { const r = await post(`${U}/apply`, { items: [{ videoId, title: o.title, description: o.description }], confirm: true }); const ok = r.ok && r.rows[0]?.ok; note(box.querySelector(".amsg"), ok ? "Applied ✓ — it is on YouTube now." : (r.refused ?? r.rows?.[0]?.why ?? "Not applied."), ok ? "ok" : "err"); if (ok) setTimeout(youtubeTab, 1500); };
+  }));
+  const wireChap = (root) => root.querySelectorAll(".chap").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Reading your captions…"); const r = await post(`${U}/chapters`, { videoId: b.dataset.v }); if (!r.ok) return note(msg, r.refused, "err"); note(msg, "Real chapters made from your captions — they are in the options now.", "ok"); setTimeout(youtubeTab, 800); }));
+  const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`${U}/write`, { videoId: b.dataset.v }); if (r.aiCost && $("#aicost")) $("#aicost").textContent = r.aiCost; if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, "err"); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true }, b.dataset.v)).join("") + box.innerHTML; note(msg, `${r.options.length} option${r.options.length === 1 ? "" : "s"} written with your AI, each checked: no place, person, number or claim outside this video's own words and the research.${r.dropped?.length ? ` ${r.dropped.length} not shown: ${r.dropped[0].why.join("; ")}.` : ""}`, "ok"); wireCopy(box); wireApply(box); }));
+  wireAI($("#ytbox")); wireApply($("#ytbox")); wireChap($("#ytbox"));
+  /* sign-in, Apply permission, sign-out */
+  if ($("#ytsignin")) $("#ytsignin").onclick = async () => { const r = await post(`${U}/signin`, { write: Boolean($("#ytwrite")?.checked) }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); window.open(r.url, "_blank"); note($("#ytsmsg"), "Finish signing in, in the window that opened (with the Google account that owns this channel) — then come back and open this tab again."); };
+  if ($("#ytwriteon")) $("#ytwriteon").onclick = async () => { const r = await post(`${U}/signin`, { write: true }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); window.open(r.url, "_blank"); note($("#ytsmsg"), "Allow the extra permission in the window that opened — then open this tab again."); };
+  if ($("#ytsignout")) $("#ytsignout").onclick = async () => { const r = await post(`${U}/signout`, {}); note($("#ytsmsg"), r.line, "ok"); setTimeout(youtubeTab, 1000); };
+  /* competitors */
+  if ($("#caddb")) $("#caddb").onclick = async () => { note($("#cmsg"), "Looking it up…"); const r = await post(`${U}/competitor`, { handle: $("#cadd").value.trim() }); if (!r.ok) return note($("#cmsg"), r.refused, "err"); youtubeTab(); };
+  document.querySelectorAll("#ytcomp .csug").forEach((b) => (b.onclick = async () => { const r = await post(`${U}/competitor`, { channelId: b.dataset.c }); if (!r.ok) return note($("#cmsg"), r.refused, "err"); youtubeTab(); }));
+  document.querySelectorAll("#ytcomp .cdel").forEach((b) => (b.onclick = async () => { await post(`${U}/competitor/remove`, { channelId: b.dataset.c }); youtubeTab(); }));
+  /* undo, the coach, the AI limit, bulk apply */
+  document.querySelectorAll("#ytapplied .undo").forEach((b) => (b.onclick = async () => { const r = await post(`${U}/undo`, { videoId: b.dataset.v }); note(b, r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(youtubeTab, 1500); }));
+  if ($("#cask")) $("#cask").onclick = async () => { note($("#cmsg2"), "Your AI is reading your channel's facts…"); const r = await post(`${U}/coach`, { question: $("#cq").value }); if (r.aiCost && $("#aicost")) $("#aicost").textContent = r.aiCost; if (!r.ok) return note($("#cmsg2"), r.refused ?? r.why, "err"); note($("#cmsg2"), "", "ok"); $("#cans").innerHTML = `<div class="item"><p>${esc(r.answer).replace(/\n/g, "<br>")}</p>${r.note ? `<p class="meta">${esc(r.note)}</p>` : ""}${r.sources.length ? `<ol class="src">${r.sources.map((s) => `<li value="${s.n}">${esc(s.text)} — ${esc(s.source)}</li>`).join("")}</ol>` : ""}</div>`; };
+  if ($("#capset")) $("#capset").onclick = async () => { const r = await post(`${U}/aicap`, { usd: Number($("#capusd").value) }); note($("#capmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
+  if ($("#bulk")) $("#bulk").onclick = async () => {
+    const items = a.top.filter((v) => v.options[0]).map((v) => ({ videoId: v.videoId, title: v.options[0].title, description: v.options[0].description }));
+    const pre = await post(`${U}/apply`, { items }); if (!pre.ok) return note($("#bulkbox"), pre.refused, "err");
+    $("#bulkbox").innerHTML = `<div class="warn"><b>Preview — ${pre.rows.filter((r) => r.before).length} videos:</b><ol>${pre.rows.filter((r) => r.before).map((r) => `<li>${esc(r.before.title)} <b>→</b> ${esc(r.after.title)}</li>`).join("")}</ol><button id="bulkgo">Apply all now</button> <button class="ghost" id="bulkno">Cancel</button> <span id="bulkmsg"></span></div>`;
+    $("#bulkno").onclick = () => ($("#bulkbox").innerHTML = "");
+    $("#bulkgo").onclick = async () => { const r = await post(`${U}/apply`, { items, confirm: true }); note($("#bulkmsg"), r.ok ? `${r.rows.filter((x) => x.ok).length} applied ✓, ${r.rows.filter((x) => x.ok === false).length} not.` : r.refused, r.ok ? "ok" : "err"); setTimeout(youtubeTab, 2000); };
+  };
   let offset = a.top.length;
-  if ($("#more")) $("#more").onclick = async () => { const m = await get(`/api/products/${encodeURIComponent(P)}/youtube/advice?offset=${offset}`); const div = document.createElement("div"); div.innerHTML = m.top.map(videoHtml).join(""); $("#vlist").appendChild(div); wireCopy(div); wireAI(div); offset += m.top.length; if (!m.more) $("#more").remove(); else $("#more").textContent = `Show more (${Number(m.more).toLocaleString()} more videos)`; };
+  if ($("#more")) $("#more").onclick = async () => { const m = await get(`/api/products/${encodeURIComponent(P)}/youtube/advice?offset=${offset}`); const div = document.createElement("div"); div.innerHTML = m.top.map(videoHtml).join(""); $("#vlist").appendChild(div); wireCopy(div); wireAI(div); wireApply(div); wireChap(div); offset += m.top.length; if (!m.more) $("#more").remove(); else $("#more").textContent = `Show more (${Number(m.more).toLocaleString()} more videos)`; };
   $("#research").onclick = async () => { note($("#rerr"), "Researching your niche… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/research`, {}); if (r.refused) return note($("#rerr"), r.refused, "err"); youtubeTab(); };
 }
 /* RR-307 A2: the half-circle gauge — a number /100 and a word; "Not measured" is never drawn as zero */

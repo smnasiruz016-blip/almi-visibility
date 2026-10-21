@@ -122,7 +122,7 @@ test("B4 · THREE DIFFERENT OPTIONS without AI: 1 · place + activity + who; 2 �
   assert.match(t.options.find((p) => p.type === "A question people ask").basedOn[0], /no viewer has asked it yet/);
   for (const p of [...g.options, ...b.options]) assert.ok(p.hashtags.length === 3 && p.basedOn.length >= 2);
   assert.match(UI, /\$\{AI_READY \? "" : `<p class="howto" id="ainote">\$\{esc\(a\.aiLine\)\}<\/p>`\}/, "the AI note is not once at the top");
-  assert.match(UI, /\$\{AI_READY \? `<p><button class="ghost aiw"/, "the AI button is shown under every video without an AI");
+  assert.match(UI, /\$\{AI_READY \? `<button class="ghost aiw"/, "the AI button is shown under every video without an AI");
 });
 
 test("B5 · A CHANNEL WITH FEW VIDEOS: the niche research is based on the product's own topics (CV builder, IELTS, OET, language exams) — and the screen says so plainly", () => {

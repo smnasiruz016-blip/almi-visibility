@@ -541,7 +541,7 @@ const server = createServer((req, res) => {
               const offset = Math.max(0, Number(u.searchParams.get("offset")) || 0);
               /* RR-311: the first page of the day brings the channel's own analytics (signed in) and the competitors' new uploads — once a day */
               if (!offset) { if (YT_SIGNIN.status(yid).signedIn) await YT.refreshSigned(yid).catch(() => null); const c = pread(yid, "youtube-competitors.json", {}); if (!c._on || String(c._on).slice(0, 10) !== new Date().toISOString().slice(0, 10)) await YT.refreshCompetitors(yid).catch(() => null); }
-              return send(200, await YT.advice(yid, { offset }));
+              return send(200, { ...(await YT.advice(yid, { offset })), almiworld: isAlmiWorld(store.read(yid)) });
             }
             if (y[2] === "write" && req.method === "POST") { const r = await YT.write(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }

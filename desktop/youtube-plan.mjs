@@ -15,7 +15,7 @@
  */
 import { videoKind, linkTargetFor, TITLE_MAX } from "../src/video/youtube.mjs";
 import { GENERIC_HASHTAGS, tokens, newVideoIdeas, RULES } from "./youtube-advice.mjs";
-import { FORMATS, placeIn } from "./youtube-niche.mjs";
+import { FORMATS, placeIn, properNames } from "./youtube-niche.mjs";
 
 export const TOP_N = 20;
 const day = (d) => String(d ?? "").slice(0, 10);
@@ -126,21 +126,29 @@ export function optionsFor(v, ctx) {
   ];
   /* the video's own main words — an all-lowercase title gets its capitals (the words stay the video's own) */
   const mainText = own.main ? fit(own.main === own.main.toLowerCase() ? titleCase(own.main) : own.main, 60) : null;
-  const titles = [
-    /* 1 · place + activity + who, main words first */
-    [activity, place && !String(activity ?? "").toLowerCase().includes(place.toLowerCase()) ? `in ${place}` : null].filter(Boolean).join(" ") + (who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : ""),
-    /* 2 · the video's own words first (its own language style), then the activity and the place */
-    mainText ? `${mainText}${activity && !mainText.toLowerCase().includes(activity.toLowerCase()) ? ` | ${activity}` : ""}${place && !mainText.toLowerCase().includes(place.toLowerCase()) ? ` in ${place}` : ""}` : null,
-    /* 3 · who first — the pattern of a personal vlog niche */
-    who ? `${who} ${place ? `in ${place}` : ""}${activity ? ` — ${activity}` : ""}` : mainText && place ? `${place}: ${mainText}` : null,
-    /* 4, 5 · when there is no "who" or place: the niche's own phrase, or the channel's name — always words that are already there */
-    mainText && nicheTop[0] && !mainText.toLowerCase().includes(nicheTop[0].toLowerCase()) ? `${titleCase(nicheTop[0])}: ${mainText}` : null,
-    (mainText ?? activity) && channel.title ? `${mainText ?? activity} | ${channel.title}` : null,
-  ].map((t) => (t ? fit(t.replace(/\s+/g, " ").replace(/^\s*\|\s*/, "").trim(), TITLE_MAX) : null));
+  /* RR-309 B4 · THREE DIFFERENT KINDS of option (owner): 1 · place + activity + who; 2 · a question people ask; 3 · a short hook — each built
+   * only from the researched phrases and the video's own words; a kind that cannot be made from them is filled by the video's own words */
+  const subject = activity ?? mainText ?? (nicheTop[0] ? titleCase(nicheTop[0]) : null);
+  const where = place && subject && !subject.toLowerCase().includes(place.toLowerCase()) ? ` in ${place}` : "";
+  const vt = new Set(tokens(`${v.title} ${own.firstLine ?? ""} ${activity ?? ""} ${place ?? ""}`));
+  /* a question a viewer really asked (the research's comments, the client's files) that this video's own words answer */
+  const asked = (ctx.questions ?? []).map((q) => ({ q, n: tokens(q.text).filter((w) => vt.has(w)).length })).filter((x) => x.n >= Math.min(2, tokens(x.q.text).length)).sort((a, b) => b.n - a.n || (b.q.likes ?? 0) - (a.q.likes ?? 0))[0]?.q ?? null;
+  /* else a question in the shape this kind of video answers — made from the video's own words, and said so */
+  const shaped = !subject ? null : f?.id === "travel" && place ? `Is ${place} Worth Visiting?` : f?.id === "cost-of-living" ? `How Much Does Life${where || (place ? ` in ${place}` : "")} Really Cost?` : ["routine", "morning-routine", "night-routine", "day-in-life"].includes(f?.id) ? `What Does a ${who ? `${who}'s` : "Real"} Day${where || (place ? ` in ${place}` : "")} Look Like?` : `${subject}${where}: What Is It Really Like?`;
+  const hook = !subject ? null : kind === "SHORT" ? `Watch This: ${subject}` : `Come With Us: ${subject}${where.length && subject.length + where.length < 44 ? where : ""}`;
+  const typed = [
+    { type: "Place + activity + who", title: subject ? `${subject}${where}${who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : channel.title ? ` | ${channel.title}` : ""}` : null, from: "the place, what happens and who — main words first" },
+    { type: "A question people ask", title: asked ? asked.text : shaped, from: asked ? `a question a viewer asked: "${fit(asked.text, 80)}" (${asked.source})` : "a question shaped from this video's own words — no viewer has asked it yet; the research finds real ones" },
+    { type: "A short hook", title: hook, from: "a short opening line from what happens in this video" },
+    /* fillers, only when a kind above could not be made: the video's own words, the niche's phrase, the channel's name */
+    { type: "Your own words first", title: mainText ? `${mainText}${activity && !mainText.toLowerCase().includes(activity.toLowerCase()) ? ` | ${activity}` : ""}${place && !mainText.toLowerCase().includes(place.toLowerCase()) ? ` in ${place}` : ""}` : null, from: "this video's own words first" },
+    { type: "Your niche's words", title: mainText && nicheTop[0] && !mainText.toLowerCase().includes(nicheTop[0].toLowerCase()) ? `${titleCase(nicheTop[0])}: ${mainText}` : null, from: "your niche's phrase and this video's own words" },
+  ].map((o) => ({ ...o, title: o.title ? properNames(fit(o.title.replace(/\s+/g, " ").replace(/^\s*\|\s*/, "").trim(), TITLE_MAX)) : null }));
   const seen = new Set();
   /* an option that only repeats the video's present title (without its hashtags and the channel's name) is not advice — it is left out */
   const now = String(own.parts.join(" | ")).replace(/\s+/g, " ").trim().toLowerCase();
-  const uniqueTitles = titles.filter((t) => t && t.length >= 8 && t.toLowerCase() !== now && t.toLowerCase() !== String(own.main ?? "").toLowerCase() && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()));
+  const usable = typed.filter((o) => o.title && o.title.length >= 8 && o.title.toLowerCase() !== now && o.title.toLowerCase() !== String(own.main ?? "").toLowerCase() && !seen.has(o.title.toLowerCase()) && seen.add(o.title.toLowerCase()));
+  const uniqueTitles = usable.map((o) => o.title);
   const keyLine = [nicheTop[0], who, place].filter(Boolean).map(titleCase).join(" · ");
   const summaryLines = own.firstLine ? [own.firstLine] : ["(Add one or two sentences saying what happens in this video.)"];
   const chapters = kind === "LONG" ? ["", "Chapters (fill in the time each part starts — at least 3 parts, each 10 seconds or longer):", "0:00 Intro", "?:?? …", "?:?? …"] : [];
@@ -148,15 +156,16 @@ export function optionsFor(v, ctx) {
   /* always 3 hashtags: what happens, where, who, the niche's phrases, then the video's own main words and the channel's own name */
   const tagPool = [...new Set([activity && camel(activity), place && camel(place), who && camel(who), ...nicheTop.map(camel), ...(own.parts ?? []).map(camel), channel.title && camel(channel.title)].filter((t) => t && t.length >= 3 && t.length <= 40))];
   const options = uniqueTitles.slice(0, 3).map((title, i) => {
-    const lead = i === 1 && mainText ? mainText : title.split(" | ")[0];
-    const description = [`${fit(lead, 120)}${place && !lead.toLowerCase().includes(place.toLowerCase()) ? ` — in ${place}` : ""}.`, keyLine, "", ...summaryLines, ...chapters, ...(links.length ? ["", ...links] : [])].join("\n");
+    const o = usable[i];
+    const lead = o.type === "A question people ask" ? `This video answers: ${title}` : o.type === "Your own words first" && mainText ? mainText : title.split(" | ")[0];
+    const description = properNames([`${fit(lead, 120)}${place && !lead.toLowerCase().includes(place.toLowerCase()) ? ` — in ${place}` : ""}${/[.?!]$/.test(lead) ? "" : "."}`, keyLine, "", ...summaryLines, ...chapters, ...(links.length ? ["", ...links] : [])].join("\n"));
     const hashtags = [...tagPool.slice(i % 2, (i % 2) + 3), ...tagPool].filter((t, k, a) => a.indexOf(t) === k).slice(0, 3).map((t) => `#${t}`);
     /* 2–4 meaning words (no "HOW TO WRITE A") */
     /* up to 4 words as they are ("JAB WE MET"); a longer text keeps its meaning words only ("WRITE CV", never "HOW TO WRITE A") */
     const words = (xs) => { const all = xs.filter(Boolean).join(" ").replace(/[^\p{L}\p{N}' ]+/gu, " ").split(/\s+/).filter(Boolean); return all.length <= 4 ? all : all.filter((w) => !SMALL.has(w.toLowerCase()) && !/^(how|what|why|my|your|our|this|that|is|are|i|we|you)$/i.test(w)); };
-    const pick = [words(i === 0 ? [activity, place] : i === 1 ? [mainText] : [who, place]), words([activity, place, who, mainText, nicheTop[0], channel.title])].find((w) => w.length >= 2) ?? words([mainText, channel.title]);
+    const pick = [words(o.type === "Place + activity + who" ? [activity, place] : o.type === "A question people ask" ? [subject, place] : o.type === "A short hook" ? [who, place] : [mainText]), words([activity, place, who, mainText, nicheTop[0], channel.title])].find((w) => w.length >= 2) ?? words([mainText, channel.title]);
     const thumbnail = [...new Set(pick.map((w) => w.toUpperCase()))].slice(0, 4).join(" ");
-    return Object.freeze({ n: i + 1, title, description, hashtags, thumbnail, style: styleOf({ title }), basedOn: basedOnCommon });
+    return Object.freeze({ n: i + 1, type: o.type, title, description, hashtags, thumbnail, style: styleOf({ title }), basedOn: [o.from, ...basedOnCommon] });
   });
   return Object.freeze({ videoId: v.videoId, title: v.title, kind, views: v.views, publishedAt: day(v.publishedAt), options,
     weak: !own.main && !f ? "This video's title and description say very little — the options use your channel's main topic. Check they fit before you use them." : null });
@@ -195,5 +204,5 @@ export function ideasFor({ summary, videos, persona = {}, questions = [], max = 
     out.push({ kind: "FORMAT", title: fit(`${f.title}${place ? ` in ${place}` : ""}${who ? ` | ${who}` : ""}`, TITLE_MAX), why: `"${f.label}" is ${f.count} of the niche's top videos (median ${fmt(f.medianViews)} views${e ? `; e.g. "${fit(e.title, 60)}" by ${e.channel}, ${fmt(e.views)} views, ${e.publishedAt}` : ""}) — you have ${f.own === 0 ? "no such video" : `only ${f.own}`} yet. Source: ${summary.source}.` });
   }
   for (const i of newVideoIdeas({ questions, videos, max })) out.push({ kind: "QUESTION", question: i.title, title: fit(i.title, TITLE_MAX), why: `A viewer asked it and none of your videos answers it yet — ${i.from}.` });
-  return out.slice(0, max);
+  return out.slice(0, max).map((o) => ({ ...o, title: properNames(o.title) })); // RR-309 B2: names keep their capitals
 }

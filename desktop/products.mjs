@@ -2,9 +2,9 @@
  * 🔴 THE CLIENT'S COMPANY AND ITS PRODUCTS (RR-299 C; owner decision 3: the first screen is the client's company with its products, like
  * almiworld.com and its product subdomains). Each product's data lives in ITS OWN folder (<data>/products/<id>/) and is read and written
  * only through its own id — one product never reads or writes another's (tenant isolation). An id is checked by shape AND by where it
- * resolves: an id that would leave the products folder ("..", a path, a drive) is refused. Nothing is ever deleted here.
+ * resolves: an id that would leave the products folder ("..", a path, a drive) is refused. Only "Delete" (remove) erases, and only its own folder.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { stepsFor } from "./setup.mjs";
 
@@ -36,15 +36,14 @@ export function productStore(dataDir) {
     write(id, state);
     return state;
   };
-  /* RR-307 (owner, addition 2 item 6): "Delete product" after "Are you sure?" — the folder is MOVED aside (deleted-products), never erased,
-   * so it can be put back; it leaves the products list and the plan count */
+  /* RR-309 (owner, A2: "Are you sure? This removes the product and its saved data from this computer."): delete REMOVES the product's own
+   * folder — only that one, found through its own id (dirOf: never a path, never the products folder itself); nothing outside it is
+   * touched (other products, the company, the licence). RR-307 moved it aside instead; the owner's words now say it is removed. */
   const remove = (id) => {
     const from = dirOf(id);
     if (!existsSync(join(from, "state.json"))) throw Object.assign(new Error(`no product ${id}`), { code: "NO_SUCH_PRODUCT" });
-    const bin = resolve(dataDir, "deleted-products"); mkdirSync(bin, { recursive: true });
-    const to = join(bin, `${id}-${new Date().toISOString().replace(/[:.]/g, "-")}`);
-    renameSync(from, to);
-    return to;
+    rmSync(from, { recursive: true, force: false, maxRetries: 5, retryDelay: 200 });
+    return from;
   };
   const companyFile = join(resolve(dataDir), "company.json");
   return Object.freeze({

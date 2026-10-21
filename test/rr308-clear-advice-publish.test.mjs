@@ -343,7 +343,7 @@ test("A + B IN THE APP: research searches the NICHE (top = most viewed in a year
     assert.ok(adv.summary && adv.summary.lines.length >= 3);
     assert.ok(adv.doFirst.length >= 3);
     assert.ok(adv.ideas.length >= 1);
-    assert.match(adv.aiLine, /^AI writing: not connected — the options below are written by Visibility's templates/);
+    assert.match(adv.aiLine, /^Better with AI — connect your AI/); assert.equal(adv.aiReady, false);
     const more = await a.get(`/api/products/${id}/youtube/advice?offset=20`);
     assert.equal(more.top.length, 20); assert.equal(more.more, 5);
     assert.ok(!more.top.some((x) => adv.top.some((y) => y.videoId === x.videoId)), "Show more repeated a video");
@@ -351,7 +351,9 @@ test("A + B IN THE APP: research searches the NICHE (top = most viewed in a year
     ui.api.set(id, await ui.api.get(`/api/products/${id}/state`));
     ui.el("#ytbox"); await ui.api.youtubeTab();
     const shown = ui.el("#ytbox").innerHTML;
-    for (const s of ["Your YouTube score", "Do these first this week", "What viewers of", "New video ideas", "Option 1", "Copy", "Show more (25 more videos)", "Write better options with AI"]) assert.ok(shown.includes(s), s);
+    for (const s of ["Your YouTube score", "Do these first this week", "What viewers of", "New video ideas", "Option 1 — Place + activity + who", "Option 2 — A question people ask", "Option 3 — A short hook", "Copy", "Show more (25 more videos)", "Better with AI — connect your AI"]) assert.ok(shown.includes(s), s);
+    /* RR-309 B4: the AI note once at the top — no AI button under each video while no AI is connected */
+    assert.equal(shown.split("Better with AI").length - 1, 1); assert.ok(!shown.includes("Write better options with AI"), "an AI button under a video with no AI connected");
     assert.doesNotMatch(shown, /Not enough research|\[object Object\]|undefined/);
   } finally { a.close(); yt.close(); }
 });

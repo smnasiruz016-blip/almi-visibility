@@ -234,9 +234,12 @@ test("A1 + C + E · IN THE APP: a product is checked the moment it is added; the
     }
     assert.ok(!readdirSync(join(a.dir, "products", id)).some((n) => /\.html$/.test(n)), "a page was written as a file (published?)");
     assert.equal((await a.post(`/api/products/${id}/delete`, {})).http, 400, "deleted without \"Are you sure?\"");
+    /* RR-309 (owner A2: "This removes the product and its saved data from this computer"): never while its check runs; then really removed */
+    if ((await a.get(`/api/products/${id}/overview`)).checking) assert.equal((await a.post(`/api/products/${id}/delete`, { confirm: true })).http, 409, "deleted while its check was running");
+    for (let i = 0; i < 100 && (await a.get(`/api/products/${id}/overview`)).checking; i++) await new Promise((r) => setTimeout(r, 200));
     const del = await a.post(`/api/products/${id}/delete`, { confirm: true });
     assert.equal(del.http, 200);
-    assert.ok(!existsSync(join(a.dir, "products", id)) && readdirSync(join(a.dir, "deleted-products")).some((n) => n.startsWith(`${id}-`)), "the data was erased instead of moved aside");
+    assert.ok(!existsSync(join(a.dir, "products", id)) && !existsSync(join(a.dir, "deleted-products")), "the product's data was not removed from this computer");
     assert.deepEqual((await a.get("/api/home")).products, []);
     assert.equal((await a.get("/api/tour")).show, true); await a.post("/api/tour", {}); assert.equal((await a.get("/api/tour")).show, false);
   } finally { a.close(); }

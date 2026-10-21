@@ -258,6 +258,9 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     const after = await a.get(`/api/products/${id}/youtube/advice`);
     assert.equal(after.signin.signedIn, false); assert.ok(!after.ownData.findings.some((f) => /Search terms that brought viewers|Shown a lot|leave in the first 30/.test(f.line)), "analytics shown after signing out");
     assert.ok(!existsSync(join(a.dir, "products", id, "youtube-signed.json")), "the analytics read was kept after signing out");
+    /* even an analytics file left on disk is never shown while nobody is signed in */
+    writeFileSync(join(a.dir, "products", id, "youtube-signed.json"), JSON.stringify({ on: "2026-10-21", analytics: { window: "w", searchTerms: [{ term: "left behind", views: 9 }] }, reach: null, retention: {}, daily: {} }));
+    assert.ok(!(await a.get(`/api/products/${id}/youtube/advice`)).ownData.findings.some((f) => /left behind/.test(f.line)), "an old analytics file was shown while signed out");
     /* AlmiWorld's own channel: never changed on YouTube from here */
     const aw = (await a.post("/api/products", { name: "almiworld youtube", goal: { grow: "youtube", hasWebsite: false } })).product.id;
     await a.post(`/api/products/${aw}/youtube`, { handle: "@Almiworld-world" });

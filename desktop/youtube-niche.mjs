@@ -91,7 +91,7 @@ export const placeIn = (text) => { for (const word of String(text).split(/[^\p{L
 /** RR-311 B4: EVERY known place a text names (one-word and two-word places) — the AI guard checks each against the material */
 export const placesIn = (text) => { const s = String(text), low = s.toLowerCase(), out = new Set(); for (const m of MULTI_PLACES) if (low.includes(m.toLowerCase())) out.add(m); for (const word of s.split(/[^\p{L}]+/u)) { const p = PLACE_BY.get(word.toLowerCase()); if (p && ![...out].some((x) => x.toLowerCase().split(" ").includes(word.toLowerCase()))) out.add(p); } return [...out]; };
 /** RR-311 (owner): phrases that are clips and junk, never a topic, a playlist or a description ("Full Episode", "Day Life", Bigg Boss clips) */
-export const JUNK_PHRASE = /\b(full episodes?|day life|bigg boss|big boss|full video|full movie|promo|trailer|clips?|highlights|reaction|status video|daily vlog|vlog \d+)\b/i;
+export const JUNK_PHRASE = /\b(episode \d+|ep \d+|full episodes?|day life|bigg boss|big boss|full video|full movie|promo|trailer|clips?|highlights|reaction|status video|daily vlog|vlog \d+)\b/i;
 
 /**
  * A1 + A3 · the channel's NICHE from its own content: short phrases, each with how many of the channel's own videos use it.

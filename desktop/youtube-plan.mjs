@@ -209,7 +209,8 @@ export function doFirst({ videos, top, score, summary, ideas, persona = {} }) {
   if (ch && ch.passed < ch.of) { const longTop = top.filter((x) => x.kind === "LONG").slice(0, 3); steps.push({ step: `Add chapters to your long videos — ${fmt(ch.of - ch.passed)} of ${fmt(ch.of)} have none. Start with ${longTop.length ? longTop.map((x) => `"${fit(x.title, 40)}"`).join(", ") : "your newest long video"}.`, from: RULES.chapters.source }); }
   const gen = score.checks.find((c) => c.id === "generic");
   if (gen && gen.passed < gen.of) steps.push({ step: `Remove #viral, #fyp and #trending from your newest videos — ${fmt(gen.of - gen.passed)} videos use them; use the 3 hashtags given under each video instead.`, from: RULES.hashtags.source });
-  if (summary && summary.medianViews.long !== null && summary.medianViews.shorts !== null) {
+  /* RR-311: a research whose videos were ALL in other languages has an empty summary (no medianViews) — it crashed the whole tab */
+  if (summary?.medianViews && summary.medianViews.long !== null && summary.medianViews.shorts !== null) {
     const ownShorts = Math.round((videos.filter((v) => videoKind(v) === "SHORT").length / Math.max(1, videos.length)) * 100);
     if (summary.medianViews.long > summary.medianViews.shorts * 1.5 && ownShorts >= 60) steps.push({ step: `Post at least one long video this week (about ${summary.longMinutes} minutes): in your niche, long videos have a median of ${fmt(summary.medianViews.long)} views against ${fmt(summary.medianViews.shorts)} for Shorts, and ${ownShorts}% of your videos are Shorts.`, from: summary.source });
     else if (summary.medianViews.shorts > summary.medianViews.long * 1.5 && ownShorts <= 30) steps.push({ step: `Cut one Short from your next long video: in your niche, Shorts have a median of ${fmt(summary.medianViews.shorts)} views against ${fmt(summary.medianViews.long)} for long videos.`, from: summary.source });

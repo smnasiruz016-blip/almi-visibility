@@ -15,7 +15,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { inventedIn, checkOptions } from "../desktop/ai-write.mjs";
 import { langOf, channelLanguage, questionTitle, ownDataFindings, chaptersFrom, parseVtt, scorecard, newUploads, keywordIdeas, beforeAfter } from "../desktop/youtube-insights.mjs";
 import { aiLedger, costOf } from "../desktop/ai-coach.mjs";
-import { optionsFor } from "../desktop/youtube-plan.mjs";
+import { optionsFor, doFirst } from "../desktop/youtube-plan.mjs";
 import { screen } from "./support/ui-screen.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -152,6 +152,8 @@ test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competi
   assert.match(k[0].estimate, /^estimate: 2 matching videos in your niche research, median 3,000 views, 1 of them from the last 30 days$/);
   const ba = beforeAfter([{ videoId: "x", on: day(3) }], { daily: { x: Array.from({ length: 18 }, (_, i) => ({ day: day(17 - i).slice(0, 10), views: i < 14 ? 100 : 160 })) } });
   assert.match(ba[0].line, /^Views per day: 1\d\d in the 14 days before → 160 in the 3 days after$/);
+  /* a research whose videos were ALL in other languages leaves an empty summary — the YouTube tab must still open (it crashed on the copy) */
+  assert.doesNotThrow(() => doFirst({ videos: [], top: [], score: { checks: [] }, summary: { title: "x", empty: "No video in your language was found.", lines: [] }, ideas: [] }));
   /* B5 · the templates keep the video's own words — "Baby Ki Choti Phupo Iceland Pohanch Gayi!", never "Baby in Iceland" */
   const o = optionsFor({ videoId: "ice00000001", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi!", description: "Hum sab Iceland gaye, bohot maza aaya.", views: 1, publishedAt: day(60), durationSec: 900, width: 640, height: 360, tags: [] }, { channel: { title: "Dhanak Fixture", handle: "@dhanakfixture" }, persona: { who: "Pakistani Family" }, niche: { queries: [] }, summary: null });
   assert.ok(o.options.every((p) => /Baby Ki Choti Phupo Iceland Pohanch Gayi/.test(p.title)), JSON.stringify(o.options.map((p) => p.title)));

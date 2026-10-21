@@ -137,7 +137,7 @@ test("THE APP · \"Your plan — add your licence key\" takes the owner licence:
   productStore(dir).setCompany({ name: "Fixture Co", site: "https://fixture.invalid", logoFile: null });
   writeFileSync(join(dir, "licence-public.pem"), TEST_KEYS.PUB);
   /* the licence and update addresses point at nothing on this machine; the trusted public key is the test's */
-  writeFileSync(join(dir, "config.json"), JSON.stringify({ licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/", keysDir: dir }));
+  writeFileSync(join(dir, "config.json"), JSON.stringify({ testSecretsInMemory: true, licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/", keysDir: dir }));
   const p = spawn(process.execPath, [join(REPO, "desktop", "main.mjs"), `--data=${dir}`], { stdio: "ignore" });
   try {
     for (let i = 0; i < 80 && !existsSync(join(dir, "run.json")); i++) await new Promise((r) => setTimeout(r, 100));

@@ -78,7 +78,8 @@ test("VIDEOOBJECT, SCRIPT, CHANNEL CHECK and the MONTHLY REPORT — no score der
   assert.match(sc.note, /does not make the video/);
   const check = channelCheck(imp.videos, { productUrl: PRODUCT });
   assert.deepEqual(check[0].findings, []);
-  assert.deepEqual(check[1].findings, ["no description", "no text on the thumbnail", "no link back to the product page"]);
+  /* RR-306 B6: the link check names the page it expected */
+  assert.deepEqual(check[1].findings, ["no description", "no text on the thumbnail", `no link to your product's page (${PRODUCT})`]);
   const bare = channelCheck(importStudioExport("Content,Video title\nabc,A video\n", { importedOn: "x" }).videos, { productUrl: PRODUCT });
   assert.deepEqual([bare[0].findings.length, bare[0].notMeasured.length], [0, 4], "a field the data lacks became a finding");
   const yt = youtubeForReport(imp, check);

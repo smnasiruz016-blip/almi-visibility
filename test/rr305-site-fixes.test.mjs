@@ -24,7 +24,7 @@ test("B1 · WEBSITE FIELDS: \"www.almiworld.com\" and \"almiworld.com\" get http
 
 test("B1 · THE APP saves the company and a product with https:// added (the owner's \"www.almiworld.com\" was refused before)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "rr305-app-"));
-  writeFileSync(join(dir, "config.json"), JSON.stringify({ licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/" }));
+  writeFileSync(join(dir, "config.json"), JSON.stringify({ testSecretsInMemory: true, licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/" }));
   const p = spawn(process.execPath, [join(REPO, "desktop", "main.mjs"), `--data=${dir}`], { stdio: "ignore" });
   try {
     for (let i = 0; i < 80 && !existsSync(join(dir, "run.json")); i++) await new Promise((r) => setTimeout(r, 100));

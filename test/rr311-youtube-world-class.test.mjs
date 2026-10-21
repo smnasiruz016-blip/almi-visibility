@@ -264,3 +264,16 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     assert.match((await a.post(`/api/products/${aw}/youtube/apply`, { items: [{ videoId: "ice00000001", title: "x" }], confirm: true })).refused, /^AlmiWorld's own channel: nothing is changed on YouTube from here/);
   } finally { a.close(); g.close(); }
 });
+
+test("E1 + E2 · WEBSITE: a first sentence over 160 characters is not cut — the next complete sentences make the meta description; a regulator keeps its spelling and a page title that is not a question gets title case", async () => {
+  const { websiteItems } = await import("../desktop/action-plan.mjs");
+  const { asQuestion } = await import("../desktop/seo-pages.mjs");
+  const long = "For an OET taken on or after 23 April 2026, the national boards ask for at least 350 in Listening, 360 in Reading, 350 in Writing and 360 in Speaking for every nurse.";
+  const site = { ok: true, origin: "https://x.test", readOn: "2026-10-21", pages: [{ url: "https://x.test/", title: "X", description: "", qa: [], noindex: false }], robots: { found: true }, sitemap: { found: true }, brokenLinks: [] };
+  const pages = { drafts: [{ url: "https://x.test/oet-ireland", title: "Is OET Accepted in Ireland", readyAsDraft: true }], plan: [{ kind: "NEW", question: "Is OET Accepted in Ireland", demand: { source: "Search Console" }, answers: [{ text: `${long} OET results are accepted for registration in Ireland. You need one sitting.`, link: "https://x.test/guides" }] }] };
+  const meta = websiteItems({ site, pages }).find((i) => i.id === "new-pages").ready.find((r) => r.kind === "meta description");
+  assert.ok(long.length > 160);
+  assert.equal(meta.text, "OET results are accepted for registration in Ireland. You need one sitting.");
+  assert.equal(asQuestion("ahpra speech pathology"), "AHPRA Speech Pathology");
+  assert.equal(asQuestion("is oet accepted in canada"), "Is OET accepted in Canada");
+});

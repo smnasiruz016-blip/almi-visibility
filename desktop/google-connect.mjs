@@ -54,7 +54,7 @@ export function importExport(files, { exportedOn, source }) {
   if (r.refusal) return { ok: false, why: { QUERIES_FILE_UNREADABLE: "The Queries file is missing — choose Search Console's whole download (the ZIP), or its Queries, Pages and Chart files.", PAGES_FILE_UNREADABLE: "The Pages file is missing — choose Search Console's whole download (the ZIP).", CHART_FILE_UNREADABLE: "The Chart (dates) file is missing — choose Search Console's whole download (the ZIP)." }[r.refusal] ?? "That is not a Search Console download." };
   const q = (texts[Object.keys(texts).find((n) => /^queries\.csv$/i.test(n))] ?? "").replace(/^﻿/, "").split(/\r?\n/).slice(1).filter(Boolean).map((l) => { const c = l.match(/("([^"]|"")*"|[^,]*)(,|$)/g).map((x) => x.replace(/,$/, "").replace(/^"|"$/g, "").replace(/""/g, '"')); return { query: c[0], clicks: Number(c[1]) || 0, impressions: Number(c[2]) || 0 }; }).filter((x) => x.query);
   const rec = r.record;
-  return { ok: true, data: { kind: "EXPORT", on: exportedOn, window: rec.window.from ? `${rec.window.from} to ${rec.window.to}` : "export", totals: rec.totals, pages: rec.pages.urls.slice(0, 500), queries: q.slice(0, 1000) },
+  return { ok: true, data: { kind: "EXPORT", on: exportedOn, window: rec.window.from ? `${rec.window.from} to ${rec.window.to}` : "export", totals: rec.totals, pages: rec.pages.urls.slice(0, 500), queries: q.slice(0, 1000), record: { ...rec, pages: { ...rec.pages, urls: rec.pages.urls.slice(0, 500) } } },
     line: `Search Console export added: ${q.length} searches and ${rec.pages.rows} pages, ${rec.window.from ?? "?"} to ${rec.window.to ?? "?"}.` };
 }
 

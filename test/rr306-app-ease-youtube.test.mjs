@@ -71,10 +71,10 @@ test("A3 · KEYS: a pasted key is kept in the secure store and shown only as \"s
 });
 
 test("A2 · SKIP: Search data, Your AI connection and YouTube are optional — \"Skip / not now\" is accepted for them only; the AI step takes a provider (its key pasted), never a variable NAME typed by the client", () => {
-  assert.deepEqual(STEPS.filter((s) => s.optional).map((s) => s.id), ["searchData", "aiConnection", "youtube"]);
+  assert.deepEqual(STEPS.filter((s) => s.optional).map((s) => s.id), ["youtube", "searchData", "aiConnection"]);
   for (const id of ["searchData", "aiConnection", "youtube"]) assert.equal(checkStep(id, { skipped: true }), null, id);
   assert.equal(checkStep("aiConnection", { provider: "anthropic" }), null);
-  assert.match(checkStep("aiConnection", { provider: "made-up" }), /Choose your AI provider/);
+  assert.match(checkStep("aiConnection", { provider: "made-up" }), /Choose your AI assistant/);
   assert.doesNotMatch(STEPS.find((s) => s.id === "aiConnection").ask, /environment|variable|NAME/);
   assert.doesNotMatch(STEPS.find((s) => s.id === "youtube").ask, /environment|variable|NAME/);
 });
@@ -198,7 +198,7 @@ test("B2 + B3 · THE OWNER'S CASE: a similar handle of ANOTHER channel (@rightwo
     const reads = a.yt.calls.slice(n);
     assert.ok(reads.some((c) => c.path === "channels" && c.params.id === "UCrightworld000000001"), "the read did not use the channel ID");
     assert.ok(!reads.some((c) => c.params.forHandle), "a read looked the channel up by handle again");
-    assert.match(adv.report.join(" "), /read with your API key/);
+    assert.match(adv.report.join(" "), /read with your YouTube key/);
     assert.doesNotMatch(adv.report.join(" "), /export/);
     /* a changed @handle drops the confirmation */
     await a.post(`/api/products/${id}/youtube`, { handle: "@rightworld" });
@@ -235,7 +235,7 @@ test("A3 + C1 · IN THE APP: the key is never in a file, a reply or another site
 
 test("A1 + A2 · THE SCREENS: \"Licence saved ✓\" with one big next step; \"Skip / not now\" on optional steps, and a skipped step is kept as skipped; a required step cannot be skipped; every product has Settings", async () => {
   const ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
-  for (const s of ["Licence saved ✓", "Continue — add your first product", "Continue — go to your products", "Skip / not now", "Is this your channel?", "Yes, this is my channel", "No — change the @handle", "id=\"set\">Settings", "saved ✓ (ends …"]) assert.ok(ui.includes(s), s);
+  for (const s of ["Licence saved ✓", "Continue — add your first product", "Continue — go to your products", "Skip for now — add later", "Is this your channel?", "Yes, this is my channel", "No — change the @handle", "id=\"set\">Settings", "saved ✓ (ends …"]) assert.ok(ui.includes(s), s);
   /* a plan, so setup answers are taken: an owner licence made with a test key the app is told to trust (keysDir — tests only) */
   const { generateKeyPairSync } = await import("node:crypto");
   const { makeOwnerLicence } = await import("../services/licence/service.mjs");

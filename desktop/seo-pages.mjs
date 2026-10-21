@@ -44,7 +44,7 @@ export function designFromSite(site) {
 export function demandOf({ searchConsole = null, files = [], youtube = null }) {
   const out = new Map();
   const add = (text, source, weight) => { const k = tokens(text).join(" "); if (tokens(text).length < 2) return; const x = out.get(k); if (!x || x.weight < weight) out.set(k, { text: String(text).trim(), source, weight }); };
-  for (const q of searchConsole?.queries ?? []) add(q.query, `your Search Console: ${q.impressions} times seen in search (${searchConsole.window})`, 10 + Math.log10(1 + q.impressions));
+  for (const q of searchConsole?.queries ?? []) add(q.query, `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} in search (${searchConsole.window})`, 10 + Math.log10(1 + q.impressions));
   for (const f of files) add(f.phrase, `your file ${f.file} (${f.on})`, 5 + Math.log10(1 + (f.impressions ?? 0)));
   for (const q of youtube?.questions ?? []) add(q.text, q.source, 3);
   for (const t of youtube?.terms ?? []) add(t.phrase, t.from, 2);
@@ -58,7 +58,8 @@ export function answersFromSite(text, site, max = 3) {
   const cands = [];
   for (const p of site.pages) {
     const lines = [...p.qa.filter((x) => x.a).map((x) => x.a), ...p.facts];
-    for (const line of lines) { const t = new Set(tokens(line)); let n = 0; for (const w of want) if (t.has(w)) n++; if (n >= Math.min(2, want.size)) cands.push({ text: line.length > 400 ? `${line.slice(0, 399)}…` : line, link: p.url, readOn: day, score: n / want.size }); }
+    for (const line of lines) { const t = new Set(tokens(line)); let n = 0; for (const w of want) if (t.has(w)) n++; /* RR-307: an answer holds at least two thirds of the search's words — "fee in Pakistan" is never "answered" by a sentence that only shares "exam" */
+      if (n >= Math.max(2, Math.ceil(want.size * 2 / 3))) cands.push({ text: line.length > 400 ? `${line.slice(0, 399)}…` : line, link: p.url, readOn: day, score: n / want.size }); }
   }
   return [...new Map(cands.sort((a, b) => b.score - a.score).map((c) => [c.text, c])).values()].slice(0, max).map((c) => ({ claimId: `site-${createHash("sha256").update(`${c.link}|${c.text}`).digest("hex").slice(0, 16)}`, text: c.text, link: c.link, readOn: c.readOn, source: new URL(c.link).hostname }));
 }

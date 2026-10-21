@@ -125,7 +125,8 @@ test("C · UPDATE: only a NEWER, signed version is offered; a tampered package o
 });
 
 test("C · FIRST RUN: seven steps, one at a time; the AI connection takes a key NAME only — a key value is refused and never stored", () => {
-  assert.deepEqual(STEPS.map((s) => s.id), ["product", "searchData", "languages", "articlesPerDay", "publishMode", "aiConnection", "youtube", "start"]); /* RR-302 C1: the optional YouTube step */
+  /* RR-307 D1 (owner): two plain questions first ("goal"), then only the steps that fit — YouTube right after the product */
+  assert.deepEqual(STEPS.map((s) => s.id), ["goal", "product", "youtube", "searchData", "languages", "articlesPerDay", "publishMode", "aiConnection", "start"]);
   assert.equal(checkStep("youtube", { handle: "" }), null);
   assert.equal(checkStep("youtube", { handle: "@Almiworld-world", keyName: "YOUTUBE_API_KEY" }), null);
   for (const v of ["AIzaSyFakeLookingValue123", "my key"]) assert.match(checkStep("youtube", { handle: "@x-channel", keyName: v }), /NAME of the variable/);
@@ -133,7 +134,9 @@ test("C · FIRST RUN: seven steps, one at a time; the AI connection takes a key 
   assert.equal(checkStep("product", { name: "Widgetry Prep", site: "https://widgetry.example", what: "a test project" }), null);
   /* RR-305 B1 (owner decision, 21 Oct 2026): an address typed without https:// is ACCEPTED (https:// is added); not-an-address is still refused */
   assert.equal(checkStep("product", { name: "x", site: "widgetry.example", what: "y" }), null);
-  for (const site of ["widgetry", "not a site", "ftp://widgetry.example", "javascript:alert(1)", ""]) assert.ok(checkStep("product", { name: "x", site, what: "y" }), site);
+  for (const site of ["widgetry", "not a site", "ftp://widgetry.example", "javascript:alert(1)"]) assert.ok(checkStep("product", { name: "x", site, what: "y" }), site);
+  /* RR-307 D1: a product with NO website (YouTube only) gives no address; the app still asks for one when the client said it has a website */
+  assert.equal(checkStep("product", { name: "x", site: "", what: "y" }), null);
   assert.equal(checkStep("searchData", { option: 2 }), null);
   assert.equal(checkStep("languages", { codes: ["en", "ur"] }), null);
   assert.ok(checkStep("articlesPerDay", { perDay: -1 }));

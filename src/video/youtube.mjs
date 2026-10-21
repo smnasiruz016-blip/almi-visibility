@@ -292,8 +292,8 @@ export function youtubeForReport(imported, check) {
   const views = imported.videos.map((v) => v.views).filter(Number.isFinite);
   const withFindings = check.filter((c) => c.findings.length);
   return Object.freeze({ connected: true, lines: Object.freeze([
-    /* RR-306 B7: "read with your API key" — an export only when the data came from a Studio export */
-    `YouTube (${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "your Studio export" : "read with your API key"}, ${imported.importedOn}): ${imported.videos.length} video(s)${views.length ? `, ${views.reduce((a, b) => a + b, 0)} views ${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "in the export" : "in total"}` : ""}.`,
+    /* RR-306 B7: "read with your YouTube key" — an export only when the data came from a Studio export */
+    `YouTube (${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "your Studio export" : "read with your YouTube key"}, ${imported.importedOn}): ${imported.videos.length} video(s)${views.length ? `, ${views.reduce((a, b) => a + b, 0)} views ${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "in the export" : "in total"}` : ""}.`,
     ...withFindings.slice(0, 5).map((c) => `Video "${c.title}": ${c.findings.join("; ")}`),
     ...(check.some((c) => c.notMeasured.length) ? [`Not measured from this data: ${[...new Set(check.flatMap((c) => c.notMeasured))].join(", ")}.`] : []),
   ]) });

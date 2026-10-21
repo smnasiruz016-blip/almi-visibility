@@ -6,6 +6,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
+import { stepsFor } from "./setup.mjs";
 
 export const PRODUCT_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 /** The second guard: a resolved folder is a product folder only when it lies INSIDE the products folder (never the folder itself, never above). */
@@ -35,9 +36,19 @@ export function productStore(dataDir) {
     write(id, state);
     return state;
   };
+  /* RR-307 (owner, addition 2 item 6): "Delete product" after "Are you sure?" — the folder is MOVED aside (deleted-products), never erased,
+   * so it can be put back; it leaves the products list and the plan count */
+  const remove = (id) => {
+    const from = dirOf(id);
+    if (!existsSync(join(from, "state.json"))) throw Object.assign(new Error(`no product ${id}`), { code: "NO_SUCH_PRODUCT" });
+    const bin = resolve(dataDir, "deleted-products"); mkdirSync(bin, { recursive: true });
+    const to = join(bin, `${id}-${new Date().toISOString().replace(/[:.]/g, "-")}`);
+    renameSync(from, to);
+    return to;
+  };
   const companyFile = join(resolve(dataDir), "company.json");
   return Object.freeze({
-    root, dirOf, read, write, list, create,
+    root, dirOf, read, write, list, create, remove,
     company: () => (existsSync(companyFile) ? JSON.parse(readFileSync(companyFile, "utf8")) : null),
     setCompany: (c) => atomic(companyFile, c),
   });
@@ -46,7 +57,7 @@ export function productStore(dataDir) {
 /** One product as the home screen shows it: its name, its own address, and its state in plain words. */
 export const productCard = (s) => Object.freeze({
   id: s.id, name: s.product.name, site: s.product.site,
-  state: s.started ? "Set up — working" : `Setting up (${Object.keys(s.setup ?? {}).length} of 6 steps answered)`,
+  state: s.started ? "Set up — working" : `Setting up (${stepsFor(s.setup).filter((x) => x.id !== "start" && s.setup?.[x.id]).length} of ${stepsFor(s.setup).length - 1} steps answered)`,
   pages: (s.preview ?? []).filter((p) => p.kind !== "ARTICLE").length, articles: (s.preview ?? []).filter((p) => p.kind === "ARTICLE").length,
   lastReport: (s.reports ?? []).at(-1)?.on ?? "none yet",
 });

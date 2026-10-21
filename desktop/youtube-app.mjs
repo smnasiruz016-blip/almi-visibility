@@ -12,7 +12,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY } from "../src/video/youtube.mjs";
-import { youtubeAdvice, autoTopics } from "./youtube-advice.mjs";
+import { youtubeAdvice, autoTopics, tokens } from "./youtube-advice.mjs";
 
 export const RAW_DAYS = 30;
 export const MIN_SEARCHES_PER_PRODUCT = 3; // RR-307: a product's fair share of the day's cap is never below 3 searches
@@ -148,10 +148,24 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       let raw = latest(id, "videos-");
       if (!raw || raw.recorded_at?.slice(0, 10) !== today() || raw.channelId !== y.confirmed.channelId) { const r = await self.read(id); raw = { videos: r.videos, pages: r.pages, complete: r.complete }; }
       const research = researchAll(id);
+      /* RR-307 E4 · one channel, several products: each video goes to the product whose own words it uses most (a CV video → the CV
+       * product); words every sharing product has (the brand) decide nothing; a video using none is "not linked to a product" */
+      const sharing = store.list().filter((p) => p.id !== id && p.setup?.youtube?.confirmed?.channelId === y.confirmed.channelId);
+      let videos = raw.videos, shared = null;
+      if (sharing.length) {
+        const wordsOf = (p) => new Set(autoTopics({ what: p.setup?.product?.what, names: [] }).concat(p.product?.name ?? "").flatMap((t) => tokens(t)));
+        const all = [s, ...sharing].map((p) => ({ id: p.id, name: p.product?.name, words: wordsOf(p) }));
+        const common = new Set([...all[0].words].filter((w) => all.every((p) => p.words.has(w))));
+        const owner = (v) => { const vt = new Set(tokens(`${v.title} ${String(v.description ?? "").split("\n").slice(0, 2).join(" ")} ${(v.tags ?? []).join(" ")}`)); const sc = all.map((p) => [p, [...p.words].filter((w) => !common.has(w) && vt.has(w)).length]).sort((a, b) => b[1] - a[1]); return sc[0][1] > 0 && sc[0][1] > (sc[1]?.[1] ?? 0) ? sc[0][0].id : null; };
+        const assigned = raw.videos.map((v) => [v, owner(v)]);
+        videos = assigned.filter(([, o]) => o === id).map(([v]) => v);
+        shared = { products: all.map((p) => p.name), mine: videos.length, unlinked: assigned.filter(([, o]) => o === null).length, others: assigned.filter(([, o]) => o && o !== id).length,
+          line: `This channel serves ${all.length} products (${all.map((p) => p.name).join(", ")}). ${videos.length} of its ${raw.videos.length} videos ${videos.length === 1 ? "is" : "are"} about ${s.product?.name}; ${assigned.filter(([, o]) => o === null).length} ${assigned.filter(([, o]) => o === null).length === 1 ? "is" : "are"} not linked to any product.` };
+      }
       const opts = { productUrl: s.product?.site ?? null, productIsChannel: productIsChannel(s), relatedPages: y.relatedPages ?? [] };
-      const adv = youtubeAdvice({ product: { ...s.setup?.product, languages: s.setup?.languages?.codes ?? [] }, channel: y.confirmed, videos: raw.videos, research, files: filesOf(id), ...opts, readOn: new Date(now()).toISOString() });
+      const adv = youtubeAdvice({ product: { ...s.setup?.product, languages: s.setup?.languages?.codes ?? [] }, channel: y.confirmed, videos, research, files: filesOf(id), ...opts, readOn: new Date(now()).toISOString() });
       const report = youtubeForReport({ ok: true, source: "YOUTUBE_DATA_API", importedOn: today(), videos: raw.videos }, channelCheck(raw.videos, opts)).lines;
-      return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), researchOn: research?.readOn ?? null, ...adv };
+      return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null, ...adv };
     },
     /** the YouTube lines for the product's tab list (and the monthly report) */
     async lines(id) { try { const a = await self.advice(id); return a.state === "READY" ? [`${a.confirmed.title}: ${a.confirmed.handle}`, ...a.report] : a.lines; } catch (e) { return [`YouTube could not be read now (${/answered HTTP \d+/.exec(String(e?.message))?.[0] ?? "no answer"}). Nothing was changed.`]; } },

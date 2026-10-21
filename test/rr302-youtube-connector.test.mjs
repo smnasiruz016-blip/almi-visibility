@@ -67,8 +67,8 @@ test("C1 · END TO END: a fake key + the declared connector → the channel's vi
     const egress = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual([egress.fetch, egress.replayed, Object.keys(egress.hosts)], [3, 3, ["www.googleapis.com"]]);
     assert.match(ok.stdout, /videos {11}2 read through the API/);
-    /* RR-306 B7 (owner, 21 Oct 2026): "read with your API key", never "in the export"; B6: the link check names the page it expected */
-    assert.match(ok.stdout, /YouTube \(read with your API key, 2026-10-20\): 2 video\(s\), 150 views in total\./);
+    /* RR-306 B7 (owner, 21 Oct 2026): "read with your API key", never "in the export" — RR-307 D3 (no technical words on screen): "read with your YouTube key"; B6: the link check names the page it expected */
+    assert.match(ok.stdout, /YouTube \(read with your YouTube key, 2026-10-20\): 2 video\(s\), 150 views in total\./);
     assert.match(ok.stdout, /Video "Questions": no description; no link to your product's page \(https:\/\/fixture-channel\.invalid\/fit\)/);
     assert.ok(!(ok.stdout + ok.stderr + noKey.stdout + noKey.stderr).includes(FAKE_KEY), "the key was printed");
   } finally {

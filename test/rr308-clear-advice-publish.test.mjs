@@ -106,7 +106,8 @@ test("B · THE PLAN: the YouTube /100 is ONLY the share of plain countable check
   const ctx = { channel: { ...CHANNEL, boilerplate: boilerplateOf(vids) }, persona: niche.persona, niche, summary, productIsChannel: true, readOn: ON };
   for (const x of order.slice(0, TOP_N)) {
     const o = optionsFor(x, ctx);
-    assert.ok(o.options.length >= 2 && o.options.length <= 3, `${x.title}: ${o.options.length} options`);
+    /* RR-311 (owner): never an empty title — a video whose own words say almost nothing ("Clip 7") gets fewer options, and says why */
+    assert.ok((o.options.length >= 2 || o.weak) && o.options.length >= 1 && o.options.length <= 3, `${x.title}: ${o.options.length} options`);
     assert.ok(!("notEnough" in o), "'Not enough research' came back");
     for (const p of o.options) {
       assert.ok(p.title.length >= 8 && p.title.length <= 100, p.title);

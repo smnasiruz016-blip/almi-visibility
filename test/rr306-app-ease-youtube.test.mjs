@@ -220,7 +220,7 @@ test("A3 + C1 · IN THE APP: the key is never in a file, a reply or another site
     assert.equal(r1.http, 200, r1.refused);
     /* RR-308 (owner decision 22 Oct): the research is the channel's NICHE — its own tags' phrases — searched as top and rising videos;
      * the day's cap still holds: never more searches than the cap, and the refusal says so */
-    assert.match(r1.line, /^Research done: \d searches of your niche .*YouTube research today: [1-3] of 3 searches used \(Visibility's own cap; your key's limit is 100 searches a day\)/);
+    assert.match(r1.line, /^Research done in your channel's language \(English\): \d searches of your niche.*YouTube research today: [1-3] of 3 searches used \(Visibility's own cap; your key's limit is 100 searches a day\)/);
     let r2; for (let i = 0; i < 4; i++) { r2 = await a.post(`/api/products/${id}/youtube/research`, {}); if (r2.http !== 200) break; }
     assert.equal(r2.http, 400);
     assert.match(r2.refused, /^(Today's research limit is reached \(3 of 3 searches used; this product's share today: 3\)\. It starts again tomorrow\.|Every topic was searched today\.) Topics searched today: /);
@@ -229,7 +229,7 @@ test("A3 + C1 · IN THE APP: the key is never in a file, a reply or another site
     const adv = await a.get(`/api/products/${id}/youtube/advice`);
     /* RR-308: the niche's search results count only when they are about the niche — this fixture's IELTS results are not about its CV
      * niche, so their comments are no longer read; the ideas left (from the channel's own comments) each say why */
-    assert.ok(adv.ideas.length >= 1 && adv.ideas.every((i) => i.title && /^A viewer asked it|is \d+ of the niche/.test(i.why)), JSON.stringify(adv.ideas));
+    assert.ok(adv.ideas.length >= 1 && adv.ideas.every((i) => i.title && /^a viewer's own question: ".+" \(.+\) — none of your videos answers it yet$|is \d+ of the niche/.test(i.why)), JSON.stringify(adv.ideas)); // RR-311 C4: the original question shown as the source
     const cv = adv.top.find((v) => v.videoId === "own0000001");
     assert.ok(cv.options.length >= 2 && cv.options.every((o) => o.basedOn.length && o.title && o.description && o.hashtags.length === 3 && o.thumbnail), "an option without its parts or its source");
     assert.ok(!a.files().includes(FAKE_KEY), "the key was written to a file");

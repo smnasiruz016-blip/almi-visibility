@@ -141,10 +141,13 @@ export function optionsFor(v, ctx) {
     ...(fmtStat ? [`niche research: "${fmtStat.label}" videos — ${fmtStat.count} of the top ones, median ${fmt(fmtStat.medianViews)} views (${summary.source})`] : nicheTop.length ? [`your niche: ${nicheTop.slice(0, 3).join(", ")} (from your own videos' tags and your channel's description${readOn ? `, read ${day(readOn)}` : ""})`] : []),
   ];
   /* the video's own main words — an all-lowercase title gets its capitals (the words stay the video's own) */
-  const mainText = own.main ? fit(own.main === own.main.toLowerCase() ? titleCase(own.main) : own.main, 60) : null;
+  /* an English title gets title case ("Grocery haul" → "Grocery Haul"); a Roman-Urdu one keeps the creator's own casing unless all lower case */
+  const mainText = own.main ? fit(own.main === own.main.toLowerCase() || styleOf(v) === "English" ? titleCase(own.main) : own.main, 60) : null;
   /* RR-309 B4 · THREE DIFFERENT KINDS of option (owner): 1 · place + activity + who; 2 · a question people ask; 3 · a short hook — each built
    * only from the researched phrases and the video's own words; a kind that cannot be made from them is filled by the video's own words */
-  const subject = activity ?? mainText ?? (nicheTop[0] ? titleCase(nicheTop[0]) : null);
+  /* RR-311 (owner): the video's OWN words are the subject — a word picked out of them ("Baby" from "Baby Ki Choti Phupo Iceland Pohanch
+   * Gayi!") changes the meaning and the language; the activity only stands in when the video's own words are missing */
+  const subject = mainText ?? activity ?? (nicheTop[0] ? titleCase(nicheTop[0]) : null);
   const where = place && subject && !subject.toLowerCase().includes(place.toLowerCase()) ? ` in ${place}` : "";
   const vt = new Set(tokens(`${v.title} ${own.firstLine ?? ""} ${activity ?? ""} ${place ?? ""}`));
   /* a question a viewer really asked (the research's comments, the client's files) that this video's own words answer */
@@ -164,14 +167,21 @@ export function optionsFor(v, ctx) {
   const seen = new Set();
   /* an option that only repeats the video's present title (without its hashtags and the channel's name) is not advice — it is left out */
   const now = String(own.parts.join(" | ")).replace(/\s+/g, " ").trim().toLowerCase();
-  const usable = typed.filter((o) => o.title && o.title.length >= 8 && o.title.toLowerCase() !== now && o.title.toLowerCase() !== String(own.main ?? "").toLowerCase() && !seen.has(o.title.toLowerCase()) && seen.add(o.title.toLowerCase()));
+  /* RR-311: never an EMPTY title — without the template's own words ("Come With Us", "Watch This") at least 2 words of the video must remain */
+  const meaning = (t) => tokens(String(t).replace(/^(come with us|watch this)\s*:\s*/i, "").replace(/\|.*$/, "")).length;
+  const usable = typed.filter((o) => o.title && o.title.length >= 8 && meaning(o.title) >= 2 && o.title.toLowerCase() !== now && o.title.toLowerCase() !== String(own.main ?? "").toLowerCase() && !seen.has(o.title.toLowerCase()) && seen.add(o.title.toLowerCase()));
   const uniqueTitles = usable.map((o) => o.title);
   const keyLine = [nicheTop[0], who, place].filter(Boolean).map(titleCase).join(" · ");
-  const summaryLines = own.firstLine ? [own.firstLine] : ["(Add one or two sentences saying what happens in this video.)"];
-  const chapters = kind === "LONG" ? ["", "Chapters (fill in the time each part starts — at least 3 parts, each 10 seconds or longer):", "0:00 Intro", "?:?? …", "?:?? …"] : [];
+  /* RR-311 (owner): never a placeholder in a ready text — no "(Add one or two sentences…)", no "?:??"; chapters only the REAL ones, made
+   * from the video's own captions (with sign-in); without captions the action plan says how to add them */
+  const summaryLines = own.firstLine ? [own.firstLine] : [];
+  const real = ctx.chapters?.[v.videoId] ?? null;
+  const chapters = kind === "LONG" && real ? ["", "Chapters:", real] : [];
   const links = [...(target ? [`More: ${target.url}`] : []), ...(channel.handle ? [`Subscribe: https://www.youtube.com/${channel.handle}?sub_confirmation=1`] : [])];
   /* always 3 hashtags: what happens, where, who, the niche's phrases, then the video's own main words and the channel's own name */
-  const tagPool = [...new Set([activity && camel(activity), place && camel(place), who && camel(who), ...nicheTop.map(camel), ...(own.parts ?? []).map(camel), channel.title && camel(channel.title)].filter((t) => t && t.length >= 3 && t.length <= 40))];
+  /* RR-311 (owner: "#IcelandHum"): a hashtag only from a WHOLE short phrase (3 words or fewer) with no Roman-Urdu joining word in it */
+  const tagOf = (p) => { const w = String(p ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean); return w.length && w.length <= 3 && !w.some((x) => ROMAN.has(x.toLowerCase()) || /^(hum|ham|bhi|to|ne|se|ko|par|pe)$/i.test(x)) ? camel(p) : null; };
+  const tagPool = [...new Set([activity && tagOf(activity), place && camel(place), who && tagOf(who), ...nicheTop.map(tagOf), ...(own.parts ?? []).map(tagOf), channel.title && camel(channel.title)].filter((t) => t && t.length >= 3 && t.length <= 40))];
   const options = uniqueTitles.slice(0, 3).map((title, i) => {
     const o = usable[i];
     const lead = o.type === "A question people ask" ? `This video answers: ${title}` : o.type === "Your own words first" && mainText ? mainText : title.split(" | ")[0];
@@ -185,7 +195,7 @@ export function optionsFor(v, ctx) {
     return Object.freeze({ n: i + 1, type: o.type, title, description, hashtags, thumbnail, style: styleOf({ title }), basedOn: [o.from, ...basedOnCommon] });
   });
   return Object.freeze({ videoId: v.videoId, title: v.title, kind, views: v.views, publishedAt: day(v.publishedAt), options, firstLine: own.firstLine ?? null, link: target?.url ?? null,
-    weak: !own.main && !f ? "This video's title and description say very little — the options use your channel's main topic. Check they fit before you use them." : null });
+    weak: options.length < 2 ? "This video's own title and description say too little for more than one honest option — Visibility does not make empty titles. Give it a clearer title first: what happens, where, who." : !own.main && !f ? "This video's title and description say very little — the options use your channel's main topic. Check they fit before you use them." : null });
 }
 
 /** B1 · "Do these first this week" — 3 to 5 concrete steps for THIS channel. */

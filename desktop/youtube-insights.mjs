@@ -43,14 +43,18 @@ export function langOf(text) {
 const AUDIO = (code) => (/^(ur|hi|pa)/i.test(String(code ?? "")) ? "ur-hi" : /^bn/i.test(String(code ?? "")) ? "bn" : /^en/i.test(String(code ?? "")) ? "en" : null);
 /** the channel's language, from its own titles and YouTube's audio-language field */
 export function channelLanguage(videos) {
+  /* YouTube's audio-language field says "en" by default (Dhanak: 1,222 of 1,438 "en", while 664 of its titles are Roman Urdu) — so "en"
+   * there decides nothing; the titles and a non-English audio field do. A channel that writes a quarter of its titles in Urdu/Hindi speaks
+   * to Urdu/Hindi viewers, even when it mixes in English. */
   const votes = new Map();
-  for (const v of videos) for (const l of [AUDIO(v.language), langOf(`${v.title} ${String(v.description ?? "").split("\n")[0]}`)]) if (l) votes.set(l, (votes.get(l) ?? 0) + 1);
-  const top = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
-  const code = top && top[1] >= Math.max(2, videos.length * 0.15) ? top[0] : "en";
+  for (const v of videos) { const a = AUDIO(v.language), t = langOf(`${v.title} ${String(v.description ?? "").split("\n")[0]}`); for (const l of [a === "en" ? null : a, t]) if (l) votes.set(l, (votes.get(l) ?? 0) + 1); }
+  const classified = [...votes.values()].reduce((n, x) => n + x, 0) || 1;
+  const nonEn = [...votes.entries()].filter(([l]) => l !== "en").sort((a, b) => b[1] - a[1])[0];
+  const code = nonEn && nonEn[1] >= Math.max(2, classified * 0.25) ? nonEn[0] : "en";
   return { code, relevance: code === "ur-hi" ? "ur" : code === "bn" ? "bn" : "en", second: code === "ur-hi" ? "hi" : null, label: code === "ur-hi" ? "Urdu / Hindi (Roman or its own script)" : code === "bn" ? "Bangla" : "English", votes: Object.fromEntries(votes) };
 }
 /** is a niche video in the channel's language? Its audio-language field first, else its own words */
-export const sameLanguage = (v, ch) => { const a = AUDIO(v.language); if (a) return a === ch.code; return langOf(`${v.title} ${String(v.description ?? "").slice(0, 300)}`) === ch.code; };
+export const sameLanguage = (v, ch) => { const a = AUDIO(v.language); if (a && a !== "en") return a === ch.code; if (a === "en" && ch.code === "en") return true; if (ch.code === "en") { const l = langOf(`${v.title} ${String(v.description ?? "").slice(0, 300)}`); return l === "en" || l === null; } return langOf(`${v.title} ${String(v.description ?? "").slice(0, 300)}`) === ch.code; };
 
 /* ── a viewer's question as a ready video title (no AI): its own words, cleaned, in the channel's language only ── */
 export function questionTitle(q, ch) {

@@ -144,11 +144,18 @@ export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_
     },
     /** C1: the videos that do well on a topic — the API's own search (its own daily bucket), then their numbers */
     /* RR-308 A1: the niche's TOP and RISING videos — the API's own order by views, inside a date window, in the channel's language when set */
-    async searchTopic(q, { max = 10, order = "relevance", publishedAfter = null, relevanceLanguage = null } = {}) {
+    async searchTopic(q, { max = 10, order = "relevance", publishedAfter = null, relevanceLanguage = null, regionCode = null } = {}) {
       if (!["relevance", "viewCount", "date"].includes(order)) order = "relevance";
-      const s = await get("search", { part: "snippet", type: "video", q, order, maxResults: String(max), ...(publishedAfter ? { publishedAfter } : {}), ...(relevanceLanguage && /^[a-z]{2}$/.test(relevanceLanguage) ? { relevanceLanguage } : {}) });
+      /* RR-311 C1: the API's own language and region filters, when the channel's language is known */
+      const s = await get("search", { part: "snippet", type: "video", q, order, maxResults: String(max), ...(publishedAfter ? { publishedAfter } : {}), ...(relevanceLanguage && /^[a-z]{2}$/.test(relevanceLanguage) ? { relevanceLanguage } : {}), ...(regionCode && /^[A-Z]{2}$/.test(regionCode) ? { regionCode } : {}) });
       const ids = (s.items ?? []).map((i) => i.id?.videoId).filter(Boolean);
       return ids.length ? (await videosByIds(ids)).sort((a, b) => b.views - a.views) : [];
+    },
+    /** RR-311 C2: a competitor's latest uploads — one page of its uploads playlist (3 units), never the whole channel */
+    async latestUploads(channelId, { max = 50 } = {}) {
+      const ch = await api.channelById(channelId); if (!ch.found || !ch.uploads) return Object.freeze({ channel: ch, videos: [] });
+      const pl = await get("playlistItems", { part: "contentDetails", playlistId: ch.uploads, maxResults: String(Math.min(50, max)) });
+      return Object.freeze({ channel: ch, videos: Object.freeze(await videosByIds((pl.items ?? []).map((i) => i.contentDetails.videoId))) });
     },
     /** C1: what people write under a video — their own questions (comments turned off → none, said plainly) */
     async comments(videoId, { max = 50 } = {}) {

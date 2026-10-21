@@ -143,8 +143,10 @@ export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_
       return Object.freeze({ channel: ch, videos: Object.freeze(await videosByIds(ids)), pages, complete: !token });
     },
     /** C1: the videos that do well on a topic — the API's own search (its own daily bucket), then their numbers */
-    async searchTopic(q, { max = 10 } = {}) {
-      const s = await get("search", { part: "snippet", type: "video", q, order: "relevance", maxResults: String(max) });
+    /* RR-308 A1: the niche's TOP and RISING videos — the API's own order by views, inside a date window, in the channel's language when set */
+    async searchTopic(q, { max = 10, order = "relevance", publishedAfter = null, relevanceLanguage = null } = {}) {
+      if (!["relevance", "viewCount", "date"].includes(order)) order = "relevance";
+      const s = await get("search", { part: "snippet", type: "video", q, order, maxResults: String(max), ...(publishedAfter ? { publishedAfter } : {}), ...(relevanceLanguage && /^[a-z]{2}$/.test(relevanceLanguage) ? { relevanceLanguage } : {}) });
       const ids = (s.items ?? []).map((i) => i.id?.videoId).filter(Boolean);
       return ids.length ? (await videosByIds(ids)).sort((a, b) => b.views - a.views) : [];
     },

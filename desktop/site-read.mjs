@@ -19,12 +19,20 @@ import { AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
 export const FULL = Object.freeze({ pages: 50, linkChecks: 60, paceMs: 1000, timeoutMs: 15000, maxBytes: 2_000_000, sitemaps: 3 });
 export const USER_AGENT = "AlmiVisibility/1.0 (+https://almivisibility.almiworld.com)";
 const htmlish = (u) => !/\.(pdf|jpe?g|png|gif|webp|svg|zip|mp4|mp3|css|js|xml|json|ico|txt|woff2?)(\?|$)/i.test(u);
-const decode = (s) => String(s ?? "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ");
+const decode = (s) => String(s ?? "").replace(/&#x([0-9a-f]{1,6});/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d{1,7});/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ");
 const strip = (s) => decode(String(s ?? "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 const one = (re, html) => { const m = re.exec(html); return m ? strip(m[1]) : null; };
 const all = (re, html) => [...String(html).matchAll(re)].map((m) => strip(m[1])).filter(Boolean);
 const attr = (tag, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(tag); return m ? decode(m[1]) : null; };
 const PRICE = /(?:[$£€₹]|\b(?:USD|GBP|EUR|PKR|INR|AUD|CAD|Rs\.?)\s?)\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:\/|per)\s?(?:month|mo|year|yr|week|day))?/gi;
+
+/* RR-308 C2 (owner: "the /signup?next=… page was checked"): an address that should not be in search — and so is not checked */
+const NOT_FOR_SEARCH = /\/(sign-?up|sign-?in|log-?in|log-?out|register|account|my-account|profile|cart|basket|checkout|admin|wp-admin|wp-login\.php|dashboard|password|reset-password|forgot-password|auth|oauth|callback|unsubscribe)(\/|$|\.)/i;
+export function notForSearch(u) { let x; try { x = new URL(u); } catch { return null; } if (NOT_FOR_SEARCH.test(x.pathname)) return "signup"; if (x.search) return "parameters"; return null; }
+export function notCheckedLine(n) {
+  const parts = [n.signup.length ? `${n.signup.length} sign-up, log-in or account page${n.signup.length === 1 ? "" : "s"}` : null, n.parameters.length ? `${n.parameters.length} address${n.parameters.length === 1 ? "" : "es"} with ?parameters` : null, n.noindex.length ? `${n.noindex.length} page${n.noindex.length === 1 ? "" : "s"} marked "do not list in search" (noindex)` : null].filter(Boolean);
+  return { signup: n.signup.slice(0, 20), parameters: n.parameters.slice(0, 20), noindex: n.noindex.slice(0, 20), total: n.signup.length + n.parameters.length + n.noindex.length, line: parts.length ? `Not checked: ${parts.join(", ")} — pages that should not be in search.` : null };
+}
 
 /** What one page says — pure: html in, facts out (the HTML itself is not kept). */
 export function readPage(html, url) {
@@ -39,6 +47,12 @@ export function readPage(html, url) {
   const qa = [...new Map([...ldQA, ...details, ...asked].filter((x) => x.q && x.q.length <= 200).map((x) => [x.q.toLowerCase(), x])).values()];
   const facts = [...new Set(body.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter((x) => /\d/.test(x) && x.length >= 25 && x.length <= 220))].slice(0, 8);
   const imgs = [...h.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
+  /* RR-308 C1: the page's own sentences, paragraph by paragraph (never the run-together text of cards and buttons) — what a description is
+   * written from; C4: each price with the sentence it stands in (what it is for) */
+  const main = h.replace(/<(nav|header|footer|script|style|noscript)\b[\s\S]*?<\/\1>/gi, " ");
+  const lead = [...new Set([...main.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map((m) => strip(m[1])).filter((t) => t.length >= 25).flatMap((t) => t.split(/(?<=[.!?])\s+(?=[\p{Lu}\d])/u)).map((s) => s.trim()).filter((s) => s.length >= 25 && s.length <= 300))].slice(0, 12);
+  const priceContext = [];
+  for (const s of [...lead, ...body.split(/(?<=[.!?])\s+/)]) for (const p of String(s).match(PRICE) ?? []) { const price = p.trim().replace(/[,.;:]+$/, ""); if (!priceContext.some((x) => x.price === price)) priceContext.push({ price, sentence: s.trim().slice(0, 240) }); }
   return Object.freeze({
     url,
     title: one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, h),
@@ -50,7 +64,7 @@ export function readPage(html, url) {
     noindex: [...h.matchAll(/<meta\b[^>]*name\s*=\s*["']robots["'][^>]*>/gi)].some((m) => /noindex/i.test(attr(m[0], "content") ?? "")),
     hreflang: [...h.matchAll(/<link\b[^>]*rel\s*=\s*["']alternate["'][^>]*>/gi)].map((m) => attr(m[0], "hreflang")).filter(Boolean),
     prices: [...new Set((body.match(PRICE) ?? []).map((p) => p.trim().replace(/[,.;:]+$/, "")))].slice(0, 10),
-    facts, qa,
+    facts, qa, lead, priceContext: priceContext.slice(0, 10),
     structuredTypes: [...new Set(blocks.flatMap((b) => b.types))],
     imagesWithoutText: imgs.filter((t) => attr(t, "alt") === null).length, images: imgs.length,
     words: body ? body.split(/\s+/).length : 0,
@@ -111,11 +125,16 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
   }
   const queue = [start, ...[...sitemapUrls].filter((u) => htmlish(u))], seen = new Set(), pages = [], pageReads = [], linkSets = new Map();
   let design = null;
+  const notChecked = { signup: [], parameters: [], noindex: [] };
   while (queue.length && pages.length < maxPages) {
     tell("Reading your pages", pages.length, Math.min(maxPages, pages.length + queue.length) + Math.min(FULL.linkChecks, 30));
     const u = queue.shift();
     if (seen.has(u)) continue;
     seen.add(u);
+    /* RR-308 C2: pages that should not be in search are not checked — sign-up, log-in and account pages, and addresses with ?parameters —
+     * and are counted apart (never read, never scored) */
+    const kind = u === start ? null : notForSearch(u);
+    if (kind) { notChecked[kind].push(u); continue; }
     const allowed = await robots.check(u);
     if (!allowed.allowed) { skipped.push({ url: u, why: allowed.state === "UNKNOWN" ? "robots.txt could not be read — not read" : "robots.txt asks us not to read it — not read" }); continue; }
     const res = await get(u);
@@ -123,10 +142,13 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
     if (res.status >= 300 && res.status < 400) { const to = res.headers.get("location"); if (to) { const next = new URL(to, u).href; if (new URL(next).origin === origin && !seen.has(next)) queue.unshift(next); else skipped.push({ url: u, why: `moves to ${next}` }); } continue; }
     if (!res.ok || !/text\/html|application\/xhtml/i.test(res.headers.get("content-type") ?? "")) { skipped.push({ url: u, why: `not a web page (answer ${res.status})` }); continue; }
     const html = Buffer.from(await res.arrayBuffer()).subarray(0, FULL.maxBytes).toString("utf8");
-    pageReads.push({ url: u, html, recorded_at: on, read_id: `site-read:${pages.length + 1}` });
-    pages.push(readPage(html, u));
-    if (!design) design = readDesign(html, u);
+    const page = readPage(html, u);
     const links = extractLinkDetails(html, u, { maxLinks: 300 }).links.map((l) => l.to.replace(/#.*$/, "")).filter((l) => { try { return new URL(l).origin === origin; } catch { return false; } });
+    /* a page that asks search engines not to list it (noindex) is not scored — counted apart; its links are still followed */
+    if (page.noindex && u !== start) { notChecked.noindex.push(u); for (const l of links) if (htmlish(l) && !seen.has(l) && !queue.includes(l)) queue.push(l); continue; }
+    pageReads.push({ url: u, html, recorded_at: on, read_id: `site-read:${pages.length + 1}` });
+    pages.push(page);
+    if (!design) design = readDesign(html, u);
     linkSets.set(u, [...new Set(links)]);
     for (const l of links) if (htmlish(l) && !seen.has(l) && !queue.includes(l)) queue.push(l);
   }
@@ -152,7 +174,7 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
   /* what robots.txt tells the AI search bots about the start page */
   const aiBots = Object.fromEntries(AI_SEARCH_BOTS.map((b) => [b, robotsTxt === null ? (rt.status === 404 ? true : null) : isAllowedByRules(parseRobots(robotsTxt, b), start)]));
   return Object.freeze({
-    ok: true, origin, start, readOn: on, pages, design, skipped,
+    ok: true, origin, start, readOn: on, pages, design, skipped, notChecked: notCheckedLine(notChecked),
     sitemap: { found: sitemapFound, urls: sitemapUrls.size },
     robots: { found: robotsTxt !== null, aiBots },
     /* for the five gates: the site's own robots.txt and its sitemap's addresses */

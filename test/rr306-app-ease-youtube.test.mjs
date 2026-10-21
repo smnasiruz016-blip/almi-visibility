@@ -218,16 +218,20 @@ test("A3 + C1 · IN THE APP: the key is never in a file, a reply or another site
     await a.post(`/api/products/${id}/youtube/confirm`, { handle: "@right-world", channelId: c.channelId });
     const r1 = await a.post(`/api/products/${id}/youtube/research`, {});
     assert.equal(r1.http, 200, r1.refused);
-    assert.match(r1.line, /YouTube research today: 3 of 3 searches used \(Visibility's own cap; your key's limit is 100 searches a day\)/);
-    const r2 = await a.post(`/api/products/${id}/youtube/research`, {});
-    /* RR-307: the topics are found automatically (here: ielts writing, cv writing, CV builder) and the refusal says what was searched today */
+    /* RR-308 (owner decision 22 Oct): the research is the channel's NICHE — its own tags' phrases — searched as top and rising videos;
+     * the day's cap still holds: never more searches than the cap, and the refusal says so */
+    assert.match(r1.line, /^Research done: \d searches of your niche .*YouTube research today: [1-3] of 3 searches used \(Visibility's own cap; your key's limit is 100 searches a day\)/);
+    let r2; for (let i = 0; i < 4; i++) { r2 = await a.post(`/api/products/${id}/youtube/research`, {}); if (r2.http !== 200) break; }
     assert.equal(r2.http, 400);
-    assert.match(r2.refused, /^Today's research limit is reached \(3 of 3 searches used; this product's share today: 3\)\. It starts again tomorrow\. Topics searched today: ielts writing, cv writing, CV builder\./);
-    assert.equal(a.yt.calls.filter((x) => x.path === "search").length, 3);
+    assert.match(r2.refused, /^(Today's research limit is reached \(3 of 3 searches used; this product's share today: 3\)\. It starts again tomorrow\.|Every topic was searched today\.) Topics searched today: /);
+    assert.ok(a.yt.calls.filter((x) => x.path === "search").length <= 3, "more searches than the day's cap");
+    assert.ok(a.yt.calls.filter((x) => x.path === "search").every((x) => x.params.order === "relevance" && x.params.publishedAfter), "a niche search that is not top or rising (relevance inside a date window)");
     const adv = await a.get(`/api/products/${id}/youtube/advice`);
-    assert.ok(adv.ideas.some((i) => /How long should a task 2 essay be\?/.test(i.title)), JSON.stringify(adv.ideas));
-    const cv = adv.perVideo.find((v) => v.videoId === "own0000001");
-    assert.ok(cv.items.length && cv.items.every((i) => i.from), "a piece of advice has no source");
+    /* RR-308: the niche's search results count only when they are about the niche — this fixture's IELTS results are not about its CV
+     * niche, so their comments are no longer read; the ideas left (from the channel's own comments) each say why */
+    assert.ok(adv.ideas.length >= 1 && adv.ideas.every((i) => i.title && /^A viewer asked it|is \d+ of the niche/.test(i.why)), JSON.stringify(adv.ideas));
+    const cv = adv.top.find((v) => v.videoId === "own0000001");
+    assert.ok(cv.options.length >= 2 && cv.options.every((o) => o.basedOn.length && o.title && o.description && o.hashtags.length === 3 && o.thumbnail), "an option without its parts or its source");
     assert.ok(!a.files().includes(FAKE_KEY), "the key was written to a file");
     assert.ok(!JSON.stringify([adv, await a.get("/api/keys"), await a.get(`/api/products/${id}/youtube`)]).includes(FAKE_KEY), "the key was in a reply");
   } finally { a.close(); }

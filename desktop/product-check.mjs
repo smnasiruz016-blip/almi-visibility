@@ -10,6 +10,8 @@
  * Pure over what it is handed (the site read, the YouTube check); no promise of ranking, traffic or citation.
  */
 import { evidenceByUrl, runMode, findingsOf, RESULT } from "../src/report/visibility-score.mjs";
+import { youtubeScore } from "./youtube-plan.mjs";
+import { boilerplate, descriptionOptions, titleOptions } from "./describe.mjs";
 
 export const NO_PROMISE = "This check measures what it can see today. It promises no ranking, traffic or citation by any search or AI engine.";
 export const wordFor = (score) => (score === null ? "Not measured" : score >= 80 ? "Good" : score >= 50 ? "Needs work" : "Poor");
@@ -53,6 +55,9 @@ export function aiReadiness(site) {
  * The score card. `site` from readSite (or null), `youtube` = { confirmed, videos, check } (or null). Returns everything the product page shows.
  */
 export function scoreCard({ site = null, youtube = null, on }) {
+  /* RR-308 C5 + C6 (owner: "when the site could not be opened, it still said Nothing to fix was found"): a site that could not be opened is a
+   * FAILED check, said plainly, with the way to fix it — never "Nothing to fix", never a score */
+  if (site && !site.ok && hasSite(site)) return failedCard({ site, youtube, on });
   const areas = [];
   let score = null, findings = [], results = [];
   if (site?.ok) {
@@ -66,10 +71,8 @@ export function scoreCard({ site = null, youtube = null, on }) {
   } else for (const name of Object.values(AREA)) areas.push({ area: name, state: "NOT_MEASURED", line: site ? `Not measured — ${site.why}` : "Not measured — no website for this product" });
   const ai = aiReadiness(site);
   areas.push(ai.length ? { area: "AI-answer readiness", state: ai.some((t) => t.tick === false) ? "WARN" : ai.every((t) => t.tick === null) ? "NOT_MEASURED" : "OK", line: `${ai.filter((t) => t.tick).length} of ${ai.filter((t) => t.tick !== null).length} ready`, ticks: ai } : { area: "AI-answer readiness", state: "NOT_MEASURED", line: "Not measured — no website read" });
-  if (youtube?.confirmed) {
-    const withIssues = (youtube.check ?? []).filter((c) => c.findings.length);
-    areas.push({ area: "YouTube", state: withIssues.length ? "WARN" : "OK", line: `${plural(youtube.videos?.length ?? 0, "video")} read — ${withIssues.length ? `${withIssues.length} with something to fix` : "nothing to fix found"}`, ticks: [{ tick: (youtube.check ?? []).every((c) => !c.findings.some((f) => /no description/.test(f))), line: "Every video has a description" }, { tick: (youtube.check ?? []).every((c) => !c.findings.some((f) => /no chapters/.test(f))), line: "Long videos have chapters" }] });
-  } else areas.push({ area: "YouTube", state: "NOT_MEASURED", line: youtube?.why ?? "Not measured — no YouTube channel confirmed" });
+  const yt = youtubeArea(youtube);
+  areas.push(yt.area);
 
   /* what to fix first: heaviest first, each check once, with how many pages */
   const byCheck = new Map();
@@ -78,15 +81,35 @@ export function scoreCard({ site = null, youtube = null, on }) {
   for (const t of ai.filter((t) => t.tick === false && t.fix && !byCheck.has(t.fix))) fixFirst.push({ id: `ai:${t.fix}`, line: t.line, how: t.fix === "robots" ? "Allow the AI search bots in your robots.txt (Visibility writes the lines for you)." : t.fix === "faq" ? "Answer the questions your customers ask, on your pages — one question as a heading, the answer right under it." : FIXES["structured-data"].how, fixForMe: t.fix !== "faq" });
   if (site?.brokenLinks?.length) { const f = fixFirst.find((x) => x.id === "links-resolve"); if (f) f.broken = site.brokenLinks.slice(0, 20); }
   if (youtube?.confirmed) for (const c of (youtube.check ?? []).filter((c) => c.findings.length).slice(0, 3)) fixFirst.push({ id: `yt:${c.videoId}`, line: `YouTube "${c.title}": ${c.findings.join("; ")}`, how: "Open the YouTube tab: each video has its own advice, with where it came from.", fixForMe: false });
-  return Object.freeze({ on, score, word: wordFor(score), gauge: score === null ? "Not measured" : `${score}/100`, areas, fixFirst, notMeasured: results.filter((r) => r.result === RESULT.NOT_MEASURED).length, pagesRead: site?.ok ? site.pages.length : 0, noPromise: NO_PROMISE });
+  return Object.freeze({ on, score, word: wordFor(score), gauge: score === null ? "Not measured" : `${score}/100`, areas, fixFirst, notMeasured: results.filter((r) => r.result === RESULT.NOT_MEASURED).length, pagesRead: site?.ok ? site.pages.length : 0, notChecked: site?.notChecked?.line ?? null, youtube: yt.score, noPromise: NO_PROMISE });
+}
+const hasSite = (site) => site.why !== undefined;
+/* RR-308 (owner's answer 2, 22 Oct 2026): YouTube has its OWN /100 — only the share of plain countable checks passed, each with its count */
+function youtubeArea(youtube) {
+  if (!youtube?.confirmed) return { area: { area: "YouTube", state: "NOT_MEASURED", line: youtube?.why ?? "Not measured — no YouTube channel confirmed" }, score: null };
+  const s = youtubeScore(youtube.videos ?? [], youtube.opts ?? {});
+  return { area: { area: "YouTube", state: s.score === null ? "NOT_MEASURED" : s.checks.every((c) => c.passed === c.of) ? "OK" : "WARN", line: `${s.gauge} — ${plural(youtube.videos?.length ?? 0, "video")} read`, ticks: s.checks.map((c) => ({ tick: c.passed === c.of, line: c.text })) }, score: s };
+}
+function failedCard({ site, youtube, on }) {
+  const areas = Object.values(AREA).map((name) => ({ area: name, state: "NOT_MEASURED", line: "Not measured — the check failed: your website could not be opened" }));
+  areas.push({ area: "AI-answer readiness", state: "NOT_MEASURED", line: "Not measured — the check failed: your website could not be opened" });
+  const yt = youtubeArea(youtube); areas.push(yt.area);
+  const line = "Check failed — your website could not be opened. Fix the address in Settings.";
+  return Object.freeze({ on, failed: true, score: null, word: "Check failed", gauge: "Check failed", areas, why: site.why, suggestion: site.suggestion ?? null,
+    fixFirst: [{ id: "site-unreachable", line, how: `${site.why}${site.suggestion ? ` Did you mean ${site.suggestion}?` : ""} Open Settings, correct the address (it must open in your browser), then press Check now.`, fixForMe: false, action: "settings" }],
+    notMeasured: 0, pagesRead: 0, notChecked: null, youtube: yt.score, noPromise: NO_PROMISE });
 }
 
 /** "Fix it for me": the text the client pastes — written only from the page's own words and the site's own facts. */
 export function fixForMe(id, site) {
   const pages = site?.ok ? site.pages : [];
-  const clip = (s, n) => (s.length <= n ? s : `${s.slice(0, n - 1).replace(/\s+\S*$/, "")}…`);
-  if (id === "title") return pages.filter((p) => !p.title || p.title.length < 10 || p.title.length > 70).slice(0, 20).map((p) => ({ page: p.url, paste: clip(p.h1 ?? p.title ?? "", 70), from: "the page's own main heading" }));
-  if (id === "meta-description") return pages.filter((p) => !p.description || p.description.length < 50 || p.description.length > 170).slice(0, 20).map((p) => ({ page: p.url, paste: clip(p.facts[0] ?? p.h1 ?? "", 160), from: "the page's own text" })).filter((x) => x.paste.length >= 30);
+  /* RR-308 C1: two options per page, written from the page's own main content, unique across the site, complete sentences, never cut */
+  if (id === "title") { const used = new Set(), siteName = site?.design?.siteName?.split(/[|—–-]/).pop().trim() || null;
+    return pages.filter((p) => !p.title || p.title.length < 10 || p.title.length > 70).slice(0, 20).map((p) => ({ page: p.url, options: titleOptions(p, { siteName, used }) })).filter((x) => x.options.length)
+      .map((x) => ({ page: x.page, paste: x.options[0].text, options: x.options, from: x.options[0].from })); }
+  if (id === "meta-description") { const boiler = boilerplate(pages), used = new Set();
+    return pages.filter((p) => !p.description || p.description.length < 50 || p.description.length > 170).slice(0, 20).map((p) => ({ page: p.url, options: descriptionOptions(p, { boiler, used }) }))
+      .map((x) => (x.options.length ? { page: x.page, paste: x.options[0].text, options: x.options, from: x.options[0].from } : { page: x.page, paste: null, options: [], from: null, none: "This page has too little text of its own to write a good description — add one or two sentences saying what the reader gets here, then press Fix it for me again." })); }
   if (id === "structured-data" || id === "ai:structured-data") {
     const home = pages[0], d = site.design ?? {};
     const qa = pages.flatMap((p) => p.qa).filter((x) => x.a).slice(0, 10);
@@ -101,8 +124,10 @@ export function fixForMe(id, site) {
 /** B3 · "We found …": what Visibility gathered for this product, each with its source and date — and what is missing, with what it would add. */
 export function foundInfo({ site = null, youtube = null, files = [], searchConsole = null, keys = {}, on }) {
   const day = String(on).slice(0, 10);
-  const questions = [], phrases = [];
-  if (site?.ok) for (const p of site.pages) for (const x of p.qa) questions.push({ text: x.q, source: `your page ${p.url} (${x.from})`, on: day });
+  /* RR-308 C3: the questions ALREADY ANSWERED on the client's pages are kept apart — "questions people ask" come only from search data and
+   * research, each with its source */
+  const questions = [], phrases = [], answered = [];
+  if (site?.ok) for (const p of site.pages) for (const x of p.qa) answered.push({ text: x.q, source: `your page ${p.url} (${x.from})`, on: day });
   for (const q of youtube?.questions ?? []) questions.push({ text: q.text, source: q.source, on: day });
   for (const f of files) (/\?$|^(how|what|why|which|where|when|who|can|is|does|do|kya|kaise)\b/i.test(f.phrase) ? questions : phrases).push({ text: f.phrase, source: `your file ${f.file}`, on: f.on });
   for (const q of searchConsole?.queries ?? []) phrases.push({ text: q.query, source: `your Search Console (${searchConsole.window ?? "export"})`, on: searchConsole.on });
@@ -114,6 +139,9 @@ export function foundInfo({ site = null, youtube = null, files = [], searchConso
   if (!files.length) missing.push({ what: "A search-data file (Bing or Keyword Planner)", adds: "More search phrases with how often they are searched.", action: "file" });
   if (!youtube?.confirmed) missing.push({ what: "Your YouTube channel", adds: "Your videos, the questions under them and what does well on your topics.", action: "youtube" });
   if (!keys.ai) missing.push({ what: "Your AI connection", adds: "How AI assistants answer questions about your topics — and whether they mention you.", action: "ai" });
-  return Object.freeze({ on: day, pages: site?.ok ? site.pages.length : 0, prices: site?.ok ? [...new Set(site.pages.flatMap((p) => p.prices))].slice(0, 12) : [], questions: uniq(questions), phrases: uniq(phrases), missing,
-    line: `We found ${plural(site?.ok ? site.pages.length : 0, "page")}, ${plural(uniq(questions).length, "question")} people ask and ${plural(uniq(phrases).length, "search phrase")}.` });
+  /* RR-308 C4: each price with its page and what it is for (the sentence it stands in on that page) */
+  const prices = [];
+  if (site?.ok) for (const p of site.pages) for (const x of p.priceContext ?? p.prices.map((price) => ({ price, sentence: null }))) if (!prices.some((y) => y.price === x.price && y.page === p.url)) prices.push({ price: x.price, page: p.url, pageTitle: p.h1 ?? p.title ?? p.url, for: x.sentence });
+  return Object.freeze({ on: day, pages: site?.ok ? site.pages.length : 0, prices: prices.slice(0, 30), answered: uniq(answered), questions: uniq(questions), phrases: uniq(phrases), missing, notChecked: site?.notChecked?.line ?? null,
+    line: `We found ${plural(site?.ok ? site.pages.length : 0, "page")}, ${plural(uniq(answered).length, "question")} answered on your pages, ${plural(uniq(questions).length, "question")} people ask (from search data and research) and ${plural(uniq(phrases).length, "search phrase")}.` });
 }

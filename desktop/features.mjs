@@ -4,8 +4,8 @@
  * time or cost, and what it needs; a card whose needs are not met shows "Needs: …" (never hidden) and asks for it in place, with Skip.
  * The top 3 for THIS product are suggested from its check ("Recommended for you now").
  * Each card's job is a function over what Visibility already read for the product (the site read, the YouTube read, Search Console, files).
- * Publishing ALWAYS follows the client's own choice and needs a connection to the client's site, which this version does not have — so every
- * page, article and post is a DRAFT for the client to copy. Nothing is published or submitted.
+ * Publishing ALWAYS follows the client's own choice: RR-308 D publishes a draft only through a connection the client made (desktop/publish.mjs),
+ * after the five gates pass again — on "Approve & Publish", or by itself only when the client chose "publish automatically after the gates".
  */
 import { fixForMe, aiReadiness } from "./product-check.mjs";
 import { AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
@@ -27,6 +27,8 @@ export const FEATURES = Object.freeze([
   { id: "links", title: "Links check", does: "Checks that the links on your site open.", youGet: "Every broken link, and the page it is on.", time: "Uses your last check. Free.", needs: (c) => (!c.siteRead ? [{ what: "a check of your site", action: "check" }] : []) },
   { id: "languages", title: "Languages", does: "Checks which languages your pages say they are in, and whether they point to each other.", youGet: "Your pages' languages against the languages you chose.", time: "Uses your last check. Free.", needs: (c) => (!c.siteRead ? [{ what: "a check of your site", action: "check" }] : []) },
   { id: "monthly", title: "Monthly report", does: "Puts the month together: what was made, your searches, your YouTube — bad news first.", youGet: "One report you can read or share.", time: "Instant. Free.", needs: (c) => (!c.check ? [{ what: "a check of your product", action: "check" }] : []) },
+  /* RR-308 D: publishing, by the client's own connection, after the five gates again */
+  { id: "publish", title: "Publish my pages", does: "Puts your finished drafts on your own site — WordPress, GitHub + Vercel, Shopify — or saves them as files for you to add.", youGet: "Approve & Publish and Edit on every draft, the live link, and Undo.", time: "A minute to connect, once. Free.", needs: (c) => (!c.drafts ? [{ what: "a page draft (Create SEO pages first)", action: "seo-pages" }] : []) },
   { id: "google", title: "Connect Google Search Console", does: "Brings in the searches people really make before they find you.", youGet: "Your real searches and the pages they open — the base for new pages.", time: "2 minutes, once. Free.", needs: () => [] },
 ].map(Object.freeze));
 

@@ -15,6 +15,9 @@ import { inflateRawSync } from "node:zlib";
 import { readSearchConsoleExport } from "../src/discovery/search-console-export.mjs";
 
 export const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
+/* RR-308 D4: ONE extra permission, asked only when the client ticks "also let Visibility tell Google about my new pages": it can submit a
+ * sitemap (it can also change other Search Console settings — Google offers nothing narrower; Visibility only ever submits a sitemap) */
+export const SUBMIT_SCOPE = "https://www.googleapis.com/auth/webmasters";
 export const GOOGLE = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", api: "https://www.googleapis.com/webmasters/v3/" });
 export const KEYS = Object.freeze({ secret: "GOOGLE_CLIENT_SECRET", refresh: "GOOGLE_REFRESH_TOKEN" });
 const b64url = (b) => Buffer.from(b).toString("base64url");
@@ -81,12 +84,12 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
   return Object.freeze({
     status() { return { ready: ready(), signedIn: Boolean(keys.get(KEYS.refresh)), clientIdSet: Boolean(clientId()) }; },
     /** the address of Google's own sign-in page, opened in the client's browser */
-    start(redirect) {
+    start(redirect, { submit = false } = {}) {
       if (!ready()) return { ok: false, why: "Google sign-in is not set up in this copy of AlmiVisibility yet (AlmiWorld's Google sign-in client is missing). Meanwhile, add a Search Console export file — it works today." };
       const verifier = b64url(randomBytes(32)), state = b64url(randomBytes(16));
       pending.set(state, { verifier, redirect, at: now() });
       const u = new URL(ep.auth);
-      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: SCOPE, access_type: "offline", prompt: "consent", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
+      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: submit ? `${SCOPE} ${SUBMIT_SCOPE}` : SCOPE, access_type: "offline", prompt: "consent", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
       return { ok: true, url: u.href };
     },
     /** Google sends the browser back here with a one-time code; it is exchanged for the read-only access, kept in the secure store */
@@ -100,7 +103,13 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       if (!j.refresh_token) return { ok: false, why: "Google gave no lasting access — press Connect again." };
       const k = keys.set(KEYS.refresh, j.refresh_token); if (!k.ok) return { ok: false, why: k.why };
       access = { token: j.access_token, until: now() + (j.expires_in ?? 3600) * 1000 };
-      return { ok: true };
+      return { ok: true, canSubmit: String(j.scope ?? "").split(/\s+/).includes(SUBMIT_SCOPE) };
+    },
+    /** RR-308 D4: after publishing, tell Google the sitemap's address — only with the extra permission the client gave */
+    async submitSitemap(siteUrl, sitemapUrl) {
+      const t = await token(); if (!t) return { ok: false, why: "Not signed in to Google." };
+      const r = await fetchImpl(`${ep.api}sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(sitemapUrl)}`, { method: "PUT", headers: { authorization: `Bearer ${t}` } });
+      return r.ok ? { ok: true } : { ok: false, why: r.status === 403 ? "Google refused: the permission to submit a sitemap was not given — connect Google again and tick \"also tell Google about my new pages\"." : `Google answered with an error (${r.status}).` };
     },
     async sites() { const j = await api("sites"); return j ? (j.siteEntry ?? []).filter((s) => s.permissionLevel !== "siteUnverifiedUser").map((s) => s.siteUrl) : null; },
     /** the searches of the last 3 months (Search Console's data is a few days old) */

@@ -25,7 +25,10 @@ export const GATE_WORDS = Object.freeze({ [GATES.A]: "not a copy of another page
 /* checks that can only be true once the page is live on the client's site (it is a draft until then) */
 const AFTER_PUBLISHING = /^(listed in the sitemap|a URL not in the plan is 404|internal links in)$/;
 const slug = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "page";
-const casingOf = (site) => { const m = new Map(); for (const p of site.pages) for (const w of [p.title, p.h1, ...p.h2].join(" ").split(/[^\p{L}\p{N}]+/u)) if (w && w !== w.toLowerCase() && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w); return m; };
+const casingOf = (site) => { const m = new Map(); for (const p of site.pages) for (const w of [p.title, p.h1, ...p.h2].join(" ").split(/[^\p{L}\p{N}]+/u)) if (w && w !== w.toLowerCase() && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
+  /* RR-308: a name the site writes with capitals INSIDE its own sentences ("in New Zealand") keeps them in a page title ("OET for Nurses in new zealand" before) */
+  for (const p of site.pages) for (const s of [...(p.lead ?? []), ...(p.facts ?? [])]) for (const w of String(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(1)) if (/^\p{Lu}\p{Ll}+$/u.test(w) && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
+  return m; };
 const asQuestion = (s, casing = new Map()) => { const t = String(s).trim().replace(/\s+/g, " ").split(" ").map((w) => casing.get(w.toLowerCase()) ?? w).join(" "); return t.charAt(0).toUpperCase() + t.slice(1); };
 
 /** The client's design from its own site (read-only), when it holds what a page needs — else null (a plain look, said so). */
@@ -68,7 +71,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12 }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {} }) {
   if (!site?.ok) return { plan: [], drafts: [], notEnough: ["Visibility needs your website to plan pages — add it in the product's Settings, then press Check now."] };
   const demand = demandOf({ searchConsole, files, youtube }).slice(0, max * 3);
   if (!demand.length) return { plan: [], drafts: [], notEnough: ["No searches or questions are known for this product yet. Connect Google Search Console (or add its export file), add a search-data file, or confirm your YouTube channel — then press Create SEO pages again."] };
@@ -105,7 +108,9 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   /* key-fact cards: a price, or a number with its word, standing IN one of the page's own sourced answer sentences (never typed in) */
   const valueIn = (s) => (String(s).match(/(?:[$£€₹]|\b(?:USD|GBP|EUR|PKR|INR|AUD|CAD)\s?)\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:\/|per)\s?(?:month|year|week))?/i) ?? String(s).match(/\b\d[\d,.–-]*\s?(?:%|[A-Za-z]+)/) ?? [])[0];
   const keyFacts = news.flatMap((p) => p.need.claims.map((c) => ({ claimId: c.claimId, value: valueIn(c.text) })).filter((k) => k.value).slice(0, 2));
-  const built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin }) : [];
+  let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin }) : [];
+  /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
+  built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));
   const now = new Date(on).toISOString();
   const cost = { gate: GATES.D, pass: true, checks: [{ name: "made on this computer from what was already read — no paid request", result: "PASS" }] };
   const gated = built.length ? allGates(built.map((b) => gateInput(b)), { guidance: GUIDANCE, on: String(on).slice(0, 10), site: { robotsTxt: site.robotsTxt ?? null, sitemapUrls: site.sitemapUrls ?? null, extraPages: [] }, cost }) : [];

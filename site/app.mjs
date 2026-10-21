@@ -13,7 +13,9 @@ import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn } from "./email.mjs";
 import { createCheckout } from "./billing.mjs";
-import { applyEvent, signedLicence, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS } from "../services/licence/service.mjs";
+import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS } from "../services/licence/service.mjs";
+import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
+import { createHash, createPublicKey, createPrivateKey } from "node:crypto";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY" });
@@ -36,6 +38,9 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
   const cookie = (req, name) => (req.headers.cookie ?? "").split(/;\s*/).map((c) => c.split("=")).find(([k]) => k === name)?.[1] ?? null;
   const who = (req) => String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
   const originOf = (req) => (env.VERCEL ? P.ORIGIN : `http://${req.headers.host}`);
+  const signingPem = () => env[SITE_KEY_NAMES.signingKey] ?? (env[LICENCE_KEYS.signingKeyFile] && existsSync(env[LICENCE_KEYS.signingKeyFile]) ? readFileSync(env[LICENCE_KEYS.signingKeyFile], "utf8") : null);
+  /* RR-304: an admin row names a licence by a short hash of its key, never the key itself */
+  const refOf = (account) => createHash("sha256").update(account).digest("hex").slice(0, 16);
 
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
@@ -56,7 +61,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
       }
       /* the app's licence check: a SIGNED answer for one licence key */
       if (req.method === "GET" && u.pathname === "/v1/licence") {
-        const pem = env[SITE_KEY_NAMES.signingKey] ?? (env[LICENCE_KEYS.signingKeyFile] && existsSync(env[LICENCE_KEYS.signingKeyFile]) ? readFileSync(env[LICENCE_KEYS.signingKeyFile], "utf8") : null);
+        const pem = signingPem();
         if (!pem) return send(503, JSON.stringify({ deferred: `the licence signing key is not configured (${SITE_KEY_NAMES.signingKey})` }), "application/json", PRIVATE);
         return send(200, JSON.stringify(signedLicence({ accounts: await store.accounts(), account: u.searchParams.get("account"), privateKeyPem: pem, now: now() })), "application/json", PRIVATE);
       }
@@ -140,12 +145,32 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
         return send(303, "", "text/plain", { location: "/admin", "set-cookie": `av_admin=${r.token}; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=28800${secure}`, ...PRIVATE });
       }
       if (u.pathname === "/admin/logout" && req.method === "POST") { admin.logout(token); return send(303, "", "text/plain", { location: "/admin", "set-cookie": "av_admin=; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=0", ...PRIVATE }); }
+      /* RR-304: the owner licence — registered by pasting its text (verified with the site's own signing key), revoked from Licences */
+      if (req.method === "POST" && (u.pathname === "/admin/licences/owner" || u.pathname === "/admin/licences/revoke")) {
+        if (!me) return send(303, "", "text/plain", { location: "/admin", ...PRIVATE });
+        const f = formOf(body, req.headers["content-type"]);
+        const accounts = await store.accounts();
+        const sales = (code, note) => send(code, P.adminSales({ who: me, licences: accounts, connected: Boolean(env.STRIPE_SECRET_KEY), refOf, note }), undefined, PRIVATE);
+        if (u.pathname === "/admin/licences/owner") {
+          const pem = signingPem();
+          const signed = readOwnerLicenceText(f.licence);
+          if (!pem) return sales(503, `The owner licence cannot be checked: the licence signing key is not configured (${SITE_KEY_NAMES.signingKey}).`);
+          if (!signed || !isOwnerLicence(signed.licence) || !verifyLicence(signed, createPublicKey(createPrivateKey(pem)).export({ type: "spki", format: "pem" }))) return sales(400, "That owner licence was not made with this site's signing key, or the text is incomplete. Nothing was saved.");
+          accounts[signed.licence.account] = ownerRecord(signed.licence);
+        } else {
+          const account = Object.keys(accounts).find((k) => refOf(k) === f.ref);
+          if (!account || accounts[account].kind !== OWNER.kind) return sales(400, "No such owner licence. Nothing was changed.");
+          accounts[account] = { ...accounts[account], status: "REVOKED" };
+        }
+        await store.saveAccounts(accounts);
+        return send(303, "", "text/plain", { location: "/admin/sales", ...PRIVATE });
+      }
       if (u.pathname.startsWith("/admin/") && req.method === "GET") {
         if (!me) return send(303, "", "text/plain", { location: "/admin", ...PRIVATE });
         if (u.pathname === "/admin/leads") return send(200, P.adminLeads({ leads: await store.listLeads(), storeKind: store.kind, who: me }), undefined, PRIVATE);
         if (u.pathname === "/admin/leads.csv") return send(200, leadsCsv(await store.listLeads()), "text/csv; charset=utf-8", { "content-disposition": `attachment; filename="visibility-leads-${new Date(now()).toISOString().slice(0, 10)}.csv"`, ...PRIVATE });
         if (u.pathname === "/admin/tests") return send(200, P.adminTests({ tests: await store.listTests(), storeKind: store.kind, who: me }), undefined, PRIVATE);
-        if (u.pathname === "/admin/sales") return send(200, P.adminSales({ who: me, licences: await store.accounts(), connected: Boolean(env.STRIPE_SECRET_KEY) }), undefined, PRIVATE);
+        if (u.pathname === "/admin/sales") return send(200, P.adminSales({ who: me, licences: await store.accounts(), connected: Boolean(env.STRIPE_SECRET_KEY), refOf }), undefined, PRIVATE);
       }
       send(404, P.frame({ path: u.pathname, title: "Not found — AlmiVisibility", description: "This page does not exist.", body: `<section class="page"><div class="wrap"><h1>Page not found</h1><p><a class="pill" href="/">Home</a></p></div></section>`, noindex: true }));
     } catch { send(500, "Something went wrong.", "text/plain"); }

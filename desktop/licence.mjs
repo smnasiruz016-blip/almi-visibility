@@ -20,8 +20,25 @@ export const OFFLINE_DAYS = 7;
 const DAY = 86400000;
 export const planOf = (id) => PLANS.find((p) => p.id === id) ?? null;
 
-/** The licence's own bytes, as signed: a stable JSON of its fields. */
-export const licenceBytes = (l) => Buffer.from(JSON.stringify({ account: l.account, plan: l.plan, status: l.status, periodEnd: l.periodEnd, issuedAt: l.issuedAt }));
+/** The licence's own bytes, as signed: a stable JSON of its fields (RR-304: an OWNER licence also signs its kind and licensee). */
+export const licenceBytes = (l) => Buffer.from(JSON.stringify(l.kind ? { account: l.account, kind: l.kind, licensee: l.licensee, plan: l.plan, status: l.status, periodEnd: l.periodEnd, issuedAt: l.issuedAt } : { account: l.account, plan: l.plan, status: l.status, periodEnd: l.periodEnd, issuedAt: l.issuedAt }));
+
+/**
+ * RR-304 (owner decision) · THE OWNER LICENCE: AlmiWorld's own, the $80 unlimited plan with NO expiry, no Stripe, no payment. It is a
+ * signed licence the owner pastes in "Your plan" as text starting avo_; the app verifies it with the public key it shipped with, so a
+ * licence made with another signing key (the test key on a real build) never verifies. Revoked from the site's admin: a verified site
+ * answer for the same licence that says REVOKED ends it (and stays ended offline) until the site answers otherwise.
+ */
+export const OWNER = Object.freeze({ kind: "OWNER", licensee: "AlmiWorld (owner)", plan: "visibility_unlimited", words: "Owner — AlmiWorld" });
+export const isOwnerLicence = (l) => l?.kind === OWNER.kind && l.plan === OWNER.plan && l.periodEnd === null && l.status === "ACTIVE";
+export const OWNER_LICENCE_TEXT = /^avo_[A-Za-z0-9_-]{40,4000}$/;
+export const ownerLicenceText = (signed) => `avo_${Buffer.from(JSON.stringify(signed)).toString("base64url")}`;
+/** The signed owner licence inside the pasted text, or null (no shape check of its truth here: verifyLicence decides). */
+export function readOwnerLicenceText(text) {
+  const t = String(text ?? "").trim();
+  if (!OWNER_LICENCE_TEXT.test(t)) return null;
+  try { const s = JSON.parse(Buffer.from(t.slice(4), "base64url").toString("utf8")); return s && typeof s === "object" && s.licence && typeof s.signature === "string" ? s : null; } catch { return null; }
+}
 
 /** Verify a signed licence { licence, signature (base64) } with the service's public key (PEM). */
 export function verifyLicence(signed, publicKeyPem) {
@@ -35,8 +52,17 @@ export function verifyLicence(signed, publicKeyPem) {
  * The licence STATE the app runs under. `check` is the latest attempt: { reached: true, signed } or { reached: false };
  * `last` is the last GOOD check { at, signed } (or null). Returns { state, mayStartNewWork, plan, line, last }.
  */
-export function licenceState({ now, check, last = null, publicKeyPem }) {
+export function licenceState({ now, check, last = null, publicKeyPem, owner = null }) {
   const good = (s) => s && verifyLicence(s, publicKeyPem);
+  /* RR-304: the owner licence — unlimited, no expiry, no offline limit; only a verified REVOKED answer for the same licence ends it */
+  if (owner && good(owner) && isOwnerLicence(owner.licence)) {
+    const account = owner.licence.account;
+    const answer = check?.reached && good(check.signed) && check.signed.licence.account === account ? check.signed : null;
+    let revoked = last?.signed?.licence?.account === account && last.signed.licence.status === "REVOKED" && good(last.signed) ? last : null;
+    if (answer) revoked = answer.licence.status === "REVOKED" ? { at: now, signed: answer } : null;
+    if (revoked) return Object.freeze({ state: "ENDED", mayStartNewWork: false, plan: planOf(OWNER.plan), owner: true, last: revoked, line: `The ${OWNER.words} licence was revoked in AlmiWorld's admin — new work is paused. Nothing is deleted.` });
+    return Object.freeze({ state: "ACTIVE", mayStartNewWork: true, plan: planOf(OWNER.plan), owner: true, last: { at: now, signed: owner }, line: `Your plan: ${OWNER.words} — unlimited products, no expiry.` });
+  }
   let lastGood = last;
   if (check?.reached) {
     if (!good(check.signed)) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence answer could not be verified — new work is paused until a valid licence is received. Nothing is deleted." });

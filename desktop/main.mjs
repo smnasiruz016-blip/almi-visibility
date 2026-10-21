@@ -78,23 +78,29 @@ const pread = (id, name, d = null) => { try { return JSON.parse(readFileSync(pfi
 const pwrite = (id, name, obj) => { writeFileSync(`${pfile(id, name)}.tmp`, JSON.stringify(obj)); renameSync(`${pfile(id, name)}.tmp`, pfile(id, name)); };
 const hasWebsite = (s) => Boolean(s.product?.site) && !/youtube\.com/i.test(s.product.site) && s.setup?.goal?.hasWebsite !== false;
 const checking = new Map(); // product id → a running check (one at a time per product)
+/* RR-307 (owner, 22 Oct): a running check says how far it is — never a second "Check my product now" while one runs */
+const progress = new Map(); // product id → { stage, done, of, secondsLeft, started }
 /** CHECK NOW: read the site (robots obeyed) and/or the confirmed YouTube channel; keep the facts (never the pages' HTML) and the score card */
 async function checkProduct(id) {
   if (checking.has(id)) return checking.get(id);
+  const started = Date.now();
+  const say = (p) => progress.set(id, { ...p, started });
+  say({ stage: "Starting", done: 0, of: 1, secondsLeft: null }); // before the run: the reader's own first step must not be overwritten
   const run = (async () => {
     const s = store.read(id), on = new Date().toISOString();
     let site = null, youtube = null;
-    if (hasWebsite(s)) { try { site = await readSite({ url: s.product.site, allowLocal, on }); } catch (e) { site = { ok: false, why: "the site could not be read now" }; } }
-    if (s.setup?.youtube?.confirmed) { try { const r = await YT.read(id); youtube = { confirmed: true, videos: r.videos, check: (await import("../src/video/youtube.mjs")).channelCheck(r.videos, {}) }; } catch (e) { youtube = { why: `YouTube could not be read now (${safeWhy(e)})` }; } }
+    if (hasWebsite(s)) { try { site = await readSite({ url: s.product.site, allowLocal, on, onProgress: say }); } catch (e) { site = { ok: false, why: "the site could not be read now" }; } }
+    if (s.setup?.youtube?.confirmed) { say({ stage: "Reading your YouTube channel", done: 0, of: 1, secondsLeft: null }); try { const r = await YT.read(id); youtube = { confirmed: true, videos: r.videos, check: (await import("../src/video/youtube.mjs")).channelCheck(r.videos, {}) }; } catch (e) { youtube = { why: `YouTube could not be read now (${safeWhy(e)})` }; } }
     else if (s.setup?.youtube?.handle) youtube = { why: "Not measured — confirm your YouTube channel first (YouTube settings)" };
     const card = scoreCard({ site, youtube, on });
     if (site?.ok) { const { pageReads, ...keep } = site; pwrite(id, "site-read.json", keep); }
     pwrite(id, "check.json", card);
     return card;
-  })().finally(() => checking.delete(id));
+  })().finally(() => { checking.delete(id); progress.delete(id); });
   checking.set(id, run);
   return run;
 }
+const progressOf = (id) => { const p = progress.get(id); return p ? { ...p, seconds: Math.round((Date.now() - p.started) / 1000) } : null; };
 const searchConsoleOf = (id) => pread(id, "search-console.json");
 function contextOf(id) {
   const s = store.read(id), site = pread(id, "site-read.json"), sc = searchConsoleOf(id), files = (() => { try { return JSON.parse(readFileSync(pfile(id, "search-data-files.json"), "utf8")); } catch { return []; } })();
@@ -167,7 +173,7 @@ const server = createServer((req, res) => {
         const id = decodeURIComponent(m[1]);
         let s;
         try { s = store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
-        if (req.method === "GET" && m[2] === "state") return send(200, { id, product: s.product, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
+        if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
         if (req.method === "POST" && m[2] === "setup") {
           const st = await licenceNow();
           if (!st.mayStartNewWork) return send(403, { refused: st.line });
@@ -201,7 +207,7 @@ const server = createServer((req, res) => {
           preview: (pread(id, "pages.json")?.drafts ?? []).length ? pread(id, "pages.json").drafts.map((p) => `Draft: ${p.title} — ${p.url}`) : ["No page or article yet. They appear here as drafts when you press \"Create SEO pages\"."],
           approvals: (s.approvals ?? []).length ? s.approvals : [s.setup.publishMode?.mode === PUBLISH_MODE.REVIEW_FIRST ? "Nothing waits for your approval yet." : "Publishing is automatic after the gates — nothing waits for you."],
           monthly: ["The monthly report appears at the end of the first month: bad news first, then what was made and refreshed, the search data, and next month's topics."],
-          youtube: await YT.lines(id),
+          youtube: YT.quickLines(id),
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
@@ -212,9 +218,10 @@ const server = createServer((req, res) => {
           const { s, site, sc, files, ctx } = contextOf(id);
           if (r[2] === "overview" && req.method === "GET") {
             const yt = ctx.youtubeConfirmed ? await YT.advice(id).catch(() => null) : null;
-            return send(200, { checking: checking.has(id), card: ctx.check, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null }, howTo: HOWTO });
+            return send(200, { checking: checking.has(id), progress: progressOf(id), card: ctx.check, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null }, howTo: HOWTO });
           }
-          if (r[2] === "check" && req.method === "POST") return send(200, { ok: true, card: await checkProduct(id) });
+          /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
+          if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
           if (r[2] === "fix" && req.method === "POST") { if (!site) return send(400, { refused: "Check your product first." }); return send(200, { items: fixForMe(json().id, site) }); }
           if (r[2] === "delete" && req.method === "POST") { if (json().confirm !== true) return send(400, { refused: "Say yes to delete." }); const where = store.remove(id); return send(200, { ok: true, line: `${s.product?.name} was deleted. Its data was moved to ${where} — it can be put back from there.` }); }
           if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`); if (g.ok) CONFIG.googlePendingProduct = id; return send(g.ok ? 200 : 400, g.ok ? g : { refused: g.why }); }
@@ -226,7 +233,7 @@ const server = createServer((req, res) => {
             if (need.length && f !== "keywords" && f !== "google") return send(200, { needs: need });
             const yt = ctx.youtubeConfirmed ? await YT.advice(id).catch(() => null) : null;
             const ytData = yt?.state === "READY" ? yt : null;
-            if (f === "check") return send(200, { card: await checkProduct(id) });
+            if (f === "check") { checkProduct(id).catch(() => {}); return send(200, { checking: true, progress: progressOf(id) }); }
             if (f === "seo-check") return send(200, { result: seoCheck(site, ctx.check) });
             if (f === "aeo") return send(200, { result: aeoCheck(site) });
             if (f === "geo") return send(200, { result: geoCheck(site) });
@@ -301,7 +308,8 @@ const server = createServer((req, res) => {
             if (!y[2] && req.method === "GET") return send(200, { ...YT.settings(yid), pilots: PILOT_CHANNELS });
             if (!y[2] && req.method === "POST") { const r = YT.saveSettings(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "lookup" && req.method === "POST") return send(200, await YT.lookup(yid, json().handle));
-            if (y[2] === "confirm" && req.method === "POST") { const r = await YT.confirm(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            /* RR-307 (22 Oct): a channel just confirmed is checked at once — the score card never keeps "confirm your channel first" */
+            if (y[2] === "confirm" && req.method === "POST") { const r = await YT.confirm(yid, json()); if (r.ok) (checking.has(yid) ? checking.get(yid).catch(() => {}).then(() => checkProduct(yid)) : checkProduct(yid)).catch(() => {}); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "research" && req.method === "POST") { const r = await YT.research(yid); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "advice" && req.method === "GET") return send(200, await YT.advice(yid));
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }

@@ -81,7 +81,10 @@ export function readDesign(html, url) {
  * pageReads/securityReads/linkObs are what the engine's own score (src/report/visibility-score.mjs) is made from; the caller does not keep
  * the HTML. `allowLocal` is for TESTS ONLY (a stand-in site on this computer).
  */
-export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, paceMs = FULL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), on = new Date().toISOString(), allowLocal = false, resolve }) {
+export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, paceMs = FULL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), on = new Date().toISOString(), allowLocal = false, resolve, onProgress = () => {} }) {
+  /* RR-307 (owner, 22 Oct): a long check shows how far it is — what it reads now, how many of how many, and about how long is left */
+  const tell = (stage, done, of) => { try { onProgress({ stage, done, of, secondsLeft: Math.max(0, Math.round(((of - done) * Math.max(paceMs, 300)) / 1000)) }); } catch {} };
+  tell("Opening your site", 0, 1);
   let start;
   if (allowLocal) { try { start = new URL(url).href; } catch { return { ok: false, why: "That is not a web address." }; } }
   else { const t = await testableUrl(url, resolve ? { resolve } : {}); if (!t.ok) return { ok: false, why: t.why }; start = t.url; }
@@ -98,6 +101,7 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
   const sitemaps = [...new Set([...(robotsTxt ? [...robotsTxt.matchAll(/^\s*sitemap:\s*(\S+)/gim)].map((m) => m[1]) : []), `${origin}/sitemap.xml`])].filter((s) => { try { return new URL(s).origin === origin; } catch { return false; } });
   let sitemapFound = false;
   for (let i = 0; i < sitemaps.length && i < FULL.sitemaps; i++) {
+    tell("Reading your sitemap (the list of your pages)", 0, 1);
     const r = await get(sitemaps[i], "application/xml");
     if (!r.ok) continue;
     sitemapFound = true;
@@ -108,6 +112,7 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
   const queue = [start, ...[...sitemapUrls].filter((u) => htmlish(u))], seen = new Set(), pages = [], pageReads = [], linkSets = new Map();
   let design = null;
   while (queue.length && pages.length < maxPages) {
+    tell("Reading your pages", pages.length, Math.min(maxPages, pages.length + queue.length) + Math.min(FULL.linkChecks, 30));
     const u = queue.shift();
     if (seen.has(u)) continue;
     seen.add(u);
@@ -135,7 +140,9 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
   /* links: each internal link target once — read pages are known to open; the rest are asked, robots obeyed, up to 60 */
   const status = new Map(pages.map((p) => [p.url, 200]));
   const targets = [...new Set([...linkSets.values()].flat())].filter((t) => !status.has(t));
-  for (const t of targets.slice(0, FULL.linkChecks)) {
+  const toCheck = targets.slice(0, FULL.linkChecks);
+  for (const [i, t] of toCheck.entries()) {
+    tell("Checking that your links open", i, toCheck.length);
     const allowed = await robots.check(t);
     if (!allowed.allowed) continue;
     const r = await get(t, "*/*");

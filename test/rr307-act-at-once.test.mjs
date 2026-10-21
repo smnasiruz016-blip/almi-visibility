@@ -261,3 +261,98 @@ test("E4 · ONE CHANNEL, SEVERAL PRODUCTS: each video goes to the product whose 
     assert.match(a.shared.line, /^This channel serves 2 products \(AlmiCV, AlmiPrep\)\. 1 of its 3 videos is about AlmiCV; 1 is not linked to any product\.$/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test("RR-307 FIX B2 (22 Oct) · THE TABS NEVER WAIT FOR YOUTUBE: the product's tab list says where its YouTube stands without one call to YouTube (a channel of 1,437 videos was read again on every tab switch)", async () => {
+  const { productStore } = await import("../desktop/products.mjs");
+  const { youtubeApp } = await import("../desktop/youtube-app.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "rr307-quick-"));
+  try {
+    const store = productStore(dir);
+    const p = store.create({ name: "Dhanak Ki Duniya", site: null }); const s = store.read(p.id);
+    s.setup.youtube = { handle: "@dhanakkiduniya", confirmed: { channelId: "UCdhanak0000000000001", title: "Dhanak Ki Duniya", handle: "@dhanakkiduniya", on: "2026-10-22" } }; store.write(p.id, s);
+    let calls = 0;
+    const keys = keyStore({ backend: memoryBackend(), env: {} }); keys.set("YOUTUBE_API_KEY", "fake-youtube-key-rr307-0000");
+    const YT = youtubeApp({ store, dataDir: dir, keys, config: {}, fetchImpl: async () => { calls++; throw new Error("no network in this test"); } });
+    assert.deepEqual(YT.quickLines(p.id), ["Dhanak Ki Duniya: @dhanakkiduniya", "Open the YouTube tab for the advice."]);
+    assert.equal(calls, 0, "the tab list called YouTube");
+    assert.match(readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"), /youtube: YT\.quickLines\(id\)/, "the product's views read the whole channel");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+/* ── the SCREENS themselves (RR-307 fixes, owner 22 Oct): the app's own ui.html script, run against the real app with a stand-in page ──
+ * Each element is a plain object; what a screen writes into #app is read back. A screen that throws is a failed test, not a blank page. */
+export async function screen(base) {
+  const { runInNewContext } = await import("node:vm");
+  const html = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
+  const code = html.slice(html.lastIndexOf("<script>") + 8, html.lastIndexOf("</script>"));
+  const els = new Map(), errors = [];
+  const el = (sel) => { if (!els.has(sel)) els.set(sel, { sel, innerHTML: "", textContent: "", value: "", checked: false, disabled: false, style: {}, dataset: {}, files: [], onclick: null, onchange: null, focus() {}, remove() {}, scrollIntoView() {}, prepend(x) { this.innerHTML = `${x.innerHTML ?? ""}${this.innerHTML}`; }, appendChild() {}, querySelector: () => el(`${sel} *`), querySelectorAll: () => [] }); return els.get(sel); };
+  const document = { querySelector: (s) => el(s), querySelectorAll: () => [], createElement: () => el(`new-${els.size}`), body: el("body") };
+  const window = { addEventListener: (k, f) => { if (k === "error" || k === "unhandledrejection") errors.push(f); }, open() {}, scrollTo() {} };
+  const ctx = { document, window, location: { hash: "" }, fetch: (p, o) => fetch(`${base}${p}`, o), console: { error() {}, log() {} }, setTimeout: () => 0, FileReader: class {}, URL, encodeURIComponent, decodeURIComponent, JSON, Math, String, Number, Array, Object, Promise, Set, Map, Boolean, Date, RegExp };
+  runInNewContext(`${code}\n;globalThis.__api = { set: (p, s) => { P = p; S = s; }, youtubeSettings, overview, work, setup, get, stepTo: (i) => { step = i; } };`, ctx);
+  await new Promise((r) => setTimeout(r, 300)); // the first screen (home) settles
+  return { api: ctx.__api, app: () => el("#app").innerHTML, el };
+}
+
+test("RR-307 FIX B (22 Oct) · THE YOUTUBE SETTINGS SCREEN OPENS for a YouTube-only product (the Dhanak screen went blank: the screen joined the topics as a list, the app now gives them as an object) — the found topics shown, the client's own extra topics kept apart and saved; a screen that fails says so in plain words, never blank", async () => {
+  const a = await app();
+  try {
+    const made = await a.post("/api/products", { name: "Dhanak Ki Duniya", site: "", goal: { grow: "youtube", hasWebsite: false } });
+    const id = made.product.id;
+    await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "Dhanak Ki Duniya", site: "", what: "Daily life vlog of a Pakistani family in Denmark: cooking, cleaning and routines with the kids." } });
+    await a.post(`/api/products/${id}/setup`, { id: "youtube", value: { handle: "@dhanakkiduniya", key: "" } });
+    const y = await a.get(`/api/products/${id}/youtube`);
+    assert.ok(Array.isArray(y.topics.all) && y.topics.all.length > 0 && Array.isArray(y.extraTopics), "the settings' shape");
+    const base = a.siteBase.replace(/:\d+$/, `:${JSON.parse(readFileSync(join(a.dir, "run.json"), "utf8")).port}`);
+    const ui = await screen(base);
+    ui.api.set(id, await ui.api.get(`/api/products/${id}/state`));
+    await ui.api.youtubeSettings();
+    const shown = ui.app();
+    assert.match(shown, /Find my channel/, "the YouTube settings screen did not open");
+    assert.match(shown, /Research topics Visibility found by itself/);
+    for (const t of y.topics.all) assert.ok(shown.includes(t), `a found topic is not shown: ${t}`);
+    assert.doesNotMatch(shown, /\[object Object\]|undefined/);
+    const saved = await a.post(`/api/products/${id}/youtube`, { handle: "@dhanakkiduniya", extraTopics: ["mom vlog denmark"] });
+    assert.equal(saved.http, 200);
+    const y2 = await a.get(`/api/products/${id}/youtube`);
+    assert.deepEqual(y2.extraTopics, ["mom vlog denmark"]);
+    assert.ok(y2.topics.all.includes("mom vlog denmark"), "the client's extra topic is not researched");
+    /* never blank: the page's own error guard puts a plain message on the screen */
+    const ui2 = await screen(base);
+    assert.match(readFileSync(join(REPO, "desktop", "ui.html"), "utf8"), /window\.addEventListener\("unhandledrejection"/);
+    ui2.api.set("no-such-product", { product: { name: "x" } });
+    await ui2.api.youtubeSettings().catch(() => {});
+    assert.doesNotMatch(ui2.app(), /Find my channel/);
+  } finally { a.close(); }
+});
+
+test("RR-307 FIX C (22 Oct) · A LONG CHECK SHOWS HOW FAR IT IS and is never offered twice: while it runs the Overview gives the stage, N of M and the time left; the screen shows a progress bar and NO \"Check my product now\"; a second Check now joins the running check; the end of setup says it is already running", async () => {
+  const a = await app();
+  try {
+    const made = await a.post("/api/products", { name: "FixturePrep", site: a.siteBase, goal: { grow: "website", hasWebsite: true } });
+    const id = made.product.id;
+    const o = await a.get(`/api/products/${id}/overview`);
+    assert.equal(o.checking, true, "the check did not start at once");
+    assert.ok(o.progress && typeof o.progress.stage === "string" && Number.isInteger(o.progress.done) && Number.isInteger(o.progress.of), "no progress while checking");
+    const again = await a.post(`/api/products/${id}/check`, {});
+    assert.deepEqual([again.http, again.started, again.running], [200, false, true], "a second check was started while one runs");
+    assert.equal((await a.get(`/api/products/${id}/state`)).checking, true);
+    const base = a.siteBase.replace(/:\d+$/, `:${JSON.parse(readFileSync(join(a.dir, "run.json"), "utf8")).port}`);
+    const ui = await screen(base);
+    ui.api.set(id, await ui.api.get(`/api/products/${id}/state`));
+    ui.el("#ov");
+    await ui.api.overview();
+    const shown = ui.el("#ov").innerHTML;
+    assert.match(shown, /Checking your product now…/);
+    assert.match(shown, /class="progress"/);
+    assert.doesNotMatch(shown, /id="chk"|Check my product now/, "\"Check my product now\" offered while a check runs");
+    assert.match(shown, /Running now/, "the check card did not say it is running");
+    const st = await ui.api.get(`/api/products/${id}/state`);
+    ui.api.set(id, st); ui.api.stepTo(st.steps.length - 1);
+    await ui.api.setup();
+    assert.match(ui.app(), /See the check in progress/); assert.doesNotMatch(ui.app(), /Check my product now/, "the end of setup offered a second check");
+    let done; for (let i = 0; i < 150; i++) { done = await a.get(`/api/products/${id}/overview`); if (!done.checking) break; await new Promise((r) => setTimeout(r, 200)); }
+    assert.equal(done.checking, false); assert.equal(done.progress, null); assert.match(done.card.gauge, /^\d+\/100$/);
+  } finally { a.close(); }
+});

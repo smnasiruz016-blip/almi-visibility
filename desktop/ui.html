@@ -66,6 +66,15 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const get = (p) => fetch(p).then((r) => r.json());
 const post = async (p, o) => { const r = await fetch(p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); return r.json(); };
 let P = null, S = null, step = 0;
+/* RR-307 (owner, 22 Oct): a screen that fails says so in plain words, with a way back — never a blank page (the Dhanak YouTube settings went blank) */
+function oops() {
+  if ($("#oops")) return;
+  const box = document.createElement("div"); box.className = "card"; box.id = "oops";
+  box.innerHTML = `<h2>This screen could not open</h2><p>Something went wrong on this screen. Your data is safe — nothing was changed.</p><button id="oopshome">Back to my products</button>`;
+  $("#app").prepend(box); $("#oopshome").onclick = () => { box.remove(); home(); };
+}
+window.addEventListener("error", (e) => { console.error(e.error ?? e.message); oops(); });
+window.addEventListener("unhandledrejection", (e) => { console.error(e.reason); oops(); });
 
 /* ── the first screen: the company, "What would you like to do now?", its products (RR-307 G: the cards ask; D6: a short first-run tour) ── */
 async function home() {
@@ -86,9 +95,10 @@ async function home() {
   tour();
 }
 /* the cards, from the app's own feature list: what it does, what you get, time or cost, what it needs; recommended first */
-function cardsHtml(cards) {
+function cardsHtml(cards, { checking = false } = {}) {
   const sorted = [...cards.filter((c) => c.recommended), ...cards.filter((c) => !c.recommended)];
-  return `<div class="fcards">${sorted.map((c) => `<button class="fcard" data-f="${esc(c.id)}"><h3>${esc(c.title)} ${c.recommended ? `<span class="rec">Recommended for you now</span>` : ""}</h3><p>${esc(c.does)}</p><p><b>You get:</b> ${esc(c.youGet)}</p><p class="meta">${esc(c.time)}</p>${c.needs?.length ? `<p class="needs">Needs: ${esc(c.needs.map((n) => n.what).join("; "))}</p>` : ""}</button>`).join("")}</div>`;
+  /* a check that is running is never offered again — its card says so */
+  return `<div class="fcards">${sorted.map((c) => c.id === "check" && checking ? `<button class="fcard" disabled><h3>${esc(c.title)}</h3><p><b>Running now</b> — see its progress at the top of this page.</p></button>` : `<button class="fcard" data-f="${esc(c.id)}"><h3>${esc(c.title)} ${c.recommended ? `<span class="rec">Recommended for you now</span>` : ""}</h3><p>${esc(c.does)}</p><p><b>You get:</b> ${esc(c.youGet)}</p><p class="meta">${esc(c.time)}</p>${c.needs?.length ? `<p class="needs">Needs: ${esc(c.needs.map((n) => n.what).join("; "))}</p>` : ""}</button>`).join("")}</div>`;
 }
 async function tour() {
   if (!(await get("/api/tour")).show) return;
@@ -136,7 +146,8 @@ async function youtubeSettings() {
   <label>Channel @handle<input id="y1" list="pilots" value="${esc(y.handle || y.suggestedHandle || "")}" placeholder="@yourchannel"></label><datalist id="pilots">${y.pilots.map((p) => `<option value="${esc(p.handle)}">${esc(p.name)} (${esc(p.tier)})</option>`).join("")}</datalist>
   <button id="find">Find my channel</button><div id="found"></div>
   ${keyBox("YOUTUBE_API_KEY", "Your YouTube key", K.keys.YOUTUBE_API_KEY)}
-  <label>Research topics — what people search for about your product (one per line; from your product's description — change them freely)<textarea id="y3">${esc((y.topics ?? []).join("\n"))}</textarea></label>
+  <p class="meta"><b>Research topics Visibility found by itself</b> (from your product, its videos and its site): ${esc((y.topics?.all ?? []).join(" · ") || "none yet")}</p>
+  <label>More research topics (optional — one per line; Visibility never needs them)<textarea id="y3">${esc((y.extraTopics ?? []).join("\n"))}</textarea></label>
   <label>Related pages (optional) — when a video is about one of your products, it should link to that product's page. One per line: words → address<textarea id="y4" placeholder="cv, resume → https://cv.almiworld.com">${esc((y.relatedPages ?? []).map((p) => `${p.words.join(", ")} → ${p.url}`).join("\n"))}</textarea></label>
   <label>Search-data file (optional) — a CSV from Google Search Console, Bing or Keyword Planner (${y.files} phrases added)<input id="y5" type="file" accept=".csv,text/csv"></label>
   <p class="meta">${esc(y.quota)}</p>
@@ -154,7 +165,7 @@ async function youtubeSettings() {
   };
   const save = async () => {
     const related = $("#y4").value.split("\n").map((l) => l.split(/→|->/)).filter((p) => p.length === 2).map(([w, url]) => ({ words: w.trim(), url: url.trim() }));
-    const r = await post(`/api/products/${encodeURIComponent(P)}/youtube`, { handle: $("#y1").value.trim(), topics: $("#y3").value.split("\n"), relatedPages: related });
+    const r = await post(`/api/products/${encodeURIComponent(P)}/youtube`, { handle: $("#y1").value.trim(), extraTopics: $("#y3").value.split("\n"), relatedPages: related });
     if (r.refused) { $("#err").textContent = r.refused; return false; }
     const f = $("#y5").files[0];
     if (f) { const x = await post(`/api/products/${encodeURIComponent(P)}/youtube/file`, { name: f.name, text: await f.text() }); if (x.refused) { $("#err").textContent = x.refused; return false; } }
@@ -218,7 +229,7 @@ const fields = {
     <label>Paste your AI key here<input id=f2 type=password autocomplete=off spellcheck=false placeholder="It is kept safely on this computer"></label><p class=meta id=aist></p><div class="howto" id=aihow></div>`,
   youtube: () => `<label>Your channel's @handle<input id=f1 placeholder="@yourchannel" value="${esc(S.setup.youtube?.handle || (/youtube\.com\/(@[\w.-]{3,100})/i.exec(S.product.site ?? "")?.[1] ?? ""))}"></label>
     <label>Paste your YouTube key here<input id=f2 type=password autocomplete=off spellcheck=false placeholder="${KS.keys.YOUTUBE_API_KEY?.saved ? `saved ✓ (ends …${esc(KS.keys.YOUTUBE_API_KEY.ends)}) — paste a new one to replace it` : "It is kept safely on this computer"}"></label><div class="howto">${esc(S.howTo.youtube)}</div>`,
-  start: () => `<h2 class="ok">All set ✓</h2><p>${S.started ? `Your changes to ${esc(S.product.name)} are saved.` : `Visibility checks ${esc(S.product.name)} now — your score and what to fix first appear in a minute.`} Nothing is published without your choice.</p>`,
+  start: () => `<h2 class="ok">All set ✓</h2><p>${S.checking ? `Visibility is already checking ${esc(S.product.name)} — follow it on the Overview.` : S.started ? `Your changes to ${esc(S.product.name)} are saved.` : `Visibility checks ${esc(S.product.name)} now — your score and what to fix first appear on the Overview, with how far the check is.`} Nothing is published without your choice.</p>`,
 };
 const value = (id) => ({
   goal: () => ({ grow: document.querySelector("input[name=grow]:checked")?.value, hasWebsite: document.querySelector("input[name=hasweb]:checked") ? document.querySelector("input[name=hasweb]:checked").value === "yes" : undefined }),
@@ -239,7 +250,7 @@ async function setup() {
   const skipped = S.setup[st.id]?.skipped === true;
   const pct = Math.round((step / Math.max(1, S.steps.length - 1)) * 100);
   $("#app").innerHTML = `<p><button class="ghost" id="home">← ${S.started ? esc(S.product.name) : "All products"}</button></p><div class="card"><div class="steps">${esc(S.product.name)} · ${S.started ? "Settings · " : ""}step ${step + 1} of ${S.steps.length}${skipped ? " · skipped for now" : ""}</div><div class="progress"><div style="width:${pct}%"></div></div><h2>${esc(st.id === "start" ? "" : st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
-  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next class="${st.id === "start" ? "big" : ""}">${st.id === "start" ? (S.started ? "Save" : "Check my product now") : "Next"}</button>${st.optional ? "<button class=ghost id=skip>Skip for now — add later</button>" : ""}</div><div class=err id=err></div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next class="${st.id === "start" ? "big" : ""}">${st.id === "start" ? (S.checking ? "See the check in progress" : S.started ? "Save" : "Check my product now") : "Next"}</button>${st.optional ? "<button class=ghost id=skip>Skip for now — add later</button>" : ""}</div><div class=err id=err></div>
   ${S.started && step === 0 ? `<div style="margin-top:22px;border-top:1px solid var(--peach);padding-top:12px"><button class="ghost" id="del">Delete this product</button><div id="delask"></div></div>` : ""}</div>`;
   $("#home").onclick = () => (S.started ? work("Overview") : home()); if ($("#back")) $("#back").onclick = () => { step--; setup(); };
   if (st.id === "searchData") { wireKeyBoxes(); const show = () => ($("#sk").style.display = document.querySelector("input[name=sd]:checked")?.value === "1" ? "" : "none"); document.querySelectorAll("input[name=sd]").forEach((r) => (r.onchange = show)); show(); }
@@ -249,7 +260,8 @@ async function setup() {
     const r = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: st.id, value: { ...v, ...extra } });
     if (r.refused) return r.canSaveAnyway ? addressTrouble(r, (x) => go({ ...v, ...(x.site ? { site: x.site } : {}) }, x.saveAnyway ? { saveAnyway: true } : {})) : ($("#err").textContent = r.refused);
     S = await get(`/api/products/${encodeURIComponent(P)}/state`);
-    if (st.id === "start") { work("Overview"); if (!S.started || true) post(`/api/products/${encodeURIComponent(P)}/check`, {}).then(() => { if ($("#scorebox")) overview(); }); return; }
+    /* the end of setup: a check starts (or the running one is followed) — the Overview shows its progress */
+    if (st.id === "start") { if (!S.checking) await post(`/api/products/${encodeURIComponent(P)}/check`, {}); work("Overview"); return; }
     step = Math.min(step + 1, S.steps.length - 1); setup();
   };
   $("#next").onclick = () => go(value(st.id));
@@ -299,10 +311,19 @@ async function work(tab) {
   if ($("#mk")) $("#mk").onclick = () => openFeature("seo-pages"); if ($("#art")) $("#art").onclick = () => openFeature("articles"); if ($("#mr")) $("#mr").onclick = () => openFeature("monthly");
   $("#upd").onclick = async () => { const r = await get("/api/update"); $("#u").innerHTML = `<p>${esc(r.line)}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await post("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${esc(x.line ?? x.refused)}</p>`; }; };
 }
+/* RR-307 (owner, 22 Oct): a long check shows how far it is — what it reads now, N of M, about how long is left */
+function checkingHtml(p) {
+  const pct = p && p.of ? Math.min(99, Math.round((p.done / p.of) * 100)) : 2;
+  const left = p?.secondsLeft ? (p.secondsLeft >= 90 ? `about ${Math.round(p.secondsLeft / 60)} minutes left` : `about ${Math.max(10, p.secondsLeft)} seconds left`) : "";
+  return `<p><b>Checking your product now…</b> ${esc(p?.stage ?? "Starting")}${p?.of > 1 ? ` — ${p.done} of ${p.of}` : ""}. ${esc(left)}</p><div class="progress"><div style="width:${pct}%"></div></div>
+  <p class="meta">Visibility reads one page a second, so it never slows your site down. You can leave this screen — the check goes on, and the score appears here when it is done.${p?.seconds ? ` Running for ${p.seconds >= 60 ? `${Math.floor(p.seconds / 60)} min ${p.seconds % 60} s` : `${p.seconds} s`}.` : ""}</p>`;
+}
 async function overview() {
+  const pid = P;
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`);
+  if (!$("#ov") || P !== pid) return; // the client moved to another screen meanwhile — nothing to draw
   const c = O.card;
-  const scoreHtml = O.checking ? `<p><b>Checking your product now…</b> Visibility is reading your site (and your channel) — this takes a minute or two.</p>` : c ? `<div class="score">${gauge(c)}<ul class="areas">${c.areas.map((a) => `<li>${icon(a.state)} <b>${esc(a.area)}</b> — ${esc(a.line)}${a.ticks ? `<ul>${a.ticks.map((t) => `<li class="meta">${t.tick === true ? "✓" : t.tick === false ? "!" : "–"} ${esc(t.line)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ul></div>
+  const scoreHtml = O.checking ? checkingHtml(O.progress) : c ? `<div class="score">${gauge(c)}<ul class="areas">${c.areas.map((a) => `<li>${icon(a.state)} <b>${esc(a.area)}</b> — ${esc(a.line)}${a.ticks ? `<ul>${a.ticks.map((t) => `<li class="meta">${t.tick === true ? "✓" : t.tick === false ? "!" : "–"} ${esc(t.line)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ul></div>
     <p class="meta">Checked on ${esc(String(c.on).slice(0, 16).replace("T", " at "))} · ${c.pagesRead} page${c.pagesRead === 1 ? "" : "s"} read. ${esc(c.noPromise)}</p>` : `<p>No check yet.</p>`;
   const fix = c?.fixFirst?.length ? `<h3>What to fix first</h3><ol>${c.fixFirst.map((f, i) => `<li><b>${esc(f.line)}</b> ${f.how ? `<button class="ghost" data-how="${i}">Show me how</button>` : ""} ${f.fixForMe ? `<button class="ghost" data-fix="${esc(f.id)}" data-i="${i}">Fix it for me</button>` : ""}<div id="fx${i}"></div></li>`).join("")}</ol>` : c ? `<h3>What to fix first</h3><p>Nothing to fix was found in this check.</p>` : "";
   const F = O.found;
@@ -312,11 +333,11 @@ async function overview() {
     ${F.prices.length ? `<p class="meta">Prices on your pages: ${esc(F.prices.join(" · "))}</p>` : ""}
     ${F.missing.length ? `<h3>Add more sources</h3><ul>${F.missing.map((m) => `<li><b>${esc(m.what)}</b> — adds: ${esc(m.adds)} <button class="ghost" data-act="${esc(m.action)}">Connect</button></li>`).join("")}</ul>` : ""}`;
   const todo = O.todo.length ? `<h3>To-do</h3><ul>${O.todo.map((t) => `<li>${esc(t.what)} <button class="ghost" data-act="${esc(t.action)}">Add now</button></li>`).join("")}</ul>` : "";
-  $("#ov").innerHTML = `${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div><p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : "Check my product now"}</button></p>${fix}${todo}
-    <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards)}<div id="featbox"></div>${found}`;
+  $("#ov").innerHTML = `${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : "Check my product now"}</button></p>`}${fix}${todo}
+    <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}<div id="featbox"></div>${found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
-  if (O.checking) setTimeout(() => { if ($("#scorebox")) overview(); }, 4000);
-  $("#chk").onclick = async () => { $("#scorebox").innerHTML = `<p><b>Checking your product now…</b> this takes a minute or two.</p>`; await post(`/api/products/${encodeURIComponent(P)}/check`, {}); overview(); };
+  if (O.checking) setTimeout(() => { if ($("#scorebox") && P === pid) overview(); }, 2000);
+  if ($("#chk")) $("#chk").onclick = async () => { $("#chk").disabled = true; await post(`/api/products/${encodeURIComponent(P)}/check`, {}); overview(); };
   document.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => ($(`#fx${b.dataset.how}`).innerHTML = `<p class="howto">${esc(c.fixFirst[+b.dataset.how].how)}</p>`)));
   document.querySelectorAll("[data-fix]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/fix`, { id: b.dataset.fix }); $(`#fx${b.dataset.i}`).innerHTML = pasteHtml(r.items ?? []) || `<p class="meta">${esc(r.refused ?? "Nothing to write for this one.")}</p>`; }));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => openFeature(b.dataset.f)));
@@ -327,7 +348,7 @@ const pasteHtml = (items) => items.map((x) => `<div><p class="meta">For ${esc(x.
 async function act(a) {
   if (a === "youtube") return youtubeSettings();
   if (a === "google" || a === "file") return googleScreen();
-  if (a === "check") { await post(`/api/products/${encodeURIComponent(P)}/check`, {}); return work("Overview"); }
+  if (a === "check") { post(`/api/products/${encodeURIComponent(P)}/check`, {}); return work("Overview"); }
   if (a === "seo-pages") return openFeature("seo-pages");
   S = await get(`/api/products/${encodeURIComponent(P)}/state`);
   const i = S.steps.findIndex((x) => x.id === (a === "ai" ? "aiConnection" : a === "settings" ? "product" : a));
@@ -341,7 +362,7 @@ async function openFeature(f) {
   if (r.needs) return (box.innerHTML = `<div class="card"><h3>First, Visibility needs:</h3><ul>${r.needs.map((n) => `<li>${esc(n.what)} <button data-act="${esc(n.action)}">Set it up now</button></li>`).join("")}</ul><button class="ghost" id="skipneed">Skip for now</button></div>`, document.querySelectorAll("#featbox [data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act))), ($("#skipneed").onclick = () => (box.innerHTML = "")));
   if (r.open === "youtube") return work("YouTube");
   if (r.open === "google") return googleScreen();
-  if (r.card) return overview();
+  if (r.card || r.checking) return overview();
   if (r.result) return (box.innerHTML = `<div class="card"><h3>${esc(r.result.title)}</h3><p class="meta">${esc(r.result.read)}</p><ul>${r.result.lines.map((l) => `<li>${l.ok === true ? `<span class="ok-i">✓</span>` : l.ok === false ? `<span class="warn-i">!</span>` : `<span class="nm-i">–</span>`} ${esc(l.line)}${l.how ? `<div class="howto">${esc(l.how)}</div>` : ""}${l.fixForMe?.length ? pasteHtml(l.fixForMe) : ""}</li>`).join("")}</ul>${r.result.note ? `<p class="meta">${esc(r.result.note)}</p>` : ""}</div>`);
   if (r.found) return (box.innerHTML = `<div class="card"><h3>Keywords and questions</h3><p><b>${esc(r.found.line)}</b></p><h4>Questions people ask</h4><ul>${r.found.questions.slice(0, 80).map((q) => `<li>${esc(q.text)}<div class="src">From: ${esc(q.source)} · ${esc(q.on)}</div></li>`).join("") || "<li>None yet.</li>"}</ul><h4>Search phrases</h4><ul>${r.found.phrases.slice(0, 120).map((q) => `<li>${esc(q.text)}<div class="src">From: ${esc(q.source)}</div></li>`).join("") || "<li>None yet.</li>"}</ul>${r.found.missing.length ? `<h4>Not connected yet</h4><ul>${r.found.missing.map((m) => `<li>${esc(m.what)} — adds: ${esc(m.adds)}</li>`).join("")}</ul>` : ""}</div>`);
   if (r.pages) {

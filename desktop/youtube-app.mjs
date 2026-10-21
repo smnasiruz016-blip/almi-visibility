@@ -167,7 +167,16 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const report = youtubeForReport({ ok: true, source: "YOUTUBE_DATA_API", importedOn: today(), videos: raw.videos }, channelCheck(raw.videos, opts)).lines;
       return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null, ...adv };
     },
-    /** the YouTube lines for the product's tab list (and the monthly report) */
+    /** RR-307 (22 Oct): the product's tab list says where YouTube stands WITHOUT reading the channel (a channel of 1,437 videos took
+     *  half a minute on every tab switch) — the advice is read on the YouTube tab only */
+    quickLines(id) {
+      const y = yt(store.read(id));
+      if (!y.handle) return ["YouTube is not set up — it is optional. Open YouTube settings to add your channel."];
+      if (!keys.status(YOUTUBE_KEY).saved) return [keyLine()];
+      if (!y.confirmed) return [`Confirm your channel first: open YouTube settings and check that ${y.handle} is yours.`];
+      return [`${y.confirmed.title}: ${y.confirmed.handle}`, "Open the YouTube tab for the advice."];
+    },
+    /** the YouTube lines for the monthly report (reads the channel) */
     async lines(id) { try { const a = await self.advice(id); return a.state === "READY" ? [`${a.confirmed.title}: ${a.confirmed.handle}`, ...a.report] : a.lines; } catch (e) { return [`YouTube could not be read now (${/answered HTTP \d+/.exec(String(e?.message))?.[0] ?? "no answer"}). Nothing was changed.`]; } },
   };
   return Object.freeze(self);

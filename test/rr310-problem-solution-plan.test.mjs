@@ -13,7 +13,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { generateKeyPairSync } from "node:crypto";
 import { youtubeItems, websiteItems, actionPlan, willDo, planDocument, keywordGroups, socialFromVideo, isAlmiWorld, HONEST } from "../desktop/action-plan.mjs";
-import { gapFixes, youtubeScore, CHAPTERS_FROM } from "../desktop/youtube-plan.mjs";
+import { gapFixes, youtubeScore, CHAPTERS_FROM, ideasFor, ownWords } from "../desktop/youtube-plan.mjs";
+import { casingOf } from "../desktop/seo-pages.mjs";
 import { scoreCard } from "../desktop/product-check.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "../desktop/features.mjs";
 import { indexNow, keyFileUrl } from "../desktop/submit.mjs";
@@ -47,6 +48,11 @@ test("A1 · YOUTUBE: every failing check is Problem (with its count) → Solutio
   /* nothing invented: every ready title's words come from the video, the channel's description or the research */
   const allowed = new Set("our trip to iceland family vlog morning routine with kids grocery haul in denmark cleaning day pakistani mom come us watch this what is it really like is worth visiting house tour".split(" "));
   for (const r of items.flatMap((i) => i.ready).filter((r) => r.kind === "title")) for (const w of r.text.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean)) assert.ok(allowed.has(w), `"${w}" in "${r.text}" came from nowhere`);
+  /* a new video idea only for a format that does at least as well as the niche's own median — with the niche's topic when there is no place */
+  const fmt = (medianViews) => ({ formats: [{ id: "qa", label: "Q&A and answers to viewers", title: "Q&A", count: 7, medianViews, own: 0, examples: [] }], medianAll: 1000, source: "YouTube search" });
+  assert.deepEqual(ideasFor({ summary: fmt(95), videos: VIDEOS }).filter((i) => i.kind === "FORMAT"), [], "a format below the niche's median became an idea");
+  assert.equal(ideasFor({ summary: fmt(17706), videos: VIDEOS, topic: "ielts coaching" })[0].title, "Q&A: IELTS Coaching");
+  assert.ok(!ownWords({ title: "Dress designed by ME ##shortsfeed #ootd" }).main.includes("#"), "a lone # reached the video's own words");
   /* B5 · each YouTube line with its count */
   assert.deepEqual(youtubeScore(VIDEOS).checks.map((x) => x.text).slice(0, 1), ["Every video has a description: 2 of 4"]);
 });
@@ -66,6 +72,9 @@ test("A1 · THE WEBSITE TABS (SEO, AEO, GEO, Links, Languages): every line that 
   assert.match(bad.find((l) => /do not say which address/.test(l.line)).ready[0].text, /^<link rel="canonical" href="http:\/\/127\.0\.0\.1:1\/">$/);
   assert.match(bad.find((l) => /does not open/.test(l.line)).solution, /change this link to an address that opens, or remove it/);
   assert.match(bad.find((l) => /No page found yet in:/.test(l.line)).note, /does not translate/);
+  /* a short name keeps the site's own capitals (GPhC); a shouted common word does not become a name */
+  const cs = casingOf({ pages: [{ title: "", h1: "", h2: [], lead: ["Register with the GPhC and do NOT wait for AVBC."], facts: [] }] });
+  assert.deepEqual([cs.get("gphc"), cs.get("avbc"), cs.has("not")], ["GPhC", "AVBC", false]);
   const geoFacts = results[2].lines.find((l) => /few facts with numbers/.test(l.line));
   assert.ok(!geoFacts || /only you know them/.test(geoFacts.note), "a fact would be invented");
 });

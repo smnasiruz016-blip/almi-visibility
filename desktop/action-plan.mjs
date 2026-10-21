@@ -21,7 +21,7 @@ import { casingOf } from "./seo-pages.mjs";
 
 /* AlmiWorld's OWN products (a site on almiworld.com, the AlmiWorld channel): the plan is shown; nothing is published or submitted (D5) */
 export const isAlmiWorld = (s) => { let host = ""; try { host = new URL(s?.product?.site ?? "").host; } catch {} return /(^|\.)almiworld\.com$/i.test(host) || /almiworld/i.test(String(s?.setup?.youtube?.confirmed?.handle ?? s?.setup?.youtube?.handle ?? "")); };
-export const HONEST ="This gives your product a better chance to appear in Google and AI answers. It promises no ranking, traffic or citation.";
+export const HONEST = "This gives your product a better chance to appear in Google and AI answers. It promises no ranking, traffic or citation.";
 export const EFFECT_RULE = "Order: how much search engines and YouTube rely on each thing, times how many of your pages or videos miss it. Visibility's own ordering — not a forecast of rankings or visits.";
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
 const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${n === 1 ? one : many}`;

@@ -492,6 +492,7 @@ export const MANDATORY_READING = Object.freeze([
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-21_RR-303.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-21_RR-304.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-21_RR-305.md", loader: "authority register (CURRENT record)" }),
+  Object.freeze({ repo: "governance", path: "AlmiVisibility_OWNER_DECISION_2026-10-21_RR-306.md", loader: "authority register (CURRENT record)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F91_ACCEPTANCE_AMENDMENT_7_2026-10-19.md", loader: "F-board acceptance F91 (Amendment 7)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F62_ACCEPTANCE_AMENDMENT_2_2026-10-18.md", loader: "F-board acceptance F62 (Amendment 2)" }),
   Object.freeze({ repo: "governance", path: "AlmiVisibility_F35_ACCEPTANCE_AMENDMENT_2_2026-10-18.md", loader: "F-board acceptance F35 (Amendment 2)" }),

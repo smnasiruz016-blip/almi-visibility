@@ -120,7 +120,7 @@ export function optionsFor(v, ctx) {
   const kind = videoKind(v);
   const own = ownWords(v, channel);
   /* RR-311: the kind of video from ITS OWN words — the greeting every video carries ("living in Denmark") decides nothing */
-  const f = formatOf({ title: v.title, description: own.lines.slice(0, 2).join(" ") });
+  const f = formatOf({ title: v.title, tags: v.tags, description: own.lines.slice(0, 2).join(" ") });
   /* RR-311 (owner, testing 1.3.7): a place goes into a title ONLY when this video's own title or description names it — never the
    * channel's home from the channel's description ("JAB WE MET in Denmark" was an invented fact). The transcript is not readable with a key. */
   const vPlace = placeIn(own.text);

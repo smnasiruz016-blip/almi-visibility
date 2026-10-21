@@ -29,6 +29,8 @@ test("A PLACE ONLY WHEN THE VIDEO NAMES IT: the channel's home (from the channel
     assert.ok(!o.basedOn.some((b) => /your channel's home/.test(b)), "the channel's home still used");
   }
   assert.equal(all(VIDEOS[0])[0].title, "JAB WE MET | Pakistani Mom Vlog");
+  /* the greeting every video carries is not this video's own words (it has no "welcome to" — only the greeting rule catches it) */
+  assert.equal(ownWords(VIDEOS[0], CTX.channel).firstLine, null);
   assert.equal(all(VIDEOS[1])[0].title, "Jumping Sara | Pakistani Mom Vlog");
   /* the video names its place itself (its title, or a description line of its own) — then it is used, and said */
   const z = all(VIDEOS[3]);
@@ -42,6 +44,9 @@ test("A PLACE ONLY WHEN THE VIDEO NAMES IT: the channel's home (from the channel
 test("NO 'WHAT IS IT REALLY LIKE?' FROM A TITLE THAT IS NOT A TOPIC: a question is a viewer's own (not naming a place the video does not) or shaped for a kind of video it fits — else the option is the video's own words or the niche's", () => {
   for (const v of VIDEOS) for (const o of all(v)) assert.doesNotMatch(o.title, /What Is It Really Like/, `${v.title} → ${o.title}`);
   assert.ok(!all(VIDEOS[0]).some((o) => /school/i.test(o.title)), "a viewer's question about another topic and place used");
+  /* a viewer's question that fits the video's words but names a place the video does not name is not used for it */
+  const g = optionsFor(vid("g1", "Grocery haul | weekly shopping", { description: "Our weekly grocery shopping at the supermarket." }), { ...CTX, questions: [{ text: "Which supermarket is cheapest for a grocery haul in Denmark?", source: "a comment", likes: 12 }] }).options;
+  assert.ok(g.every((o) => !/Denmark/.test(o.title)), JSON.stringify(g.map((o) => o.title)));
   assert.equal(all(VIDEOS[0]).length, 3, "fewer than 3 options");
 });
 

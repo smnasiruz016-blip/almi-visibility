@@ -52,6 +52,9 @@ textarea{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radi
 .howto{font-size:13px;background:var(--cream);border-radius:10px;padding:8px 10px;margin:4px 0 12px} .tabline{color:var(--muted);margin:-4px 0 12px}
 .tour{position:fixed;inset:0;background:rgba(26,26,46,.45);display:flex;align-items:center;justify-content:center;z-index:9} .tour .card{max-width:520px}
 .paste{white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;background:var(--cream);border-radius:8px;padding:8px;overflow-wrap:anywhere}
+/* RR-309: the product box with its Delete; messages coloured by what they say */
+.pbox{display:flex;flex-direction:column;gap:6px} .pbox .product{flex:1} .pbox .del{align-self:flex-end;padding:6px 12px;font-size:13px}
+.msg-ok{color:#1F6F43;font-weight:600;margin-top:8px} .msg-info{color:var(--muted);margin-top:8px}
 /* RR-308: ready options with Copy, the plan, a failed check, publishing */
 .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:6px 0} .opt{border:1px solid var(--peach);border-radius:12px;padding:10px;background:var(--white)} .opt .row{margin:4px 0} .opt pre{margin-top:2px}
 button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#FFF8EF;border-color:var(--sunrise)} .failed{background:#FDECEC;border:1px solid #C0392B;border-radius:12px;padding:12px 14px}
@@ -90,15 +93,27 @@ async function home() {
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
   $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
-  <div class="products">${H.products.map((p) => `<button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
+  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button></p><div class="err" id="err"></div>
   <div class="card" style="margin-top:16px"><h2>${esc(M.question)}</h2><p class="tabline">Everything Visibility can do for you. Pick a card — Visibility asks which product it is for.</p>${cardsHtml(M.cards)}</div>`;
   document.querySelectorAll(".product").forEach((b) => (b.onclick = () => open(b.dataset.id)));
+  document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) { P = H.products[0].id; return openFeature(b.dataset.f); } $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
   $("#add").onclick = () => addProduct();
   $("#plan").onclick = () => planScreen();
   tour();
 }
+/* RR-309 A: Delete, right on the product's box — asked first, in the owner's words; only this product goes */
+function askDelete(id, name) {
+  const t = document.createElement("div"); t.className = "tour"; t.id = "delmodal";
+  t.innerHTML = `<div class="card" role="dialog" aria-modal="true"><h2>Delete ${esc(name)}?</h2><p><b>Are you sure?</b> This removes the product and its saved data from this computer.</p><p class="meta">Your other products, your plan and their keys are not touched.</p>
+    <p><button class="ghost" id="delno">Cancel</button> <button id="delyes">Delete</button></p><p id="delmsg"></p></div>`;
+  document.body.appendChild(t);
+  $("#delno").onclick = () => t.remove();
+  $("#delyes").onclick = async () => { $("#delyes").disabled = true; const r = await post(`/api/products/${encodeURIComponent(id)}/delete`, { confirm: true }); if (r.refused) { note($("#delmsg"), r.refused, "err"); $("#delyes").disabled = false; return; } t.remove(); home(); };
+}
+/* RR-309 B3: a message is coloured by what it says — a success or "working…" is never red, not even for a moment */
+function note(el, text, kind = "info") { if (!el) return; el.classList.remove("err", "msg-ok", "msg-info", "meta"); el.classList.add(kind === "ok" ? "msg-ok" : kind === "err" ? "err" : "msg-info"); el.textContent = text; }
 /* the cards, from the app's own feature list: what it does, what you get, time or cost, what it needs; recommended first */
 function cardsHtml(cards, { checking = false } = {}) {
   const sorted = [...cards.filter((c) => c.recommended), ...cards.filter((c) => !c.recommended)];
@@ -260,7 +275,7 @@ async function setup() {
   $("#home").onclick = () => (S.started ? work("Overview") : home()); if ($("#back")) $("#back").onclick = () => { step--; setup(); };
   if (st.id === "searchData") { wireKeyBoxes(); const show = () => ($("#sk").style.display = document.querySelector("input[name=sd]:checked")?.value === "1" ? "" : "none"); document.querySelectorAll("input[name=sd]").forEach((r) => (r.onchange = show)); show(); }
   if (st.id === "aiConnection") { const show = () => { const p = KS.aiProviders.find((x) => x.id === $("#f1").value); const k = KS.keys[p.keyName]; $("#aist").innerHTML = k?.saved ? `Your ${esc(p.name)} key: <span class="ok">saved ✓ (ends …${esc(k.ends)})</span> — paste a new one to replace it.` : "No key saved for this assistant yet."; $("#aihow").textContent = S.howTo[p.id] ?? ""; }; $("#f1").onchange = show; show(); }
-  if ($("#del")) $("#del").onclick = () => { $("#delask").innerHTML = `<p><b>Are you sure?</b> ${esc(S.product.name)} leaves your products. Its data is moved aside, not erased.</p><button id="delyes">Yes, delete it</button> <button class="ghost" id="delno">Cancel</button>`; $("#delno").onclick = () => ($("#delask").innerHTML = ""); $("#delyes").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/delete`, { confirm: true }); if (r.refused) return ($("#err").textContent = r.refused); home(); }; };
+  if ($("#del")) $("#del").onclick = () => askDelete(P, S.product.name); // the same "Are you sure?" as on the product's box
   const go = async (v, extra = {}) => {
     const r = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: st.id, value: { ...v, ...extra } });
     if (r.refused) return r.canSaveAnyway ? addressTrouble(r, (x) => go({ ...v, ...(x.site ? { site: x.site } : {}) }, x.saveAnyway ? { saveAnyway: true } : {})) : ($("#err").textContent = r.refused);
@@ -277,7 +292,7 @@ async function setup() {
 const copyBtn = (text) => `<button class="ghost copy" type="button" data-copy="${esc(text)}">Copy</button>`;
 function wireCopy(root = document) { root.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied ✓"; } catch { b.textContent = "Select and copy by hand"; } setTimeout(() => (b.textContent = "Copy"), 1600); })); }
 function optionHtml(o) {
-  return `<div class="opt"><div class="k">Option ${o.n}${o.byAI ? ` <span class="tag">written by your AI</span>` : ""}</div>
+  return `<div class="opt"><div class="k">Option ${o.n}${o.type ? ` — ${esc(o.type)}` : ""}${o.byAI ? ` <span class="tag">written by your AI</span>` : ""}</div>
   <div class="row"><b>Title</b> ${copyBtn(o.title)}<pre>${esc(o.title)}</pre></div>
   <div class="row"><b>Description</b> ${copyBtn(o.description)}<pre>${esc(o.description)}</pre></div>
   <div class="row"><b>Hashtags</b> ${copyBtn(o.hashtags.join(" "))}<pre>${esc(o.hashtags.join(" "))}</pre></div>
@@ -287,8 +302,9 @@ function optionHtml(o) {
 function videoHtml(v) {
   return `<div class="adv" id="v-${esc(v.videoId)}"><h3>${esc(v.title)} <span class="tag">${v.kind === "SHORT" ? "Short" : v.kind === "LONG" ? "Long video" : "Kind unknown"}</span> <span class="meta">${Number(v.views).toLocaleString()} views · ${esc(v.publishedAt)}${v.why ? ` · ${esc(v.why)}` : ""}</span></h3>
   ${v.weak ? `<p class="meta">${esc(v.weak)}</p>` : ""}<div class="opts">${v.options.map(optionHtml).join("")}</div>
-  <p><button class="ghost aiw" type="button" data-v="${esc(v.videoId)}">Write better options with AI</button> <span class="meta aimsg"></span></p></div>`;
+  ${AI_READY ? `<p><button class="ghost aiw" type="button" data-v="${esc(v.videoId)}">Write better options with AI</button> <span class="meta aimsg"></span></p>` : ""}</div>`;
 }
+let AI_READY = false; // RR-309 B4: the AI button under each video only when an AI is connected — otherwise one note at the top
 async function youtubeTab() {
   $("#ytbox").innerHTML = `<p class="meta">Reading your channel from YouTube… a large channel takes up to a minute the first time each day.</p>`;
   const pid = P;
@@ -297,25 +313,25 @@ async function youtubeTab() {
   if (a.refused) return ($("#ytbox").innerHTML = `<p class="err">${esc(a.refused)}</p>`);
   if (a.state !== "READY") return ($("#ytbox").innerHTML = `<ul>${a.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><button id="yset">Open YouTube settings</button>`, ($("#yset").onclick = youtubeSettings));
   const S2 = a.score, N = a.summary;
-  $("#ytbox").innerHTML = `<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${Number(a.channel.videos).toLocaleString()} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}</span></div></div>
+  AI_READY = a.aiReady === true;
+  $("#ytbox").innerHTML = `${AI_READY ? "" : `<p class="howto" id="ainote">${esc(a.aiLine)}</p>`}<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${Number(a.channel.videos).toLocaleString()} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}</span></div></div>
   ${a.shared ? `<p class="meta"><b>${esc(a.shared.line)}</b></p>` : ""}
   <div class="score" id="ytscore">${gauge({ score: S2.score, gauge: S2.gauge, word: S2.word })}<div class="areas"><b>Your YouTube score</b><ul>${S2.checks.map((c) => `<li>${c.passed === c.of ? "✓" : "!"} ${esc(c.text)}</li>`).join("")}</ul><p class="meta">${esc(S2.how)}</p></div></div>
   <div class="card plan"><h3>Do these first this week</h3>${a.doFirst.length ? `<ol>${a.doFirst.map((s) => `<li><b>${esc(s.step)}</b><div class="src">Why: ${esc(s.from)}</div></li>`).join("")}</ol>` : `<p class="meta">Run the research first — the plan is made from it.</p>`}</div>
   <p><button id="research">Research my niche now</button> <span class="err" id="rerr"></span></p><p class="meta">${esc(a.quota)} ${a.researchOn ? `Last research: ${esc(a.researchOn.slice(0, 10))}.` : "No research yet."}</p>
   <div class="card" id="ytniche"><h3>${esc(N ? N.title : `What viewers of ${a.niche.label ?? "your niche"} watch most`)}</h3>
-  <p class="meta">Your niche, read from your own videos and your channel's description: ${esc(a.niche.label ?? "not found yet")}${a.niche.persona?.who ? ` · who: ${esc(a.niche.persona.who)}` : ""}${a.niche.persona?.places?.length ? ` · where: ${esc(a.niche.persona.places.join(", "))}` : ""}.</p>
-  ${N ? (N.empty ? `<p>${esc(N.empty)}</p>` : `<ul>${N.lines.map((l) => `<li><b>${esc(l.what)}:</b> ${esc(l.line)}${l.examples?.length ? `<div class="src">For example: ${l.examples.map((e) => `"${esc(e.title)}" — ${esc(e.channel)}, ${Number(e.views).toLocaleString()} views, ${esc(e.publishedAt)}`).join(" · ")}</div>` : ""}<div class="src">Source: ${esc(l.from)}</div></li>`).join("")}</ul>`) : `<p class="meta">Press "Research my niche now": Visibility searches YouTube (through its official service, inside your daily limit) for the top and rising videos of your niche and reads what viewers ask under them.</p>`}</div>
+  ${a.niche.basis ? `<p class="warn">${esc(a.niche.basis)}</p>` : ""}<p class="meta">${a.niche.basis ? "Your niche, from your product's own topics" : "Your niche, read from your own videos and your channel's description"}: ${esc(a.niche.label ?? "not found yet")}${a.niche.persona?.who ? ` · who: ${esc(a.niche.persona.who)}` : ""}${a.niche.persona?.places?.length ? ` · where: ${esc(a.niche.persona.places.join(", "))}` : ""}.</p>
+  ${N ? (N.empty ? `<p>${esc(N.empty)}</p>` : `<ul>${N.lines.map((l) => `<li><b>${esc(l.what)}:</b> ${esc(l.line)}${l.examples?.length ? `<div class="src">For example: ${l.examples.map((e) => `"${esc(e.title)}" — ${esc(e.channel)}, ${Number(e.views).toLocaleString()} views, ${esc(e.publishedAt)}`).join(" · ")}</div>` : ""}<div class="src">Source: ${esc(l.from)}</div></li>`).join("")}</ul>${N.notShown ? `<p class="meta">${esc(N.notShown)}</p>` : ""}`) : `<p class="meta">Press "Research my niche now": Visibility searches YouTube (through its official service, inside your daily limit) for the top and rising videos of your niche and reads what viewers ask under them.</p>`}</div>
   <div class="card" id="ytideas"><h3>New video ideas</h3>${a.ideas.length ? `<ol>${a.ideas.map((i) => `<li><b>${esc(i.title)}</b> ${copyBtn(i.title)}<div class="src">Why: ${esc(i.why)}</div></li>`).join("")}</ol>` : `<p class="meta">${a.researchOn ? "No format of your niche is missing from your channel, and no unanswered viewer question was found in this research." : "They come from the niche research — press \"Research my niche now\"."}</p>`}</div>
-  <p class="meta">${esc(a.aiLine)}</p>
   <h3 style="margin-top:14px">Your videos — most viewed and newest first (${a.top.length} of ${Number(a.channel.videos).toLocaleString()})</h3><p class="meta">Each video has 3 ready options. Pick one, press Copy, and paste it in YouTube Studio.</p>
   <div id="vlist">${a.top.map(videoHtml).join("")}</div>${a.more ? `<button class="ghost" id="more">Show more (${Number(a.more).toLocaleString()} more videos)</button>` : ""}
   ${a.channelAdvice.length ? `<h3 style="margin-top:14px">Your channel</h3>${a.channelAdvice.map((x) => `<div><span class="k">${esc(x.what)}</span> ${copyBtn(x.advice)}<pre>${esc(x.advice)}</pre><div class="src">From: ${esc(x.from)}</div></div>`).join("")}` : ""}`;
   wireCopy($("#ytbox"));
-  const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); msg.textContent = "Your AI is writing…"; const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/write`, { videoId: b.dataset.v }); if (r.refused || !r.ok) return (msg.textContent = r.refused ?? r.why); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true })).join("") + box.innerHTML; msg.textContent = `${r.options.length} options written by your AI, each checked against this video's own words and the research.`; wireCopy(box); }));
+  const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/write`, { videoId: b.dataset.v }); if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, "err"); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true })).join("") + box.innerHTML; note(msg, `${r.options.length} options written by your AI, each checked against this video's own words and the research.`, "ok"); wireCopy(box); }));
   wireAI($("#ytbox"));
   let offset = a.top.length;
   if ($("#more")) $("#more").onclick = async () => { const m = await get(`/api/products/${encodeURIComponent(P)}/youtube/advice?offset=${offset}`); const div = document.createElement("div"); div.innerHTML = m.top.map(videoHtml).join(""); $("#vlist").appendChild(div); wireCopy(div); wireAI(div); offset += m.top.length; if (!m.more) $("#more").remove(); else $("#more").textContent = `Show more (${Number(m.more).toLocaleString()} more videos)`; };
-  $("#research").onclick = async () => { $("#rerr").textContent = "Researching your niche… (up to a minute)"; const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/research`, {}); if (r.refused) return ($("#rerr").textContent = r.refused); youtubeTab(); };
+  $("#research").onclick = async () => { note($("#rerr"), "Researching your niche… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/research`, {}); if (r.refused) return note($("#rerr"), r.refused, "err"); youtubeTab(); };
 }
 /* RR-307 A2: the half-circle gauge — a number /100 and a word; "Not measured" is never drawn as zero */
 function gauge(card) {
@@ -440,8 +456,8 @@ async function pagesBox(waitingOnly = false) {
       : ` <button class="ghost" data-edit="${esc(d.url)}">Edit</button> <button data-pub="${esc(d.url)}" ${d.readyAsDraft ? "" : "disabled"}>Approve &amp; Publish</button>`}</p><div class="err" data-msg="${esc(d.url)}"></div></div>`; }).join("")
     : `<p>${waitingOnly ? "Nothing waits for your approval." : "No drafts yet — press Create SEO pages."}</p>`}`;
   const msg = (url) => [...document.querySelectorAll("[data-msg]")].find((m) => m.dataset.msg === url);
-  document.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = async () => { b.disabled = true; msg(b.dataset.pub).textContent = "Checking the five gates again, then publishing…"; const r = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: b.dataset.pub }); if (r.needsConnection) return publishScreen(b.dataset.pub); msg(b.dataset.pub).textContent = r.ok ? `${r.line} ${r.sitemap ?? ""}` : r.why ?? r.refused; if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); else b.disabled = false; }));
-  document.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/publish/undo`, { url: b.dataset.undo }); msg(b.dataset.undo).textContent = r.line ?? r.refused; if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); }));
+  document.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = async () => { b.disabled = true; note(msg(b.dataset.pub), "Checking the five gates again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: b.dataset.pub }); if (r.needsConnection) return publishScreen(b.dataset.pub); note(msg(b.dataset.pub), r.ok ? `${r.line} ${r.sitemap ?? ""}` : r.why ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); else b.disabled = false; }));
+  document.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/publish/undo`, { url: b.dataset.undo }); note(msg(b.dataset.undo), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); }));
   document.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => editScreen(b.dataset.edit)));
 }
 /* "Where is your site built?" — asked the first time; each choice says when to choose it and what it needs; the key is kept safely */
@@ -465,9 +481,9 @@ async function publishScreen(thenPublish = null) {
     const v = (s) => ($(s) ? $(s).value : "");
     const body = k === "wordpress" ? { kind: k, site: v("#t1"), user: v("#t2"), key: v("#tk") } : k === "github" ? { kind: k, repo: v("#t1"), branch: v("#t2"), folder: v("#t3"), site: v("#t4"), key: v("#tk") } : k === "shopify" ? { kind: k, shop: v("#t1"), key: v("#tk") } : { kind: k };
     const r = await post(`/api/products/${encodeURIComponent(P)}/publish/connect`, body); if ($("#tk")) $("#tk").value = "";
-    if (r.refused) return ($("#err").textContent = r.refused);
-    $("#err").innerHTML = `<span class="ok">${esc(r.line)}</span>`;
-    if (thenPublish) { const x = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: thenPublish }); $("#err").innerHTML += `<p>${esc(x.ok ? `${x.line} ${x.sitemap ?? ""}` : x.why ?? x.refused)}</p>`; }
+    if (r.refused) return note($("#err"), r.refused, "err");
+    note($("#err"), r.line, "ok");
+    if (thenPublish) { const x = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: thenPublish }); const p = document.createElement("p"); $("#err").after(p); note(p, x.ok ? `${x.line} ${x.sitemap ?? ""}` : x.why ?? x.refused, x.ok ? "ok" : "err"); }
     setTimeout(() => work("Pages and articles"), thenPublish ? 2500 : 1200);
   };
 }
@@ -482,7 +498,7 @@ async function editScreen(url) {
   <p><button id="esave">Save</button> <button class="ghost" id="ecancel">Cancel</button></p><div class="err" id="err"></div></div>`;
   $("#em").innerHTML = main.innerHTML;
   $("#back").onclick = $("#ecancel").onclick = () => work("Pages and articles");
-  $("#esave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/draft/edit`, { url, title: $("#et").value, main: $("#em").innerHTML }); if (r.refused) return ($("#err").textContent = r.refused); $("#err").innerHTML = `<span class="ok">${esc(r.line)}</span>`; setTimeout(() => work("Pages and articles"), 1000); };
+  $("#esave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/draft/edit`, { url, title: $("#et").value, main: $("#em").innerHTML }); if (r.refused) return ($("#err").textContent = r.refused); note($("#err"), r.line, "ok"); setTimeout(() => work("Pages and articles"), 1000); };
 }
 /* RR-307 E1: Google Search Console — the client's own read-only sign-in, the site picker, or the download file */
 async function googleScreen() {
@@ -494,10 +510,10 @@ async function googleScreen() {
     <div class="err" id="err"></div>
     <details style="margin-top:16px"><summary>For AlmiWorld: switch on Google sign-in (once)</summary><label>Sign-in client id<input id="gid"></label><label>Sign-in client secret<input id="gsec" type="password" autocomplete="off"></label><button class="ghost" id="gsave">Save</button></details></div>`;
   $("#back").onclick = () => work("Overview");
-  if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); window.open(r.url, "_blank"); $("#err").textContent = "Finish signing in, in the window that opened — then come back here."; };
-  if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); $("#err").textContent = x.line ?? x.refused; }; }
-  $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); $("#err").textContent = x.line ?? x.refused; if (x.ok) setTimeout(googleScreen, 1200); };
-  $("#gsave").onclick = async () => { const x = await post("/api/google/client", { clientId: $("#gid").value, secret: $("#gsec").value }); $("#err").textContent = x.refused ?? "Saved — Google sign-in is switched on."; if (x.ok) setTimeout(googleScreen, 800); };
+  if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); window.open(r.url, "_blank"); note($("#err"), "Finish signing in, in the window that opened — then come back here."); };
+  if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); }; }
+  $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 1200); };
+  $("#gsave").onclick = async () => { const x = await post("/api/google/client", { clientId: $("#gid").value, secret: $("#gsec").value }); note($("#err"), x.refused ?? "Saved — Google sign-in is switched on.", x.refused ? "err" : "ok"); if (x.ok) setTimeout(googleScreen, 800); };
 }
 const hash = location.hash.slice(1);
 const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });

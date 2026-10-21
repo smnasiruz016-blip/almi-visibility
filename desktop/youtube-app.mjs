@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY, videoKind, linkTargetFor } from "../src/video/youtube.mjs";
 import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
-import { nicheOf, nicheSummary, onTopic, JUNK_WORDS } from "./youtube-niche.mjs";
+import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS } from "./youtube-niche.mjs";
 import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, TOP_N } from "./youtube-plan.mjs";
 import { writeWithAI } from "./ai-write.mjs";
 
@@ -81,8 +81,9 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
    * research's summary, the channel's own boilerplate lines (never used as a video's summary) */
   const contextFor = (s, confirmed, videos, research, opts) => {
     const niche = nicheOf({ channel: confirmed, videos, product: { name: s.product?.name, what: s.setup?.product?.what } });
-    const summary = research?.niche?.length ? nicheSummary({ niche, research, own: videos, ownChannelId: confirmed.channelId }) : null;
-    return { channel: { ...confirmed, boilerplate: boilerplateOf(videos) }, persona: niche.persona, niche, summary, ...opts, readOn: research?.readOn ?? null };
+    const scripts = channelScripts({ videos, languages: s.setup?.languages?.codes ?? [] }); // RR-309 B1: the channel's own scripts
+    const summary = research?.niche?.length ? nicheSummary({ niche, research, own: videos, ownChannelId: confirmed.channelId, scripts }) : null;
+    return { channel: { ...confirmed, boilerplate: boilerplateOf(videos) }, persona: niche.persona, niche, summary, scripts, ...opts, readOn: research?.readOn ?? null };
   };
   /* the client's AI connection (Settings → Your AI connection): its provider, the key's NAME, whether a key is saved */
   const aiOf = (s) => { const c = s.setup?.aiConnection; const p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName); return p && keys.status(p.keyName).saved ? { ready: true, provider: p.id, keyName: p.keyName, name: p.name } : { ready: false }; };
@@ -198,22 +199,24 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
        * channel is comes from its own description, asked once (a channel confirmed before RR-308 has none kept yet) */
       const confirmed = typeof y.confirmed.description === "string" ? y.confirmed : await describe(id, api()).catch(() => y.confirmed);
       const ctx = contextFor(s, confirmed, videos, research, opts);
+      /* the questions people ask (research comments and files), in the channel's own scripts — Option 2 of each video uses them (RR-309 B4) */
+      const files = filesOf(id), lang = s.setup?.languages?.codes ?? [];
+      const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: lang }, terms }).filter((q) => inOwnScripts(q.text, ctx.scripts));
+      ctx.questions = [...questions, ...(ctx.summary?.asks ?? []).map((a) => ({ text: a.text, source: `a comment under "${a.under}", ${a.on}`, likes: a.likes }))];
       const { order, why } = priorityOrder(videos);
       const page = order.slice(offset, offset + TOP_N).map((v) => ({ ...optionsFor(v, ctx), why: why.get(v.videoId)?.join(" and ") ?? null }));
       const more = Math.max(0, order.length - offset - page.length);
       if (offset) return { state: "READY", top: page, more };
-      const files = filesOf(id), lang = s.setup?.languages?.codes ?? [];
-      const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: lang }, terms });
       const score = youtubeScore(videos, opts);
       const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions });
       const report = youtubeForReport({ ok: true, source: "YOUTUBE_DATA_API", importedOn: today(), videos: raw.videos }, channelCheck(raw.videos, opts)).lines;
       const ai = aiOf(s);
       return { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null,
         channel: { title: y.confirmed.title, videos: videos.length, shorts: videos.filter((v) => videoKind(v) === "SHORT").length, long: videos.filter((v) => videoKind(v) === "LONG").length },
-        score, niche: { label: ctx.niche.label, queries: ctx.niche.queries, persona: ctx.persona }, summary: ctx.summary, doFirst: doFirst({ videos, top: page, score, summary: ctx.summary, ideas, persona: ctx.persona }), ideas, top: page, more,
+        score, niche: { label: ctx.niche.label, queries: ctx.niche.queries, persona: ctx.persona, basis: ctx.niche.basis ?? null }, aiReady: ai.ready, summary: ctx.summary, doFirst: doFirst({ videos, top: page, score, summary: ctx.summary, ideas, persona: ctx.persona }), ideas, top: page, more,
         channelAdvice: channelAdvice({ channel: y.confirmed, product: { ...s.setup?.product, site: s.product?.site, languages: lang }, videos, terms, readOn: research?.readOn ?? today() }),
         terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15),
-        aiLine: ai.ready ? `AI writing: your ${ai.name} key is connected — press "Write better options with AI" under a video (it uses your own AI account).` : "AI writing: not connected — the options below are written by Visibility's templates from your own videos and the research. An AI writes better options: connect your AI key in Settings → Your AI connection.",
+        aiLine: ai.ready ? `AI writing: your ${ai.name} key is connected — press "Write better options with AI" under a video (it uses your own AI account).` : "Better with AI — connect your AI (Settings → Your AI connection). Until then, the options below are written by Visibility's templates, only from your own videos and the research.",
         notEnough: [] };
     },
     /** RR-308 B6: three options for ONE video, written by the client's own AI on the client's click — checked for invented facts */

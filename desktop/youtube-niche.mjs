@@ -42,8 +42,17 @@ export const FORMATS = Object.freeze([
 export const PLACES = Object.freeze(("Afghanistan Albania Algeria Argentina Australia Austria Bahrain Bangladesh Belgium Brazil Bulgaria Canada Chile China Colombia Croatia Cyprus Czechia Denmark Egypt England Estonia Finland France Germany Greece Hungary Iceland India Indonesia Iran Iraq Ireland Italy Japan Jordan Kenya Korea Kuwait Latvia Lebanon Lithuania Luxembourg Malaysia Maldives Malta Mexico Morocco Nepal Netherlands Holland Nigeria Norway Oman Pakistan Philippines Poland Portugal Qatar Romania Russia Saudi Scotland Serbia Singapore Slovakia Slovenia Spain Sweden Switzerland Thailand Turkey Türkiye UAE Dubai Ukraine UK USA America Wales Vietnam Scandinavia Europe " +
   "Copenhagen Aarhus Odense Aalborg Reykjavik Oslo Bergen Stockholm Gothenburg Malmo Helsinki London Manchester Birmingham Glasgow Dublin Paris Berlin Hamburg Munich Amsterdam Rotterdam Brussels Madrid Barcelona Rome Milan Vienna Zurich Geneva Prague Warsaw Istanbul Toronto Vancouver Montreal Sydney Melbourne Brisbane Perth Auckland Riyadh Jeddah Makkah Madinah Doha Muscat Lahore Karachi Islamabad Rawalpindi Peshawar Multan Faisalabad Sialkot Quetta Delhi Mumbai Dhaka Kabul Tokyo Seoul Bangkok").split(" "));
 const PLACE_BY = new Map(PLACES.map((p) => [p.toLowerCase(), p]));
+/* RR-309 B2 · names keep their capitals everywhere options are made ("canada" → "Canada", "new zealand" → "New Zealand", "pakistani" →
+ * "Pakistani"): places, two-word places, the people of a place, and languages. Only these known names are changed — never other words. */
+const MULTI_PLACES = ["New Zealand", "New York", "Saudi Arabia", "United Kingdom", "United States", "United Arab Emirates", "South Africa", "Sri Lanka", "Hong Kong", "Abu Dhabi", "Los Angeles", "Northern Ireland", "Faroe Islands"];
+const PEOPLE_AND_LANGUAGES = ["Pakistani", "Danish", "Icelandic", "Norwegian", "Swedish", "Finnish", "Indian", "British", "American", "Canadian", "German", "Dutch", "Turkish", "Irish", "Australian", "Arab", "Urdu", "Hindi", "English", "Arabic", "Punjabi", "Bengali", "Sindhi", "Pashto", "Desi", "Muslim", "Christian", "Eid", "Ramadan", "Christmas", "Diwali", "OET", "IELTS", "PTE", "TOEFL", "CELPIP", "CV", "UK", "USA", "UAE"]; // not "AI": "ai" is a common Roman Urdu word
+const PROPER = [...MULTI_PLACES, ...PLACES, ...PEOPLE_AND_LANGUAGES].sort((a, b) => b.length - a.length);
+const PROPER_RE = new RegExp(`(?<![\\p{L}\\p{N}])(${PROPER.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}])`, "giu");
+const PROPER_BY = new Map(PROPER.map((p) => [p.toLowerCase(), p]));
+export const properNames = (s) => String(s ?? "").replace(PROPER_RE, (m) => PROPER_BY.get(m.toLowerCase().replace(/\s+/g, " ")) ?? m);
 const ADJ_PLACE = new Map(Object.entries({ danish: "Denmark", icelandic: "Iceland", norwegian: "Norway", swedish: "Sweden", finnish: "Finland", pakistani: "Pakistan", indian: "India", british: "UK", american: "USA", canadian: "Canada", german: "Germany", dutch: "Netherlands", turkish: "Turkey", arab: null }));
 const ROLE = /\b(mom|mum|mother|mama|ammi|dad|father|papa|family|couple|wife|husband|student|nurse|doctor|teacher|housewife|homemaker|vlogger|girl|boy|woman|man|immigrant|expat)s?\b/i;
+export const FEW_VIDEOS = 20; // RR-309 B5: under this, the niche comes from the product's own topics
 const NICHE_WORD = /\b(vlogs?|vlogger|life|lifestyle|living|family|home|diaries|diary|tips|guide|how to|tutorial|review|explained|prep|practice|exam|course|lessons?)\b/i;
 const day = (d) => String(d ?? "").slice(0, 10);
 const median = (xs) => { const s = xs.filter(Number.isFinite).slice().sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : Math.round((s[s.length / 2 - 1] + s[s.length / 2]) / 2)) : null; };
@@ -118,9 +127,40 @@ export function nicheOf({ channel = {}, videos = [], product = {}, max = 4 }) {
   const persona = personaOf({ channel, videos, product });
   /* the first search says who and where, in the channel's own words ("pakistani mom in denmark") — the niche at its most exact */
   const exact = persona.who && persona.places[0] && persona.whoFrom === "your channel's description" ? [Object.freeze({ q: `${persona.who} in ${persona.places[0]}`.toLowerCase(), videos: 0, from: "your channel's description (who you are and where)" })] : [];
-  const queries = [...exact, ...picked.slice(0, max - exact.length).map((x) => Object.freeze({ q: x.display, videos: x.count, from: `${[...x.from].join(" and ")}${x.count ? ` — ${x.count} of your ${videos.length} videos` : ""}` }))];
-  return Object.freeze({ label: queries.slice(0, 3).map((x) => x.q).join(" · ") || null, queries, more: picked.slice(max).map((x) => x.display), persona });
+  let queries = [...exact, ...picked.slice(0, max - exact.length).map((x) => Object.freeze({ q: x.display, videos: x.count, from: `${[...x.from].join(" and ")}${x.count ? ` — ${x.count} of your ${videos.length} videos` : ""}` }))];
+  /* RR-309 B5 · A CHANNEL WITH FEW VIDEOS (under 20): its own videos say too little about its niche, so the research is based on the product's
+   * own topics — its short names (OET, IELTS), the phrases its titles give them ("CV builder") and its description's clauses ("language exam
+   * preparation") — and the screen says so plainly */
+  let basis = null;
+  if (videos.length < FEW_VIDEOS && product.what) {
+    const acronyms = [...new Set([...String(product.what).matchAll(/\b[A-Z]{2,6}\b/g)].map((m) => m[0]).filter((a) => !own.has(a.toLowerCase()) && !/^(AND|THE|FOR|YOU)$/.test(a)))];
+    const auto = autoTopics({ what: product.what, names: [channel.title, channel.handle, product.name], ownTitles: videos.map((v) => v.title) }).filter((t) => String(t).split(/\s+/).length >= 2);
+    const named = auto.filter((t) => /\b[A-Z]{2,6}\b/.test(t)); // "CV builder", "IELTS coaching": the product's names with its titles' word
+    const desc = picked.filter((x) => x.from.has("your channel's description") && !/\bproducts?\b|\bservices?\b|\bthings\b/i.test(x.display)).map((x) => x.display);
+    const seenQ = new Set(); const out = [];
+    for (const q of [...named, ...acronyms, ...desc, ...auto]) { const k = String(q).toLowerCase(); if ([...seenQ].some((s) => s.includes(k) || k.includes(s))) continue; seenQ.add(k); out.push(q); if (out.length >= max + 1) break; }
+    if (out.length) {
+      queries = out.map((q) => Object.freeze({ q, videos: videos.filter((v) => String(v.title).toLowerCase().includes(String(q).toLowerCase())).length, from: "your product's own topics" }));
+      basis = `Your channel has only ${videos.length} video${videos.length === 1 ? "" : "s"}, so the niche research is based on your product's own topics: ${out.join(", ")}.`;
+    }
+  }
+  return Object.freeze({ label: queries.slice(0, 3).map((x) => x.q).join(" · ") || null, queries, more: picked.slice(max).map((x) => x.display), persona, basis });
 }
+
+/* RR-309 B1 · THE CHANNEL'S OWN SCRIPTS: read from its own titles (a script used in 10%+ of them; Dhanak: Latin — Roman Urdu and English),
+ * else from the product's languages. A niche video or a viewer's line written in another script (Bengali, Devanagari …) is left off the
+ * screen and counted: "not shown: N in other languages". */
+const SCRIPTS = ["Latin", "Arabic", "Devanagari", "Bengali", "Gurmukhi", "Gujarati", "Tamil", "Telugu", "Kannada", "Malayalam", "Sinhala", "Cyrillic", "Greek", "Hebrew", "Thai", "Han", "Hiragana", "Katakana", "Hangul", "Ethiopic", "Armenian", "Georgian"].map((n) => [n, new RegExp(`\\p{Script=${n}}`, "u")]);
+export const scriptsIn = (s) => { const out = new Set(); for (const ch of String(s ?? "").match(/\p{L}/gu) ?? []) { const hit = SCRIPTS.find(([, re]) => re.test(ch)); out.add(hit ? hit[0] : "Other"); } return out; };
+const BY_LANGUAGE = { en: ["Latin"], ur: ["Latin", "Arabic"], hi: ["Latin", "Devanagari"], ar: ["Arabic"], bn: ["Bengali"], pa: ["Latin", "Gurmukhi"] };
+export function channelScripts({ videos = [], languages = [] }) {
+  const n = new Map();
+  for (const v of videos) for (const s of scriptsIn(v.title)) n.set(s, (n.get(s) ?? 0) + 1);
+  const own = [...n.entries()].filter(([, c]) => c >= Math.max(1, videos.length * 0.1)).map(([s]) => s);
+  return new Set(own.length ? own : (languages.length ? languages : ["en"]).flatMap((l) => BY_LANGUAGE[l] ?? ["Latin"]));
+}
+/* a text belongs to the channel's languages when every letter in it is in one of the channel's scripts (a text with no letters is kept) */
+export const inOwnScripts = (s, scripts) => [...scriptsIn(s)].every((x) => scripts.has(x));
 
 /* a search result counts for the niche only when it is ABOUT the search: it names the search's own words (a place, a role, a topic) — the
  * giant clips YouTube also returns ("Roz lunch …", 350 million views) are left out. Words every vlog has decide nothing. */
@@ -139,13 +179,17 @@ const PRAISE =/\b(love|loved|lovely|beautiful|amazing|great|best|nice|good|wow|m
  * A1 · "What viewers of <niche> watch most" — counted from the niche research (`research.niche`: each search's top or rising videos) and the
  * comments read under them. `own` = the channel's own videos (to say which formats it has not covered). Every line names its source.
  */
-export function nicheSummary({ niche, research, own = [], ownChannelId = null }) {
+export function nicheSummary({ niche, research, own = [], ownChannelId = null, scripts = null }) {
   const runs = research?.niche ?? [];
   if (!runs.length) return null;
   const readOn = day(research.readOn);
   const seen = new Map();
   for (const r of runs) for (const v of r.videos ?? []) if (v.channelId !== ownChannelId && !seen.has(v.videoId)) seen.set(v.videoId, { ...v, q: r.q, kind: r.kind });
-  const vids = [...seen.values()];
+  /* RR-309 B1: only the channel's own scripts are shown — the rest counted */
+  const mine = scripts ?? channelScripts({ videos: own });
+  const all = [...seen.values()];
+  const vids = all.filter((v) => inOwnScripts(v.title, mine));
+  const hidden = { videos: all.length - vids.length, questions: 0 };
   if (!vids.length) return Object.freeze({ title: `What viewers of ${niche.label} watch most`, lines: [], videos: 0, readOn, empty: `YouTube found no videos for ${runs.map((r) => `"${r.q}"`).join(", ")} on ${readOn}.` });
   const src = `YouTube search ${[...new Set(runs.map((r) => `"${r.q}"`))].join(", ")} — top and rising videos, read ${readOn}`;
   const ex = (v) => ({ title: v.title, channel: v.channelTitle, views: v.views, publishedAt: day(v.publishedAt), videoId: v.videoId });
@@ -168,12 +212,16 @@ export function nicheSummary({ niche, research, own = [], ownChannelId = null })
   const shorts = vids.filter((v) => videoKind(v) === "SHORT"), long = vids.filter((v) => videoKind(v) === "LONG");
   const longMin = median(long.map((v) => v.durationSec)) === null ? null : Math.round(median(long.map((v) => v.durationSec)) / 60);
   /* comments under the niche's videos: what viewers ask and what they praise */
-  const comments = (research.comments ?? []).filter((c) => !c.own);
+  const allComments = (research.comments ?? []).filter((c) => !c.own);
+  const comments = allComments.filter((c) => inOwnScripts(c.text, mine));
+  hidden.questions = allComments.filter((c) => !inOwnScripts(c.text, mine) && questionsIn(c.text).length).length;
   /* a viewer's question counts only when it is about the niche: it names one of its formats or shares a word with its phrases */
   const nicheWords = new Set((niche.queries ?? []).flatMap((q) => tokens(q.q)));
   /* a real question, about the niche, worth showing: 4+ words, no swearing */
   const RUDE = /\b(wtf|f+u+c+k\w*|shit\w*|damn|stfu|idiot|stupid)\b/i;
-  const about = (q) => q.split(/\s+/).length >= 4 && !RUDE.test(q) && (FORMATS.some((f) => f.re.test(q)) || tokens(q).some((w) => nicheWords.has(w)));
+  /* a remark shaped like a question ("Can I just appreciate…", "Am I the only one…") asks for nothing — as in the advice's own rule */
+  const REMARK = /^(can i just|am i the only|is it just me|who else|anyone else|does anyone else|isn't it|wasn't it|who is here|who's here|who is watching|who's watching)\b/i;
+  const about = (q) => q.split(/\s+/).length >= 4 && !RUDE.test(q) && !REMARK.test(q) &&(FORMATS.some((f) => f.re.test(q)) || tokens(q).some((w) => nicheWords.has(w)));
   const asks = [...new Map(comments.flatMap((c) => questionsIn(c.text).filter(about).map((q) => [q.toLowerCase(), { text: q, likes: c.likes ?? 0, under: c.videoTitle, on: day(c.publishedAt) }]))).values()].sort((a, b) => b.likes - a.likes).slice(0, 6);
   const praise = new Map();
   for (const c of comments) for (const f of FORMATS) if (PRAISE.test(c.text) && f.re.test(c.text)) praise.set(f.label, (praise.get(f.label) ?? 0) + 1);
@@ -183,5 +231,7 @@ export function nicheSummary({ niche, research, own = [], ownChannelId = null })
   lines.push({ what: "Length", line: `${shorts.length} Shorts and ${long.length} long videos among the ${vids.length} read${long.length ? `; long ones are typically ${longMin} minutes` : ""}. Median views: Shorts ${fmt(median(shorts.map((v) => v.views)))}, long ${fmt(median(long.map((v) => v.views)))}.`, from: src });
   if (asks.length) lines.push({ what: "What viewers ask", line: asks.slice(0, 4).map((q) => `"${q.text}"`).join(" · "), from: `comments under the niche's top videos, read ${readOn}` });
   if (praise.size) lines.push({ what: "What viewers praise", line: [...praise.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} (${n} comments)`).join(" · "), from: `comments under the niche's top videos, read ${readOn}` });
-  return Object.freeze({ title: `What viewers of ${niche.label} watch most`, readOn, videos: vids.length, lines, formats, asks, longMinutes: longMin, shortsShare: Math.round((shorts.length / vids.length) * 100), medianViews: { shorts: median(shorts.map((v) => v.views)), long: median(long.map((v) => v.views)) }, source: src });
+  const otherLangs = hidden.videos + hidden.questions;
+  return Object.freeze({ title: `What viewers of ${niche.label} watch most`, readOn, videos: vids.length, lines, hidden, scripts: [...mine],
+    notShown: otherLangs ? `Not shown: ${otherLangs} in other languages (${hidden.videos} video${hidden.videos === 1 ? "" : "s"} and ${hidden.questions} viewer question${hidden.questions === 1 ? "" : "s"} written in another script than your channel's — ${[...mine].join(", ")})` : null, formats, asks, longMinutes: longMin, shortsShare: Math.round((shorts.length / vids.length) * 100), medianViews: { shorts: median(shorts.map((v) => v.views)), long: median(long.map((v) => v.views)) }, source: src });
 }

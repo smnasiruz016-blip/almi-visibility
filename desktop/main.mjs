@@ -259,7 +259,15 @@ const server = createServer((req, res) => {
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
           if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
           if (r[2] === "fix" && req.method === "POST") { if (!site) return send(400, { refused: "Check your product first." }); return send(200, { items: fixForMe(json().id, site) }); }
-          if (r[2] === "delete" && req.method === "POST") { if (json().confirm !== true) return send(400, { refused: "Say yes to delete." }); const where = store.remove(id); return send(200, { ok: true, line: `${s.product?.name} was deleted. Its data was moved to ${where} — it can be put back from there.` }); }
+          /* RR-309 A: delete removes THIS product's folder and THIS product's own publishing keys (named by its id) — never another product's,
+           * never the licence, never the keys every product shares (YouTube, AI, search) */
+          if (r[2] === "delete" && req.method === "POST") {
+            if (json().confirm !== true) return send(400, { refused: "Say yes to delete." });
+            if (checking.has(id)) return send(409, { refused: "A check of this product is running — wait for it to finish, then delete." });
+            for (const t of TARGETS) { const k = publishKeyName(t.id, id); if (k && KEYS.status(k).saved) KEYS.remove(k); }
+            store.remove(id);
+            return send(200, { ok: true, line: `${s.product?.name} was deleted from this computer, with its saved data.` });
+          }
           if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`, { submit: json().submit === true }); if (g.ok) CONFIG.googlePendingProduct = id; return send(g.ok ? 200 : 400, g.ok ? g : { refused: g.why }); }
           if (r[2] === "google/site" && req.method === "POST") { const q = await GOOGLE.queries(json().site); if (!q) return send(400, { refused: "Google did not give the searches for that site — press Connect again." }); pwrite(id, "search-console.json", q); return send(200, { ok: true, line: `Connected ✓ — ${q.queries.length} searches read from Google Search Console (${q.window}).` }); }
           if (r[2] === "google/export" && req.method === "POST") { const x = importExport(json().files ?? [], { exportedOn: new Date().toISOString().slice(0, 10), source: `${s.product?.name} Search Console` }); if (!x.ok) return send(400, { refused: x.why }); pwrite(id, "search-console.json", x.data); return send(200, { ok: true, line: x.line }); }

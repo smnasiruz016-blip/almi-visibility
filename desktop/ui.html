@@ -38,7 +38,9 @@ button.big{font-size:17px;padding:14px 26px;margin-top:8px}
 textarea{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radius:10px;width:100%;box-sizing:border-box;margin:4px 0 12px;min-height:80px;background:var(--white);color:var(--ink)}
 .keybox{border:1px dashed var(--peach);border-radius:12px;padding:10px 12px;margin:6px 0 14px}
 .chan{display:flex;gap:14px;align-items:center} .chan img{width:72px;height:72px;border-radius:50%;border:1px solid var(--peach)}
-.adv{border-top:1px solid var(--peach);padding:10px 0} .adv h3{font-size:15px} .adv .k{font-weight:700;color:var(--ink)} .adv pre{white-space:pre-wrap;font:inherit;margin:2px 0;background:var(--cream);border-radius:8px;padding:6px 8px}
+.adv{border-top:1px solid var(--peach);padding:10px 0} .adv h3{font-size:15px} .k{font-weight:700;color:var(--ink)}
+/* RR-307: every advice box wraps its text (the channel advice was cut off at the right edge) */
+#ytbox pre,.card pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:2px 0;background:var(--cream);border-radius:8px;padding:6px 8px;max-width:100%;box-sizing:border-box}
 .src{font-size:12px;color:var(--muted)} .tag{display:inline-block;background:var(--peach);border-radius:999px;padding:1px 8px;font-size:12px;margin-left:6px}
 @media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
 @media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22}}
@@ -118,7 +120,7 @@ async function youtubeSettings() {
     $("#found").innerHTML = `<p class="meta">Looking up ${esc($("#y1").value.trim())}…</p>`;
     const c = await post(`/api/products/${encodeURIComponent(P)}/youtube/lookup`, { handle: $("#y1").value.trim() });
     if (c.refused || !c.found) return ($("#found").innerHTML = `<p class="err">${esc(c.refused ?? c.line)}</p>`);
-    $("#found").innerHTML = `<div class="card"><h3>Is this your channel?</h3><div class="chan">${c.picture ? `<img src="${c.picture}" alt="">` : ""}<div><b>${esc(c.title)}</b> <span class="meta">${esc(c.handle)}</span><br><span class="meta">${c.subscribers === null ? "subscribers hidden" : `${c.subscribers.toLocaleString()} subscribers`} · ${c.videoCount ?? "?"} videos</span></div></div>
+    $("#found").innerHTML = `<div class="card"><h3>Is this your channel?</h3><div class="chan">${c.picture ? `<img src="${c.picture}" alt="">` : ""}<div><b>${esc(c.title)}</b> <span class="meta">${esc(c.handle)}</span><br><span class="meta">${c.subscribers === null ? "subscribers hidden" : `${c.subscribers.toLocaleString()} subscriber${c.subscribers === 1 ? "" : "s"}`} · ${c.videoCount ?? "?"} video${c.videoCount === 1 ? "" : "s"}</span></div></div>
     ${c.mismatch ? `<div class="warn">${esc(c.mismatch)}</div>` : ""}<p><button id="yes">Yes, this is my channel</button> <button class="ghost" id="no">No — change the @handle</button></p></div>`;
     $("#yes").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/confirm`, { handle: c.handle, channelId: c.channelId }); if (r.refused) return ($("#err").textContent = r.refused); S = await get(`/api/products/${encodeURIComponent(P)}/state`); youtubeSettings(); };
     $("#no").onclick = () => { $("#found").innerHTML = ""; $("#y1").focus(); };

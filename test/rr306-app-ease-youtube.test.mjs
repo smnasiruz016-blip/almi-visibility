@@ -125,8 +125,10 @@ test("C · ADVICE THAT NAMES ITS SOURCE: main words first, a description with th
   /* the main words already in the title: move them to the start (nothing invented); in the description only: put them first */
   assert.match(by("Title").advice, /^Move the main words "IELTS writing task 2" to the start of the title/);
   assert.equal(a.perVideo.find((v) => v.videoId === "c").items.find((i) => i.what === "Title").advice, "IELTS writing task 2 — Band 9 tips");
-  /* in the video's own tags only: said so — never a title written around them */
-  assert.match(a.perVideo.find((v) => v.videoId === "d").items.find((i) => i.what === "Title").advice, /^The title does not say in searched words what the video is about. Your own tags say "IELTS writing task 2"/);
+  /* RR-307 (owner, RR-306 defect 1): in the video's own tags only → "not enough research", and NO title, description, hashtag or thumbnail advice from them */
+  const d = a.perVideo.find((v) => v.videoId === "d");
+  assert.match(d.notEnough, /^Not enough research for this video yet — its own tags mention "IELTS writing task 2", but its title and description do not/);
+  assert.deepEqual(d.items.filter((i) => ["Title", "Description", "Hashtags", "Thumbnail text"].includes(i.what)), []);
   assert.match(by("Title").from, /YouTube search "IELTS writing" — used by 2 of its top 2 videos \(read 2026-10-21\)/);
   assert.match(by("Description").advice, /More: https:\/\/ielts\.example\.test/);
   assert.match(by("Hashtags").advice, /^Replace #viral #fyp — they say nothing about this video — with #IELTSWritingTask2 /);
@@ -134,7 +136,7 @@ test("C · ADVICE THAT NAMES ITS SOURCE: main words first, a description with th
   assert.ok(by("Thumbnail text").advice.length > 0);
   for (const i of first.items) assert.ok(i.from && i.from.length > 5, `advice with no source: ${i.what}`);
   const week = a.perVideo.find((v) => v.videoId === "b");
-  assert.match(week.notEnough, /^Not enough data for this video/);
+  assert.match(week.notEnough, /^Not enough research for this video yet — none of the researched phrases or questions share its words. Here is how to get it:/);
   assert.match(week.items.find((i) => i.what === "Chapters").advice, /first line "00:00 Introduction".*at least 3.*10 seconds/);
   /* kept: a relevant Roman-Urdu question (no "?" needed); left out: one about nothing the product covers, and one in a script its languages do not use */
   assert.deepEqual(a.questions.map((q) => q.text), ["How long should a task 2 essay be?", "Kya IELTS writing mein band 9 mushkil hai?"]);
@@ -211,14 +213,16 @@ test("A3 + C1 · IN THE APP: the key is never in a file, a reply or another site
     assert.equal((await a.post("/api/keys/YOUTUBE_API_KEY", { key: FAKE_KEY }, { origin: "https://evil.example" })).http, 403);
     const saved = await a.post("/api/keys/YOUTUBE_API_KEY", { key: FAKE_KEY });
     assert.deepEqual([saved.http, saved.ok, (await a.get("/api/keys")).keys.YOUTUBE_API_KEY.ends], [200, true, "9876"]);
-    await a.post(`/api/products/${id}/youtube`, { handle: "@right-world", topics: ["IELTS writing", "CV writing", "IELTS"] });
+    await a.post(`/api/products/${id}/youtube`, { handle: "@right-world" });
     const c = await a.post(`/api/products/${id}/youtube/lookup`, { handle: "@right-world" });
     await a.post(`/api/products/${id}/youtube/confirm`, { handle: "@right-world", channelId: c.channelId });
     const r1 = await a.post(`/api/products/${id}/youtube/research`, {});
     assert.equal(r1.http, 200, r1.refused);
     assert.match(r1.line, /YouTube research today: 3 of 3 searches used \(Visibility's own cap; your key's limit is 100 searches a day\)/);
     const r2 = await a.post(`/api/products/${id}/youtube/research`, {});
-    assert.deepEqual([r2.http, r2.refused], [400, "Today's research limit is reached (3 of 3 searches used). It starts again tomorrow."]);
+    /* RR-307: the topics are found automatically (here: ielts writing, cv writing, CV builder) and the refusal says what was searched today */
+    assert.equal(r2.http, 400);
+    assert.match(r2.refused, /^Today's research limit is reached \(3 of 3 searches used; this product's share today: 3\)\. It starts again tomorrow\. Topics searched today: ielts writing, cv writing, CV builder\./);
     assert.equal(a.yt.calls.filter((x) => x.path === "search").length, 3);
     const adv = await a.get(`/api/products/${id}/youtube/advice`);
     assert.ok(adv.ideas.some((i) => /How long should a task 2 essay be\?/.test(i.title)), JSON.stringify(adv.ideas));

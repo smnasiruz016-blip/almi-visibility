@@ -1,0 +1,119 @@
+/**
+ * 🔴 RR-307 A + B · "CHECK NOW": the moment a product is added (and any time after), Visibility checks it — its website (the full reader,
+ * desktop/site-read.mjs) and/or its YouTube channel — and shows a SCORE CARD like AlmiCV's ATS score, then "What to fix first".
+ *   · The /100 number is the engine's OWN score (src/report/visibility-score.mjs: PASS weight ÷ EVALUATED weight) — never a second scorer.
+ *   · Areas: Technical, Content, Security, Links (the engine's categories), AI-answer readiness (ticks: the AI search bots may read the site,
+ *     structured data, questions answered on the page, a direct answer under each question, who the site is), YouTube (ticks: what the
+ *     channel check found). An area not measured says "Not measured" — never zero.
+ *   · YouTube has NO number (the owner's ruling of 12 Oct 2026: "no derived score"); a YouTube-only product's gauge says "Not measured".
+ *   · Each fix says in plain words what is wrong, "Show me how", and — where Visibility can write it — "Fix it for me": the text to paste.
+ * Pure over what it is handed (the site read, the YouTube check); no promise of ranking, traffic or citation.
+ */
+import { evidenceByUrl, runMode, findingsOf, RESULT } from "../src/report/visibility-score.mjs";
+
+export const NO_PROMISE = "This check measures what it can see today. It promises no ranking, traffic or citation by any search or AI engine.";
+export const wordFor = (score) => (score === null ? "Not measured" : score >= 80 ? "Good" : score >= 50 ? "Needs work" : "Poor");
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/* the engine's checks in plain words: what is wrong, how to fix it, and whether Visibility can write the fix */
+export const FIXES = Object.freeze({
+  title: { problem: "pages have a missing, too short or too long title", how: "Give every page its own title of 10 to 70 characters that says what the page is about, main words first.", fixable: true },
+  "meta-description": { problem: "pages have no good description for search results", how: "Write a description of 50 to 170 characters for every page: what the reader gets there.", fixable: true },
+  "one-h1": { problem: "pages do not have exactly one main heading", how: "Give every page one main heading (H1) — not none, not two.", fixable: false },
+  canonical: { problem: "pages do not say which address is the main one (canonical)", how: "Add one canonical link to each page, pointing to its own https address. Your website builder usually has a setting for it.", fixable: false },
+  lang: { problem: "pages do not say their language", how: "Set the page language (for example lang=\"en\") in your website's settings.", fixable: false },
+  viewport: { problem: "pages are not set up for phones", how: "Add the mobile viewport setting — most website builders have it; ask your web person if not.", fixable: false },
+  "structured-data": { problem: "pages carry no structured data (the facts search and AI engines read)", how: "Add a structured-data block describing your organisation, product and questions.", fixable: true },
+  "image-alt": { problem: "images have no text for people who cannot see them", how: "Give every image a short text (alt text) that says what it shows.", fixable: false },
+  "https-only": { problem: "the site does not always move visitors to the safe (https) address", how: "Turn on \"always use https\" in your hosting settings.", fixable: false },
+  "links-resolve": { problem: "links on the site lead to pages that do not open", how: "Fix or remove the broken links listed below.", fixable: false },
+});
+
+const AREA = { TECHNICAL: "Technical", CONTENT: "Content", ACCESSIBILITY: "Accessibility", SECURITY: "Security", LINKS: "Links" };
+
+/** AI-answer readiness: five plain ticks from the site read. A tick not measurable says so. */
+export function aiReadiness(site) {
+  if (!site?.ok) return [];
+  const home = site.pages[0];
+  const bots = Object.entries(site.robots.aiBots);
+  const qa = site.pages.flatMap((p) => p.qa.map((x) => ({ ...x, url: p.url })));
+  const asked = qa.filter((x) => x.from === "a heading on the page");
+  const shortAnswer = asked.filter((x) => x.a && x.a.split(/\s+/).length <= 120);
+  const who = site.pages.some((p) => p.structuredTypes.some((t) => /^(Organization|LocalBusiness|Corporation|WebSite|Product|SoftwareApplication|Course|Person)$/.test(t)));
+  return [
+    bots.some(([, v]) => v === null) ? { tick: null, line: "AI search bots: robots.txt could not be read — not measured" } : { tick: bots.every(([, v]) => v), line: bots.every(([, v]) => v) ? "AI search bots may read your site (ChatGPT search, Claude search, Perplexity)" : `Your robots.txt blocks: ${bots.filter(([, v]) => !v).map(([b]) => b).join(", ")}`, fix: bots.every(([, v]) => v) ? null : "robots" },
+    { tick: home.structuredTypes.length > 0, line: home.structuredTypes.length ? `Your home page describes itself to machines (${home.structuredTypes.slice(0, 3).join(", ")})` : "Your home page has no structured data", fix: home.structuredTypes.length ? null : "structured-data" },
+    { tick: qa.length > 0, line: qa.length ? `${plural(qa.length, "question")} answered on your pages` : "No questions are answered on your pages — AI answers are built from questions and answers", fix: qa.length ? null : "faq" },
+    asked.length ? { tick: shortAnswer.length === asked.length, line: `${shortAnswer.length} of ${plural(asked.length, "question heading")} have a direct answer right under it (120 words or fewer)` } : { tick: null, line: "Direct answers: no question headings to measure" },
+    { tick: who, line: who ? "Your site says who you are (organisation or product facts)" : "Your site does not say who you are in a way machines read", fix: who ? null : "structured-data" },
+  ];
+}
+
+/**
+ * The score card. `site` from readSite (or null), `youtube` = { confirmed, videos, check } (or null). Returns everything the product page shows.
+ */
+export function scoreCard({ site = null, youtube = null, on }) {
+  const areas = [];
+  let score = null, findings = [], results = [];
+  if (site?.ok) {
+    const r = runMode({ mode: "full", evidenceByUrl: evidenceByUrl({ pageReads: site.pageReads, securityReads: site.securityReads, linkObs: site.linkObs }) });
+    score = r.score; results = r.results; findings = findingsOf(r.results);
+    for (const [cat, name] of Object.entries(AREA)) {
+      const v = r.byCategory[cat];
+      const fails = findings.filter((f) => results.find((x) => x.check === f.check)?.category === cat);
+      areas.push(v === null || v === undefined ? { area: name, state: "NOT_MEASURED", line: "Not measured" } : { area: name, state: fails.length ? "WARN" : "OK", line: fails.length ? `${plural(new Set(fails.map((f) => f.url)).size, "page")} to fix` : "All good" });
+    }
+  } else for (const name of Object.values(AREA)) areas.push({ area: name, state: "NOT_MEASURED", line: site ? `Not measured — ${site.why}` : "Not measured — no website for this product" });
+  const ai = aiReadiness(site);
+  areas.push(ai.length ? { area: "AI-answer readiness", state: ai.some((t) => t.tick === false) ? "WARN" : ai.every((t) => t.tick === null) ? "NOT_MEASURED" : "OK", line: `${ai.filter((t) => t.tick).length} of ${ai.filter((t) => t.tick !== null).length} ready`, ticks: ai } : { area: "AI-answer readiness", state: "NOT_MEASURED", line: "Not measured — no website read" });
+  if (youtube?.confirmed) {
+    const withIssues = (youtube.check ?? []).filter((c) => c.findings.length);
+    areas.push({ area: "YouTube", state: withIssues.length ? "WARN" : "OK", line: `${plural(youtube.videos?.length ?? 0, "video")} read — ${withIssues.length ? `${withIssues.length} with something to fix` : "nothing to fix found"}`, ticks: [{ tick: (youtube.check ?? []).every((c) => !c.findings.some((f) => /no description/.test(f))), line: "Every video has a description" }, { tick: (youtube.check ?? []).every((c) => !c.findings.some((f) => /no chapters/.test(f))), line: "Long videos have chapters" }] });
+  } else areas.push({ area: "YouTube", state: "NOT_MEASURED", line: youtube?.why ?? "Not measured — no YouTube channel confirmed" });
+
+  /* what to fix first: heaviest first, each check once, with how many pages */
+  const byCheck = new Map();
+  for (const f of findings) { const x = byCheck.get(f.check) ?? { check: f.check, weight: f.weight, pages: [] }; x.pages.push(f.url); byCheck.set(f.check, x); }
+  const fixFirst = [...byCheck.values()].sort((a, b) => b.weight * b.pages.length - a.weight * a.pages.length).map((x) => ({ id: x.check, line: `${plural(x.pages.length, "page")}: ${FIXES[x.check]?.problem ?? x.check}`, how: FIXES[x.check]?.how ?? null, fixForMe: Boolean(FIXES[x.check]?.fixable), pages: x.pages.slice(0, 20) }));
+  for (const t of ai.filter((t) => t.tick === false && t.fix && !byCheck.has(t.fix))) fixFirst.push({ id: `ai:${t.fix}`, line: t.line, how: t.fix === "robots" ? "Allow the AI search bots in your robots.txt (Visibility writes the lines for you)." : t.fix === "faq" ? "Answer the questions your customers ask, on your pages — one question as a heading, the answer right under it." : FIXES["structured-data"].how, fixForMe: t.fix !== "faq" });
+  if (site?.brokenLinks?.length) { const f = fixFirst.find((x) => x.id === "links-resolve"); if (f) f.broken = site.brokenLinks.slice(0, 20); }
+  if (youtube?.confirmed) for (const c of (youtube.check ?? []).filter((c) => c.findings.length).slice(0, 3)) fixFirst.push({ id: `yt:${c.videoId}`, line: `YouTube "${c.title}": ${c.findings.join("; ")}`, how: "Open the YouTube tab: each video has its own advice, with where it came from.", fixForMe: false });
+  return Object.freeze({ on, score, word: wordFor(score), gauge: score === null ? "Not measured" : `${score}/100`, areas, fixFirst, notMeasured: results.filter((r) => r.result === RESULT.NOT_MEASURED).length, pagesRead: site?.ok ? site.pages.length : 0, noPromise: NO_PROMISE });
+}
+
+/** "Fix it for me": the text the client pastes — written only from the page's own words and the site's own facts. */
+export function fixForMe(id, site) {
+  const pages = site?.ok ? site.pages : [];
+  const clip = (s, n) => (s.length <= n ? s : `${s.slice(0, n - 1).replace(/\s+\S*$/, "")}…`);
+  if (id === "title") return pages.filter((p) => !p.title || p.title.length < 10 || p.title.length > 70).slice(0, 20).map((p) => ({ page: p.url, paste: clip(p.h1 ?? p.title ?? "", 70), from: "the page's own main heading" }));
+  if (id === "meta-description") return pages.filter((p) => !p.description || p.description.length < 50 || p.description.length > 170).slice(0, 20).map((p) => ({ page: p.url, paste: clip(p.facts[0] ?? p.h1 ?? "", 160), from: "the page's own text" })).filter((x) => x.paste.length >= 30);
+  if (id === "structured-data" || id === "ai:structured-data") {
+    const home = pages[0], d = site.design ?? {};
+    const qa = pages.flatMap((p) => p.qa).filter((x) => x.a).slice(0, 10);
+    const ld = [{ "@context": "https://schema.org", "@type": "Organization", name: d.siteName ?? home?.title, url: site.origin, ...(d.logo ? { logo: d.logo } : {}) }];
+    if (qa.length) ld.push({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map((x) => ({ "@type": "Question", name: x.q, acceptedAnswer: { "@type": "Answer", text: x.a } })) });
+    return ld.map((x) => ({ page: x["@type"] === "FAQPage" ? "the page that shows these questions" : site.origin, paste: `<script type="application/ld+json">${JSON.stringify(x, null, 1)}</script>`, from: x["@type"] === "FAQPage" ? "the questions and answers already on your pages" : "your site's own name, address and logo" }));
+  }
+  if (id === "ai:robots") return [{ page: `${site.origin}/robots.txt`, paste: ["OAI-SearchBot", "Claude-SearchBot", "PerplexityBot"].map((b) => `User-agent: ${b}\nAllow: /`).join("\n\n"), from: "the AI search bots' published names" }];
+  return [];
+}
+
+/** B3 · "We found …": what Visibility gathered for this product, each with its source and date — and what is missing, with what it would add. */
+export function foundInfo({ site = null, youtube = null, files = [], searchConsole = null, keys = {}, on }) {
+  const day = String(on).slice(0, 10);
+  const questions = [], phrases = [];
+  if (site?.ok) for (const p of site.pages) for (const x of p.qa) questions.push({ text: x.q, source: `your page ${p.url} (${x.from})`, on: day });
+  for (const q of youtube?.questions ?? []) questions.push({ text: q.text, source: q.source, on: day });
+  for (const f of files) (/\?$|^(how|what|why|which|where|when|who|can|is|does|do|kya|kaise)\b/i.test(f.phrase) ? questions : phrases).push({ text: f.phrase, source: `your file ${f.file}`, on: f.on });
+  for (const q of searchConsole?.queries ?? []) phrases.push({ text: q.query, source: `your Search Console (${searchConsole.window ?? "export"})`, on: searchConsole.on });
+  for (const t of youtube?.terms ?? []) phrases.push({ text: t.phrase, source: t.from, on: day });
+  const uniq = (xs) => [...new Map(xs.map((x) => [x.text.toLowerCase(), x])).values()];
+  const missing = [];
+  if (!site?.ok) missing.push({ what: "Your website", adds: "Your pages, prices, facts and existing questions — the base of every page Visibility writes.", action: "settings" });
+  if (!searchConsole) missing.push({ what: "Google Search Console", adds: "The real searches people make before they find you, and which pages they open.", action: "google" });
+  if (!files.length) missing.push({ what: "A search-data file (Bing or Keyword Planner)", adds: "More search phrases with how often they are searched.", action: "file" });
+  if (!youtube?.confirmed) missing.push({ what: "Your YouTube channel", adds: "Your videos, the questions under them and what does well on your topics.", action: "youtube" });
+  if (!keys.ai) missing.push({ what: "Your AI connection", adds: "How AI assistants answer questions about your topics — and whether they mention you.", action: "ai" });
+  return Object.freeze({ on: day, pages: site?.ok ? site.pages.length : 0, prices: site?.ok ? [...new Set(site.pages.flatMap((p) => p.prices))].slice(0, 12) : [], questions: uniq(questions), phrases: uniq(phrases), missing,
+    line: `We found ${plural(site?.ok ? site.pages.length : 0, "page")}, ${plural(uniq(questions).length, "question")} people ask and ${plural(uniq(phrases).length, "search phrase")}.` });
+}

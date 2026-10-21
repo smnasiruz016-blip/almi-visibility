@@ -63,7 +63,7 @@ const nv = (id, title, views, o = {}) => ({ videoId: id, title, description: o.d
 const RESEARCH = { readOn: ON, niche: [
   { q: "day in my life", kind: "top", videos: [nv("n1", "Day in my life as a mom in Norway", 900000), nv("n2", "Morning routine with 3 kids | Oslo", 700000), nv("n3", "Grocery haul in Sweden | budget week", 500000), nv("n4", "Morning routine 5am", 400000, { sec: 40, w: 360, h: 640 }), nv("n5", "Cost of living in Denmark 2026", 300000)] },
   { q: "mom vlog", kind: "rising", videos: [nv("n6", "House tour in Copenhagen", 80000), nv("n7", "Cost of living in Norway for a family", 60000), nv("own", "Our own video", 5, { ch: "UCmomdiaries000000001" })] }],
-  topics: [], comments: [{ text: "Which supermarket is cheapest in Denmark?", own: false, videoTitle: "Grocery haul in Sweden | budget week", publishedAt: "2026-09-02", likes: 30 }, { text: "Love your morning routine, so calm!", own: false, videoTitle: "Morning routine with 3 kids | Oslo", publishedAt: "2026-09-03", likes: 5 }, { text: "Who is watching in 2026?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 99 }, { text: "Anyone else watching this late at night again?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 98 }] };
+  topics: [], comments: [{ text: "Which supermarket is cheapest in Denmark?", own: false, videoTitle: "Grocery haul in Sweden | budget week", publishedAt: "2026-09-02", likes: 30 }, { text: "Love your morning routine, so calm!", own: false, videoTitle: "Morning routine with 3 kids | Oslo", publishedAt: "2026-09-03", likes: 5 }, { text: "Who is watching in 2026?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 99 }, { text: "Anyone else watching this late at night again?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 98 }, { text: "Can I just say this mom vlog morning routine is so calm?", own: false, videoTitle: "x", publishedAt: "2026-09-03", likes: 97 }] };
 
 test("A1 · WHAT VIEWERS OF THE NICHE WATCH MOST: formats with their median views and examples, title patterns, length, Shorts vs long, what viewers ask and praise — every line with its source; the channel's own videos are not counted as the niche", () => {
   const vids = channelVideos();
@@ -77,7 +77,7 @@ test("A1 · WHAT VIEWERS OF THE NICHE WATCH MOST: formats with their median view
   assert.ok(f("morning-routine").examples[0].title && f("morning-routine").examples[0].views === 700000);
   for (const l of s.lines) assert.match(l.from, /read 2026-10-22/, `a line with no source: ${l.what}`);
   assert.ok(s.lines.find((l) => l.what === "What viewers ask").line.includes("Which supermarket is cheapest in Denmark?"));
-  assert.doesNotMatch(JSON.stringify(s.lines), /Who is watching in 2026|Anyone else watching/, "a remark that is not about the niche");
+  assert.doesNotMatch(JSON.stringify(s.lines), /Who is watching in 2026|Anyone else watching|Can I just say/, "a remark that is not a question, or not about the niche");
   assert.match(s.lines.find((l) => l.what === "Length").line, /1 Shorts and 6 long videos among the 7 read/);
 });
 

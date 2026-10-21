@@ -152,7 +152,8 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
   assert.equal(bad.ok, false); assert.match(bad.why, /were not shown\. The template options stay\./);
   assert.match((await writeWithAI({ provider: "openai", key: "x", video, ctx })).why, /works with an Anthropic \(Claude\) key in this version/);
   assert.deepEqual(inventedIn("Grocery Haul in Copenhagen | Pakistani Mom", materialOf(video, ctx)), []);
-  assert.deepEqual(inventedIn("Morning Routine in Paris", materialOf(video, ctx)), ["Morning", "Paris"], "words outside the material were not caught");
+  /* RR-311 B4 (owner): an ordinary word ("Morning") is not an invented fact — only the place is */
+  assert.deepEqual(inventedIn("Morning Routine in Paris", materialOf(video, ctx)), ["Paris"], "a place outside the material was not caught, or an ordinary word was");
 });
 
 test("C1 · FIX IT FOR ME descriptions: from each page's own sentences, unique per page, complete, 120–160 characters, never '…', never a line the site repeats, never a card fragment; two options each", () => {

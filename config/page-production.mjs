@@ -31,6 +31,10 @@ const SHARED = {
   "src/page/refresh.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["if (!p.items.some((it) => it.claims.some((c) => changed.has(c.claimId)))) { untouched.push(p); continue; }", "gatesPassed: passed })"]), why: "rebuilds only the standing pages that show a changed fact (the rest stay byte-identical) and puts a rebuilt page forward only when every gate passed; it writes and publishes nothing" }),
   /* RR-298: the language versions of a page that stands — the same facts in another language; a translation that changes a fact is never built */
   "src/page/languages.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["if (!same(numbersOf(c.text), numbersOf(x.text))) return", "(r.ok ? ok : refused).push("]), why: "builds only the language versions of a page that stands, from translations that keep every fact, number and currency (a changed one is refused, named); each version is gated within its language; it writes and publishes nothing" }),
+  /* RR-307 (owner, C "Create SEO pages"): the downloadable app's drafts — the existing page first (planNewPages: an answer already on one of the
+   * client's pages is a SECTION of that page, never a new one), only the NEW rows built, every draft judged by all five gates; nothing is
+   * published or submitted (drafts stay in the product's own folder) */
+  "desktop/seo-pages.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["const plan = planNewPages({ needs, existing });", "const news = plan.filter((p) => p.kind === \"NEW\")", "allGates(built.map((b) => gateInput(b))"]), why: "the app's page drafts are built only for NEW rows of the existing-page-first plan and every draft is judged by all five gates; nothing is published" }),
   "bin/crawl.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores the bodies of pages a crawl FETCHED, as served — evidence of an existing page, never a new one" }),
   "bin/report.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "the owner's report view about the evidence store — not a page of any subject" }),
 };

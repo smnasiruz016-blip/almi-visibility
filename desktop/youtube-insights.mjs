@@ -19,7 +19,8 @@ import { videoKind } from "../src/video/youtube.mjs";
 import { spellFix } from "./youtube-plan.mjs";
 
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
-const median = (xs) => { const s = xs.filter(Number.isFinite).sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
+/* views are whole numbers: a median of two is rounded (never "2,676,131.5 views") */
+const median = (xs) => { const s = xs.filter(Number.isFinite).sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : Math.round((s[s.length / 2 - 1] + s[s.length / 2]) / 2)) : null; };
 const ratio = (a, b) => (b > 0 ? a / b : null);
 
 /* ── language ── */
@@ -77,7 +78,8 @@ export function ownDataFindings(videos, { now = Date.now(), analytics = null, re
   for (const v of all) {
     const p = placeIn(`${v.title} ${String(v.description ?? "").split("\n").slice(0, 2).join(" ")}`); if (p) add(`place:${p}`, `${p} videos`, v);
     const f = FORMATS.find((x) => x.re.test(v.title)); if (f) add(`format:${f.id}`, `${f.label} videos`, v);
-    for (const w of new Set(tokens(v.title).filter((x) => x.length >= 4 && !ENGLISH.has(x) && !ROMAN_HINDUSTANI.has(x) && !/^\d+$/.test(x)))) add(`word:${w}`, `videos with "${w}" in the title`, v);
+    /* a title's own words — never an @handle or a #hashtag ("sambhavnasethentertainment" is a tagged channel, not a topic) */
+    for (const w of new Set(tokens(String(v.title).replace(/[#@][\p{L}\p{N}_.-]+/gu, " ")).filter((x) => x.length >= 4 && x.length <= 20 && !ENGLISH.has(x) && !ROMAN_HINDUSTANI.has(x) && !/^\d+$/.test(x)))) add(`word:${w}`, `videos with "${w}" in the title`, v);
   }
   for (const [key, g] of groups) {
     if (g.videos.length < 3 || g.videos.length > all.length * 0.6) continue;

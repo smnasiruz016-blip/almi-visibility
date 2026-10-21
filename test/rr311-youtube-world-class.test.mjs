@@ -138,6 +138,10 @@ test("B1 + B2 · FROM YOUR CHANNEL'S DATA: the topic that beats the channel's ow
   assert.equal(f.findings.find((x) => x.id === "ctr").effect, 1200, "the click-through gap is not impressions × (median − its own)");
   assert.equal(f.findings.find((x) => x.id === "place:Iceland").effect, 11000 - 2560);
   assert.ok(f.findings.every((x) => x.from), "a finding without its source");
+  /* the proof walk's findings: a tagged @channel is not a topic; medians are whole views */
+  const tagged = vids.map((x, i) => (i < 4 ? { ...x, title: `${x.title} @SambhavnaSethEntertainment`, views: 40000 + i } : x));
+  assert.ok(!ownDataFindings(tagged).findings.some((x) => /sambhavna/i.test(x.line)), "an @handle became a topic");
+  assert.ok(ownDataFindings(tagged).findings.every((x) => !/\d\.5\b/.test(x.line)), "a half view in a median");
 });
 
 test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competitor's scorecard and new uploads; keyword ideas marked 'estimate'; before → after", () => {
@@ -157,6 +161,9 @@ test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competi
   /* B5 · the templates keep the video's own words — "Baby Ki Choti Phupo Iceland Pohanch Gayi!", never "Baby in Iceland" */
   const o = optionsFor({ videoId: "ice00000001", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi!", description: "Hum sab Iceland gaye, bohot maza aaya.", views: 1, publishedAt: day(60), durationSec: 900, width: 640, height: 360, tags: [] }, { channel: { title: "Dhanak Fixture", handle: "@dhanakfixture" }, persona: { who: "Pakistani Family" }, niche: { queries: [] }, summary: null });
   assert.ok(o.options.every((p) => /Baby Ki Choti Phupo Iceland Pohanch Gayi/.test(p.title)), JSON.stringify(o.options.map((p) => p.title)));
+  /* the real title's emoji (a baby with a skin tone, a flag) leave no box behind */
+  const e = optionsFor({ videoId: "x1", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi! 👶🏻😍🇮🇸 #newborn", description: "", views: 1, publishedAt: day(60), durationSec: 50, width: 360, height: 640, tags: [] }, { channel: { title: "D" }, persona: {}, niche: { queries: [] }, summary: null });
+  assert.ok(e.options.every((p) => !/[\u{1F3FB}-\u{1F3FF}\u{1F1E6}-\u{1F1FF}]/u.test(p.title)), JSON.stringify(e.options.map((p) => p.title)));
   assert.ok(o.options.every((p) => !/\(Add |\?:\?\?|#IcelandHum|#BabyKi/.test(`${p.description} ${p.hashtags.join(" ")}`)), JSON.stringify(o.options.map((p) => [p.description, p.hashtags])));
 });
 

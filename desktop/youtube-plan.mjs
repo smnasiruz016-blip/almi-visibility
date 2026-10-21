@@ -64,7 +64,7 @@ export function priorityOrder(videos) {
 /* ── one video's own words: its title without hashtags, @names, the channel's own name, episode numbers and emoji ── */
 export function ownWords(v, channel = {}) {
   const name = String(channel.title ?? "").toLowerCase();
-  const clean = (s) => String(s ?? "").replace(/[#@]+[\p{L}\p{N}_.-]*/gu, " ") /* RR-310: "##shortsfeed" left a lone "#" */.replace(/\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}]/gu, " ").replace(/\b(?:daily )?vlog\s*#?\d+\b|\bep(?:isode)?\.?\s*\d+\b|#\d+/gi, " ").replace(/\s+/g, " ").trim();
+  const clean = (s) => String(s ?? "").replace(/[#@]+[\p{L}\p{N}_.-]*/gu, " ") /* RR-310: "##shortsfeed" left a lone "#" */.replace(/\p{Extended_Pictographic}|\p{Emoji_Modifier}|️|‍|[\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}]/gu, " ") /* RR-311: a skin tone or flag part left a box ("Gayi! ▯") */.replace(/\b(?:daily )?vlog\s*#?\d+\b|\bep(?:isode)?\.?\s*\d+\b|#\d+/gi, " ").replace(/\s+/g, " ").trim();
   /* RR-311 (owner): an obvious misspelling in the video's own words is corrected ("Togather" → "Together"), and said */
   const fixed = [];
   const spell = (s) => spellFix(s, fixed);

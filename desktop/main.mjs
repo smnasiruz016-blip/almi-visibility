@@ -10,7 +10,7 @@
  *   node desktop/main.mjs --data=<dir> [--install=<program dir>] [--port=0]
  */
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -547,7 +547,7 @@ const server = createServer((req, res) => {
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             /* ── RR-311 A · YouTube sign-in (the channel owner, in his browser), its data, real chapters ── */
             if (y[2] === "signin" && req.method === "POST") { const r = YT_SIGNIN.start(yid, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: json().write === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, url: r.url } : { refused: r.why, adds: SIGNIN_ADDS }); }
-            if (y[2] === "signout" && req.method === "POST") { YT_SIGNIN.signOut(yid); return send(200, { ok: true, line: "Signed out of YouTube for this product. Visibility forgot the access." }); }
+            if (y[2] === "signout" && req.method === "POST") { YT_SIGNIN.signOut(yid); rmSync(pfile(yid, "youtube-signed.json"), { force: true }); return send(200, { ok: true, line: "Signed out of YouTube for this product. Visibility forgot the access and the analytics it had read." }); }
             if (y[2] === "signed" && req.method === "POST") { const r = await YT.refreshSigned(yid, { force: json().force === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, on: r.data.on, reach: r.data.reach?.line ?? null } : { refused: r.why }); }
             if (y[2] === "chapters" && req.method === "POST") { const r = await YT.chapters(yid, json().videoId); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             /* ── C2 · competitors ── */

@@ -49,6 +49,8 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
   const count = (path) => { const q = quota(); if (path === "search") q.searches++; else q.units++; atomic(quotaFile, q); };
   const api = () => youtubeApi({ key: keys.get(YOUTUBE_KEY), fetchImpl, apiBase, onCall: count });
   const yt = (s) => s.setup?.youtube ?? {};
+  /* RR-311: the channel's own analytics only while its owner is signed in — never an old read after a sign-out */
+  const signedOf = (id) => (signin?.status(id).signedIn ? readJson(join(store.dirOf(id), "youtube-signed.json"), null) : null);
   const rawDir = (id) => { const d = join(store.dirOf(id), "youtube-raw"); mkdirSync(d, { recursive: true }); return d; };
   const prune = (id) => { const d = rawDir(id); for (const f of readdirSync(d)) { const m = /(\d{4}-\d{2}-\d{2})\.json$/.exec(f); if (m && now() - Date.parse(m[1]) > RAW_DAYS * 86400000) rmSync(join(d, f)); } };
   const latest = (id, prefix) => { const d = rawDir(id); const f = readdirSync(d).filter((x) => x.startsWith(prefix) && /\d{4}-\d{2}-\d{2}\.json$/.test(x)).sort().at(-1); return f ? readJson(join(d, f), null) : null; };
@@ -155,7 +157,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
        * result's own language is checked, and clips ("full episode", Bigg Boss) are left out */
       const chLang = channelLanguage(own);
       const lang = chLang.code === "en" ? (s.setup?.languages?.codes ?? []).find((c) => c !== "en") ?? "en" : chLang.relevance;
-      const region = readJson(join(store.dirOf(id), "youtube-signed.json"), null)?.analytics?.countries?.[0]?.country ?? null;
+      const region = signedOf(id)?.analytics?.countries?.[0]?.country ?? null;
       const runs = [...chosen.map((q) => ({ q, kind: "top", days: 365 })), ...chosen.slice(0, 2).map((q) => ({ q, kind: "rising", days: 30 }))].slice(0, Math.max(1, room));
       const out = { readOn: new Date(now()).toISOString(), nicheLabel: niche.label, language: chLang.label, languageCode: chLang.code, region, niche: [], topics: [], comments: [], otherLanguage: 0 };
       /* YouTube's own relevance inside the window (top: a year; rising: 30 days), then only the videos that are ABOUT the phrase, most viewed
@@ -214,7 +216,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: lang }, terms }).filter((q) => inOwnScripts(q.text, ctx.scripts) && inLang(q.text));
       ctx.questions = [...questions, ...(ctx.summary?.asks ?? []).filter((a) => inLang(a.text)).map((a) => ({ text: a.text, source: `a comment under "${a.under}", ${a.on}`, likes: a.likes }))];
       ctx.chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {}); // RR-311 A1: real chapters, made from captions on the client's click
-      const signed = readJson(join(store.dirOf(id), "youtube-signed.json"), null);
+      const signed = signedOf(id);
       const { order, why } = priorityOrder(videos);
       const page = order.slice(offset, offset + TOP_N).map((v) => ({ ...optionsFor(v, ctx), why: why.get(v.videoId)?.join(" and ") ?? null }));
       const more = Math.max(0, order.length - offset - page.length);
@@ -260,7 +262,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       /* RR-311 B3: the video's captions (when signed in with Apply on), its real chapters, its channel's own data, its language */
       const capFile = join(store.dirOf(id), "youtube-captions", `${videoId}.vtt`);
       const captions = existsSync(capFile) ? readFileSync(capFile, "utf8").replace(/^WEBVTT.*$/m, "").replace(/\n{2,}/g, "\n").slice(0, 4000) : null;
-      const signed = readJson(join(store.dirOf(id), "youtube-signed.json"), null);
+      const signed = signedOf(id);
       const own = ownDataFindings(raw.videos, { now: now(), analytics: signed?.analytics ?? null, reach: signed?.reach ?? null, retention: signed?.retention ?? {} }).findings.slice(0, 4).map((f) => f.line);
       const chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {})[videoId] ?? null;
       const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });

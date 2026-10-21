@@ -253,6 +253,11 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     const ui = await screen(a.url); ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#ytbox"); await ui.api.youtubeTab();
     const shown = ui.el("#ytbox").innerHTML;
     for (const x of ["Signed in to YouTube ✓", "From YOUR channel's data", "Keyword ideas — with a demand estimate", "Your competitors", "Rival Vlogs", "Ask the coach about your channel", "Apply to YouTube", "Real chapters from my captions", "Test &amp; Compare", "AI used today"]) assert.ok(shown.includes(x), x);
+    /* signing out forgets the access AND the analytics — an old read is never shown as the channel's data */
+    assert.equal((await a.post(`/api/products/${id}/youtube/signout`, {})).http, 200);
+    const after = await a.get(`/api/products/${id}/youtube/advice`);
+    assert.equal(after.signin.signedIn, false); assert.ok(!after.ownData.findings.some((f) => /Search terms that brought viewers|Shown a lot|leave in the first 30/.test(f.line)), "analytics shown after signing out");
+    assert.ok(!existsSync(join(a.dir, "products", id, "youtube-signed.json")), "the analytics read was kept after signing out");
     /* AlmiWorld's own channel: never changed on YouTube from here */
     const aw = (await a.post("/api/products", { name: "almiworld youtube", goal: { grow: "youtube", hasWebsite: false } })).product.id;
     await a.post(`/api/products/${aw}/youtube`, { handle: "@Almiworld-world" });

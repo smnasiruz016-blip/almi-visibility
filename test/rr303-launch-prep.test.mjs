@@ -148,7 +148,7 @@ test("THE APP · the licence key is saved (a value that is not a key is refused,
   store.setCompany({ name: "Fixture Co", site: "https://fixture.invalid", logoFile: null });
   const id = store.create({ name: "Fixture product", site: "https://fixture.invalid/p" }).id;
   /* the licence and update addresses point at nothing on this machine: no request leaves it */
-  writeFileSync(join(dir, "config.json"), JSON.stringify({ licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/" }));
+  writeFileSync(join(dir, "config.json"), JSON.stringify({ testSecretsInMemory: true, licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/" }));
   const env = { ...process.env }; delete env.YOUTUBE_API_KEY;
   const p = spawn(process.execPath, [join(REPO, "desktop", "main.mjs"), `--data=${dir}`], { stdio: "ignore", env });
   try {
@@ -162,11 +162,13 @@ test("THE APP · the licence key is saved (a value that is not a key is refused,
     assert.ok(!(await saved.text()).includes(key) && !(await (await fetch(`${base}/api/home`)).text()).includes(key), "the licence key was echoed");
     assert.equal(JSON.parse(readFileSync(join(dir, "config.json"), "utf8")).account, key);
     const y = await (await fetch(`${base}/api/products/${id}/youtube`)).json();
-    assert.deepEqual([y.handle, y.keyName, y.keySet, y.pilots.map((c) => c.handle)], ["", "YOUTUBE_API_KEY", false, ["@dhanakkiduniya", "@Almiworld-world"]]);
-    assert.match((await (await post(`/api/products/${id}/youtube`, { handle: "@dhanakkiduniya", keyName: "AIzaFakeLookingValue123" })).json()).refused, /NAME of the variable/);
-    assert.equal((await post(`/api/products/${id}/youtube`, { handle: "@dhanakkiduniya", keyName: "YOUTUBE_API_KEY" })).status, 200);
+    /* RR-306 A3 (owner decision, 21 Oct 2026): no key NAME any more — the key is pasted in the app (Windows' secure store); the settings say only whether it is saved */
+    assert.deepEqual([y.handle, y.key.saved, y.pilots.map((c) => c.handle)], ["", false, ["@dhanakkiduniya", "@Almiworld-world"]]);
+    /* a key typed into an old name field is ignored — it is never stored in the product's settings */
+    assert.equal((await post(`/api/products/${id}/youtube`, { handle: "@dhanakkiduniya", keyName: "AIzaFakeLookingValue123" })).status, 200);
+    assert.ok(!readFileSync(join(dir, "products", id, "state.json"), "utf8").includes("AIzaFakeLookingValue123"), "a key was stored in the product's settings");
     assert.equal((await fetch(`${base}/api/products/..%2F..%2Fx/youtube`)).status >= 400, true, "an id outside the products folder was read");
     const views = await (await fetch(`${base}/api/products/${id}/views`)).json();
-    assert.match(views.youtube[0], /Channel @dhanakkiduniya: the key is not added yet\. Add it in Windows as a user environment variable named YOUTUBE_API_KEY/);
+    assert.match(views.youtube[0], /Your YouTube key is not saved yet — paste it in YouTube settings\./);
   } finally { p.kill(); rmSync(dir, { recursive: true, force: true }); }
 });

@@ -27,7 +27,7 @@ const words = (s) => new Set(norm(s).split(" ").filter((w) => w.length > 2));
 /* ── data in ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
 /** A CSV line → fields (quotes and doubled quotes handled). */
-function csvRows(text) {
+export function csvRows(text) {
   const rows = []; let row = [], cur = "", q = false;
   const t = String(text ?? "").replace(/^﻿/, "");
   for (let i = 0; i < t.length; i++) {
@@ -66,26 +66,100 @@ export function importStudioExport(csvText, { importedOn }) {
  * is NEVER opened here: `fetchImpl` must be handed in by the client's resolved connector (F03 — the one place a connection is opened);
  * without it the reader is DEFERRED too.
  */
-export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_NAME } = {}) {
-  const key = env[keyName];
+/* RR-306 B · THE RIGHT CHANNEL, ALWAYS: a channel is found ONLY by its exact @handle through the API's own handle lookup (channels.list
+ * forHandle) — never by search; an answer whose handle is not the one asked is refused. After the client confirms it ("Is this your
+ * channel?"), it is read by its CHANNEL ID only. The first wrong read on the owner's PC (21 Oct 2026) was an exact lookup of a DIFFERENT
+ * real handle typed in setup (@almiworld instead of @Almiworld-world) read with no confirmation — the confirmation now stands in between. */
+export const HANDLE = /^@[\w.-]{3,100}$/;
+export const API_BASE = "https://www.googleapis.com/youtube/v3/";
+/* only YouTube's own API — or, in tests, a stand-in on this computer */
+const allowedBase = (b) => b === API_BASE || /^http:\/\/127\.0\.0\.1:\d+\/youtube\/v3\/$/.test(b);
+const MAX_VIDEOS = 5000; // a bound on one read (100 pages of 50): the whole channel for every channel the pilots hold
+const channelShape = (x) => x ? Object.freeze({ found: true, channelId: x.id, title: x.snippet?.title ?? "", handle: x.snippet?.customUrl ?? null, description: x.snippet?.description ?? "",
+  pictureUrl: x.snippet?.thumbnails?.default?.url ?? null, subscribers: x.statistics?.hiddenSubscriberCount ? null : (x.statistics?.subscriberCount === undefined ? null : Number(x.statistics.subscriberCount)),
+  videoCount: x.statistics?.videoCount === undefined ? null : Number(x.statistics.videoCount), uploads: x.contentDetails?.relatedPlaylists?.uploads ?? null }) : null;
+/* RR-306 B5 · a SHORT, by YouTube's own rule (YouTube Help "Understand three-minute YouTube Shorts", read 21 Oct 2026): uploaded after
+ * 15 Oct 2024, square or vertical, up to 3 minutes; before that date a Short was up to 60 seconds. The shape comes from the API's player
+ * size (videos.list part=player). Without a shape the kind is UNKNOWN — never guessed. */
+export const SHORTS_RULE = Object.freeze({ since: "2024-10-15", maxSec: 180, maxSecBefore: 60, source: "YouTube Help — \"Understand three-minute YouTube Shorts\" (support.google.com/youtube/answer/15424877), read 2026-10-21" });
+export function videoKind(v) {
+  if (!Number.isFinite(v.durationSec)) return "UNKNOWN";
+  const tall = Number.isFinite(v.width) && Number.isFinite(v.height) ? v.width <= v.height : null;
+  const limit = String(v.publishedAt ?? "") >= SHORTS_RULE.since ? SHORTS_RULE.maxSec : SHORTS_RULE.maxSecBefore;
+  if (v.durationSec > SHORTS_RULE.maxSec) return "LONG";
+  if (tall === false) return "LONG";
+  if (tall === true) return v.durationSec <= limit ? "SHORT" : "LONG";
+  return "UNKNOWN";
+}
+/* the free quota (YouTube Data API "Quota calculator", support page updated 2026-10-15, read 2026-10-21): search.list has its OWN bucket
+ * of 100 calls a day; every other call here costs 1 unit of 10,000 a day. Visibility's own cap keeps research well inside it. */
+export const QUOTA_RULE = Object.freeze({ searchCallsPerDay: 100, unitsPerDay: 10000, source: "YouTube Data API — Quota calculator (developers.google.com/youtube/v3/determine_quota_cost), updated 2026-10-15, read 2026-10-21" });
+
+export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_NAME, key = null, apiBase = API_BASE, onCall = () => {} } = {}) {
+  key = key ?? env[keyName];
   if (!key) return Object.freeze({ state: "DEFERRED", why: `DEFERRED — no YouTube Data API key in the environment (${keyName}); import a YouTube Studio export instead, or add the key` });
   if (typeof fetchImpl !== "function") return Object.freeze({ state: "DEFERRED", why: "DEFERRED — the key is set, but no connection was handed in by the client's resolved YouTube connector" });
-  const get = async (path, params) => { const u = new URL(`https://www.googleapis.com/youtube/v3/${path}`); for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v); u.searchParams.set("key", key); const r = await fetchImpl(u, { headers: { Accept: "application/json" } }); if (!r.ok) throw new Error(`the YouTube Data API answered HTTP ${r.status}`); return r.json(); };
-  return Object.freeze({
+  if (!allowedBase(apiBase)) return Object.freeze({ state: "REFUSED", why: "REFUSED — the YouTube key is sent to YouTube's own API only" });
+  const get = async (path, params) => {
+    const u = new URL(`${apiBase}${path}`); for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v); u.searchParams.set("key", key);
+    onCall(path);
+    const r = await fetchImpl(u, { headers: { Accept: "application/json" } });
+    if (!r.ok) throw Object.assign(new Error(`the YouTube Data API answered HTTP ${r.status}`), { status: r.status });
+    return r.json();
+  };
+  const videosByIds = async (ids) => {
+    const out = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const v = await get("videos", { part: "snippet,contentDetails,statistics,player", id: ids.slice(i, i + 50).join(","), maxHeight: "360" });
+      for (const x of v.items ?? []) out.push(Object.freeze({ videoId: x.id, title: x.snippet.title, description: x.snippet.description, tags: x.snippet.tags ?? [], publishedAt: x.snippet.publishedAt, durationSec: isoSeconds(x.contentDetails.duration),
+        views: Number(x.statistics?.viewCount ?? 0), comments: x.statistics?.commentCount === undefined ? null : Number(x.statistics.commentCount), width: x.player?.embedWidth === undefined ? null : Number(x.player.embedWidth), height: x.player?.embedHeight === undefined ? null : Number(x.player.embedHeight),
+        language: x.snippet.defaultAudioLanguage ?? x.snippet.defaultLanguage ?? null, thumbnailText: undefined, channelTitle: x.snippet.channelTitle, channelId: x.snippet.channelId }));
+    }
+    return out;
+  };
+  const api = {
     state: "READY",
-    /** The channel's videos (its uploads playlist), with title, description, tags, publish time, duration and views — the API only. */
-    async channelVideos(channelId, { max = 50 } = {}) {
-      /* RR-302 C1: a channel is named by its id (UC…) or its @handle — the API's own forHandle, never a youtube.com page */
-      const ch = await get("channels", { part: "contentDetails,snippet", ...(String(channelId).startsWith("@") ? { forHandle: channelId } : { id: channelId }) });
-      const uploads = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-      if (!uploads) return [];
-      const pl = await get("playlistItems", { part: "contentDetails", playlistId: uploads, maxResults: String(Math.min(max, 50)) });
-      const ids = (pl.items ?? []).map((i) => i.contentDetails.videoId).join(",");
-      if (!ids) return [];
-      const v = await get("videos", { part: "snippet,contentDetails,statistics", id: ids });
-      return (v.items ?? []).map((x) => Object.freeze({ videoId: x.id, title: x.snippet.title, description: x.snippet.description, tags: x.snippet.tags ?? [], publishedAt: x.snippet.publishedAt, durationSec: isoSeconds(x.contentDetails.duration), views: Number(x.statistics?.viewCount ?? 0), thumbnailText: undefined, channelTitle: x.snippet.channelTitle }));
+    /** B1: the channel of this EXACT @handle — or not found. Never a search. */
+    async lookupHandle(handle) {
+      if (!HANDLE.test(String(handle ?? ""))) return Object.freeze({ found: false, line: "Type the channel's @handle, for example @mychannel." });
+      const ch = await get("channels", { part: "snippet,statistics,contentDetails", forHandle: handle });
+      const c = channelShape(ch.items?.[0]);
+      if (!c) return Object.freeze({ found: false, line: `Channel not found — check the @handle (${handle}).` });
+      if (String(c.handle ?? "").toLowerCase() !== handle.toLowerCase()) return Object.freeze({ found: false, line: `YouTube answered with another channel (${c.handle ?? "no handle"}) — not used. Check the @handle (${handle}).` });
+      return c;
     },
-  });
+    /** a confirmed channel, by its ID */
+    async channelById(id) { if (!/^UC[\w-]{10,40}$/.test(String(id ?? ""))) return Object.freeze({ found: false, line: "not a channel ID" }); const ch = await get("channels", { part: "snippet,statistics,contentDetails", id }); return channelShape(ch.items?.[0]) ?? Object.freeze({ found: false, line: "The confirmed channel was not found any more — confirm your channel again." }); },
+    /** B4: ALL the channel's videos — every page of its uploads playlist (bounded at 5,000). */
+    async allVideos(channelId, known = null) {
+      const ch = known?.found && known.channelId === channelId ? known : await api.channelById(channelId);
+      if (!ch.found || !ch.uploads) return Object.freeze({ channel: ch, videos: [], pages: 0, complete: Boolean(ch.found) });
+      const ids = []; let token = null, pages = 0;
+      do {
+        const pl = await get("playlistItems", { part: "contentDetails", playlistId: ch.uploads, maxResults: "50", ...(token ? { pageToken: token } : {}) });
+        pages++; for (const i of pl.items ?? []) ids.push(i.contentDetails.videoId);
+        token = pl.nextPageToken ?? null;
+      } while (token && ids.length < MAX_VIDEOS);
+      return Object.freeze({ channel: ch, videos: Object.freeze(await videosByIds(ids)), pages, complete: !token });
+    },
+    /** C1: the videos that do well on a topic — the API's own search (its own daily bucket), then their numbers */
+    async searchTopic(q, { max = 10 } = {}) {
+      const s = await get("search", { part: "snippet", type: "video", q, order: "relevance", maxResults: String(max) });
+      const ids = (s.items ?? []).map((i) => i.id?.videoId).filter(Boolean);
+      return ids.length ? (await videosByIds(ids)).sort((a, b) => b.views - a.views) : [];
+    },
+    /** C1: what people write under a video — their own questions (comments turned off → none, said plainly) */
+    async comments(videoId, { max = 50 } = {}) {
+      try { const c = await get("commentThreads", { part: "snippet", videoId, order: "relevance", maxResults: String(max), textFormat: "plainText" }); return (c.items ?? []).map((t) => Object.freeze({ text: t.snippet?.topLevelComment?.snippet?.textDisplay ?? "", likes: Number(t.snippet?.topLevelComment?.snippet?.likeCount ?? 0), publishedAt: t.snippet?.topLevelComment?.snippet?.publishedAt ?? null, videoId })); }
+      catch (e) { if (e.status === 403) return []; throw e; }
+    },
+    /** the bin's read: a channel by its ID, or by its exact @handle — every page */
+    async channelVideos(channel) {
+      const c = String(channel).startsWith("@") ? await api.lookupHandle(channel) : { found: true, channelId: channel };
+      return c.found ? (await api.allVideos(c.channelId, c.uploads ? c : null)).videos : [];
+    },
+  };
+  return Object.freeze(api);
 }
 /**
  * RR-302 C1 · the reader through the client's OPENED YouTube connector (src/tenancy/connectors.mjs, kind YOUTUBE_DATA_API): its paced,
@@ -179,16 +253,36 @@ export function scriptFromArticle(article) {
   return Object.freeze({ ok: true, lines: Object.freeze(lines), note: "A script only — Visibility does not make the video. It promises no views, ranking or results." });
 }
 
-/** The channel check — a finding only where the data holds the field; NOT MEASURED where it does not. No score. */
-export function channelCheck(videos, { productUrl = null } = {}) {
+/**
+ * RR-306 B6 · the page a video should link to: the product's own page — unless the product IS this channel (its address is the channel),
+ * then a related product page the client listed whose words the video is about (e.g. a CV video → the CV product's page), or none.
+ */
+export function linkTargetFor(video, { productUrl = null, productIsChannel = false, relatedPages = [] } = {}) {
+  const v = words(`${video.title} ${video.description ?? ""}`);
+  const rel = relatedPages.find((p) => (p.words ?? []).some((w) => [...words(w)].every((x) => v.has(x))));
+  if (rel) return { url: rel.url, why: `your related page for "${rel.words.join(", ")}"` };
+  if (productUrl && !productIsChannel) return { url: productUrl, why: "your product's page" };
+  return null;
+}
+const sameUrl = (text, url) => { const t = String(text ?? "").toLowerCase(); const u = String(url).toLowerCase().replace(/\/$/, ""); return t.includes(u) || t.includes(u.replace(/^https?:\/\//, "")); };
+
+/** The channel check — a finding only where the data holds the field; NOT MEASURED where it does not. No score. RR-306: Shorts and long
+ *  videos are judged apart (chapters only for long ones); the link back follows linkTargetFor. */
+export function channelCheck(videos, { productUrl = null, productIsChannel = false, relatedPages = [] } = {}) {
   return Object.freeze(videos.map((v) => {
     const f = [], nm = [];
+    const kind = videoKind(v);
     if (!present(v.title)) f.push("no title"); else if (v.title.length > TITLE_MAX) f.push(`the title is ${v.title.length} characters — over YouTube's ${TITLE_MAX}`);
     if (v.description === undefined) nm.push("description (not in the data)"); else if (!present(v.description)) f.push("no description");
-    if (v.description === undefined) nm.push("chapters (no description in the data)"); else if (present(v.description) && !/(^|\n)0?0:00\s/.test(v.description)) f.push("no chapters (the description has no 0:00 timestamp list)");
+    if (kind !== "SHORT") {
+      if (v.description === undefined) nm.push("chapters (no description in the data)");
+      else if (kind === "UNKNOWN") nm.push("chapters (not known whether this is a Short or a long video)");
+      else if (present(v.description) && !/(^|\n)0?0:00\s/.test(v.description)) f.push("no chapters (the description has no 0:00 timestamp list)");
+    }
     if (v.thumbnailText === undefined) nm.push("thumbnail text (not in the data)"); else if (!present(v.thumbnailText)) f.push("no text on the thumbnail");
-    if (productUrl) { if (v.description === undefined) nm.push("link back to the product page (no description in the data)"); else if (!String(v.description).includes(productUrl)) f.push("no link back to the product page"); }
-    return Object.freeze({ videoId: v.videoId, title: v.title, findings: Object.freeze(f), notMeasured: Object.freeze(nm) });
+    const target = linkTargetFor(v, { productUrl, productIsChannel, relatedPages });
+    if (target) { if (v.description === undefined) nm.push("link back (no description in the data)"); else if (!sameUrl(v.description, target.url)) f.push(`no link to ${target.why} (${target.url})`); }
+    return Object.freeze({ videoId: v.videoId, title: v.title, kind, findings: Object.freeze(f), notMeasured: Object.freeze(nm) });
   }));
 }
 
@@ -198,7 +292,8 @@ export function youtubeForReport(imported, check) {
   const views = imported.videos.map((v) => v.views).filter(Number.isFinite);
   const withFindings = check.filter((c) => c.findings.length);
   return Object.freeze({ connected: true, lines: Object.freeze([
-    `YouTube (${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "your Studio export" : "your API key"}, ${imported.importedOn}): ${imported.videos.length} video(s)${views.length ? `, ${views.reduce((a, b) => a + b, 0)} views in the export` : ""}.`,
+    /* RR-306 B7: "read with your API key" — an export only when the data came from a Studio export */
+    `YouTube (${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "your Studio export" : "read with your API key"}, ${imported.importedOn}): ${imported.videos.length} video(s)${views.length ? `, ${views.reduce((a, b) => a + b, 0)} views ${imported.source === "YOUTUBE_STUDIO_EXPORT" ? "in the export" : "in total"}` : ""}.`,
     ...withFindings.slice(0, 5).map((c) => `Video "${c.title}": ${c.findings.join("; ")}`),
     ...(check.some((c) => c.notMeasured.length) ? [`Not measured from this data: ${[...new Set(check.flatMap((c) => c.notMeasured))].join(", ")}.`] : []),
   ]) });

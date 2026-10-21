@@ -39,9 +39,9 @@ test("C1 · END TO END: a fake key + the declared connector → the channel's vi
     /* the three API answers, shaped as the YouTube Data API v3 answers them */
     const put = (name, body) => { const p = join(dir, name); writeFileSync(p, JSON.stringify(body)); return p; };
     const replay = {
-      [href("channels", { part: "contentDetails,snippet", forHandle: "@fixture-channel" })]: put("channels.json", { items: [{ id: "UCfixturechannel01", contentDetails: { relatedPlaylists: { uploads: "UUfixturechannel01" } }, snippet: { title: "Fixture Channel" } }] }),
+      /* RR-306: the exact-handle lookup asks for the statistics too (the confirmation shows them) */ [href("channels", { part: "snippet,statistics,contentDetails", forHandle: "@fixture-channel" })]: put("channels.json", { items: [{ id: "UCfixturechannel01", contentDetails: { relatedPlaylists: { uploads: "UUfixturechannel01" } }, snippet: { customUrl: "@fixture-channel", title: "Fixture Channel" } }] }),
       [href("playlistItems", { part: "contentDetails", playlistId: "UUfixturechannel01", maxResults: "50" })]: put("playlist.json", { items: [{ contentDetails: { videoId: "fixv0000001" } }, { contentDetails: { videoId: "fixv0000002" } }] }),
-      [href("videos", { part: "snippet,contentDetails,statistics", id: "fixv0000001,fixv0000002" })]: put("videos.json", { items: [
+      /* RR-306: the player size tells a Short from a long video */ [href("videos", { part: "snippet,contentDetails,statistics,player", id: "fixv0000001,fixv0000002", maxHeight: "360" })]: put("videos.json", { items: [
         { id: "fixv0000001", snippet: { title: "How the fixture pump is fitted", description: `0:00 Start\n1:10 Fitting\n2:30 Testing\nMore: ${SITE}/fit`, tags: ["pump fitting"], publishedAt: "2026-10-01T00:00:00Z", channelTitle: "Fixture Channel" }, contentDetails: { duration: "PT4M5S" }, statistics: { viewCount: "120" } },
         { id: "fixv0000002", snippet: { title: "Questions", description: "", publishedAt: "2026-10-08T00:00:00Z", channelTitle: "Fixture Channel" }, contentDetails: { duration: "PT1M" }, statistics: { viewCount: "30" } },
       ] }),
@@ -67,8 +67,9 @@ test("C1 · END TO END: a fake key + the declared connector → the channel's vi
     const egress = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual([egress.fetch, egress.replayed, Object.keys(egress.hosts)], [3, 3, ["www.googleapis.com"]]);
     assert.match(ok.stdout, /videos {11}2 read through the API/);
-    assert.match(ok.stdout, /YouTube \(your API key, 2026-10-20\): 2 video\(s\), 150 views in the export\./);
-    assert.match(ok.stdout, /Video "Questions": no description; no link back to the product page/);
+    /* RR-306 B7 (owner, 21 Oct 2026): "read with your API key", never "in the export"; B6: the link check names the page it expected */
+    assert.match(ok.stdout, /YouTube \(read with your API key, 2026-10-20\): 2 video\(s\), 150 views in total\./);
+    assert.match(ok.stdout, /Video "Questions": no description; no link to your product's page \(https:\/\/fixture-channel\.invalid\/fit\)/);
     assert.ok(!(ok.stdout + ok.stderr + noKey.stdout + noKey.stderr).includes(FAKE_KEY), "the key was printed");
   } finally {
     W.cleanup();

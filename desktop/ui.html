@@ -32,6 +32,14 @@ label{display:block;color:var(--ink)} .ask{color:var(--muted);margin:0 0 14px} .
 .err{color:#9F1D1D;margin-top:8px;font-weight:600}
 nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 footer{background:var(--night);color:var(--cream);padding:14px 20px;font-size:13px;text-align:center} footer b{color:var(--gold)}
+/* RR-306: the next step after a licence, keys shown only as "saved ✓ (ends …1234)", the channel confirmation, advice with its source */
+button.big{font-size:17px;padding:14px 26px;margin-top:8px}
+.ok{color:#1F6F43;font-weight:700} .warn{background:#FFF1E6;border:1px solid var(--sunrise);border-radius:10px;padding:8px 12px;margin:8px 0}
+textarea{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radius:10px;width:100%;box-sizing:border-box;margin:4px 0 12px;min-height:80px;background:var(--white);color:var(--ink)}
+.keybox{border:1px dashed var(--peach);border-radius:12px;padding:10px 12px;margin:6px 0 14px}
+.chan{display:flex;gap:14px;align-items:center} .chan img{width:72px;height:72px;border-radius:50%;border:1px solid var(--peach)}
+.adv{border-top:1px solid var(--peach);padding:10px 0} .adv h3{font-size:15px} .adv .k{font-weight:700;color:var(--ink)} .adv pre{white-space:pre-wrap;font:inherit;margin:2px 0;background:var(--cream);border-radius:8px;padding:6px 8px}
+.src{font-size:12px;color:var(--muted)} .tag{display:inline-block;background:var(--peach);border-radius:999px;padding:1px 8px;font-size:12px;margin-left:6px}
 @media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
 @media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22}}
 </style></head>
@@ -61,24 +69,72 @@ async function home() {
   $("#add").onclick = () => addProduct();
   $("#plan").onclick = () => planScreen();
 }
-/* RR-303 A: the licence key from the page shown after a purchase — saved in the app; never shown back */
+/* RR-303 A: the licence key from the page shown after a purchase — saved in the app; never shown back.
+   RR-306 A1: once saved, a clear "Licence saved ✓" and one big next step. */
 function planScreen() {
   $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_) — or the owner licence (it starts with avo_).</p>
-  <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div><p class="meta" id="ok"></p></div>`;
+  <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div></div>`;
   $("#home").onclick = home;
-  $("#save").onclick = async () => { const r = await post("/api/account", { licenceKey: $("#k1").value }); if (r.refused) return ($("#err").textContent = r.refused); $("#k1").value = ""; $("#ok").textContent = r.line; };
+  $("#save").onclick = async () => {
+    const r = await post("/api/account", { licenceKey: $("#k1").value }); if (r.refused) return ($("#err").textContent = r.refused);
+    const H = await get("/api/home"); $("#lic").textContent = H.licence;
+    $("#app").innerHTML = `<div class="card"><h2 class="ok">Licence saved ✓</h2><p>${esc(r.line)}</p><button class="big" id="next">${H.products.length ? "Continue — go to your products" : "Continue — add your first product"}</button></div>`;
+    $("#next").onclick = () => (H.products.length || !H.company ? home() : addProduct());
+  };
 }
-/* RR-303 D: YouTube settings — any time, for this product */
+/* RR-306 A3: a key box — the client pastes the key; the app shows only "saved ✓ (ends …1234)" and can replace or remove it */
+const keyStatus = (st) => (st?.saved ? `<span class="ok">saved ✓ (ends …${esc(st.ends)})</span> <span class="meta">${esc(st.where)}</span>` : `<span class="meta">not saved yet</span>`);
+function keyBox(name, label, st) {
+  return `<div class="keybox" data-key="${esc(name)}"><div><b>${esc(label)}</b>: <span class="kst">${keyStatus(st)}</span></div>
+  <input class="kin" type="password" autocomplete="off" spellcheck="false" placeholder="${st?.saved ? "Paste a new key to replace it" : "Paste your key here"}">
+  <button class="ghost ksave" type="button">${st?.saved ? "Replace" : "Save key"}</button> ${st?.saved ? `<button class="ghost kdel" type="button">Remove</button>` : ""}<span class="err kerr"></span></div>`;
+}
+function wireKeyBoxes(after) {
+  document.querySelectorAll(".keybox").forEach((b) => {
+    const name = b.dataset.key;
+    b.querySelector(".ksave").onclick = async () => { const r = await post(`/api/keys/${name}`, { key: b.querySelector(".kin").value }); b.querySelector(".kin").value = ""; if (r.refused) return (b.querySelector(".kerr").textContent = r.refused); b.querySelector(".kst").innerHTML = keyStatus(r.status); if (after) after(); };
+    const del = b.querySelector(".kdel"); if (del) del.onclick = async () => { const r = await post(`/api/keys/${name}/remove`, {}); b.querySelector(".kst").innerHTML = keyStatus(r.status); if (after) after(); };
+  });
+}
+/* RR-303 D + RR-306 B: YouTube settings — the channel found by its EXACT @handle and shown before anything is read ("Is this your channel?"),
+   the key, the research topics, related product pages, search-data files */
 async function youtubeSettings() {
   const y = await get(`/api/products/${encodeURIComponent(P)}/youtube`);
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>YouTube settings</h2><p class="ask">Your channel's @handle, and the NAME of the Windows variable that holds your own YouTube key. Never type the key itself here.</p>
-  <label>Channel @handle<input id="y1" list="pilots" value="${esc(y.handle)}" placeholder="@yourchannel"></label><datalist id="pilots">${y.pilots.map((p) => `<option value="${esc(p.handle)}">${esc(p.name)} (${esc(p.tier)})</option>`).join("")}</datalist>
-  <label>Name of the key variable<input id="y2" value="${esc(y.keyName)}"></label><p class="meta">Key in this computer's settings: ${y.keySet ? "found" : "not found — add it, then close and open AlmiVisibility again"}</p>
-  <button id="save">Save</button> <button class="ghost" id="run">Save and read my channel now</button><div class="err" id="err"></div></div>`;
+  const K = await get("/api/keys");
+  const conf = y.confirmed ? `<p class="ok">Confirmed: ${esc(y.confirmed.title)} (${esc(y.confirmed.handle)}) — read by its channel ID since ${esc(y.confirmed.on)}.</p>` : "";
+  $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>YouTube settings</h2>
+  <p class="ask">Your channel's @handle. Before anything is read, Visibility shows you the channel and asks if it is yours.</p>${conf}
+  <label>Channel @handle<input id="y1" list="pilots" value="${esc(y.handle || y.suggestedHandle || "")}" placeholder="@yourchannel"></label><datalist id="pilots">${y.pilots.map((p) => `<option value="${esc(p.handle)}">${esc(p.name)} (${esc(p.tier)})</option>`).join("")}</datalist>
+  <button id="find">Find my channel</button><div id="found"></div>
+  ${keyBox("YOUTUBE_API_KEY", "Your YouTube key", K.keys.YOUTUBE_API_KEY)}
+  <label>Research topics — what people search for about your product (one per line; from your product's description — change them freely)<textarea id="y3">${esc((y.topics ?? []).join("\n"))}</textarea></label>
+  <label>Related pages (optional) — when a video is about one of your products, it should link to that product's page. One per line: words → address<textarea id="y4" placeholder="cv, resume → https://cv.almiworld.com">${esc((y.relatedPages ?? []).map((p) => `${p.words.join(", ")} → ${p.url}`).join("\n"))}</textarea></label>
+  <label>Search-data file (optional) — a CSV from Google Search Console, Bing or Keyword Planner (${y.files} phrases added)<input id="y5" type="file" accept=".csv,text/csv"></label>
+  <p class="meta">${esc(y.quota)}</p>
+  <button id="save">Save</button> <button class="ghost" id="open">Save and open my YouTube advice</button><div class="err" id="err"></div></div>`;
   $("#back").onclick = () => work("YouTube");
-  const save = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/youtube`, { handle: $("#y1").value.trim(), keyName: $("#y2").value.trim() }); if (r.refused) { $("#err").textContent = r.refused; return false; } S = await get(`/api/products/${encodeURIComponent(P)}/state`); return true; };
-  $("#save").onclick = async () => { if (await save()) $("#err").textContent = "Saved."; };
-  $("#run").onclick = async () => { if (await save()) work("YouTube"); };
+  wireKeyBoxes();
+  $("#find").onclick = async () => {
+    $("#found").innerHTML = `<p class="meta">Looking up ${esc($("#y1").value.trim())}…</p>`;
+    const c = await post(`/api/products/${encodeURIComponent(P)}/youtube/lookup`, { handle: $("#y1").value.trim() });
+    if (c.refused || !c.found) return ($("#found").innerHTML = `<p class="err">${esc(c.refused ?? c.line)}</p>`);
+    $("#found").innerHTML = `<div class="card"><h3>Is this your channel?</h3><div class="chan">${c.picture ? `<img src="${c.picture}" alt="">` : ""}<div><b>${esc(c.title)}</b> <span class="meta">${esc(c.handle)}</span><br><span class="meta">${c.subscribers === null ? "subscribers hidden" : `${c.subscribers.toLocaleString()} subscribers`} · ${c.videoCount ?? "?"} videos</span></div></div>
+    ${c.mismatch ? `<div class="warn">${esc(c.mismatch)}</div>` : ""}<p><button id="yes">Yes, this is my channel</button> <button class="ghost" id="no">No — change the @handle</button></p></div>`;
+    $("#yes").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/confirm`, { handle: c.handle, channelId: c.channelId }); if (r.refused) return ($("#err").textContent = r.refused); S = await get(`/api/products/${encodeURIComponent(P)}/state`); youtubeSettings(); };
+    $("#no").onclick = () => { $("#found").innerHTML = ""; $("#y1").focus(); };
+  };
+  const save = async () => {
+    const related = $("#y4").value.split("\n").map((l) => l.split(/→|->/)).filter((p) => p.length === 2).map(([w, url]) => ({ words: w.trim(), url: url.trim() }));
+    const r = await post(`/api/products/${encodeURIComponent(P)}/youtube`, { handle: $("#y1").value.trim(), topics: $("#y3").value.split("\n"), relatedPages: related });
+    if (r.refused) { $("#err").textContent = r.refused; return false; }
+    const f = $("#y5").files[0];
+    if (f) { const x = await post(`/api/products/${encodeURIComponent(P)}/youtube/file`, { name: f.name, text: await f.text() }); if (x.refused) { $("#err").textContent = x.refused; return false; } }
+    S = await get(`/api/products/${encodeURIComponent(P)}/state`);
+    if (r.mismatch) { $("#err").textContent = r.mismatch; }
+    return true;
+  };
+  $("#save").onclick = async () => { if (await save()) youtubeSettings(); };
+  $("#open").onclick = async () => { if (await save()) work("YouTube"); };
 }
 function company() {
   $("#app").innerHTML = `<div class="card"><h2>Your company</h2><p class="ask">Its name and its main website — your products are listed under it. Your own logo is optional.</p>
@@ -97,37 +153,68 @@ function addProduct() {
 }
 
 /* ── one product's own work ── */
+let KS = null; // the keys' status (never a key)
 const fields = {
   product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name)}"></label><label>Its address<input id=f2 value="${esc(S.setup.product?.site)}"></label><label>What it does<input id=f3 value="${esc(S.setup.product?.what)}"></label>`,
-  searchData: () => `<select id=f1><option value=1>1 — Search API key (your own key)</option><option value=2>2 — Google Search Console (your own connection)</option><option value=3>3 — Your AI search (your own AI account)</option></select>`,
-  languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${l.code === "en" ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
-  articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=1>`,
-  publishMode: () => `<label><input type=radio name=m value=AUTO_AFTER_GATES checked style="width:auto"> Publish automatically after every gate passes (default)</label><label><input type=radio name=m value=REVIEW_FIRST style="width:auto"> Show me first</label>`,
-  aiConnection: () => `<input id=f1 placeholder="e.g. ANTHROPIC_API_KEY">`,
-  youtube: () => `<label>Channel @handle (optional)<input id=f1 placeholder="@yourchannel"></label><label>Name of the key variable<input id=f2 value="YOUTUBE_API_KEY"></label>`,
-  start: () => `<p>Visibility will start working on ${esc(S.product.name)}. Nothing is published before it passes every gate.</p>`,
+  searchData: () => `<select id=f1>${[[1, "1 — Search API key (your own key)"], [2, "2 — Google Search Console (your own connection)"], [3, "3 — Your AI search (your own AI account)"]].map(([v, t]) => `<option value=${v} ${Number(S.setup.searchData?.option) === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <div id=sk>${keyBox("SEARCH_API_KEY", "Your search API key (for option 1)", KS.keys.SEARCH_API_KEY)}</div>`,
+  languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${(S.setup.languages?.codes ?? ["en"]).includes(l.code) ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
+  articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=${Number.isInteger(S.setup.articlesPerDay?.perDay) ? S.setup.articlesPerDay.perDay : 1}>`,
+  publishMode: () => `<label><input type=radio name=m value=AUTO_AFTER_GATES ${S.setup.publishMode?.mode !== "REVIEW_FIRST" ? "checked" : ""} style="width:auto"> Publish automatically after every gate passes (default)</label><label><input type=radio name=m value=REVIEW_FIRST ${S.setup.publishMode?.mode === "REVIEW_FIRST" ? "checked" : ""} style="width:auto"> Show me first</label>`,
+  aiConnection: () => `<label>Your AI provider<select id=f1>${KS.aiProviders.map((p) => `<option value=${p.id} ${S.setup.aiConnection?.provider === p.id || S.setup.aiConnection?.keyName === p.keyName ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+    <label>Your AI key<input id=f2 type=password autocomplete=off spellcheck=false placeholder="Paste your key here (it is kept in Windows' secure store)"></label><p class=meta id=aist></p>`,
+  youtube: () => `<label>Channel @handle<input id=f1 placeholder="@yourchannel" value="${esc(S.setup.youtube?.handle || (/youtube\.com\/(@[\w.-]{3,100})/i.exec(S.product.site ?? "")?.[1] ?? ""))}"></label>
+    <label>Your YouTube key<input id=f2 type=password autocomplete=off spellcheck=false placeholder="${KS.keys.YOUTUBE_API_KEY?.saved ? `saved ✓ (ends …${esc(KS.keys.YOUTUBE_API_KEY.ends)}) — paste a new one to replace it` : "Paste your key here (it is kept in Windows' secure store)"}"></label>`,
+  start: () => `<p>${S.started ? `Save your changes to ${esc(S.product.name)}.` : `Visibility will start working on ${esc(S.product.name)}. Nothing is published before it passes every gate.`}</p>`,
 };
 const value = (id) => ({
   product: () => ({ name: $("#f1").value, site: $("#f2").value, what: $("#f3").value }), searchData: () => ({ option: Number($("#f1").value) }),
   languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }), articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
-  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }), aiConnection: () => ({ keyName: $("#f1").value.trim() }), youtube: () => ({ handle: $("#f1").value.trim(), keyName: $("#f2").value.trim() }), start: () => ({}),
+  publishMode: () => ({ mode: document.querySelector("input[name=m]:checked").value }), aiConnection: () => ({ provider: $("#f1").value, key: $("#f2").value }),
+  youtube: () => ({ handle: $("#f1").value.trim(), key: $("#f2").value }), start: () => ({}),
 })[id]();
 async function open(id) { P = id; S = await get(`/api/products/${encodeURIComponent(id)}/state`); if (S.started) return work("Reports"); step = S.steps.findIndex((x) => !S.setup[x.id] || (x.id === "product" && !S.setup.product?.what)); if (step < 0) step = S.steps.length - 1; setup(); }
-function setup() {
+/* RR-306 A2: the product's Settings — the same steps, with the answers given, any time */
+async function settings() { S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = 0; setup(); }
+async function setup() {
+  KS = await get("/api/keys");
   const st = S.steps[step];
-  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><div class="steps">${esc(S.product.name)} · step ${st.n} of ${S.steps.length}</div><h2>${esc(st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
-  <div style="display:flex;gap:8px;margin-top:8px">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next>${st.id === "start" ? "Start" : "Next"}</button></div><div class=err id=err></div></div>`;
-  $("#home").onclick = home; if ($("#back")) $("#back").onclick = () => { step--; setup(); };
-  $("#next").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: st.id, value: value(st.id) }); if (r.refused) return ($("#err").textContent = r.refused); S = await get(`/api/products/${encodeURIComponent(P)}/state`); if (st.id === "start") return work("Reports"); step++; setup(); };
+  const skipped = S.setup[st.id]?.skipped === true;
+  $("#app").innerHTML = `<p><button class="ghost" id="home">← ${S.started ? esc(S.product.name) : "All products"}</button></p><div class="card"><div class="steps">${esc(S.product.name)} · ${S.started ? "Settings · " : ""}step ${st.n} of ${S.steps.length}${skipped ? " · skipped for now" : ""}</div><h2>${esc(st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next>${st.id === "start" ? (S.started ? "Save" : "Start") : "Next"}</button>${st.optional ? "<button class=ghost id=skip>Skip / not now</button>" : ""}</div><div class=err id=err></div></div>`;
+  $("#home").onclick = () => (S.started ? work("Reports") : home()); if ($("#back")) $("#back").onclick = () => { step--; setup(); };
+  if (st.id === "searchData") { wireKeyBoxes(); const show = () => ($("#sk").style.display = $("#f1").value === "1" ? "" : "none"); $("#f1").onchange = show; show(); }
+  if (st.id === "aiConnection") { const show = () => { const p = KS.aiProviders.find((x) => x.id === $("#f1").value); const k = KS.keys[p.keyName]; $("#aist").innerHTML = k?.saved ? `Your ${esc(p.name)} key: <span class="ok">saved ✓ (ends …${esc(k.ends)})</span> — paste a new one to replace it.` : "No key saved for this provider yet."; }; $("#f1").onchange = show; show(); }
+  const go = async (v) => { const r = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: st.id, value: v }); if (r.refused) return ($("#err").textContent = r.refused); S = await get(`/api/products/${encodeURIComponent(P)}/state`); if (st.id === "start") return work("Reports"); step++; setup(); };
+  $("#next").onclick = () => go(value(st.id));
+  if ($("#skip")) $("#skip").onclick = () => go({ skipped: true });
+}
+/* RR-306 C: the YouTube tab — the channel's advice, each piece with its source; new video ideas; what is missing, said plainly */
+async function youtubeTab() {
+  $("#ytbox").innerHTML = `<p class="meta">Reading your channel through the YouTube Data API…</p>`;
+  const a = await get(`/api/products/${encodeURIComponent(P)}/youtube/advice`);
+  if (a.refused) return ($("#ytbox").innerHTML = `<p class="err">${esc(a.refused)}</p>`);
+  if (a.state !== "READY") return ($("#ytbox").innerHTML = `<ul>${a.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><button id="yset">Open YouTube settings</button>`, ($("#yset").onclick = youtubeSettings));
+  const item = (x) => `<div><span class="k">${esc(x.what)}</span><pre>${esc(x.advice)}</pre><div class="src">From: ${esc(x.from)}</div></div>`;
+  $("#ytbox").innerHTML = `<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${a.channel.videos} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}</span></div></div>
+  <p class="meta">${esc(a.report.join(" "))}</p><p class="meta">${a.researchOn ? `Research read on ${esc(a.researchOn.slice(0, 10))}.` : "Research not run yet."} ${esc(a.quota)}</p>
+  <button id="research">Research now</button> <span class="err" id="rerr"></span>
+  ${a.notEnough.length ? `<div class="warn"><b>Not enough data yet</b><ul>${a.notEnough.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+  <h3 style="margin-top:14px">Your channel</h3>${a.channelAdvice.length ? a.channelAdvice.map(item).join("") : `<p class="meta">No channel advice yet — run the research first.</p>`}
+  <h3 style="margin-top:14px">New video ideas — questions people ask that none of your videos answers yet</h3>${a.ideas.length ? `<ul>${a.ideas.map((i) => `<li><b>${esc(i.title)}</b><div class="src">From: ${esc(i.from)}</div></li>`).join("")}</ul>` : `<p class="meta">None yet — they come from the questions people write under videos about your topics.</p>`}
+  <h3 style="margin-top:14px">Advice for each video (${a.perVideo.length}: ${a.channel.shorts ?? 0} Shorts, ${a.channel.long ?? 0} long${a.channel.unknown ? `, ${a.channel.unknown} unknown` : ""})</h3>
+  ${a.perVideo.map((v) => `<div class="adv"><h3>${esc(v.title)} <span class="tag">${v.kind === "SHORT" ? "Short" : v.kind === "LONG" ? "Long video" : "Kind unknown"}</span> <span class="meta">${v.views.toLocaleString()} views</span></h3>${v.notEnough ? `<p class="meta">${esc(v.notEnough)}</p>` : ""}${v.items.map(item).join("")}</div>`).join("")}`;
+  $("#research").onclick = async () => { $("#rerr").textContent = "Researching…"; const r = await post(`/api/products/${encodeURIComponent(P)}/youtube/research`, {}); if (r.refused) return ($("#rerr").textContent = r.refused); youtubeTab(); };
 }
 async function work(tab) {
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
   const tabs = { Reports: v.reports, "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly, YouTube: v.youtube, Articles: S.articleSettings };
   $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site)}</div>
-  <nav>${Object.keys(tabs).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="upd">Check for updates</button></nav>
-  <div class="card"><h2>${esc(tab)}</h2><ul>${tabs[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div id="u"></div></div>`;
+  <nav>${Object.keys(tabs).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="upd">Check for updates</button></nav>
+  <div class="card"><h2>${esc(tab)}</h2>${tab === "YouTube" ? `<div id="ytbox"></div>` : `<ul>${tabs[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
-  $("#yts").onclick = youtubeSettings;
+  $("#yts").onclick = youtubeSettings; $("#set").onclick = settings;
+  if (tab === "YouTube") youtubeTab();
   $("#upd").onclick = async () => { const r = await get("/api/update"); $("#u").innerHTML = `<p>${esc(r.line)}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await post("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${esc(x.line ?? x.refused)}</p>`; }; };
 }
 const hash = location.hash.slice(1);

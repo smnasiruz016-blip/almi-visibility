@@ -10,8 +10,8 @@
  *   node desktop/main.mjs --data=<dir> [--install=<program dir>] [--port=0]
  */
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync } from "node:fs";
-import { PILOT_CHANNELS, YOUTUBE_RAW_DAYS } from "../config/youtube/pilot-channels.mjs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
+import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwnerLicenceText, isOwnerLicence, verifyLicence } from "./licence.mjs";
@@ -21,7 +21,8 @@ import { STEPS, checkStep, webAddress } from "./setup.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
-import { youtubeApi, channelCheck, youtubeForReport, KEY_NAME as YOUTUBE_KEY_NAME } from "../src/video/youtube.mjs";
+import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
+import { youtubeApp } from "./youtube-app.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const arg = (n, d = null) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
@@ -55,37 +56,25 @@ const limitLine = planLimitLine;
 
 const page = () => readFileSync(join(HERE, "ui.html"), "utf8").replace("/*SUNRISE*/", cssVariables());
 let updateFound = null;
-/**
- * RR-302 C1 · the YouTube tab: the client's own channel (its @handle from setup) read through the YouTube Data API with the client's own key,
- * found in this computer's settings by the NAME setup recorded (YOUTUBE_API_KEY). The key is read here and handed straight in — never shown,
- * stored or logged. No key → the line saying where to add it. Never a youtube.com page.
- */
-async function youtubeView(s, id) {
-  const yt = s.setup?.youtube;
-  if (!yt?.handle) return ["YouTube is not set up — it is optional. Open “YouTube settings” to add your channel's @handle."];
-  const keyName = yt.keyName || YOUTUBE_KEY_NAME;
-  const api = youtubeApi({ env: process.env, keyName, fetchImpl: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(15000) }) });
-  if (api.state !== "READY") return [`Channel ${yt.handle}: the key is not added yet. Add it in Windows as a user environment variable named ${keyName}, then close and open AlmiVisibility again.`];
-  try {
-    const videos = await api.channelVideos(yt.handle);
-    /* raw data stays on this computer, in the product's own folder, 30 days at most (never in git; no score is derived) */
-    const rawDir = join(store.dirOf(id), "youtube-raw");
-    mkdirSync(rawDir, { recursive: true });
-    writeFileSync(join(rawDir, `${new Date().toISOString().slice(0, 10)}.json`), JSON.stringify({ recorded_at: new Date().toISOString(), handle: yt.handle, videos }));
-    for (const f of readdirSync(rawDir)) if (/^\d{4}-\d{2}-\d{2}\.json$/.test(f) && Date.now() - Date.parse(f.slice(0, 10)) > YOUTUBE_RAW_DAYS * 86400000) rmSync(join(rawDir, f));
-    const read = { ok: true, source: "YOUTUBE_DATA_API", importedOn: new Date().toISOString().slice(0, 10), videos };
-    return youtubeForReport(read, channelCheck(videos, { productUrl: s.product?.site ?? null })).lines;
-  } catch (e) { return [`Channel ${yt.handle}: YouTube could not be read now (${/answered HTTP \d+/.exec(String(e?.message))?.[0] ?? "no answer"}). Nothing was changed.`]; }
-}
+/* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
+ * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
+const KEYS = keyStore({ backend: CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
+const KEY_ALLOWED = new Set([KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName)]);
+/* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
+const YT = youtubeApp({ store, dataDir: DATA, keys: KEYS, config: CONFIG });
+/* a YouTube or key error says what happened in plain words — never a URL (the key travels in one) */
+const safeWhy = (e) => (/answered HTTP \d+/.exec(String(e?.message))?.[0] ? `YouTube ${/answered HTTP \d+/.exec(String(e.message))[0]}` : "no answer from YouTube");
 
 const server = createServer((req, res) => {
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
   let body = "";
-  req.on("data", (c) => (body += c));
+  req.on("data", (c) => { body += c; if (body.length > 6_000_000) req.destroy(); });
   req.on("end", async () => {
     try {
       const u = new URL(req.url, "http://127.0.0.1");
       const json = () => (body ? JSON.parse(body) : {});
+      /* RR-306: the app answers its own window only — a POST sent by another website (its Origin header) is refused (keys are saved here) */
+      if (req.method === "POST" && req.headers.origin && req.headers.origin !== `http://127.0.0.1:${server.address().port}`) return send(403, { refused: "not from this app" });
       if (req.method === "GET" && u.pathname === "/") return send(200, page(), "text/html; charset=utf-8");
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, readFileSync(join(HERE, "brand", "almiworld-logo.png")), "image/png");
       if (req.method === "GET" && u.pathname === "/company-logo") { const c = store.company(); const f = c?.logoFile ? join(DATA, c.logoFile) : null; return f && existsSync(f) ? send(200, readFileSync(f), "image/png") : send(404, { refused: "no company logo" }); }
@@ -125,12 +114,19 @@ const server = createServer((req, res) => {
         if (req.method === "POST" && m[2] === "setup") {
           const st = await licenceNow();
           if (!st.mayStartNewWork) return send(403, { refused: st.line });
-          const { id: step, value } = json();
+          let { id: step, value } = json();
           if (step === "product" && value && webAddress(value.site)) value.site = webAddress(value.site);
+          /* RR-306 A2: an optional step skipped — "not now"; it can be changed later from the product's Settings */
+          if (value?.skipped === true) { if (!STEPS.find((x) => x.id === step)?.optional) return send(400, { refused: "This step cannot be skipped." }); value = { skipped: true }; }
           const why = checkStep(step, value);
           if (why) return send(400, { refused: why });
-          if (step === "start") { if (STEPS.filter((x) => x.id !== "start").some((x) => !s.setup[x.id])) return send(400, { refused: "Answer every step first." }); s.started = true; }
-          else s.setup[step] = value;
+          /* RR-306 A3: a pasted key goes to Windows' secure store; the product's setup keeps only which key it uses */
+          const keep = (name, key) => { if (!String(key ?? "").trim()) return null; const r = KEYS.set(name, key); return r.ok ? null : r.why; };
+          if (!value?.skipped && step === "aiConnection" && value.provider) { const p = AI_PROVIDERS.find((x) => x.id === value.provider); const bad = keep(p.keyName, value.key); if (bad) return send(400, { refused: bad }); value = { provider: p.id, keyName: p.keyName }; }
+          if (!value?.skipped && step === "searchData") { if (Number(value.option) === 1) { const bad = keep(KEY_NAMES.search, value.key); if (bad) return send(400, { refused: bad }); } value = { option: Number(value.option) }; }
+          if (step === "youtube" && !value?.skipped && value.handle) { const bad = keep(KEY_NAMES.youtube, value.key); if (bad) return send(400, { refused: bad }); const r = YT.saveSettings(id, { handle: value.handle }); if (!r.ok) return send(400, { refused: r.why }); s = store.read(id); }
+          else if (step === "start") { if (STEPS.filter((x) => x.id !== "start").some((x) => !s.setup[x.id])) return send(400, { refused: "Answer every step first." }); s.started = true; }
+          else s.setup[step] = step === "youtube" ? { skipped: true } : value;
           if (step === "product") s.product = { name: value.name, site: value.site };
           store.write(id, s);
           return send(200, { ok: true });
@@ -140,7 +136,7 @@ const server = createServer((req, res) => {
           preview: (s.preview ?? []).length ? s.preview.map((p) => `${p.title} — ${p.url}`) : ["No page or article yet — they appear here before they go live."],
           approvals: (s.approvals ?? []).length ? s.approvals : [s.setup.publishMode?.mode === PUBLISH_MODE.REVIEW_FIRST ? "Nothing waits for your approval yet." : "Publishing is automatic after the gates — nothing waits for you."],
           monthly: ["The monthly report appears at the end of the first month: bad news first, then what was made and refreshed, the search data, and next month's topics."],
-          youtube: await youtubeView(s, id),
+          youtube: await YT.lines(id),
         });
       }
       /* RR-303 A: the licence key from a purchase — saved, never echoed */
@@ -159,14 +155,29 @@ const server = createServer((req, res) => {
         const st = await licenceNow();
         return send(200, { ok: true, line: st.line });
       }
-      /* RR-303 D: YouTube settings — any time, for any product (not only in the first setup) */
-      { const y = /^\/api\/products\/([^/]+)\/youtube$/.exec(u.pathname);
+      /* RR-306 A3: the client's keys — status only (never the key), save (pasted), remove */
+      if (req.method === "GET" && u.pathname === "/api/keys") return send(200, { where: KEYS.where, available: KEYS.available, keys: Object.fromEntries([...KEY_ALLOWED].map((n) => [n, KEYS.status(n)])), aiProviders: AI_PROVIDERS });
+      { const k = /^\/api\/keys\/([A-Z][A-Z0-9_]{2,63})(\/remove)?$/.exec(u.pathname);
+        if (k && req.method === "POST") {
+          if (!KEY_ALLOWED.has(k[1])) return send(400, { refused: "not a key this app uses" });
+          if (k[2]) { KEYS.remove(k[1]); return send(200, { ok: true, status: KEYS.status(k[1]) }); }
+          const r = KEYS.set(k[1], json().key);
+          return r.ok ? send(200, { ok: true, status: KEYS.status(k[1]) }) : send(400, { refused: r.why });
+        } }
+      /* RR-303 D + RR-306 B/C: YouTube settings, the channel lookup and confirmation, the research, the advice, search-data files */
+      { const y = /^\/api\/products\/([^/]+)\/youtube(?:\/(lookup|confirm|research|advice|file))?$/.exec(u.pathname);
         if (y) {
-          const yid = decodeURIComponent(y[1]); let ys;
-          try { ys = store.read(yid); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
-          if (!ys) return send(404, { refused: "no such product" });
-          if (req.method === "GET") return send(200, { handle: ys.setup?.youtube?.handle ?? "", keyName: ys.setup?.youtube?.keyName ?? "YOUTUBE_API_KEY", pilots: PILOT_CHANNELS, keySet: Boolean(process.env[ys.setup?.youtube?.keyName || "YOUTUBE_API_KEY"]) });
-          if (req.method === "POST") { const v = json(); const bad = checkStep("youtube", v); if (bad) return send(400, { refused: bad }); ys.setup = { ...ys.setup, youtube: { handle: String(v.handle ?? "").trim(), keyName: String(v.keyName ?? "YOUTUBE_API_KEY").trim() } }; store.write(yid, ys); return send(200, { ok: true }); }
+          const yid = decodeURIComponent(y[1]);
+          try { store.read(yid); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
+          try {
+            if (!y[2] && req.method === "GET") return send(200, { ...YT.settings(yid), pilots: PILOT_CHANNELS });
+            if (!y[2] && req.method === "POST") { const r = YT.saveSettings(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            if (y[2] === "lookup" && req.method === "POST") return send(200, await YT.lookup(yid, json().handle));
+            if (y[2] === "confirm" && req.method === "POST") { const r = await YT.confirm(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            if (y[2] === "research" && req.method === "POST") { const r = await YT.research(yid); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            if (y[2] === "advice" && req.method === "GET") return send(200, await YT.advice(yid));
+            if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+          } catch (e) { return send(502, { refused: `YouTube could not be reached now (${safeWhy(e)}). Nothing was changed.` }); }
         } }
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }
       if (req.method === "GET" && u.pathname === "/api/update") { const r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); updateFound = r.manifest ?? null; return send(200, { state: r.state, line: r.line }); }

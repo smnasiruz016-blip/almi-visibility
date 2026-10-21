@@ -82,7 +82,7 @@ async function youtubeSettings() {
 }
 function company() {
   $("#app").innerHTML = `<div class="card"><h2>Your company</h2><p class="ask">Its name and its main website — your products are listed under it. Your own logo is optional.</p>
-  <label>Company name<input id="c1"></label><label>Main website<input id="c2" placeholder="https://"></label><label>Your logo (PNG, optional)<input id="c3" type="file" accept="image/png"></label>
+  <label>Company name<input id="c1"></label><label>Main website<input id="c2" placeholder="almiworld.com"></label><label>Your logo (PNG, optional)<input id="c3" type="file" accept="image/png"></label>
   <button id="save">Continue</button><div class="err" id="err"></div></div>`;
   $("#save").onclick = async () => {
     const f = $("#c3").files[0]; const logoPng = f ? await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); }) : null;
@@ -91,7 +91,7 @@ function company() {
 }
 function addProduct() {
   $("#app").innerHTML = `<div class="card"><h2>Add a product</h2><p class="ask">Its name and its own address (for example a subdomain of your site).</p>
-  <label>Product name<input id="p1"></label><label>Its address<input id="p2" placeholder="https://"></label><button id="go">Add and set it up</button> <button class="ghost" id="back">Back</button><div class="err" id="err"></div></div>`;
+  <label>Product name<input id="p1"></label><label>Its address<input id="p2" placeholder="shop.almiworld.com"></label><button id="go">Add and set it up</button> <button class="ghost" id="back">Back</button><div class="err" id="err"></div></div>`;
   $("#back").onclick = home;
   $("#go").onclick = async () => { const r = await post("/api/products", { name: $("#p1").value, site: $("#p2").value }); if (r.refused) return ($("#err").textContent = r.refused); open(r.product.id); };
 }

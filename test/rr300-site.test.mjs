@@ -34,11 +34,13 @@ test("FREE TEST · LIMITS: at most 10 pages a test, one request at a time and pa
   } finally { await f.close(); }
   let day = Date.parse("2026-10-20T10:00:00Z");
   const lim = dailyLimiter({ now: () => day });
-  assert.deepEqual([1, 2, 3, 4].map(() => lim.take("visitor-a").ok), [true, true, true, false]);
-  assert.match(lim.take("visitor-a").why, /3 times a day/);
-  assert.equal(lim.take("visitor-b").ok, true, "one person's limit stopped another");
+  /* RR-305 B3: the limit is counted in the store, so take() is awaited */
+  const takes = []; for (let i = 0; i < 4; i++) takes.push((await lim.take("visitor-a")).ok);
+  assert.deepEqual(takes, [true, true, true, false]);
+  assert.match((await lim.take("visitor-a")).why, /3 times a day/);
+  assert.equal((await lim.take("visitor-b")).ok, true, "one person's limit stopped another");
   day += 86400000;
-  assert.equal(lim.take("visitor-a").ok, true, "the next day did not start again");
+  assert.equal((await lim.take("visitor-a")).ok, true, "the next day did not start again");
 });
 
 test("FREE TEST · ROBOTS AND MANNERS: a page robots.txt disallows is never read; an unreadable robots.txt reads NOTHING; GET only, no cookie, no form submitted", async () => {

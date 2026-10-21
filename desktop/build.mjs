@@ -11,6 +11,7 @@ import { cpSync, mkdirSync, existsSync, writeFileSync, copyFileSync, rmSync, sta
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { compileSetup } from "./installer-compile.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
@@ -32,9 +33,7 @@ writeFileSync(join(stage, "package.json"), JSON.stringify({ name: "almivisibilit
 writeFileSync(join(stage, "version.txt"), VERSION);
 const ps = (cmd) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", cmd], { stdio: "pipe" });
 ps(`Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory('${stage}', '${packageZip}', [IO.Compression.CompressionLevel]::Optimal, $false)`);
-const fw = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319";
 writeFileSync(join(OUT, `version-${VERSION}.txt`), VERSION);
-execFileSync(join(fw, "csc.exe"), ["/nologo", "/target:winexe", `/out:${setupExe}`, "/r:System.IO.Compression.dll", "/r:System.IO.Compression.FileSystem.dll", "/r:System.Windows.Forms.dll", "/r:System.Drawing.dll", "/r:Microsoft.CSharp.dll", "/r:System.Core.dll",
-  `/resource:${packageZip},payload.zip`, `/resource:${join(OUT, `version-${VERSION}.txt`)},version.txt`, `/resource:${join(REPO, "desktop", "brand", "almiworld-logo.png")},almiworld-logo.png`, `/win32icon:${join(REPO, "installer", "almiworld.ico")}`, join(REPO, "installer", "Setup.cs")], { stdio: "pipe" });
+compileSetup({ repo: REPO, out: setupExe, payloadZip: packageZip, versionFile: join(OUT, `version-${VERSION}.txt`) }); /* RR-305: the one compile step, shared with the installer test */
 rmSync(stage, { recursive: true, force: true });
 console.log(`built ${setupExe} (${Math.round(statSync(setupExe).size / 1048576)} MB) · update package ${packageZip} · UNSIGNED`);

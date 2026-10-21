@@ -38,6 +38,28 @@ export function checkLead({ email, marketing, testedUrl, score = null }) {
 /** One free test as logged: the site, its score (null when nothing could be measured), the pages read, the date. No visitor address. */
 export const testRecord = (r) => Object.freeze({ site: String(r.url).slice(0, 500), score: Number.isFinite(r.score) ? r.score : null, pages: r.pagesRead, at: r.testedOn });
 
+/**
+ * RR-305 B3 · the admin sessions, the failed-login counts and the daily free-test limit live in the STORE, never in one process's memory:
+ * on Vercel every instance reads the same database. Sessions are kept by the token's hash; a person is a hash of their address with that
+ * DAY's random salt (old days' salts are deleted, so nothing links days). `load`/`save` hold the state (a file locally; memory only where
+ * there is no store at all — named as NOT CONNECTED).
+ */
+const DAY_MS = 86400000;
+export function stateCounters({ load, save }) {
+  const fresh = () => ({ sessions: {}, hits: {}, salts: {}, ...load() });
+  const pruneHits = (s, at) => { for (const [k, a] of Object.entries(s.hits)) { const kept = a.filter((t) => t > at - 2 * DAY_MS); if (kept.length) s.hits[k] = kept; else delete s.hits[k]; } };
+  return Object.freeze({
+    async sessionSet(hash, rec) { const s = fresh(); for (const [k, v] of Object.entries(s.sessions)) if (v.until < Date.now()) delete s.sessions[k]; s.sessions[hash] = rec; save(s); },
+    async sessionGet(hash) { return fresh().sessions[hash] ?? null; },
+    async sessionDelete(hash) { const s = fresh(); delete s.sessions[hash]; save(s); },
+    async hitsSince(key, since) { return (fresh().hits[key] ?? []).filter((t) => t >= since).length; },
+    async hitAdd(key, at) { const s = fresh(); pruneHits(s, at); (s.hits[key] ??= []).push(at); save(s); },
+    async limitTake(key, limit, at) { const s = fresh(); pruneHits(s, at); const n = (s.hits[key] ?? []).length; if (n >= limit) return { ok: false, used: n }; (s.hits[key] ??= []).push(at); save(s); return { ok: true, used: n + 1 }; },
+    async daySalt(day) { const s = fresh(); s.salts[day] ??= randomBytes(16).toString("hex"); for (const d of Object.keys(s.salts)) if (d < day) delete s.salts[d]; save(s); return s.salts[day]; },
+  });
+}
+export const memoryCounters = () => { let m = {}; return stateCounters({ load: () => m, save: (s) => { m = s; } }); };
+
 /** A local file store (local runs and tests only). */
 export function fileSiteStore(dir) {
   mkdirSync(dir, { recursive: true });
@@ -45,6 +67,7 @@ export function fileSiteStore(dir) {
   const write = (n, a) => { writeFileSync(join(dir, `${n}.tmp`), JSON.stringify(a, null, 1)); renameSync(join(dir, `${n}.tmp`), join(dir, n)); };
   return Object.freeze({
     kind: "LOCAL_FILE (live store DEFERRED)",
+    ...stateCounters({ load: () => { const s = read("counters.json"); return Array.isArray(s) ? {} : s; }, save: (s) => write("counters.json", s) }),
     async addLead(lead) { const a = read("leads.json"); if (!a.some((x) => x.email === lead.email && x.testedUrl === lead.testedUrl)) a.push(lead); write("leads.json", a); return true; },
     async listLeads() { return read("leads.json").sort((a, b) => String(b.at).localeCompare(String(a.at))); },
     async addTest(t) { const a = read("tests.json"); a.push(t); write("tests.json", a); return true; },
@@ -78,9 +101,22 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
     await q("CREATE TABLE IF NOT EXISTS visibility_checkouts (session_id text PRIMARY KEY, licence_key text NOT NULL, plan text NOT NULL, at timestamptz NOT NULL)");
     /* RR-304: the owner licence — its kind and licensee; it has no expiry */
     await q("ALTER TABLE visibility_licences ADD COLUMN IF NOT EXISTS kind text, ADD COLUMN IF NOT EXISTS licensee text, ALTER COLUMN period_end DROP NOT NULL");
+    /* RR-305 B3: the admin sessions (by token hash), the counted hits (failed logins, free tests) and each day's salt */
+    await q("CREATE TABLE IF NOT EXISTS visibility_admin_sessions (token_hash text PRIMARY KEY, email text NOT NULL, until_ms bigint NOT NULL)");
+    await q("CREATE TABLE IF NOT EXISTS visibility_hits (key text NOT NULL, at_ms bigint NOT NULL)");
+    await q("CREATE INDEX IF NOT EXISTS visibility_hits_key ON visibility_hits (key)");
+    await q("CREATE TABLE IF NOT EXISTS visibility_day_salts (day text PRIMARY KEY, salt text NOT NULL)");
   })());
   return Object.freeze({
     kind: "NEON",
+    async sessionSet(hash, rec) { await init(); await q("DELETE FROM visibility_admin_sessions WHERE until_ms < $1", [Date.now()]); await q("INSERT INTO visibility_admin_sessions (token_hash, email, until_ms) VALUES ($1, $2, $3) ON CONFLICT (token_hash) DO UPDATE SET email = $2, until_ms = $3", [hash, rec.email, rec.until]); },
+    async sessionGet(hash) { await init(); const r = await q("SELECT email, until_ms AS until FROM visibility_admin_sessions WHERE token_hash = $1", [hash]); return r[0] ? { email: r[0].email, until: Number(r[0].until) } : null; },
+    async sessionDelete(hash) { await init(); await q("DELETE FROM visibility_admin_sessions WHERE token_hash = $1", [hash]); },
+    async hitsSince(key, since) { await init(); return Number((await q("SELECT count(*)::int AS n FROM visibility_hits WHERE key = $1 AND at_ms >= $2", [key, since]))[0]?.n ?? 0); },
+    async hitAdd(key, at) { await init(); await q("DELETE FROM visibility_hits WHERE at_ms < $1", [at - 2 * DAY_MS]); await q("INSERT INTO visibility_hits (key, at_ms) VALUES ($1, $2)", [key, at]); },
+    /* one statement: counted and taken together, so two instances cannot both take the last test */
+    async limitTake(key, limit, at) { await init(); await q("DELETE FROM visibility_hits WHERE at_ms < $1", [at - 2 * DAY_MS]); const r = await q("WITH c AS (SELECT count(*)::int AS n FROM visibility_hits WHERE key = $1) INSERT INTO visibility_hits (key, at_ms) SELECT $1, $2 FROM c WHERE c.n < $3 RETURNING (SELECT n FROM c) AS n", [key, at, limit]); return r.length ? { ok: true, used: Number(r[0].n) + 1 } : { ok: false, used: limit }; },
+    async daySalt(day) { await init(); await q("DELETE FROM visibility_day_salts WHERE day < $1", [day]); await q("INSERT INTO visibility_day_salts (day, salt) VALUES ($1, $2) ON CONFLICT (day) DO NOTHING", [day, randomBytes(16).toString("hex")]); return (await q("SELECT salt FROM visibility_day_salts WHERE day = $1", [day]))[0].salt; },
     async addLead(l) { await init(); await q("INSERT INTO visibility_leads (email, marketing, consent_text, tested_url, score, at, unsub_token) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (email, tested_url) DO NOTHING", [l.email, l.marketing, l.consentText, l.testedUrl, l.score, l.at, l.unsubToken]); return true; },
     async listLeads() { await init(); return q("SELECT email, marketing, tested_url AS \"testedUrl\", score, at FROM visibility_leads ORDER BY at DESC"); },
     async addTest(t) { await init(); await q("INSERT INTO visibility_free_tests (site, score, pages, at) VALUES ($1, $2, $3, $4)", [t.site, t.score, t.pages, t.at]); return true; },
@@ -96,7 +132,7 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
 
 /** The store for this run: Neon when its variable is set, else the local file store — named either way. */
 /** RR-303 F: on Vercel there is no lasting disk — without the database nothing is stored (named), never a file that vanishes */
-export const disabledStore = () => Object.freeze({ kind: "NOT CONNECTED (no database: VISIBILITY_SITE_DATABASE_URL)", async addLead() { return false; }, async listLeads() { return []; }, async addTest() { return false; }, async listTests() { return []; }, async unsubscribe() { return false; }, async markEmailed() {}, async accounts() { return {}; }, async saveAccounts() { throw new Error("no database"); }, async addCheckout() { throw new Error("no database"); }, async checkout() { return null; } });
+export const disabledStore = () => Object.freeze({ kind: "NOT CONNECTED (no database: VISIBILITY_SITE_DATABASE_URL)", ...memoryCounters(), async addLead() { return false; }, async listLeads() { return []; }, async addTest() { return false; }, async listTests() { return []; }, async unsubscribe() { return false; }, async markEmailed() {}, async accounts() { return {}; }, async saveAccounts() { throw new Error("no database"); }, async addCheckout() { throw new Error("no database"); }, async checkout() { return null; } });
 export const siteStore = ({ env = process.env, localDir }) => (env[KEY_NAMES.database] ? neonSiteStore(env[KEY_NAMES.database]) : env.VERCEL ? disabledStore() : fileSiteStore(localDir));
 
 /** Per day: the free tests, the leads, and how many leads said yes to marketing. Newest day first. */
@@ -133,22 +169,22 @@ export function passwordMatches(password, stored) {
 }
 
 /** Admin sessions: an allowed email AND its password; random tokens, kept only as hashes, 8 hours; failed logins limited (5 per 15 min). */
-export function adminSessions({ now = () => Date.now(), env = process.env } = {}) {
-  const sessions = new Map(), fails = new Map();
+/* RR-305 B3: kept in the store (shared by every instance), never in this process's memory; a failed login is counted by a hash of the address */
+export function adminSessions({ now = () => Date.now(), env = process.env, store = memoryCounters() } = {}) {
   const h = (t) => createHash("sha256").update(t).digest("hex");
   return Object.freeze({
-    login(email, password, stored, who) {
+    async login(email, password, stored, who) {
       if (!stored) return { ok: false, why: "The admin page is off: no admin password is configured." };
-      const f = (fails.get(who) ?? []).filter((t) => now() - t < 15 * 60000);
-      if (f.length >= 5) return { ok: false, why: "Too many tries — wait 15 minutes." };
+      const failKey = `fail:${h(String(who))}`;
+      if ((await store.hitsSince(failKey, now() - 15 * 60000)) >= 5) return { ok: false, why: "Too many tries — wait 15 minutes." };
       /* one answer for a wrong email and a wrong password: the page never says which emails are admins */
-      if (!isAdmin(email, env) || !passwordMatches(password, stored)) { fails.set(who, [...f, now()]); return { ok: false, why: "Wrong email or password." }; }
+      if (!isAdmin(email, env) || !passwordMatches(password, stored)) { await store.hitAdd(failKey, now()); return { ok: false, why: "Wrong email or password." }; }
       const token = randomBytes(32).toString("hex");
-      sessions.set(h(token), { until: now() + 8 * 3600000, email: email.trim().toLowerCase() });
+      await store.sessionSet(h(token), { until: now() + 8 * 3600000, email: email.trim().toLowerCase() });
       return { ok: true, token };
     },
-    who(token) { if (typeof token !== "string" || !token) return null; const s = sessions.get(h(token)); return s && s.until > now() ? s.email : null; },
-    valid(token) { return this.who(token) !== null; },
-    logout(token) { if (typeof token === "string") sessions.delete(h(token)); },
+    async who(token) { if (typeof token !== "string" || !token) return null; const s = await store.sessionGet(h(token)); return s && s.until > now() ? s.email : null; },
+    async valid(token) { return (await this.who(token)) !== null; },
+    async logout(token) { if (typeof token === "string" && token) await store.sessionDelete(h(token)); },
   });
 }

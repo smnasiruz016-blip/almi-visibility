@@ -305,8 +305,8 @@ export function scriptFromArticle(article) {
  * then a related product page the client listed whose words the video is about (e.g. a CV video → the CV product's page), or none.
  */
 export function linkTargetFor(video, { productUrl = null, productIsChannel = false, relatedPages = [] } = {}) {
-  /* RR-314 B7: short names count ("cv" → the AlmiCV page); a phrase with no word left is no match — an empty match once sent every video
-   * of the owner's channel to the AlmiCV page */
+  /* RR-314 B7: short names count ("cv" → the CV product's page); a phrase with no word left is no match — an empty match once sent every
+   * video of a channel to one product's page */
   /* the page named in the TITLE wins, then the description's first lines, then the rest (an IELTS video whose last lines mention CVs is
    * an IELTS video) */
   const set = (s) => new Set(norm(s).split(" ").filter((w) => w.length >= 2));

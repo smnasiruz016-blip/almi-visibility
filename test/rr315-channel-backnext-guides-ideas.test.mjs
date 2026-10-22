@@ -251,7 +251,7 @@ test("D2 · NO PLACE FROM THE PRODUCT DESCRIPTION; the Q&A idea says what is ans
 test("D3 · KEYWORDS: never a channel or creator name, the current year, near-duplicates merged", () => {
   const research = { niche: [{ q: "PTE", videos: [{ title: "Crack PTE in 1 hour | nakul", channelTitle: "SKILLS PTE ACADEMIC" }, { title: "TOEFL Speaking tips", channelTitle: "linguamarina" }, { title: "PTE Speaking skills that work", channelTitle: "Another Academy" }] }], comments: [] };
   const k = (phrase) => ({ phrase, estimate: "e", source: "s" });
-  const out = usableKeywords(["linguamarina", "Skills PTE Academic nakul", "PTE Skills Academic", "Skills PTE Academic", "Skills PTE", "skillspte", "PTE Academic", "PTE Speaking", "PTE Speaking Skills", "TOEFL prep 2026", "TOEFL preparation 2026"].map(k), research, TOPICS).map((x) => x.phrase);
+  const out = usableKeywords(["linguamarina", "Skills PTE Academic nakul", "Skills PTE nakul", "PTE Skills Academic", "Skills PTE Academic", "Skills PTE", "skillspte", "PTE Academic", "PTE Speaking", "PTE Speaking Skills", "TOEFL prep 2026", "TOEFL preparation 2026"].map(k), research, TOPICS).map((x) => x.phrase);
   assert.deepEqual(out, ["PTE Academic", "PTE Speaking", "PTE Speaking Skills", "TOEFL prep 2026"]);
   const y = currentYearTerms([{ phrase: "PTE 2025", sources: ["the niche's titles"] }, { phrase: "PTE 2025", sources: ["your file searches.csv"] }], 2026);
   assert.deepEqual(y.map((x) => x.phrase), ["PTE 2026", "PTE 2025"], "a year was changed in a phrase people really searched, or kept in one they did not");
@@ -269,8 +269,9 @@ test("D5 · IN THE APP'S OWN ADVICE (an exam channel's research): the ideas and 
     const raw = join(store.dirOf(made.id), "youtube-raw"); mkdirSync(raw, { recursive: true });
     const own = [["o1", "Cv builder"], ["o2", "Almiworld new tutorial"], ["o3", "creat your cv here"]].map(([videoId, title]) => ({ videoId, title, description: "", views: 10, publishedAt: `${today}T00:00:00Z`, durationSec: 120, width: 1280, height: 720, tags: [], channelId: BRAND, channelTitle: "Almiworld" }));
     writeFileSync(join(raw, `videos-${today}.json`), JSON.stringify({ recorded_at: now.toISOString(), channelId: BRAND, videos: own, complete: true }));
-    const TAGS = ["linguamarina", "Skills PTE Academic", `PTE ${last}`, "OET reading", "PTE speaking", "TOEFL speaking"]; // a channel, a channel + creator, last year
-    const nv = (n, title, channelTitle, views) => ({ videoId: `n${n}`, title, description: "", tags: TAGS, publishedAt: `${today}T00:00:00Z`, durationSec: 600, views, comments: 5, width: 1280, height: 720, language: "en", channelTitle, channelId: `C${channelTitle.replace(/\W/g, "")}` });
+    /* every channel's common tags, and each channel's OWN: its name, its presenter's name (only in its tags), last year */
+    const TAGS = [`PTE ${last}`, "OET reading", "PTE speaking", "TOEFL speaking"], OWN_TAGS = { "SKILLS PTE ACADEMIC": ["Skills PTE Academic", "Skills PTE nakul"], linguamarina: ["linguamarina"] };
+    const nv = (n, title, channelTitle, views) => ({ videoId: `n${n}`, title, description: "", tags: [...TAGS, ...(OWN_TAGS[channelTitle] ?? [])], publishedAt: `${today}T00:00:00Z`, durationSec: 600, views, comments: 5, width: 1280, height: 720, language: "en", channelTitle, channelId: `C${channelTitle.replace(/\W/g, "")}` });
     const vids = [nv(1, `OET ${year} Reading Mock Test`, "E2 OET", 90000), nv(2, `PTE ${last} Speaking tips`, "SKILLS PTE ACADEMIC", 80000), nv(3, "TOEFL Speaking with linguamarina", "linguamarina", 70000), nv(4, `OET Reading tips ${year}`, "OET Helper", 60000), nv(5, "TOEFL Speaking practice", "TOEFL Tutor", 50000), nv(6, `PTE ${last} Speaking full guide`, "PTE Coach", 40000), nv(7, "OET Q&A live", "OET Helper", 30000), nv(8, "PTE questions answered", "PTE Coach", 30000),
       /* a format the channel has not made, that does well — its idea would carry the product's home if the rule were gone */
       nv(9, "My first time taking OET", "OET Helper", 120000), nv(10, "First time PTE attempt", "PTE Coach", 110000)];

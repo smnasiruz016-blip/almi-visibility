@@ -215,15 +215,17 @@ export function usableKeywords(keywords, research, topics = []) {
   const topicWords = new Set(topics.flatMap((t) => String(t).toLowerCase().split(/\s+/)));
   const vids = (research?.niche ?? []).flatMap((r) => r.videos ?? []);
   const chans = [...new Set([...vids.map((v) => v.channelTitle), ...(research?.comments ?? []).map((c) => c.channelTitle)].filter(Boolean))];
-  /* words said in ONE channel's titles only, never elsewhere — a creator's own name ("nakul") */
-  const byWord = new Map(); for (const v of vids) for (const w of new Set(String(v.title).toLowerCase().split(/[^\p{L}\p{N}]+/u))) { if (!byWord.has(w)) byWord.set(w, new Set()); byWord.get(w).add(v.channelTitle); }
+  /* words said in ONE channel's titles and tags only, never elsewhere — a creator's own name ("nakul" is in one channel's tags) */
+  const byWord = new Map(); for (const v of vids) for (const w of new Set(`${v.title} ${(v.tags ?? []).join(" ")}`.toLowerCase().split(/[^\p{L}\p{N}]+/u))) { if (!byWord.has(w)) byWord.set(w, new Set()); byWord.get(w).add(v.channelTitle); }
   const words = (s) => String(s).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   const isName = (phrase) => { const ws = words(phrase);
     for (const c of chans) { const all = words(c).filter((w) => !LIGHT.has(w)), nm = nameTokensOf(c, topicWords); if (!nm.length) continue;
       if (all.every((w) => ws.includes(w))) return true; // the channel's whole name ("Skills PTE Academic", "linguamarina")
       if (ws.every((w) => all.includes(w)) && ws.some((w) => nm.includes(w))) return true;
       /* the channel's words run together, as in its hashtag ("skillspte") */
-      const glued = words(c); if (ws.length === 1) for (let i = 0; i < glued.length; i++) for (let j = i + 2; j <= glued.length; j++) if (glued.slice(i, j).join("") === ws[0]) return true; }
+      const glued = words(c); if (ws.length === 1) for (let i = 0; i < glued.length; i++) for (let j = i + 2; j <= glued.length; j++) if (glued.slice(i, j).join("") === ws[0]) return true;
+      /* the channel's name word with a word only THAT channel says in its titles ("Skills PTE nakul" — its presenter's name) */
+      if (ws.some((w) => nm.includes(w)) && ws.some((w) => !topicWords.has(w) && !nm.includes(w) && w.length >= 4 && byWord.get(w)?.size === 1 && byWord.get(w).has(c))) return true; }
     /* a word only ONE channel says in its titles, and its own name holds it */
     return ws.some((w) => !topicWords.has(w) && !NAME_STOP.has(w) && w.length >= 4 && byWord.get(w)?.size === 1 && words([...byWord.get(w)][0]).includes(w)); };
   const SAME = { prep: "preparation", tips: "tip", tests: "test", exams: "exam", videos: "video" };

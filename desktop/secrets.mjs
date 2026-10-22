@@ -85,6 +85,14 @@ export function keyStore({ backend = null, env = process.env } = {}) {
     remove(name) { check(name); if (backend) { try { backend.remove(name); } catch {} } cache.set(name, null); return { ok: true }; },
     /** the key itself — for the one call that needs it, handed straight in, never stored or shown */
     get(name) { check(name); return fromStore(name) ?? (env[name] ? String(env[name]) : null); },
+    /** RR-313 A: every place a key of this name is kept, the one saved in Visibility first — for the one call that needs them, never shown */
+    sources(name) {
+      check(name);
+      const out = [], s = fromStore(name), e = env[name] ? String(env[name]).trim() : null;
+      if (s) out.push(Object.freeze({ where: "the key saved in Visibility", value: s, ends: s.slice(-4) }));
+      if (e && e !== s) out.push(Object.freeze({ where: `the key in this computer's settings (${name})`, value: e, ends: e.slice(-4) }));
+      return out;
+    },
     status(name) {
       check(name);
       const s = fromStore(name);

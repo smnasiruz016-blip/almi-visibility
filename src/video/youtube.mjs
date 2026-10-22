@@ -95,17 +95,55 @@ export function videoKind(v) {
  * of 100 calls a day; every other call here costs 1 unit of 10,000 a day. Visibility's own cap keeps research well inside it. */
 export const QUOTA_RULE = Object.freeze({ searchCallsPerDay: 100, unitsPerDay: 10000, source: "YouTube Data API — Quota calculator (developers.google.com/youtube/v3/determine_quota_cost), updated 2026-10-15, read 2026-10-21" });
 
-export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_NAME, key = null, apiBase = API_BASE, onCall = () => {} } = {}) {
+/*
+ * RR-313 A (owner, 22 Oct 2026: "YouTube could not be reached (YouTube answered HTTP 400)" — Google HAD answered: "API key not valid").
+ * Google's own error body is read: its reason, folded into one plain kind; its message, with the key masked out. Never "could not be
+ * reached" when Google answered.
+ */
+export function googleReason(status, body) {
+  const e = body?.error ?? {};
+  const reasons = [...(e.errors ?? []).map((x) => x?.reason), ...(e.details ?? []).map((d) => d?.reason)].filter(Boolean).map(String);
+  const msg = String(e.message ?? "");
+  const kind = reasons.includes("API_KEY_INVALID") || reasons.includes("keyInvalid") || /API key not valid/i.test(msg) ? "keyInvalid"
+    : reasons.some((r) => /quotaExceeded|dailyLimitExceeded|RATE_LIMIT_EXCEEDED/.test(r)) ? "quotaExceeded"
+    : reasons.some((r) => /accessNotConfigured|SERVICE_DISABLED/.test(r)) ? "accessNotConfigured"
+    : reasons.some((r) => /API_KEY_SERVICE_BLOCKED|API_KEY_HTTP_REFERRER_BLOCKED|API_KEY_IP_ADDRESS_BLOCKED|API_KEY_ANDROID_APP_BLOCKED|API_KEY_IOS_APP_BLOCKED|ipRefererBlocked/.test(r)) ? "keyRestricted"
+    : reasons[0] ?? `HTTP ${status}`;
+  return { kind, reasons, message: msg };
+}
+/** the plain words for a failed YouTube call (`e` from youtubeApi) — what Google said, or that it did not answer */
+export function plainYouTubeWhy(e) {
+  if (!e?.status) return "YouTube could not be reached — no answer came (check this computer's internet connection, then try again).";
+  const r = e.reason ?? "";
+  if (r === "keyInvalid") return "Google did not accept your YouTube key (reason: keyInvalid — \"API key not valid\") — check the key in Google Cloud (APIs & Services → Credentials), then paste it again in YouTube settings.";
+  if (r === "quotaExceeded") return "Google says your YouTube key has used up today's free allowance (reason: quotaExceeded) — it starts again at midnight, Pacific time.";
+  if (r === "accessNotConfigured") return "The YouTube Data API is not switched on in your key's Google Cloud project (reason: accessNotConfigured) — switch on \"YouTube Data API v3\" there.";
+  if (r === "keyRestricted") return `Your YouTube key is restricted and may not call the YouTube Data API (reason: ${(e.reasons ?? [])[0] ?? "restricted"}) — check the key's restrictions in Google Cloud.`;
+  return `YouTube answered with an error (HTTP ${e.status}${r ? `, reason: ${r}` : ""}${e.googleMessage ? ` — "${e.googleMessage}"` : ""}).`;
+}
+
+export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_NAME, key = null, apiBase = API_BASE, onCall = () => {}, onKey = () => {} } = {}) {
   key = key ?? env[keyName];
-  if (!key) return Object.freeze({ state: "DEFERRED", why: `DEFERRED — no YouTube Data API key in the environment (${keyName}); import a YouTube Studio export instead, or add the key` });
+  /* RR-313 A: a LIST of keys (the one saved in Visibility first, then the one in this computer's settings) — a key Google refuses as not
+   * valid is passed over for the next; `onKey(index, refused)` tells the app which one answered */
+  const list = (Array.isArray(key) ? key : [key]).filter(Boolean);
+  if (!list.length) return Object.freeze({ state: "DEFERRED", why: `DEFERRED — no YouTube Data API key in the environment (${keyName}); import a YouTube Studio export instead, or add the key` });
   if (typeof fetchImpl !== "function") return Object.freeze({ state: "DEFERRED", why: "DEFERRED — the key is set, but no connection was handed in by the client's resolved YouTube connector" });
   if (!allowedBase(apiBase)) return Object.freeze({ state: "REFUSED", why: "REFUSED — the YouTube key is sent to YouTube's own API only" });
+  let ki = 0;
   const get = async (path, params) => {
-    const u = new URL(`${apiBase}${path}`); for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v); u.searchParams.set("key", key);
-    onCall(path);
-    const r = await fetchImpl(u, { headers: { Accept: "application/json" } });
-    if (!r.ok) throw Object.assign(new Error(`the YouTube Data API answered HTTP ${r.status}`), { status: r.status });
-    return r.json();
+    for (;;) {
+      const k = list[ki];
+      const u = new URL(`${apiBase}${path}`); for (const [p, v] of Object.entries(params)) u.searchParams.set(p, v); u.searchParams.set("key", k);
+      onCall(path);
+      const r = await fetchImpl(u, { headers: { Accept: "application/json" } });
+      if (r.ok) { onKey(ki, false); return r.json(); }
+      const g = googleReason(r.status, await r.json().catch(() => null));
+      if (g.kind === "keyInvalid" && ki < list.length - 1) { onKey(ki, true); ki++; continue; }
+      if (g.kind === "keyInvalid") onKey(ki, true);
+      const masked = list.reduce((m, x) => m.split(x).join("<key>"), g.message).slice(0, 200);
+      throw Object.assign(new Error(`the YouTube Data API answered HTTP ${r.status} (${g.kind})`), { status: r.status, reason: g.kind, reasons: g.reasons, googleMessage: masked });
+    }
   };
   const videosByIds = async (ids) => {
     const out = [];
@@ -124,7 +162,7 @@ export function youtubeApi({ env = process.env, fetchImpl = null, keyName = KEY_
       if (!HANDLE.test(String(handle ?? ""))) return Object.freeze({ found: false, line: "Type the channel's @handle, for example @mychannel." });
       const ch = await get("channels", { part: "snippet,statistics,contentDetails", forHandle: handle });
       const c = channelShape(ch.items?.[0]);
-      if (!c) return Object.freeze({ found: false, line: `Channel not found — check the @handle (${handle}).` });
+      if (!c) return Object.freeze({ found: false, line: `No channel with that @handle (${handle}) — check the spelling.` });
       if (String(c.handle ?? "").toLowerCase() !== handle.toLowerCase()) return Object.freeze({ found: false, line: `YouTube answered with another channel (${c.handle ?? "no handle"}) — not used. Check the @handle (${handle}).` });
       return c;
     },

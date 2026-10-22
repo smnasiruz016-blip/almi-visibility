@@ -94,13 +94,14 @@ async function home() {
   $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
   <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
-  <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button></p><div class="err" id="err"></div>
+  <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button> <button class="ghost" id="gsignon">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></p><div class="err" id="err"></div>
   <div class="card" style="margin-top:16px"><h2>${esc(M.question)}</h2><p class="tabline">Everything Visibility can do for you. Pick a card — Visibility asks which product it is for.</p>${cardsHtml(M.cards)}</div>`;
   document.querySelectorAll(".product").forEach((b) => (b.onclick = () => open(b.dataset.id)));
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) { P = H.products[0].id; return openFeature(b.dataset.f); } $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
   $("#add").onclick = () => addProduct();
   $("#plan").onclick = () => planScreen();
+  $("#gsignon").onclick = () => googleSignInScreen(home);
   tour();
 }
 /* RR-309 A: Delete, right on the product's box — asked first, in the owner's words; only this product goes */
@@ -164,7 +165,7 @@ async function youtubeSettings() {
   $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>YouTube settings</h2>
   <p class="ask">Your channel's @handle. Before anything is read, Visibility shows you the channel and asks if it is yours.</p>${conf}
   <label>Channel @handle<input id="y1" list="pilots" value="${esc(y.handle || y.suggestedHandle || "")}" placeholder="@yourchannel"></label><datalist id="pilots">${y.pilots.map((p) => `<option value="${esc(p.handle)}">${esc(p.name)} (${esc(p.tier)})</option>`).join("")}</datalist>
-  <button id="find">Find my channel</button><div id="found"></div>
+  <button id="find">Find my channel</button><p class="meta" id="ksrc">${esc(y.keySource ?? "")}</p><div id="found"></div>
   ${keyBox("YOUTUBE_API_KEY", "Your YouTube key", K.keys.YOUTUBE_API_KEY)}
   <p class="meta"><b>Research topics Visibility found by itself</b> (from your product, its videos and its site): ${esc((y.topics?.all ?? []).join(" · ") || "none yet")}</p>
   <label>More research topics (optional — one per line; Visibility never needs them)<textarea id="y3">${esc((y.extraTopics ?? []).join("\n"))}</textarea></label>
@@ -177,6 +178,7 @@ async function youtubeSettings() {
   $("#find").onclick = async () => {
     $("#found").innerHTML = `<p class="meta">Looking up ${esc($("#y1").value.trim())}…</p>`;
     const c = await post(`/api/products/${encodeURIComponent(P)}/youtube/lookup`, { handle: $("#y1").value.trim() });
+    if (c.keySource) $("#ksrc").textContent = c.keySource; // RR-313 A4: which key answered
     if (c.refused || !c.found) return ($("#found").innerHTML = `<p class="err">${esc(c.refused ?? c.line)}</p>`);
     $("#found").innerHTML = `<div class="card"><h3>Is this your channel?</h3><div class="chan">${c.picture ? `<img src="${c.picture}" alt="">` : ""}<div><b>${esc(c.title)}</b> <span class="meta">${esc(c.handle)}</span><br><span class="meta">${c.subscribers === null ? "subscribers hidden" : `${c.subscribers.toLocaleString()} subscriber${c.subscribers === 1 ? "" : "s"}`} · ${c.videoCount ?? "?"} video${c.videoCount === 1 ? "" : "s"}</span></div></div>
     ${c.mismatch ? `<div class="warn">${esc(c.mismatch)}</div>` : ""}<p><button id="yes">Yes, this is my channel</button> <button class="ghost" id="no">No — change the @handle</button></p></div>`;
@@ -313,6 +315,7 @@ function videoHtml(v) {
 function signinCard(a) {
   const g = a.signin;
   if (!g) return "";
+  if (!g.signedIn && !g.ready) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Google sign-in is off. Switch it on once (your own Google sign-in client), then sign in here.</p><p><button id="gsignon">Google sign-in: switch it on</button></p></div>`; // RR-313 B1
   if (!g.signedIn) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Not signed in yet. Signing in (with the Google account that owns ${esc(a.confirmed.title)}) adds:</p><ul>${(a.signinAdds ?? SIGNIN_ADDS_UI).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
     <p><label><input type="checkbox" id="ytwrite"> Also allow "Apply to YouTube" (Visibility changes a video's title, description or chapters only when you press Apply; Google gives captions only with this permission)</label></p><p><button id="ytsignin">Sign in to YouTube</button> <span id="ytsmsg"></span></p></div>`;
   return `<div class="card" id="ytsign"><h3>Signed in to YouTube ✓</h3><p class="meta">Your channel's own analytics${g.on ? `, read ${esc(g.on)}` : ""}. Apply to YouTube: <b>${g.write ? "on" : "off"}</b>${a.almiworld ? " (AlmiWorld's own channel: nothing is changed on YouTube from here)" : ""}.${g.reachLine ? ` ${esc(g.reachLine)}` : ""}</p>
@@ -384,6 +387,7 @@ async function youtubeTab() {
   const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`${U}/write`, { videoId: b.dataset.v }); if (r.aiCost && $("#aicost")) $("#aicost").textContent = r.aiCost; if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, "err"); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true }, b.dataset.v)).join("") + box.innerHTML; note(msg, `${r.options.length} option${r.options.length === 1 ? "" : "s"} written with your AI, each checked: no place, person, price or claim outside this video's own words and the research.${r.options.some((o) => o.check?.length) ? " A yellow note says what to check before you use it." : ""}${r.dropped?.length ? ` ${r.dropped.length} not shown: ${r.dropped[0].why.join("; ")}.` : ""}`, "ok"); wireCopy(box); wireApply(box); }));
   wireAI($("#ytbox")); wireApply($("#ytbox")); wireChap($("#ytbox"));
   /* sign-in, Apply permission, sign-out */
+  if ($("#gsignon")) $("#gsignon").onclick = () => googleSignInScreen(() => work("YouTube")); // RR-313 B1: the one place
   if ($("#ytsignin")) $("#ytsignin").onclick = async () => { const r = await post(`${U}/signin`, { write: Boolean($("#ytwrite")?.checked) }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); window.open(r.url, "_blank"); note($("#ytsmsg"), "Finish signing in, in the window that opened (with the Google account that owns this channel) — then come back and open this tab again."); };
   if ($("#ytwriteon")) $("#ytwriteon").onclick = async () => { const r = await post(`${U}/signin`, { write: true }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); window.open(r.url, "_blank"); note($("#ytsmsg"), "Allow the extra permission in the window that opened — then open this tab again."); };
   if ($("#ytsignout")) $("#ytsignout").onclick = async () => { const r = await post(`${U}/signout`, {}); note($("#ytsmsg"), r.line, "ok"); setTimeout(youtubeTab, 1000); };
@@ -448,7 +452,7 @@ async function overview() {
   if (!$("#ov") || P !== pid) return; // the client moved to another screen meanwhile — nothing to draw
   const c = O.card;
   /* RR-308 C5: a failed check says so — never a score, never "Nothing to fix"; YouTube has its own /100 next to the website's */
-  const areasHtml = (c) => `<ul class="areas">${c.areas.map((a) => `<li>${icon(a.state)} <b>${esc(a.area)}</b> — ${esc(a.line)}${a.ticks ? `<ul>${a.ticks.map((t) => `<li class="meta">${t.tick === true ? "✓" : t.tick === false ? "!" : "–"} ${esc(t.line)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ul>`;
+  const areasHtml = (c) => `<ul class="areas">${c.areas.map((a) => `<li>${icon(a.state)} <b>${esc(a.area)}</b> — ${esc(a.line)}${a.ticks ? `<ul>${a.ticks.map((t) => `<li class="meta">${t.tick === true ? "✓" : t.tick === false ? "!" : "–"} ${esc(t.line)}</li>`).join("")}</ul>` : ""}${a.items ? `<ol class="items">${a.items.map((i) => `<li class="meta">${esc(i.line)}${i.how ? ` — <i>${esc(i.how)}</i>` : ""}</li>`).join("")}</ol>` : ""}</li>`).join("")}</ul>`;
   /* RR-310 B1: a product with no website — ONE gauge, the YouTube /100, and only the YouTube line */
   const ytGauge = !c?.youtubeOnly && c?.youtube?.score !== null && c?.youtube?.score !== undefined ? `<div>${gauge({ score: c.youtube.score, gauge: c.youtube.gauge, word: c.youtube.word })}<div class="meta" style="text-align:center">YouTube</div></div>` : "";
   /* B7: how old the last check is — "Check now" offered when it is older than a day */
@@ -629,20 +633,49 @@ async function editScreen(url) {
   $("#back").onclick = $("#ecancel").onclick = () => work("Pages and articles");
   $("#esave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/draft/edit`, { url, title: $("#et").value, main: $("#em").innerHTML }); if (r.refused) return ($("#err").textContent = r.refused); note($("#err"), r.line, "ok"); setTimeout(() => work("Pages and articles"), 1000); };
 }
+/*
+ * RR-313 B1 · GOOGLE SIGN-IN — ONE place to switch it on, for YouTube AND Search Console (the same Google client serves both). The client is
+ * pasted (Client ID + Client secret) or read from the file Google Cloud downloads — the file is read here, in this window, and only its
+ * client id and secret are sent to Visibility, which keeps the secret in Windows' secure store. The secret is never shown again.
+ */
+async function googleSignInScreen(back = null) {
+  const G = await get("/api/google/client");
+  $("#app").innerHTML = `<p><button class="ghost" id="back">← Back</button></p><div class="card" id="gsignin"><h2>Google sign-in — for YouTube and Search Console</h2>
+    ${G.on ? `<p class="ok">Google sign-in is ON ✓ — client ${esc(G.clientId)} (its secret is kept safely on this computer).</p>` : `<p><b>Google sign-in is off.</b> Switch it on once, with your own Google sign-in client. Then each product can sign in to YouTube and to Search Console.</p>`}
+    <h3>How to get your client (once, in Google Cloud)</h3>
+    <ol class="howto"><li>Open console.cloud.google.com and pick your project.</li><li>APIs &amp; Services → Credentials → <b>Create credentials</b> → the sign-in client ID, type <b>Desktop app</b>.</li><li>Press Google's download button for that client — or copy the <b>Client ID</b> and <b>Client secret</b>.</li><li>Your consent screen (in Google Cloud) must list you (and anyone else who signs in) as a <b>test user</b> while it is in Testing.</li></ol>
+    <h3>Way 1 — choose the file Google Cloud downloaded</h3><label>The file Google Cloud downloaded (client_secret_….json)<input id="gjson" type="file" accept=".json,application/json"></label><button id="gjsave">Use this file</button>
+    <h3 style="margin-top:14px">Way 2 — paste them</h3><label>Client ID (ends with .apps.googleusercontent.com)<input id="gid" autocomplete="off" spellcheck="false"></label><label>Client secret<input id="gsec" type="password" autocomplete="off" spellcheck="false"></label><button class="ghost" id="gsave">Save</button>
+    <div class="err" id="err"></div>
+    ${G.on ? `<h3 style="margin-top:14px">Now sign in</h3><p><button id="gyt">Sign in with Google — YouTube</button> <button id="gsc">Sign in with Google — Search Console</button></p><p class="meta">Google will show "Google hasn't verified this app" while your consent screen is in Testing: press <b>Continue</b> (on some screens: Advanced → Go to AlmiVisibility). It is your own app.</p>` : ""}</div>`;
+  $("#back").onclick = () => (back ? back() : home());
+  const save = async (clientId, secret) => { const x = await post("/api/google/client", { clientId, secret }); if (x.refused) return note($("#err"), x.refused, "err"); googleSignInScreen(back); };
+  $("#gsave").onclick = () => save($("#gid").value.trim(), $("#gsec").value.trim());
+  $("#gjsave").onclick = async () => {
+    const f = $("#gjson").files[0]; if (!f) return note($("#err"), "Choose the downloaded file first.", "err");
+    let j; try { j = JSON.parse(await f.text()); } catch { return note($("#err"), "That is not the file Google Cloud downloads for a sign-in client.", "err"); }
+    const c = j.installed ?? j.web ?? {};
+    if (!c.client_id || !c.client_secret) return note($("#err"), "That file has no client id and secret in it — download the sign-in client's file again from Google Cloud (Credentials).", "err");
+    if (j.web && !j.installed) note($("#err"), "This is a \"Web application\" client — Visibility needs a \"Desktop app\" client. Create one of type Desktop app.", "err");
+    else save(c.client_id, c.client_secret);
+  };
+  if ($("#gyt")) $("#gyt").onclick = () => (P ? work("YouTube") : home());
+  if ($("#gsc")) $("#gsc").onclick = () => (P ? googleScreen() : home());
+}
 /* RR-307 E1: Google Search Console — the client's own read-only sign-in, the site picker, or the download file */
 async function googleScreen() {
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`), g = O.google;
   const status = g.kind === "CONNECTED" ? `<p class="ok">Connected ✓ — ${esc(g.site)} (${esc(g.window)})</p>` : g.kind === "EXPORT" ? `<p class="ok">Search Console download added ✓ (${esc(g.window)})</p>` : `<p><b>Not connected</b> — connect now to bring in the real searches people make.</p>`;
   $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>Google Search Console</h2>${status}
-    <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><button id="connect">Connect Google</button>`) : `<p class="meta">Google sign-in is not switched on in this copy of Visibility yet. Meanwhile, add Search Console's download file below — it gives the same searches.</p>`}
+    <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><button id="connect">Connect Google</button>`) : `<p class="meta">Google sign-in is off — switch it on with the button "Google sign-in: switch it on" below. Meanwhile, add Search Console's download file below — it gives the same searches.</p>`}
     <h3 style="margin-top:14px">Or add Search Console's download</h3><div class="howto">${esc(O.howTo.google)}</div><label>The download (the ZIP, or its CSV files)<input id="gf" type="file" accept=".zip,.csv" multiple></label><button id="gup">Add the download</button>
     <div class="err" id="err"></div>
-    <details style="margin-top:16px"><summary>For AlmiWorld: switch on Google sign-in (once)</summary><label>Sign-in client id<input id="gid"></label><label>Sign-in client secret<input id="gsec" type="password" autocomplete="off"></label><button class="ghost" id="gsave">Save</button></details></div>`;
+    <p style="margin-top:16px"><button class="ghost" id="gsignon">Google sign-in: ${g.ready ? "on ✓ — change the client" : "switch it on"}</button></p></div>`;
   $("#back").onclick = () => work("Overview");
   if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); window.open(r.url, "_blank"); note($("#err"), "Finish signing in, in the window that opened — then come back here."); };
   if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); }; }
   $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 1200); };
-  $("#gsave").onclick = async () => { const x = await post("/api/google/client", { clientId: $("#gid").value, secret: $("#gsec").value }); note($("#err"), x.refused ?? "Saved — Google sign-in is switched on.", x.refused ? "err" : "ok"); if (x.ok) setTimeout(googleScreen, 800); };
+  $("#gsignon").onclick = () => googleSignInScreen(googleScreen); // RR-313 B1: the one place
 }
 const hash = location.hash.slice(1);
 const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });

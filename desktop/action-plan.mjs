@@ -14,7 +14,7 @@
  *     honest wording only (HONEST) — never "top", never a ranking, traffic or citation promise. AlmiWorld's own products: plan only.
  * PURE: reads what it is handed; fetches and writes nothing.
  */
-import { FIXES, fixForMe } from "./product-check.mjs";
+import { FIXES, fixForMe, problemOf } from "./product-check.mjs";
 import { tokens } from "./youtube-advice.mjs";
 import { properNames } from "./youtube-niche.mjs";
 import { casingOf } from "./seo-pages.mjs";
@@ -76,7 +76,7 @@ export function websiteItems({ card = null, site = null, pages = null, languages
   const has = new Set();
   for (const f of card?.fixFirst ?? []) {
     if (f.id.startsWith("yt:") || f.id === "site-unreachable") continue;
-    const count = f.pages?.length ?? 1; has.add(f.id);
+    const count = f.count ?? f.pages?.length ?? 1; has.add(f.id); // RR-313 C5: the full count, never the 20 pages listed
     let ready = [];
     if (["title", "meta-description", "structured-data", "ai:structured-data", "ai:robots"].includes(f.id)) {
       const xs = fixForMe(f.id, site);
@@ -89,8 +89,8 @@ export function websiteItems({ card = null, site = null, pages = null, languages
     else if (f.id === "lang") ready = languages.length ? [{ kind: "code", label: "Page language", text: `<html lang="${languages[0]}">`, source: "the language you chose in Setup" }] : [];
     else if (f.id === "viewport") ready = [{ kind: "code", label: "Mobile setting (in the page's <head>)", text: '<meta name="viewport" content="width=device-width, initial-scale=1">', source: "the standard mobile setting" }];
     else if (f.id === "links-resolve") ready = (site.brokenLinks ?? []).slice(0, 10).map((b) => ({ kind: "list", label: "Broken link", text: `On ${b.from}: ${b.to} does not open (${b.status || "no answer"}) — change it to an address that opens, or remove it`, source: `the links check, ${day(readOn)}` }));
-    else ready = (f.pages ?? []).slice(0, 10).length ? [{ kind: "list", label: "Pages to fix", text: (f.pages ?? []).slice(0, 10).join("\n"), source: `the check of ${day(readOn)}` }] : [];
-    const problem = f.id.startsWith("ai:") ? f.line : `${fmt(count)} of ${plural(n, "page")} ${FIXES[f.id]?.problem?.replace(/^pages /, "") ?? f.line}`;
+    else ready = (f.pages ?? []).length ? [{ kind: "list", label: `Pages to fix (all ${fmt((f.pages ?? []).length)})`, text: (f.pages ?? []).join("\n"), source: `the check of ${day(readOn)}` }] : []; // RR-313 C5: every page, not the first 10
+    const problem = f.id.startsWith("ai:") ? f.line : FIXES[f.id] ? problemOf(f.id, count, n).replace(/^\d+/, fmt(count)) : f.line;
     out.push(item({ id: f.id, area: f.id.startsWith("ai:") ? "AI answers" : "Website", problem, solution: f.how ?? FIXES[f.id]?.how ?? "", ready, count, of: f.id.startsWith("ai:") ? 1 : n,
       fixForMe: f.fixForMe || ["ai:robots", "ai:structured-data"].includes(f.id) ? "structure" : null,
       note: ready.length ? null : f.id === "https-only" || f.id === "one-h1" || f.id === "image-alt" ? "Nothing to paste — this is a setting or a change on the page itself." : null }));
@@ -165,6 +165,21 @@ export function socialFromVideo(v, channel = {}) {
  * D · "WHAT I WILL DO FOR YOU": the five things, each with its state now and its "Do it for me". `state` = { mode, connected, almiworld,
  * drafts, live (records), submitted (url → { google, bing }), canSubmitGoogle, indexNowReady, weekly }.
  */
+/**
+ * RR-313 C3 (owner: "never paste the product's raw name into a sentence; use the subject"). The subject comes from the client's own words
+ * for what the product does ("AlmiWorld (almiworld.com) — a family of online products …" → "AlmiWorld's products"): the name it opens
+ * with, as the client wrote it; "'s products" when it is a family of products or tools. Without such a name: "your product".
+ */
+export function subjectOf({ what = "", name = "" } = {}) {
+  /* a name written as a name (every word capitalised, "Fixture Prep") is the subject when the description opens with none; a raw, lower-case
+   * label ("almiworld youtube") never is */
+  const proper = /^\s*\p{Lu}[\p{L}\p{N}&'-]*(\s+\p{Lu}[\p{L}\p{N}&'-]*){0,3}\s*$/u.test(String(name)) ? String(name).trim() : null;
+  /* a NAME opens the description only when it is set apart ("AlmiWorld (almiworld.com) —", "Dhanak Ki Duniya is …") — an ordinary first
+   * word ("Online practice for …") is not one */
+  const brand = /^\s*((?:\p{Lu}[\p{L}\p{N}&'-]*)(?:\s+\p{Lu}[\p{L}\p{N}&'-]*){0,3})(?=\s*(?:\(|—|–|-\s|:|,|\s(?:is|are)\b))/u.exec(String(what))?.[1] ?? null;
+  if (!brand) return proper ?? "your product";
+  return /\b(family of|range of|suite of|set of)\b|\b(products|tools|apps|services|courses)\b/i.test(String(what).slice(0, 200)) ? `${brand}'s products` : brand;
+}
 export function willDo(plan, state) {
   const { mode = "AUTO_AFTER_GATES", connected = false, almiworld = false, drafts = [], live = [], submitted = {}, canSubmitGoogle = false, indexNowReady = false, weekly = null, product = "your product" } = state;
   const plain = almiworld ? "AlmiWorld's own product: this is the plan only — nothing is published or submitted from here (owner's rule)." : null;
@@ -182,7 +197,7 @@ export function willDo(plan, state) {
   const sub = Object.values(submitted), subG = sub.filter((x) => x.google?.state === "SUBMITTED").length, subB = sub.filter((x) => x.bing?.state === "SUBMITTED").length;
   return { honest: HONEST, plain, weeklyLine, lines: [
     { n: 1, action: "create-pages", text: `Create ${planned.length ? `these ${planned.length} page${planned.length === 1 ? "" : "s"}` : "new pages"}, answering the questions people ask about ${product}.`, titles: planned.map((x) => x.text), status: ready.length ? `${ready.length} draft${ready.length === 1 ? "" : "s"} made` : planned.length ? "Not made yet" : "First Visibility needs to know what people search: connect Search Console or add a search-data file" },
-    { n: 2, action: "structure", text: "Add the structure Google and AI assistants read — titles, descriptions, FAQ, facts with their sources. New pages have it built in; for your existing pages Visibility writes it ready to paste.", status: `${(plan?.thisWeek ?? []).concat(plan?.rest ?? []).filter((i) => i.fixForMe === "structure").length} things ready to paste` },
+    { n: 2, action: "structure", text: "Add the structure Google and AI assistants read — titles, descriptions, FAQ, facts with their sources. New pages have it built in; for your existing pages Visibility writes it ready to paste.", status: `${plural((plan?.thisWeek ?? []).concat(plan?.rest ?? []).filter((i) => i.fixForMe === "structure").length, "thing")} ready to paste` },
     { n: 3, action: "publish", text: mode === "REVIEW_FIRST" ? "Publish them on your site when you approve each one." : "Publish them on your site automatically, after the five checks pass (your choice in Setup).", status: almiworld ? "Not for AlmiWorld's own products" : !connected ? "Your site is not connected yet" : `${live.length} published` },
     { n: 4, action: "submit", text: "Submit them to Google (through your Search Console) and to Bing (IndexNow), which AI search assistants like ChatGPT search and Copilot also use.", status: almiworld ? "Not for AlmiWorld's own products" : !live.length ? "Nothing published to submit yet" : `Google: ${subG} of ${live.length} · Bing: ${subB} of ${live.length}${!canSubmitGoogle ? " · connect Google with \"also tell Google about my new pages\"" : ""}${!indexNowReady ? " · set up your IndexNow key file" : ""}` },
     { n: 5, action: "weekly", text: "Check again every week and fix what changes.", status: weeklyLine },

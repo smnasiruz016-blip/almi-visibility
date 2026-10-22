@@ -32,7 +32,8 @@ import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from
 import { youtubeApp } from "./youtube-app.mjs";
 import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
-import { actionPlan, willDo, planDocument, isAlmiWorld } from "./action-plan.mjs";
+import { actionPlan, willDo, planDocument, isAlmiWorld, subjectOf } from "./action-plan.mjs";
+import { plainYouTubeWhy } from "../src/video/youtube.mjs"; // RR-313 A3
 import { newIndexNowKey, checkKeyFile, keyFileHowTo, keyFileUrl, indexNow, inSitemap, submissionLines, INDEXNOW_ENDPOINT } from "./submit.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -77,10 +78,13 @@ const LEDGER = aiLedger(join(DATA, "ai-usage.json"), { cap: () => Number(CONFIG.
 const YT_SIGNIN = youtubeSignin({ keys: KEYS, config: CONFIG });
 const YT = youtubeApp({ store, dataDir: DATA, keys: KEYS, config: CONFIG, ledger: LEDGER, signin: YT_SIGNIN });
 /* a YouTube or key error says what happened in plain words — never a URL (the key travels in one) */
-const safeWhy = (e) => (/answered HTTP \d+/.exec(String(e?.message))?.[0] ? `YouTube ${/answered HTTP \d+/.exec(String(e.message))[0]}` : "no answer from YouTube");
+/* RR-313 A3: what Google said, in plain words — never "could not be reached" when it answered */
+const safeWhy = (e) => (e?.status ? plainYouTubeWhy(e) : "no answer from YouTube");
 
 /* ── RR-307 · act at once: the check, the score card, what was found, the feature cards, Google, delete ── */
 const GOOGLE = googleConnect({ keys: KEYS, config: CONFIG });
+/* RR-313 B1: is Google sign-in switched on — the client id (not a secret) and whether its secret is saved; never the secret */
+const googleClientStatus = () => ({ on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved });
 const allowLocal = CONFIG.testAllowLocalSites === true; // TESTS ONLY: a stand-in site on this computer
 const pfile = (id, name) => join(store.dirOf(id), name);
 const pread = (id, name, d = null) => { try { return JSON.parse(readFileSync(pfile(id, name), "utf8")); } catch { return d; } };
@@ -188,7 +192,7 @@ async function buildPlan(id) {
 }
 const weeklyOf = (id) => { const w = pread(id, "weekly.json", {}), c = pread(id, "check.json"); const last = c?.on ?? null; return { on: w.on !== false, last, next: last ? new Date(Date.parse(last) + 7 * 864e5).toISOString() : null }; };
 const willDoOf = (id, plan) => { const s = store.read(id), sc = searchConsoleOf(id), inx = pread(id, "indexnow.json");
-  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: isAlmiWorld(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: s.product?.name }); };
+  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: isAlmiWorld(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: subjectOf({ what: s.setup?.product?.what, name: s.product?.name }) }); };
 /** Create SEO pages: the drafts (kept in pages.json); published at once only when the client chose "automatically after the gates" */
 async function createPages(id) {
   const { s, site, sc, files, ctx } = contextOf(id);
@@ -264,8 +268,10 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
-        return send(200, { version: VERSION, company: store.company(), products: products.map(productCard), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account) });
+        return send(200, { version: VERSION, company: store.company(), products: products.map(productCard), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus() });
       }
+      /* RR-313 B1: ONE place to switch Google sign-in on (YouTube AND Search Console use the same client) — the client id is shown, the secret never */
+      if (req.method === "GET" && u.pathname === "/api/google/client") return send(200, googleClientStatus());
       if (req.method === "POST" && u.pathname === "/api/company") {
         const c = json();
         /* RR-305 B1: "www.almiworld.com" and "almiworld.com" are accepted; https:// is added */
@@ -595,7 +601,7 @@ const server = createServer((req, res) => {
               return send(200, { ...r, refused: r.ok ? undefined : r.why, aiCost: LEDGER.line() });
             }
             if (y[2] === "aicap" && req.method === "POST") { const usd = Number(json().usd); if (!(usd >= 0 && usd <= 500)) return send(400, { refused: "Give a monthly limit between $0 and $500." }); CONFIG.aiMonthlyCapUSD = usd; saveConfig(); return send(200, { ok: true, line: LEDGER.line() }); }
-          } catch (e) { return send(e.code === "NOT_SIGNED_IN" ? 400 : 502, { refused: e.code === "NOT_SIGNED_IN" ? "Sign in to YouTube again — Google's access has ended." : `YouTube could not be reached now (${safeWhy(e)}). Nothing was changed.` }); }
+          } catch (e) { return send(e.code === "NOT_SIGNED_IN" ? 400 : 502, { refused: e.code === "NOT_SIGNED_IN" ? "Sign in to YouTube again — Google's access has ended." : `${e?.status ? plainYouTubeWhy(e) : "YouTube could not be reached — no answer came."} Nothing was changed.` }); }
         } }
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }
       if (req.method === "GET" && u.pathname === "/api/update") { const r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); updateFound = r.manifest ?? null; return send(200, { state: r.state, line: r.line }); }

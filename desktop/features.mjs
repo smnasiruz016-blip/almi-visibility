@@ -7,7 +7,7 @@
  * Publishing ALWAYS follows the client's own choice: RR-308 D publishes a draft only through a connection the client made (desktop/publish.mjs),
  * after the five gates pass again — on "Approve & Publish", or by itself only when the client chose "publish automatically after the gates".
  */
-import { fixForMe, aiReadiness, FIXES } from "./product-check.mjs";
+import { fixForMe, aiReadiness, FIXES, directAnswer } from "./product-check.mjs";
 import { readyFromFix } from "./action-plan.mjs";
 import { AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
@@ -89,17 +89,17 @@ export function aeoCheck(site, plan = null) {
   const qa = site.pages.flatMap((p) => p.qa.map((x) => ({ ...x, url: p.url })));
   const faqPages = site.pages.filter((p) => p.structuredTypes.includes("FAQPage"));
   const asked = qa.filter((x) => x.from === "a heading on the page");
-  const noDirect = asked.filter((x) => !x.a || x.a.split(/\s+/).length > 120);
+  const noDirect = asked.filter((x) => !directAnswer(x)); // RR-313 C2: right under the question, opening with the answer — no word count
   /* FAQ answers: the questions people search, with the answer already on the client's own pages (from the action plan's page plan) */
   const faq = [...(plan?.thisWeek ?? []), ...(plan?.rest ?? [])].flatMap((i) => i.ready.filter((r) => r.kind === "FAQ answer"));
   return { title: "Answer engines (AEO)", read: `${plural(site.pages.length, "page")} read on ${String(site.readOn).slice(0, 10)}`,
     lines: [
       { ok: qa.length > 0, line: qa.length ? `${plural(qa.length, "question")} answered on your pages.` : "No questions are answered on your pages yet — answer engines build their answers from questions and answers.",
-        solution: "Add a few questions people ask as headings on your pages, each with a short answer right under it.", ready: faq, note: faq.length ? null : "Visibility writes FAQ answers only from answers already on your pages — connect Search Console or add a search-data file so it knows the questions people ask." },
+        solution: "Add a few questions people ask as headings on your pages, each with its answer right under it.", ready: faq, note: faq.length ? null : "Visibility writes FAQ answers only from answers already on your pages — connect Search Console or add a search-data file so it knows the questions people ask." },
       { ok: faqPages.length > 0, line: faqPages.length ? `${plural(faqPages.length, "page")} mark their questions for machines (FAQ markup).` : "No page marks its questions for machines (FAQ markup).", fixForMe: faqPages.length || !qa.some((x) => x.a) ? [] : fixForMe("structured-data", site).filter((x) => /FAQPage/.test(x.paste)),
         solution: "Paste this block into the page that shows these questions (your website builder's \"custom code\" or \"header\" box).", ready: faqPages.length || !qa.some((x) => x.a) ? [] : readyFromFix(fixForMe("structured-data", site).filter((x) => /FAQPage/.test(x.paste)), "structured data", "FAQ markup", site.readOn) },
-      asked.length ? { ok: noDirect.length === 0, line: noDirect.length ? `${noDirect.length} of ${plural(asked.length, "question heading")} have no short answer right under them: ${noDirect.slice(0, 4).map((x) => `"${x.q}"`).join(", ")}` : "Every question heading has a short answer right under it.",
-        solution: "Right under each question heading, start with a short answer of one or two sentences; the longer explanation can follow.", ready: noDirect.filter((x) => x.a).slice(0, 5).map((x) => ready(`${x.q}\n${firstSentences(x.a)}`, "Short answer (your page's own first sentences)", `your page ${x.url}`, { kind: "FAQ answer", for: x.url })) } : { ok: null, line: "No question headings on your pages to check for a direct answer." },
+      asked.length ? { ok: noDirect.length === 0, line: noDirect.length ? `${noDirect.length} of ${plural(asked.length, "question heading")} ${noDirect.length === 1 ? "has" : "have"} no answer right under ${noDirect.length === 1 ? "it" : "them"} that opens with the answer: ${noDirect.slice(0, 4).map((x) => `"${x.q}"`).join(", ")}` : "Every question heading has its answer right under it, opening with the answer.",
+        solution: "Right under each question heading, open with the answer itself; the longer explanation can follow.", ready: noDirect.filter((x) => x.a).slice(0, 5).map((x) => ready(`${x.q}\n${firstSentences(x.a)}`, "Short answer (your page's own first sentences)", `your page ${x.url}`, { kind: "FAQ answer", for: x.url })) } : { ok: null, line: "No question headings on your pages to check for a direct answer." },
     ].map(three), questions: qa.slice(0, 50) };
 }
 

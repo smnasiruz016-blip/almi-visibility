@@ -153,7 +153,7 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
     await ui.api.work("YouTube"); assert.equal(ui.history.entries.length, hs.length);
     /* Back (the browser's own, or "← Back") → the Overview of the same product */
     ui.api.set(null, null);
-    const until = async (ok) => { for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 50)); };
+    const until = async (ok) => { for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 50)); }; // up to 15 s on a busy machine
     await ui.popstate(hs.at(-2)); await until(() => /<h2>Overview<\/h2>/.test(ui.app()));
     assert.equal(ui.api.nav().P, a.id); assert.equal(ui.api.nav().CUR.args[0], "Overview");
     assert.match(ui.app(), /<h2>Overview<\/h2>/);
@@ -229,9 +229,12 @@ test("D1 · VIEWER QUESTIONS → PROPER TITLES; another channel's own content le
   assert.equal(t(Q("I am looking for OET test for pharmacist?")), null, "a statement became a title");
   /* the list of ideas never cuts a word */
   const long = "Hey i wanted to ask that we will be able to go back to the reading extracts while answering or do we have to read and then only answer and no going back?";
-  const made = newVideoIdeas({ questions: [Q(long)], videos: [] });
-  assert.equal(made.length, 1);
-  for (const i of made) { const body = i.title.replace(/…$/, ""); assert.equal(i.question, long); assert.ok(body.length <= 100 && long.startsWith(body) && /[\s,.?]/.test(long.charAt(body.length)), `cut mid-word: "${i.title}"`); }
+  /* the same question shifted letter by letter: the 100th character falls inside a word in most of them */
+  for (const lead of ["", "A ", "Ab ", "Abc ", "Abcd ", "Abcde "]) {
+    const q = `${lead}${long}`, made = newVideoIdeas({ questions: [Q(q)], videos: [] });
+    assert.equal(made.length, 1);
+    for (const i of made) { const body = i.title.replace(/…$/, ""); assert.equal(i.question, q); assert.ok(body.length <= 100 && q.startsWith(body) && /[\s,.?]/.test(q.charAt(body.length)), `cut mid-word: "${i.title}"`); }
+  }
 });
 
 test("D2 · NO PLACE FROM THE PRODUCT DESCRIPTION; the Q&A idea says what is answered", () => {
@@ -251,7 +254,7 @@ test("D2 · NO PLACE FROM THE PRODUCT DESCRIPTION; the Q&A idea says what is ans
 test("D3 · KEYWORDS: never a channel or creator name, the current year, near-duplicates merged", () => {
   const research = { niche: [{ q: "PTE", videos: [{ title: "Crack PTE in 1 hour | nakul", channelTitle: "SKILLS PTE ACADEMIC" }, { title: "TOEFL Speaking tips", channelTitle: "linguamarina" }, { title: "PTE Speaking skills that work", channelTitle: "Another Academy" }] }], comments: [] };
   const k = (phrase) => ({ phrase, estimate: "e", source: "s" });
-  const out = usableKeywords(["linguamarina", "Skills PTE Academic nakul", "Skills PTE nakul", "PTE Skills Academic", "Skills PTE Academic", "Skills PTE", "skillspte", "PTE Academic", "PTE Speaking", "PTE Speaking Skills", "TOEFL prep 2026", "TOEFL preparation 2026"].map(k), research, TOPICS).map((x) => x.phrase);
+  const out = usableKeywords(["linguamarina", "Skills PTE Academic nakul", "Skills PTE Academic course", "Skills PTE nakul", "PTE Skills Academic", "Skills PTE Academic", "Skills PTE", "skillspte", "PTE Academic", "PTE Speaking", "PTE Speaking Skills", "TOEFL prep 2026", "TOEFL preparation 2026"].map(k), research, TOPICS).map((x) => x.phrase);
   assert.deepEqual(out, ["PTE Academic", "PTE Speaking", "PTE Speaking Skills", "TOEFL prep 2026"]);
   const y = currentYearTerms([{ phrase: "PTE 2025", sources: ["the niche's titles"] }, { phrase: "PTE 2025", sources: ["your file searches.csv"] }], 2026);
   assert.deepEqual(y.map((x) => x.phrase), ["PTE 2026", "PTE 2025"], "a year was changed in a phrase people really searched, or kept in one they did not");
@@ -274,7 +277,9 @@ test("D5 · IN THE APP'S OWN ADVICE (an exam channel's research): the ideas and 
     const nv = (n, title, channelTitle, views) => ({ videoId: `n${n}`, title, description: "", tags: [...TAGS, ...(OWN_TAGS[channelTitle] ?? [])], publishedAt: `${today}T00:00:00Z`, durationSec: 600, views, comments: 5, width: 1280, height: 720, language: "en", channelTitle, channelId: `C${channelTitle.replace(/\W/g, "")}` });
     const vids = [nv(1, `OET ${year} Reading Mock Test`, "E2 OET", 90000), nv(2, `PTE ${last} Speaking tips`, "SKILLS PTE ACADEMIC", 80000), nv(3, "TOEFL Speaking with linguamarina", "linguamarina", 70000), nv(4, `OET Reading tips ${year}`, "OET Helper", 60000), nv(5, "TOEFL Speaking practice", "TOEFL Tutor", 50000), nv(6, `PTE ${last} Speaking full guide`, "PTE Coach", 40000), nv(7, "OET Q&A live", "OET Helper", 30000), nv(8, "PTE questions answered", "PTE Coach", 30000),
       /* a format the channel has not made, that does well — its idea would carry the product's home if the rule were gone */
-      nv(9, "My first time taking OET", "OET Helper", 120000), nv(10, "First time PTE attempt", "PTE Coach", 110000)];
+      nv(9, "My first time taking OET", "OET Helper", 120000), nv(10, "First time PTE attempt", "PTE Coach", 110000),
+      /* a research phrase needs 2+ videos: each named channel has two, so its own tags reach the keyword list */
+      nv(11, "PTE Writing tips", "SKILLS PTE ACADEMIC", 70000), nv(12, "TOEFL Reading with linguamarina", "linguamarina", 65000)];
     const cm = (text, videoTitle, channelTitle) => ({ text, likes: 3, publishedAt: `${today}T00:00:00Z`, videoId: "n1", own: false, videoTitle, channelTitle });
     writeFileSync(join(raw, `research-${today}.json`), JSON.stringify({ readOn: now.toISOString(), nicheLabel: "OET, PTE, TOEFL", language: "English", languageCode: "en", niche: [{ q: "OET", kind: "top", videos: vids.slice(0, 4), found: 4 }, { q: "PTE", kind: "top", videos: vids.slice(4), found: 4 }, { q: "TOEFL", kind: "top", videos: vids.slice(2, 5), found: 3 }], topics: [{ q: "OET", videos: vids }], comments: [
       cm("hi! what will be the answer of question 18 from reading part A? just one word or two", `OET ${year} Mock Test`, "E2 OET"),

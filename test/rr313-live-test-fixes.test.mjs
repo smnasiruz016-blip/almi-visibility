@@ -14,7 +14,7 @@ import { keyStore, memoryBackend } from "../desktop/secrets.mjs";
 import { youtubeApp } from "../desktop/youtube-app.mjs";
 import { productStore } from "../desktop/products.mjs";
 import { titleOptions } from "../desktop/describe.mjs";
-import { directAnswer, problemLine, problemOf, withAreaItems, aiReadiness } from "../desktop/product-check.mjs";
+import { directAnswer, problemLine, problemOf, withAreaItems, aiReadiness, fixFirstFrom } from "../desktop/product-check.mjs";
 import { subjectOf, willDo, websiteItems } from "../desktop/action-plan.mjs";
 import { aeoCheck } from "../desktop/features.mjs";
 
@@ -67,8 +67,10 @@ test("A2 · THE OWNER'S CASE: the key saved in Visibility is refused as not vali
     /* no channel with that handle */
     const none = await youtubeApp({ store, dataDir: dir, keys, fetchImpl: async () => json({ items: [] }), config: { youtubeApiBase: "http://127.0.0.1:9/youtube/v3/" } }).lookup(ids[0], "@nobody-here");
     assert.equal(none.line, "No channel with that @handle (@nobody-here) — check the spelling.");
-    /* the settings screen says which key is in use */
+    /* the settings screen says which key is in use — and the screen draws it, and redraws it after Find my channel */
     assert.match(YT.settings(ids[0]).keySource, /^Using the key in this computer's settings/);
+    const ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
+    assert.match(ui, /<p class="meta" id="ksrc">\$\{esc\(y\.keySource \?\? ""\)\}<\/p>/); assert.match(ui, /if \(c\.keySource\) \$\("#ksrc"\)\.textContent = c\.keySource;/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -81,11 +83,15 @@ test("A · NEVER THE KEY: Google's message is passed on with every key masked ou
 async function app() {
   const dir = mkdtempSync(join(tmpdir(), "rr313-app-"));
   writeFileSync(join(dir, "config.json"), JSON.stringify({ testSecretsInMemory: true }));
+  /* the owner's product as he named it — a raw, lower-case label — with his own words for what it is */
+  const ps = productStore(dir), made = ps.create({ name: "almiworld youtube", site: "https://almiworld.com/" });
+  ps.write(made.id, { ...made, setup: { ...made.setup, product: { ...made.setup.product, what: "AlmiWorld (almiworld.com) — a family of online products for people preparing for language exams." } } });
+  writeFileSync(join(ps.dirOf(made.id), "plan.json"), JSON.stringify({ on: "2026-10-22T00:00:00Z", titles: { new: [], existing: [] }, thisWeek: [], rest: [], make: [], social: [], keywords: [] })); // a plan, so "What I will do" is shown
   const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/_API_KEY$|_TOKEN$|CLIENT_SECRET|APP_PASSWORD/.test(k)));
   const p = spawn(process.execPath, [join(REPO, "desktop", "main.mjs"), `--data=${dir}`], { stdio: "ignore", env });
   for (let i = 0; i < 100 && !existsSync(join(dir, "run.json")); i++) await new Promise((r) => setTimeout(r, 100));
   const url = `http://127.0.0.1:${JSON.parse(readFileSync(join(dir, "run.json"), "utf8")).port}`;
-  return { url, post: (path, o) => fetch(`${url}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }).then((r) => r.json()), get: (path) => fetch(`${url}${path}`).then((r) => r.text()), close: () => { p.kill(); rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } };
+  return { url, id: made.id, post:(path, o) => fetch(`${url}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }).then((r) => r.json()), get: (path) => fetch(`${url}${path}`).then((r) => r.text()), close: () => { p.kill(); rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } };
 }
 
 test("B1 · ONE PLACE to switch Google sign-in on: off at first; the client is saved (id shown, secret never); the home screen, the YouTube card and Search Console all open the same screen; the JSON file way and the paste way", async () => {
@@ -98,6 +104,9 @@ test("B1 · ONE PLACE to switch Google sign-in on: off at first; the client is s
     assert.deepEqual(JSON.parse(st), { on: true, clientId: "1234-standin.apps.googleusercontent.com", secretSaved: true });
     assert.ok(!st.includes(SECRET) && !home.includes(SECRET), "the secret came back from the app");
     assert.equal(JSON.parse(home).google.on, true);
+    /* C3 in the app: the Overview's "What I will do" names the subject, never the raw label */
+    const o = JSON.parse(await a.get(`/api/products/${a.id}/overview`));
+    assert.equal(o.willDo.lines[0].text, "Create new pages, answering the questions people ask about AlmiWorld's products.");
   } finally { a.close(); }
   const ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
   assert.match(ui, /async function googleSignInScreen\(back = null\)/);
@@ -121,9 +130,9 @@ test("C2 · DIRECT ANSWER, no word count: right under the question, opening with
   assert.equal(directAnswer({ a: long }), true, "a long answer was failed — the 120-word rule is back");
   assert.equal(directAnswer({ a: "OET is accepted for Australian visas." }), true);
   for (const a of [null, "", "Great question! Let us see.", "In this article we look at it.", "Why does it matter? Because…", "Let's look at the dates."]) assert.equal(directAnswer({ a }), false, String(a));
-  const site = { ok: true, robots: { aiBots: { a: true } }, pages: [PAGE("https://x.test/", { structuredTypes: ["Organization"], qa: [{ q: "Is it accepted?", a: long, from: "a heading on the page" }, { q: "When?", a: null, from: "a heading on the page" }] })], readOn: "2026-10-22" };
-  assert.equal(aiReadiness(site)[3].line, "1 of 2 question headings have their answer right under them, opening with the answer");
-  assert.match(aeoCheck(site).lines.map((l) => l.line).join("\n"), /1 of 2 question headings has no answer right under it that opens with the answer: "When\?"/);
+  const site = { ok: true, robots: { aiBots: { a: true } }, pages: [PAGE("https://x.test/", { structuredTypes: ["Organization"], qa: [{ q: "Is it accepted?", a: long, from: "a heading on the page" }, { q: "When?", a: null, from: "a heading on the page" }, { q: "Why?", a: "In this article we look at why.", from: "a heading on the page" }] })], readOn: "2026-10-22" };
+  assert.equal(aiReadiness(site)[3].line, "1 of 3 question headings have their answer right under them, opening with the answer");
+  assert.match(aeoCheck(site).lines.map((l) => l.line).join("\n"), /2 of 3 question headings have no answer right under them that opens with the answer: "When\?", "Why\?"/);
 });
 
 test("C3 · THE SUBJECT, never the product's raw name: \"almiworld youtube\" → \"AlmiWorld's products\"", () => {
@@ -148,8 +157,15 @@ test("C4 + C5 · COUNTS AGREE (\"1 page has\", \"1 thing\") and every item shows
   assert.equal(willDo(plan, {}).lines[1].status, "1 thing ready to paste");
   const pages = Array.from({ length: 50 }, (_, i) => PAGE(`https://x.test/p${i}`, { title: "A good title of the right length" }));
   const urls = pages.slice(0, 38).map((p) => p.url);
-  const items = websiteItems({ card: { fixFirst: [{ id: "one-h1", area: "Content", line: problemLine("one-h1", 38), count: 38, pages: urls }] }, site: { ok: true, pages, readOn: "2026-10-22", sitemap: { found: true } } });
-  const h1 = items.find((i) => i.id === "one-h1");
+  /* the card: every page, counted once (a page with two findings is one page), with its area */
+  const findings = [...urls.map((url) => ({ check: "one-h1", weight: 5, url })), { check: "one-h1", weight: 5, url: urls[0] }, { check: "title", weight: 5, url: urls[1] }];
+  const results = [{ check: "one-h1", category: "CONTENT" }, { check: "title", category: "CONTENT" }];
+  const ff = fixFirstFrom(findings, results);
+  assert.deepEqual(ff.map((f) => [f.id, f.area, f.count, f.pages.length, f.line]), [["one-h1", "Content", 38, 38, "38 pages do not have exactly one main heading"], ["title", "Content", 1, 1, "1 page has a missing, too short or too long title"]]);
+  const items = websiteItems({ card: { fixFirst: [{ ...ff[0], pages: urls.slice(0, 20) }] }, site: { ok: true, pages, readOn: "2026-10-22", sitemap: { found: true } } });
+  assert.equal(items[0].problem, "38 of 50 pages do not have exactly one main heading", "the count came from the pages listed, not the full count");
+  const items2 = websiteItems({ card: { fixFirst: ff.slice(0, 1) }, site: { ok: true, pages, readOn: "2026-10-22", sitemap: { found: true } } });
+  const h1 = items2.find((i) => i.id === "one-h1");
   assert.equal(h1.problem, "38 of 50 pages do not have exactly one main heading");
   assert.equal(h1.ready[0].label, "Pages to fix (all 38)"); assert.equal(h1.ready[0].text.split("\n").length, 38);
   const areas = withAreaItems([{ area: "Content", line: "38 pages to fix" }, { area: "Links", line: "All good" }], [{ id: "one-h1", area: "Content", line: "38 pages do not have exactly one main heading", how: "h" }, { id: "links-resolve", area: "Links", line: "2 pages: links", how: "l" }, { id: "title", area: "Content", line: "1 page has a missing, too short or too long title", how: "t" }]);

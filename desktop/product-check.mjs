@@ -45,6 +45,15 @@ export function problemOf(id, n, of) {
   return /^pages /.test(p) ? `${n} of ${plural(of, "page")} ${verbFor(p, n).replace(/^pages? /, "")}` : `${n} of ${plural(of, "page")}: ${verbFor(p, n)}`;
 }
 
+/**
+ * What to fix first: heaviest first, each check once, with how many pages — RR-313 C5: EVERY page and the full count (the card once listed
+ * 20 and the plan then said "20 of 50" where 38 pages had the problem); a page counts once however many findings it has
+ */
+export function fixFirstFrom(findings, results) {
+  const byCheck = new Map();
+  for (const f of findings) { const x = byCheck.get(f.check) ?? { check: f.check, weight: f.weight, area: AREA[results.find((r) => r.check === f.check)?.category] ?? null, pages: new Set() }; x.pages.add(f.url); byCheck.set(f.check, x); }
+  return [...byCheck.values()].sort((a, b) => b.weight * b.pages.size - a.weight * a.pages.size).map((x) => ({ id: x.check, area: x.area, line: problemLine(x.check, x.pages.size), how: FIXES[x.check]?.how ?? null, fixForMe: Boolean(FIXES[x.check]?.fixable), count: x.pages.size, pages: [...x.pages] }));
+}
 /** RR-313 C5: each area gets ITS items from "what to fix first", in that order */
 export function withAreaItems(areas, fixFirst) {
   for (const a of areas) { const items = fixFirst.filter((f) => f.area === a.area).map((f) => ({ id: f.id, line: f.line, how: f.how })); if (items.length) a.items = items; }
@@ -104,10 +113,8 @@ export function scoreCard({ site = null, youtube = null, on, noWebsite = false }
   const yt = youtubeArea(youtube);
   areas.push(yt.area);
 
-  /* what to fix first: heaviest first, each check once, with how many pages */
-  const byCheck = new Map();
-  for (const f of findings) { const x = byCheck.get(f.check) ?? { check: f.check, weight: f.weight, area: AREA[results.find((r) => r.check === f.check)?.category] ?? null, pages: [] }; x.pages.push(f.url); byCheck.set(f.check, x); }
-  const fixFirst = [...byCheck.values()].sort((a, b) => b.weight * b.pages.length - a.weight * a.pages.length).map((x) => ({ id: x.check, area: x.area, line: problemLine(x.check, x.pages.length), how: FIXES[x.check]?.how ?? null, fixForMe: Boolean(FIXES[x.check]?.fixable), count: x.pages.length, pages: [...new Set(x.pages)] }));
+  const fixFirst = fixFirstFrom(findings, results);
+  const byCheck = new Set(fixFirst.map((f) => f.id));
   for (const t of ai.filter((t) => t.tick === false && t.fix && !byCheck.has(t.fix))) fixFirst.push({ id: `ai:${t.fix}`, line: t.line, how: t.fix === "robots" ? "Allow the AI search bots in your robots.txt (Visibility writes the lines for you)." : t.fix === "faq" ? "Answer the questions your customers ask, on your pages — one question as a heading, the answer right under it." : FIXES["structured-data"].how, fixForMe: t.fix !== "faq" });
   if (site?.brokenLinks?.length) { const f = fixFirst.find((x) => x.id === "links-resolve"); if (f) f.broken = site.brokenLinks.slice(0, 20); }
   /* RR-313 C5 (owner: "Content — 38 pages to fix, but only 2 items shown"): each area carries ITS items, in the order of what to fix first */

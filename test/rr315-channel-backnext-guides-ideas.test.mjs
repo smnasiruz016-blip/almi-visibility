@@ -142,6 +142,10 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
   const a = await app();
   try {
     const ui = await screen(a.url);
+    const until = async (ok) => { for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 50)); }; // up to 15 s on a busy machine
+    /* the page's FIRST screen (no company yet → "Your company") must have settled — on a slow machine (CI) it was drawn after the steps below
+     * and became the newest screen in the history */
+    await until(() => ui.api.nav().CUR?.name === "company"); assert.equal(ui.api.nav().CUR?.name, "company", "the first screen never settled");
     const S = await a.get(`/api/products/${a.id}/state`);
     ui.api.set(a.id, S);
     await ui.api.work("Overview"); await ui.api.work("YouTube");
@@ -153,7 +157,6 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
     await ui.api.work("YouTube"); assert.equal(ui.history.entries.length, hs.length);
     /* Back (the browser's own, or "← Back") → the Overview of the same product */
     ui.api.set(null, null);
-    const until = async (ok) => { for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 50)); }; // up to 15 s on a busy machine
     await ui.popstate(hs.at(-2)); await until(() => /<h2>Overview<\/h2>/.test(ui.app()));
     assert.equal(ui.api.nav().P, a.id); assert.equal(ui.api.nav().CUR.args[0], "Overview");
     assert.match(ui.app(), /<h2>Overview<\/h2>/);

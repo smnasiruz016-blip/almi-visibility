@@ -149,6 +149,10 @@ test("C · CAPTIONS: YouTube's automatic track is used when the client's own wil
     const old = await YT.chapters(made.id, "old");
     assert.deepEqual(old, { ok: false, neutral: true, why: "No captions on this video — YouTube makes automatic ones only when the video has speech. You can add your own in YouTube Studio → Subtitles." });
     assert.match((await YT.chapters(made.id, "new")).why, /^No captions on this video yet — YouTube makes automatic ones for most videos with speech within a day\./);
+    /* the server passes "neutral" on, and the screen shows it in plain colour (red was the owner's complaint) */
+    const { readFileSync } = await import("node:fs"); const REPO = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    assert.match(readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"), /\{ refused: r\.why, neutral: r\.neutral === true \}/);
+    assert.match(readFileSync(join(REPO, "desktop", "ui.html"), "utf8"), /return note\(msg, r\.refused, r\.neutral \? "info" : "err"\)/);
     mode = "refused"; const ref = await YT.chapters(made.id, "old");
     assert.equal(ref.neutral, undefined); assert.match(ref.why, /^YouTube did not give this video's captions \(it answered 403\)/);
   } finally { rmSync(dir, { recursive: true, force: true }); }

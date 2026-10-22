@@ -37,6 +37,9 @@ test("A PLACE ONLY WHEN THE VIDEO NAMES IT: the channel's home (from the channel
   /* the video names its place itself (its title, or a description line of its own) — then it is used, and said */
   const z = all(VIDEOS[3]);
   assert.match(z[0].title, /Copenhagen/); assert.ok(z[0].basedOn.includes("the place this video names (Copenhagen)"), JSON.stringify(z[0].basedOn));
+  /* RR-314: a niche phrase that SHARES this video's words ("pakistani mom") but names a place it does not — only the place rule stops it */
+  const mom = optionsFor(vid("m1", "Pakistani mom morning routine"), CTX).options;
+  assert.ok(mom.length > 0 && mom.every((o) => !/denmark/i.test(text(o))), JSON.stringify(mom.map((o) => [o.title, o.description])));
   const own = optionsFor(vid("d1", "Grocery haul", { description: "Our weekly shopping in Odense, Denmark." }), CTX).options[0];
   assert.match(own.title, /Denmark|Odense/);
   /* the same rule in the action plan's ready text (it is made by the same options) */

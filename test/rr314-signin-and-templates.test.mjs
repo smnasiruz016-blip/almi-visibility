@@ -134,6 +134,9 @@ test("B1-B5 · THE OWNER'S CHANNEL: no IELTS on a CV video, no empty hook, no br
   const sat = optionsFor(vid("s1", "Sat prep | SAT PREP"), { ...CTX, niche: { queries: [] }, brands: new Map() });
   assert.ok(sat.options.length > 0, "no option — the rule was never reached");
   for (const o of sat.options) assert.equal(new Set(o.hashtags.map((h) => h.toLowerCase())).size, o.hashtags.length, `same hashtag twice: ${o.hashtags}`);
+  /* B3 is about WORDS: a channel named "D" is not already in "Iceland" (the substring check left that video with no option at all) */
+  const d = optionsFor(vid("d1", "Baby Ki Choti Phupo Iceland Pohanch Gayi!"), { channel: { title: "D" }, persona: {}, niche: { queries: [] }, summary: null });
+  assert.equal(d.options[0]?.title, "Baby Ki Choti Phupo Iceland Pohanch Gayi! | D", JSON.stringify(d.options.map((o) => o.title)));
 });
 
 /* a line is cut when its last word, in the text it came from, goes on — "(almiworld" of "(almiworld.com)" */

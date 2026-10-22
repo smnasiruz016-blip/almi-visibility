@@ -173,6 +173,7 @@ test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competi
   assert.ok(bare.options.every((p) => !/travel|iceland/i.test(`${p.title} ${p.hashtags.join(" ")} ${p.basedOn.join(" ")}`)), JSON.stringify(bare.options.map((p) => [p.title, p.hashtags, p.basedOn])));
   /* the real title's emoji (a baby with a skin tone, a flag) leave no box behind */
   const e = optionsFor({ videoId: "x1", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi! 👶🏻😍🇮🇸 #newborn", description: "", views: 1, publishedAt: day(60), durationSec: 50, width: 360, height: 640, tags: [] }, { channel: { title: "D" }, persona: {}, niche: { queries: [] }, summary: null });
+  assert.ok(e.options.length > 0, "no option — the emoji rule was never reached"); // RR-314: every() over none passed a sabotage
   assert.ok(e.options.every((p) => !/[\u{1F3FB}-\u{1F3FF}\u{1F1E6}-\u{1F1FF}]/u.test(p.title)), JSON.stringify(e.options.map((p) => p.title)));
   assert.ok(o.options.every((p) => !/\(Add |\?:\?\?|#IcelandHum|#BabyKi/.test(`${p.description} ${p.hashtags.join(" ")}`)), JSON.stringify(o.options.map((p) => [p.description, p.hashtags])));
 });

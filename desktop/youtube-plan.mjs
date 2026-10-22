@@ -77,6 +77,8 @@ export function brandsOf({ what = "", menu = [], channelTitle = null } = {}) {
   return m;
 }
 /** a text with every family name in its own casing ("Almicv Builder" → "AlmiCV Builder") — whole words only */
+/* RR-314 B3: does a text already say these WORDS ("Almiworld New Tutorial" says "Almiworld"; "Iceland" does not say a channel named "D") */
+export const saysWords = (text, name) => { const w = (s) => ` ${String(s ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).join(" ")} `; return w(name).trim() !== "" && w(text).includes(w(name)); };
 export const brandCase = (s, brands) => (brands?.size ? String(s ?? "").split(/(https?:\/\/\S+|@[\w.-]+)/).map((part, i) => (i % 2 ? part : part.replace(/[\p{L}\p{N}]+/gu, (w) => brands.get(w.toLowerCase()) ?? w))).join("") : String(s ?? "")); // links and @handles stay exactly as they are
 /** a hashtag with the family names in their casing inside it ("AlmicvBuilder" → "AlmiCVBuilder") */
 const brandTag = (t, brands) => { if (!brands?.size) return t; let out = t; for (const [k, v] of [...brands].sort((a, b) => b[0].length - a[0].length)) out = out.replace(new RegExp(k, "i"), (x) => (x.toLowerCase() === k ? v : x)); return out; };
@@ -204,7 +206,7 @@ export function optionsFor(v, ctx) {
   const hook = !subject || !hookFits ? null : kind === "SHORT" ? `Watch This: ${subject}` : `Come With Us: ${subject}${where.length && subject.length + where.length < 44 ? where : ""}`;
   const typed = [
     /* RR-314 B3 (owner: "Almiworld New Tutorial | Almiworld"): the channel's name is added only when the title does not already say it */
-    { type: "Place + activity + who", title: subject ? `${subject}${where}${who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : channel.title && !subject.toLowerCase().includes(String(channel.title).toLowerCase()) ? ` | ${channel.title}` : ""}` : null, from: "the place, what happens and who — main words first" },
+    { type: "Place + activity + who", title: subject ? `${subject}${where}${who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : channel.title && !saysWords(subject, channel.title) ? ` | ${channel.title}` : ""}` : null, from: "the place, what happens and who — main words first" },
     { type: "A question people ask", title: asked ? asked.text : shaped, from: asked ? `a question a viewer asked: "${fit(asked.text, 80)}" (${asked.source})` : "a question shaped from this video's own words — no viewer has asked it yet; the research finds real ones" },
     { type: "A short hook", title: hook, from: "a short opening line from what happens in this video" },
     /* fillers, only when a kind above could not be made: the video's own words, the niche's phrase, the channel's name */

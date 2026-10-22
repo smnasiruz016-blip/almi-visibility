@@ -87,6 +87,8 @@ test("A1 · IN THE APP: the write sends the channel's own names (its site, the p
     assert.equal(r.ok, true, r.why); assert.notEqual(r.outcome, "all hidden");
     assert.match(seen[0].messages[0].content, /^THE CHANNEL'S OWN NAMES[^:]*: Almiworld, @almiworld-world, https:\/\/almiworld\.com\/, almiworld youtube, AlmiCV, AlmiPrep$/m); // "AlmiWorld" is the channel's own "Almiworld" — one name
     assert.ok(!r.dropped.some((d) => (d.hidden ?? []).includes("@almiworld-world")), "the channel's own handle was hidden");
+    /* … nor shown with a note against it (since "never all hidden", a doubted handle would be shown — with a note) */
+    assert.ok(r.options.every((o) => !o.check.some((c) => /@almiworld-world/.test(c))), JSON.stringify(r.options.map((o) => o.check)));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

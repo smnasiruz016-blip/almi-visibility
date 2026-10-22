@@ -35,7 +35,9 @@ test("3 · TIER 1: the owner's 2018 is a correction (shown, marked); another yea
   assert.deepEqual(reviewOption(opt("Iceland Memories 2015"), m).check, ["Check: 2015 — not in your video's own words"]);
   assert.deepEqual(reviewOption(opt("Part 2 — Iceland Yaadein"), m).check, [], "a single digit was taken for a fact");
   assert.deepEqual(reviewOption(opt("Iceland in 1990", { description: "Meri purani Iceland yaadein, ek saath, hum sab ke saath." }), materialOf({ ...ICELAND, description: "my trip in 1890 to the north" }, CTX)).check, ["Check: 1990 — your description says 1890"]);
-  assert.deepEqual(reviewOption(opt("Iceland Ki Yaadein", { facts: [{ fact: "travel videos compiled", quote: "travel video compilations" }] }), m).hidden, [], "an inflected quote was taken for an invented claim");
+  /* RR-316: a claim in other words is now a doubt with a note — so an inflected quote must pass with NO note at all */
+  const infl = reviewOption(opt("Iceland Ki Yaadein", { facts: [{ fact: "travel videos compiled", quote: "travel video compilations" }] }), m);
+  assert.deepEqual([infl.hidden, infl.check], [[], []], "an inflected quote was taken for an invented claim");
   assert.deepEqual(reviewOption(opt("Iceland and Paris Memories"), `${m}\nat least 3 parts`).hidden.map((h) => h.what), ["Paris"]);
   const r = checkOptions([opt("Meri Purani Iceland Memories", { hashtags: ["#A1", "#B1", "#C1", "#D1"], thumbnail: "MERI PURANI ICELAND KI YAADEIN" }), opt("Iceland on $50 a Day"), opt("Iceland With Sara", { names: ["Sara"] })], m);
   assert.deepEqual([r.kept[0].hashtags.length, r.kept[0].thumbnail.split(" ").length], [3, 4]);

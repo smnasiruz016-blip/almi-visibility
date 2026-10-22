@@ -72,3 +72,10 @@ test("4 · MEASURED: 20 videos, a stand-in that slips like a real model — all 
   assert.ok(placeMade >= 1, "the stand-in never invented a place — the measure proves nothing");
   assert.ok(retried >= 1, "no retry happened — the measure proves nothing");
 });
+
+test("2 + 3 ON THE SCREEN: each AI option shows its yellow \"Check\" note and its \"Corrected from your description\" note", async () => {
+  const { readFileSync } = await import("node:fs");
+  const ui = readFileSync(new URL("../desktop/ui.html", import.meta.url), "utf8");
+  assert.match(ui, /\$\{\(o\.check \?\? \[\]\)\.map\(\(c\) => `<p class="warn check">\$\{esc\(c\)\}<\/p>`\)\.join\(""\)\}/, "the yellow note is not drawn");
+  assert.match(ui, /✓ Corrected from your description: \$\{esc\(o\.corrected\.join\(", "\)\)\}/, "the correction is not drawn");
+});

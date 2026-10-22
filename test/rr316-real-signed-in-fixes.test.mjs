@@ -124,6 +124,8 @@ test("B2 · WHAT GOOGLE GAVE IS ALWAYS SAID: a channel of 5 videos shows its vie
   const none = ownDataFindings(five, { analytics: { window: "2026-07-22 to 2026-10-20", byVideo: [], countries: [], sources: [], searchTerms: [], ages: [] } });
   assert.match(none.line, /Google returned no viewer data yet \(2026-07-22 to 2026-10-20\) — your channel has very few views\.$/);
   assert.match(ownDataFindings(five, { analytics: { byVideo: null, countries: null, sources: null } }).line, /Google did not answer for your channel's numbers this time/);
+  /* the owner's real channel on 22 Oct: 6 views, under a minute watched — never "0 minutes watched" */
+  assert.match(ownDataFindings(five, { analytics: { window: "w", byVideo: [{ videoId: "v0", views: 6, minutes: 0, avgPct: 74 }], countries: [], sources: [{ source: "YT_CHANNEL", views: 4 }, { source: "SHORTS", views: 2 }] } }).findings[0].line, /^What Google gave for your channel \(w\): 6 views · less than a minute watched in all · from: your channel page 4, the Shorts feed 2\./);
   assert.equal(ownDataFindings(five, {}).findings.length, 0, "without sign-in nothing from Google is claimed");
 });
 

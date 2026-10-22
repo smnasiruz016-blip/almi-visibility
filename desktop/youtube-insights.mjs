@@ -171,7 +171,7 @@ export function googleGave(analytics, all = []) {
   const rows = analytics.byVideo ?? [], views = rows.reduce((n, r) => n + (r.views || 0), 0), minutes = rows.reduce((n, r) => n + (r.minutes || 0), 0);
   const countries = (analytics.countries ?? []).filter((c) => c.views > 0), sources = (analytics.sources ?? []).filter((s) => s.views > 0);
   if (!views && !countries.length && !sources.length) return { line: `Google returned no viewer data yet (${analytics.window ?? "the last 90 days"}) — your channel has very few views.`, finding: null };
-  const parts = [`${fmt(views)} view${views === 1 ? "" : "s"}`, `${fmt(Math.round(minutes))} minute${Math.round(minutes) === 1 ? "" : "s"} watched`];
+  const parts = [`${fmt(views)} view${views === 1 ? "" : "s"}`, Math.round(minutes) === 0 ? "less than a minute watched in all" : `${fmt(Math.round(minutes))} minute${Math.round(minutes) === 1 ? "" : "s"} watched`]; // the owner's real channel: 6 views, "0 minutes"
   if (countries.length) parts.push(`countries: ${countries.slice(0, 5).map((c) => `${c.country} ${fmt(c.views)}`).join(", ")}`);
   if (sources.length) parts.push(`from: ${sources.slice(0, 4).map((s) => `${SOURCE_WORDS[s.source] ?? s.source} ${fmt(s.views)}`).join(", ")}`);
   const top = rows.slice().sort((a, b) => b.views - a.views)[0], topV = top ? all.find((v) => v.videoId === top.videoId) : null;

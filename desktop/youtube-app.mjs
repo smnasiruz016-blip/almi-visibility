@@ -360,7 +360,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       if (!vtt) return { ok: false, neutral: true, why: now() - Date.parse(v.publishedAt) < 2 * 864e5 ? "No captions on this video yet — YouTube makes automatic ones for most videos with speech within a day. You can add your own in YouTube Studio → Subtitles." : "No captions on this video — YouTube makes automatic ones only when the video has speech. You can add your own in YouTube Studio → Subtitles." };
       const dir = join(store.dirOf(id), "youtube-captions"); mkdirSync(dir, { recursive: true }); atomic(join(dir, `${videoId}.vtt`), vtt);
       const ch = chaptersFrom(parseVtt(vtt), v.durationSec);
-      if (!ch) return { ok: false, why: "The captions are too short to make at least 3 chapters." };
+      if (!ch) return { ok: false, neutral: true, why: "The captions are too short to make at least 3 chapters — a video needs a few minutes of speech for chapters." }; // RR-316 C: not an error
       const file = join(store.dirOf(id), "youtube-chapters.json"); atomic(file, { ...readJson(file, {}), [videoId]: ch.text });
       return { ok: true, chapters: ch.text, from: ch.from };
     },

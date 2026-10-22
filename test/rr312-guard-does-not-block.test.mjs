@@ -33,6 +33,7 @@ test("3 · TIER 1: the owner's 2018 is a correction (shown, marked); another yea
   const m = materialOf(ICELAND, CTX);
   assert.deepEqual(reviewOption(opt("Meri Purani Iceland Memories 2016–2018"), m), { hidden: [], check: [], corrected: ["1018 → 2018"] });
   assert.deepEqual(reviewOption(opt("Iceland Memories 2015"), m).check, ["Check: 2015 — not in your video's own words"]);
+  assert.deepEqual(reviewOption(opt("Part 2 — Iceland Yaadein"), m).check, [], "a single digit was taken for a fact");
   assert.deepEqual(reviewOption(opt("Iceland in 1990", { description: "Meri purani Iceland yaadein, ek saath, hum sab ke saath." }), materialOf({ ...ICELAND, description: "my trip in 1890 to the north" }, CTX)).check, ["Check: 1990 — your description says 1890"]);
   assert.deepEqual(reviewOption(opt("Iceland Ki Yaadein", { facts: [{ fact: "travel videos compiled", quote: "travel video compilations" }] }), m).hidden, [], "an inflected quote was taken for an invented claim");
   assert.deepEqual(reviewOption(opt("Iceland and Paris Memories"), `${m}\nat least 3 parts`).hidden.map((h) => h.what), ["Paris"]);
@@ -49,6 +50,7 @@ test("4 · TIER 2: ONLY the doubtful options go back once, each with its doubt; 
   const asked = JSON.parse(seen[1].messages[0].content.split("OPTIONS TO RE-CHECK:\n")[1]);
   assert.deepEqual(asked.map((x) => [x.option.title, x.not_in_the_material]), [["Iceland and Paris Memories", ["Paris"]], ["Iceland Memories 2009", ["2009"]]]);
   assert.match(seen[1].system, /RE-CHECK \(RR-312 Tier 2\): you are given 2 options you wrote/);
+  assert.match(seen[0].system, /use only the FACT SHEET FOR THIS VIDEO, the video's own words and the research; if you are unsure of a detail \(a year, a name, a place, a number\), leave it out/);
   assert.deepEqual(r.options.map((o) => [o.title, o.check]), [["Meri Purani Iceland Memories", []], ["Iceland Ki Purani Memories", []], ["Iceland Memories 2009 Ki", ["Check: 2009 — not in your video's own words"]]]);
   assert.equal(r.outcome, "shown with a note"); assert.deepEqual(r.dropped, []);
   assert.deepEqual(r.usages.length, 2); assert.deepEqual(r.usage, { input: 200, output: 100 });
@@ -57,10 +59,10 @@ test("4 · TIER 2: ONLY the doubtful options go back once, each with its doubt; 
   assert.deepEqual([one, c.outcome], [1, "shown clean"]);
 });
 
-test("5 · HIDE ONLY A CLEAR INVENTION: a Paris that stays after the re-check is hidden in that one option; the others always show", async () => {
+test("5 · HIDE ONLY A CLEAR INVENTION: a Paris that stays after the re-check is hidden in that one option; a rewrite WORSE than its first version (a note → an invention) is not taken; the others always show", async () => {
   let call = 0;
-  const r = await writeWithAI({ provider: "anthropic", key: "k", video: ICELAND, ctx: CTX, fetchImpl: async () => (++call === 1 ? reply([opt("Meri Purani Iceland Memories"), opt("Iceland Ke Pehle Din"), opt("Iceland and Paris Memories")]) : reply([opt("Iceland Paris Trip Yaadein")])), base: "http://127.0.0.1:9" });
-  assert.deepEqual(r.options.map((o) => o.title), ["Meri Purani Iceland Memories", "Iceland Ke Pehle Din"]);
+  const r = await writeWithAI({ provider: "anthropic", key: "k", video: ICELAND, ctx: CTX, fetchImpl: async () => (++call === 1 ? reply([opt("Meri Purani Iceland Memories"), opt("Iceland and Paris Memories"), opt("Iceland Memories 2009")]) : reply([opt("Iceland Paris Trip Yaadein"), opt("Iceland and Rome 2009")])), base: "http://127.0.0.1:9" });
+  assert.deepEqual(r.options.map((o) => [o.title, o.check]), [["Meri Purani Iceland Memories", []], ["Iceland Memories 2009", ["Check: 2009 — not in your video's own words"]]]);
   assert.deepEqual(r.dropped.map((d) => d.hidden), [["Paris"]]); assert.equal(r.outcome, "one option hidden");
 });
 

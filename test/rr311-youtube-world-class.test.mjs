@@ -119,6 +119,9 @@ test("B4 · THE AI GUARD blocks only real facts not in the material — places, 
 test("C1 + C4 · THE CHANNEL'S LANGUAGE: Roman Urdu/Hindi from its own titles (YouTube's 'en' default decides nothing); a Banglish question is left out; a viewer's question becomes a proper title with the original as the source", () => {
   const ch = channelLanguage(OWN_VIDEOS.map((x) => ({ title: x.snippet.title, description: x.snippet.description, language: x.snippet.defaultAudioLanguage })));
   assert.equal(ch.code, "ur-hi"); assert.equal(ch.relevance, "ur");
+  /* Dhanak's shape: 3 in 10 titles Roman Urdu, every video's audio field "en" (YouTube's default) — still an Urdu/Hindi channel */
+  const mixed = Array.from({ length: 20 }, (_, i) => ({ title: i < 6 ? `Ghar ka kaam aur masti ${i}` : `My busy day as a mom ${i}`, description: "", language: "en" }));
+  assert.equal(channelLanguage(mixed).code, "ur-hi", "YouTube's 'en' default outvoted the channel's own titles");
   assert.equal(langOf("Apnar mote ki mentors bhalo naki barc naki banglay IELTS naki saifurs?"), "bn");
   assert.equal(questionTitle({ text: "Apnar family vlog bhalo naki?", source: "a comment" }, ch), null);
   const t = questionTitle({ text: "sir aap ka family vlog kaise shuru karein", source: "a comment under \"X\"" }, ch);
@@ -138,10 +141,11 @@ test("B1 + B2 · FROM YOUR CHANNEL'S DATA: the topic that beats the channel's ow
   assert.equal(f.findings.find((x) => x.id === "ctr").effect, 1200, "the click-through gap is not impressions × (median − its own)");
   assert.equal(f.findings.find((x) => x.id === "place:Iceland").effect, 11000 - 2560);
   assert.ok(f.findings.every((x) => x.from), "a finding without its source");
-  /* the proof walk's findings: a tagged @channel is not a topic; medians are whole views */
-  const tagged = vids.map((x, i) => (i < 4 ? { ...x, title: `${x.title} @SambhavnaSethEntertainment`, views: 40000 + i } : x));
-  assert.ok(!ownDataFindings(tagged).findings.some((x) => /sambhavna/i.test(x.line)), "an @handle became a topic");
-  assert.ok(ownDataFindings(tagged).findings.every((x) => !/\d\.5\b/.test(x.line)), "a half view in a median");
+  /* the proof walk's findings: a tagged @channel is not a topic (a short handle — only the @ rule catches it); medians are whole views */
+  const tagged = vids.map((x, i) => (i < 4 ? { ...x, title: `${x.title} @sabaKajahaan`, views: 40000 + i } : x));
+  assert.ok(!ownDataFindings(tagged).findings.some((x) => /sabakajahaan/i.test(x.line)), "an @handle became a topic");
+  const picnic = vids.map((x, i) => (i >= 4 && i < 8 ? { ...x, title: `Picnic day ${i}`, views: 40000 + i } : x));
+  assert.match(ownDataFindings(picnic).findings.map((x) => x.line).join("\n"), /Your videos with "picnic" in the title get .* \(median 40,006 against /, "a half view in a median");
 });
 
 test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competitor's scorecard and new uploads; keyword ideas marked 'estimate'; before → after", () => {
@@ -161,6 +165,10 @@ test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competi
   /* B5 · the templates keep the video's own words — "Baby Ki Choti Phupo Iceland Pohanch Gayi!", never "Baby in Iceland" */
   const o = optionsFor({ videoId: "ice00000001", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi!", description: "Hum sab Iceland gaye, bohot maza aaya.", views: 1, publishedAt: day(60), durationSec: 900, width: 640, height: 360, tags: [] }, { channel: { title: "Dhanak Fixture", handle: "@dhanakfixture" }, persona: { who: "Pakistani Family" }, niche: { queries: [] }, summary: null });
   assert.ok(o.options.every((p) => /Baby Ki Choti Phupo Iceland Pohanch Gayi/.test(p.title)), JSON.stringify(o.options.map((p) => p.title)));
+  /* a video with no description of its own gets no placeholder; a kind of video is never read from its tags alone */
+  const bare = optionsFor({ videoId: "b1", title: "Ghar ka kaam aur masti", description: "", views: 1, publishedAt: day(60), durationSec: 900, width: 640, height: 360, tags: ["travel vlog", "iceland trip"] }, { channel: { title: "D" }, persona: {}, niche: { queries: [] }, summary: null });
+  assert.ok(bare.options.length && bare.options.every((p) => !/\(Add |fill in|\?:\?\?/i.test(p.description)), JSON.stringify(bare.options.map((p) => p.description)));
+  assert.ok(bare.options.every((p) => !/travel|iceland/i.test(`${p.title} ${p.hashtags.join(" ")} ${p.basedOn.join(" ")}`)), JSON.stringify(bare.options.map((p) => [p.title, p.hashtags, p.basedOn])));
   /* the real title's emoji (a baby with a skin tone, a flag) leave no box behind */
   const e = optionsFor({ videoId: "x1", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi! 👶🏻😍🇮🇸 #newborn", description: "", views: 1, publishedAt: day(60), durationSec: 50, width: 360, height: 640, tags: [] }, { channel: { title: "D" }, persona: {}, niche: { queries: [] }, summary: null });
   assert.ok(e.options.every((p) => !/[\u{1F3FB}-\u{1F3FF}\u{1F1E6}-\u{1F1FF}]/u.test(p.title)), JSON.stringify(e.options.map((p) => p.title)));

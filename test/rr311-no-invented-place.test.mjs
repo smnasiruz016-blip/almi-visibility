@@ -31,6 +31,8 @@ test("A PLACE ONLY WHEN THE VIDEO NAMES IT: the channel's home (from the channel
   assert.equal(all(VIDEOS[0])[0].title, "JAB WE MET | Pakistani Mom Vlog");
   /* the greeting every video carries is not this video's own words (it has no "welcome to" — only the greeting rule catches it) */
   assert.equal(ownWords(VIDEOS[0], CTX.channel).firstLine, null);
+  /* nor does the greeting ("living in Denmark") make the video a "life abroad" video */
+  for (const o of all(VIDEOS[0])) assert.doesNotMatch(`${o.title} ${o.hashtags.join(" ")} ${o.thumbnail} ${o.basedOn.join(" ")}`, /abroad|living/i, `the greeting decided the kind of video: ${o.title}`);
   assert.equal(all(VIDEOS[1])[0].title, "Jumping Sara | Pakistani Mom Vlog");
   /* the video names its place itself (its title, or a description line of its own) — then it is used, and said */
   const z = all(VIDEOS[3]);

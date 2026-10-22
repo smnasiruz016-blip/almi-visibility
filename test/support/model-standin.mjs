@@ -29,7 +29,7 @@ export function modelReply(material, { attempt = 0, avoid = [] } = {}) {
   /* RR-316 A3 · what the REAL model did on the owner's channels (22 Oct): it writes the channel's own handle, names the channel's own
    * products, declares ordinary words as "names" ("Meri", "Purani", "Pehle") and quotes a fact in translation (English for a Roman-Urdu line) */
   const handle = /^CHANNEL: .*?(@[\w.-]+)/m.exec(material)?.[1];
-  if (handle) o[1].description += `\nSubscribe: ${handle}`;
+  if (handle) for (const x of o) x.description += `\nSubscribe: ${handle}`; // in EVERY option, as the real model wrote it
   const product = /^THE CHANNEL'S OWN NAMES[^:]*: (.*)$/m.exec(material)?.[1]?.split(", ").find((x) => /^[A-Z][a-z]+[A-Z]/.test(x));
   if (product) o[2].description += `\nMade with ${product}.`;
   if (r() < 0.4) o[0].names = ["Meri", "Purani", "Pehle"];
@@ -49,7 +49,8 @@ export function modelRecheck(content) {
   const out = list.map(({ option, not_in_the_material: doubts }) => {
     const r = rng(hash(option.title) + 104729);
     let o = { ...option, names: [], facts: [] };
-    for (const d of doubts) if (r() < 0.85) { const re = new RegExp(`\\s*[—|-]?\\s*${String(d).replace(/[.*+?^${}()|[\]\\$]/g, "\\$&")}(\\s+Trip)?`, "gi"); o = { ...o, title: o.title.replace(re, "").trim() || "Hamari Yaadein", description: o.description.split("\n").filter((l) => !l.includes(d)).join("\n").replace(re, "") || o.description, thumbnail: o.thumbnail.replace(re, "").trim() || "HAMARI YAADEIN" }; }
+    /* RR-316: the real model KEEPS its channel's own @handle when asked to re-check — it is the channel's own name, so it stays */
+    for (const d of doubts) if (!String(d).startsWith("@") && r() < 0.85) { const re = new RegExp(`\\s*[—|-]?\\s*${String(d).replace(/[.*+?^${}()|[\]\\$]/g, "\\$&")}(\\s+Trip)?`, "gi"); o = { ...o, title: o.title.replace(re, "").trim() || "Hamari Yaadein", description: o.description.split("\n").filter((l) => !l.includes(d)).join("\n").replace(re, "") || o.description, thumbnail: o.thumbnail.replace(re, "").trim() || "HAMARI YAADEIN" }; }
     if ((o.hashtags ?? []).length > 3) o.hashtags = o.hashtags.slice(0, 3);
     if (String(o.thumbnail).split(/\s+/).length > 4) o.thumbnail = "HAMARI YAADEIN";
     o.description = o.description.split("\n").filter((l) => !/\(add /i.test(l)).join("\n");

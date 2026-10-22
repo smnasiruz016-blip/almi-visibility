@@ -106,7 +106,8 @@ export function researchTerms({ research = null, files = [] }) {
       for (let i = 0; i + 1 < raw.length; i++) { const a = tokens(raw[i]), b = tokens(raw[i + 1]); if (a.length === 1 && b.length === 1) grams.set(`${a[0]} ${b[0]}`, `${raw[i]} ${raw[i + 1]}`); }
       for (const [g, d] of grams) { const s = seen.get(g) ?? { n: 0, d }; s.n++; seen.set(g, s); }
     }
-    for (const [g, s] of seen) if (s.n >= 2) add(g, s.d, `YouTube search "${r.q}" — used by ${s.n} of its top ${r.videos.length} videos (read ${day(research.readOn)})`, s.n);
+    /* RR-311: a clip or junk phrase ("full episode", "day life", "bigg boss") is never a search term */
+    for (const [g, s] of seen) if (s.n >= 2 && !/\b(full episodes?|day life|bigg boss|big boss|full video|full movie|promo|trailer|clips?|highlights|reaction|status video|daily vlog)\b/i.test(g)) add(g, s.d, `YouTube search "${r.q}" — used by ${s.n} of its top ${r.videos.length} videos (read ${day(research.readOn)})`, s.n);
   }
   for (const f of files) add(f.phrase, f.phrase, `your file ${f.file} (added ${day(f.on)})`, 1 + Math.min(5, Math.log10(1 + (f.impressions ?? 0))));
   return [...terms.values()].sort((a, b) => b.weight - a.weight);
@@ -182,7 +183,9 @@ export function adviceForVideo(v, { terms, questions, productUrl = null, product
 export function channelAdvice({ channel, product, videos, terms, readOn }) {
   const out = [];
   const what = String(product.what ?? "").split(/[.]/)[0].trim();
-  if (what) out.push({ what: "One-line identity", advice: `${channel.title}: ${what.replace(/^youtube channel( of [^:]+)?:\s*/i, "")}`.slice(0, 150), from: "your product's description" });
+  /* RR-311 (owner: "a sentence cut mid-word"): a ready line is whole or not given — never cut */
+  const identity = `${channel.title}: ${what.replace(/^youtube channel( of [^:]+)?:\s*/i, "")}`;
+  if (what && identity.length <= 150) out.push({ what: "One-line identity", advice: identity, from: "your product's description" });
   const topicCount = new Map();
   const groups = new Map();
   for (const v of videos) {
@@ -193,10 +196,13 @@ export function channelAdvice({ channel, product, videos, terms, readOn }) {
     groups.set(best.phrase, [...(groups.get(best.phrase) ?? []), v]);
   }
   const shown = new Map(terms.map((t) => [t.phrase, t.display ?? t.phrase]));
-  const top = [...topicCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([p]) => shown.get(p) ?? p);
+  const top = [...topicCount.entries()].filter(([p]) => !/\b(full episodes?|day life|bigg boss|big boss|full video|full movie|promo|trailer|clips?|highlights|reaction|status video|daily vlog)\b/i.test(shown.get(p) ?? p)).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([p]) => shown.get(p) ?? p);
   if (top.length) out.push({ what: "Channel description", advice: [what ? `${channel.title} — ${what.replace(/^youtube channel( of [^:]+)?:\s*/i, "")}.` : null, `Videos about: ${top.join(", ")}.`, product.site && !/youtube\.com/i.test(product.site) ? `More: ${product.site}` : null].filter(Boolean).join("\n"), from: `your product's description · the phrases your own videos match (read ${day(readOn)})` });
-  const lists = [...groups.entries()].filter(([, vs]) => vs.length >= 2).sort((a, b) => b[1].length - a[1].length).slice(0, 6);
-  if (lists.length) out.push({ what: "Playlist plan", advice: lists.map(([p, vs]) => `"${cap(shown.get(p) ?? p)}" — ${vs.length} videos (e.g. ${vs.slice(0, 2).map((v) => `"${v.title.slice(0, 50)}"`).join(", ")})`).join("\n"), from: `your own videos, grouped by the researched phrase each one matches (read ${day(readOn)})` });
+  /* RR-311 (owner): no playlist named after clips and junk ("Full Episode", "Day Life", Bigg Boss) */
+  const JUNK = /\b(full episodes?|day life|bigg boss|big boss|full video|full movie|promo|trailer|clips?|highlights|reaction|status video|daily vlog)\b/i;
+  const whole = (s, n) => { s = String(s); if (s.length <= n) return s; const c = s.slice(0, n + 1).replace(/\s+\S*$/, ""); return `${c || s.slice(0, n)} …`; };
+  const lists = [...groups.entries()].filter(([p, vs]) => vs.length >= 2 && !JUNK.test(shown.get(p) ?? p)).sort((a, b) => b[1].length - a[1].length).slice(0, 6);
+  if (lists.length) out.push({ what: "Playlist plan", advice: lists.map(([p, vs]) => `"${cap(shown.get(p) ?? p)}" — ${vs.length} videos (e.g. ${vs.slice(0, 2).map((v) => `"${whole(v.title, 60)}"`).join(", ")})`).join("\n"), from: `your own videos, grouped by the researched phrase each one matches (read ${day(readOn)})` });
   const style = { English: 0, "Roman Urdu/Hindi": 0, "Urdu script": 0, "Hindi script": 0 };
   for (const v of videos) {
     const t = String(v.title);

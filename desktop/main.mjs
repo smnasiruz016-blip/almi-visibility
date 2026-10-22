@@ -10,7 +10,7 @@
  *   node desktop/main.mjs --data=<dir> [--install=<program dir>] [--port=0]
  */
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,6 +30,8 @@ import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { youtubeApp } from "./youtube-app.mjs";
+import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
+import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
 import { actionPlan, willDo, planDocument, isAlmiWorld } from "./action-plan.mjs";
 import { newIndexNowKey, checkKeyFile, keyFileHowTo, keyFileUrl, indexNow, inSitemap, submissionLines, INDEXNOW_ENDPOINT } from "./submit.mjs";
 
@@ -70,7 +72,10 @@ let updateFound = null;
 const KEYS = keyStore({ backend: CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
 const KEY_ALLOWED = new Set([KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName)]);
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
-const YT = youtubeApp({ store, dataDir: DATA, keys: KEYS, config: CONFIG });
+/* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
+const LEDGER = aiLedger(join(DATA, "ai-usage.json"), { cap: () => Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD) });
+const YT_SIGNIN = youtubeSignin({ keys: KEYS, config: CONFIG });
+const YT = youtubeApp({ store, dataDir: DATA, keys: KEYS, config: CONFIG, ledger: LEDGER, signin: YT_SIGNIN });
 /* a YouTube or key error says what happened in plain words — never a URL (the key travels in one) */
 const safeWhy = (e) => (/answered HTTP \d+/.exec(String(e?.message))?.[0] ? `YouTube ${/answered HTTP \d+/.exec(String(e.message))[0]}` : "no answer from YouTube");
 
@@ -472,6 +477,14 @@ const server = createServer((req, res) => {
       { const r = /^\/api\/products\/([^/]+)\/draft$/.exec(u.pathname);
         if (r && req.method === "GET") { const id = decodeURIComponent(r[1]); try { store.read(id); } catch (e) { return send(400, { refused: e.message }); } const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, d.html, "text/html; charset=utf-8") : send(404, { refused: "no such draft" }); } }
       /* RR-307 E1: Google sends the browser back here after the client signed in — the access is kept, then the site is picked in the app */
+      /* RR-311 A · Google sends the channel owner's browser back here; it must be THIS product's confirmed channel, or it is forgotten */
+      if (req.method === "GET" && u.pathname === "/oauth/youtube") {
+        const r = await YT_SIGNIN.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
+        let ok = r.ok, why = r.why ?? "";
+        if (r.ok) { const s = store.read(r.id), want = s.setup?.youtube?.confirmed?.channelId; if (!want || r.channelId !== want) { YT_SIGNIN.signOut(r.id); ok = false; why = `You signed in with the Google account of another channel (${r.channelTitle ?? "no channel"}) — sign in with the account that owns ${s.setup?.youtube?.confirmed?.title ?? "this product's channel"}. Nothing was kept.`; } else YT.refreshSigned(r.id, { force: true }).catch(() => {}); }
+        const e = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${ok ? "Signed in to YouTube ✓" : "Not connected"}</h2><p>${ok ? `${e(r.channelTitle ?? "")} — go back to AlmiVisibility; your channel's own data is read now.${r.write ? " \"Apply to YouTube\" is on." : ""}` : e(why)}</p></body>`, "text/html; charset=utf-8");
+      }
       if (req.method === "GET" && u.pathname === "/oauth/google") {
         const r = await GOOGLE.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
         const pid = CONFIG.googlePendingProduct ?? "";
@@ -513,7 +526,7 @@ const server = createServer((req, res) => {
           return r.ok ? send(200, { ok: true, status: KEYS.status(k[1]) }) : send(400, { refused: r.why });
         } }
       /* RR-303 D + RR-306 B/C: YouTube settings, the channel lookup and confirmation, the research, the advice, search-data files */
-      { const y = /^\/api\/products\/([^/]+)\/youtube(?:\/(lookup|confirm|research|advice|file|write))?$/.exec(u.pathname);
+      { const y = /^\/api\/products\/([^/]+)\/youtube(?:\/(lookup|confirm|research|advice|file|write|signin|signout|signed|chapters|competitor|competitor\/remove|competitors\/refresh|apply|undo|coach|aicap))?$/.exec(u.pathname);
         if (y) {
           const yid = decodeURIComponent(y[1]);
           try { store.read(yid); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -524,10 +537,65 @@ const server = createServer((req, res) => {
             /* RR-307 (22 Oct): a channel just confirmed is checked at once — the score card never keeps "confirm your channel first" */
             if (y[2] === "confirm" && req.method === "POST") { const r = await YT.confirm(yid, json()); if (r.ok) (checking.has(yid) ? checking.get(yid).catch(() => {}).then(() => checkProduct(yid)) : checkProduct(yid)).catch(() => {}); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "research" && req.method === "POST") { const r = await YT.research(yid); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
-            if (y[2] === "advice" && req.method === "GET") return send(200, await YT.advice(yid, { offset: Math.max(0, Number(u.searchParams.get("offset")) || 0) }));
+            if (y[2] === "advice" && req.method === "GET") {
+              const offset = Math.max(0, Number(u.searchParams.get("offset")) || 0);
+              /* RR-311: the first page of the day brings the channel's own analytics (signed in) and the competitors' new uploads — once a day */
+              if (!offset) { if (YT_SIGNIN.status(yid).signedIn) await YT.refreshSigned(yid).catch(() => null); const c = pread(yid, "youtube-competitors.json", {}); if (!c._on || String(c._on).slice(0, 10) !== new Date().toISOString().slice(0, 10)) await YT.refreshCompetitors(yid).catch(() => null); }
+              return send(200, { ...(await YT.advice(yid, { offset })), almiworld: isAlmiWorld(store.read(yid)) });
+            }
             if (y[2] === "write" && req.method === "POST") { const r = await YT.write(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
-          } catch (e) { return send(502, { refused: `YouTube could not be reached now (${safeWhy(e)}). Nothing was changed.` }); }
+            /* ── RR-311 A · YouTube sign-in (the channel owner, in his browser), its data, real chapters ── */
+            if (y[2] === "signin" && req.method === "POST") { const r = YT_SIGNIN.start(yid, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: json().write === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, url: r.url } : { refused: r.why, adds: SIGNIN_ADDS }); }
+            if (y[2] === "signout" && req.method === "POST") { YT_SIGNIN.signOut(yid); rmSync(pfile(yid, "youtube-signed.json"), { force: true }); return send(200, { ok: true, line: "Signed out of YouTube for this product. Visibility forgot the access and the analytics it had read." }); }
+            if (y[2] === "signed" && req.method === "POST") { const r = await YT.refreshSigned(yid, { force: json().force === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, on: r.data.on, reach: r.data.reach?.line ?? null } : { refused: r.why }); }
+            if (y[2] === "chapters" && req.method === "POST") { const r = await YT.chapters(yid, json().videoId); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            /* ── C2 · competitors ── */
+            if (y[2] === "competitor" && req.method === "POST") { const r = await YT.addCompetitor(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            if (y[2] === "competitor/remove" && req.method === "POST") return send(200, YT.removeCompetitor(yid, json().channelId));
+            if (y[2] === "competitors/refresh" && req.method === "POST") { const r = await YT.refreshCompetitors(yid); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            /* ── D1 · Apply to YouTube (preview first; the old text kept; Undo) — with the client's permission; never AlmiWorld's own channel ── */
+            if (y[2] === "apply" && req.method === "POST") {
+              const v = json(), s = store.read(yid);
+              if (isAlmiWorld(s)) return send(200, { ok: false, refused: "AlmiWorld's own channel: nothing is changed on YouTube from here (owner's rule)." });
+              const st = YT_SIGNIN.status(yid);
+              if (!st.signedIn || !st.write) return send(200, { ok: false, refused: "Turn on \"Apply to YouTube\" first: sign in to YouTube with that permission." });
+              const items = (Array.isArray(v.items) ? v.items : []).slice(0, 50).filter((x) => /^[\w-]{6,20}$/.test(String(x.videoId ?? "")));
+              if (!items.length) return send(400, { refused: "Nothing to apply." });
+              const rows = [];
+              for (const it of items) {
+                const old = await YT_SIGNIN.snippet(yid, it.videoId); if (!old) { rows.push({ videoId: it.videoId, ok: false, why: "not found on YouTube" }); continue; }
+                const next = { ...old, title: String(it.title ?? old.title).slice(0, 100), description: String(it.description ?? old.description).slice(0, 5000), tags: Array.isArray(it.tags) ? it.tags.slice(0, 30) : old.tags ?? [] };
+                if (v.confirm !== true) { rows.push({ videoId: it.videoId, before: { title: old.title, description: old.description }, after: { title: next.title, description: next.description } }); continue; }
+                try { await YT_SIGNIN.updateSnippet(yid, it.videoId, next); } catch (e) { rows.push({ videoId: it.videoId, ok: false, why: `YouTube refused (${e.status ?? "no answer"})` }); continue; }
+                pwrite(yid, "youtube-applied.json", [...pread(yid, "youtube-applied.json", []), { videoId: it.videoId, on: new Date().toISOString(), before: { title: old.title, description: old.description, tags: old.tags ?? [] }, after: { title: next.title, description: next.description, tags: next.tags } }]);
+                rows.push({ videoId: it.videoId, ok: true, title: next.title });
+              }
+              if (v.confirm === true && rows.some((x) => x.ok)) didIt(yid, `Applied to YouTube: ${rows.filter((x) => x.ok).length} video(s) changed (the old text kept — Undo puts it back).`);
+              return send(200, { ok: true, preview: v.confirm !== true, rows });
+            }
+            if (y[2] === "undo" && req.method === "POST") {
+              const v = json(), recs = pread(yid, "youtube-applied.json", []);
+              const rec = recs.filter((x) => x.videoId === v.videoId && !x.undoneOn).at(-1); if (!rec) return send(404, { refused: "Nothing to undo for that video." });
+              const old = await YT_SIGNIN.snippet(yid, rec.videoId); if (!old) return send(400, { refused: "That video was not found on YouTube." });
+              await YT_SIGNIN.updateSnippet(yid, rec.videoId, { ...old, title: rec.before.title, description: rec.before.description, tags: rec.before.tags });
+              pwrite(yid, "youtube-applied.json", recs.map((x) => (x === rec ? { ...x, undoneOn: new Date().toISOString() } : x)));
+              didIt(yid, `Undone on YouTube: "${rec.before.title}" is back.`);
+              return send(200, { ok: true, line: `Undone — the old title and description are back on YouTube ("${rec.before.title}").` });
+            }
+            /* ── D5 · the AI coach; B6 · the AI cost cap ── */
+            if (y[2] === "coach" && req.method === "POST") {
+              const s = store.read(yid), c = s.setup?.aiConnection, p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName);
+              if (!p || !KEYS.status(p.keyName).saved) return send(200, { ok: false, refused: "Connect your AI first (Settings → Your AI connection)." });
+              if (p.id !== "anthropic") return send(200, { ok: false, refused: "The coach works with an Anthropic (Claude) key in this version." });
+              const ok = LEDGER.allowed(); if (!ok.ok) return send(200, { ok: false, refused: ok.why });
+              const facts = await YT.coachFacts(yid);
+              const r = await askCoach({ key: KEYS.get(p.keyName), question: json().question, facts, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) });
+              if (r.usage) LEDGER.add(r.usage);
+              return send(200, { ...r, refused: r.ok ? undefined : r.why, aiCost: LEDGER.line() });
+            }
+            if (y[2] === "aicap" && req.method === "POST") { const usd = Number(json().usd); if (!(usd >= 0 && usd <= 500)) return send(400, { refused: "Give a monthly limit between $0 and $500." }); CONFIG.aiMonthlyCapUSD = usd; saveConfig(); return send(200, { ok: true, line: LEDGER.line() }); }
+          } catch (e) { return send(e.code === "NOT_SIGNED_IN" ? 400 : 502, { refused: e.code === "NOT_SIGNED_IN" ? "Sign in to YouTube again — Google's access has ended." : `YouTube could not be reached now (${safeWhy(e)}). Nothing was changed.` }); }
         } }
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }
       if (req.method === "GET" && u.pathname === "/api/update") { const r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); updateFound = r.manifest ?? null; return send(200, { state: r.state, line: r.line }); }

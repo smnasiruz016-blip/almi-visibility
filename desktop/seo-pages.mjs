@@ -33,7 +33,11 @@ export const casingOf = (site) => { const m = new Map(); for (const p of site.pa
   for (const p of site.pages) for (const s of [...(p.lead ?? []), ...(p.facts ?? [])]) for (const w of String(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(1)) if ((/^\p{Lu}\p{Ll}+$/u.test(w) || (/^\p{Lu}[\p{L}]{1,5}$/u.test(w) && (w.match(/\p{Lu}/gu) ?? []).length >= 2 && !SHOUTED.has(w.toLowerCase()))) && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
   return m; };
 /* RR-309 B2: names keep their capitals in a page's title ("Is OET accepted in canada" → "Canada") — the site's own spelling first, then known names */
-const asQuestion = (s, casing = new Map()) => { const t = properNames(String(s).trim().replace(/\s+/g, " ").split(" ").map((w) => casing.get(w.toLowerCase()) ?? w).join(" ")); return t.charAt(0).toUpperCase() + t.slice(1); };
+/* RR-311 E2: a page title that is not a question gets title case ("AHPRA Speech Pathology"); a question keeps sentence case */
+const SMALL_WORDS = new Set(["a", "an", "the", "and", "or", "for", "in", "on", "of", "to", "at", "by", "with", "from", "vs"]);
+export const asQuestion = (s, casing = new Map()) => { let t = properNames(String(s).trim().replace(/\s+/g, " ").split(" ").map((w) => casing.get(w.toLowerCase()) ?? w).join(" "));
+  if (!/^(how|what|why|which|where|when|who|is|are|can|does|do|should|will)\b/i.test(t)) t = t.split(" ").map((w, i) => (i > 0 && SMALL_WORDS.has(w.toLowerCase()) ? w.toLowerCase() : w === w.toLowerCase() ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
+  return t.charAt(0).toUpperCase() + t.slice(1); };
 
 /** The client's design from its own site (read-only), when it holds what a page needs — else null (a plain look, said so). */
 export function designFromSite(site) {

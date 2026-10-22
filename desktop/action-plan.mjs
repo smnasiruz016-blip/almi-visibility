@@ -67,7 +67,9 @@ const SOLUTION = Object.freeze({
 });
 export const readyFromFix = (xs, kind, label, readOn) => xs.flatMap((x) => (x.options?.length ? x.options.map((o, k) => ({ kind, label: `${label} — option ${k + 1}`, text: o.text, for: x.page, source: `written from ${o.from} · read ${day(readOn)}` })) : x.paste ? [{ kind, label, text: x.paste, for: x.page, source: `${x.from} · read ${day(readOn)}` }] : []));
 /* a new page's meta description: its first answer sentences, as written on the client's own page, fitted to 160 characters at a sentence end */
-const metaFrom = (answers = []) => { let out = ""; for (const a of answers) for (const s of String(a.text ?? "").split(/(?<=[.!?])\s+/)) { if ((out ? `${out} ${s}` : s).length > 160) return out.length >= 50 ? out : null; out = out ? `${out} ${s}` : s; } return out.length >= 50 ? out : null; };
+/* RR-311 E1 (owner): a first sentence over 160 characters is not cut and the page is not skipped — the next complete sentences of the page's
+ * own answers are used instead */
+const metaFrom = (answers = []) => { let out = ""; for (const a of answers) for (const s of String(a.text ?? "").split(/(?<=[.!?])\s+/)) { if (s.length > 160) continue; if ((out ? `${out} ${s}` : s).length > 160) return out.length >= 50 ? out : (s.length >= 50 ? s : null); out = out ? `${out} ${s}` : s; } return out.length >= 50 ? out : null; };
 export function websiteItems({ card = null, site = null, pages = null, languages = [] }) {
   if (!site?.ok) return [];
   const out = [], n = site.pages.length, readOn = site.readOn;

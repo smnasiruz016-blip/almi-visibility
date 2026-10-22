@@ -14,7 +14,8 @@ import { join } from "node:path";
 import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY, videoKind, linkTargetFor } from "../src/video/youtube.mjs";
 import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
-import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS } from "./youtube-niche.mjs";
+import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS, JUNK_PHRASE } from "./youtube-niche.mjs";
+import { channelLanguage, sameLanguage, langOf, questionTitle, ownDataFindings, keywordIdeas, scorecard, newUploads, suggestCompetitors, beforeAfter, chaptersFrom, parseVtt } from "./youtube-insights.mjs";
 import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N } from "./youtube-plan.mjs";
 import { writeWithAI } from "./ai-write.mjs";
 import { youtubeItems } from "./action-plan.mjs";
@@ -39,7 +40,7 @@ export function phrasesFromFile(name, text, on) {
   return phrases.length ? { ok: true, phrases } : { ok: false, why: "No queries were found in the file." };
 }
 
-export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15000) }), aiFetchImpl = fetch, now = () => Date.now() }) {
+export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15000) }), aiFetchImpl = fetch, now = () => Date.now(), ledger = null, signin = null }) {
   const apiBase = config.youtubeApiBase ?? API_BASE;
   const cap = Number.isInteger(config.youtubeSearchesPerDay) ? config.youtubeSearchesPerDay : DEFAULT_SEARCH_CAP;
   const today = () => new Date(now()).toISOString().slice(0, 10);
@@ -48,6 +49,8 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
   const count = (path) => { const q = quota(); if (path === "search") q.searches++; else q.units++; atomic(quotaFile, q); };
   const api = () => youtubeApi({ key: keys.get(YOUTUBE_KEY), fetchImpl, apiBase, onCall: count });
   const yt = (s) => s.setup?.youtube ?? {};
+  /* RR-311: the channel's own analytics only while its owner is signed in — never an old read after a sign-out */
+  const signedOf = (id) => (signin?.status(id).signedIn ? readJson(join(store.dirOf(id), "youtube-signed.json"), null) : null);
   const rawDir = (id) => { const d = join(store.dirOf(id), "youtube-raw"); mkdirSync(d, { recursive: true }); return d; };
   const prune = (id) => { const d = rawDir(id); for (const f of readdirSync(d)) { const m = /(\d{4}-\d{2}-\d{2})\.json$/.exec(f); if (m && now() - Date.parse(m[1]) > RAW_DAYS * 86400000) rmSync(join(d, f)); } };
   const latest = (id, prefix) => { const d = rawDir(id); const f = readdirSync(d).filter((x) => x.startsWith(prefix) && /\d{4}-\d{2}-\d{2}\.json$/.test(x)).sort().at(-1); return f ? readJson(join(d, f), null) : null; };
@@ -149,12 +152,17 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const room = Math.min(shareOf() - usedHere, cap - quota().searches);
       const chosen = all.filter((q) => st[q] !== today()).sort((x, z) => String(st[x] ?? "").localeCompare(String(st[z] ?? ""))).slice(0, Math.max(0, Math.ceil(room * 2 / 3)));
       if (!chosen.length) return { ok: false, why: room <= 0 ? `Today's research limit is reached (${quota().searches} of ${cap} searches used; this product's share today: ${shareOf()}). It starts again tomorrow. ${topicLines(id).line}` : `Every topic was searched today. ${topicLines(id).line}` };
-      const lang = (s.setup?.languages?.codes ?? []).find((c) => c !== "en") ?? null;
+      /* RR-311 C1 (owner: "the niche learns from the wrong channels — American lifestyle creators"): the channel's OWN language, read from its
+       * own titles, decides the API's language filter (and the region, when the channel's analytics say where its viewers are); then each
+       * result's own language is checked, and clips ("full episode", Bigg Boss) are left out */
+      const chLang = channelLanguage(own);
+      const lang = chLang.code === "en" ? (s.setup?.languages?.codes ?? []).find((c) => c !== "en") ?? "en" : chLang.relevance;
+      const region = signedOf(id)?.analytics?.countries?.[0]?.country ?? null;
       const runs = [...chosen.map((q) => ({ q, kind: "top", days: 365 })), ...chosen.slice(0, 2).map((q) => ({ q, kind: "rising", days: 30 }))].slice(0, Math.max(1, room));
-      const out = { readOn: new Date(now()).toISOString(), nicheLabel: niche.label, niche: [], topics: [], comments: [] };
+      const out = { readOn: new Date(now()).toISOString(), nicheLabel: niche.label, language: chLang.label, languageCode: chLang.code, region, niche: [], topics: [], comments: [], otherLanguage: 0 };
       /* YouTube's own relevance inside the window (top: a year; rising: 30 days), then only the videos that are ABOUT the phrase, most viewed
        * first (ordering by views alone returned giant off-topic clips) */
-      for (const r of runs) { const found = await a.searchTopic(r.q, { max: 25, order: "relevance", publishedAfter: new Date(now() - r.days * 86400000).toISOString(), relevanceLanguage: lang }); const videos = found.filter((v) => onTopic(v, r.q)).slice(0, 15); out.niche.push({ q: r.q, kind: r.kind, videos, found: found.length }); if (r.kind === "top") out.topics.push({ q: r.q, videos }); }
+      for (const r of runs) { const found = await a.searchTopic(r.q, { max: 25, order: "relevance", publishedAfter: new Date(now() - r.days * 86400000).toISOString(), relevanceLanguage: lang, regionCode: region }); const onIt = found.filter((v) => onTopic(v, r.q) && !JUNK_PHRASE.test(v.title)); const videos = onIt.filter((v) => sameLanguage(v, chLang)).slice(0, 15); out.otherLanguage += onIt.length - videos.length; out.niche.push({ q: r.q, kind: r.kind, videos, found: found.length }); if (r.kind === "top") out.topics.push({ q: r.q, videos }); }
       /* what viewers write: under the channel's own 10 most-commented videos and the niche's top 2 per search — read 5 at a time; one video
        * that does not answer is skipped, never the whole research (a stalled read once held the research for minutes) */
       const reads = [...own.slice().sort((x, z) => (z.comments ?? 0) - (x.comments ?? 0)).slice(0, 10).filter((v) => (v.comments ?? 1) > 0).map((v) => ({ v, own: true })),
@@ -164,7 +172,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       atomic(join(rawDir(id), `research-${today()}.json`), prev ? { ...out, niche: [...(prev.niche ?? []).filter((p) => !runs.some((r) => r.q === p.q && r.kind === p.kind)), ...out.niche], topics: [...(prev.topics ?? []).filter((p) => !chosen.includes(p.q)), ...out.topics], comments: [...(prev.comments ?? []), ...out.comments] } : out);
       atomic(join(store.dirOf(id), "youtube-topics.json"), { ...topicState(id), ...Object.fromEntries(chosen.map((q) => [q, today()])) });
       prune(id);
-      return { ok: true, line: `Research done: ${runs.length} searches of your niche (${chosen.join(", ")}), ${out.niche.reduce((n, t) => n + t.videos.length, 0)} videos, ${out.comments.length} comments read. ${quotaLine()} ${topicLines(id).line}` };
+      return { ok: true, line: `Research done in your channel's language (${chLang.label}): ${runs.length} searches of your niche (${chosen.join(", ")}), ${out.niche.reduce((n, t) => n + t.videos.length, 0)} videos kept${out.otherLanguage ? ` (${out.otherLanguage} in other languages left out)` : ""}, ${out.comments.length} comments read. ${quotaLine()} ${topicLines(id).line}` };
     },
     addFile(id, { name, text }) {
       const r = phrasesFromFile(name, text, today());
@@ -202,14 +210,27 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const ctx = contextFor(s, confirmed, videos, research, opts);
       /* the questions people ask (research comments and files), in the channel's own scripts — Option 2 of each video uses them (RR-309 B4) */
       const files = filesOf(id), lang = s.setup?.languages?.codes ?? [];
-      const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: lang }, terms }).filter((q) => inOwnScripts(q.text, ctx.scripts));
-      ctx.questions = [...questions, ...(ctx.summary?.asks ?? []).map((a) => ({ text: a.text, source: `a comment under "${a.under}", ${a.on}`, likes: a.likes }))];
+      /* RR-311 C4: and in the channel's own LANGUAGE (a Banglish question is Latin script too — it is left out of an Urdu/Hindi channel) */
+      const chLang = channelLanguage(videos);
+      const inLang = (t) => { const l = langOf(t); return l === chLang.code || (chLang.code === "en" && l === null) || (chLang.code === "ur-hi" && l === "en"); };
+      const terms = researchTerms({ research, files }), questions = researchQuestions({ research, files, product: { ...s.setup?.product, languages: lang }, terms }).filter((q) => inOwnScripts(q.text, ctx.scripts) && inLang(q.text));
+      ctx.questions = [...questions, ...(ctx.summary?.asks ?? []).filter((a) => inLang(a.text)).map((a) => ({ text: a.text, source: `a comment under "${a.under}", ${a.on}`, likes: a.likes }))];
+      ctx.chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {}); // RR-311 A1: real chapters, made from captions on the client's click
+      const signed = signedOf(id);
       const { order, why } = priorityOrder(videos);
       const page = order.slice(offset, offset + TOP_N).map((v) => ({ ...optionsFor(v, ctx), why: why.get(v.videoId)?.join(" and ") ?? null }));
       const more = Math.max(0, order.length - offset - page.length);
       if (offset) return { state: "READY", top: page, more };
       const score = youtubeScore(videos, opts);
-      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions, topic: ctx.niche.queries?.[0]?.q ?? null });
+      /* RR-311 C4: a viewer's question becomes a proper ready title (its own words, cleaned, in the channel's language); the question is the source */
+      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions, topic: ctx.niche.queries?.[0]?.q ?? null }).flatMap((i) => {
+        if (i.kind !== "QUESTION") return [i];
+        const src = questions.find((q) => q.text === i.question)?.source ?? "the research";
+        const t = questionTitle({ text: i.question, source: src }, chLang); return t ? [{ ...i, title: t.title, why: `${t.from} — none of your videos answers it yet` }] : [];
+      });
+      /* RR-311 B1 + C2 + C3: from YOUR channel's data; the competitors; keyword ideas with a demand estimate */
+      const own = ownDataFindings(videos, { now: now(), analytics: signed?.analytics ?? null, reach: signed?.reach ?? null, retention: signed?.retention ?? {} });
+      const comp = self.competitors(id, { research, chLang, channelId: y.confirmed.channelId });
       const report = youtubeForReport({ ok: true, source: "YOUTUBE_DATA_API", importedOn: today(), videos: raw.videos }, channelCheck(raw.videos, opts)).lines;
       const ai = aiOf(s);
       const out = { state: "READY", confirmed: y.confirmed, complete: raw.complete !== false, report, quota: quotaLine(), topics: topicLines(id), shared, researchOn: research?.readOn ?? null,
@@ -218,6 +239,10 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
         gaps: gapFixes(videos, ctx, opts), // RR-310 A: each failing check with its most-viewed videos and their ready text
         channelAdvice: channelAdvice({ channel: y.confirmed, product: { ...s.setup?.product, site: s.product?.site, languages: lang }, videos, terms, readOn: research?.readOn ?? today() }),
         terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15),
+        language: chLang, ownData: own, competitors: comp, keywords: keywordIdeas(research, terms.slice(0, 40), now(), chLang).slice(0, 12),
+        signin: signin ? { ...signin.status(id), on: signed?.on ?? null, reachLine: signed?.reach?.line ?? null } : null, aiCost: ledger ? ledger.line() : null,
+        applied: beforeAfter(readJson(join(store.dirOf(id), "youtube-applied.json"), []).filter((c) => !c.undoneOn), { daily: signed?.daily ?? {}, reach: signed?.reach ?? null, now: now() }),
+        thumbnailGuide: "Test your thumbnails with YouTube's own \"Test & Compare\" (YouTube Studio → the video → Thumbnail → Test & Compare): upload up to 3 thumbnails and YouTube shows them to viewers and picks the one watched most. Visibility gives 3 thumbnail texts under each video; it never runs an unofficial test.",
         aiLine: ai.ready ? `AI writing: your ${ai.name} key is connected — press "Write better options with AI" under a video (it uses your own AI account).` : "Better with AI — connect your AI (Settings → Your AI connection). Until then, the options below are written by Visibility's templates, only from your own videos and the research.",
         notEnough: [] };
       /* RR-310 A: "Do these first this week" = the same items as the action plan's YouTube part (problem, solution, ready text) */
@@ -232,7 +257,92 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const opts = { productUrl: s.product?.site ?? null, productIsChannel: productIsChannel(s), relatedPages: y.relatedPages ?? [] };
       const ctx = contextFor(s, y.confirmed, raw.videos, researchAll(id), opts);
       const target = linkTargetFor(v, opts);
-      return writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, kind: videoKind(v), style: styleOf(v), links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
+      /* RR-311 B6: the month's AI cap first; every request counted */
+      if (ledger) { const ok = ledger.allowed(); if (!ok.ok) return { ok: false, why: ok.why }; }
+      /* RR-311 B3: the video's captions (when signed in with Apply on), its real chapters, its channel's own data, its language */
+      const capFile = join(store.dirOf(id), "youtube-captions", `${videoId}.vtt`);
+      const captions = existsSync(capFile) ? readFileSync(capFile, "utf8").replace(/^WEBVTT.*$/m, "").replace(/\n{2,}/g, "\n").slice(0, 4000) : null;
+      const signed = signedOf(id);
+      const own = ownDataFindings(raw.videos, { now: now(), analytics: signed?.analytics ?? null, reach: signed?.reach ?? null, retention: signed?.retention ?? {} }).findings.slice(0, 4).map((f) => f.line);
+      const chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {})[videoId] ?? null;
+      const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
+      if (ledger && r.usage) ledger.add(r.usage);
+      return { ...r, aiCost: ledger ? ledger.line() : null };
+    },
+    /* ── RR-311 C2 · competitors: the client picks 3–5; Visibility suggests same-language channels from the research ── */
+    competitors(id, { research = researchAll(id), chLang = null, channelId = null } = {}) {
+      const s = store.read(id), y = yt(s), list = y.competitors ?? [];
+      const cache = readJson(join(store.dirOf(id), "youtube-competitors.json"), {});
+      const ch = chLang ?? channelLanguage(latest(id, "videos-")?.videos ?? []);
+      return { list: list.map((c) => ({ ...c, ...(cache[c.channelId] ?? {}) })), suggestions: suggestCompetitors(research, channelId ?? y.confirmed?.channelId, ch).filter((x) => !list.some((c) => c.channelId === x.channelId)), on: cache._on ?? null };
+    },
+    async addCompetitor(id, { handle, channelId }) {
+      const s = store.read(id), y = yt(s), list = y.competitors ?? [];
+      if (list.length >= 5) return { ok: false, why: "Five competitors at most — remove one first." };
+      const a = api(); if (a.state !== "READY") return { ok: false, why: keyLine() };
+      const c = handle ? await a.lookupHandle(String(handle).trim()) : await a.channelById(channelId);
+      if (!c.found) return { ok: false, why: c.line ?? "Channel not found." };
+      if (c.channelId === y.confirmed?.channelId) return { ok: false, why: "That is your own channel." };
+      if (list.some((x) => x.channelId === c.channelId)) return { ok: false, why: "Already on your list." };
+      s.setup.youtube = { ...y, competitors: [...list, { channelId: c.channelId, title: c.title, handle: c.handle ?? null }] }; store.write(id, s);
+      await self.refreshCompetitors(id).catch(() => null);
+      return { ok: true, line: `Added ${c.title}. Visibility now watches its new uploads.` };
+    },
+    removeCompetitor(id, channelId) { const s = store.read(id), y = yt(s); s.setup.youtube = { ...y, competitors: (y.competitors ?? []).filter((c) => c.channelId !== channelId) }; store.write(id, s); return { ok: true }; },
+    /** each competitor's latest uploads (one page, 3 units): the scorecard and the NEW uploads since last time — the alerts */
+    async refreshCompetitors(id) {
+      const y = yt(store.read(id)), list = y.competitors ?? []; if (!list.length) return { ok: true, alerts: [] };
+      const a = api(); if (a.state !== "READY") return { ok: false, why: keyLine() };
+      const file = join(store.dirOf(id), "youtube-competitors.json"), cache = readJson(file, {}), alerts = [];
+      for (const c of list) {
+        const r = await a.latestUploads(c.channelId).catch(() => null); if (!r) continue;
+        const prev = cache[c.channelId], fresh = prev ? newUploads(prev.seen ?? [], r.videos) : [];
+        cache[c.channelId] = { scorecard: scorecard({ ...c }, r.videos, now()), seen: [...new Set([...(prev?.seen ?? []), ...r.videos.map((v) => v.videoId)])].slice(-200), newOnes: [...fresh.map((v) => ({ videoId: v.videoId, title: v.title, publishedAt: v.publishedAt, views: v.views })), ...(prev?.newOnes ?? [])].slice(0, 20) };
+        for (const v of fresh) alerts.push({ channel: c.title, title: v.title, publishedAt: v.publishedAt, videoId: v.videoId });
+      }
+      cache._on = new Date(now()).toISOString(); atomic(file, cache);
+      return { ok: true, alerts };
+    },
+    /* ── RR-311 A · the channel's own analytics, after its owner signed in (kept a day; the reach report comes within 48 hours) ── */
+    async refreshSigned(id, { force = false } = {}) {
+      if (!signin?.status(id).signedIn) return { ok: false, why: "Sign in to YouTube first." };
+      const file = join(store.dirOf(id), "youtube-signed.json"), old = readJson(file, null);
+      if (!force && old?.on === today()) return { ok: true, cached: true, data: old };
+      const analytics = await signin.analytics(id);
+      const reach = await signin.reach(id).catch((e) => ({ state: "FAILED", line: `Google did not give the impressions report (${e.status ?? "no answer"}).` }));
+      const retention = {};
+      for (const v of (analytics.byVideo ?? []).slice(0, 5)) retention[v.videoId] = await signin.retention(id, v.videoId).catch(() => []);
+      /* the views per day of every video changed through "Apply to YouTube" — its before → after */
+      const daily = {}; for (const c of readJson(join(store.dirOf(id), "youtube-applied.json"), []).filter((x) => !x.undoneOn)) daily[c.videoId] = await signin.daily(id, c.videoId, new Date(Date.parse(c.on) - 15 * 864e5).toISOString().slice(0, 10), today()).catch(() => []);
+      const data = { on: today(), analytics, reach, retention, daily };
+      atomic(file, data);
+      return { ok: true, data };
+    },
+    /** A1 · real chapters from the video's own captions (needs the Apply permission — Google has no read-only one for captions) */
+    async chapters(id, videoId) {
+      if (!signin?.status(id).signedIn) return { ok: false, why: "Sign in to YouTube first." };
+      if (!signin.status(id).write) return { ok: false, why: "Google gives a video's captions only with the \"Apply to YouTube\" permission — turn it on (it signs you in again), then press this again." };
+      const raw = latest(id, "videos-"); const v = raw?.videos?.find((x) => x.videoId === videoId); if (!v) return { ok: false, why: "That video was not found in today's read." };
+      const vtt = await signin.captions(id, videoId).catch(() => null);
+      if (!vtt) return { ok: false, why: "This video has no captions on YouTube yet — YouTube makes automatic ones for most videos within a day; add your own in YouTube Studio → Subtitles." };
+      const dir = join(store.dirOf(id), "youtube-captions"); mkdirSync(dir, { recursive: true }); atomic(join(dir, `${videoId}.vtt`), vtt);
+      const ch = chaptersFrom(parseVtt(vtt), v.durationSec);
+      if (!ch) return { ok: false, why: "The captions are too short to make at least 3 chapters." };
+      const file = join(store.dirOf(id), "youtube-chapters.json"); atomic(file, { ...readJson(file, {}), [videoId]: ch.text });
+      return { ok: true, chapters: ch.text, from: ch.from };
+    },
+    /** D5 · the facts the AI coach may answer from — every one THIS channel's own, with its source */
+    async coachFacts(id) {
+      const a = await self.advice(id); if (a.state !== "READY") return [];
+      const f = [];
+      f.push({ text: `The channel ${a.confirmed.title} has ${a.channel.videos} videos (${a.channel.shorts} Shorts, ${a.channel.long} long).`, source: "YouTube, read today" });
+      for (const c of a.score.checks) f.push({ text: c.text, source: "Visibility's YouTube check" });
+      for (const x of a.ownData.findings) f.push({ text: x.line, source: x.from });
+      for (const x of a.summary?.lines ?? []) f.push({ text: `${x.what}: ${x.line}`, source: x.from });
+      for (const k of a.keywords.slice(0, 8)) f.push({ text: `Keyword "${k.phrase}" — ${k.estimate}`, source: k.source });
+      for (const c of a.competitors.list) if (c.scorecard) f.push({ text: `Competitor ${c.title}: ${c.scorecard.uploadsPerWeek} uploads a week, median ${c.scorecard.medianViews} views on its last 20, top topics ${c.scorecard.topTopics.join(", ") || "none"}.`, source: "its latest uploads, read through YouTube" });
+      for (const i of a.ideas.slice(0, 5)) f.push({ text: `Video idea: "${i.title}"`, source: i.why });
+      return f.slice(0, 60);
     },
     /** what the research found (its phrases and questions) — for the Overview and the page plan, WITHOUT reading the channel again */
     foundFor(id) {

@@ -45,7 +45,8 @@ const PLACE_BY = new Map(PLACES.map((p) => [p.toLowerCase(), p]));
 /* RR-309 B2 · names keep their capitals everywhere options are made ("canada" → "Canada", "new zealand" → "New Zealand", "pakistani" →
  * "Pakistani"): places, two-word places, the people of a place, and languages. Only these known names are changed — never other words. */
 const MULTI_PLACES = ["New Zealand", "New York", "Saudi Arabia", "United Kingdom", "United States", "United Arab Emirates", "South Africa", "Sri Lanka", "Hong Kong", "Abu Dhabi", "Los Angeles", "Northern Ireland", "Faroe Islands"];
-const PEOPLE_AND_LANGUAGES = ["Pakistani", "Danish", "Icelandic", "Norwegian", "Swedish", "Finnish", "Indian", "British", "American", "Canadian", "German", "Dutch", "Turkish", "Irish", "Australian", "Arab", "Urdu", "Hindi", "English", "Arabic", "Punjabi", "Bengali", "Sindhi", "Pashto", "Desi", "Muslim", "Christian", "Eid", "Ramadan", "Christmas", "Diwali", "OET", "IELTS", "PTE", "TOEFL", "CELPIP", "CV", "UK", "USA", "UAE"]; // not "AI": "ai" is a common Roman Urdu word
+/* RR-311 E2: the regulators and exams of the exam pages keep their own spelling (AHPRA, GPhC, NMC …) */
+const PEOPLE_AND_LANGUAGES = ["AHPRA", "GPhC", "NMC", "NMBI", "CORU", "HCPC", "GMC", "GDC", "AVBC", "CGFNS", "NCLEX", "PLAB", "USMLE", "AMC", "ADC", "MCCQE", "DHA", "HAAD", "MOH", "SCFHS", "Pakistani", "Danish", "Icelandic", "Norwegian", "Swedish", "Finnish", "Indian", "British", "American", "Canadian", "German", "Dutch", "Turkish", "Irish", "Australian", "Arab", "Urdu", "Hindi", "English", "Arabic", "Punjabi", "Bengali", "Sindhi", "Pashto", "Desi", "Muslim", "Christian", "Eid", "Ramadan", "Christmas", "Diwali", "OET", "IELTS", "PTE", "TOEFL", "CELPIP", "CV", "UK", "USA", "UAE"]; // not "AI": "ai" is a common Roman Urdu word
 const PROPER = [...MULTI_PLACES, ...PLACES, ...PEOPLE_AND_LANGUAGES].sort((a, b) => b.length - a.length);
 const PROPER_RE = new RegExp(`(?<![\\p{L}\\p{N}])(${PROPER.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}])`, "giu");
 const PROPER_BY = new Map(PROPER.map((p) => [p.toLowerCase(), p]));
@@ -87,6 +88,10 @@ export function personaOf({ channel = {}, videos = [], product = {} }) {
   return Object.freeze({ who: who ? titleCase(who) : null, places, whoFrom: who ? (m ? "your channel's description" : "the tags your own videos use most") : null });
 }
 export const placeIn = (text) => { for (const word of String(text).split(/[^\p{L}]+/u)) { const p = PLACE_BY.get(word.toLowerCase()); if (p) return p; } return null; };
+/** RR-311 B4: EVERY known place a text names (one-word and two-word places) — the AI guard checks each against the material */
+export const placesIn = (text) => { const s = String(text), low = s.toLowerCase(), out = new Set(); for (const m of MULTI_PLACES) if (low.includes(m.toLowerCase())) out.add(m); for (const word of s.split(/[^\p{L}]+/u)) { const p = PLACE_BY.get(word.toLowerCase()); if (p && ![...out].some((x) => x.toLowerCase().split(" ").includes(word.toLowerCase()))) out.add(p); } return [...out]; };
+/** RR-311 (owner): phrases that are clips and junk, never a topic, a playlist or a description ("Full Episode", "Day Life", Bigg Boss clips) */
+export const JUNK_PHRASE = /\b(episode \d+|ep \d+|full episodes?|day life|bigg boss|big boss|full video|full movie|promo|trailer|clips?|highlights|reaction|status video|daily vlog|vlog \d+)\b/i;
 
 /**
  * A1 + A3 · the channel's NICHE from its own content: short phrases, each with how many of the channel's own videos use it.

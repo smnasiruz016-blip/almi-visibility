@@ -106,7 +106,8 @@ test("B · THE PLAN: the YouTube /100 is ONLY the share of plain countable check
   const ctx = { channel: { ...CHANNEL, boilerplate: boilerplateOf(vids) }, persona: niche.persona, niche, summary, productIsChannel: true, readOn: ON };
   for (const x of order.slice(0, TOP_N)) {
     const o = optionsFor(x, ctx);
-    assert.ok(o.options.length >= 2 && o.options.length <= 3, `${x.title}: ${o.options.length} options`);
+    /* RR-311 (owner): never an empty title — a video whose own words say almost nothing ("Clip 7") gets fewer options, and says why */
+    assert.ok((o.options.length >= 2 || o.weak) && o.options.length >= 1 && o.options.length <= 3, `${x.title}: ${o.options.length} options`);
     assert.ok(!("notEnough" in o), "'Not enough research' came back");
     for (const p of o.options) {
       assert.ok(p.title.length >= 8 && p.title.length <= 100, p.title);
@@ -152,7 +153,8 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
   assert.equal(bad.ok, false); assert.match(bad.why, /were not shown\. The template options stay\./);
   assert.match((await writeWithAI({ provider: "openai", key: "x", video, ctx })).why, /works with an Anthropic \(Claude\) key in this version/);
   assert.deepEqual(inventedIn("Grocery Haul in Copenhagen | Pakistani Mom", materialOf(video, ctx)), []);
-  assert.deepEqual(inventedIn("Morning Routine in Paris", materialOf(video, ctx)), ["Morning", "Paris"], "words outside the material were not caught");
+  /* RR-311 B4 (owner): an ordinary word ("Morning") is not an invented fact — only the place is */
+  assert.deepEqual(inventedIn("Morning Routine in Paris", materialOf(video, ctx)), ["Paris"], "a place outside the material was not caught, or an ordinary word was");
 });
 
 test("C1 · FIX IT FOR ME descriptions: from each page's own sentences, unique per page, complete, 120–160 characters, never '…', never a line the site repeats, never a card fragment; two options each", () => {

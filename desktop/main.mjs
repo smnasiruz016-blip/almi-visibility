@@ -579,7 +579,7 @@ const server = createServer((req, res) => {
             if (y[2] === "signin" && req.method === "POST") { YT_LAST.delete(yid); const r = YT_SIGNIN.start(yid, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: json().write === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, url: r.url, choose: chooseLine(confirmedChannel(yid)), opened: openInBrowser(r.url) } : { refused: r.why, adds: SIGNIN_ADDS }); }
             if (y[2] === "signout" && req.method === "POST") { YT_SIGNIN.signOut(yid); rmSync(pfile(yid, "youtube-signed.json"), { force: true }); return send(200, { ok: true, line: "Signed out of YouTube for this product. Visibility forgot the access and the analytics it had read." }); }
             if (y[2] === "signed" && req.method === "POST") { const r = await YT.refreshSigned(yid, { force: json().force === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, on: r.data.on, reach: r.data.reach?.line ?? null } : { refused: r.why }); }
-            if (y[2] === "chapters" && req.method === "POST") { const r = await YT.chapters(yid, json().videoId); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            if (y[2] === "chapters" && req.method === "POST") { const r = await YT.chapters(yid, json().videoId); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why, neutral: r.neutral === true }); }
             /* ── C2 · competitors ── */
             if (y[2] === "competitor" && req.method === "POST") { const r = await YT.addCompetitor(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "competitor/remove" && req.method === "POST") return send(200, YT.removeCompetitor(yid, json().channelId));

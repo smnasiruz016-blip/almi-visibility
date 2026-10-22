@@ -113,6 +113,21 @@ export function researchTerms({ research = null, files = [] }) {
   return [...terms.values()].sort((a, b) => b.weight - a.weight);
 }
 
+/*
+ * RR-315 D1 + RR-316 D1 · a question about ANOTHER channel's own content is no idea and no "what viewers ask": a numbered question or part
+ * of its test ("answer of question 18 from reading part A"), its course or materials, "the shown format", or the name of the channel it
+ * was asked under ("scores in e2", asked under "E2 OET": a name word with a digit, or the channel's whole name).
+ */
+const OTHERS_CONTENT = /\bquestion\s*(?:no\.?\s*|number\s*|#\s*)?\d+\b|\bq\s?\d+\b|\bpart\s+[a-f]\b|\banswer (?:of|to|for) (?:question|q|no)\b|\b(?:in|from|on) (?:this|your|the) (?:video|course|class|session|mock|test paper)\b|\byour (?:course|courses|class|classes|sessions?|materials?|channel|academy|app|website|mock)\b|\bshown (?:in the video|format)\b|\bthe shown\b|\bat (?:minute|\d+:\d+)\b/i;
+export const NAME_STOP = new Set(["the", "with", "and", "for", "of", "by", "your", "my", "our", "test", "exam", "prep", "preparation", "english", "academy", "academic", "language", "languages", "study", "abroad", "official", "online", "classes", "class", "coaching", "course", "courses", "tips", "tutor", "hub", "tv", "channel", "school", "institute", "international", "global", "center", "centre", "solutions", "general", "core", "cv", "resume"]);
+export const nameTokensOf = (title, topicWords = new Set()) => String(title ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2 && !NAME_STOP.has(w) && !topicWords.has(w));
+export function aboutOthersContent(text, channel = null, topics = []) {
+  if (OTHERS_CONTENT.test(text)) return true;
+  if (!channel) return false;
+  const topicWords = new Set(topics.flatMap((t) => String(t).toLowerCase().split(/\s+/)));
+  const said = new Set(String(text).toLowerCase().split(/[^\p{L}\p{N}]+/u));
+  return nameTokensOf(channel, topicWords).some((w) => /\d/.test(w) && said.has(w)) || String(text).toLowerCase().includes(String(channel).toLowerCase());
+}
 /** C1 · the questions people ask, each with its source: comments under the client's own videos and under the topic's top videos; files */
 export function researchQuestions({ research = null, files = [], product = {}, terms = [] }) {
   const about = new Set([...tokens(product.what), ...terms.slice(0, 15).flatMap((t) => t.phrase.split(" "))]);

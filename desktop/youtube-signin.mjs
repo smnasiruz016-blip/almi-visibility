@@ -20,6 +20,7 @@ import { csvRows } from "../src/video/youtube.mjs";
 export const YT_SCOPES = Object.freeze({ read: ["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"], write: "https://www.googleapis.com/auth/youtube.force-ssl" });
 export const YT_ENDPOINTS = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", data: "https://www.googleapis.com/youtube/v3/", analytics: "https://youtubeanalytics.googleapis.com/v2/", reporting: "https://youtubereporting.googleapis.com/v1/" });
 export const REACH_REPORT = "channel_reach_basic_a1";
+export const REACH_WAIT = "Impressions and click-through rate arrive about 48 hours after the first sign-in (Google makes them, with the 30 days before).";
 export const signinKeyName = (id) => `YT_SIGNIN_${String(id).toUpperCase().replace(/[^A-Z0-9]/g, "_")}`.slice(0, 64);
 const allowed = (u) => /^https:\/\/(accounts\.google\.com|oauth2\.googleapis\.com|www\.googleapis\.com|youtubeanalytics\.googleapis\.com|youtubereporting\.googleapis\.com)\//.test(u) || /^http:\/\/127\.0\.0\.1:\d+\//.test(u);
 const b64url = (b) => Buffer.from(b).toString("base64url");
@@ -128,11 +129,15 @@ export function youtubeSignin({ keys, config = {}, wantOf = null, fetchImpl = (u
     },
     /** thumbnail impressions and click-through rate: the Reporting API's reach report (a job is made once; Google fills it within 48 hours) */
     async reach(id) {
-      const jobs = await json(id, q(ep.reporting, "jobs"));
-      let job = (jobs.jobs ?? []).find((x) => x.reportTypeId === REACH_REPORT);
-      if (!job) { job = await json(id, q(ep.reporting, "jobs"), { method: "POST", body: JSON.stringify({ reportTypeId: REACH_REPORT, name: "AlmiVisibility reach" }) }); return { state: "WAITING", line: "Asked Google for your impressions and click-through rate — Google makes them within 48 hours (with the 30 days before)." }; }
+      const find = async () => ((await json(id, q(ep.reporting, "jobs"))).jobs ?? []).find((x) => x.reportTypeId === REACH_REPORT);
+      let job = await find();
+      /* RR-316 B1 (owner's real test: "Google did not give the impressions report (409)"): 409 = the job ALREADY EXISTS — it is used, never an error */
+      if (!job) {
+        try { await json(id, q(ep.reporting, "jobs"), { method: "POST", body: JSON.stringify({ reportTypeId: REACH_REPORT, name: "AlmiVisibility reach" }) }); return { state: "WAITING", line: REACH_WAIT }; }
+        catch (e) { if (e.status !== 409) throw e; job = await find(); if (!job) return { state: "WAITING", line: REACH_WAIT }; }
+      }
       const reps = (await json(id, q(ep.reporting, `jobs/${job.id}/reports`))).reports ?? [];
-      if (!reps.length) return { state: "WAITING", line: "Google has not made your impressions report yet — it comes within 48 hours of the first sign-in." };
+      if (!reps.length) return { state: "WAITING", line: REACH_WAIT };
       const rows = [];
       for (const rep of reps.slice(0, 40)) { if (!allowed(rep.downloadUrl)) continue; const text = await (await call(id, rep.downloadUrl)).text(); const [h, ...rs] = csvRows(text); const ix = (n) => h.indexOf(n); for (const r of rs) rows.push({ day: r[ix("date")], videoId: r[ix("video_id")], impressions: Number(r[ix("video_thumbnail_impressions")] ?? 0), ctr: Number(r[ix("video_thumbnail_impressions_ctr")] ?? 0) }); }
       return { state: "READY", rows };
@@ -140,9 +145,12 @@ export function youtubeSignin({ keys, config = {}, wantOf = null, fetchImpl = (u
     /** captions of the channel's own video (needs the Apply permission — Google has no read-only one for captions) */
     async captions(id, videoId) {
       const list = await json(id, q(ep.data, "captions", { part: "snippet", videoId }));
-      const tracks = list.items ?? []; const pick = tracks.find((t) => t.snippet?.trackKind !== "asr") ?? tracks[0];
-      if (!pick) return null;
-      return (await call(id, q(ep.data, `captions/${pick.id}`, { tfmt: "vtt" }))).text();
+      /* RR-316 C: the client's own tracks first, then YouTube's automatic (ASR) one; a track that will not download → the next */
+      const tracks = list.items ?? [], order = [...tracks.filter((t) => t.snippet?.trackKind !== "asr"), ...tracks.filter((t) => t.snippet?.trackKind === "asr")];
+      if (!order.length) return null;
+      let last = null;
+      for (const t of order) { try { return await (await call(id, q(ep.data, `captions/${t.id}`, { tfmt: "vtt" }))).text(); } catch (e) { last = e; } }
+      throw last;
     },
     async snippet(id, videoId) { const j = await json(id, q(ep.data, "videos", { part: "snippet", id: videoId })); return j.items?.[0]?.snippet ?? null; },
     /** Apply to YouTube: the video's snippet with the new title / description / tags (its category and language kept — Google requires them) */

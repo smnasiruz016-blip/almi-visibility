@@ -292,7 +292,10 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const signed = signedOf(id);
       const own = ownDataFindings(raw.videos, { now: now(), analytics: signed?.analytics ?? null, reach: signed?.reach ?? null, retention: signed?.retention ?? {} }).findings.slice(0, 4).map((f) => f.line);
       const chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {})[videoId] ?? null;
-      const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
+      /* RR-316 A1: the channel's own names — its site, the product's own names and the pages it links to — are always in the material */
+      const siteRead = readJson(join(store.dirOf(id), "site-read.json"), null);
+      const ownNames = [s.product?.site, s.product?.name, ...brandsOf({ what: s.setup?.product?.what, menu: siteRead?.design?.menu, channelTitle: y.confirmed.title }).values(), ...(y.relatedPages ?? []).map((p) => p.url)].filter(Boolean);
+      const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, channel: { ...(ctx.channel ?? {}), title: y.confirmed.title, handle: y.confirmed.handle, description: ctx.channel?.description ?? y.confirmed.description }, ownNames, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
       if (ledger) for (const u of r.usages ?? (r.usage ? [r.usage] : [])) ledger.add(u); // RR-312: the retry is a request too
       return { ...r, aiCost: ledger ? ledger.line() : null };
     },
@@ -350,8 +353,11 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       if (!signin?.status(id).signedIn) return { ok: false, why: "Sign in to YouTube first." };
       if (!signin.status(id).write) return { ok: false, why: "Google gives a video's captions only with the \"Apply to YouTube\" permission — turn it on (it signs you in again), then press this again." };
       const raw = latest(id, "videos-"); const v = raw?.videos?.find((x) => x.videoId === videoId); if (!v) return { ok: false, why: "That video was not found in today's read." };
-      const vtt = await signin.captions(id, videoId).catch(() => null);
-      if (!vtt) return { ok: false, why: "This video has no captions on YouTube yet — YouTube makes automatic ones for most videos within a day; add your own in YouTube Studio → Subtitles." };
+      /* RR-316 C (owner: "no captions … within a day" was said in red for a June video): YouTube's automatic (ASR) tracks are listed and used
+       * too; none at all is said neutrally, "within a day" only for a video under 2 days old; a refused download is said as what it is */
+      let failed = null; const vtt = await signin.captions(id, videoId).catch((e) => { failed = e; return null; });
+      if (failed) return { ok: false, why: `YouTube did not give this video's captions (it answered ${failed.status ?? "nothing"}). Nothing was changed — try again later.` };
+      if (!vtt) return { ok: false, neutral: true, why: now() - Date.parse(v.publishedAt) < 2 * 864e5 ? "No captions on this video yet — YouTube makes automatic ones for most videos with speech within a day. You can add your own in YouTube Studio → Subtitles." : "No captions on this video — YouTube makes automatic ones only when the video has speech. You can add your own in YouTube Studio → Subtitles." };
       const dir = join(store.dirOf(id), "youtube-captions"); mkdirSync(dir, { recursive: true }); atomic(join(dir, `${videoId}.vtt`), vtt);
       const ch = chaptersFrom(parseVtt(vtt), v.durationSec);
       if (!ch) return { ok: false, why: "The captions are too short to make at least 3 chapters." };

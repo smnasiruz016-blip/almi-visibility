@@ -81,7 +81,7 @@ let P = null, S = null, step = 0;
  */
 function signinOpened(box, r, who, done, redraw) {
   box.classList.remove("err"); box.className = "msg-info";
-  box.innerHTML = r.opened ? `Google's sign-in page opened in your browser. ${esc(who)} This screen updates by itself when you are done.`
+  box.innerHTML = r.opened ? `Google's sign-in page opened in ${r.opened === "Chrome" ? "Chrome" : "your browser"}. ${esc(who)} This screen updates by itself when you are done.`
     : `Your browser did not open by itself. Copy this address into your browser: <code class="addr">${esc(r.url)}</code> ${copyBtn(r.url)} — ${esc(who)}`;
   wireCopy(box);
   let n = 0; const t = setInterval(async () => { n++; try { if (await done()) { clearInterval(t); redraw(); } } catch {} if (n >= 200) clearInterval(t); }, 3000);

@@ -25,9 +25,15 @@ const UI = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
 
 test("A1 · ONLY GOOGLE'S SIGN-IN ADDRESS opens in the client's own browser — never another address; the page never hides the browser's own window.open again", () => {
   const ran = [];
-  const open = browserOpener({ spawnImpl: (cmd, args) => { ran.push([cmd, ...args]); return { unref() {} }; } });
-  assert.equal(open("https://accounts.google.com/o/oauth2/v2/auth?client_id=x&state=y"), true);
-  assert.deepEqual(ran, [["rundll32.exe", "url.dll,FileProtocolHandler", "https://accounts.google.com/o/oauth2/v2/auth?client_id=x&state=y"]]);
+  /* the owner: "please use Chrome — Chrome is set to the account": Chrome when it is installed, as one argument (no shell reads the address) */
+  const CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  const open = browserOpener({ spawnImpl: (cmd, args) => { ran.push([cmd, ...args]); return { unref() {} }; }, exists: (p) => p === CHROME });
+  assert.equal(open("https://accounts.google.com/o/oauth2/v2/auth?client_id=x&state=y"), "Chrome", "the screen would not say it opened in Chrome");
+  assert.deepEqual(ran, [[CHROME, "https://accounts.google.com/o/oauth2/v2/auth?client_id=x&state=y"]], "Google's page did not open in Chrome");
+  /* no Chrome on this computer: the system's default browser */
+  const ran2 = [];
+  browserOpener({ spawnImpl: (cmd, args) => { ran2.push([cmd, ...args]); return { unref() {} }; }, exists: () => false })("https://accounts.google.com/o/oauth2/v2/auth?x=1");
+  assert.deepEqual(ran2, [["rundll32.exe", "url.dll,FileProtocolHandler", "https://accounts.google.com/o/oauth2/v2/auth?x=1"]]);
   for (const bad of ["https://evil.example/auth", "http://accounts.google.com/x", "file:///C:/Windows/notepad.exe", "not a url", "https://accounts.google.com.evil.example/"]) assert.equal(open(bad), false, bad);
   assert.equal(ran.length, 1, "another address was opened");
   /* the cause: a top-level function named open() IS window.open on a page */

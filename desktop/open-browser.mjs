@@ -5,16 +5,30 @@
  * (or, in tests, the stand-in the config names) is ever opened. The address carries no secret.
  */
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 export const GOOGLE_SIGNIN_ORIGIN = "https://accounts.google.com";
+/* RR-314 (owner, 22 Oct: "please use Chrome — Chrome is set to the account"): Google's page opens in CHROME when it is installed (its
+ * last-used profile, where the client is signed in to Google); only without Chrome, in the system's default browser */
+export const CHROME_PATHS = Object.freeze([
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  ...(process.env.LOCALAPPDATA ? [join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe")] : []),
+]);
 
 /** an opener for these sign-in addresses only. `mode` "fetch" is TESTS ONLY: a request plays the browser and follows the redirects back */
-export function browserOpener({ origins = [], mode = null, spawnImpl = spawn, fetchImpl = fetch } = {}) {
+export function browserOpener({ origins = [], mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = CHROME_PATHS } = {}) {
   const allowed = new Set([GOOGLE_SIGNIN_ORIGIN, ...origins.filter(Boolean).map((x) => { try { return new URL(x).origin; } catch { return null; } }).filter(Boolean)]);
   return function openInBrowser(url) {
     let u; try { u = new URL(url); } catch { return false; }
     if (!allowed.has(u.origin)) return false;
     if (mode === "fetch") { fetchImpl(u.href, { redirect: "follow" }).catch(() => {}); return true; }
-    try { spawnImpl("rundll32.exe", ["url.dll,FileProtocolHandler", u.href], { detached: true, stdio: "ignore", windowsHide: true }).unref(); return true; } catch { return false; }
+    const chrome = chromePaths.find((p) => { try { return exists(p); } catch { return false; } });
+    try {
+      if (chrome) { spawnImpl(chrome, [u.href], { detached: true, stdio: "ignore" }).unref(); return "Chrome"; } // the address is one argument — no shell reads it
+      else spawnImpl("rundll32.exe", ["url.dll,FileProtocolHandler", u.href], { detached: true, stdio: "ignore", windowsHide: true }).unref();
+      return true;
+    } catch { return false; }
   };
 }

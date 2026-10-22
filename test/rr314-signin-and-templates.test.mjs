@@ -40,6 +40,7 @@ test("A1 · ONLY GOOGLE'S SIGN-IN ADDRESS opens in the client's own browser — 
   assert.doesNotMatch(UI, /\bfunction open\s*\(/, "a page function named open() hides window.open — Google's address became a product id");
   assert.doesNotMatch(UI, /window\.open\(r\.url/, "the sign-in page is opened inside the app's own window");
   assert.match(UI, /async function openProduct\(id\)/);
+  assert.match(UI, /opened in \$\{r\.opened === "Chrome" \? "Chrome" : "your browser"\}/, "the screen does not say the page opened in Chrome");
 });
 
 test("A3 · THE BIG ERROR CARD only when the screen is empty — a slip on a screen that opened is one small line, and the screen stays", () => {

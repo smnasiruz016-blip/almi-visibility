@@ -179,13 +179,19 @@ export function adviceForVideo(v, { terms, questions, productUrl = null, product
   return Object.freeze(out);
 }
 
+/** a line whose brackets and quotes all close — one that does not was cut */
+export const balanced = (s) => { const t = String(s ?? ""); return (t.match(/\(/g) ?? []).length === (t.match(/\)/g) ?? []).length && (t.match(/"/g) ?? []).length % 2 === 0; };
 /** C3 · the channel's own advice: identity, description, playlists, one language style. */
 export function channelAdvice({ channel, product, videos, terms, readOn }) {
   const out = [];
-  const what = String(product.what ?? "").split(/[.]/)[0].trim();
-  /* RR-311 (owner: "a sentence cut mid-word"): a ready line is whole or not given — never cut */
-  const identity = `${channel.title}: ${what.replace(/^youtube channel( of [^:]+)?:\s*/i, "")}`;
-  if (what && identity.length <= 150) out.push({ what: "One-line identity", advice: identity, from: "your product's description" });
+  /* RR-311 (owner: "a sentence cut mid-word"): a ready line is whole or not given — never cut. RR-314 B6 (it came back: "AlmiWorld
+   * (almiworld" — the first "." of "almiworld.com" was taken for the end of the sentence): a sentence ends at ". " or at the end, never
+   * inside an address; a long first sentence keeps its first whole clause (to ":" or ";"); the channel's name is not said twice */
+  const first = String(product.what ?? "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+(?=\p{Lu})/u)[0].replace(/[.!]$/, "").trim();
+  const what = first.length > 140 ? (/^(.{40,140}?)[:;]\s/.exec(first)?.[1] ?? "") : first;
+  const body = what.replace(/^youtube channel( of [^:]+)?:\s*/i, "");
+  const identity = body.toLowerCase().startsWith(String(channel.title ?? "").toLowerCase()) ? body : `${channel.title}: ${body}`;
+  if (body && identity.length <= 150 && balanced(identity)) out.push({ what: "One-line identity", advice: identity, from: "your product's description" });
   const topicCount = new Map();
   const groups = new Map();
   for (const v of videos) {

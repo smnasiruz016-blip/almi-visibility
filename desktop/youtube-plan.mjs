@@ -61,6 +61,44 @@ export function priorityOrder(videos) {
   return { order: [...first, ...rest], why };
 }
 
+/* RR-314 B5: short names written in capitals wherever they appear, and single words that make no hashtag */
+const ACRONYMS = new Set("CV IELTS OET PTE TOEFL DET CELPIP TOPIK JLPT AI UK USA UAE EU SEO ATS FAQ DIY".split(" "));
+const WEAK_TAG = new Set("try this watch new best top more now here today wow omg live part full official video shorts short".split(" "));
+/* RR-314 B1: words that name a channel's KIND, not a subject — a niche phrase made only of these fits every video of the channel */
+const GENRE = new Set("vlog vlogs vlogger vlogging life lifestyle living family families home diaries diary daily routine routines day days tips guide guides tutorial tutorials review reviews mom moms mum mother dad father parents kids kid baby couple wife husband desi pakistani indian blog channel videos video".split(" "));
+/*
+ * RR-314 B4 (owner: "Almicv" → "AlmiCV"). The product family's own names, as the client writes them — every name with a capital INSIDE it
+ * ("AlmiCV", "AlmiWorld", "AlmiTOEFL") in the product's own description and its site's menu; the channel's own name keeps its own spelling.
+ */
+export function brandsOf({ what = "", menu = [], channelTitle = null } = {}) {
+  const m = new Map();
+  for (const w of `${what} ${(menu ?? []).join(" ")}`.match(/\b\p{Lu}\p{Ll}+\p{Lu}[\p{L}\p{N}]*\b/gu) ?? []) if (!m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
+  if (channelTitle && /^[\p{L}\p{N}]+$/u.test(channelTitle)) m.set(String(channelTitle).toLowerCase(), channelTitle);
+  return m;
+}
+/** a text with every family name in its own casing ("Almicv Builder" → "AlmiCV Builder") — whole words only */
+export const brandCase = (s, brands) => (brands?.size ? String(s ?? "").split(/(https?:\/\/\S+|@[\w.-]+)/).map((part, i) => (i % 2 ? part : part.replace(/[\p{L}\p{N}]+/gu, (w) => brands.get(w.toLowerCase()) ?? w))).join("") : String(s ?? "")); // links and @handles stay exactly as they are
+/** a hashtag with the family names in their casing inside it ("AlmicvBuilder" → "AlmiCVBuilder") */
+const brandTag = (t, brands) => { if (!brands?.size) return t; let out = t; for (const [k, v] of [...brands].sort((a, b) => b[0].length - a[0].length)) out = out.replace(new RegExp(k, "i"), (x) => (x.toLowerCase() === k ? v : x)); return out; };
+/*
+ * RR-314 B7 (owner: "a CV video links to the AlmiCV page"). From the site's OWN menu (its links, as the site has them): each product of the
+ * family whose name THIS channel's videos use ("almicv builder", "Cv builder" → AlmiCV) is offered with its page, to be confirmed once by
+ * the client; the site's home only for the videos no product matches. A family name is matched by its own word and by what follows the
+ * family's shared start ("Almi|CV" → "cv").
+ */
+export function linkSuggestions({ menuLinks = [], videos = [], home = null } = {}) {
+  const products = (menuLinks ?? []).filter((l) => /^\p{Lu}\p{Ll}+\p{Lu}[\p{L}\p{N}]*$/u.test(l.text));
+  const stem = (() => { const xs = products.map((p) => p.text); if (xs.length < 2) return ""; let s = xs[0]; for (const x of xs) while (s && !x.startsWith(s)) s = s.slice(0, -1); return s.length >= 3 ? s : ""; })();
+  const out = products.map((p) => ({ product: p.text, url: p.href, words: [...new Set([p.text.toLowerCase(), stem ? p.text.slice(stem.length).toLowerCase() : null].filter((w) => w && w.length >= 2))], videos: [] }));
+  const rest = [];
+  for (const v of videos) {
+    /* the product its TITLE names first, then its description's first lines (as linkTargetFor decides) */
+    const layers = [v.title, ...String(v.description ?? "").split("\n").filter((l) => l.trim()).slice(0, 3)].map((l) => new Set(tokens(l)));
+    const hit = layers.map((vt) => out.find((p) => p.words.some((w) => vt.has(w)))).find(Boolean);
+    if (hit) hit.videos.push(v.title); else rest.push(v.title);
+  }
+  return [...out.filter((p) => p.videos.length).map((p) => ({ ...p, from: "your site's own menu" })), ...(home && rest.length ? [{ product: null, url: home, words: [], videos: rest, from: "your site's home — no product of yours is named in these videos" }] : [])];
+}
 /* ── one video's own words: its title without hashtags, @names, the channel's own name, episode numbers and emoji ── */
 export function ownWords(v, channel = {}) {
   const name = String(channel.title ?? "").toLowerCase();
@@ -82,7 +120,7 @@ export function ownWords(v, channel = {}) {
   return { parts, main: parts[0] ?? null, firstLine: first ? spell(first) : null, text: `${v.title ?? ""} ${lines.join(" ")}`, lines, fixed: [...new Set(fixed)] };
 }
 /* obvious English misspellings, corrected only when the whole word matches (Roman Urdu is never touched) */
-const MISSPELT = Object.freeze({ togather: "together", togatherness: "togetherness", recieve: "receive", recieved: "received", becuase: "because", beacuse: "because", definately: "definitely", seperate: "separate", untill: "until", alot: "a lot", wich: "which", freind: "friend", freinds: "friends", beleive: "believe", tommorow: "tomorrow", tommorrow: "tomorrow", occured: "occurred", sucess: "success", buisness: "business", enviroment: "environment", goverment: "government", happend: "happened", intrest: "interest", beautifull: "beautiful", beutiful: "beautiful", familly: "family", vlogg: "vlog", restaurent: "restaurant", resturant: "restaurant", vacaction: "vacation", birthady: "birthday", brithday: "birthday", wierd: "weird", thier: "their", arround: "around", shoping: "shopping", travell: "travel", cookng: "cooking", recipie: "recipe", reciepe: "recipe" });
+const MISSPELT = Object.freeze({ creat: "create", togather: "together", togatherness: "togetherness", recieve: "receive", recieved: "received", becuase: "because", beacuse: "because", definately: "definitely", seperate: "separate", untill: "until", alot: "a lot", wich: "which", freind: "friend", freinds: "friends", beleive: "believe", tommorow: "tomorrow", tommorrow: "tomorrow", occured: "occurred", sucess: "success", buisness: "business", enviroment: "environment", goverment: "government", happend: "happened", intrest: "interest", beautifull: "beautiful", beutiful: "beautiful", familly: "family", vlogg: "vlog", restaurent: "restaurant", resturant: "restaurant", vacaction: "vacation", birthady: "birthday", brithday: "birthday", wierd: "weird", thier: "their", arround: "around", shoping: "shopping", travell: "travel", cookng: "cooking", recipie: "recipe", reciepe: "recipe" });
 const PHRASES = Object.freeze([[/\bhappy mew year\b/gi, "Happy New Year"]]);
 export function spellFix(s, fixed = []) {
   let out = String(s ?? "");
@@ -131,7 +169,11 @@ export function optionsFor(v, ctx) {
   /* the niche's phrases in the video's own spelling (its "CV", not "Cv") */
   const caps = new Map(String(v.title).split(/[^\p{L}\p{N}]+/u).filter((w) => /^[\p{Lu}\d]{2,4}$/u.test(w)).map((w) => [w.toLowerCase(), w]));
   /* a niche phrase that names ANOTHER place than this video's ("pakistani mom in denmark" for a trip to Iceland) is not used for it */
-  const nicheTop = (niche.queries ?? []).map((q) => String(q.q).split(" ").map((w) => caps.get(w.toLowerCase()) ?? w).join(" ")).filter((q) => { const p = placeIn(q); return !p || p === vPlace; }); // RR-311: a phrase naming a place the video does not name is not used for it
+  /* RR-314 B1 (owner: "IELTS Coaching: CV Builder"): a niche phrase is used for a video only when it shares a meaning word with THIS video's
+   * own words — the channel's other subjects are never mixed in */
+  const ownT = new Set(tokens(own.text)), whoT = new Set(tokens(who ?? ""));
+  const nicheTop = (niche.queries ?? []).map((q) => String(q.q).split(" ").map((w) => caps.get(w.toLowerCase()) ?? w).join(" ")).filter((q) => { const p = placeIn(q); return !p || p === vPlace; }) // RR-311: a phrase naming a place the video does not name is not used for it
+    .filter((q) => !own.main || tokens(q).some((w) => ownT.has(w)) || tokens(q).every((w) => GENRE.has(w) || whoT.has(w))); // a video with no words of its own ("#viral #fyp") keeps the channel's main topic, and is told to check it fits; a phrase made only of the channel's KIND ("family vlog") or of who it is fits every video
   const fmtStat = f && summary?.formats?.find((x) => x.id === f.id);
   const basedOnCommon = [
     own.main ? `this video's own title ("${fit(own.main, 60)}")` : "this video's title says little about it — your channel's main topic is used",
@@ -155,38 +197,50 @@ export function optionsFor(v, ctx) {
     .map((q) => ({ q, n: tokens(q.text).filter((w) => vt.has(w)).length })).filter((x) => x.n >= Math.min(2, tokens(x.q.text).length)).sort((a, b) => b.n - a.n || (b.q.likes ?? 0) - (a.q.likes ?? 0))[0]?.q ?? null;
   /* else a question in the shape this kind of video answers — made from the video's own words, and said so */
   const shaped = !subject ? null : f?.id === "travel" && place ? `Is ${place} Worth Visiting?` : f?.id === "cost-of-living" ? `How Much Does Life${where || (place ? ` in ${place}` : "")} Really Cost?` : ["routine", "morning-routine", "night-routine", "day-in-life"].includes(f?.id) ? `What Does a ${who ? `${who}'s` : "Real"} Day${where || (place ? ` in ${place}` : "")} Look Like?` : null; // RR-311: no "X: What Is It Really Like?" from a title that is not a topic ("JAB WE MET") — a kind it fits, or a filler
-  const hook = !subject ? null : kind === "SHORT" ? `Watch This: ${subject}` : `Come With Us: ${subject}${where.length && subject.length + where.length < 44 ? where : ""}`;
+  /* RR-314 B2 (owner): "Come With Us:" / "Watch This:" only where they fit — a vlog or a journey (a channel with a person behind it, or a
+   * video whose own words are a trip, a day, a routine) — never on a tutorial or a product video */
+  const VLOGGY = new Set(["travel", "day-in-life", "routine", "morning-routine", "night-routine", "family-event", "vlog"]);
+  const hookFits = Boolean(who) || VLOGGY.has(f?.id) || /\b(vlog|trip|journey|travel|tour|day in|visit)\b/i.test(own.text);
+  const hook = !subject || !hookFits ? null : kind === "SHORT" ? `Watch This: ${subject}` : `Come With Us: ${subject}${where.length && subject.length + where.length < 44 ? where : ""}`;
   const typed = [
-    { type: "Place + activity + who", title: subject ? `${subject}${where}${who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : channel.title ? ` | ${channel.title}` : ""}` : null, from: "the place, what happens and who — main words first" },
+    /* RR-314 B3 (owner: "Almiworld New Tutorial | Almiworld"): the channel's name is added only when the title does not already say it */
+    { type: "Place + activity + who", title: subject ? `${subject}${where}${who ? ` | ${who}${/vlog/i.test(who) ? "" : " Vlog"}` : channel.title && !subject.toLowerCase().includes(String(channel.title).toLowerCase()) ? ` | ${channel.title}` : ""}` : null, from: "the place, what happens and who — main words first" },
     { type: "A question people ask", title: asked ? asked.text : shaped, from: asked ? `a question a viewer asked: "${fit(asked.text, 80)}" (${asked.source})` : "a question shaped from this video's own words — no viewer has asked it yet; the research finds real ones" },
     { type: "A short hook", title: hook, from: "a short opening line from what happens in this video" },
     /* fillers, only when a kind above could not be made: the video's own words, the niche's phrase, the channel's name */
     { type: "Your own words first", title: mainText ? `${mainText}${activity && !mainText.toLowerCase().includes(activity.toLowerCase()) ? ` | ${activity}` : ""}${place && !mainText.toLowerCase().includes(place.toLowerCase()) ? ` in ${place}` : ""}` : null, from: "this video's own words first" },
     { type: "Your niche's words", title: mainText && nicheTop[0] && !mainText.toLowerCase().includes(nicheTop[0].toLowerCase()) ? `${titleCase(nicheTop[0])}: ${mainText}` : null, from: "your niche's phrase and this video's own words" },
-  ].map((o) => ({ ...o, title: o.title ? properNames(fit(o.title.replace(/\s+/g, " ").replace(/^\s*\|\s*/, "").trim(), TITLE_MAX)) : null }));
+    /* RR-314 B2: when NOTHING else is left (no hook on a tutorial, its title alone), the video's own description line says what it is about
+     * ("tutorial almiworld, about products, and how to use them") — its own words, whole; never next to options that keep the title */
+    { type: "Your description's words", title: own.firstLine && tokens(own.firstLine).length >= 3 && own.firstLine.length <= TITLE_MAX ? titleCase(own.firstLine.replace(/\s+,/g, ",").replace(/[.!]+$/, "")) : null, from: "this video's own description line", last: true },
+  ].map((o) => ({ ...o, title: o.title ? brandCase(properNames(fit(o.title.replace(/\s+/g, " ").replace(/^\s*\|\s*/, "").trim(), TITLE_MAX)), ctx.brands) : null }));
   const seen = new Set();
   /* an option that only repeats the video's present title (without its hashtags and the channel's name) is not advice — it is left out */
   const now = String(own.parts.join(" | ")).replace(/\s+/g, " ").trim().toLowerCase();
   /* RR-311: never an EMPTY title — without the template's own words ("Come With Us", "Watch This") at least 2 words of the video must remain */
   const meaning = (t) => tokens(String(t).replace(/^(come with us|watch this)\s*:\s*/i, "").replace(/\|.*$/, "")).length;
-  const usable = typed.filter((o) => o.title && o.title.length >= 8 && meaning(o.title) >= 2 && o.title.toLowerCase() !== now && o.title.toLowerCase() !== String(own.main ?? "").toLowerCase() && !seen.has(o.title.toLowerCase()) && seen.add(o.title.toLowerCase()));
+  const fits = (o) => o.title && o.title.length >= 8 && meaning(o.title) >= 2 && o.title.toLowerCase() !== now && o.title.toLowerCase() !== String(own.main ?? "").toLowerCase() && !seen.has(o.title.toLowerCase()) && seen.add(o.title.toLowerCase());
+  const usable = typed.filter((o) => !o.last && fits(o));
+  if (!usable.length) usable.push(...typed.filter((o) => o.last && fits(o))); // RR-314 B2: the last resort only
   const uniqueTitles = usable.map((o) => o.title);
-  const keyLine = [nicheTop[0], who, place].filter(Boolean).map(titleCase).join(" · ");
+  const keyLine = [nicheTop[0], who, place].filter(Boolean).map(titleCase).filter((k) => !String(mainText ?? "").toLowerCase().includes(k.toLowerCase())).join(" · "); // RR-314: never the title's own words again on the next line
   /* RR-311 (owner): never a placeholder in a ready text — no "(Add one or two sentences…)", no "?:??"; chapters only the REAL ones, made
    * from the video's own captions (with sign-in); without captions the action plan says how to add them */
-  const summaryLines = own.firstLine ? [own.firstLine] : [];
+  const summaryLines = own.firstLine ? [own.firstLine.replace(/\s+([,.;:!?])/g, "$1")] : []; // "tutorial almiworld , about products" → "…almiworld, about products"
   const real = ctx.chapters?.[v.videoId] ?? null;
   const chapters = kind === "LONG" && real ? ["", "Chapters:", real] : [];
   const links = [...(target ? [`More: ${target.url}`] : []), ...(channel.handle ? [`Subscribe: https://www.youtube.com/${channel.handle}?sub_confirmation=1`] : [])];
   /* always 3 hashtags: what happens, where, who, the niche's phrases, then the video's own main words and the channel's own name */
   /* RR-311 (owner: "#IcelandHum"): a hashtag only from a WHOLE short phrase (3 words or fewer) with no Roman-Urdu joining word in it */
-  const tagOf = (p) => { const w = String(p ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean); return w.length && w.length <= 3 && !w.some((x) => ROMAN.has(x.toLowerCase()) || /^(hum|ham|bhi|to|ne|se|ko|par|pe)$/i.test(x)) ? camel(p) : null; };
+  /* RR-314 B5: one spelling for a short name ("CV", never "Cv" in one tag and "CV" in the next); no tag of one empty word ("#Try") */
+  const tagOf = (p) => { const w = String(p ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean); if (!w.some((x) => !WEAK_TAG.has(x.toLowerCase()) && !SMALL.has(x.toLowerCase()) && !/^(how|what|why|my|your|our|this|that|is|are|i|we|you)$/i.test(x))) return null; return w.length && w.length <= 3 && !w.some((x) => ROMAN.has(x.toLowerCase()) || /^(hum|ham|bhi|to|ne|se|ko|par|pe)$/i.test(x)) ? camel(w.map((x) => (ACRONYMS.has(x.toUpperCase()) ? x.toUpperCase() : x)).join(" ")) : null; };
   const tagPool = [...new Set([activity && tagOf(activity), place && camel(place), who && tagOf(who), ...nicheTop.map(tagOf), ...(own.parts ?? []).map(tagOf), channel.title && camel(channel.title)].filter((t) => t && t.length >= 3 && t.length <= 40))];
   const options = uniqueTitles.slice(0, 3).map((title, i) => {
     const o = usable[i];
     const lead = o.type === "A question people ask" ? `This video answers: ${title}` : o.type === "Your own words first" && mainText ? mainText : title.split(" | ")[0];
-    const description = properNames([`${fit(lead, 120)}${place && !lead.toLowerCase().includes(place.toLowerCase()) ? ` — in ${place}` : ""}${/[.?!]$/.test(lead) ? "" : "."}`, keyLine, "", ...summaryLines, ...chapters, ...(links.length ? ["", ...links] : [])].join("\n"));
-    const hashtags = [...tagPool.slice(i % 2, (i % 2) + 3), ...tagPool].filter((t, k, a) => a.indexOf(t) === k).slice(0, 3).map((t) => `#${t}`);
+    const description = brandCase(properNames([`${fit(lead, 120)}${place && !lead.toLowerCase().includes(place.toLowerCase()) ? ` — in ${place}` : ""}${/[.?!]$/.test(lead) ? "" : "."}`, keyLine, "", ...summaryLines, ...chapters, ...(links.length ? ["", ...links] : [])].join("\n").replace(/\n{3,}/g, "\n\n")), ctx.brands); // RR-314: never a stack of empty lines
+    /* RR-314 B5 (owner: "#CvBuilder + #CVBuilder"): one hashtag per meaning — tags that differ only in case are one; B4: the brand's own casing */
+    const hashtags = [...tagPool.slice(i % 2, (i % 2) + 3), ...tagPool].map((t) => brandTag(t, ctx.brands)).filter((t, k, a) => a.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === k).slice(0, 3).map((t) => `#${t}`);
     /* 2–4 meaning words (no "HOW TO WRITE A") */
     /* up to 4 words as they are ("JAB WE MET"); a longer text keeps its meaning words only ("WRITE CV", never "HOW TO WRITE A") */
     const words = (xs) => { const all = xs.filter(Boolean).join(" ").replace(/[^\p{L}\p{N}' ]+/gu, " ").split(/\s+/).filter(Boolean); return all.length <= 4 ? all : all.filter((w) => !SMALL.has(w.toLowerCase()) && !/^(how|what|why|my|your|our|this|that|is|are|i|we|you)$/i.test(w)); };

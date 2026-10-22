@@ -75,8 +75,24 @@ const get = (p) => fetch(p).then((r) => r.json());
 const post = async (p, o) => { const r = await fetch(p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); return r.json(); };
 let P = null, S = null, step = 0;
 /* RR-307 (owner, 22 Oct): a screen that fails says so in plain words, with a way back — never a blank page (the Dhanak YouTube settings went blank) */
+/*
+ * RR-314 A1: Google's sign-in page opened in the client's own browser — said, with the address to copy if no page opened; this screen
+ * checks every 3 seconds (for 10 minutes) and redraws itself once the sign-in is done.
+ */
+function signinOpened(box, r, who, done, redraw) {
+  box.classList.remove("err"); box.className = "msg-info";
+  box.innerHTML = r.opened ? `Google's sign-in page opened in your browser. ${esc(who)} This screen updates by itself when you are done.`
+    : `Your browser did not open by itself. Copy this address into your browser: <code class="addr">${esc(r.url)}</code> ${copyBtn(r.url)} — ${esc(who)}`;
+  wireCopy(box);
+  let n = 0; const t = setInterval(async () => { n++; try { if (await done()) { clearInterval(t); redraw(); } } catch {} if (n >= 200) clearInterval(t); }, 3000);
+}
+/*
+ * RR-314 A3 (owner: "never show it on a page that did open"). The big "This screen could not open" card is shown ONLY when the screen is
+ * empty; a slip on a screen that DID open is a small line at the bottom, and the screen stays as it is.
+ */
 function oops() {
-  if ($("#oops")) return;
+  if ($("#oops") || $("#slip")) return;
+  if ($("#app").children.length) { const s = document.createElement("p"); s.id = "slip"; s.className = "msg-info"; s.textContent = "Something on this screen did not work just now — nothing was changed. Try again, or go back to your products."; $("#app").append(s); setTimeout(() => s.remove(), 8000); return; }
   const box = document.createElement("div"); box.className = "card"; box.id = "oops";
   box.innerHTML = `<h2>This screen could not open</h2><p>Something went wrong on this screen. Your data is safe — nothing was changed.</p><button id="oopshome">Back to my products</button>`;
   $("#app").prepend(box); $("#oopshome").onclick = () => { box.remove(); home(); };
@@ -96,7 +112,7 @@ async function home() {
   <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button> <button class="ghost" id="gsignon">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></p><div class="err" id="err"></div>
   <div class="card" style="margin-top:16px"><h2>${esc(M.question)}</h2><p class="tabline">Everything Visibility can do for you. Pick a card — Visibility asks which product it is for.</p>${cardsHtml(M.cards)}</div>`;
-  document.querySelectorAll(".product").forEach((b) => (b.onclick = () => open(b.dataset.id)));
+  document.querySelectorAll(".product").forEach((b) => (b.onclick = () => openProduct(b.dataset.id)));
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) { P = H.products[0].id; return openFeature(b.dataset.f); } $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
   $("#add").onclick = () => addProduct();
@@ -262,7 +278,7 @@ const value = (id) => ({
   youtube: () => ({ handle: $("#f1").value.trim(), key: $("#f2").value }), start: () => ({}),
 })[id]();
 /* RR-307: a product always opens on its Overview — its check is already there; an unfinished setup is a banner, never a wall */
-async function open(id) { P = id; S = await get(`/api/products/${encodeURIComponent(id)}/state`); work("Overview"); }
+async function openProduct(id) { P = id; S = await get(`/api/products/${encodeURIComponent(id)}/state`); work("Overview"); }
 function continueSetup() { step = S.steps.findIndex((x) => !S.setup[x.id] || (x.id === "product" && !S.setup.product?.what)); if (step < 0) step = S.steps.length - 1; setup(); }
 /* RR-306 A2 / RR-307 E2: the product's Settings — the same steps, with the answers given, any time; and "Delete product" */
 async function settings() { S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = 0; setup(); }
@@ -317,11 +333,16 @@ function signinCard(a) {
   if (!g) return "";
   if (!g.signedIn && !g.ready) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Google sign-in is off. Switch it on once (your own Google sign-in client), then sign in here.</p><p><button id="gsignon">Google sign-in: switch it on</button></p></div>`; // RR-313 B1
   if (!g.signedIn) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Not signed in yet. Signing in (with the Google account that owns ${esc(a.confirmed.title)}) adds:</p><ul>${(a.signinAdds ?? SIGNIN_ADDS_UI).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-    <p><label><input type="checkbox" id="ytwrite"> Also allow "Apply to YouTube" (Visibility changes a video's title, description or chapters only when you press Apply; Google gives captions only with this permission)</label></p><p><button id="ytsignin">Sign in to YouTube</button> <span id="ytsmsg"></span></p></div>`;
+    <p><label class="choice"><input type="checkbox" id="ytwrite" style="width:auto"> Also allow "Apply to YouTube" (Visibility changes a video's title, description or chapters only when you press Apply; Google gives captions only with this permission)</label></p><p><button id="ytsignin">Sign in to YouTube</button> <span id="ytsmsg"></span></p></div>`;
   return `<div class="card" id="ytsign"><h3>Signed in to YouTube ✓</h3><p class="meta">Your channel's own analytics${g.on ? `, read ${esc(g.on)}` : ""}. Apply to YouTube: <b>${g.write ? "on" : "off"}</b>${a.almiworld ? " (AlmiWorld's own channel: nothing is changed on YouTube from here)" : ""}.${g.reachLine ? ` ${esc(g.reachLine)}` : ""}</p>
     <p>${g.write ? "" : `<button class="ghost" id="ytwriteon">Turn on Apply to YouTube</button> `}<button class="ghost" id="ytsignout">Sign out</button> <span id="ytsmsg"></span></p></div>`;
 }
 const SIGNIN_ADDS_UI = ["Impressions and click-through rate", "Where viewers stop watching", "The searches that brought viewers", "Countries, ages and traffic sources", "Real chapters from your captions, and Apply to YouTube"];
+/* RR-314 B7: "a CV video links to the AlmiCV page" — the pages from the site's own menu, offered once; the client says yes or no */
+function linkOfferCard(a) {
+  if (!a.linkOffer?.length) return "";
+  return `<div class="card" id="linkoffer"><h3>Link each video to its product's page — confirm once</h3><p class="meta">From ${esc(a.linkOffer[0].from === "your site's own menu" ? "your site's own menu" : "your site")}. Each video's ready description then ends with the link to the page it is about.</p><ul>${a.linkOffer.map((p) => `<li><b>${esc(p.product ?? "Other videos")}</b> → ${esc(p.url)}<div class="src">${p.videos.length} video${p.videos.length === 1 ? "" : "s"}: ${esc(p.videos.slice(0, 4).join(" · "))}${p.videos.length > 4 ? " …" : ""}</div></li>`).join("")}</ul><p><button id="linkyes">Yes, use these links</button> <button class="ghost" id="linkno">No, keep as it is</button> <span id="linkmsg"></span></p></div>`;
+}
 function ownDataCard(a) {
   const o = a.ownData; if (!o) return "";
   return `<div class="card" id="ytown"><h3>From YOUR channel's data</h3><p class="meta">${esc(o.line)} This is what a chatbot cannot know: your own numbers.</p>${o.findings.length ? `<ol>${o.findings.map((f) => `<li><b>${esc(f.line)}</b>${f.advice ? `<div>${esc(f.advice)}</div>` : ""}${f.examples?.length ? `<div class="src">For example: ${f.examples.map((e) => `"${esc(e.title)}" (${Number(e.views).toLocaleString()} views)`).join(" · ")}</div>` : ""}<div class="src">From YOUR channel's data: ${esc(f.from)}</div></li>`).join("")}</ol>` : `<p class="meta">No group of your videos stands out yet.</p>`}
@@ -357,7 +378,7 @@ async function youtubeTab() {
   AI_READY = a.aiReady === true;
   SIGNED = a.signin?.signedIn === true; CAN_APPLY = SIGNED && a.signin.write === true && !a.almiworld;
   $("#ytbox").innerHTML = `${AI_READY ? "" : `<p class="howto" id="ainote">${esc(a.aiLine)}</p>`}<div class="chan"><div><b>${esc(a.confirmed.title)}</b> <span class="meta">${esc(a.confirmed.handle)} · ${Number(a.channel.videos).toLocaleString()} videos read${a.complete ? "" : " (not all — the read stopped at 5,000)"}${a.language ? ` · language: ${esc(a.language.label)}` : ""}</span></div></div>
-  ${a.shared ? `<p class="meta"><b>${esc(a.shared.line)}</b></p>` : ""}${signinCard(a)}${ownDataCard(a)}
+  ${a.shared ? `<p class="meta"><b>${esc(a.shared.line)}</b></p>` : ""}${signinCard(a)}${linkOfferCard(a)}${ownDataCard(a)}
   <div class="score" id="ytscore">${gauge({ score: S2.score, gauge: S2.gauge, word: S2.word })}<div class="areas"><b>Your YouTube score</b><ul>${S2.checks.map((c) => `<li>${c.passed === c.of ? "✓" : "!"} ${esc(c.text)}</li>`).join("")}</ul><p class="meta">${esc(S2.how)}</p></div></div>
   ${a.planItems?.length ? `<div class="card plan"><h3>Do these first this week</h3><p class="meta">Each with the problem, the solution and the text ready to paste.</p>${a.planItems.map(itemHtml).join("")}</div>` : ""}
   <div class="card plan" ${a.planItems?.length ? "hidden" : ""}><h3>Do these first this week</h3>${a.doFirst.length ? `<ol>${a.doFirst.map((s) => `<li><b>${esc(s.step)}</b><div class="src">Why: ${esc(s.from)}</div></li>`).join("")}</ol>` : `<p class="meta">Run the research first — the plan is made from it.</p>`}</div>
@@ -387,9 +408,14 @@ async function youtubeTab() {
   const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`${U}/write`, { videoId: b.dataset.v }); if (r.aiCost && $("#aicost")) $("#aicost").textContent = r.aiCost; if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, "err"); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true }, b.dataset.v)).join("") + box.innerHTML; note(msg, `${r.options.length} option${r.options.length === 1 ? "" : "s"} written with your AI, each checked: no place, person, price or claim outside this video's own words and the research.${r.options.some((o) => o.check?.length) ? " A yellow note says what to check before you use it." : ""}${r.dropped?.length ? ` ${r.dropped.length} not shown: ${r.dropped[0].why.join("; ")}.` : ""}`, "ok"); wireCopy(box); wireApply(box); }));
   wireAI($("#ytbox")); wireApply($("#ytbox")); wireChap($("#ytbox"));
   /* sign-in, Apply permission, sign-out */
+  /* RR-314 B7: the answer is kept; the options are made again with the links */
+  if ($("#linkyes")) $("#linkyes").onclick = async () => { const r = await post(`${U}/links`, { pages: a.linkOffer.filter((p) => p.words.length).map((p) => ({ words: p.words, url: p.url })) }); note($("#linkmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(youtubeTab, 900); };
+  if ($("#linkno")) $("#linkno").onclick = async () => { const r = await post(`${U}/links`, { decline: true }); note($("#linkmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(youtubeTab, 900); };
   if ($("#gsignon")) $("#gsignon").onclick = () => googleSignInScreen(() => work("YouTube")); // RR-313 B1: the one place
-  if ($("#ytsignin")) $("#ytsignin").onclick = async () => { const r = await post(`${U}/signin`, { write: Boolean($("#ytwrite")?.checked) }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); window.open(r.url, "_blank"); note($("#ytsmsg"), "Finish signing in, in the window that opened (with the Google account that owns this channel) — then come back and open this tab again."); };
-  if ($("#ytwriteon")) $("#ytwriteon").onclick = async () => { const r = await post(`${U}/signin`, { write: true }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); window.open(r.url, "_blank"); note($("#ytsmsg"), "Allow the extra permission in the window that opened — then open this tab again."); };
+  /* RR-314 A1: the sign-in page opens in the client's own browser (the app asks for it); this tab waits and redraws itself once Google has sent the browser back */
+  const ytSignedIn = async () => (await get(`${U}/signin`)).signedIn === true;
+  if ($("#ytsignin")) $("#ytsignin").onclick = async () => { const r = await post(`${U}/signin`, { write: Boolean($("#ytwrite")?.checked) }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); signinOpened($("#ytsmsg"), r, "Sign in there with the Google account that owns this channel.", ytSignedIn, () => youtubeTab()); };
+  if ($("#ytwriteon")) $("#ytwriteon").onclick = async () => { const r = await post(`${U}/signin`, { write: true }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); signinOpened($("#ytsmsg"), r, "Allow the extra permission there.", ytSignedIn, () => youtubeTab()); };
   if ($("#ytsignout")) $("#ytsignout").onclick = async () => { const r = await post(`${U}/signout`, {}); note($("#ytsmsg"), r.line, "ok"); setTimeout(youtubeTab, 1000); };
   /* competitors */
   if ($("#caddb")) $("#caddb").onclick = async () => { note($("#cmsg"), "Looking it up…"); const r = await post(`${U}/competitor`, { handle: $("#cadd").value.trim() }); if (!r.ok) return note($("#cmsg"), r.refused, "err"); youtubeTab(); };
@@ -645,12 +671,16 @@ async function googleSignInScreen(back = null) {
     <h3>How to get your client (once, in Google Cloud)</h3>
     <ol class="howto"><li>Open console.cloud.google.com and pick your project.</li><li>APIs &amp; Services → Credentials → <b>Create credentials</b> → the sign-in client ID, type <b>Desktop app</b>.</li><li>Press Google's download button for that client — or copy the <b>Client ID</b> and <b>Client secret</b>.</li><li>Your consent screen (in Google Cloud) must list you (and anyone else who signs in) as a <b>test user</b> while it is in Testing.</li></ol>
     <h3>Way 1 — choose the file Google Cloud downloaded</h3><label>The file Google Cloud downloaded (client_secret_….json)<input id="gjson" type="file" accept=".json,application/json"></label><button id="gjsave">Use this file</button>
-    <h3 style="margin-top:14px">Way 2 — paste them</h3><label>Client ID (ends with .apps.googleusercontent.com)<input id="gid" autocomplete="off" spellcheck="false"></label><label>Client secret<input id="gsec" type="password" autocomplete="off" spellcheck="false"></label><button class="ghost" id="gsave">Save</button>
+    <h3 style="margin-top:14px">Way 2 — paste them</h3><form autocomplete="off" onsubmit="return false"><label>Client ID (ends with .apps.googleusercontent.com)<input id="gid" name="av-client-${Date.now()}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></label><label>Client secret<input id="gsec" name="av-secret-${Date.now()}" type="password" autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></label><button class="ghost" id="gsave" type="button">Save</button></form>
     <div class="err" id="err"></div>
     ${G.on ? `<h3 style="margin-top:14px">Now sign in</h3><p><button id="gyt">Sign in with Google — YouTube</button> <button id="gsc">Sign in with Google — Search Console</button></p><p class="meta">Google will show "Google hasn't verified this app" while your consent screen is in Testing: press <b>Continue</b> (on some screens: Advanced → Go to AlmiVisibility). It is your own app.</p>` : ""}</div>`;
   $("#back").onclick = () => (back ? back() : home());
   const save = async (clientId, secret) => { const x = await post("/api/google/client", { clientId, secret }); if (x.refused) return note($("#err"), x.refused, "err"); googleSignInScreen(back); };
-  $("#gsave").onclick = () => save($("#gid").value.trim(), $("#gsec").value.trim());
+  /* RR-314 A4 (owner: the browser filled "@dhanakkiduniya" into these): no autofill, and a Client ID is checked before it is saved */
+  $("#gsave").onclick = () => { const id = $("#gid").value.trim(), sec = $("#gsec").value.trim();
+    if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(id)) return note($("#err"), "That is not a Client ID — it ends with .apps.googleusercontent.com. Copy it again from Google Cloud (Credentials).", "err");
+    if (!sec) return note($("#err"), "Paste the Client secret too.", "err");
+    save(id, sec); };
   $("#gjsave").onclick = async () => {
     const f = $("#gjson").files[0]; if (!f) return note($("#err"), "Choose the downloaded file first.", "err");
     let j; try { j = JSON.parse(await f.text()); } catch { return note($("#err"), "That is not the file Google Cloud downloads for a sign-in client.", "err"); }
@@ -672,7 +702,7 @@ async function googleScreen() {
     <div class="err" id="err"></div>
     <p style="margin-top:16px"><button class="ghost" id="gsignon">Google sign-in: ${g.ready ? "on ✓ — change the client" : "switch it on"}</button></p></div>`;
   $("#back").onclick = () => work("Overview");
-  if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); window.open(r.url, "_blank"); note($("#err"), "Finish signing in, in the window that opened — then come back here."); };
+  if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); signinOpened($("#err"), r, "Sign in there with the Google account that owns your Search Console.", async () => (await get("/api/google/client")).signedIn === true, () => googleScreen()); };
   if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); }; }
   $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 1200); };
   $("#gsignon").onclick = () => googleSignInScreen(googleScreen); // RR-313 B1: the one place
@@ -680,7 +710,7 @@ async function googleScreen() {
 const hash = location.hash.slice(1);
 const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });
 /* RR-303: #plan opens "Your plan"; #youtube=<product id> opens that product's YouTube settings (a link straight to a screen) */
-if (hash.startsWith("product=")) { open(decodeURIComponent(hash.slice(8))); header(); }
+if (hash.startsWith("product=")) { openProduct(decodeURIComponent(hash.slice(8))); header(); }
 else if (hash.startsWith("google=")) { P = decodeURIComponent(hash.slice(7)); get(`/api/products/${encodeURIComponent(P)}/state`).then((st) => { S = st; googleScreen(); }); header(); }
 else if (hash === "plan") { planScreen(); header(); }
 else if (hash.startsWith("youtube=")) { P = decodeURIComponent(hash.slice(8)); get(`/api/products/${encodeURIComponent(P)}/state`).then((st) => { S = st; youtubeSettings(); }); header(); }

@@ -183,7 +183,7 @@ test("B6 · THE AI COST: counted from the AI's own token counts at Anthropic's p
     let cap = 0.05; const L = aiLedger(join(dir, "ai-usage.json"), { cap: () => cap });
     assert.equal(costOf({ input: 1e6, output: 0 }), 4); assert.equal(costOf({ input: 0, output: 1e6 }), 20);
     L.add({ input: 3000, output: 600 });
-    assert.match(L.line(), /^AI used today: 1 request \(about \$0\.02\)\. This month: about \$0\.02 of your \$0\.05 limit\./);
+    assert.match(L.line(), /^AI used today: 1 request \(model: claude-opus-5-5\), about \$0\.02\. This month: about \$0\.02 of your \$0\.05 limit\. Price: claude-opus-5-5 \$4 per million tokens in, \$20 out — from Anthropic's pricing page \(platform\.claude\.com\/docs\/en\/about-claude\/pricing\), read 2026-10-22\./); // RR-314 B8
     L.add({ input: 3000, output: 600 }); L.add({ input: 3000, output: 600 });
     assert.equal(L.allowed().ok, false); assert.match(L.allowed().why, /Your AI limit for this month is reached/);
     cap = 10; assert.equal(L.allowed().ok, true);

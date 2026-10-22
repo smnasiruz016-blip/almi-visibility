@@ -137,13 +137,14 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
   const niche = nicheOf({ channel: CHANNEL, videos: vids, product: {} });
   const ctx = { channel: CHANNEL, persona: niche.persona, niche, summary: null, kind: "LONG", style: "English", links: ["https://www.youtube.com/@momdiaries"] };
   const seen = [];
-  const reply = (options) => async (url, init) => { seen.push({ url, init }); return new Response(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: JSON.stringify({ options }) }], usage: { input_tokens: 10, output_tokens: 20 } }), { status: 200 }); };
+  /* RR-312 Tier 2: asked to re-check, this stand-in keeps what it wrote — so what it invented stays invented */
+  const reply = (options) => async (url, init) => { seen.push({ url, init }); const c = JSON.parse(init.body).messages[0].content; const back = c.includes("OPTIONS TO RE-CHECK:\n") ? JSON.parse(c.split("OPTIONS TO RE-CHECK:\n")[1]).map((x) => x.option) : options; return new Response(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: JSON.stringify({ options: back }) }], usage: { input_tokens: 10, output_tokens: 20 } }), { status: 200 }); };
   const good = { title: "Grocery Haul in Copenhagen | Pakistani Mom", description: "Weekly grocery shopping in Copenhagen with the kids — a Pakistani mom in Denmark.\nOur weekly grocery shopping at the supermarket with the kids.", hashtags: ["#GroceryHaul", "#Copenhagen", "#PakistaniMom"], thumbnail: "Weekly Grocery Haul" };
   const invented = { ...good, title: "Grocery Haul in Paris | 50 Euro Budget", thumbnail: "PARIS HAUL" };
   const r = await writeWithAI({ provider: "anthropic", key: FAKE_AI, video, ctx, fetchImpl: reply([good, { ...good, title: "Weekly Shopping in Copenhagen" }, invented]), base: "http://127.0.0.1:9" });
   assert.equal(r.ok, true, r.why);
   assert.equal(r.options.length, 2, "the invented option was shown");
-  assert.equal(r.dropped.length, 1); assert.match(r.dropped[0].why.join(" "), /not in the material: (Paris|50)/);
+  assert.equal(r.dropped.length, 1); assert.match(r.dropped[0].why.join(" "), /^Paris — a place your video never names/); // RR-312: the hidden option says what it invented
   const body = JSON.parse(seen[0].init.body);
   assert.deepEqual([body.model, body.fallbacks, body.output_config.effort, body.output_config.format.type], [AI.model, "default", "low", "json_schema"]);
   assert.equal(seen[0].init.headers["x-api-key"], FAKE_AI); assert.equal(seen[0].init.headers["anthropic-beta"], AI.fallbackBeta);

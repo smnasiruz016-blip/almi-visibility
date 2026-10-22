@@ -82,6 +82,8 @@ function google() {
       const ok = { title: "Meri Purani Iceland Memories — Hum Sab Ke Saath", description: "Pehle din ki Iceland yaadein, hum sab ke saath.\nHum sab Iceland gaye, bohot maza aaya.", hashtags: ["#Iceland", "#FamilyVlog", "#PakistaniFamily"], thumbnail: "ICELAND YAADEIN", names: [], facts: [{ fact: "the family went to Iceland", quote: "Hum sab Iceland gaye" }] };
       const ok2 = { ...ok, title: "Baby Ki Choti Phupo Iceland Pohanch Gayi — Pehla Din", thumbnail: "PHUPO ICELAND" };
       const paris = { ...ok, title: "Baby Ki Phupo Paris Pohanch Gayi", thumbnail: "PARIS TRIP" };
+      /* RR-312 Tier 2: asked to re-check, this stand-in keeps its invented place */
+      if (/OPTIONS TO RE-CHECK:\n/.test(j.messages[0].content)) return send({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ options: [paris] }) }], usage: { input_tokens: 3000, output_tokens: 300 } });
       return send({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ options: [ok, ok2, paris] }) }], usage: { input_tokens: 3000, output_tokens: 600 } });
     }
     if (p === "/auth") return send("<p>Google sign-in stand-in</p>", 200, "text/html");
@@ -237,11 +239,12 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     /* AI: the owner's own words pass, an invented place is still blocked; counted */
     await a.post(`/api/products/${id}/setup`, { id: "aiConnection", value: { provider: "anthropic", key: FAKE_AI } });
     const w = await a.post(`/api/products/${id}/youtube/write`, { videoId: "ice00000001" });
-    assert.equal(w.ok, true, w.why); assert.equal(w.options.length, 2, "the invented place was shown or a good option hidden");
-    assert.match(w.options[0].basedOn[0], /^Written with your AI \(Claude, claude-opus-5-5\) from this video's own title, description, captions, your channel's data/);
+    assert.equal(w.ok, true, w.why); assert.equal(w.options.length, 2, JSON.stringify(w.options.map((o) => [o.title, o.check, o.corrected]))); // the invented place hidden, the 2 good ones shown
+    assert.match(w.options[0].basedOn[0], /^Written with your AI \(Claude, claude-opus-5-5\) from this video's own title, description, captions, its fact sheet, your channel's data/);
     assert.match(w.dropped[0].why.join(" "), /Paris/);
     assert.match(g.st.ai[0].messages[0].content, /VIDEO CAPTIONS/); assert.match(g.st.ai[0].messages[0].content, /FROM THE CHANNEL'S OWN DATA/);
-    assert.match(w.aiCost, /^AI used today: 1 request/);
+    /* RR-312 Tier 2: only the option with the invented place went back once, naming it — both requests counted */
+    assert.match(g.st.ai[1].system, /RE-CHECK \(RR-312 Tier 2\): you are given 1 option you wrote/); assert.match(g.st.ai[1].messages[0].content, /OPTIONS TO RE-CHECK:\n.*"not_in_the_material":\["Paris"\]/); assert.match(w.aiCost, /^AI used today: 2 requests/);
     /* Apply: preview first (nothing changed), then applied with the old text kept, then Undo */
     const pre = await a.post(`/api/products/${id}/youtube/apply`, { items: [{ videoId: "ice00000001", title: w.options[0].title, description: w.options[0].description }] });
     assert.equal(pre.preview, true); assert.equal(g.st.puts.length, 0, "a preview changed YouTube");
@@ -256,7 +259,7 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     const co = await a.post(`/api/products/${id}/youtube/coach`, { question: "mera channel kyun nahien barh raha?" });
     assert.equal(co.ok, true, co.refused); assert.equal(co.sources[0].n, 3); assert.ok(co.sources[0].text && co.sources[0].source);
     assert.match(g.st.ai.at(-1).messages[0].content, /FACTS ABOUT MY CHANNEL:\n\[1\] /);
-    assert.match(co.aiCost, /^AI used today: 2 requests/);
+    assert.match(co.aiCost, /^AI used today: 3 requests/);
     /* the screen */
     const ui = await screen(a.url); ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#ytbox"); await ui.api.youtubeTab();
     const shown = ui.el("#ytbox").innerHTML;

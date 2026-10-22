@@ -31,7 +31,37 @@ export const FIXES = Object.freeze({
   "links-resolve": { problem: "links on the site lead to pages that do not open", how: "Fix or remove the broken links listed below.", fixable: false },
 });
 
+/* RR-313 C4 (owner: "1 things"): a count agrees with its noun and its verb — "1 page has", "38 pages do not have" */
+const ONE = [[/^pages have\b/, "page has"], [/^pages do not\b/, "page does not"], [/^pages are\b/, "page is"], [/^pages carry\b/, "page carries"]]; // one page can hold many images or links: those lines stay plural
+const verbFor = (problem, n) => (n === 1 ? ONE.reduce((s, [re, to]) => s.replace(re, to), problem) : problem);
+/** "38 pages do not have exactly one main heading" / "1 page has a missing, too short or too long title" */
+export function problemLine(id, n) {
+  const p = FIXES[id]?.problem ?? id;
+  return /^pages /.test(p) ? `${n} ${verbFor(p, n)}` : `${plural(n, "page")}: ${verbFor(p, n)}`;
+}
+/** "1 of 50 pages has …" — the verb agrees with the count, not with the 50 */
+export function problemOf(id, n, of) {
+  const p = FIXES[id]?.problem ?? id;
+  return /^pages /.test(p) ? `${n} of ${plural(of, "page")} ${verbFor(p, n).replace(/^pages? /, "")}` : `${n} of ${plural(of, "page")}: ${verbFor(p, n)}`;
+}
+
+/** RR-313 C5: each area gets ITS items from "what to fix first", in that order */
+export function withAreaItems(areas, fixFirst) {
+  for (const a of areas) { const items = fixFirst.filter((f) => f.area === a.area).map((f) => ({ id: f.id, line: f.line, how: f.how })); if (items.length) a.items = items; }
+  return areas;
+}
+
 const AREA = { TECHNICAL: "Technical", CONTENT: "Content", ACCESSIBILITY: "Accessibility", SECURITY: "Security", LINKS: "Links" };
+
+/**
+ * RR-313 C2 (owner's law: no word count). A question heading has a DIRECT answer when text stands right under it and that text OPENS with
+ * the answer — its first sentence is not another question and not a lead-in ("Great question", "In this article", "Let's look", "Read on").
+ */
+const LEAD_IN = /^(great|good) question\b|^in this (section|article|post|guide|video)\b|^let'?s\b|^before (we|you)\b|^we('ll| will)\b|^read on\b|^keep reading\b|^find out\b|^click\b|^scroll\b|^here'?s what\b|^this (section|article|post|guide) (explains|covers|looks)\b/i;
+export function directAnswer(x) {
+  const first = String(x?.a ?? "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s/)[0] ?? "";
+  return first.length > 0 && !/\?$/.test(first) && !LEAD_IN.test(first);
+}
 
 /** AI-answer readiness: five plain ticks from the site read. A tick not measurable says so. */
 export function aiReadiness(site) {
@@ -40,13 +70,13 @@ export function aiReadiness(site) {
   const bots = Object.entries(site.robots.aiBots);
   const qa = site.pages.flatMap((p) => p.qa.map((x) => ({ ...x, url: p.url })));
   const asked = qa.filter((x) => x.from === "a heading on the page");
-  const shortAnswer = asked.filter((x) => x.a && x.a.split(/\s+/).length <= 120);
+  const shortAnswer = asked.filter(directAnswer);
   const who = site.pages.some((p) => p.structuredTypes.some((t) => /^(Organization|LocalBusiness|Corporation|WebSite|Product|SoftwareApplication|Course|Person)$/.test(t)));
   return [
     bots.some(([, v]) => v === null) ? { tick: null, line: "AI search bots: robots.txt could not be read — not measured" } : { tick: bots.every(([, v]) => v), line: bots.every(([, v]) => v) ? "AI search bots may read your site (ChatGPT search, Claude search, Perplexity)" : `Your robots.txt blocks: ${bots.filter(([, v]) => !v).map(([b]) => b).join(", ")}`, fix: bots.every(([, v]) => v) ? null : "robots" },
     { tick: home.structuredTypes.length > 0, line: home.structuredTypes.length ? `Your home page describes itself to machines (${home.structuredTypes.slice(0, 3).join(", ")})` : "Your home page has no structured data", fix: home.structuredTypes.length ? null : "structured-data" },
     { tick: qa.length > 0, line: qa.length ? `${plural(qa.length, "question")} answered on your pages` : "No questions are answered on your pages — AI answers are built from questions and answers", fix: qa.length ? null : "faq" },
-    asked.length ? { tick: shortAnswer.length === asked.length, line: `${shortAnswer.length} of ${plural(asked.length, "question heading")} have a direct answer right under it (120 words or fewer)` } : { tick: null, line: "Direct answers: no question headings to measure" },
+    asked.length ? { tick: shortAnswer.length === asked.length, line: `${shortAnswer.length} of ${plural(asked.length, "question heading")} ${asked.length === 1 ? "has its" : "have their"} answer right under ${asked.length === 1 ? "it" : "them"}, opening with the answer` } : { tick: null, line: "Direct answers: no question headings to measure" },
     { tick: who, line: who ? "Your site says who you are (organisation or product facts)" : "Your site does not say who you are in a way machines read", fix: who ? null : "structured-data" },
   ];
 }
@@ -76,10 +106,12 @@ export function scoreCard({ site = null, youtube = null, on, noWebsite = false }
 
   /* what to fix first: heaviest first, each check once, with how many pages */
   const byCheck = new Map();
-  for (const f of findings) { const x = byCheck.get(f.check) ?? { check: f.check, weight: f.weight, pages: [] }; x.pages.push(f.url); byCheck.set(f.check, x); }
-  const fixFirst = [...byCheck.values()].sort((a, b) => b.weight * b.pages.length - a.weight * a.pages.length).map((x) => ({ id: x.check, line: `${plural(x.pages.length, "page")}: ${FIXES[x.check]?.problem ?? x.check}`, how: FIXES[x.check]?.how ?? null, fixForMe: Boolean(FIXES[x.check]?.fixable), pages: x.pages.slice(0, 20) }));
+  for (const f of findings) { const x = byCheck.get(f.check) ?? { check: f.check, weight: f.weight, area: AREA[results.find((r) => r.check === f.check)?.category] ?? null, pages: [] }; x.pages.push(f.url); byCheck.set(f.check, x); }
+  const fixFirst = [...byCheck.values()].sort((a, b) => b.weight * b.pages.length - a.weight * a.pages.length).map((x) => ({ id: x.check, area: x.area, line: problemLine(x.check, x.pages.length), how: FIXES[x.check]?.how ?? null, fixForMe: Boolean(FIXES[x.check]?.fixable), count: x.pages.length, pages: [...new Set(x.pages)] }));
   for (const t of ai.filter((t) => t.tick === false && t.fix && !byCheck.has(t.fix))) fixFirst.push({ id: `ai:${t.fix}`, line: t.line, how: t.fix === "robots" ? "Allow the AI search bots in your robots.txt (Visibility writes the lines for you)." : t.fix === "faq" ? "Answer the questions your customers ask, on your pages — one question as a heading, the answer right under it." : FIXES["structured-data"].how, fixForMe: t.fix !== "faq" });
   if (site?.brokenLinks?.length) { const f = fixFirst.find((x) => x.id === "links-resolve"); if (f) f.broken = site.brokenLinks.slice(0, 20); }
+  /* RR-313 C5 (owner: "Content — 38 pages to fix, but only 2 items shown"): each area carries ITS items, in the order of what to fix first */
+  withAreaItems(areas, fixFirst);
   if (youtube?.confirmed) for (const c of (youtube.check ?? []).filter((c) => c.findings.length).slice(0, 3)) fixFirst.push({ id: `yt:${c.videoId}`, line: `YouTube "${c.title}": ${c.findings.join("; ")}`, how: "Open the YouTube tab: each video has its own advice, with where it came from.", fixForMe: false });
   /* RR-310 B1 + B2 (owner): a product with NO website — its gauge is the YouTube /100 and only the YouTube line is shown (the website
    * lines would all say "Not measured" and hide what IS measured) */

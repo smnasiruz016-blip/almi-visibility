@@ -83,7 +83,7 @@ test("B1 + B4 · THE EXACT HANDLE ONLY, and EVERY PAGE: a handle is looked up wi
   const yt = fakeYouTube(); const base = await yt.listen();
   try {
     const api = youtubeApi({ key: FAKE_KEY, fetchImpl: fetch, apiBase: base });
-    assert.equal((await api.lookupHandle("@nobody-here")).line, "Channel not found — check the @handle (@nobody-here).");
+    assert.equal((await api.lookupHandle("@nobody-here")).line, "No channel with that @handle (@nobody-here) — check the spelling.");
     const right = await api.lookupHandle("@right-world");
     assert.deepEqual([right.found, right.channelId, right.title, right.subscribers], [true, "UCrightworld000000001", "Right World", 120]);
     assert.equal((await api.lookupHandle("not-a-handle")).found, false);

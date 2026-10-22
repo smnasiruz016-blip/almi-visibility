@@ -46,6 +46,14 @@ export function titleOptions(page, { siteName = null, used = new Set() } = {}) {
   if (h1 && siteName && !norm(h1).includes(norm(siteName))) add(`${h1} | ${siteName}`, "the page's main heading and your site's name");
   if (h1) add(h1, "the page's main heading");
   if (h1 && h2 && !norm(h1).includes(norm(h2))) add(`${h1}: ${h2}`, "the page's main heading and its first sub-heading");
+  /* RR-313 C1 (owner: "Ready to use repeated the present 81-character title"): a main heading longer than 70 is cut at its OWN break
+   * (" — ", ": ", " | ", " - ") — never mid-phrase; a year the heading names stays, in brackets */
+  if (h1.length > 70) {
+    const head = h1.split(/\s+[—–|-]\s+|:\s+/)[0].trim(), year = /\b(19|20)\d{2}\b/.exec(h1)?.[0];
+    if (year && !head.includes(year)) add(`${head} (${year})`, "the page's main heading, cut at its own break, with the year it names");
+    add(head, "the page's main heading, cut at its own break");
+    if (siteName && !norm(head).includes(norm(siteName))) add(`${head} | ${siteName}`, "the page's main heading, cut at its own break, and your site's name");
+  }
   const out = cands.sort((a, b) => Math.abs(45 - a.text.length) - Math.abs(45 - b.text.length)).slice(0, 2);
   for (const o of out) used.add(norm(o.text));
   return out;

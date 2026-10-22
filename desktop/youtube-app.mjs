@@ -11,7 +11,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { youtubeApi, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY, videoKind, linkTargetFor } from "../src/video/youtube.mjs";
+import { youtubeApi, plainYouTubeWhy, channelCheck, youtubeForReport, csvRows, HANDLE, API_BASE, QUOTA_RULE, KEY_NAME as YOUTUBE_KEY, videoKind, linkTargetFor } from "../src/video/youtube.mjs";
 import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
 import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS, JUNK_PHRASE } from "./youtube-niche.mjs";
@@ -47,7 +47,18 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
   const quotaFile = join(dataDir, "youtube-quota.json");
   const quota = () => { const q = readJson(quotaFile, {}); return q.day === today() ? q : { day: today(), searches: 0, units: 0 }; };
   const count = (path) => { const q = quota(); if (path === "search") q.searches++; else q.units++; atomic(quotaFile, q); };
-  const api = () => youtubeApi({ key: keys.get(YOUTUBE_KEY), fetchImpl, apiBase, onCall: count });
+  /* RR-313 A (owner's PC, 22 Oct: the key saved in Visibility was refused as "not valid"; the one in his computer's settings works): every
+   * place a key is kept is tried, the one that answered last first; a key Google refuses is named, never silently dropped */
+  const keyState = { good: null, refused: new Map() };
+  const keyOrder = () => { const xs = keys.sources ? keys.sources(YOUTUBE_KEY) : [keys.get(YOUTUBE_KEY)].filter(Boolean).map((value) => ({ where: "your YouTube key", value, ends: value.slice(-4) })); return [...xs.filter((x) => x.where === keyState.good), ...xs.filter((x) => x.where !== keyState.good)]; };
+  const api = () => { const xs = keyOrder(); return youtubeApi({ key: xs.map((x) => x.value), fetchImpl, apiBase, onCall: count, onKey: (i, refused) => { const x = xs[i]; if (!x) return; if (refused) keyState.refused.set(x.where, x.ends); else { keyState.good = x.where; keyState.refused.delete(x.where); } } }); };
+  /** RR-313 A4: which key is in use, said plainly — "Using the key saved in Visibility (ends …1234)" */
+  const keySource = () => {
+    const xs = keyOrder(); if (!xs.length) return null;
+    const used = xs.find((x) => x.where === keyState.good) ?? xs.find((x) => !keyState.refused.has(x.where)) ?? xs[0];
+    const refused = xs.filter((x) => x !== used && keyState.refused.has(x.where));
+    return `Using ${used.where}, ending …${used.ends}.${refused.map((x) => ` ${x.where[0].toUpperCase()}${x.where.slice(1)}, ending …${x.ends}, was not accepted by Google (keyInvalid) — paste the working key in YouTube settings to replace it.`).join("")}`;
+  };
   const yt = (s) => s.setup?.youtube ?? {};
   /* RR-311: the channel's own analytics only while its owner is signed in — never an old read after a sign-out */
   const signedOf = (id) => (signin?.status(id).signedIn ? readJson(join(store.dirOf(id), "youtube-signed.json"), null) : null);
@@ -96,7 +107,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
   const self = {
     settings(id) {
       const s = store.read(id), y = yt(s);
-      return { handle: y.handle ?? "", suggestedHandle: handleFromSite(s.product?.site), confirmed: y.confirmed ?? null, key: keys.status(YOUTUBE_KEY), topics: topicLines(id), extraTopics: y.extraTopics ?? [], relatedPages: y.relatedPages ?? [], files: filesOf(id).length, quota: quotaLine(), skipped: y.skipped === true };
+      return { handle: y.handle ?? "", suggestedHandle: handleFromSite(s.product?.site), confirmed: y.confirmed ?? null, key: keys.status(YOUTUBE_KEY), keySource: keySource(), topics: topicLines(id), extraTopics: y.extraTopics ?? [], relatedPages: y.relatedPages ?? [], files: filesOf(id).length, quota: quotaLine(), skipped: y.skipped === true };
     },
     saveSettings(id, v) {
       const s = store.read(id), y = yt(s);
@@ -113,14 +124,14 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
     /** B1 + B2: the channel of this exact @handle, to show before anything is read */
     async lookup(id, handle) {
       const a = api(); if (a.state !== "READY") return { found: false, line: keyLine() };
-      const c = await a.lookupHandle(String(handle ?? "").trim());
-      if (!c.found) return c;
-      return { ...c, picture: await picture(c.pictureUrl), mismatch: mismatch(store.read(id), c.handle) };
+      let c; try { c = await a.lookupHandle(String(handle ?? "").trim()); } catch (e) { return { found: false, line: plainYouTubeWhy(e), keySource: keySource() }; }
+      if (!c.found) return { ...c, keySource: keySource() };
+      return { ...c, picture: await picture(c.pictureUrl), mismatch: mismatch(store.read(id), c.handle), keySource: keySource() };
     },
     /** B2: "Yes, this is my channel" — the channel is looked up AGAIN by the exact @handle, and its ID must be the one shown */
     async confirm(id, { handle, channelId }) {
       const a = api(); if (a.state !== "READY") return { ok: false, why: keyLine() };
-      const c = await a.lookupHandle(String(handle ?? "").trim());
+      let c; try { c = await a.lookupHandle(String(handle ?? "").trim()); } catch (e) { return { ok: false, why: plainYouTubeWhy(e) }; }
       if (!c.found || c.channelId !== channelId) return { ok: false, why: c.found ? "That channel changed since it was shown — look it up again." : c.line };
       const s = store.read(id);
       s.setup = { ...s.setup, youtube: { ...yt(s), handle: c.handle, confirmed: { channelId: c.channelId, title: c.title, handle: c.handle, description: String(c.description ?? "").slice(0, 2000), on: today() } } };

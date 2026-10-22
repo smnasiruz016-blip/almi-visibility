@@ -33,10 +33,24 @@ export function modelReply(material, { attempt = 0, avoid = [] } = {}) {
   if (r() < 0.05) o[1].description += "\n(Add one or two sentences saying what happens.)";
   return { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ options: o }) }], usage: { input_tokens: 3000, output_tokens: 600 } };
 }
-/** a fetch for writeWithAI: reads the retry's "do not use" list from the system prompt */
+/** RR-312 Tier 2: the doubtful options sent back, each with what was not in the material — rewritten without it most of the time (85%) */
+export function modelRecheck(content) {
+  const list = JSON.parse(content.slice(content.indexOf("OPTIONS TO RE-CHECK:\n") + 21));
+  const out = list.map(({ option, not_in_the_material: doubts }) => {
+    const r = rng(hash(option.title) + 104729);
+    let o = { ...option, names: [], facts: [] };
+    for (const d of doubts) if (r() < 0.85) { const re = new RegExp(`\\s*[—|-]?\\s*${String(d).replace(/[.*+?^${}()|[\]\\$]/g, "\\$&")}(\\s+Trip)?`, "gi"); o = { ...o, title: o.title.replace(re, "").trim() || "Hamari Yaadein", description: o.description.split("\n").filter((l) => !l.includes(d)).join("\n").replace(re, "") || o.description, thumbnail: o.thumbnail.replace(re, "").trim() || "HAMARI YAADEIN" }; }
+    if ((o.hashtags ?? []).length > 3) o.hashtags = o.hashtags.slice(0, 3);
+    if (String(o.thumbnail).split(/\s+/).length > 4) o.thumbnail = "HAMARI YAADEIN";
+    o.description = o.description.split("\n").filter((l) => !/\(add /i.test(l)).join("\n");
+    return o;
+  });
+  return { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ options: out }) }], usage: { input_tokens: 3500, output_tokens: 500 } };
+}
+/** a fetch for writeWithAI: a first answer, or (Tier 2) the re-check of the doubtful options */
 export const modelFetch = (seen = []) => async (url, init) => {
   const j = JSON.parse(init.body); seen.push(j);
-  const avoid = [...String(j.system).matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter((x) => /previous answer used/.test(j.system));
-  const material = j.messages[0].content.replace(/^MATERIAL:\n/, "");
-  return new Response(JSON.stringify(modelReply(material, { attempt: avoid.length ? 1 : 0, avoid })), { status: 200 });
+  const content = j.messages[0].content;
+  if (content.includes("OPTIONS TO RE-CHECK:\n")) return new Response(JSON.stringify(modelRecheck(content)), { status: 200 });
+  return new Response(JSON.stringify(modelReply(content.replace(/^MATERIAL:\n/, ""))), { status: 200 });
 };

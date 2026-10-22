@@ -17,11 +17,34 @@ export const AI = Object.freeze({ origin: "https://api.anthropic.com", path: "/v
 /* RR-311 B4: each option DECLARES the people it names and the facts it states, each fact with the words of the material it comes from */
 const SCHEMA = { type: "object", additionalProperties: false, required: ["options"], properties: { options: { type: "array", items: { type: "object", additionalProperties: false, required: ["title", "description", "hashtags", "thumbnail", "names", "facts"], properties: { title: { type: "string" }, description: { type: "string" }, hashtags: { type: "array", items: { type: "string" } }, thumbnail: { type: "string" }, names: { type: "array", items: { type: "string" } }, facts: { type: "array", items: { type: "object", additionalProperties: false, required: ["fact", "quote"], properties: { fact: { type: "string" }, quote: { type: "string" } } } } } } } } };
 
+/**
+ * RR-312 1 · A FACT SHEET PER VIDEO, made automatically from THAT video's own title, description, tags and captions (owner: "dates aur naam
+ * har video ke saath fixed nahien diye ja sakte; content se match kar ke likhna hoga"): its places, names, numbers, years, prices, what
+ * happens — and the obvious typo suspects with a suggested fix ("1018 — probably 2018, next to 2016, 2017"; "Togather → Together").
+ */
+const NOT_NAMES = new Set("I The A An My Our Your We You He She It They This That These Those Video Vlog Vlogs Day Daily Family Mom Dad Baby Part Episode Full New My Me Mere Meri Mera Hum Ham Aaj Kal Sunday Monday Tuesday Wednesday Thursday Friday Saturday January February March April May June July August September October November December Subscribe Like Share Comment Welcome Hello Hi Thanks Thank Please Happy Eid Ramadan Christmas Diwali Shorts".split(" "));
+export function factSheet(v, ctx = {}) {
+  const own = [v.title, v.description, (v.tags ?? []).join(", "), ctx.captions ? String(ctx.captions).replace(/\d{1,2}:\d{2}(:\d{2})?[.,]\d{3}\s+-->\s+\S+/g, " ") : ""].filter(Boolean).join("\n");
+  const places = placesIn(own);
+  const names = [...new Set((String(v.description ?? "").match(/(?<![.!?]\s|^)\b\p{Lu}\p{Ll}{2,}(?:\s\p{Lu}\p{Ll}{2,})?\b/gu) ?? []).filter((w) => !NOT_NAMES.has(w.split(" ")[0]) && !places.some((p) => w.includes(p))))].slice(0, 8);
+  const nums = numbersIn(own), years = nums.filter((n) => /^(19|20)\d{2}$/.test(n)), prices = [...new Set((own.match(PRICE) ?? []).map((p) => p.trim()))];
+  const typos = [];
+  for (const n of nums.filter((x) => /^\d{4}$/.test(x) && !/^(19|20)\d{2}$/.test(x))) {
+    const fix = years.map((y) => [y, ...[-3, -2, -1, 1, 2, 3].map((d) => String(Number(y) + d))]).flat().find((c) => lev(c, n) === 1 && /^(19|20)\d{2}$/.test(c) && !years.includes(c));
+    if (fix) typos.push({ from: n, to: fix, why: `${n} — probably ${fix}, next to ${years.join(", ")}` });
+  }
+  const known = []; spellFix(own, known); for (const k of [...new Set(known)]) { const [from, to] = k.split(" → "); typos.push({ from, to, why: k }); }
+  const happens = String(v.description ?? "").split(/(?<=[.!?])\s+|\n/).map((s) => s.trim()).find((s) => s.length >= 15 && !/https?:|subscribe|follow/i.test(s)) ?? null;
+  return { places, names, numbers: nums.filter((n) => !years.includes(n)).slice(0, 12), years, prices, happens, typos };
+}
+const sheetText = (f) => [`places: ${f.places.join(", ") || "none named"}`, `people's names: ${f.names.join(", ") || "none named"}`, `years: ${f.years.join(", ") || "none"}`, `other numbers: ${f.numbers.join(", ") || "none"}`, `prices: ${f.prices.join(", ") || "none"}`, `what happens: ${f.happens ?? "only what the title says"}`, `typo suspects (you may write the fix): ${f.typos.map((t) => t.why).join("; ") || "none"}`].join("\n  ");
+
 /** The material the AI may use — the only places, people, numbers and claims an option may name. */
 export function materialOf(v, ctx) {
   const lines = [
     `VIDEO TITLE: ${v.title}`,
     `VIDEO DESCRIPTION (its own): ${String(v.description ?? "").slice(0, 1500)}`,
+    `FACT SHEET FOR THIS VIDEO (made from its own words — use only these facts):\n  ${sheetText(factSheet(v, ctx))}`,
     ...(ctx.captions ? [`VIDEO CAPTIONS (what is said in it, with times): ${String(ctx.captions).slice(0, 4000)}`] : []),
     ...(ctx.chapters ? [`CHAPTERS FROM ITS CAPTIONS (real times — use these as they are): ${ctx.chapters}`] : []),
     `VIDEO KIND: ${ctx.kind === "LONG" ? "long video (chapters belong in its description)" : ctx.kind === "SHORT" ? "Short (no chapters)" : "unknown"}`,
@@ -58,7 +81,7 @@ export function inventedIn(text, material, { names = [], facts = [] } = {}) {
   return [...new Set(out)];
 }
 /* RR-311 B3: the video's own language and story; translation and same-meaning words allowed; only places, people, numbers and claims are bound to the material */
-const SYSTEM = "You write YouTube titles, descriptions, hashtags and thumbnail text for one video of a small creator. KEEP THE VIDEO'S STORY AND ITS OWN LANGUAGE AND SCRIPT: a Roman-Urdu title stays Roman Urdu (you may mix in the English words such creators use), an English title stays English; never shorten a title into something with another meaning. Ordinary words, same-meaning words and English ↔ Roman-Urdu translation are fine. But a PLACE, a PERSON, a NUMBER, a DATE, a PRICE or a CLAIM may appear only if the material holds it — the channel's description says who the channel is, NOT where this video happens; a place goes into an option only if the video's own title, description or captions name it. Write 3 different options, each from a different angle (what happens; the question a viewer would type; a short hook) — never an empty title such as 'X: What Is It Really Like?' or 'Watch This: X'. Each: a title of at most 100 characters, main words first, in the channel's title style; a description whose first two lines carry the key words, then a short summary from the video's own description or captions, then — for a long video, only when the material gives CHAPTERS FROM ITS CAPTIONS — those chapters exactly, then the links given; never a placeholder such as '(add …)' or '?:??'; exactly 3 hashtags made of whole topic words (never a fragment of a sentence); thumbnail text of 2 to 4 words. List in 'names' every person you name, and in 'facts' every factual claim you make, each with the exact words of the material it comes from in 'quote'. If the material says too little, keep the option short rather than invent.";
+const SYSTEM = "You write YouTube titles, descriptions, hashtags and thumbnail text for one video of a small creator. KEEP THE VIDEO'S STORY AND ITS OWN LANGUAGE AND SCRIPT: a Roman-Urdu title stays Roman Urdu (you may mix in the English words such creators use), an English title stays English; never shorten a title into something with another meaning. Ordinary words, same-meaning words and English ↔ Roman-Urdu translation are fine. But a PLACE, a PERSON, a NUMBER, a DATE, a PRICE or a CLAIM may appear only if the material holds it — the channel's description says who the channel is, NOT where this video happens; a place goes into an option only if the video's own title, description or captions name it. Write 3 different options, each from a different angle (what happens; the question a viewer would type; a short hook) — never an empty title such as 'X: What Is It Really Like?' or 'Watch This: X'. Each: a title of at most 100 characters, main words first, in the channel's title style; a description whose first two lines carry the key words, then a short summary from the video's own description or captions, then — for a long video, only when the material gives CHAPTERS FROM ITS CAPTIONS — those chapters exactly, then the links given; never a placeholder such as '(add …)' or '?:??'; exactly 3 hashtags made of whole topic words (never a fragment of a sentence); thumbnail text of 2 to 4 words. List in 'names' every person you name, and in 'facts' every factual claim you make, each with the exact words of the material it comes from in 'quote'. If the material says too little, keep the option short rather than invent. RR-312: use only the FACT SHEET FOR THIS VIDEO, the video's own words and the research; if you are unsure of a detail (a year, a name, a place, a number), leave it out; a typo suspect listed in the fact sheet may be written in its fixed form.";
 
 /*
  * RR-312 (owner, 22 Oct 2026: "guard mein aisi settings karein ke baar baar ruke nahien" — it hid ALL options over "2018", the AI's right fix of
@@ -76,6 +99,8 @@ const wordsIn = (s) => [...new Set(String(s).toLowerCase().split(/[^\p{L}]+/u).f
 const PRICE = /(?:[$£€₹]\s?\d[\d,.]*|\b\d[\d,.]*\s?(?:usd|eur|euro|euros|dollars?|pounds?|rs\.?|rupees?|pkr|inr|dkk|kroner)\b|\b(?:rs\.?|pkr|inr|dkk)\s?\d[\d,.]*)/gi;
 /** one option's findings: hidden (a truly invented fact), check (a doubt), corrected (a typo fix) */
 export function reviewOption(o, material) {
+  /* the fact sheet's suggested fixes are suggestions, not the video's own words — checked as corrections, never as material */
+  material = String(material).replace(/^FACT SHEET FOR THIS VIDEO[^\n]*\n(?:  [^\n]*\n?)*/m, "");
   const text = `${o.title}\n${o.description}\n${o.thumbnail}\n${(o.hashtags ?? []).join(" ").replace(/#/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2")}`;
   const m = norm(material), mNums = numbersIn(material), mWords = wordsIn(material), mPlaces = new Set(placesIn(material).map((p) => p.toLowerCase()));
   const hidden = [], check = [], corrected = [];
@@ -89,12 +114,12 @@ export function reviewOption(o, material) {
   for (const pr of String(text).match(PRICE) ?? []) { const n = numbersIn(pr)[0]; if (n && !mNums.includes(n)) hidden.push({ what: pr.trim(), why: `${pr.trim()} — a price your video never states` }); }
   for (const h of String(text).match(/@[\w.-]{3,}/g) ?? []) if (!m.includes(h.toLowerCase().slice(1))) hidden.push({ what: h, why: `${h} — a channel your video never names` });
   for (const n of o.names ?? []) { if (!n || m.includes(norm(n))) continue; const f = n.split(/\s+/).every((w) => m.includes(w.toLowerCase()) || fixOf(w)); if (f) corrected.push(n); else hidden.push({ what: n, why: `${n} — a person your video never names` }); }
-  for (const f of o.facts ?? []) { const q = tokens(f?.quote ?? ""); if (!q.length) continue; const share = q.filter((w) => mWords.includes(w) || m.includes(w)).length / q.length; if (share < 0.7) hidden.push({ what: String(f.fact ?? "").slice(0, 60), why: `"${String(f.fact ?? "").slice(0, 60)}" — a claim your video's words do not hold` }); }
+  for (const f of o.facts ?? []) { const q = tokens(f?.quote ?? ""); if (!q.length) continue; const share = q.filter((w) => mWords.includes(w) || m.includes(w) || (w.length >= 5 && mWords.some((x) => x.slice(0, 4) === w.slice(0, 4) && Math.abs(x.length - w.length) <= 3))).length / q.length; /* Tier 1: inflection passes */ if (share < 0.7) hidden.push({ what: String(f.fact ?? "").slice(0, 60), why: `"${String(f.fact ?? "").slice(0, 60)}" — a claim your video's words do not hold` }); }
   /* numbers: in the material → fine; a one-digit fix of the material's own number next to its neighbours (1018 → 2018 beside 2016, 2017) →
    * corrected; any other number → a doubt the client checks (shown, never hidden) — unless it is part of a price above */
   const priced = new Set((String(text).match(PRICE) ?? []).flatMap((p) => numbersIn(p)));
   for (const n of numbersIn(text)) {
-    if (mNums.includes(n) || priced.has(n) || /^0+$/.test(n) || /^0?0:00$/.test(n)) continue;
+    if (mNums.includes(n) || priced.has(n) || /^0+$/.test(n) || /^0?0:00$/.test(n) || n.length < 2) continue; // a single digit ("Part 2", "#A1") is no fact to check
     /* the typo is the number ONE digit off but FAR in value (1018 for 2018 — not 2016, which is simply another year) */
     const near = mNums.filter((x) => x.length === n.length && lev(x, n) === 1 && Math.abs(Number(x) - Number(n)) >= 10).sort((a, b) => Math.abs(Number(b) - Number(n)) - Math.abs(Number(a) - Number(n)))[0];
     const neighbours = /^\d{4}$/.test(n) && mNums.some((x) => /^\d{4}$/.test(x) && x !== near && Math.abs(Number(x) - Number(n)) <= 3);
@@ -129,13 +154,15 @@ export function checkOptions(options, material) {
   return { kept, dropped };
 }
 
-/** One request to the client's own AI; `avoid` = what the first answer named that is not in the material (the retry) */
-async function ask({ key, material, avoid, fetchImpl, base }) {
-  const system = SYSTEM + (avoid.length ? ` IMPORTANT: your previous answer used ${avoid.map((x) => `"${x}"`).join(", ")}, which ${avoid.length === 1 ? "is" : "are"} not in the material. Do not use ${avoid.length === 1 ? "it" : "them"}; use only the video's own words and the research.` : "");
+/** One request to the client's own AI. `recheck` (Tier 2) = the doubtful options, each with what was doubted — to be re-checked against the
+ *  material and rewritten; the answer has exactly that many options, in the same order */
+async function ask({ key, material, recheck = null, fetchImpl, base }) {
+  const system = SYSTEM + (recheck ? ` RE-CHECK (RR-312 Tier 2): you are given ${recheck.length} option${recheck.length === 1 ? "" : "s"} you wrote, each with what was not found in the material. Check each against the material and rewrite it so every place, person, number, price and claim is in the material (or a typo fix listed in the fact sheet); leave out any detail you cannot ground. Return exactly ${recheck.length} option${recheck.length === 1 ? "" : "s"}, in the same order.` : "");
+  const user = `MATERIAL:\n${material}\n\n${recheck ? `OPTIONS TO RE-CHECK:\n${JSON.stringify(recheck.map((r) => ({ option: { title: r.option.title, description: r.option.description, hashtags: r.option.hashtags, thumbnail: r.option.thumbnail }, not_in_the_material: r.doubts })))}` : "Write the 3 options."}`;
   let r;
   try {
     r = await fetchImpl(`${base}${AI.path}`, { method: "POST", signal: AbortSignal.timeout(90000), headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": AI.version, "anthropic-beta": AI.fallbackBeta },
-      body: JSON.stringify({ model: AI.model, max_tokens: 8000, fallbacks: "default", system, messages: [{ role: "user", content: `MATERIAL:\n${material}\n\nWrite the 3 options.` }], output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } } }) });
+      body: JSON.stringify({ model: AI.model, max_tokens: 8000, fallbacks: "default", system, messages: [{ role: "user", content: user }], output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } } }) });
   } catch { return { fail: "Your AI did not answer — the template options stay." }; }
   if (r.status === 401 || r.status === 403) return { fail: "Your AI refused the key — check it in Settings → Your AI connection." };
   if (!r.ok) return { fail: `Your AI answered with an error (${r.status}) — the template options stay.` };
@@ -145,27 +172,51 @@ async function ask({ key, material, avoid, fetchImpl, base }) {
   try { return { options: JSON.parse((body?.content ?? []).find((b) => b?.type === "text")?.text)?.options ?? [], usage }; } catch { return { fail: "Your AI's answer could not be read — the template options stay.", usage }; }
 }
 
-/** Three options for one video, written by the client's own AI, checked — asked once more when the first answer had a problem (RR-312) */
+/* one option judged: CLEAN, CHECK (a doubt — shown with a yellow note), HIDDEN (a clear invention), FORM (cannot be put right) */
+function judge(raw, material) {
+  const { why, option } = tidy(raw);
+  if (why.length) return { state: "FORM", option: { ...option, title: option.title || String(raw?.title ?? "") }, doubts: why, why };
+  const r = reviewOption(option, material);
+  if (r.hidden.length) return { state: "HIDDEN", option, doubts: r.hidden.map((h) => h.what), why: r.hidden.map((h) => h.why), hidden: r.hidden.map((h) => h.what) };
+  return { state: r.check.length ? "CHECK" : "CLEAN", option: { ...option, check: r.check, corrected: r.corrected }, doubts: r.check.map((c) => c.replace(/^Check: (\S+).*$/, "$1")) };
+}
+
+/**
+ * Three options for one video, written by the client's own AI (RR-312, owner: "guard baar baar ruke nahien, aur result bhi best de"):
+ *   · the prompt is grounded in the video's own FACT SHEET; each fact the AI states comes with its quote (a citation);
+ *   · TIER 1 — a cheap check in code of every option (citations, places, people, numbers, prices); common words are never facts;
+ *   · TIER 2 — ONLY the doubtful options go back to the AI once, naming the doubt; what passes is shown; what is still doubtful is shown with
+ *     a yellow note; only a clear invention is hidden, in that option alone. At most one retry per video; every request counts in the cost.
+ */
 export async function writeWithAI({ provider, key, video, ctx, fetchImpl = fetch, base = AI.origin }) {
   if (provider !== "anthropic") return { ok: false, why: "AI writing works with an Anthropic (Claude) key in this version — your connected AI is another one. The ready options above are written by Visibility's own templates." };
   if (!key) return { ok: false, why: "Connect your AI key first (Settings → Your AI connection)." };
   const material = materialOf(video, ctx);
   const usages = [];
-  const first = await ask({ key, material, avoid: [], fetchImpl, base }); if (first.usage) usages.push(first.usage);
+  const first = await ask({ key, material, fetchImpl, base }); if (first.usage) usages.push(first.usage);
   if (first.fail) return { ok: false, why: first.fail, usages, usage: sum(usages) };
-  let r1 = checkOptions(first.options, material), r2 = null;
-  /* RR-312 1 · RETRY FIRST: anything hidden, a doubt, or fewer than 3 usable → once more, told exactly what was not in the material */
-  const avoid = [...new Set([...r1.dropped.flatMap((d) => d.hidden ?? []), ...r1.kept.flatMap((k) => k.check.map((c) => c.replace(/^Check: (\S+).*$/, "$1")))])];
-  const retried = avoid.length > 0 || r1.kept.length < 3;
-  if (retried) { const second = await ask({ key, material, avoid, fetchImpl, base }); if (second.usage) usages.push(second.usage); if (!second.fail) r2 = checkOptions(second.options, material); }
-  /* the second answer first, then the first; clean before "check"; never the same title twice */
-  const pool = [...(r2?.kept ?? []), ...r1.kept].sort((a, b) => a.check.length - b.check.length);
-  const seen = new Set(), kept = pool.filter((o) => !seen.has(o.title.toLowerCase()) && seen.add(o.title.toLowerCase())).slice(0, 3);
-  /* what the client is told: only the options hidden in the answer whose options are shown — never the retry */
-  const dropped = (r2 ?? r1).dropped.filter((d) => d.hidden);
-  if (!kept.length) return { ok: false, why: `Your AI's options named a place, person, price or claim that is not in this video's own words or the research (${(r2 ?? r1).dropped.flatMap((d) => d.why).slice(0, 2).join("; ")}) — they were not shown. The template options stay.`, dropped, retried, usages, usage: sum(usages) };
-  const used = `this video's own title, description${material.includes("VIDEO CAPTIONS") ? ", captions" : ""}, your channel's data and the matching niche research`;
-  return { ok: true, retried, dropped, usages, usage: sum(usages),
+  let judged = (Array.isArray(first.options) ? first.options : []).slice(0, 3).map((o) => judge(o, material));
+  /* TIER 2: only the doubtful ones, once */
+  const doubtful = judged.map((j, i) => ({ ...j, i })).filter((j) => j.state !== "CLEAN");
+  const retried = doubtful.length > 0;
+  let passedOnRetry = 0;
+  if (retried) {
+    const second = await ask({ key, material, recheck: doubtful.map((d) => ({ option: d.option, doubts: d.doubts })), fetchImpl, base }); if (second.usage) usages.push(second.usage);
+    if (!second.fail) doubtful.forEach((d, k) => {
+      const again = second.options?.[k] ? judge(second.options[k], material) : null;
+      /* the rewrite wins when it is better: clean beats a note beats hidden; a doubt that stays is shown with its note */
+      const rank = { CLEAN: 0, CHECK: 1, HIDDEN: 2, FORM: 3 };
+      if (again && rank[again.state] <= rank[d.state]) { judged[d.i] = again; if (again.state === "CLEAN") passedOnRetry++; }
+    });
+  }
+  const shown = judged.filter((j) => j.state === "CLEAN" || j.state === "CHECK").sort((a, b) => a.option.check.length - b.option.check.length);
+  const hiddenOnes = judged.filter((j) => j.state === "HIDDEN");
+  const seen = new Set(), kept = shown.filter((j) => !seen.has(j.option.title.toLowerCase()) && seen.add(j.option.title.toLowerCase())).map((j) => j.option);
+  const dropped = hiddenOnes.map((j) => ({ title: j.option.title, why: j.why, hidden: j.hidden }));
+  const outcome = !kept.length ? "all hidden" : hiddenOnes.length ? "one option hidden" : kept.some((o) => o.check.length) ? "shown with a note" : retried ? "retried and passed" : "shown clean";
+  if (!kept.length) return { ok: false, outcome, why: `Your AI's options named a place, person, price or claim that is not in this video's own words or the research (${judged.flatMap((j) => j.why ?? []).slice(0, 2).join("; ")}) — they were not shown. The template options stay.`, dropped, retried, usages, usage: sum(usages) };
+  const used = `this video's own title, description${material.includes("VIDEO CAPTIONS") ? ", captions" : ""}, its fact sheet, your channel's data and the matching niche research`;
+  return { ok: true, outcome, retried, passedOnRetry, dropped, usages, usage: sum(usages),
     options: kept.map((o, i) => ({ n: i + 1, title: o.title, description: o.description, hashtags: o.hashtags, thumbnail: o.thumbnail, check: o.check, corrected: o.corrected, byAI: true,
       basedOn: [`Written with your AI (Claude, ${AI.model}) from ${used} — checked: no place, person, price or claim outside them`, ...o.corrected.map((c) => `corrected from your description: ${c}`), ...(o.facts ?? []).slice(0, 3).map((x) => `fact: ${x.fact} — from "${x.quote}"`)] })) };
 }

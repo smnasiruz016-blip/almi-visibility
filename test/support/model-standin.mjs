@@ -32,6 +32,9 @@ export function modelReply(material, { attempt = 0, avoid = [] } = {}) {
   if (handle) for (const x of o) x.description += `\nSubscribe: ${handle}`; // in EVERY option, as the real model wrote it
   const product = /^THE CHANNEL'S OWN NAMES[^:]*: (.*)$/m.exec(material)?.[1]?.split(", ").find((x) => /^[A-Z][a-z]+[A-Z]/.test(x));
   if (product) o[2].description += `\nMade with ${product}.`;
+  /* RR-317 D · the real "Cv builder" answer (22 Oct): it said the video's own sentence twice (the summary line and a fact line), and
+   * linked only what it was given — never the product page the description names */
+  if (line.length >= 20) o[1].description += `\n${line.charAt(0).toUpperCase()}${line.slice(1)}${/[.!?]$/.test(line) ? "" : "."}`;
   if (r() < 0.4) o[0].names = ["Meri", "Purani", "Pehle"];
   if (r() < 0.3) o[2].facts = [{ fact: "a day all together", quote: "we all had a lot of fun together" }];
   if (r() < 0.2) { const y = String((years.map(Number).find((x) => x > 1900) ?? 2019) + 4); if (keep(y)) o[1].title = `${o[1].title} ${y}`.slice(0, 95); }

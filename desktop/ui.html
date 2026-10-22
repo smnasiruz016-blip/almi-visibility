@@ -364,12 +364,14 @@ async function setup() {
 /* RR-308 B: the YouTube tab — the YouTube score, "Do these first this week", what viewers of the niche watch most, new video ideas, and
    the 20 most-viewed and newest videos with 3 ready options each (Copy), the rest behind "Show more" — never a wall of every video */
 const copyBtn = (text) => `<button class="ghost copy" type="button" data-copy="${esc(text)}">Copy</button>`;
-function wireCopy(root = document) { root.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied ✓"; } catch { b.textContent = "Select and copy by hand"; } setTimeout(() => (b.textContent = "Copy"), 1600); })); }
+function wireCopy(root = document) { root.querySelectorAll("[data-copy]").forEach((b) => { const label = b.textContent; b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied ✓"; } catch { b.textContent = "Select and copy by hand"; } setTimeout(() => (b.textContent = label), 1600); }; }); }
+/* RR-317 C3: "Use this one" — the option's title, description and hashtags copied together, ready to paste into YouTube Studio */
+const useText = (o) => `${o.title}\n\n${o.description}\n\n${o.hashtags.join(" ")}`;
 /* RR-311 D1: "Apply to YouTube" on each option when the channel owner turned it on (never AlmiWorld's own channel) */
 let CAN_APPLY = false, SIGNED = false; const OPTS = new Map();
 function optionHtml(o, videoId = null) {
   if (videoId) OPTS.set(`${videoId}|${o.n}|${o.byAI ? "ai" : "t"}`, o);
-  return `<div class="opt"><div class="k">Option ${o.n}${o.type ? ` — ${esc(o.type)}` : ""}${o.byAI ? ` <span class="tag">Written with your AI</span>` : ""}</div>
+  return `<div class="opt"><div class="k">Option ${o.n}${o.type ? ` — ${esc(o.type)}` : ""}${o.byAI ? ` <span class="tag">Written with your AI</span> <button class="copy useone" type="button" data-copy="${esc(useText(o))}">Use this one</button>` : ""}</div>
   ${CAN_APPLY && videoId ? `<p><button class="ghost apply" type="button" data-key="${esc(`${videoId}|${o.n}|${o.byAI ? "ai" : "t"}`)}">Apply to YouTube</button></p>` : ""}
   <div class="row"><b>Title</b> ${copyBtn(o.title)}<pre>${esc(o.title)}</pre></div>
   <div class="row"><b>Description</b> ${copyBtn(o.description)}<pre>${esc(o.description)}</pre></div>
@@ -380,7 +382,7 @@ function optionHtml(o, videoId = null) {
 }
 function videoHtml(v) {
   return `<div class="adv" id="v-${esc(v.videoId)}"><h3>${esc(v.title)} <span class="tag">${v.kind === "SHORT" ? "Short" : v.kind === "LONG" ? "Long video" : "Kind unknown"}</span> <span class="meta">${Number(v.views).toLocaleString()} views · ${esc(v.publishedAt)}${v.why ? ` · ${esc(v.why)}` : ""}</span></h3>
-  ${v.weak ? `<p class="meta">${esc(v.weak)}</p>` : ""}<div class="opts">${v.options.map((o) => optionHtml(o, v.videoId)).join("")}</div>
+  ${v.weak ? `<p class="meta weak">${esc(v.weak)}</p>` : ""}<div class="opts">${v.options.map((o) => optionHtml(o, v.videoId)).join("")}</div>
   <p>${AI_READY ? `<button class="ghost aiw" type="button" data-v="${esc(v.videoId)}">Write better options with AI</button> ` : ""}${SIGNED && v.kind === "LONG" ? `<button class="ghost chap" type="button" data-v="${esc(v.videoId)}">Real chapters from my captions</button> ` : ""}<span class="meta aimsg"></span></p></div>`;
 }
 /* ── RR-311 · the cards a chatbot cannot give: the channel's own data, its sign-in, competitors, keywords, Apply, the coach ── */
@@ -461,7 +463,10 @@ async function youtubeTab() {
     box.querySelector(".applynow").onclick = async () => { const r = await post(`${U}/apply`, { items: [{ videoId, title: o.title, description: o.description }], confirm: true }); const ok = r.ok && r.rows[0]?.ok; note(box.querySelector(".amsg"), ok ? "Applied ✓ — it is on YouTube now." : (r.refused ?? r.rows?.[0]?.why ?? "Not applied."), ok ? "ok" : "err"); if (ok) setTimeout(youtubeTab, 1500); };
   }));
   const wireChap = (root) => root.querySelectorAll(".chap").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Reading your captions…"); const r = await post(`${U}/chapters`, { videoId: b.dataset.v }); if (!r.ok) return note(msg, r.refused, r.neutral ? "info" : "err"); /* RR-316 C: "no captions" is not an error */ note(msg, "Real chapters made from your captions — they are in the options now.", "ok"); setTimeout(youtubeTab, 800); }));
-  const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`${U}/write`, { videoId: b.dataset.v }); if (r.aiCost && $("#aicost")) $("#aicost").textContent = r.aiCost; if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, "err"); const box = $(`#v-${CSS.escape(b.dataset.v)} .opts`); box.innerHTML = r.options.map((o) => optionHtml({ ...o, byAI: true }, b.dataset.v)).join("") + box.innerHTML; note(msg, `${r.options.length} option${r.options.length === 1 ? "" : "s"} written with your AI, each checked: no place, person, price or claim outside this video's own words and the research.${r.options.some((o) => o.check?.length) ? " A yellow note says what to check before you use it." : ""}${r.dropped?.length ? ` ${r.dropped.length} not shown: ${r.dropped[0].why.join("; ")}.` : ""}`, "ok"); wireCopy(box); wireApply(box); }));
+  const wireAI = (root) => root.querySelectorAll(".aiw").forEach((b) => (b.onclick = async () => { const msg = b.parentElement.querySelector(".aimsg"); note(msg, "Your AI is writing…"); const r = await post(`${U}/write`, { videoId: b.dataset.v }); if (r.aiCost && $("#aicost")) $("#aicost").textContent = r.aiCost; if (r.refused || !r.ok) return note(msg, r.refused ?? r.why, r.fallback ? "info" : "err"); /* RR-317 A: the templates instead is no error */
+    /* RR-317 C1 + C2: with AI options shown, the "too little for more than one honest option" line goes, and the templates fold into one line */
+    const vb = $(`#v-${CSS.escape(b.dataset.v)}`), box = vb.querySelector(".opts"), prev = box.querySelector(".tplopts .opts"), oldHtml = prev ? prev.innerHTML : box.innerHTML, tpl = (oldHtml.match(/class="opt"/g) ?? []).length; vb.querySelector(".weak")?.remove();
+    box.innerHTML = `${r.options.map((o) => optionHtml({ ...o, byAI: true }, b.dataset.v)).join("")}${tpl ? `<details class="tplopts" style="grid-column:1/-1"><summary>Show the template options (${tpl})</summary><div class="opts">${oldHtml}</div></details>` : ""}`; note(msg, `${r.options.length} option${r.options.length === 1 ? "" : "s"} written with your AI, each checked: no place, person, price or claim outside this video's own words and the research.${r.options.some((o) => o.check?.length) ? " A yellow note says what to check before you use it." : ""}${r.dropped?.length ? ` ${r.dropped.length} not shown: ${r.dropped[0].why.join("; ")}.` : ""}`, "ok"); wireCopy(box); wireApply(box); }));
   wireAI($("#ytbox")); wireApply($("#ytbox")); wireChap($("#ytbox"));
   /* sign-in, Apply permission, sign-out */
   /* RR-314 B7: the answer is kept; the options are made again with the links */

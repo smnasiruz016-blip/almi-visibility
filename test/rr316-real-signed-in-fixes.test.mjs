@@ -39,11 +39,12 @@ test("A1 · THE CHANNEL'S OWN NAMES are in every video's material, and its own @
   assert.deepEqual(reviewOption(opt("AlmiCV Builder", "Build your CV with AlmiCV.\nThanks @someoneelse"), m).hidden.map((h) => h.what), ["@someoneelse"]);
 });
 
-test("A2 · NEVER \"ALL OPTIONS HIDDEN\": retried once, then shown with a yellow note; a clear invention is hidden only while another option stands", async () => {
+test("A2 · NEVER AN EMPTY VIDEO, NEVER AN INVENTION (RR-317 A, truth first): retried once; if every option still invents, the TEMPLATE options stay with one plain line; a clear invention is hidden in its own option", async () => {
   let call = 0;
   const all = await writeWithAI({ provider: "anthropic", key: "k", video: CV, ctx: AW, base: "http://127.0.0.1:9", fetchImpl: async () => (++call, reply([opt("AlmiCV Builder in Paris", "Build your CV with AlmiCV — in Paris."), opt("AlmiCV by Sara", "Build your CV with AlmiCV.", { names: ["Sara"] })])) });
-  assert.equal(call, 2, "no retry"); assert.equal(all.ok, true, all.why); assert.notEqual(all.outcome, "all hidden");
-  assert.equal(all.options.length, 2); assert.ok(all.options.every((o) => o.check.some((c) => /^Check before you use it: /.test(c))), JSON.stringify(all.options.map((o) => o.check)));
+  assert.equal(call, 2, "no retry");
+  assert.deepEqual([all.ok, all.fallback, all.outcome, all.options], [false, true, "templates instead", undefined], "an invented place or person was shown");
+  assert.equal(all.why, "Your AI's options named something that is not in this video (e.g. Paris) — the ready options below are from your own words.");
   call = 0;
   const one = await writeWithAI({ provider: "anthropic", key: "k", video: CV, ctx: AW, base: "http://127.0.0.1:9", fetchImpl: async () => (++call === 1 ? reply([opt("AlmiCV Builder", "Build your CV with AlmiCV in minutes."), opt("AlmiCV Builder in Paris", "Build your CV with AlmiCV — in Paris.")]) : reply([opt("AlmiCV Builder in Paris", "Build your CV with AlmiCV — in Paris.")])) });
   assert.deepEqual(one.options.map((o) => o.title), ["AlmiCV Builder"]); assert.deepEqual(one.dropped.map((d) => d.hidden), [["Paris"]]);
@@ -62,13 +63,16 @@ test("A3 · THE TEST SET WITH THE REAL CASES (a stand-in with the real model's h
   const n = {}; let placeBare = 0, handleSeen = 0;
   for (const { v, ctx } of set) {
     const seen = [];
-    const r = await writeWithAI({ provider: "anthropic", key: "k", video: v, ctx, fetchImpl: modelFetch(seen), base: "http://127.0.0.1:9" });
+    /* what the stand-in WROTE (its answers), not what was shown: did it write the channel's own handle, as the real model did? */
+    let wroteHandle = false; const mf = modelFetch(seen);
+    const r = await writeWithAI({ provider: "anthropic", key: "k", video: v, ctx, fetchImpl: async (u, i) => { const res = await mf(u, i); if (/Subscribe: @/.test(await res.clone().text())) wroteHandle = true; return res; }, base: "http://127.0.0.1:9" });
     n[r.outcome] = (n[r.outcome] ?? 0) + 1;
-    if (/Subscribe: @/.test(seen[0].messages[0].content) || (r.options ?? []).some((o) => /@almiworld-world|@dhanakkiduniya/.test(o.description))) handleSeen++;
-    for (const o of r.options ?? []) if (/Paris/.test(`${o.title} ${o.description}`) && !o.check.some((c) => /Paris/.test(c))) placeBare++;
+    if (wroteHandle) handleSeen++;
+    for (const o of r.options ?? []) if (/Paris/.test(`${o.title} ${o.description}`)) placeBare++; // RR-317 A: never shown, not even with a note
   }
-  assert.equal(n["all hidden"] ?? 0, 0, JSON.stringify(n));
-  assert.equal(placeBare, 0, "an invented place was shown without its note");
+  assert.equal(n["templates instead"] ?? 0, 0, JSON.stringify(n)); // every video gets AI options (RR-317: "all hidden" is now "templates instead")
+  assert.equal(n["all hidden"], undefined, "an outcome that no longer exists came back");
+  assert.equal(placeBare, 0, "an invented place was shown");
   assert.ok(handleSeen >= 30, `the stand-in did not write the channel's own handle (${handleSeen}) — the set proves nothing`);
   assert.ok((n["shown clean"] ?? 0) + (n["retried and passed"] ?? 0) >= 30, JSON.stringify(n));
 });
@@ -84,7 +88,7 @@ test("A1 · IN THE APP: the write sends the channel's own names (its site, the p
     mkdirSync(join(store.dirOf(made.id), "youtube-raw"), { recursive: true });
     writeFileSync(join(store.dirOf(made.id), "youtube-raw", `videos-${today}.json`), JSON.stringify({ recorded_at: new Date().toISOString(), channelId: CH, complete: true, videos: [{ videoId: "v1", title: "almicv builder", description: "Build your CV with AlmiCV.", views: 10, publishedAt: `${today}T00:00:00Z`, durationSec: 40, width: 720, height: 1280, tags: [], channelId: CH }] }));
     const r = await YT.write(made.id, { videoId: "v1" });
-    assert.equal(r.ok, true, r.why); assert.notEqual(r.outcome, "all hidden");
+    assert.equal(r.ok, true, r.why); assert.notEqual(r.outcome, "templates instead");
     assert.match(seen[0].messages[0].content, /^THE CHANNEL'S OWN NAMES[^:]*: Almiworld, @almiworld-world, https:\/\/almiworld\.com\/, almiworld youtube, AlmiCV, AlmiPrep$/m); // "AlmiWorld" is the channel's own "Almiworld" — one name
     assert.ok(!r.dropped.some((d) => (d.hidden ?? []).includes("@almiworld-world")), "the channel's own handle was hidden");
     /* … nor shown with a note against it (since "never all hidden", a doubted handle would be shown — with a note) */

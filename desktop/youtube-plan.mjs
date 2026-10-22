@@ -76,6 +76,38 @@ export function brandsOf({ what = "", menu = [], channelTitle = null } = {}) {
   if (channelTitle && /^[\p{L}\p{N}]+$/u.test(channelTitle)) m.set(String(channelTitle).toLowerCase(), channelTitle);
   return m;
 }
+/*
+ * RR-317 B (owner's real "Cv builder" AI options): one description said "…helps you create your CV for your better future." twice (the
+ * summary line and the fact line), and the AlmiCV page the video itself names (almicv.almiworld.com) was not linked.
+ *   · noRepeats: a sentence that says what an earlier one said (the same words, links and the product's address aside) is dropped;
+ *   · pagesNamedIn: the pages the video's own title and description name, as full links ("almicv.almiworld.com" → https://almicv.almiworld.com);
+ *   · orderLinks: the links of a description, in order — the page the video names FIRST, then the product's page, then the channel.
+ */
+const sentenceWords = (s) => String(s).toLowerCase().replace(/https?:\/\/\S+/g, " ").replace(/\b[\w-]+(?:\.[\w-]+)+\.[a-z]{2,}\b|\b[\w-]+\.(?:com|net|org|io|co|app)\b/g, " ").split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2);
+export function noRepeats(text) {
+  const seen = [];
+  const same = (a, b) => { const A = new Set(a), B = new Set(b); let n = 0; for (const w of A) if (B.has(w)) n++; return n / Math.max(A.size, B.size) >= 0.8; };
+  return String(text ?? "").split("\n").map((line) => line.split(/(?<=[.!?])\s+/).filter((s) => { const w = sentenceWords(s); if (w.length < 4) return true; if (seen.some((x) => same(x, w))) return false; seen.push(w); return true; }).join(" "))
+    .filter((l, i, a) => l.trim() || (i > 0 && a[i - 1].trim())).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+const LINK_ONLY = /^\s*(?:[\p{L} ]{1,24}:\s*)?(?:👉\s*)?(\S+)\s*$/u;
+export const pagesNamedIn = (v) => [...new Set((`${v.title ?? ""}\n${v.description ?? ""}`.match(/\b(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s)]*)?/gi) ?? [])
+  .filter((u) => /[a-z]/i.test(u.split(".").pop()) && !/youtube\.com|youtu\.be|^\d/i.test(u) && /\.(?:com|net|org|io|co|app|dk|pk|uk|in|de)(?:\/|$)/i.test(u))
+  .map((u) => (/^https?:\/\//i.test(u) ? u : `https://${u}`).replace(/[.,;:!?)]+$/, "").replace(/\/$/, "").toLowerCase()))];
+const hostOf = (u) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return String(u); } };
+export function orderLinks(description, links = []) {
+  const want = [...new Map(links.filter(Boolean).map((l) => [hostOf(l.url) + new URL(l.url).pathname.replace(/\/$/, ""), l])).values()];
+  if (!want.length) return description;
+  const hosts = new Set(want.map((l) => hostOf(l.url)));
+  /* a line that is ONLY a link we place ourselves goes; a sentence that names the address keeps it */
+  const body = String(description ?? "").split("\n").filter((line) => { const m = LINK_ONLY.exec(line); if (!m) return true; const u = m[1].replace(/[.,;)]+$/, ""); return !(/[./]/.test(u) && hosts.has(hostOf(/^https?:/i.test(u) ? u : `https://${u}`))) && !/^@/.test(u); });
+  return `${body.join("\n").trim()}\n\n${want.map((l) => `${l.label}: ${l.url}`).join("\n")}`;
+}
+/** the description's links in order: the pages the video names, the product's own page, the channel */
+/* only a page of the product's OWN site counts as "the page the video names" (almicv.almiworld.com for almiworld.com) — never a Facebook or
+ * other link of the channel's greeting */
+const baseOf = (u) => hostOf(u).split(".").slice(-2).join(".");
+export const linksFor = (v, target, handle) => [...new Map([...(target ? pagesNamedIn(v).filter((u) => baseOf(u) === baseOf(target.url)) : []).map((url) => ({ label: "More", url })), ...(target ? [{ label: "More", url: String(target.url) }] : []), ...(handle ? [{ label: "Subscribe", url: `https://www.youtube.com/${handle}?sub_confirmation=1` }] : [])].map((l) => [l.url.toLowerCase().replace(/^https?:\/\/(www\.)?/, ""), l])).values()];
 /** a text with every family name in its own casing ("Almicv Builder" → "AlmiCV Builder") — whole words only */
 /* RR-314 B3: does a text already say these WORDS ("Almiworld New Tutorial" says "Almiworld"; "Iceland" does not say a channel named "D") */
 export const saysWords = (text, name) => { const w = (s) => ` ${String(s ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).join(" ")} `; return w(name).trim() !== "" && w(text).includes(w(name)); };
@@ -231,7 +263,7 @@ export function optionsFor(v, ctx) {
   const summaryLines = own.firstLine ? [own.firstLine.replace(/\s+([,.;:!?])/g, "$1")] : []; // "tutorial almiworld , about products" → "…almiworld, about products"
   const real = ctx.chapters?.[v.videoId] ?? null;
   const chapters = kind === "LONG" && real ? ["", "Chapters:", real] : [];
-  const links = [...(target ? [`More: ${target.url}`] : []), ...(channel.handle ? [`Subscribe: https://www.youtube.com/${channel.handle}?sub_confirmation=1`] : [])];
+  const links = linksFor(v, target, channel.handle).map((l) => `${l.label}: ${l.url}`); // RR-317 B2: the page the video names first
   /* always 3 hashtags: what happens, where, who, the niche's phrases, then the video's own main words and the channel's own name */
   /* RR-311 (owner: "#IcelandHum"): a hashtag only from a WHOLE short phrase (3 words or fewer) with no Roman-Urdu joining word in it */
   /* RR-314 B5: one spelling for a short name ("CV", never "Cv" in one tag and "CV" in the next); no tag of one empty word ("#Try") */
@@ -240,7 +272,7 @@ export function optionsFor(v, ctx) {
   const options = uniqueTitles.slice(0, 3).map((title, i) => {
     const o = usable[i];
     const lead = o.type === "A question people ask" ? `This video answers: ${title}` : o.type === "Your own words first" && mainText ? mainText : title.split(" | ")[0];
-    const description = brandCase(properNames([`${fit(lead, 120)}${place && !lead.toLowerCase().includes(place.toLowerCase()) ? ` — in ${place}` : ""}${/[.?!]$/.test(lead) ? "" : "."}`, keyLine, "", ...summaryLines, ...chapters, ...(links.length ? ["", ...links] : [])].join("\n").replace(/\n{3,}/g, "\n\n")), ctx.brands); // RR-314: never a stack of empty lines
+    const description = noRepeats(brandCase(properNames([`${fit(lead, 120)}${place && !lead.toLowerCase().includes(place.toLowerCase()) ? ` — in ${place}` : ""}${/[.?!]$/.test(lead) ? "" : "."}`, keyLine, "", ...summaryLines, ...chapters, ...(links.length ? ["", ...links] : [])].join("\n").replace(/\n{3,}/g, "\n\n")), ctx.brands)); // RR-314: never a stack of empty lines; RR-317 B1: no sentence twice
     /* RR-314 B5 (owner: "#CvBuilder + #CVBuilder"): one hashtag per meaning — tags that differ only in case are one; B4: the brand's own casing */
     const hashtags = [...tagPool.slice(i % 2, (i % 2) + 3), ...tagPool].map((t) => brandTag(t, ctx.brands)).filter((t, k, a) => a.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === k).slice(0, 3).map((t) => `#${t}`);
     /* 2–4 meaning words (no "HOW TO WRITE A") */

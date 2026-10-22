@@ -173,6 +173,7 @@ test("A1 + C2 + C3 + D4 · chapters from captions with the real times; a competi
   assert.ok(bare.options.every((p) => !/travel|iceland/i.test(`${p.title} ${p.hashtags.join(" ")} ${p.basedOn.join(" ")}`)), JSON.stringify(bare.options.map((p) => [p.title, p.hashtags, p.basedOn])));
   /* the real title's emoji (a baby with a skin tone, a flag) leave no box behind */
   const e = optionsFor({ videoId: "x1", title: "Baby Ki Choti Phupo Iceland Pohanch Gayi! 👶🏻😍🇮🇸 #newborn", description: "", views: 1, publishedAt: day(60), durationSec: 50, width: 360, height: 640, tags: [] }, { channel: { title: "D" }, persona: {}, niche: { queries: [] }, summary: null });
+  assert.ok(e.options.length > 0, "no option — the emoji rule was never reached"); // RR-314: every() over none passed a sabotage
   assert.ok(e.options.every((p) => !/[\u{1F3FB}-\u{1F3FF}\u{1F1E6}-\u{1F1FF}]/u.test(p.title)), JSON.stringify(e.options.map((p) => p.title)));
   assert.ok(o.options.every((p) => !/\(Add |\?:\?\?|#IcelandHum|#BabyKi/.test(`${p.description} ${p.hashtags.join(" ")}`)), JSON.stringify(o.options.map((p) => [p.description, p.hashtags])));
 });
@@ -183,7 +184,7 @@ test("B6 · THE AI COST: counted from the AI's own token counts at Anthropic's p
     let cap = 0.05; const L = aiLedger(join(dir, "ai-usage.json"), { cap: () => cap });
     assert.equal(costOf({ input: 1e6, output: 0 }), 4); assert.equal(costOf({ input: 0, output: 1e6 }), 20);
     L.add({ input: 3000, output: 600 });
-    assert.match(L.line(), /^AI used today: 1 request \(about \$0\.02\)\. This month: about \$0\.02 of your \$0\.05 limit\./);
+    assert.match(L.line(), /^AI used today: 1 request \(model: claude-opus-5-5\), about \$0\.02\. This month: about \$0\.02 of your \$0\.05 limit\. Price: claude-opus-5-5 \$4 per million tokens in, \$20 out — from Anthropic's pricing page \(platform\.claude\.com\/docs\/en\/about-claude\/pricing\), read 2026-10-22\./); // RR-314 B8
     L.add({ input: 3000, output: 600 }); L.add({ input: 3000, output: 600 });
     assert.equal(L.allowed().ok, false); assert.match(L.allowed().why, /Your AI limit for this month is reached/);
     cap = 10; assert.equal(L.allowed().ok, true);
@@ -216,6 +217,7 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     /* sign-in: another channel's account is refused and forgotten */
     g.setMine(OTHER);
     let s = await a.post(`/api/products/${id}/youtube/signin`, { write: true }); assert.equal(s.http, 200, s.refused);
+    assert.equal(s.opened, false, "a test app opened a real browser tab"); // RR-314: tests never open Chrome on the owner's PC
     let page = await a.raw(`/oauth/youtube?code=one-time&state=${new URL(s.url).searchParams.get("state")}`);
     assert.match(page, /You signed in with the Google account of another channel \(Someone Else\)/);
     assert.equal((await a.get(`/api/products/${id}/youtube/advice`)).signin.signedIn, false);

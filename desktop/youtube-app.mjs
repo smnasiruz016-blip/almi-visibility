@@ -16,7 +16,7 @@ import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
 import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS, JUNK_PHRASE } from "./youtube-niche.mjs";
 import { channelLanguage, sameLanguage, langOf, questionTitle, ownDataFindings, keywordIdeas, scorecard, newUploads, suggestCompetitors, beforeAfter, chaptersFrom, parseVtt } from "./youtube-insights.mjs";
-import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N } from "./youtube-plan.mjs";
+import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N, brandsOf, linkSuggestions } from "./youtube-plan.mjs";
 import { writeWithAI } from "./ai-write.mjs";
 import { youtubeItems } from "./action-plan.mjs";
 
@@ -109,6 +109,15 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const s = store.read(id), y = yt(s);
       return { handle: y.handle ?? "", suggestedHandle: handleFromSite(s.product?.site), confirmed: y.confirmed ?? null, key: keys.status(YOUTUBE_KEY), keySource: keySource(), topics: topicLines(id), extraTopics: y.extraTopics ?? [], relatedPages: y.relatedPages ?? [], files: filesOf(id).length, quota: quotaLine(), skipped: y.skipped === true };
     },
+    /** RR-314 B7: the client's answer to "link these videos to these pages?" — asked once; a "no" is kept too */
+    confirmLinks(id, { pages = [], decline = false } = {}) {
+      const s = store.read(id), y = yt(s);
+      const add = decline ? [] : (Array.isArray(pages) ? pages : []).map((p) => ({ words: (p.words ?? []).map((w) => String(w).trim().toLowerCase()).filter(Boolean), url: String(p.url ?? "").trim() })).filter((p) => p.words.length && /^https:\/\/\S+$/.test(p.url)).slice(0, 20);
+      const relatedPages = [...(y.relatedPages ?? []).filter((p) => !add.some((a) => a.url === p.url)), ...add];
+      s.setup = { ...s.setup, youtube: { ...y, relatedPages, linksAsked: true } };
+      store.write(id, s);
+      return { ok: true, line: decline ? "Kept as it is — your videos link to your product's address." : `Saved: ${add.length} page${add.length === 1 ? "" : "s"} — each video now links to its product's page.` };
+    },
     saveSettings(id, v) {
       const s = store.read(id), y = yt(s);
       const handle = String(v.handle ?? y.handle ?? "").trim();
@@ -117,7 +126,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const relatedPages = Array.isArray(v.relatedPages) ? v.relatedPages.map((p) => ({ words: String(p.words ?? "").split(",").map((w) => w.trim()).filter(Boolean), url: String(p.url ?? "").trim() })).filter((p) => p.words.length && /^https:\/\/\S+$/.test(p.url)).slice(0, 20) : y.relatedPages;
       /* a changed @handle needs a new confirmation — the old channel ID is never kept for another handle */
       const confirmed = y.confirmed && handle.toLowerCase() === String(y.handle ?? "").toLowerCase() ? y.confirmed : null;
-      s.setup = { ...s.setup, youtube: { handle, confirmed, ...(extraTopics ? { extraTopics } : {}), ...(relatedPages ? { relatedPages } : {}) } };
+      s.setup = { ...s.setup, youtube: { handle, confirmed, ...(extraTopics ? { extraTopics } : {}), ...(relatedPages ? { relatedPages } : {}), ...(y.linksAsked ? { linksAsked: true } : {}) } };
       store.write(id, s);
       return { ok: true, mismatch: mismatch(s, handle) };
     },
@@ -219,6 +228,10 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
        * channel is comes from its own description, asked once (a channel confirmed before RR-308 has none kept yet) */
       const confirmed = typeof y.confirmed.description === "string" ? y.confirmed : await describe(id, api()).catch(() => y.confirmed);
       const ctx = contextFor(s, confirmed, videos, research, opts);
+      /* RR-314 B4 + B7: the family's own names, and the pages its menu leads to (from the product's last site read) */
+      const siteRead = readJson(join(store.dirOf(id), "site-read.json"), null);
+      ctx.brands = brandsOf({ what: s.setup?.product?.what, menu: siteRead?.design?.menu, channelTitle: confirmed.title });
+      const linkOffer = y.linksAsked ? null : linkSuggestions({ menuLinks: siteRead?.design?.menuLinks ?? [], videos, home: /youtube\.com/i.test(String(s.product?.site ?? "")) ? (siteRead?.origin ? `${siteRead.origin}/` : null) : s.product?.site ?? null });
       /* the questions people ask (research comments and files), in the channel's own scripts — Option 2 of each video uses them (RR-309 B4) */
       const files = filesOf(id), lang = s.setup?.languages?.codes ?? [];
       /* RR-311 C4: and in the channel's own LANGUAGE (a Banglish question is Latin script too — it is left out of an Urdu/Hindi channel) */
@@ -255,6 +268,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
         applied: beforeAfter(readJson(join(store.dirOf(id), "youtube-applied.json"), []).filter((c) => !c.undoneOn), { daily: signed?.daily ?? {}, reach: signed?.reach ?? null, now: now() }),
         thumbnailGuide: "Test your thumbnails with YouTube's own \"Test & Compare\" (YouTube Studio → the video → Thumbnail → Test & Compare): upload up to 3 thumbnails and YouTube shows them to viewers and picks the one watched most. Visibility gives 3 thumbnail texts under each video; it never runs an unofficial test.",
         aiLine: ai.ready ? `AI writing: your ${ai.name} key is connected — press "Write better options with AI" under a video (it uses your own AI account).` : "Better with AI — connect your AI (Settings → Your AI connection). Until then, the options below are written by Visibility's templates, only from your own videos and the research.",
+        linkOffer: linkOffer?.length ? linkOffer : null, // RR-314 B7: asked once
         notEnough: [] };
       /* RR-310 A: "Do these first this week" = the same items as the action plan's YouTube part (problem, solution, ready text) */
       return { ...out, planItems: youtubeItems(out).sort((p, q) => q.effect - p.effect).slice(0, 5) };

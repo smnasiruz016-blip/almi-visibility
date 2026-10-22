@@ -10,10 +10,18 @@
 import { readFileSync, writeFileSync, renameSync } from "node:fs";
 import { AI } from "./ai-write.mjs";
 
-/* Anthropic's published price for Claude Opus 5.5: $4 per million input tokens, $20 per million output tokens */
-export const PRICE = Object.freeze({ model: AI.model, inPerMillion: 4, outPerMillion: 20, source: "Anthropic's price for Claude Opus 5.5 — $4 per million tokens in, $20 out" });
+/*
+ * RR-314 B8 (owner: "the price line must not be hard-coded"). A price is shown ONLY for a model whose price was read from Anthropic's own
+ * pricing page, with that page and the day it was read; the model is the one that ANSWERED (a server-side fallback may answer with another
+ * model). A request answered by a model with no price here is counted, and the line says the price is not shown for it.
+ */
+export const PRICES = Object.freeze({
+  "claude-opus-5-5": Object.freeze({ inPerMillion: 4, outPerMillion: 20, source: "Anthropic's pricing page (platform.claude.com/docs/en/about-claude/pricing)", read: "2026-10-22" }),
+});
+export const PRICE = Object.freeze({ model: AI.model, ...PRICES[AI.model] }); // the model Visibility asks for
 export const DEFAULT_CAP_USD = 10;
-export const costOf = (u) => ((u?.input ?? 0) * PRICE.inPerMillion + (u?.output ?? 0) * PRICE.outPerMillion) / 1e6;
+const priceOf = (u) => PRICES[u?.model ?? AI.model] ?? null;
+export const costOf = (u) => { const p = priceOf(u); return p ? ((u?.input ?? 0) * p.inPerMillion + (u?.output ?? 0) * p.outPerMillion) / 1e6 : 0; };
 const money = (x) => (x < 0.01 ? "under $0.01" : `$${x.toFixed(2)}`);
 
 /** the ledger of the client's AI use — this computer only; the month's total against the cap */
@@ -25,8 +33,15 @@ export function aiLedger(file, { now = () => Date.now(), cap = () => DEFAULT_CAP
     today() { return read().days[today()] ?? { requests: 0, usd: 0 }; },
     /** may AI be called now? (the month is under the cap) */
     allowed() { const m = self.month(); return m.usd < cap() ? { ok: true } : { ok: false, why: `Your AI limit for this month is reached (${money(m.usd)} of ${money(cap())}). Raise it in Settings → Your AI connection, or wait for next month. The template options stay.` }; },
-    add(usage) { const l = read(), d = today(), x = l.days[d] ?? { requests: 0, usd: 0, input: 0, output: 0 }; const c = costOf(usage); l.days[d] = { requests: x.requests + 1, usd: x.usd + c, input: x.input + (usage?.input ?? 0), output: x.output + (usage?.output ?? 0) }; writeFileSync(`${file}.tmp`, JSON.stringify(l)); renameSync(`${file}.tmp`, file); return c; },
-    line() { const t = self.today(), m = self.month(); return `AI used today: ${t.requests} request${t.requests === 1 ? "" : "s"} (about ${money(t.usd)}). This month: about ${money(m.usd)} of your ${money(cap())} limit. (${PRICE.source}.)`; },
+    add(usage) { const l = read(), d = today(), x = l.days[d] ?? { requests: 0, usd: 0, input: 0, output: 0 }; const c = costOf(usage), m = usage?.model ?? AI.model; l.days[d] = { requests: x.requests + 1, usd: x.usd + c, input: x.input + (usage?.input ?? 0), output: x.output + (usage?.output ?? 0), models: { ...(x.models ?? {}), [m]: (x.models?.[m] ?? 0) + 1 } }; writeFileSync(`${file}.tmp`, JSON.stringify(l)); renameSync(`${file}.tmp`, file); return c; },
+    line() {
+      const t = self.today(), m = self.month(), models = Object.keys(t.models ?? {}), used = models.length ? models : [AI.model];
+      const unpriced = used.filter((x) => !PRICES[x]), priced = used.filter((x) => PRICES[x]);
+      const head = `AI used today: ${t.requests} request${t.requests === 1 ? "" : "s"} (model: ${used.join(", ")})`;
+      if (!priced.length) return `${head}. The price is not shown — Visibility has no published price for this model.`;
+      const src = [...new Set(priced.map((x) => `${PRICES[x].source}, read ${PRICES[x].read}`))].join("; ");
+      return `${head}, about ${money(t.usd)}${unpriced.length ? ` for the ${priced.join(", ")} requests (no price shown for ${unpriced.join(", ")})` : ""}. This month: about ${money(m.usd)} of your ${money(cap())} limit. Price: ${priced.map((x) => `${x} $${PRICES[x].inPerMillion} per million tokens in, $${PRICES[x].outPerMillion} out`).join("; ")} — from ${src}.`;
+    },
   };
   return self;
 }
@@ -46,7 +61,7 @@ export async function askCoach({ key, question, facts, fetchImpl = fetch, base =
   if (r.status === 401 || r.status === 403) return { ok: false, why: "Your AI refused the key — check it in Settings → Your AI connection." };
   if (!r.ok) return { ok: false, why: `Your AI answered with an error (${r.status}).` };
   const body = await r.json().catch(() => null);
-  const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens } : null;
+  const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens, model: body.model ?? AI.model } : null; // RR-314 B8: the model that answered
   if (body?.stop_reason === "refusal") return { ok: false, why: "Your AI declined this question.", usage };
   let p; try { p = JSON.parse((body?.content ?? []).find((b) => b?.type === "text")?.text); } catch { return { ok: false, why: "Your AI's answer could not be read.", usage }; }
   /* the cited facts must exist; an answer citing none is shown with that said */

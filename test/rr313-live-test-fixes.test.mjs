@@ -98,11 +98,11 @@ async function app() {
 test("B1 · ONE PLACE to switch Google sign-in on: off at first; the client is saved (id shown, secret never); the home screen, the YouTube card and Search Console all open the same screen; the JSON file way and the paste way", async () => {
   const a = await app();
   try {
-    assert.deepEqual(JSON.parse(await a.get("/api/google/client")), { on: false, clientId: null, secretSaved: false });
+    assert.deepEqual(JSON.parse(await a.get("/api/google/client")), { on: false, clientId: null, secretSaved: false, signedIn: false });
     const SECRET = "standin-client-secret-not-shown";
     await a.post("/api/google/client", { clientId: "1234-standin.apps.googleusercontent.com", secret: SECRET });
     const st = await a.get("/api/google/client"), home = await a.get("/api/home");
-    assert.deepEqual(JSON.parse(st), { on: true, clientId: "1234-standin.apps.googleusercontent.com", secretSaved: true });
+    assert.deepEqual(JSON.parse(st), { on: true, clientId: "1234-standin.apps.googleusercontent.com", secretSaved: true, signedIn: false });
     assert.ok(!st.includes(SECRET) && !home.includes(SECRET), "the secret came back from the app");
     assert.equal(JSON.parse(home).google.on, true);
     /* C3 in the app: the Overview's "What I will do" names the subject, never the raw label */

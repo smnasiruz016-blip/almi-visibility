@@ -85,6 +85,9 @@ export function readDesign(html, url) {
     siteName: (() => { const m = /<meta\b[^>]*property\s*=\s*["']og:site_name["'][^>]*>/i.exec(h); return m ? attr(m[0], "content") : one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, h); })(),
     logo: abs(logoTag ? attr(logoTag, "src") : og ? attr(og, "content") : icon ? attr(icon, "href") : null),
     menu: [...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)].map((m) => strip(m[1])).filter((x) => x && x.length <= 40).slice(0, 12),
+    /* RR-314 B7: where each menu entry leads (its own page — on this site or another address of the same owner), so a video about a product
+     * can link to THAT product's page; kept as the site has it, never made up */
+    menuLinks: [...nav.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].map((m) => ({ text: strip(m[2]), href: abs(attr(`<a${m[1]}>`, "href")) })).filter((x) => x.text && x.text.length <= 40 && /^https:\/\//.test(x.href ?? "")).slice(0, 20),
     footer: strip(footer).slice(0, 300) || null,
     colours,
   });

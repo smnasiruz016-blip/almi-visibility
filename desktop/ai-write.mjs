@@ -167,7 +167,7 @@ async function ask({ key, material, recheck = null, fetchImpl, base }) {
   if (r.status === 401 || r.status === 403) return { fail: "Your AI refused the key — check it in Settings → Your AI connection." };
   if (!r.ok) return { fail: `Your AI answered with an error (${r.status}) — the template options stay.` };
   const body = await r.json().catch(() => null);
-  const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens } : null; // RR-311 B6: every request is counted
+  const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens, model: body.model ?? AI.model } : null; // RR-314 B8: the model that answered // RR-311 B6: every request is counted
   if (body?.stop_reason === "refusal") return { fail: "Your AI declined to write for this video — the template options stay.", usage };
   try { return { options: JSON.parse((body?.content ?? []).find((b) => b?.type === "text")?.text)?.options ?? [], usage }; } catch { return { fail: "Your AI's answer could not be read — the template options stay.", usage }; }
 }

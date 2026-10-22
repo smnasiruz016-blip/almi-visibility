@@ -22,7 +22,9 @@ const SCHEMA = { type: "object", additionalProperties: false, required: ["option
  * har video ke saath fixed nahien diye ja sakte; content se match kar ke likhna hoga"): its places, names, numbers, years, prices, what
  * happens — and the obvious typo suspects with a suggested fix ("1018 — probably 2018, next to 2016, 2017"; "Togather → Together").
  */
+const COMMON = new Set("meri mera mere meray purani purana purane pehle pehla pehli yaadein yadein yaad yaadon hamari hamara humari humara apni apna apne nayi naya naye safar ghar khana din raat subah shaam aaj kal saath ek do teen sab family memories memory old first new my our the a an and of".split(" "));
 const NOT_NAMES = new Set("I The A An My Our Your We You He She It They This That These Those Video Vlog Vlogs Day Daily Family Mom Dad Baby Part Episode Full New My Me Mere Meri Mera Hum Ham Aaj Kal Sunday Monday Tuesday Wednesday Thursday Friday Saturday January February March April May June July August September October November December Subscribe Like Share Comment Welcome Hello Hi Thanks Thank Please Happy Eid Ramadan Christmas Diwali Shorts".split(" "));
+for (const w of NOT_NAMES) COMMON.add(w.toLowerCase());
 export function factSheet(v, ctx = {}) {
   const own = [v.title, v.description, (v.tags ?? []).join(", "), ctx.captions ? String(ctx.captions).replace(/\d{1,2}:\d{2}(:\d{2})?[.,]\d{3}\s+-->\s+\S+/g, " ") : ""].filter(Boolean).join("\n");
   const places = placesIn(own);
@@ -35,8 +37,11 @@ export function factSheet(v, ctx = {}) {
   }
   const known = []; spellFix(own, known); for (const k of [...new Set(known)]) { const [from, to] = k.split(" → "); typos.push({ from, to, why: k }); }
   const happens = String(v.description ?? "").split(/(?<=[.!?])\s+|\n/).map((s) => s.trim()).find((s) => s.length >= 15 && !/https?:|subscribe|follow/i.test(s)) ?? null;
-  return { places, names, numbers: nums.filter((n) => !years.includes(n)).slice(0, 12), years, prices, happens, typos };
+  return { places, names, numbers: nums.filter((n) => !years.includes(n)).slice(0, 12), years, prices, happens, typos, ownNames: ownNamesOf(ctx) };
 }
+/* RR-316 A1 (owner's real test: every AI option hidden over "@almiworld-world" — the channel's OWN handle): the channel's name, handle,
+ * websites and the product's own names are part of EVERY video's material, always */
+export const ownNamesOf = (ctx = {}) => [...new Set([ctx.channel?.title, ctx.channel?.handle, ...(ctx.ownNames ?? [])].filter(Boolean).map(String))];
 const sheetText = (f) => [`places: ${f.places.join(", ") || "none named"}`, `people's names: ${f.names.join(", ") || "none named"}`, `years: ${f.years.join(", ") || "none"}`, `other numbers: ${f.numbers.join(", ") || "none"}`, `prices: ${f.prices.join(", ") || "none"}`, `what happens: ${f.happens ?? "only what the title says"}`, `typo suspects (you may write the fix): ${f.typos.map((t) => t.why).join("; ") || "none"}`].join("\n  ");
 
 /** The material the AI may use — the only places, people, numbers and claims an option may name. */
@@ -49,6 +54,7 @@ export function materialOf(v, ctx) {
     ...(ctx.chapters ? [`CHAPTERS FROM ITS CAPTIONS (real times — use these as they are): ${ctx.chapters}`] : []),
     `VIDEO KIND: ${ctx.kind === "LONG" ? "long video (chapters belong in its description)" : ctx.kind === "SHORT" ? "Short (no chapters)" : "unknown"}`,
     `CHANNEL: ${ctx.channel?.title ?? ""} ${ctx.channel?.handle ?? ""}`,
+    `THE CHANNEL'S OWN NAMES (always allowed — its name, handle, websites and products): ${ownNamesOf(ctx).join(", ") || "none"}`,
     `CHANNEL DESCRIPTION (its own — who the channel is; NOT where this video happens): ${String(ctx.channel?.description ?? "").slice(0, 800)}`,
     `WHO THE CHANNEL IS: ${ctx.persona?.who ?? "not said"}`,
     `CHANNEL LANGUAGE: ${ctx.language ?? "as its titles"}`,
@@ -112,9 +118,11 @@ export function reviewOption(o, material) {
   const fixOf = (w) => ownWords.find((x) => x !== w.toLowerCase() && x[0] === w.toLowerCase()[0] && Math.abs(x.length - w.length) <= 2 && lev(x, w) <= (w.length >= 7 ? 2 : 1));
   for (const p of placesIn(text)) { if (mPlaces.has(p.toLowerCase()) || m.includes(p.toLowerCase())) continue; const f = fixOf(p); if (f) corrected.push(`${f} → ${p}`); else hidden.push({ what: p, why: `${p} — a place your video never names` }); }
   for (const pr of String(text).match(PRICE) ?? []) { const n = numbersIn(pr)[0]; if (n && !mNums.includes(n)) hidden.push({ what: pr.trim(), why: `${pr.trim()} — a price your video never states` }); }
-  for (const h of String(text).match(/@[\w.-]{3,}/g) ?? []) if (!m.includes(h.toLowerCase().slice(1))) hidden.push({ what: h, why: `${h} — a channel your video never names` });
-  for (const n of o.names ?? []) { if (!n || m.includes(norm(n))) continue; const f = n.split(/\s+/).every((w) => m.includes(w.toLowerCase()) || fixOf(w)); if (f) corrected.push(n); else hidden.push({ what: n, why: `${n} — a person your video never names` }); }
-  for (const f of o.facts ?? []) { const q = tokens(f?.quote ?? ""); if (!q.length) continue; const share = q.filter((w) => mWords.includes(w) || m.includes(w) || (w.length >= 5 && mWords.some((x) => x.slice(0, 4) === w.slice(0, 4) && Math.abs(x.length - w.length) <= 3))).length / q.length; /* Tier 1: inflection passes */ if (share < 0.7) hidden.push({ what: String(f.fact ?? "").slice(0, 60), why: `"${String(f.fact ?? "").slice(0, 60)}" — a claim your video's words do not hold` }); }
+  /* RR-316 A1: a handle is compared in the material's own form ("@almiworld-world" → "almiworld world"), as every other word is */
+  for (const h of String(text).match(/@[\w.-]{3,}/g) ?? []) if (!m.includes(norm(h.slice(1)))) hidden.push({ what: h, why: `${h} — a channel your video never names` });
+  /* an ordinary word declared as a "name" ("Meri", "Purani", "Pehle") is no person */
+  for (const n of o.names ?? []) { if (!n || m.includes(norm(n)) || norm(n).split(" ").every((w) => COMMON.has(w))) continue; const f = n.split(/\s+/).every((w) => m.includes(w.toLowerCase()) || fixOf(w)); if (f) corrected.push(n); else hidden.push({ what: n, why: `${n} — a person your video never names` }); }
+  for (const f of o.facts ?? []) { const q = tokens(f?.quote ?? ""); if (!q.length) continue; const share = q.filter((w) => mWords.includes(w) || m.includes(w) || (w.length >= 5 && mWords.some((x) => x.slice(0, 4) === w.slice(0, 4) && Math.abs(x.length - w.length) <= 3))).length / q.length; /* Tier 1: inflection passes */ if (share < 0.7) check.push(`Check: "${String(f.fact ?? "").slice(0, 60)}" — said in other words than your video's own (a translation is fine; a new claim is not)`); } // RR-316 A2: a claim in other words is a doubt, not an invention
   /* numbers: in the material → fine; a one-digit fix of the material's own number next to its neighbours (1018 → 2018 beside 2016, 2017) →
    * corrected; any other number → a doubt the client checks (shown, never hidden) — unless it is part of a price above */
   const priced = new Set((String(text).match(PRICE) ?? []).flatMap((p) => numbersIn(p)));
@@ -209,6 +217,9 @@ export async function writeWithAI({ provider, key, video, ctx, fetchImpl = fetch
       if (again && rank[again.state] <= rank[d.state]) { judged[d.i] = again; if (again.state === "CLEAN") passedOnRetry++; }
     });
   }
+  /* RR-316 A2 (owner: "never all options hidden"): after the one retry, if EVERY option still names something outside the material, they
+   * are shown — each with a yellow note naming what to check — instead of nothing. A clear invention is hidden only while another option stands. */
+  if (!judged.some((j) => j.state === "CLEAN" || j.state === "CHECK")) judged = judged.map((j) => (j.state === "HIDDEN" ? { ...j, state: "CHECK", option: { ...j.option, check: j.why.map((w) => `Check before you use it: ${w}`), corrected: [] } } : j));
   const shown = judged.filter((j) => j.state === "CLEAN" || j.state === "CHECK").sort((a, b) => a.option.check.length - b.option.check.length);
   const hiddenOnes = judged.filter((j) => j.state === "HIDDEN");
   const seen = new Set(), kept = shown.filter((j) => !seen.has(j.option.title.toLowerCase()) && seen.add(j.option.title.toLowerCase())).map((j) => j.option);

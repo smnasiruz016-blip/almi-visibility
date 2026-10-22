@@ -6,6 +6,8 @@
  *   · invents a place ("Paris") in one option, or a person ("Sara"), or a price ("$50") — truly invented;
  *   · slips on form: a 4th hashtag, a 5-word thumbnail, a placeholder line.
  * Told what to avoid (the retry), it drops the named slip most of the time (85%), as a real model mostly does.
+ * RR-316 A3: and what the REAL model did on the owner's channels — the channel's own @handle, its own product names, ordinary words declared
+ * as names, a fact quoted in translation.
  */
 const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const rng = (seed) => { let x = seed || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 10000) / 10000; }; };
@@ -24,6 +26,14 @@ export function modelReply(material, { attempt = 0, avoid = [] } = {}) {
   /* a typo'd year in the description, fixed (1018 beside 2016, 2017 → 2018) */
   const typo = years.find((y) => /^1\d{3}$/.test(y) && years.some((z) => /^20\d{2}$/.test(z)));
   if (typo) o[0].description += `\n${years.filter((y) => y !== typo).join(", ")}, 2${typo.slice(1)} ki videos.`;
+  /* RR-316 A3 · what the REAL model did on the owner's channels (22 Oct): it writes the channel's own handle, names the channel's own
+   * products, declares ordinary words as "names" ("Meri", "Purani", "Pehle") and quotes a fact in translation (English for a Roman-Urdu line) */
+  const handle = /^CHANNEL: .*?(@[\w.-]+)/m.exec(material)?.[1];
+  if (handle) for (const x of o) x.description += `\nSubscribe: ${handle}`; // in EVERY option, as the real model wrote it
+  const product = /^THE CHANNEL'S OWN NAMES[^:]*: (.*)$/m.exec(material)?.[1]?.split(", ").find((x) => /^[A-Z][a-z]+[A-Z]/.test(x));
+  if (product) o[2].description += `\nMade with ${product}.`;
+  if (r() < 0.4) o[0].names = ["Meri", "Purani", "Pehle"];
+  if (r() < 0.3) o[2].facts = [{ fact: "a day all together", quote: "we all had a lot of fun together" }];
   if (r() < 0.2) { const y = String((years.map(Number).find((x) => x > 1900) ?? 2019) + 4); if (keep(y)) o[1].title = `${o[1].title} ${y}`.slice(0, 95); }
   if (r() < 0.12 && keep("Paris")) o[2].title = `${own} — Paris Trip`.slice(0, 95);
   if (r() < 0.08 && keep("Sara")) { o[1].names = ["Sara"]; o[1].description += "\nSara ke saath."; }
@@ -39,7 +49,8 @@ export function modelRecheck(content) {
   const out = list.map(({ option, not_in_the_material: doubts }) => {
     const r = rng(hash(option.title) + 104729);
     let o = { ...option, names: [], facts: [] };
-    for (const d of doubts) if (r() < 0.85) { const re = new RegExp(`\\s*[—|-]?\\s*${String(d).replace(/[.*+?^${}()|[\]\\$]/g, "\\$&")}(\\s+Trip)?`, "gi"); o = { ...o, title: o.title.replace(re, "").trim() || "Hamari Yaadein", description: o.description.split("\n").filter((l) => !l.includes(d)).join("\n").replace(re, "") || o.description, thumbnail: o.thumbnail.replace(re, "").trim() || "HAMARI YAADEIN" }; }
+    /* RR-316: the real model KEEPS its channel's own @handle when asked to re-check — it is the channel's own name, so it stays */
+    for (const d of doubts) if (!String(d).startsWith("@") && r() < 0.85) { const re = new RegExp(`\\s*[—|-]?\\s*${String(d).replace(/[.*+?^${}()|[\]\\$]/g, "\\$&")}(\\s+Trip)?`, "gi"); o = { ...o, title: o.title.replace(re, "").trim() || "Hamari Yaadein", description: o.description.split("\n").filter((l) => !l.includes(d)).join("\n").replace(re, "") || o.description, thumbnail: o.thumbnail.replace(re, "").trim() || "HAMARI YAADEIN" }; }
     if ((o.hashtags ?? []).length > 3) o.hashtags = o.hashtags.slice(0, 3);
     if (String(o.thumbnail).split(/\s+/).length > 4) o.thumbnail = "HAMARI YAADEIN";
     o.description = o.description.split("\n").filter((l) => !/\(add /i.test(l)).join("\n");

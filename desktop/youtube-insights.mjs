@@ -13,7 +13,7 @@
  *   · BEFORE → AFTER for every change applied to YouTube.
  * PURE: reads what it is handed.
  */
-import { tokens } from "./youtube-advice.mjs";
+import { tokens, aboutOthersContent, nameTokensOf, NAME_STOP } from "./youtube-advice.mjs";
 import { placeIn, FORMATS, properNames } from "./youtube-niche.mjs";
 import { videoKind } from "../src/video/youtube.mjs";
 import { spellFix } from "./youtube-plan.mjs";
@@ -76,18 +76,11 @@ export function questionTitle(q, ch) {
  *   · The exam / product it is about leads the title (from the question, else from the video it was asked under); the current year ends it.
  *   · Never cut mid-word: a long question keeps its first whole clause, or is left out.
  */
-const OTHERS_CONTENT = /\bquestion\s*(?:no\.?\s*|number\s*|#\s*)?\d+\b|\bq\s?\d+\b|\bpart\s+[a-f]\b|\banswer (?:of|to|for) (?:question|q|no)\b|\b(?:in|from|on) (?:this|your|the) (?:video|course|class|session|mock|test paper)\b|\byour (?:course|courses|class|classes|sessions?|materials?|channel|academy|app|website|mock)\b|\bshown (?:in the video|format)\b|\bthe shown\b|\bat (?:minute|\d+:\d+)\b/i;
-const NAME_STOP = new Set(["the", "with", "and", "for", "of", "by", "your", "my", "our", "test", "exam", "prep", "preparation", "english", "academy", "academic", "language", "languages", "study", "abroad", "official", "online", "classes", "class", "coaching", "course", "courses", "tips", "tutor", "hub", "tv", "channel", "school", "institute", "international", "global", "center", "centre", "solutions", "general", "core", "cv", "resume"]);
-export const nameTokensOf = (title, topicWords = new Set()) => String(title ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2 && !NAME_STOP.has(w) && !topicWords.has(w));
 const SMALL_WORDS = new Set(["a", "an", "the", "and", "or", "but", "of", "in", "on", "at", "to", "for", "by", "with", "from", "vs", "as"]);
 const titleWords = (s) => String(s).split(/\s+/).filter(Boolean).map((w, i) => (/^[\p{Lu}\d&]{2,6}[?:]?$/u.test(w) || /^\p{L}+\p{Lu}/u.test(w) ? w : i > 0 && SMALL_WORDS.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
 export function questionIdea(q, ch, { topics = [], year = new Date().getUTCFullYear(), max = 100 } = {}) {
   if (langOf(q.text) !== ch.code && !(ch.code === "en" && langOf(q.text) === null)) return null;
-  if (OTHERS_CONTENT.test(q.text)) return null;
-  const topicWords = new Set(topics.flatMap((t) => String(t).toLowerCase().split(/\s+/)));
-  const said = new Set(String(q.text).toLowerCase().split(/[^\p{L}\p{N}]+/u));
-  /* "scores in e2" — asked under "E2 OET": a name word with a digit, or the channel's whole name */
-  if (q.channel && (nameTokensOf(q.channel, topicWords).some((w) => /\d/.test(w) && said.has(w)) || String(q.text).toLowerCase().includes(String(q.channel).toLowerCase()))) return null;
+  if (aboutOthersContent(q.text, q.channel, topics)) return null; // RR-315 D1, shared with the niche summary (RR-316 D1)
   let t = String(q.text).replace(/\s+/g, " ").trim().replace(/[?.!]+$/, "");
   t = t.replace(/^(?:(?:hi|hey|hello|dear|sir|madam|mam|maam|bhai|baji|great video|thank you|thanks)[\s,!.]+)+/i, "").replace(/^(?:i (?:just )?(?:want(?:ed)?|would like) to (?:ask|know)(?: that| if| whether)?|my question is(?: that)?|please tell(?: me)?(?: that| if)?)[\s,:]+/i, "");
   /* a request to the creator → the topic it asks for */
@@ -123,7 +116,10 @@ const word = (k) => ({ SHORT: "Shorts", LONG: "long videos" }[k] ?? "videos");
 /** topic / place / kind groups that get more views than the channel's other videos — each said with its numbers */
 export function ownDataFindings(videos, { now = Date.now(), analytics = null, reach = null, retention = {} } = {}) {
   const out = [], all = videos.filter((v) => Number.isFinite(v.views));
-  if (all.length < 6) return { findings: [], line: `Your channel has ${all.length} videos — too few to compare them with each other yet.` };
+  /* RR-316 B2 (owner's real sign-in: "From YOUR channel's data" showed nothing new): what Google GAVE is always said — even a little, even
+   * nothing — and before anything else (a channel of 5 videos stopped here before Google's numbers were looked at) */
+  const gave = googleGave(analytics, all);
+  if (all.length < 6) return { findings: gave.finding ? [gave.finding] : [], line: `Your channel has ${all.length} videos — too few to compare them with each other yet.${gave.line ? ` ${gave.line}` : ""}` };
   const med = median(all.map((v) => v.views));
   const groups = new Map(); const add = (key, label, v) => { const g = groups.get(key) ?? { label, videos: [] }; g.videos.push(v); groups.set(key, g); };
   for (const v of all) {
@@ -165,7 +161,22 @@ export function ownDataFindings(videos, { now = Date.now(), analytics = null, re
     const gap = [...per.entries()].map(([videoId, x]) => ({ videoId, imp: x.imp, ctr: x.clicks / Math.max(1, x.imp), lost: Math.round(x.imp * Math.max(0, medCtr - x.clicks / Math.max(1, x.imp))) })).filter((x) => x.lost > 0 && x.imp >= 200).sort((a, b) => b.lost - a.lost).slice(0, 5);
     if (gap.length) findings.push({ id: "ctr", kind: "ctr", effect: gap.reduce((n, g) => n + g.lost, 0), line: `Shown a lot, clicked little: ${gap.map((g) => `"${all.find((v) => v.videoId === g.videoId)?.title ?? g.videoId}" — ${fmt(g.imp)} impressions, ${(g.ctr * 100).toFixed(1)}% clicked (your median ${(medCtr * 100).toFixed(1)}%)`).join("; ")}`, advice: "A clearer title and thumbnail text for these first — YouTube already shows them; about " + fmt(gap.reduce((n, g) => n + g.lost, 0)) + " more clicks if they reached your median.", videos: gap.map((g) => g.videoId), from: "YouTube reach report — thumbnail impressions and click-through rate" });
   }
-  return { findings: findings.sort((a, b) => b.effect - a.effect), medianViews: med, line: `Compared across your ${fmt(all.length)} videos (median ${fmt(med)} views).` };
+  if (gave.finding) findings.push(gave.finding);
+  return { findings: findings.sort((a, b) => b.effect - a.effect), medianViews: med, line: `Compared across your ${fmt(all.length)} videos (median ${fmt(med)} views).${gave.line ? ` ${gave.line}` : ""}` };
+}
+/** RR-316 B2 · what Google's analytics returned for the signed-in channel, in plain words: the totals, the countries, the sources — or that it returned nothing */
+export function googleGave(analytics, all = []) {
+  if (!analytics) return { line: null, finding: null };
+  if (analytics.byVideo === null && analytics.countries === null && analytics.sources === null) return { line: "Google did not answer for your channel's numbers this time — Visibility asks again on your next visit tomorrow.", finding: null };
+  const rows = analytics.byVideo ?? [], views = rows.reduce((n, r) => n + (r.views || 0), 0), minutes = rows.reduce((n, r) => n + (r.minutes || 0), 0);
+  const countries = (analytics.countries ?? []).filter((c) => c.views > 0), sources = (analytics.sources ?? []).filter((s) => s.views > 0);
+  if (!views && !countries.length && !sources.length) return { line: `Google returned no viewer data yet (${analytics.window ?? "the last 90 days"}) — your channel has very few views.`, finding: null };
+  const parts = [`${fmt(views)} view${views === 1 ? "" : "s"}`, Math.round(minutes) === 0 ? "less than a minute watched in all" : `${fmt(Math.round(minutes))} minute${Math.round(minutes) === 1 ? "" : "s"} watched`]; // the owner's real channel: 6 views, "0 minutes"
+  if (countries.length) parts.push(`countries: ${countries.slice(0, 5).map((c) => `${c.country} ${fmt(c.views)}`).join(", ")}`);
+  if (sources.length) parts.push(`from: ${sources.slice(0, 4).map((s) => `${SOURCE_WORDS[s.source] ?? s.source} ${fmt(s.views)}`).join(", ")}`);
+  const top = rows.slice().sort((a, b) => b.views - a.views)[0], topV = top ? all.find((v) => v.videoId === top.videoId) : null;
+  return { line: null, finding: { id: "google", kind: "google", effect: 0, line: `What Google gave for your channel (${analytics.window ?? "last 90 days"}): ${parts.join(" · ")}.${views < 100 ? " Few views so far — the numbers are small, but they are your own." : ""}`,
+    advice: topV ? `Most watched in that time: "${topV.title}" (${fmt(top.views)} views, ${Math.round(top.avgPct ?? 0)}% watched on average).` : null, examples: [], from: `YouTube Analytics (your own channel, signed in), ${analytics.on ?? "today"}` } };
 }
 const SOURCE_WORDS = { YT_SEARCH: "YouTube search", SUBSCRIBER: "your subscribers' feeds", RELATED_VIDEO: "suggested next to other videos", EXT_URL: "other websites", BROWSE: "the YouTube home page", NO_LINK_OTHER: "direct or unknown", SHORTS: "the Shorts feed", PLAYLIST: "playlists", NOTIFICATION: "notifications", YT_CHANNEL: "your channel page", YT_OTHER_PAGE: "other YouTube pages" };
 

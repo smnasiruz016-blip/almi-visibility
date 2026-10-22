@@ -10,7 +10,7 @@
  *     ask and praise in comments — every line with its examples and its source (the search, the date).
  * No views, reach or earnings are predicted; every number is a count of what was read.
  */
-import { tokens, questionsIn, autoTopics } from "./youtube-advice.mjs";
+import { tokens, questionsIn, autoTopics, aboutOthersContent } from "./youtube-advice.mjs";
 import { videoKind } from "../src/video/youtube.mjs";
 
 /* words that make a phrase junk for research (the owner's examples: "full episode", "episode today") */
@@ -235,9 +235,11 @@ export function nicheSummary({ niche, research, own = [], ownChannelId = null, s
   /* a remark shaped like a question ("Can I just appreciate…", "Am I the only one…") asks for nothing — as in the advice's own rule */
   const REMARK = /^(can i just|am i the only|is it just me|who else|anyone else|does anyone else|isn't it|wasn't it|who is here|who's here|who is watching|who's watching)\b/i;
   const about = (q) => q.split(/\s+/).length >= 4 && !RUDE.test(q) && !REMARK.test(q) &&(FORMATS.some((f) => f.re.test(q)) || tokens(q).some((w) => nicheWords.has(w)));
-  const asks = [...new Map(comments.flatMap((c) => questionsIn(c.text).filter(about).map((q) => [q.toLowerCase(), { text: q, likes: c.likes ?? 0, under: c.videoTitle, on: day(c.publishedAt) }]))).values()].sort((a, b) => b.likes - a.likes).slice(0, 6);
+  /* RR-316 D1: the same rule as the ideas — a question about another channel's own content is not what THIS niche's viewers ask */
+  const asks = [...new Map(comments.flatMap((c) => questionsIn(c.text).filter((q) => about(q) && !aboutOthersContent(q, c.channelTitle, (niche.queries ?? []).map((x) => x.q))).map((q) => [q.toLowerCase(), { text: q, likes: c.likes ?? 0, under: c.videoTitle, on: day(c.publishedAt) }]))).values()].sort((a, b) => b.likes - a.likes).slice(0, 6);
   const praise = new Map();
-  for (const c of comments) for (const f of FORMATS) if (PRAISE.test(c.text) && f.re.test(c.text)) praise.set(f.label, (praise.get(f.label) ?? 0) + 1);
+  /* RR-316 D2: the same niche rule as the formats — no "Cleaning" or "Kids and parenting" praised for an exam niche */
+  for (const c of comments) for (const f of FORMATS) if (PRAISE.test(c.text) && f.re.test(c.text) && (lifestyleNiche || !LIFESTYLE.has(f.id))) praise.set(f.label, (praise.get(f.label) ?? 0) + 1);
   const lines = [];
   if (formats.length) lines.push({ what: "Formats that do best", line: formats.slice(0, 5).map((f) => `${f.label} (${f.count} videos, median ${fmt(f.medianViews)} views)`).join(" · "), examples: formats.slice(0, 3).flatMap((f) => f.examples.slice(0, 1)), from: src });
   lines.push({ what: "Title patterns", line: `${patterns.slice(0, 3).map((p) => p.line).join("; ")}. Typical title: ${titleLen} characters.`, examples: vids.slice().sort((a, b) => b.views - a.views).slice(0, 3).map(ex), from: src });

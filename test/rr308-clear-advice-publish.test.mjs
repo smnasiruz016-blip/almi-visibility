@@ -151,7 +151,9 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
   assert.equal(seen[0].url, `http://127.0.0.1:9${AI.path}`);
   assert.equal(AI.origin, "https://api.anthropic.com");
   const bad = await writeWithAI({ provider: "anthropic", key: FAKE_AI, video, ctx, fetchImpl: reply([invented, { ...invented, title: "Tokyo Grocery Haul" }]), base: "http://127.0.0.1:9" });
-  assert.equal(bad.ok, false); assert.match(bad.why, /were not shown\. The template options stay\./);
+  /* RR-316 A2 (owner: "never all options hidden"): every option invented something → they are shown, each with a yellow note naming it */
+  assert.equal(bad.ok, true, bad.why); assert.notEqual(bad.outcome, "all hidden");
+  assert.ok(bad.options.every((o) => o.check.some((c) => /^Check before you use it: (Paris|Tokyo) — a place your video never names/.test(c))), JSON.stringify(bad.options.map((o) => o.check)));
   assert.match((await writeWithAI({ provider: "openai", key: "x", video, ctx })).why, /works with an Anthropic \(Claude\) key in this version/);
   assert.deepEqual(inventedIn("Grocery Haul in Copenhagen | Pakistani Mom", materialOf(video, ctx)), []);
   /* RR-311 B4 (owner): an ordinary word ("Morning") is not an invented fact — only the place is */

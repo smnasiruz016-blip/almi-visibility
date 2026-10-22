@@ -47,7 +47,8 @@ test("A2 · THE OWNER'S CASE: the key saved in Visibility is refused as not vali
   /* the sources, in order: the saved key first, then the settings key; the same key twice is one source; spaces around a settings key are cut */
   const keys = keyStore({ backend: memoryBackend(), env: { YOUTUBE_API_KEY: ` ${GOOD} ` } }); keys.set("YOUTUBE_API_KEY", BAD);
   assert.deepEqual(keys.sources("YOUTUBE_API_KEY").map((x) => [x.where, x.ends]), [["the key saved in Visibility", "0001"], ["the key in this computer's settings (YOUTUBE_API_KEY)", "0002"]]);
-  assert.equal(keyStore({ backend: memoryBackend(), env: { YOUTUBE_API_KEY: GOOD } }).sources("YOUTUBE_API_KEY").length, 1);
+  const same = keyStore({ backend: memoryBackend(), env: { YOUTUBE_API_KEY: GOOD } }); same.set("YOUTUBE_API_KEY", GOOD);
+  assert.deepEqual(same.sources("YOUTUBE_API_KEY").map((x) => x.where), ["the key saved in Visibility"], "the same key in both places was counted as two");
   const dir = mkdtempSync(join(tmpdir(), "rr313-")), store = productStore(dir);
   try {
     store.create({ name: "almiworld youtube", site: "https://almiworld.com/" }); store.create({ name: "Dhanak Ki Duniya", site: "https://www.youtube.com/@dhanakkiduniya" });

@@ -121,6 +121,8 @@ test("A3 + A5 · END TO END, TWO CHANNELS UNDER ONE ACCOUNT (stand-in): the defa
 test("A3 · THE APP TAB stops waiting at a refusal and shows it with \"Try again — choose …\"", () => {
   assert.match(UI, /const ytSignedIn = async \(\) => \{ const x = await get\(`\$\{U\}\/signin`\); return x\.signedIn === true \|\| Boolean\(x\.last\); \};/);
   assert.match(UI, /<button id="ytagain">Try again — choose \$\{esc\(a\.confirmed\.title\)\}<\/button>/);
+  /* the proof found it: "Try again" pressed on the BROWSER's page — the tab must keep waiting and redraw once signed in */
+  assert.match(UI, /if \(\(await get\(`\$\{U\}\/signin`\)\)\.signedIn === true\) \{ clearInterval\(t\); youtubeTab\(\); \}/, "after a refusal the tab stops waiting for good");
 });
 
 /* ── B ── */
@@ -151,19 +153,21 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
     await ui.api.work("YouTube"); assert.equal(ui.history.entries.length, hs.length);
     /* Back (the browser's own, or "← Back") → the Overview of the same product */
     ui.api.set(null, null);
-    await ui.popstate(hs.at(-2)); await new Promise((r) => setTimeout(r, 300));
+    const until = async (ok) => { for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 50)); };
+    await ui.popstate(hs.at(-2)); await until(() => /<h2>Overview<\/h2>/.test(ui.app()));
     assert.equal(ui.api.nav().P, a.id); assert.equal(ui.api.nav().CUR.args[0], "Overview");
     assert.match(ui.app(), /<h2>Overview<\/h2>/);
     /* typed and not saved: leaving asks; "Stay" keeps the screen */
     ui.api.typed();
     const before = ui.history.entries.length;
-    const leaving = ui.api.work("Monthly report"); await new Promise((r) => setTimeout(r, 50));
+    const leaving = ui.api.work("Monthly report"); await until(() => typeof ui.el("#leaveno").onclick === "function");
     assert.equal(typeof ui.el("#leaveno").onclick, "function", "leaving did not ask");
     assert.match(UI, /<h2>Leave without saving\?<\/h2><p>You typed something on this screen that is not saved yet\./);
     ui.el("#leaveno").onclick(); assert.equal(await leaving, undefined);
     assert.equal(ui.history.entries.length, before, "the screen changed although the client chose Stay");
     assert.equal(ui.api.nav().DIRTY, true, "what was typed is forgotten");
-    const leaving2 = ui.api.work("Monthly report"); await new Promise((r) => setTimeout(r, 50));
+    ui.el("#leaveyes").onclick = null;
+    const leaving2 = ui.api.work("Monthly report"); await until(() => typeof ui.el("#leaveyes").onclick === "function");
     ui.el("#leaveyes").onclick(); await leaving2;
     assert.equal(ui.history.entries.at(-1).args[0], "Monthly report"); assert.equal(ui.api.nav().DIRTY, false);
     /* what was typed and then SAVED is not "unsaved" any more: leaving does not ask */
@@ -225,7 +229,9 @@ test("D1 · VIEWER QUESTIONS → PROPER TITLES; another channel's own content le
   assert.equal(t(Q("I am looking for OET test for pharmacist?")), null, "a statement became a title");
   /* the list of ideas never cuts a word */
   const long = "Hey i wanted to ask that we will be able to go back to the reading extracts while answering or do we have to read and then only answer and no going back?";
-  for (const i of newVideoIdeas({ questions: [Q(long)], videos: [] })) { assert.doesNotMatch(i.title, /\b\w\?$/); assert.equal(i.question, long); assert.ok(i.title.endsWith("…") || i.title.length <= 100); }
+  const made = newVideoIdeas({ questions: [Q(long)], videos: [] });
+  assert.equal(made.length, 1);
+  for (const i of made) { const body = i.title.replace(/…$/, ""); assert.equal(i.question, long); assert.ok(body.length <= 100 && long.startsWith(body) && /[\s,.?]/.test(long.charAt(body.length)), `cut mid-word: "${i.title}"`); }
 });
 
 test("D2 · NO PLACE FROM THE PRODUCT DESCRIPTION; the Q&A idea says what is answered", () => {
@@ -265,7 +271,9 @@ test("D5 · IN THE APP'S OWN ADVICE (an exam channel's research): the ideas and 
     writeFileSync(join(raw, `videos-${today}.json`), JSON.stringify({ recorded_at: now.toISOString(), channelId: BRAND, videos: own, complete: true }));
     const TAGS = ["linguamarina", "Skills PTE Academic", `PTE ${last}`, "OET reading", "PTE speaking", "TOEFL speaking"]; // a channel, a channel + creator, last year
     const nv = (n, title, channelTitle, views) => ({ videoId: `n${n}`, title, description: "", tags: TAGS, publishedAt: `${today}T00:00:00Z`, durationSec: 600, views, comments: 5, width: 1280, height: 720, language: "en", channelTitle, channelId: `C${channelTitle.replace(/\W/g, "")}` });
-    const vids = [nv(1, `OET ${year} Reading Mock Test`, "E2 OET", 90000), nv(2, `PTE ${last} Speaking tips`, "SKILLS PTE ACADEMIC", 80000), nv(3, "TOEFL Speaking with linguamarina", "linguamarina", 70000), nv(4, `OET Reading tips ${year}`, "OET Helper", 60000), nv(5, "TOEFL Speaking practice", "TOEFL Tutor", 50000), nv(6, `PTE ${last} Speaking full guide`, "PTE Coach", 40000), nv(7, "OET Q&A live", "OET Helper", 30000), nv(8, "PTE questions answered", "PTE Coach", 30000)];
+    const vids = [nv(1, `OET ${year} Reading Mock Test`, "E2 OET", 90000), nv(2, `PTE ${last} Speaking tips`, "SKILLS PTE ACADEMIC", 80000), nv(3, "TOEFL Speaking with linguamarina", "linguamarina", 70000), nv(4, `OET Reading tips ${year}`, "OET Helper", 60000), nv(5, "TOEFL Speaking practice", "TOEFL Tutor", 50000), nv(6, `PTE ${last} Speaking full guide`, "PTE Coach", 40000), nv(7, "OET Q&A live", "OET Helper", 30000), nv(8, "PTE questions answered", "PTE Coach", 30000),
+      /* a format the channel has not made, that does well — its idea would carry the product's home if the rule were gone */
+      nv(9, "My first time taking OET", "OET Helper", 120000), nv(10, "First time PTE attempt", "PTE Coach", 110000)];
     const cm = (text, videoTitle, channelTitle) => ({ text, likes: 3, publishedAt: `${today}T00:00:00Z`, videoId: "n1", own: false, videoTitle, channelTitle });
     writeFileSync(join(raw, `research-${today}.json`), JSON.stringify({ readOn: now.toISOString(), nicheLabel: "OET, PTE, TOEFL", language: "English", languageCode: "en", niche: [{ q: "OET", kind: "top", videos: vids.slice(0, 4), found: 4 }, { q: "PTE", kind: "top", videos: vids.slice(4), found: 4 }, { q: "TOEFL", kind: "top", videos: vids.slice(2, 5), found: 3 }], topics: [{ q: "OET", videos: vids }], comments: [
       cm("hi! what will be the answer of question 18 from reading part A? just one word or two", `OET ${year} Mock Test`, "E2 OET"),
@@ -277,6 +285,7 @@ test("D5 · IN THE APP'S OWN ADVICE (an exam channel's research): the ideas and 
     const titles = a.ideas.map((i) => i.title), kws = a.keywords.map((k) => k.phrase);
     assert.ok(titles.includes(`OET: Can You Go Back to the Reading Extracts While Answering? (${year})`), titles.join(" | "));
     assert.ok(!titles.some((t) => /question 18|e2\b|Pakistan|\b\w\?$/i.test(t)), titles.join(" | "));
+    assert.ok(a.ideas.some((i) => i.kind === "FORMAT"), `no format idea to carry a place: ${titles.join(" | ")}`); // the fixture reaches the place rule
     assert.ok(!kws.some((k) => /linguamarina|skills pte/i.test(k) || new RegExp(`\\b${last}\\b`).test(k)), kws.join(" | "));
     assert.ok(kws.includes(`PTE ${year}`) && kws.includes("PTE Speaking"), kws.join(" | ")); // the year made current, the rest kept
   } finally { rmSync(dir, { recursive: true, force: true }); }

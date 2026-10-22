@@ -473,7 +473,9 @@ async function youtubeTab() {
   let LASTW = false;
   const ytSignedIn = async () => { const x = await get(`${U}/signin`); return x.signedIn === true || Boolean(x.last); };
   const afterSignin = async () => { const x = await get(`${U}/signin`); if (x.signedIn || !x.last || !$("#ytsmsg")) return youtubeTab();
-    $("#ytsmsg").className = "err"; $("#ytsmsg").innerHTML = `${esc(x.last)} <button id="ytagain">Try again — choose ${esc(a.confirmed.title)}</button>`; $("#ytagain").onclick = () => startSignin(LASTW); };
+    $("#ytsmsg").className = "err"; $("#ytsmsg").innerHTML = `${esc(x.last)} <button id="ytagain">Try again — choose ${esc(a.confirmed.title)}</button>`; $("#ytagain").onclick = () => startSignin(LASTW);
+    /* "Try again" can also be pressed on the page in the browser: this tab keeps waiting, and redraws once the right channel signed in */
+    let n = 0; const t = setInterval(async () => { n++; try { if ((await get(`${U}/signin`)).signedIn === true) { clearInterval(t); youtubeTab(); } } catch {} if (n >= 200 || !$("#ytagain")) clearInterval(t); }, 3000); };
   const startSignin = async (write) => { LASTW = write; const r = await post(`${U}/signin`, { write }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); signinOpened($("#ytsmsg"), r, `${r.choose ?? ""} ${write && SIGNED ? "Allow the extra permission there." : ""}`.trim(), ytSignedIn, afterSignin); };
   if ($("#ytsignin")) $("#ytsignin").onclick = () => startSignin(Boolean($("#ytwrite")?.checked));
   if ($("#ytwriteon")) $("#ytwriteon").onclick = () => startSignin(true);

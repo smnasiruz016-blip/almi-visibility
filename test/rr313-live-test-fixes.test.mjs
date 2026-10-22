@@ -113,7 +113,7 @@ test("B1 · ONE PLACE to switch Google sign-in on: off at first; the client is s
   assert.match(ui, /async function googleSignInScreen\(back = null\)/);
   assert.match(ui, /Way 1 — choose the file Google Cloud downloaded/); assert.match(ui, /const c = j\.installed \?\? j\.web \?\? \{\};/); assert.match(ui, /Visibility needs a \\"Desktop app\\" client/);
   assert.match(ui, /Way 2 — paste them/);
-  assert.match(ui, /Sign in with Google — YouTube<\/button> <button id="gsc">Sign in with Google — Search Console/);
+  assert.match(ui, /Next → Sign in for YouTube<\/button> <button id="gsc">Next → Sign in for Search Console/); // RR-315 B: the sign-in is step 2 of 2
   assert.match(ui, /Google hasn't verified this app/);
   assert.equal((ui.match(/googleSignInScreen\(/g) ?? []).length, 5, "the screen is not opened from home, YouTube and Search Console (plus its own re-open)");
   assert.doesNotMatch(ui, /For AlmiWorld: switch on Google sign-in/, "the old hidden box is still there");

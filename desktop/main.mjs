@@ -32,6 +32,7 @@ import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/article
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { youtubeApp } from "./youtube-app.mjs";
 import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
+import { guidePage } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
 import { actionPlan, willDo, planDocument, isAlmiWorld, subjectOf } from "./action-plan.mjs";
 import { plainYouTubeWhy } from "../src/video/youtube.mjs"; // RR-313 A3
@@ -76,7 +77,11 @@ const KEY_ALLOWED = new Set([KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDER
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
 /* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
 const LEDGER = aiLedger(join(DATA, "ai-usage.json"), { cap: () => Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD) });
-const YT_SIGNIN = youtubeSignin({ keys: KEYS, config: CONFIG });
+const confirmedChannel = (id) => { try { return store.read(id).setup?.youtube?.confirmed ?? null; } catch { return null; } };
+const YT_SIGNIN = youtubeSignin({ keys: KEYS, config: CONFIG, wantOf: (id) => confirmedChannel(id)?.channelId ?? null });
+/* RR-315 A3: the last sign-in that was refused, per product (memory only) — the YouTube tab says which channel came back and offers Try again */
+const YT_LAST = new Map();
+const chooseLine = (c) => `Google will ask which account or channel. Choose ${c?.title ?? "this product's channel"} (it may be listed as a brand account under your email).`;
 const YT = youtubeApp({ store, dataDir: DATA, keys: KEYS, config: CONFIG, ledger: LEDGER, signin: YT_SIGNIN });
 /* a YouTube or key error says what happened in plain words — never a URL (the key travels in one) */
 /* RR-313 A3: what Google said, in plain words — never "could not be reached" when it answered */
@@ -265,6 +270,8 @@ const server = createServer((req, res) => {
       /* RR-306: the app answers its own window only — a POST sent by another website (its Origin header) is refused (keys are saved here) */
       if (req.method === "POST" && req.headers.origin && req.headers.origin !== `http://127.0.0.1:${server.address().port}`) return send(403, { refused: "not from this app" });
       if (req.method === "GET" && u.pathname === "/") return send(200, page(), "text/html; charset=utf-8");
+      /* RR-315 C: the key and sign-in guides — part of the app, opened in their own window */
+      { const gm = /^\/guide\/([a-z-]{1,40})$/.exec(u.pathname); if (req.method === "GET" && gm) { const html = guidePage(gm[1]); return html ? send(200, html, "text/html; charset=utf-8") : send(404, { refused: "no such guide" }); } }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, readFileSync(join(HERE, "brand", "almiworld-logo.png")), "image/png");
       if (req.method === "GET" && u.pathname === "/company-logo") { const c = store.company(); const f = c?.logoFile ? join(DATA, c.logoFile) : null; return f && existsSync(f) ? send(200, readFileSync(f), "image/png") : send(404, { refused: "no company logo" }); }
       /* the home screen: the company, its products, the plan limit */
@@ -489,10 +496,23 @@ const server = createServer((req, res) => {
       /* RR-311 A · Google sends the channel owner's browser back here; it must be THIS product's confirmed channel, or it is forgotten */
       if (req.method === "GET" && u.pathname === "/oauth/youtube") {
         const r = await YT_SIGNIN.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
-        let ok = r.ok, why = r.why ?? "";
-        if (r.ok) { const s = store.read(r.id), want = s.setup?.youtube?.confirmed?.channelId; if (!want || r.channelId !== want) { YT_SIGNIN.signOut(r.id); ok = false; why = `You signed in with the Google account of another channel (${r.channelTitle ?? "no channel"}) — sign in with the account that owns ${s.setup?.youtube?.confirmed?.title ?? "this product's channel"}. Nothing was kept.`; } else YT.refreshSigned(r.id, { force: true }).catch(() => {}); }
+        let ok = r.ok, why = r.why ?? "", again = null;
         const e = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${ok ? "Signed in to YouTube ✓" : "Not connected"}</h2><p>${ok ? `${e(r.channelTitle ?? "")} — go back to AlmiVisibility; your channel's own data is read now.${r.write ? " \"Apply to YouTube\" is on." : ""}` : e(why)}</p></body>`, "text/html; charset=utf-8");
+        /* RR-315 A3 + A4: another channel came back — say which, say which is needed, list what Google gave, and offer Try again */
+        if (r.ok) { const want = confirmedChannel(r.id); if (!want?.channelId || r.channelId !== want.channelId) { YT_SIGNIN.signOut(r.id); ok = false;
+          const others = (r.channels ?? []).map((c) => c.title ?? "a channel with no name");
+          why = `Google gave the channel ${r.channelTitle ?? "(none — this Google account has no YouTube channel)"}, but this product needs ${want?.title ?? "its confirmed channel"}. Nothing was kept.${others.length > 1 ? ` The channels Google gave: ${others.join(", ")}.` : ""} Press Try again and, when Google asks which account or channel, choose ${want?.title ?? "the product's channel"} (it may be listed as a brand account under your email).`;
+          YT_LAST.set(r.id, { line: why, came: r.channelTitle ?? null, needed: want?.title ?? null }); again = { id: r.id, title: want?.title ?? "the right channel", write: r.write === true };
+        } else { YT_LAST.delete(r.id); YT.refreshSigned(r.id, { force: true }).catch(() => {}); } }
+        else if (r.id) YT_LAST.set(r.id, { line: why });
+        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${ok ? "Signed in to YouTube ✓" : again ? "Not connected — another channel came back" : "Not connected"}</h2><p>${ok ? `${e(r.channelTitle ?? "")} — go back to AlmiVisibility; your channel's own data is read now.${r.write ? " \"Apply to YouTube\" is on." : ""}` : e(why)}</p>${again ? `<p><a href="/oauth/youtube/again?product=${encodeURIComponent(again.id)}${again.write ? "&write=1" : ""}" style="display:inline-block;background:#F4A58A;color:#1A1A2E;padding:10px 18px;border-radius:999px;font-weight:600;text-decoration:none">Try again — choose ${e(again.title)}</a></p>` : ""}</body>`, "text/html; charset=utf-8");
+      }
+      /* RR-315 A3: "Try again" on that page — a new sign-in, straight to Google's chooser in the same browser tab */
+      if (req.method === "GET" && u.pathname === "/oauth/youtube/again") {
+        const id = u.searchParams.get("product") ?? ""; if (!confirmedChannel(id)) return send(400, "No such product.", "text/plain; charset=utf-8");
+        const s = YT_SIGNIN.start(id, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: u.searchParams.get("write") === "1" });
+        if (!s.ok) return send(400, s.why, "text/plain; charset=utf-8");
+        res.writeHead(302, { location: s.url }); return res.end();
       }
       if (req.method === "GET" && u.pathname === "/oauth/google") {
         const r = await GOOGLE.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
@@ -555,8 +575,8 @@ const server = createServer((req, res) => {
             if (y[2] === "write" && req.method === "POST") { const r = await YT.write(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             /* ── RR-311 A · YouTube sign-in (the channel owner, in his browser), its data, real chapters ── */
-            if (y[2] === "signin" && req.method === "GET") { const st = YT_SIGNIN.status(yid); return send(200, { ready: st.ready, signedIn: st.signedIn, write: st.write }); } // RR-314 A1: the tab waits for this
-            if (y[2] === "signin" && req.method === "POST") { const r = YT_SIGNIN.start(yid, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: json().write === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, url: r.url, opened: openInBrowser(r.url) } : { refused: r.why, adds: SIGNIN_ADDS }); }
+            if (y[2] === "signin" && req.method === "GET") { const st = YT_SIGNIN.status(yid); return send(200, { ready: st.ready, signedIn: st.signedIn, write: st.write, last: st.signedIn ? null : YT_LAST.get(yid)?.line ?? null }); } // RR-314 A1: the tab waits for this; RR-315 A3: or for a refusal
+            if (y[2] === "signin" && req.method === "POST") { YT_LAST.delete(yid); const r = YT_SIGNIN.start(yid, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: json().write === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, url: r.url, choose: chooseLine(confirmedChannel(yid)), opened: openInBrowser(r.url) } : { refused: r.why, adds: SIGNIN_ADDS }); }
             if (y[2] === "signout" && req.method === "POST") { YT_SIGNIN.signOut(yid); rmSync(pfile(yid, "youtube-signed.json"), { force: true }); return send(200, { ok: true, line: "Signed out of YouTube for this product. Visibility forgot the access and the analytics it had read." }); }
             if (y[2] === "signed" && req.method === "POST") { const r = await YT.refreshSigned(yid, { force: json().force === true }); return send(r.ok ? 200 : 400, r.ok ? { ok: true, on: r.data.on, reach: r.data.reach?.line ?? null } : { refused: r.why }); }
             if (y[2] === "chapters" && req.method === "POST") { const r = await YT.chapters(yid, json().videoId); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }

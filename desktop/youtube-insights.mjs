@@ -67,6 +67,57 @@ export function questionTitle(q, ch) {
   return { title: properNames(t), from: `a viewer's own question: "${q.text}" (${q.source})` };
 }
 
+/*
+ * ── RR-315 D1 · a viewer's question as a PROPER video title (owner: asked in RR-311, not done) ──
+ *   "In OET on computer, would they change the reading texts?" → "OET on Computer: Would They Change the Reading Texts? (2026)".
+ *   · LEFT OUT: a question about another channel's OWN content — a numbered question or part of its test ("answer of question 18 from
+ *     reading part A"), "your course", "the shown format", or the name of the channel it was asked under ("scores in e2").
+ *   · A request to that creator ("Can you make please a video about new speaking strategies?") becomes the topic it asks for.
+ *   · The exam / product it is about leads the title (from the question, else from the video it was asked under); the current year ends it.
+ *   · Never cut mid-word: a long question keeps its first whole clause, or is left out.
+ */
+const OTHERS_CONTENT = /\bquestion\s*(?:no\.?\s*|number\s*|#\s*)?\d+\b|\bq\s?\d+\b|\bpart\s+[a-f]\b|\banswer (?:of|to|for) (?:question|q|no)\b|\b(?:in|from|on) (?:this|your|the) (?:video|course|class|session|mock|test paper)\b|\byour (?:course|courses|class|classes|sessions?|materials?|channel|academy|app|website|mock)\b|\bshown (?:in the video|format)\b|\bthe shown\b|\bat (?:minute|\d+:\d+)\b|\bin e\d\b/i;
+const NAME_STOP = new Set(["the", "with", "and", "for", "of", "by", "your", "my", "our", "test", "exam", "prep", "preparation", "english", "academy", "academic", "language", "languages", "study", "abroad", "official", "online", "classes", "class", "coaching", "course", "courses", "tips", "tutor", "hub", "tv", "channel", "school", "institute", "international", "global", "center", "centre", "solutions", "general", "core", "cv", "resume"]);
+export const nameTokensOf = (title, topicWords = new Set()) => String(title ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2 && !NAME_STOP.has(w) && !topicWords.has(w));
+const SMALL_WORDS = new Set(["a", "an", "the", "and", "or", "but", "of", "in", "on", "at", "to", "for", "by", "with", "from", "vs", "as"]);
+const titleWords = (s) => String(s).split(/\s+/).filter(Boolean).map((w, i) => (/^[\p{Lu}\d&]{2,6}[?:]?$/u.test(w) || /^\p{L}+\p{Lu}/u.test(w) ? w : i > 0 && SMALL_WORDS.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
+export function questionIdea(q, ch, { topics = [], year = new Date().getUTCFullYear(), max = 100 } = {}) {
+  if (langOf(q.text) !== ch.code && !(ch.code === "en" && langOf(q.text) === null)) return null;
+  if (OTHERS_CONTENT.test(q.text)) return null;
+  const topicWords = new Set(topics.flatMap((t) => String(t).toLowerCase().split(/\s+/)));
+  const said = new Set(String(q.text).toLowerCase().split(/[^\p{L}\p{N}]+/u));
+  /* "scores in e2" — asked under "E2 OET": a name word with a digit, or the channel's whole name */
+  if (q.channel && (nameTokensOf(q.channel, topicWords).some((w) => /\d/.test(w) && said.has(w)) || String(q.text).toLowerCase().includes(String(q.channel).toLowerCase()))) return null;
+  let t = String(q.text).replace(/\s+/g, " ").trim().replace(/[?.!]+$/, "");
+  t = t.replace(/^(?:(?:hi|hey|hello|dear|sir|madam|mam|maam|bhai|baji|great video|thank you|thanks)[\s,!.]+)+/i, "").replace(/^(?:i (?:just )?(?:want(?:ed)?|would like) to (?:ask|know)(?: that| if| whether)?|my question is(?: that)?|please tell(?: me)?(?: that| if)?)[\s,:]+/i, "");
+  /* a request to the creator → the topic it asks for */
+  const ask = /^(?:could|can|would|will) you(?: please| kindly)* (?:make|create|do|upload|share|post|record)(?: please)?\s+(?:(?:a|an|the|some|more)\s+)?(?:(?:full|complete|new)\s+)?(video|videos|course|class|lesson|playlist|series)\s+(?:(?:about|on|for|regarding|of)\s+)?(.+)$/i.exec(t);
+  const request = Boolean(ask);
+  if (ask) t = /video|lesson/i.test(ask[1]) ? ask[2] : `${ask[2]}: full ${ask[1].toLowerCase()}`;
+  t = t.replace(/^(?:we|i) (?:will|would|shall) be able to\b/i, "can you").replace(/^(?:will|would) we be able to\b/i, "can you").replace(/^is it possible to\b/i, "can you")
+    .replace(/^(?:i\s+)?(?:may|can|could) (?:i|we) (?:know|ask)(?: that)?\s+/i, "").replace(/^(where|how|what|when|which) (?:i|we) (?:can|should|could|must) (\w+)/i, "$1 to $2");
+  /* a leading "In X, in Y," says what it is about: it leads the title */
+  let lead = null; const ctx = /^in ([^,]{2,40}),\s*(?:in ([^,]{2,40}),\s*)?(.+)$/i.exec(t);
+  if (ctx) { lead = ctx[1]; t = ctx[3]; }
+  /* the first whole clause when it is long — never a cut word */
+  if (t.length > 70) { const parts = t.split(/,\s+|\s+(?:or|and then|but|so)\s+/i); t = parts[0]; }
+  t = spellFix(t);
+  if (tokens(t).length < 3 && !request) return null;
+  /* a statement is not a question to answer ("I am looking for …") — a title starts with what it asks */
+  if (!request && !/^(?:what|how|why|when|where|which|who|whom|whose|can|could|is|are|was|were|do|does|did|will|would|should|shall|may|might|must|has|have|had)\b/i.test(t)) return null;
+  const has = (s) => topics.find((x) => new RegExp(`\\b${String(x).split(/\s+/)[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(s));
+  const name = (x) => (String(x).split(/\s+/).find((w) => /^[A-Z]{2,6}$/.test(w)) ?? titleWords(x));
+  const about = has(lead ?? "") ?? has(t) ?? has(q.under ?? "");
+  const upper = (s) => String(s).replace(/\b(\p{L}{2,6})\b/gu, (w) => (topics.some((x) => name(x) === w.toUpperCase()) ? w.toUpperCase() : w)); // "oet" → "OET"
+  const head = lead ? titleWords(upper(lead)) : about && !has(t) ? name(about) : null;
+  t = upper(t);
+  let body = titleWords(properNames(t));
+  if (!request && !/\?$/.test(body)) body = `${body}?`;
+  const out = `${head ? `${head}: ` : ""}${body}${/\b20\d\d\b/.test(`${head ?? ""} ${body}`) ? "" : ` (${year})`}`;
+  if (out.length > max) return null;
+  return { title: out, from: `a viewer's own question: "${q.text}" (${q.source})` };
+}
+
 /* ── B1 · from YOUR channel's data ── */
 const word = (k) => ({ SHORT: "Shorts", LONG: "long videos" }[k] ?? "videos");
 /** topic / place / kind groups that get more views than the channel's other videos — each said with its numbers */
@@ -145,6 +196,41 @@ export function keywordIdeas(research, terms, now = Date.now(), ch = null) {
     return { phrase: t.display ?? t.phrase ?? t, videos: hit.length, medianViews: median(hit.map((v) => v.views)), recent: hit.filter((v) => now - Date.parse(v.publishedAt) <= 30 * 864e5).length,
       estimate: hit.length ? `estimate: ${hit.length} matching videos in your niche research, median ${fmt(median(hit.map((v) => v.views)))} views, ${hit.filter((v) => now - Date.parse(v.publishedAt) <= 30 * 864e5).length} of them from the last 30 days` : "estimate: no matching video in your niche research yet", source: t.sources?.[0] ?? t.from ?? "your niche research" };
   }).filter((k) => k.videos > 0).sort((a, b) => (b.medianViews ?? 0) * Math.sqrt(b.videos) - (a.medianViews ?? 0) * Math.sqrt(a.videos));
+}
+
+/*
+ * ── RR-315 D3 · keyword ideas a client can USE (owner, on an exam channel: "linguamarina", "Skills PTE Academic nakul", "PTE 2025") ──
+ *   · never a channel's or a creator's name: a phrase holding every name word of a channel of the research, or only words of a channel's
+ *     title with a name word among them (a name word = not the niche's own topic, not a common word such as "academic" or "test");
+ *     a word that is only ever said in ONE channel's own titles (a creator's own name) is a name word too;
+ *   · the current year: "PTE 2025" becomes "PTE 2026" in 2026 — unless that phrase came from real searches (a search-data file);
+ *   · near-duplicates merged ("PTE Skills Academic" = "Skills PTE Academic"; "TOEFL prep" = "TOEFL preparation").
+ */
+const LIGHT = new Set(["the", "with", "and", "of", "by", "for", "your", "my", "our", "a", "an"]);
+const searched = (t) => /your file|search console|searches that brought|search terms/i.test(String(t.sources?.[0] ?? t.from ?? ""));
+export function currentYearTerms(terms, year) {
+  return terms.map((t) => { if (searched(t)) return t; const fix = (s) => String(s ?? "").replace(/\b(20[12]\d)\b/g, (y) => (Number(y) < year ? String(year) : y)); return { ...t, phrase: fix(t.phrase), ...(t.display ? { display: fix(t.display) } : {}) }; });
+}
+export function usableKeywords(keywords, research, topics = []) {
+  const topicWords = new Set(topics.flatMap((t) => String(t).toLowerCase().split(/\s+/)));
+  const vids = (research?.niche ?? []).flatMap((r) => r.videos ?? []);
+  const chans = [...new Set([...vids.map((v) => v.channelTitle), ...(research?.comments ?? []).map((c) => c.channelTitle)].filter(Boolean))];
+  /* words said in ONE channel's titles only, never elsewhere — a creator's own name ("nakul") */
+  const byWord = new Map(); for (const v of vids) for (const w of new Set(String(v.title).toLowerCase().split(/[^\p{L}\p{N}]+/u))) { if (!byWord.has(w)) byWord.set(w, new Set()); byWord.get(w).add(v.channelTitle); }
+  const words = (s) => String(s).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const isName = (phrase) => { const ws = words(phrase);
+    for (const c of chans) { const all = words(c).filter((w) => !LIGHT.has(w)), nm = nameTokensOf(c, topicWords); if (!nm.length) continue;
+      if (all.every((w) => ws.includes(w))) return true; // the channel's whole name ("Skills PTE Academic", "linguamarina")
+      if (ws.every((w) => all.includes(w)) && ws.some((w) => nm.includes(w))) return true;
+      /* the channel's words run together, as in its hashtag ("skillspte") */
+      const glued = words(c); if (ws.length === 1) for (let i = 0; i < glued.length; i++) for (let j = i + 2; j <= glued.length; j++) if (glued.slice(i, j).join("") === ws[0]) return true; }
+    /* a word only ONE channel says in its titles, and its own name holds it */
+    return ws.some((w) => !topicWords.has(w) && !NAME_STOP.has(w) && w.length >= 4 && byWord.get(w)?.size === 1 && words([...byWord.get(w)][0]).includes(w)); };
+  const SAME = { prep: "preparation", tips: "tip", tests: "test", exams: "exam", videos: "video" };
+  const key = (p) => words(p).map((w) => SAME[w] ?? w).filter((w) => !/^20\d\d$/.test(w)).sort().join(" ");
+  const seen = new Set(), out = [];
+  for (const k of keywords) { if (isName(k.phrase)) continue; const kk = key(k.phrase); if (seen.has(kk)) continue; seen.add(kk); out.push(k); }
+  return out;
 }
 
 /* ── A1 · chapters from the video's own captions, with the real times ── */

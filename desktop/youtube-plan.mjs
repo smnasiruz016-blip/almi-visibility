@@ -317,18 +317,25 @@ export function gapFixes(videos, ctx, opts = {}) {
 }
 
 /** B5 · new video ideas: formats that do well in the niche that the channel has (almost) not covered, and viewers' questions. */
-export function ideasFor({ summary, videos, persona = {}, questions = [], max = 8, topic = null }) {
+export function ideasFor({ summary, videos, persona = {}, questions = [], max = 8, topic = null, topics = [], year = new Date().getUTCFullYear() }) {
   const out = [];
-  const place = persona.places?.[0] ?? null, who = persona.who ?? null;
+  const home = persona.places?.[0] ?? null, who = persona.who ?? null;
+  /* RR-315 D2 (owner: "Q&A in Pakistan"): the product's home is added only when the niche's own videos of that format name it */
+  const placeFor = (f) => (home && (!(persona.placesFromProduct ?? []).includes(home) || (f.examples ?? []).some((e) => new RegExp(`\\b${home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(e.title))) ? home : null);
+  /* … and a Q&A idea says WHAT is answered: the niche's own exam / product names ("PTE, IELTS & OET: Your Questions Answered (2026)") */
+  const asked = (n) => questions.filter((q) => new RegExp(`\\b${n}\\b`, "i").test(q.text)).length; // the names viewers ask about most come first
+  const names = [...new Set(topics.flatMap((t) => String(t).split(/\s+/).filter((w) => /^[A-Z]{2,6}$/.test(w))))].map((n, i) => ({ n, i, k: asked(n) })).sort((a, b) => b.k - a.k || a.i - b.i).map((x) => x.n).slice(0, 3);
+  const andList = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} & ${xs[xs.length - 1]}` : xs[0]);
   /* "not covered": at most 1 of the channel's own videos (or under 1% of them) says it in its own title or description */
   const few = Math.max(1, Math.floor(videos.length * 0.01));
   for (const f of summary?.formats ?? []) {
     /* RR-310: "does well" = its median views at least the niche's own median (an exam niche's "Cleaning" at 95 views is not a hit) */
     if (f.own > few || f.count < 2 || (Number.isFinite(summary.medianAll) && (f.medianViews ?? 0) < summary.medianAll)) continue;
-    const e = f.examples[0];
+    const e = f.examples[0], place = placeFor(f);
     /* a bare format word ("Q&A") gets the niche's own topic when there is no place and no persona: "Q&A: IELTS Coaching" */
-    out.push({ kind: "FORMAT", title: fit(`${f.title}${place ? ` in ${place}` : ""}${who ? ` | ${who}` : ""}${!place && !who && topic ? `: ${titleCase(topic)}` : ""}`, TITLE_MAX), why: `"${f.label}" is ${f.count} of the niche's top videos (median ${fmt(f.medianViews)} views${e ? `; e.g. "${fit(e.title, 60)}" by ${e.channel}, ${fmt(e.views)} views, ${e.publishedAt}` : ""}) — you have ${f.own === 0 ? "no such video" : `only ${f.own}`} yet. Source: ${summary.source}.` });
+    const qa = f.id === "qa" && names.length ? `${andList(names)}: Your Questions Answered (${year})` : null;
+    out.push({ kind: "FORMAT", title: qa ?? fit(`${f.title}${place ? ` in ${place}` : ""}${who ? ` | ${who}` : ""}${!place && !who && topic ? `: ${titleCase(topic)}` : ""}`, TITLE_MAX), why: `"${f.label}" is ${f.count} of the niche's top videos (median ${fmt(f.medianViews)} views${e ? `; e.g. "${fit(e.title, 60)}" by ${e.channel}, ${fmt(e.views)} views, ${e.publishedAt}` : ""}) — you have ${f.own === 0 ? "no such video" : `only ${f.own}`} yet. Source: ${summary.source}.` });
   }
-  for (const i of newVideoIdeas({ questions, videos, max })) out.push({ kind: "QUESTION", question: i.title, title: fit(i.title, TITLE_MAX), why: `A viewer asked it and none of your videos answers it yet — ${i.from}.` });
+  for (const i of newVideoIdeas({ questions, videos, max })) out.push({ kind: "QUESTION", question: i.question ?? i.title, title: fit(i.title, TITLE_MAX), why: `A viewer asked it and none of your videos answers it yet — ${i.from}.` });
   return out.slice(0, max).map((o) => ({ ...o, title: properNames(o.title) })); // RR-309 B2: names keep their capitals
 }

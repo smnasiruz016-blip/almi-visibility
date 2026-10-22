@@ -38,6 +38,8 @@ export const FORMATS = Object.freeze([
   { id: "skincare", label: "Self-care and skincare", re: /\bskin ?care\b|\bself ?care\b|\bmakeup\b|\bgrwm\b|\bget ready with me\b/i },
   { id: "weekend", title: "Weekend Vlog", label: "Weekend vlog", re: /\bweekend\b|\bsunday\b|\bsaturday\b/i },
 ]);
+/* RR-315 D4: the formats of everyday LIFE — offered only to a channel whose niche is life itself (a vlog, a family, a routine) */
+export const LIFESTYLE = new Set(["day-in-life", "morning-routine", "night-routine", "routine", "grocery", "cost-of-living", "cleaning", "cooking", "travel", "shopping", "home-tour", "festival", "family-event", "kids", "couple", "life-abroad", "skincare", "weekend"]);
 /* countries and the large cities people name in titles — a place is a place only when one of these is written */
 export const PLACES = Object.freeze(("Afghanistan Albania Algeria Argentina Australia Austria Bahrain Bangladesh Belgium Brazil Bulgaria Canada Chile China Colombia Croatia Cyprus Czechia Denmark Egypt England Estonia Finland France Germany Greece Hungary Iceland India Indonesia Iran Iraq Ireland Italy Japan Jordan Kenya Korea Kuwait Latvia Lebanon Lithuania Luxembourg Malaysia Maldives Malta Mexico Morocco Nepal Netherlands Holland Nigeria Norway Oman Pakistan Philippines Poland Portugal Qatar Romania Russia Saudi Scotland Serbia Singapore Slovakia Slovenia Spain Sweden Switzerland Thailand Turkey Türkiye UAE Dubai Ukraine UK USA America Wales Vietnam Scandinavia Europe " +
   "Copenhagen Aarhus Odense Aalborg Reykjavik Oslo Bergen Stockholm Gothenburg Malmo Helsinki London Manchester Birmingham Glasgow Dublin Paris Berlin Hamburg Munich Amsterdam Rotterdam Brussels Madrid Barcelona Rome Milan Vienna Zurich Geneva Prague Warsaw Istanbul Toronto Vancouver Montreal Sydney Melbourne Brisbane Perth Auckland Riyadh Jeddah Makkah Madinah Doha Muscat Lahore Karachi Islamabad Rawalpindi Peshawar Multan Faisalabad Sialkot Quetta Delhi Mumbai Dhaka Kabul Tokyo Seoul Bangkok").split(" "));
@@ -80,12 +82,15 @@ export function personaOf({ channel = {}, videos = [], product = {} }) {
     who = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   }
   const placeCount = new Map();
-  const addPlaces = (text, w) => { for (const word of String(text).split(/[^\p{L}]+/u)) { const k = word.toLowerCase(); const p = PLACE_BY.get(k) ?? (ADJ_PLACE.get(k) && !who?.toLowerCase().includes(k) ? ADJ_PLACE.get(k) : null); if (p) placeCount.set(p, (placeCount.get(p) ?? 0) + w); } };
+  const addPlaces = (text, w, into = placeCount) => { for (const word of String(text).split(/[^\p{L}]+/u)) { const k = word.toLowerCase(); const p = PLACE_BY.get(k) ?? (ADJ_PLACE.get(k) && !who?.toLowerCase().includes(k) ? ADJ_PLACE.get(k) : null); if (p) into.set(p, (into.get(p) ?? 0) + w); } };
   addPlaces(desc, 5);
   for (const v of videos) addPlaces(`${v.title} ${(v.tags ?? []).join(" ")}`, 1);
   const places = [...placeCount.entries()].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).map(([p]) => p).slice(0, 4);
+  /* RR-315 D2: a place said ONLY in the product's own description (not by the channel or its videos) — "Q&A in Pakistan" came from one */
+  const chanCount = new Map(); addPlaces(channel.description ?? "", 5, chanCount); for (const v of videos) addPlaces(`${v.title} ${(v.tags ?? []).join(" ")}`, 1, chanCount);
+  const placesFromProduct = places.filter((p) => (chanCount.get(p) ?? 0) < 3);
   const titleCase = (s) => String(s).split(" ").map((w) => (w.length > 2 || /^[A-Z]/.test(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
-  return Object.freeze({ who: who ? titleCase(who) : null, places, whoFrom: who ? (m ? "your channel's description" : "the tags your own videos use most") : null });
+  return Object.freeze({ who: who ? titleCase(who) : null, places, placesFromProduct, whoFrom: who ? (m ? "your channel's description" : "the tags your own videos use most") : null });
 }
 export const placeIn = (text) => { for (const word of String(text).split(/[^\p{L}]+/u)) { const p = PLACE_BY.get(word.toLowerCase()); if (p) return p; } return null; };
 /** RR-311 B4: EVERY known place a text names (one-word and two-word places) — the AI guard checks each against the material */
@@ -200,9 +205,12 @@ export function nicheSummary({ niche, research, own = [], ownChannelId = null, s
   const ex = (v) => ({ title: v.title, channel: v.channelTitle, views: v.views, publishedAt: day(v.publishedAt), videoId: v.videoId });
   /* formats: how many of the niche's videos use each, their median views, and how many of the channel's own videos do */
   /* a format's words for a title: its own phrase, else the word the niche's best video of that format uses ("Eid", "Birthday") */
+  /* RR-315 D4 (owner, on an exam/career channel: "Cleaning", "Life abroad" were offered): a LIFE format counts only in a life niche — the
+   * channel's own videos or the niche's own searches are of that kind ("study abroad" or "organize your CV" is not Life abroad or Cleaning) */
+  const lifestyleNiche = own.some((v) => FORMATS.some((f) => LIFESTYLE.has(f.id) && f.re.test(textOf(v)))) || runs.some((r) => /\bvlogs?\b|\bfamily\b|\blifestyle\b|\bmom\b|\bdaily life\b/i.test(r.q) || FORMATS.some((f) => LIFESTYLE.has(f.id) && f.re.test(r.q)));
   const wordOf = (f, xs) => f.title ?? (xs[0] ? String(f.re.exec(textOf(xs[0]))?.[0] ?? f.label).replace(/^\w/, (c) => c.toUpperCase()) : f.label);
   const formats = FORMATS.map((f) => { const xs = vids.filter((v) => f.re.test(textOf(v))).sort((a, b) => b.views - a.views); return { id: f.id, label: f.label, title: wordOf(f, xs), count: xs.length, medianViews: median(xs.map((v) => v.views)), examples: xs.sort((a, b) => b.views - a.views).slice(0, 2).map(ex), own: own.filter((v) => f.re.test(textOf(v))).length }; })
-    .filter((f) => f.count >= 2).sort((a, b) => (b.medianViews ?? 0) * Math.sqrt(b.count) - (a.medianViews ?? 0) * Math.sqrt(a.count));
+    .filter((f) => f.count >= 2 && (lifestyleNiche || !LIFESTYLE.has(f.id))).sort((a, b) => (b.medianViews ?? 0) * Math.sqrt(b.count) - (a.medianViews ?? 0) * Math.sqrt(a.count));
   /* title patterns */
   const share = (pred) => Math.round((vids.filter(pred).length / vids.length) * 100);
   const patterns = [

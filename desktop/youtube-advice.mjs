@@ -121,12 +121,12 @@ export function researchQuestions({ research = null, files = [], product = {}, t
   const relevant = (q) => inScripts(q, product.languages) && !REMARK.test(q) && tokens(q).length >= 3 && tokens(q).some((w) => about.has(w));
   const out = [];
   const seen = [];
-  const push = (text, source, likes = 0) => {
+  const push = (text, source, likes = 0, where = {}) => {
     const s = tokenSet(text);
     if (seen.some((x) => { let n = 0; for (const w of s) if (x.has(w)) n++; return n / Math.max(s.size, x.size) >= 0.8; })) return;
-    seen.push(s); out.push({ text: text.endsWith("?") ? text : `${text}?`, source, likes });
+    seen.push(s); out.push({ text: text.endsWith("?") ? text : `${text}?`, source, likes, ...where });
   };
-  for (const c of research?.comments ?? []) for (const q of questionsIn(c.text)) if (relevant(q)) push(q, `a comment under ${c.own ? "your video" : "the video"} "${c.videoTitle}"${c.own ? "" : ` (${c.channelTitle})`}, ${day(c.publishedAt)}`, c.likes ?? 0);
+  for (const c of research?.comments ?? []) for (const q of questionsIn(c.text)) if (relevant(q)) push(q, `a comment under ${c.own ? "your video" : "the video"} "${c.videoTitle}"${c.own ? "" : ` (${c.channelTitle})`}, ${day(c.publishedAt)}`, c.likes ?? 0, { under: c.videoTitle ?? null, channel: c.own ? null : c.channelTitle ?? null });
   for (const f of files) if (QUESTION_START.test(f.phrase) || f.phrase.endsWith("?")) push(f.phrase, `your file ${f.file} (added ${day(f.on)})`, 0);
   return out.sort((a, b) => b.likes - a.likes);
 }
@@ -227,7 +227,8 @@ export function channelAdvice({ channel, product, videos, terms, readOn }) {
 export function newVideoIdeas({ questions, videos, max = 10 }) {
   const own = videos.map(videoTokens);
   return questions.filter((q) => { const s = [...tokenSet(q.text)]; return !own.some((v) => share(s, v) >= Math.min(2, s.length)); }).slice(0, max)
-    .map((q) => ({ title: cap(q.text).slice(0, TITLE_MAX), from: q.source }));
+    /* RR-315 D1: never cut mid-word ("…or do w?") — a long question ends at its last whole word, and the whole question is kept */
+    .map((q) => ({ title: cap(q.text).length <= TITLE_MAX ? cap(q.text) : `${cap(q.text).slice(0, TITLE_MAX).replace(/\s+\S*$/, "").replace(/[\s,;:—–-]+$/, "")}…`, question: q.text, from: q.source }));
 }
 
 /**

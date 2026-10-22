@@ -219,7 +219,7 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     let s = await a.post(`/api/products/${id}/youtube/signin`, { write: true }); assert.equal(s.http, 200, s.refused);
     assert.equal(s.opened, false, "a test app opened a real browser tab"); // RR-314: tests never open Chrome on the owner's PC
     let page = await a.raw(`/oauth/youtube?code=one-time&state=${new URL(s.url).searchParams.get("state")}`);
-    assert.match(page, /You signed in with the Google account of another channel \(Someone Else\)/);
+    assert.match(page, /Google gave the channel Someone Else, but this product needs Dhanak Fixture\. Nothing was kept\./); // RR-315 A3: which came, which is needed
     assert.equal((await a.get(`/api/products/${id}/youtube/advice`)).signin.signedIn, false);
     /* the right account */
     g.setMine(OWN);

@@ -11,6 +11,8 @@
  *     captions, so captions come only with the same switch as Apply ("Apply to YouTube" on) — said plainly in the app.
  *   · The refresh key Google gives is kept in Windows' secure store under the product's own name; nothing is printed or logged.
  * Official Google addresses only (or, in tests, a stand-in on this computer).
+ * 🔴 RR-315 A (owner's live test: Google gave the account's DEFAULT channel, not the brand channel Almiworld): Google is asked to show its
+ *   account / brand-account chooser every time (prompt=select_account consent); the app says beforehand which channel to choose.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { csvRows } from "../src/video/youtube.mjs";
@@ -32,7 +34,7 @@ export const SIGNIN_ADDS = Object.freeze([
   "With \"Apply to YouTube\" on: real chapters from your captions, and changes made on YouTube for you — with Undo",
 ]);
 
-export function youtubeSignin({ keys, config = {}, fetchImpl = (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(20000) }), now = () => Date.now() }) {
+export function youtubeSignin({ keys, config = {}, wantOf = null, fetchImpl = (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(20000) }), now = () => Date.now() }) {
   const ep = { ...YT_ENDPOINTS, ...(config.youtubeTestEndpoints ?? {}) };
   for (const u of Object.values(ep)) if (!allowed(u)) throw new Error("Google addresses only");
   const clientId = () => config.googleClientId ?? null;
@@ -69,7 +71,7 @@ export function youtubeSignin({ keys, config = {}, fetchImpl = (u, i) => fetch(u
       const verifier = b64url(randomBytes(32)), state = b64url(randomBytes(16));
       pending.set(state, { verifier, redirect, id, write, at: now() });
       const u = new URL(ep.auth);
-      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: [...YT_SCOPES.read, ...(write ? [YT_SCOPES.write] : [])].join(" "), access_type: "offline", prompt: "consent", include_granted_scopes: "true", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
+      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: [...YT_SCOPES.read, ...(write ? [YT_SCOPES.write] : [])].join(" "), access_type: "offline", prompt: "select_account consent", include_granted_scopes: "true", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
       return { ok: true, url: u.href, state };
     },
     /** Google sends the browser back with a one-time code; the lasting access is kept for THIS product; the channel is asked (mine=true) */
@@ -84,11 +86,14 @@ export function youtubeSignin({ keys, config = {}, fetchImpl = (u, i) => fetch(u
       const granted = String(j.scope ?? "").split(/\s+/);
       if (!YT_SCOPES.read.every((s) => granted.includes(s))) return { ok: false, id: p.id, why: "You did not tick every box Google showed — Visibility needs to read your channel and its analytics. Press Sign in again and allow both." };
       access.set(p.id, { token: j.access_token, until: now() + (j.expires_in ?? 3600) * 1000 });
-      const ch = await fetchImpl(q(ep.data, "channels", { part: "snippet", mine: "true" }), { headers: { authorization: `Bearer ${j.access_token}` } }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-      const c = ch?.items?.[0];
+      /* RR-315 A4: every channel the signed-in choice owns (for an ordinary Google account, Google gives the ONE channel picked in its own
+       * chooser; "managedByMe" is for YouTube content partners only) — the product's confirmed channel is kept when it is among them */
+      const ch = await fetchImpl(q(ep.data, "channels", { part: "snippet", mine: "true", maxResults: 50 }), { headers: { authorization: `Bearer ${j.access_token}` } }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+      const channels = (ch?.items ?? []).map((x) => ({ id: x.id, title: x.snippet?.title ?? null }));
+      const c = (wantOf?.(p.id) && ch?.items?.find((x) => x.id === wantOf(p.id))) || ch?.items?.[0];
       const k = keys.set(signinKeyName(p.id), JSON.stringify({ refresh: j.refresh_token, write: granted.includes(YT_SCOPES.write), channelId: c?.id ?? null, since: new Date(now()).toISOString() }));
       if (!k.ok) return { ok: false, why: k.why };
-      return { ok: true, id: p.id, write: granted.includes(YT_SCOPES.write), channelId: c?.id ?? null, channelTitle: c?.snippet?.title ?? null };
+      return { ok: true, id: p.id, write: granted.includes(YT_SCOPES.write), channelId: c?.id ?? null, channelTitle: c?.snippet?.title ?? null, channels };
     },
     signOut(id) { keys.remove(signinKeyName(id)); access.delete(id); },
 

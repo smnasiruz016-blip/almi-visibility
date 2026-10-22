@@ -60,19 +60,21 @@ textarea{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radi
 button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#FFF8EF;border-color:var(--sunrise)} .failed{background:#FDECEC;border:1px solid #C0392B;border-radius:12px;padding:12px 14px}
 .prices td,.prices th{padding:4px 8px;border-bottom:1px solid var(--peach);text-align:left;vertical-align:top;font-size:13px} .prices{border-collapse:collapse;width:100%}
 .draftrow{border-top:1px solid var(--peach);padding:10px 0} .editor{border:1px dashed var(--sunrise);border-radius:10px;padding:10px;min-height:120px;background:var(--white)}
+.backbar{max-width:860px;width:100%;box-sizing:border-box;margin:14px auto -8px;padding:0 16px} .backbar:empty{display:none}
 @media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
 @media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22}}
 </style></head>
 <body>
 <header><img class="maker" src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully"><span class="app">Visibility</span><span class="lic" id="lic"></span></header>
 <div class="band"></div>
+<div id="backbar" class="backbar"></div>
 <main id="app"></main>
 <footer>Made by <b>AlmiWorld</b> · live beautifully · <span id="ver"></span></footer>
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const get = (p) => fetch(p).then((r) => r.json());
-const post = async (p, o) => { const r = await fetch(p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); return r.json(); };
+const post = async (p, o) => { const r = await fetch(p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); const j = await r.json(); if (r.ok && !j?.refused) DIRTY = false; return j; }; // RR-315 B: what was typed is saved now
 let P = null, S = null, step = 0;
 /* RR-307 (owner, 22 Oct): a screen that fails says so in plain words, with a way back — never a blank page (the Dhanak YouTube settings went blank) */
 /*
@@ -97,11 +99,53 @@ function oops() {
   box.innerHTML = `<h2>This screen could not open</h2><p>Something went wrong on this screen. Your data is safe — nothing was changed.</p><button id="oopshome">Back to my products</button>`;
   $("#app").prepend(box); $("#oopshome").onclick = () => { box.remove(); home(); };
 }
+/*
+ * RR-315 B (owner: "Back and Next buttons"). Every screen is a step in the window's own history: "← Back" (at the top of every screen, and
+ * the browser's own Back / Alt+←) returns to the screen before — the same product, the same tab, the same setup step. Anything typed and not
+ * yet saved is never lost without asking: leaving such a screen asks first ("Stay" keeps it).
+ */
+let DIRTY = false, RESTORING = false, CUR = null;
+const SCREENS = {};
+const sameState = (a, b) => a && b && a.name === b.name && a.P === b.P && a.step === b.step && JSON.stringify(a.args) === JSON.stringify(b.args);
+document.addEventListener("input", (e) => { if (e.target?.closest?.("#app") && !e.target.closest(".nodirty")) DIRTY = true; }, true);
+document.addEventListener("change", (e) => { if (e.target?.closest?.("#app") && !e.target.closest(".nodirty")) DIRTY = true; }, true);
+function askLeave() {
+  return new Promise((done) => {
+    const t = document.createElement("div"); t.className = "tour"; t.id = "leavemodal";
+    t.innerHTML = `<div class="card" role="dialog" aria-modal="true"><h2>Leave without saving?</h2><p>You typed something on this screen that is not saved yet. If you leave now, it is lost.</p><p><button id="leaveno">Stay on this screen</button> <button class="ghost" id="leaveyes">Leave without saving</button></p></div>`;
+    document.body.appendChild(t);
+    $("#leaveno").onclick = () => { t.remove(); done(false); };
+    $("#leaveyes").onclick = () => { t.remove(); done(true); };
+  });
+}
+/** called first by every screen: asks before typed data is lost, then records the screen in the window's history */
+async function here(name, args = []) {
+  if (RESTORING) RESTORING = false;
+  else {
+    if (DIRTY && !(await askLeave())) return false;
+    const st = { name, args, P, step }, cur = history.state;
+    if (!cur?.name) history.replaceState({ ...st, depth: 0 }, "");
+    else if (sameState(cur, st)) history.replaceState({ ...st, depth: cur.depth }, "");
+    else history.pushState({ ...st, depth: (cur.depth ?? 0) + 1 }, "");
+  }
+  DIRTY = false; CUR = history.state;
+  const bar = $("#backbar"); bar.innerHTML = CUR?.depth > 0 ? `<button class="ghost" id="navback" type="button">← Back</button>` : "";
+  if ($("#navback")) $("#navback").onclick = () => history.back();
+  return true;
+}
+window.addEventListener("popstate", async (e) => {
+  const s = e.state; if (!s?.name || !SCREENS[s.name]) return;
+  if (DIRTY && !(await askLeave())) { history.pushState(CUR, ""); return; }
+  DIRTY = false; P = s.P ?? null; step = s.step ?? 0;
+  if (P) { const st = await get(`/api/products/${encodeURIComponent(P)}/state`); if (st.refused) { P = null; history.replaceState({ name: "home", args: [], P: null, step: 0, depth: s.depth }, ""); RESTORING = true; return home(); } S = st; }
+  RESTORING = true; SCREENS[s.name](...(s.args ?? []));
+});
 window.addEventListener("error", (e) => { console.error(e.error ?? e.message); oops(); });
 window.addEventListener("unhandledrejection", (e) => { console.error(e.reason); oops(); });
 
 /* ── the first screen: the company, "What would you like to do now?", its products (RR-307 G: the cards ask; D6: a short first-run tour) ── */
 async function home() {
+  if (!(await here("home"))) return;
   const H = await get("/api/home");
   $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence;
   if (!H.company) return company();
@@ -147,8 +191,9 @@ async function tour() {
 }
 /* RR-303 A: the licence key from the page shown after a purchase — saved in the app; never shown back.
    RR-306 A1: once saved, a clear "Licence saved ✓" and one big next step. */
-function planScreen() {
-  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_) — or the owner licence (it starts with avo_).</p>
+async function planScreen() {
+  if (!(await here("planScreen"))) return;
+  $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_) — or the owner licence (it starts with avo_).</p>
   <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div></div>`;
   $("#home").onclick = home;
   $("#save").onclick = async () => {
@@ -159,13 +204,19 @@ function planScreen() {
   };
 }
 /* RR-306 A3: a key box — the client pastes the key; the app shows only "saved ✓ (ends …1234)" and can replace or remove it */
+/* RR-315 C (owner): "How to get it" next to each key and connection — a guide in its OWN window, so the client reads it while pasting here.
+   The guides are part of the app (desktop/guides.mjs): they work without the internet. */
+const GUIDE_FOR = { YOUTUBE_API_KEY: "youtube-key", ANTHROPIC_API_KEY: "anthropic-key", anthropic: "anthropic-key", google: "google-client" };
+const guideLink = (g) => (g ? `<a href="/guide/${esc(g)}" class="guide" data-guide="${esc(g)}" target="_blank" rel="noopener">How to get it ↗</a>` : "");
+function wireGuides(root = document) { root.querySelectorAll("[data-guide]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); window.open(`/guide/${a.dataset.guide}`, `avguide-${a.dataset.guide}`, "popup,width=820,height=900"); })); }
 const keyStatus = (st) => (st?.saved ? `<span class="ok">saved ✓ (ends …${esc(st.ends)})</span> <span class="meta">${esc(st.where)}</span>` : `<span class="meta">not saved yet</span>`);
 function keyBox(name, label, st) {
-  return `<div class="keybox" data-key="${esc(name)}"><div><b>${esc(label)}</b>: <span class="kst">${keyStatus(st)}</span></div>
+  return `<div class="keybox" data-key="${esc(name)}"><div><b>${esc(label)}</b>: <span class="kst">${keyStatus(st)}</span> ${guideLink(GUIDE_FOR[name])}</div>
   <input class="kin" type="password" autocomplete="off" spellcheck="false" placeholder="${st?.saved ? "Paste a new key to replace it" : "Paste your key here"}">
   <button class="ghost ksave" type="button">${st?.saved ? "Replace" : "Save key"}</button> ${st?.saved ? `<button class="ghost kdel" type="button">Remove</button>` : ""}<span class="err kerr"></span></div>`;
 }
 function wireKeyBoxes(after) {
+  wireGuides();
   document.querySelectorAll(".keybox").forEach((b) => {
     const name = b.dataset.key;
     b.querySelector(".ksave").onclick = async () => { const r = await post(`/api/keys/${name}`, { key: b.querySelector(".kin").value }); b.querySelector(".kin").value = ""; if (r.refused) return (b.querySelector(".kerr").textContent = r.refused); b.querySelector(".kst").innerHTML = keyStatus(r.status); if (after) after(); };
@@ -175,10 +226,11 @@ function wireKeyBoxes(after) {
 /* RR-303 D + RR-306 B: YouTube settings — the channel found by its EXACT @handle and shown before anything is read ("Is this your channel?"),
    the key, the research topics, related product pages, search-data files */
 async function youtubeSettings() {
+  if (!(await here("youtubeSettings"))) return;
   const y = await get(`/api/products/${encodeURIComponent(P)}/youtube`);
   const K = await get("/api/keys");
   const conf = y.confirmed ? `<p class="ok">Confirmed: ${esc(y.confirmed.title)} (${esc(y.confirmed.handle)}) — read by its channel ID since ${esc(y.confirmed.on)}.</p>` : "";
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>YouTube settings</h2>
+  $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>YouTube settings</h2>
   <p class="ask">Your channel's @handle. Before anything is read, Visibility shows you the channel and asks if it is yours.</p>${conf}
   <label>Channel @handle<input id="y1" list="pilots" value="${esc(y.handle || y.suggestedHandle || "")}" placeholder="@yourchannel"></label><datalist id="pilots">${y.pilots.map((p) => `<option value="${esc(p.handle)}">${esc(p.name)} (${esc(p.tier)})</option>`).join("")}</datalist>
   <button id="find">Find my channel</button><p class="meta" id="ksrc">${esc(y.keySource ?? "")}</p><div id="found"></div>
@@ -220,7 +272,8 @@ function addressTrouble(r, retry) {
   if ($("#usesug")) $("#usesug").onclick = () => retry({ site: r.suggestion });
   if ($("#anyway")) $("#anyway").onclick = () => retry({ saveAnyway: true });
 }
-function company() {
+async function company() {
+  if (!(await here("company"))) return;
   $("#app").innerHTML = `<div class="card"><h2>Your company</h2><p class="ask">Its name and its main website — your products are listed under it. Your own logo is optional.</p>
   <label>Company name<input id="c1"></label><label>Main website<input id="c2" placeholder="almiworld.com"></label><label>Your logo (PNG, optional)<input id="c3" type="file" accept="image/png"></label>
   <button id="save">Continue</button><div class="err" id="err"></div></div>`;
@@ -233,8 +286,9 @@ function company() {
 }
 /* RR-307 D1: two plain questions first — what to grow, and whether there is a website; only then the website itself */
 async function addProduct() {
+  if (!(await here("addProduct"))) return;
   const C = (await get("/api/choices")).grow;
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← All products</button></p><div class="card"><h2>Add a product</h2>
+  $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ All products</button></p><div class="card"><h2>Add a product</h2>
   <label>Product name<input id="p1" placeholder="for example AlmiOET"></label>
   <h3 style="margin-top:10px">What do you want to grow?</h3>${C.map((c) => `<label class="choice"><input type="radio" name="grow" value="${esc(c.value)}"> <b>${esc(c.label)}</b><div class="why">Choose this if ${esc(c.chooseIf)} You get: ${esc(c.gives)} Cost: ${esc(c.cost)} You need: ${esc(c.needs)}</div></label>`).join("")}
   <h3 style="margin-top:10px">Do you have a website for this product?</h3>
@@ -264,9 +318,9 @@ const fields = {
   articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=${Number.isInteger(S.setup.articlesPerDay?.perDay) ? S.setup.articlesPerDay.perDay : S.recommended.articlesPerDay ?? 1}> <span class="rec">Recommended for you: 1 a day</span>`,
   publishMode: () => choiceList("m", S.choices.publishMode, S.setup.publishMode?.mode, S.recommended.publishMode),
   aiConnection: () => `<label>Your AI assistant<select id=f1>${KS.aiProviders.map((p) => `<option value=${p.id} ${S.setup.aiConnection?.provider === p.id || S.setup.aiConnection?.keyName === p.keyName ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
-    <label>Paste your AI key here<input id=f2 type=password autocomplete=off spellcheck=false placeholder="It is kept safely on this computer"></label><p class=meta id=aist></p><div class="howto" id=aihow></div>`,
+    <label>Paste your AI key here<input id=f2 type=password autocomplete=off spellcheck=false placeholder="It is kept safely on this computer"></label><p class=meta id=aist></p><div class="howto" id=aihow></div><p id=aiguide></p>`,
   youtube: () => `<label>Your channel's @handle<input id=f1 placeholder="@yourchannel" value="${esc(S.setup.youtube?.handle || (/youtube\.com\/(@[\w.-]{3,100})/i.exec(S.product.site ?? "")?.[1] ?? ""))}"></label>
-    <label>Paste your YouTube key here<input id=f2 type=password autocomplete=off spellcheck=false placeholder="${KS.keys.YOUTUBE_API_KEY?.saved ? `saved ✓ (ends …${esc(KS.keys.YOUTUBE_API_KEY.ends)}) — paste a new one to replace it` : "It is kept safely on this computer"}"></label><div class="howto">${esc(S.howTo.youtube)}</div>`,
+    <label>Paste your YouTube key here<input id=f2 type=password autocomplete=off spellcheck=false placeholder="${KS.keys.YOUTUBE_API_KEY?.saved ? `saved ✓ (ends …${esc(KS.keys.YOUTUBE_API_KEY.ends)}) — paste a new one to replace it` : "It is kept safely on this computer"}"></label><div class="howto">${esc(S.howTo.youtube)} ${guideLink("youtube-key")}</div>`,
   start: () => `<h2 class="ok">All set ✓</h2><p>${S.checking ? `Visibility is already checking ${esc(S.product.name)} — follow it on the Overview.` : S.started ? `Your changes to ${esc(S.product.name)} are saved.` : `Visibility checks ${esc(S.product.name)} now — your score and what to fix first appear on the Overview, with how far the check is.`} Nothing is published without your choice.</p>`,
 };
 const value = (id) => ({
@@ -283,16 +337,18 @@ function continueSetup() { step = S.steps.findIndex((x) => !S.setup[x.id] || (x.
 /* RR-306 A2 / RR-307 E2: the product's Settings — the same steps, with the answers given, any time; and "Delete product" */
 async function settings() { S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = 0; setup(); }
 async function setup() {
+  if (!(await here("setup"))) return;
   KS = await get("/api/keys");
   const st = S.steps[step];
   const skipped = S.setup[st.id]?.skipped === true;
   const pct = Math.round((step / Math.max(1, S.steps.length - 1)) * 100);
-  $("#app").innerHTML = `<p><button class="ghost" id="home">← ${S.started ? esc(S.product.name) : "All products"}</button></p><div class="card"><div class="steps">${esc(S.product.name)} · ${S.started ? "Settings · " : ""}step ${step + 1} of ${S.steps.length}${skipped ? " · skipped for now" : ""}</div><div class="progress"><div style="width:${pct}%"></div></div><h2>${esc(st.id === "start" ? "" : st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
-  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${step ? "<button class=ghost id=back>Back</button>" : ""}<button id=next class="${st.id === "start" ? "big" : ""}">${st.id === "start" ? (S.checking ? "See the check in progress" : S.started ? "Save" : "Check my product now") : "Next"}</button>${st.optional ? "<button class=ghost id=skip>Skip for now — add later</button>" : ""}</div><div class=err id=err></div>
+  $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ ${S.started ? esc(S.product.name) : "All products"}</button></p><div class="card"><div class="steps">${esc(S.product.name)} · ${S.started ? "Settings · " : ""}step ${step + 1} of ${S.steps.length}${skipped ? " · skipped for now" : ""}</div><div class="progress"><div style="width:${pct}%"></div></div><h2>${esc(st.id === "start" ? "" : st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${step ? "<button class=ghost id=back>← Back</button>" : ""}<button id=next class="${st.id === "start" ? "big" : ""}">${st.id === "start" ? (S.checking ? "See the check in progress" : S.started ? "Save" : "Check my product now") : "Next →"}</button>${st.optional ? "<button class=ghost id=skip>Skip for now — add later</button>" : ""}</div><div class=err id=err></div>
   ${S.started && step === 0 ? `<div style="margin-top:22px;border-top:1px solid var(--peach);padding-top:12px"><button class="ghost" id="del">Delete this product</button><div id="delask"></div></div>` : ""}</div>`;
   $("#home").onclick = () => (S.started ? work("Overview") : home()); if ($("#back")) $("#back").onclick = () => { step--; setup(); };
   if (st.id === "searchData") { wireKeyBoxes(); const show = () => ($("#sk").style.display = document.querySelector("input[name=sd]:checked")?.value === "1" ? "" : "none"); document.querySelectorAll("input[name=sd]").forEach((r) => (r.onchange = show)); show(); }
-  if (st.id === "aiConnection") { const show = () => { const p = KS.aiProviders.find((x) => x.id === $("#f1").value); const k = KS.keys[p.keyName]; $("#aist").innerHTML = k?.saved ? `Your ${esc(p.name)} key: <span class="ok">saved ✓ (ends …${esc(k.ends)})</span> — paste a new one to replace it.` : "No key saved for this assistant yet."; $("#aihow").textContent = S.howTo[p.id] ?? ""; }; $("#f1").onchange = show; show(); }
+  if (st.id === "aiConnection") { const show = () => { const p = KS.aiProviders.find((x) => x.id === $("#f1").value); const k = KS.keys[p.keyName]; $("#aist").innerHTML = k?.saved ? `Your ${esc(p.name)} key: <span class="ok">saved ✓ (ends …${esc(k.ends)})</span> — paste a new one to replace it.` : "No key saved for this assistant yet."; $("#aihow").textContent = S.howTo[p.id] ?? ""; $("#aiguide").innerHTML = guideLink(GUIDE_FOR[p.id]); wireGuides(); }; $("#f1").onchange = show; show(); }
+  wireGuides();
   if ($("#del")) $("#del").onclick = () => askDelete(P, S.product.name); // the same "Are you sure?" as on the product's box
   const go = async (v, extra = {}) => {
     const r = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: st.id, value: { ...v, ...extra } });
@@ -331,9 +387,9 @@ function videoHtml(v) {
 function signinCard(a) {
   const g = a.signin;
   if (!g) return "";
-  if (!g.signedIn && !g.ready) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Google sign-in is off. Switch it on once (your own Google sign-in client), then sign in here.</p><p><button id="gsignon">Google sign-in: switch it on</button></p></div>`; // RR-313 B1
+  if (!g.signedIn && !g.ready) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Google sign-in is off. Switch it on once (your own Google sign-in client), then sign in here.</p><p><button id="gsignon">Google sign-in: switch it on</button> ${guideLink("google-client")}</p></div>`; // RR-313 B1
   if (!g.signedIn) return `<div class="card" id="ytsign"><h3>Sign in to YouTube — your channel's own data</h3><p>Not signed in yet. Signing in (with the Google account that owns ${esc(a.confirmed.title)}) adds:</p><ul>${(a.signinAdds ?? SIGNIN_ADDS_UI).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-    <p><label class="choice"><input type="checkbox" id="ytwrite" style="width:auto"> Also allow "Apply to YouTube" (Visibility changes a video's title, description or chapters only when you press Apply; Google gives captions only with this permission)</label></p><p><button id="ytsignin">Sign in to YouTube</button> <span id="ytsmsg"></span></p></div>`;
+    <p><label class="choice"><input type="checkbox" id="ytwrite" style="width:auto"> Also allow "Apply to YouTube" (Visibility changes a video's title, description or chapters only when you press Apply; Google gives captions only with this permission)</label></p><p class="warn" id="ytchoose">Google will ask which account or channel. Choose <b>${esc(a.confirmed.title)}</b> (it may be listed as a brand account under your email) — not another channel of the same Google account.</p><p><button id="ytsignin">Sign in to YouTube</button> <span id="ytsmsg"></span></p></div>`;
   return `<div class="card" id="ytsign"><h3>Signed in to YouTube ✓</h3><p class="meta">Your channel's own analytics${g.on ? `, read ${esc(g.on)}` : ""}. Apply to YouTube: <b>${g.write ? "on" : "off"}</b>${a.almiworld ? " (AlmiWorld's own channel: nothing is changed on YouTube from here)" : ""}.${g.reachLine ? ` ${esc(g.reachLine)}` : ""}</p>
     <p>${g.write ? "" : `<button class="ghost" id="ytwriteon">Turn on Apply to YouTube</button> `}<button class="ghost" id="ytsignout">Sign out</button> <span id="ytsmsg"></span></p></div>`;
 }
@@ -393,8 +449,8 @@ async function youtubeTab() {
   ${CAN_APPLY ? `<p><button class="ghost" id="bulk">Apply option 1 to the top ${a.top.length} videos…</button></p><div id="bulkbox"></div>` : ""}
   <div id="vlist">${a.top.map(videoHtml).join("")}</div>${a.more ? `<button class="ghost" id="more">Show more (${Number(a.more).toLocaleString()} more videos)</button>` : ""}
   ${a.channelAdvice.length ? `<h3 style="margin-top:14px">Your channel</h3>${a.channelAdvice.map((x) => `<div><span class="k">${esc(x.what)}</span> ${copyBtn(x.advice)}<pre>${esc(x.advice)}</pre><div class="src">From: ${esc(x.from)}</div></div>`).join("")}` : ""}`;
-  wireCopy($("#ytbox"));
-  const U = `/api/products/${encodeURIComponent(P)}/youtube`;
+  wireCopy($("#ytbox")); wireGuides($("#ytbox"));
+  const U =`/api/products/${encodeURIComponent(P)}/youtube`;
   const wireApply = (root) => root.querySelectorAll(".apply").forEach((b) => (b.onclick = async () => {
     const [videoId] = b.dataset.key.split("|"), o = OPTS.get(b.dataset.key); const box = document.createElement("div"); b.parentElement.after(box);
     const pre = await post(`${U}/apply`, { items: [{ videoId, title: o.title, description: o.description }] });
@@ -413,9 +469,14 @@ async function youtubeTab() {
   if ($("#linkno")) $("#linkno").onclick = async () => { const r = await post(`${U}/links`, { decline: true }); note($("#linkmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(youtubeTab, 900); };
   if ($("#gsignon")) $("#gsignon").onclick = () => googleSignInScreen(() => work("YouTube")); // RR-313 B1: the one place
   /* RR-314 A1: the sign-in page opens in the client's own browser (the app asks for it); this tab waits and redraws itself once Google has sent the browser back */
-  const ytSignedIn = async () => (await get(`${U}/signin`)).signedIn === true;
-  if ($("#ytsignin")) $("#ytsignin").onclick = async () => { const r = await post(`${U}/signin`, { write: Boolean($("#ytwrite")?.checked) }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); signinOpened($("#ytsmsg"), r, "Sign in there with the Google account that owns this channel.", ytSignedIn, () => youtubeTab()); };
-  if ($("#ytwriteon")) $("#ytwriteon").onclick = async () => { const r = await post(`${U}/signin`, { write: true }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); signinOpened($("#ytsmsg"), r, "Allow the extra permission there.", ytSignedIn, () => youtubeTab()); };
+  /* RR-315 A3: the wait ends when the sign-in is done OR refused — a refusal says which channel came back, with "Try again — choose …" */
+  let LASTW = false;
+  const ytSignedIn = async () => { const x = await get(`${U}/signin`); return x.signedIn === true || Boolean(x.last); };
+  const afterSignin = async () => { const x = await get(`${U}/signin`); if (x.signedIn || !x.last || !$("#ytsmsg")) return youtubeTab();
+    $("#ytsmsg").className = "err"; $("#ytsmsg").innerHTML = `${esc(x.last)} <button id="ytagain">Try again — choose ${esc(a.confirmed.title)}</button>`; $("#ytagain").onclick = () => startSignin(LASTW); };
+  const startSignin = async (write) => { LASTW = write; const r = await post(`${U}/signin`, { write }); if (!r.ok) return note($("#ytsmsg"), r.refused, "err"); signinOpened($("#ytsmsg"), r, `${r.choose ?? ""} ${write && SIGNED ? "Allow the extra permission there." : ""}`.trim(), ytSignedIn, afterSignin); };
+  if ($("#ytsignin")) $("#ytsignin").onclick = () => startSignin(Boolean($("#ytwrite")?.checked));
+  if ($("#ytwriteon")) $("#ytwriteon").onclick = () => startSignin(true);
   if ($("#ytsignout")) $("#ytsignout").onclick = async () => { const r = await post(`${U}/signout`, {}); note($("#ytsmsg"), r.line, "ok"); setTimeout(youtubeTab, 1000); };
   /* competitors */
   if ($("#caddb")) $("#caddb").onclick = async () => { note($("#cmsg"), "Looking it up…"); const r = await post(`${U}/competitor`, { handle: $("#cadd").value.trim() }); if (!r.ok) return note($("#cmsg"), r.refused, "err"); youtubeTab(); };
@@ -451,9 +512,10 @@ const TABS = {
   "Monthly report": "The month in one report — bad news first.",
 };
 async function work(tab) {
+  if (!(await here("work", [tab]))) return;
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
   const lists = { "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly };
-  $("#app").innerHTML = `<p><button class="ghost" id="home">← All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
+  $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
   <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="upd">Check for updates</button></nav>
   <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button></p><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
@@ -621,11 +683,13 @@ async function pagesBox(waitingOnly = false) {
 }
 /* "Where is your site built?" — asked the first time; each choice says when to choose it and what it needs; the key is kept safely */
 async function publishScreen(thenPublish = null) {
+  if (typeof thenPublish !== "string") thenPublish = null; // a click event is not a page to publish
+  if (!(await here("publishScreen", [thenPublish]))) return;
   const X = await get(`/api/products/${encodeURIComponent(P)}/publish`);
   const t = X.target ?? {};
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>Where is your site built?</h2><p class="ask">Visibility publishes your finished pages there — only after the five checks pass again, and only through a connection you make.</p>
+  $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>Where is your site built?</h2><p class="ask">Visibility publishes your finished pages there — only after the five checks pass again, and only through a connection you make.</p>
   ${X.targets.map((c) => `<label class="choice"><input type="radio" name="tg" value="${esc(c.id)}" ${t.kind === c.id ? "checked" : ""}> <b>${esc(c.label)}</b><div class="why">Choose this if ${esc(c.chooseIf)} You need: ${esc(c.needs)}</div></label>`).join("")}
-  <div id="tgf"></div><button id="tgsave">Save</button><div class="err" id="err"></div></div>`;
+  <div id="tgf"></div><button id="tgsave">${thenPublish ? "Save and publish — Next →" : "Save — Next →"}</button><div class="err" id="err"></div></div>`;
   $("#back").onclick = () => work("Pages and articles");
   const fieldsFor = (k) => ({
     wordpress: `<label>Your WordPress site's address<input id="t1" value="${esc(t.site ?? S.product.site ?? "")}" placeholder="https://www.example.com"></label><label>Your WordPress user name<input id="t2" value="${esc(t.user ?? "")}"></label><label>Paste your application password here<input id="tk" type="password" autocomplete="off" placeholder="${X.keySaved && t.kind === k ? "saved ✓ — paste a new one to replace it" : "It is kept safely on this computer"}"></label>`,
@@ -648,11 +712,12 @@ async function publishScreen(thenPublish = null) {
 }
 /* "Edit": the draft's title and its main text, edited in place; the five checks judge the edited page before it is published */
 async function editScreen(url) {
+  if (!(await here("editScreen", [url]))) return;
   const html = await fetch(`/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(url)}`).then((r) => r.text());
   const doc = new DOMParser().parseFromString(html, "text/html");
   const main = doc.querySelector("main") ?? doc.body;
   main.querySelectorAll("script,style,.stamp").forEach((e) => e.remove());
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← Pages and articles</button></p><div class="card"><h2>Edit the draft</h2><p class="ask">Change the title and the text. Visibility checks the page again before it is published.</p>
+  $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ Pages and articles</button></p><div class="card"><h2>Edit the draft</h2><p class="ask">Change the title and the text. Visibility checks the page again before it is published.</p>
   <label>Title<input id="et" value="${esc(doc.title)}"></label><p class="meta">The page's text — click into it and type:</p><div class="editor" id="em" contenteditable="true"></div>
   <p><button id="esave">Save</button> <button class="ghost" id="ecancel">Cancel</button></p><div class="err" id="err"></div></div>`;
   $("#em").innerHTML = main.innerHTML;
@@ -665,17 +730,19 @@ async function editScreen(url) {
  * client id and secret are sent to Visibility, which keeps the secret in Windows' secure store. The secret is never shown again.
  */
 async function googleSignInScreen(back = null) {
+  if (!(await here("googleSignInScreen"))) return;
   const G = await get("/api/google/client");
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← Back</button></p><div class="card" id="gsignin"><h2>Google sign-in — for YouTube and Search Console</h2>
+  $("#app").innerHTML = `<div class="card" id="gsignin"><div class="steps">Step ${G.on ? "2 of 2 — sign in" : "1 of 2 — switch it on"}</div><h2>Google sign-in — for YouTube and Search Console</h2>
     ${G.on ? `<p class="ok">Google sign-in is ON ✓ — client ${esc(G.clientId)} (its secret is kept safely on this computer).</p>` : `<p><b>Google sign-in is off.</b> Switch it on once, with your own Google sign-in client. Then each product can sign in to YouTube and to Search Console.</p>`}
-    <h3>How to get your client (once, in Google Cloud)</h3>
+    <h3>How to get your client (once, in Google Cloud) ${guideLink("google-client")}</h3>
     <ol class="howto"><li>Open console.cloud.google.com and pick your project.</li><li>APIs &amp; Services → Credentials → <b>Create credentials</b> → the sign-in client ID, type <b>Desktop app</b>.</li><li>Press Google's download button for that client — or copy the <b>Client ID</b> and <b>Client secret</b>.</li><li>Your consent screen (in Google Cloud) must list you (and anyone else who signs in) as a <b>test user</b> while it is in Testing.</li></ol>
     <h3>Way 1 — choose the file Google Cloud downloaded</h3><label>The file Google Cloud downloaded (client_secret_….json)<input id="gjson" type="file" accept=".json,application/json"></label><button id="gjsave">Use this file</button>
     <h3 style="margin-top:14px">Way 2 — paste them</h3><form autocomplete="off" onsubmit="return false"><label>Client ID (ends with .apps.googleusercontent.com)<input id="gid" name="av-client-${Date.now()}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></label><label>Client secret<input id="gsec" name="av-secret-${Date.now()}" type="password" autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></label><button class="ghost" id="gsave" type="button">Save</button></form>
     <div class="err" id="err"></div>
-    ${G.on ? `<h3 style="margin-top:14px">Now sign in</h3><p><button id="gyt">Sign in with Google — YouTube</button> <button id="gsc">Sign in with Google — Search Console</button></p><p class="meta">Google will show "Google hasn't verified this app" while your consent screen is in Testing: press <b>Continue</b> (on some screens: Advanced → Go to AlmiVisibility). It is your own app.</p>` : ""}</div>`;
-  $("#back").onclick = () => (back ? back() : home());
+    ${G.on ? `<h3 style="margin-top:14px">Now sign in</h3><p class="warn">Google will ask which account or channel. If your channel is a <b>brand channel</b> (like a business channel under your own Gmail), it is listed under your email as a brand account — choose that channel, not your personal one.</p><p><button id="gyt">Next → Sign in for YouTube</button> <button id="gsc">Next → Sign in for Search Console</button></p><p class="meta">Google will show "Google hasn't verified this app" while your consent screen is in Testing: press <b>Continue</b> (on some screens: Advanced → Go to AlmiVisibility). It is your own app.</p>` : `<p class="meta">Next: once the client is added, this screen shows step 2 — sign in.</p>`}</div>`;
+  wireGuides();
   const save = async (clientId, secret) => { const x = await post("/api/google/client", { clientId, secret }); if (x.refused) return note($("#err"), x.refused, "err"); googleSignInScreen(back); };
+  void back; // RR-315 B: "← Back" at the top returns to the screen this was opened from
   /* RR-314 A4 (owner: the browser filled "@dhanakkiduniya" into these): no autofill, and a Client ID is checked before it is saved */
   $("#gsave").onclick = () => { const id = $("#gid").value.trim(), sec = $("#gsec").value.trim();
     if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(id)) return note($("#err"), "That is not a Client ID — it ends with .apps.googleusercontent.com. Copy it again from Google Cloud (Credentials).", "err");
@@ -694,19 +761,22 @@ async function googleSignInScreen(back = null) {
 }
 /* RR-307 E1: Google Search Console — the client's own read-only sign-in, the site picker, or the download file */
 async function googleScreen() {
+  if (!(await here("googleScreen"))) return;
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`), g = O.google;
   const status = g.kind === "CONNECTED" ? `<p class="ok">Connected ✓ — ${esc(g.site)} (${esc(g.window)})</p>` : g.kind === "EXPORT" ? `<p class="ok">Search Console download added ✓ (${esc(g.window)})</p>` : `<p><b>Not connected</b> — connect now to bring in the real searches people make.</p>`;
-  $("#app").innerHTML = `<p><button class="ghost" id="back">← ${esc(S.product.name)}</button></p><div class="card"><h2>Google Search Console</h2>${status}
+  $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>Google Search Console</h2>${status}
     <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><button id="connect">Connect Google</button>`) : `<p class="meta">Google sign-in is off — switch it on with the button "Google sign-in: switch it on" below. Meanwhile, add Search Console's download file below — it gives the same searches.</p>`}
     <h3 style="margin-top:14px">Or add Search Console's download</h3><div class="howto">${esc(O.howTo.google)}</div><label>The download (the ZIP, or its CSV files)<input id="gf" type="file" accept=".zip,.csv" multiple></label><button id="gup">Add the download</button>
     <div class="err" id="err"></div>
-    <p style="margin-top:16px"><button class="ghost" id="gsignon">Google sign-in: ${g.ready ? "on ✓ — change the client" : "switch it on"}</button></p></div>`;
+    <p style="margin-top:16px"><button class="ghost" id="gsignon">Google sign-in: ${g.ready ? "on ✓ — change the client" : "switch it on"}</button> ${guideLink("google-client")}</p></div>`;
+  wireGuides();
   $("#back").onclick = () => work("Overview");
-  if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); signinOpened($("#err"), r, "Sign in there with the Google account that owns your Search Console.", async () => (await get("/api/google/client")).signedIn === true, () => googleScreen()); };
+  if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); signinOpened($("#err"), r, "Google will ask which account — choose the Google account that owns your Search Console.", async () => (await get("/api/google/client")).signedIn === true, () => googleScreen()); };
   if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); }; }
   $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 1200); };
   $("#gsignon").onclick = () => googleSignInScreen(googleScreen); // RR-313 B1: the one place
 }
+Object.assign(SCREENS, { home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen });
 const hash = location.hash.slice(1);
 const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });
 /* RR-303: #plan opens "Your plan"; #youtube=<product id> opens that product's YouTube settings (a link straight to a screen) */

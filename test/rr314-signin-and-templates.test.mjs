@@ -32,8 +32,17 @@ test("A1 · ONLY GOOGLE'S SIGN-IN ADDRESS opens in the client's own browser — 
   assert.deepEqual(ran, [[CHROME, "https://accounts.google.com/o/oauth2/v2/auth?client_id=x&state=y"]], "Google's page did not open in Chrome");
   /* no Chrome on this computer: the system's default browser */
   const ran2 = [];
-  browserOpener({ spawnImpl: (cmd, args) => { ran2.push([cmd, ...args]); return { unref() {} }; }, exists: () => false })("https://accounts.google.com/o/oauth2/v2/auth?x=1");
+  browserOpener({ spawnImpl: (cmd, args) => { ran2.push([cmd, ...args]); return { unref() {} }; }, exists: () => false, platform: "win32" })("https://accounts.google.com/o/oauth2/v2/auth?x=1");
   assert.deepEqual(ran2, [["rundll32.exe", "url.dll,FileProtocolHandler", "https://accounts.google.com/o/oauth2/v2/auth?x=1"]]);
+  /* a browser that cannot start says so by an 'error' EVENT — it is listened to, so it never ends the app (CI: ECONNRESET in two tests) */
+  const heard = [];
+  assert.equal(browserOpener({ spawnImpl: () => ({ on: (e, f) => heard.push(e), unref() {} }), exists: (p) => p === CHROME })("https://accounts.google.com/x"), "Chrome");
+  assert.deepEqual(heard, ["error"], "a failed browser start would end the app");
+  /* not Windows and no Chrome: nothing to start; a test app ("none") never opens a real browser tab */
+  const ran3 = [];
+  assert.equal(browserOpener({ spawnImpl: (c) => { ran3.push(c); return { unref() {} }; }, exists: () => false, platform: "linux" })("https://accounts.google.com/x"), false);
+  assert.equal(browserOpener({ mode: "none", spawnImpl: (c) => { ran3.push(c); return { unref() {} }; }, exists: () => true })("https://accounts.google.com/x"), false);
+  assert.deepEqual(ran3, [], "a browser was started");
   for (const bad of ["https://evil.example/auth", "http://accounts.google.com/x", "file:///C:/Windows/notepad.exe", "not a url", "https://accounts.google.com.evil.example/"]) assert.equal(open(bad), false, bad);
   assert.equal(ran.length, 1, "another address was opened");
   /* the cause: a top-level function named open() IS window.open on a page */

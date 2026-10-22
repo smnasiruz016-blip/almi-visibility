@@ -85,7 +85,7 @@ const safeWhy = (e) => (e?.status ? plainYouTubeWhy(e) : "no answer from YouTube
 /* ── RR-307 · act at once: the check, the score card, what was found, the feature cards, Google, delete ── */
 const GOOGLE = googleConnect({ keys: KEYS, config: CONFIG });
 /* RR-314 A1: Google's sign-in page in the client's OWN browser (desktop/open-browser.mjs); the stand-in addresses only in tests */
-const openInBrowser = browserOpener({ origins: [CONFIG.youtubeTestEndpoints?.auth, CONFIG.googleTestEndpoints?.auth], mode: CONFIG.testOpener === "fetch" ? "fetch" : null });
+const openInBrowser = browserOpener({ origins: [CONFIG.youtubeTestEndpoints?.auth, CONFIG.googleTestEndpoints?.auth], mode: CONFIG.testOpener === "fetch" ? "fetch" : CONFIG.testSecretsInMemory === true && CONFIG.testOpener !== "browser" ? "none" : null }); // a test app opens no real browser unless it asks to
 /* RR-313 B1: is Google sign-in switched on — the client id (not a secret) and whether its secret is saved; never the secret */
 const googleClientStatus = () => ({ on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved, signedIn: GOOGLE.status().signedIn });
 const allowLocal = CONFIG.testAllowLocalSites === true; // TESTS ONLY: a stand-in site on this computer

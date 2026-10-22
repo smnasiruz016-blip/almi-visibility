@@ -217,6 +217,7 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     /* sign-in: another channel's account is refused and forgotten */
     g.setMine(OTHER);
     let s = await a.post(`/api/products/${id}/youtube/signin`, { write: true }); assert.equal(s.http, 200, s.refused);
+    assert.equal(s.opened, false, "a test app opened a real browser tab"); // RR-314: tests never open Chrome on the owner's PC
     let page = await a.raw(`/oauth/youtube?code=one-time&state=${new URL(s.url).searchParams.get("state")}`);
     assert.match(page, /You signed in with the Google account of another channel \(Someone Else\)/);
     assert.equal((await a.get(`/api/products/${id}/youtube/advice`)).signin.signedIn, false);

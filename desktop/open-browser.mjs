@@ -18,16 +18,20 @@ export const CHROME_PATHS = Object.freeze([
 ]);
 
 /** an opener for these sign-in addresses only. `mode` "fetch" is TESTS ONLY: a request plays the browser and follows the redirects back */
-export function browserOpener({ origins = [], mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = CHROME_PATHS } = {}) {
+export function browserOpener({ origins = [], mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = CHROME_PATHS, platform = process.platform } = {}) {
   const allowed = new Set([GOOGLE_SIGNIN_ORIGIN, ...origins.filter(Boolean).map((x) => { try { return new URL(x).origin; } catch { return null; } }).filter(Boolean)]);
   return function openInBrowser(url) {
     let u; try { u = new URL(url); } catch { return false; }
     if (!allowed.has(u.origin)) return false;
     if (mode === "fetch") { fetchImpl(u.href, { redirect: "follow" }).catch(() => {}); return true; }
+    if (mode === "none") return false; // tests: never a real browser tab; the screen offers the address to copy
     const chrome = chromePaths.find((p) => { try { return exists(p); } catch { return false; } });
+    /* a browser that cannot start is reported later as an 'error' EVENT, not a throw — unheard, it ends the whole app (CI, RR-314) */
+    const run = (file, args, opts) => { const c = spawnImpl(file, args, opts); c.on?.("error", () => {}); c.unref(); };
     try {
-      if (chrome) { spawnImpl(chrome, [u.href], { detached: true, stdio: "ignore" }).unref(); return "Chrome"; } // the address is one argument — no shell reads it
-      else spawnImpl("rundll32.exe", ["url.dll,FileProtocolHandler", u.href], { detached: true, stdio: "ignore", windowsHide: true }).unref();
+      if (chrome) { run(chrome, [u.href], { detached: true, stdio: "ignore" }); return "Chrome"; } // the address is one argument — no shell reads it
+      if (platform !== "win32") return false;
+      run("rundll32.exe", ["url.dll,FileProtocolHandler", u.href], { detached: true, stdio: "ignore", windowsHide: true });
       return true;
     } catch { return false; }
   };

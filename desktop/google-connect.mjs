@@ -89,7 +89,7 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       const verifier = b64url(randomBytes(32)), state = b64url(randomBytes(16));
       pending.set(state, { verifier, redirect, at: now() });
       const u = new URL(ep.auth);
-      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: submit ? `${SCOPE} ${SUBMIT_SCOPE}` : SCOPE, access_type: "offline", prompt: "consent", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
+      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: submit ? `${SCOPE} ${SUBMIT_SCOPE}` : SCOPE, access_type: "offline", prompt: "select_account consent", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
       return { ok: true, url: u.href };
     },
     /** Google sends the browser back here with a one-time code; it is exchanged for the read-only access, kept in the secure store */

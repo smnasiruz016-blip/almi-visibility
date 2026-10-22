@@ -15,7 +15,7 @@ import { youtubeApi, plainYouTubeWhy, channelCheck, youtubeForReport, csvRows, H
 import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
 import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS, JUNK_PHRASE } from "./youtube-niche.mjs";
-import { channelLanguage, sameLanguage, langOf, questionTitle, ownDataFindings, keywordIdeas, scorecard, newUploads, suggestCompetitors, beforeAfter, chaptersFrom, parseVtt } from "./youtube-insights.mjs";
+import { channelLanguage, sameLanguage, langOf, questionIdea, currentYearTerms, usableKeywords, ownDataFindings, keywordIdeas, scorecard, newUploads, suggestCompetitors, beforeAfter, chaptersFrom, parseVtt } from "./youtube-insights.mjs";
 import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N, brandsOf, linkSuggestions } from "./youtube-plan.mjs";
 import { writeWithAI } from "./ai-write.mjs";
 import { youtubeItems } from "./action-plan.mjs";
@@ -247,11 +247,13 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       if (offset) return { state: "READY", top: page, more };
       const score = youtubeScore(videos, opts);
       /* RR-311 C4: a viewer's question becomes a proper ready title (its own words, cleaned, in the channel's language); the question is the source */
-      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions, topic: ctx.niche.queries?.[0]?.q ?? null }).flatMap((i) => {
+      /* RR-315 D1 + D2: the niche's own topics lead each idea; the current year ends it; a question about another channel's own content is left out */
+      const topicList = (ctx.niche.queries ?? []).map((x) => x.q).filter(Boolean), year = new Date(now()).getUTCFullYear();
+      const ideas = ideasFor({ summary: ctx.summary, videos, persona: ctx.persona, questions, topic: ctx.niche.queries?.[0]?.q ?? null, topics: topicList, year, max: 12 }).flatMap((i) => {
         if (i.kind !== "QUESTION") return [i];
-        const src = questions.find((q) => q.text === i.question)?.source ?? "the research";
-        const t = questionTitle({ text: i.question, source: src }, chLang); return t ? [{ ...i, title: t.title, why: `${t.from} — none of your videos answers it yet` }] : [];
-      });
+        const q = questions.find((x) => x.text === i.question) ?? { text: i.question, source: "the research" };
+        const t = questionIdea(q, chLang, { topics: topicList, year }); return t ? [{ ...i, title: t.title, why: `${t.from} — none of your videos answers it yet` }] : [];
+      }).slice(0, 8);
       /* RR-311 B1 + C2 + C3: from YOUR channel's data; the competitors; keyword ideas with a demand estimate */
       const own = ownDataFindings(videos, { now: now(), analytics: signed?.analytics ?? null, reach: signed?.reach ?? null, retention: signed?.retention ?? {} });
       const comp = self.competitors(id, { research, chLang, channelId: y.confirmed.channelId });
@@ -263,7 +265,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
         gaps: gapFixes(videos, ctx, opts), // RR-310 A: each failing check with its most-viewed videos and their ready text
         channelAdvice: channelAdvice({ channel: y.confirmed, product: { ...s.setup?.product, site: s.product?.site, languages: lang }, videos, terms, readOn: research?.readOn ?? today() }),
         terms: terms.slice(0, 15).map((t) => ({ phrase: t.display ?? t.phrase, from: t.sources[0] })), questions: questions.slice(0, 15),
-        language: chLang, ownData: own, competitors: comp, keywords: keywordIdeas(research, terms.slice(0, 40), now(), chLang).slice(0, 12),
+        language: chLang, ownData: own, competitors: comp, keywords: usableKeywords(keywordIdeas(research, currentYearTerms(terms.slice(0, 40), year), now(), chLang), research, topicList).slice(0, 12), // RR-315 D3
         signin: signin ? { ...signin.status(id), on: signed?.on ?? null, reachLine: signed?.reach?.line ?? null } : null, aiCost: ledger ? ledger.line() : null,
         applied: beforeAfter(readJson(join(store.dirOf(id), "youtube-applied.json"), []).filter((c) => !c.undoneOn), { daily: signed?.daily ?? {}, reach: signed?.reach ?? null, now: now() }),
         thumbnailGuide: "Test your thumbnails with YouTube's own \"Test & Compare\" (YouTube Studio → the video → Thumbnail → Test & Compare): upload up to 3 thumbnails and YouTube shows them to viewers and picks the one watched most. Visibility gives 3 thumbnail texts under each video; it never runs an unofficial test.",

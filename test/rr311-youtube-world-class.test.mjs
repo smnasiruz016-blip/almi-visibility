@@ -237,11 +237,12 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     /* AI: the owner's own words pass, an invented place is still blocked; counted */
     await a.post(`/api/products/${id}/setup`, { id: "aiConnection", value: { provider: "anthropic", key: FAKE_AI } });
     const w = await a.post(`/api/products/${id}/youtube/write`, { videoId: "ice00000001" });
-    assert.equal(w.ok, true, w.why); assert.equal(w.options.length, 2, "the invented place was shown or a good option hidden");
+    assert.equal(w.ok, true, w.why); assert.equal(w.options.length, 2, JSON.stringify(w.options.map((o) => [o.title, o.check, o.corrected]))); // the invented place hidden, the 2 good ones shown
     assert.match(w.options[0].basedOn[0], /^Written with your AI \(Claude, claude-opus-5-5\) from this video's own title, description, captions, your channel's data/);
     assert.match(w.dropped[0].why.join(" "), /Paris/);
     assert.match(g.st.ai[0].messages[0].content, /VIDEO CAPTIONS/); assert.match(g.st.ai[0].messages[0].content, /FROM THE CHANNEL'S OWN DATA/);
-    assert.match(w.aiCost, /^AI used today: 1 request/);
+    /* RR-312: the invented place made Visibility ask once more, naming it — both requests counted */
+    assert.match(g.st.ai[1].system, /your previous answer used "Paris", which is not in the material. Do not use it/); assert.match(w.aiCost, /^AI used today: 2 requests/);
     /* Apply: preview first (nothing changed), then applied with the old text kept, then Undo */
     const pre = await a.post(`/api/products/${id}/youtube/apply`, { items: [{ videoId: "ice00000001", title: w.options[0].title, description: w.options[0].description }] });
     assert.equal(pre.preview, true); assert.equal(g.st.puts.length, 0, "a preview changed YouTube");
@@ -256,7 +257,7 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
     const co = await a.post(`/api/products/${id}/youtube/coach`, { question: "mera channel kyun nahien barh raha?" });
     assert.equal(co.ok, true, co.refused); assert.equal(co.sources[0].n, 3); assert.ok(co.sources[0].text && co.sources[0].source);
     assert.match(g.st.ai.at(-1).messages[0].content, /FACTS ABOUT MY CHANNEL:\n\[1\] /);
-    assert.match(co.aiCost, /^AI used today: 2 requests/);
+    assert.match(co.aiCost, /^AI used today: 3 requests/);
     /* the screen */
     const ui = await screen(a.url); ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#ytbox"); await ui.api.youtubeTab();
     const shown = ui.el("#ytbox").innerHTML;

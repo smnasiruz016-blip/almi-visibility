@@ -143,7 +143,7 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
   const r = await writeWithAI({ provider: "anthropic", key: FAKE_AI, video, ctx, fetchImpl: reply([good, { ...good, title: "Weekly Shopping in Copenhagen" }, invented]), base: "http://127.0.0.1:9" });
   assert.equal(r.ok, true, r.why);
   assert.equal(r.options.length, 2, "the invented option was shown");
-  assert.equal(r.dropped.length, 1); assert.match(r.dropped[0].why.join(" "), /not in the material: (Paris|50)/);
+  assert.equal(r.dropped.length, 1); assert.match(r.dropped[0].why.join(" "), /^Paris — a place your video never names/); // RR-312: the hidden option says what it invented
   const body = JSON.parse(seen[0].init.body);
   assert.deepEqual([body.model, body.fallbacks, body.output_config.effort, body.output_config.format.type], [AI.model, "default", "low", "json_schema"]);
   assert.equal(seen[0].init.headers["x-api-key"], FAKE_AI); assert.equal(seen[0].init.headers["anthropic-beta"], AI.fallbackBeta);

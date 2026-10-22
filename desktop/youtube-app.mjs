@@ -266,7 +266,7 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const own = ownDataFindings(raw.videos, { now: now(), analytics: signed?.analytics ?? null, reach: signed?.reach ?? null, retention: signed?.retention ?? {} }).findings.slice(0, 4).map((f) => f.line);
       const chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {})[videoId] ?? null;
       const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
-      if (ledger && r.usage) ledger.add(r.usage);
+      if (ledger) for (const u of r.usages ?? (r.usage ? [r.usage] : [])) ledger.add(u); // RR-312: the retry is a request too
       return { ...r, aiCost: ledger ? ledger.line() : null };
     },
     /* ── RR-311 C2 · competitors: the client picks 3–5; Visibility suggests same-language channels from the research ── */

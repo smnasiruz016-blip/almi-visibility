@@ -122,6 +122,11 @@ test("B1-B5 · THE OWNER'S CHANNEL: no IELTS on a CV video, no empty hook, no br
   assert.equal(out[4].options[0].title, "Create Your CV Here | Almiworld");
   assert.ok(out[3].options[0].hashtags.includes("#AlmiCVBuilder"), out[3].options[0].hashtags);
   assert.equal(brandCase("almicv at https://almicv.almiworld.com/ and @almicv", BRANDS), "AlmiCV at https://almicv.almiworld.com/ and @almicv");
+  assert.ok(out[0].options[0].hashtags.includes("#CVBuilder"), `a short name lost its capitals: ${out[0].options[0].hashtags}`);
+  /* two tags that differ ONLY in case (no short-name rule makes them one): one tag */
+  const sat = optionsFor(vid("s1", "Sat prep | SAT PREP"), { ...CTX, niche: { queries: [] }, brands: new Map() });
+  assert.ok(sat.options.length > 0, "no option — the rule was never reached");
+  for (const o of sat.options) assert.equal(new Set(o.hashtags.map((h) => h.toLowerCase())).size, o.hashtags.length, `same hashtag twice: ${o.hashtags}`);
 });
 
 /* a line is cut when its last word, in the text it came from, goes on — "(almiworld" of "(almiworld.com)" */
@@ -137,6 +142,9 @@ test("B6 · NO LINE CUT MID-WORD — over EVERY generated line: titles, descript
   const identity = (Array.isArray(adv) ? adv : []).find((a) => a.what === "One-line identity");
   assert.equal(identity?.advice, "AlmiWorld (almiworld.com) — a family of online products for people preparing for language exams and careers abroad", "the identity line is cut, or says the name twice");
   assert.deepEqual(cutLines(lines, [WHAT, ...OWN.flatMap((v) => [v.title, v.description])]), []);
+  /* a first sentence whose bracket never closes is no identity line at all */
+  const open = channelAdvice({ channel: { title: "Almiworld" }, product: { what: "AlmiWorld (almiworld.com — a family of products for exams" }, videos: OWN, terms: [], readOn: "2026-10-22" });
+  assert.equal((Array.isArray(open) ? open : []).find((a) => a.what === "One-line identity"), undefined, "a line with an open bracket was given");
   /* the checker itself catches the owner's line */
   assert.deepEqual(cutLines(["Almiworld: AlmiWorld (almiworld"], [WHAT]), ["Almiworld: AlmiWorld (almiworld"]);
 });
@@ -157,12 +165,23 @@ test("B7 · ASKED ONCE: the answer (yes or no) is kept, the offer is not shown a
   const { keyStore, memoryBackend } = await import("../desktop/secrets.mjs");
   const dir = mkdtempSync(join(tmpdir(), "rr314-links-")), store = productStore(dir), made = store.create({ name: "almiworld youtube", site: "https://almiworld.com/" });
   try {
-    const YT = youtubeApp({ store, dataDir: dir, keys: keyStore({ backend: memoryBackend(), env: {} }) });
+    const keys = keyStore({ backend: memoryBackend(), env: {} }); keys.set("YOUTUBE_API_KEY", "standin-youtube-key-000000000000");
+    const YT = youtubeApp({ store, dataDir: dir, keys, fetchImpl: async () => { throw new Error("no network in this test"); } });
+    /* the owner's channel and site as read: the offer is made from the site's menu … */
+    const CH = "UC4Yg3-nLW-2MLxSxdAh_LmQ", today = new Date().toISOString().slice(0, 10);
+    store.write(made.id, { ...made, setup: { ...made.setup, product: { ...made.setup.product, what: WHAT }, youtube: { handle: "@almiworld-world", confirmed: { channelId: CH, title: "Almiworld", handle: "@almiworld-world", description: "", on: today } } } });
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(join(store.dirOf(made.id), "youtube-raw"), { recursive: true });
+    writeFileSync(join(store.dirOf(made.id), "youtube-raw", `videos-${today}.json`), JSON.stringify({ recorded_at: new Date().toISOString(), channelId: CH, videos: OWN.map((v) => ({ ...v, channelId: CH, channelTitle: "Almiworld" })), complete: true }));
+    writeFileSync(join(store.dirOf(made.id), "site-read.json"), JSON.stringify({ ok: true, origin: "https://almiworld.com", pages: [], design: { siteName: "almiworld.com", menu: MENU.map((m) => m.text), menuLinks: MENU } }));
+    const before = await YT.advice(made.id);
+    assert.deepEqual((before.linkOffer ?? []).map((p) => p.product), ["AlmiCV", "AlmiPrep", null], before.refused ?? before.state);
     assert.match(YT.confirmLinks(made.id, { pages: [{ words: ["cv", "almicv"], url: "https://almicv.almiworld.com/" }, { words: ["x"], url: "http://not-https.example/" }] }).line, /^Saved: 1 page/);
     const y = store.read(made.id).setup.youtube;
     assert.deepEqual([y.linksAsked, y.relatedPages], [true, [{ words: ["cv", "almicv"], url: "https://almicv.almiworld.com/" }]]);
     YT.saveSettings(made.id, { handle: "@almiworld-world" });
     assert.equal(store.read(made.id).setup.youtube.linksAsked, true, "saving the settings forgot the answer — the offer would come back");
+    assert.equal((await YT.advice(made.id)).linkOffer, null, "… and once answered it is not offered again");
     assert.match(UI, /\$\{signinCard\(a\)\}\$\{linkOfferCard\(a\)\}/); assert.match(UI, /post\(`\$\{U\}\/links`, \{ decline: true \}\)/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

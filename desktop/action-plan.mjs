@@ -18,6 +18,7 @@ import { FIXES, fixForMe, problemOf } from "./product-check.mjs";
 import { tokens } from "./youtube-advice.mjs";
 import { properNames } from "./youtube-niche.mjs";
 import { casingOf } from "./seo-pages.mjs";
+import { newPageDescription, siteNameOf } from "./web-text.mjs";
 
 /* AlmiWorld's OWN products (a site on almiworld.com, the AlmiWorld channel): the plan is shown; nothing is published or submitted (D5) */
 export const isAlmiWorld = (s) => { let host = ""; try { host = new URL(s?.product?.site ?? "").host; } catch {} return /(^|\.)almiworld\.com$/i.test(host) || /almiworld/i.test(String(s?.setup?.youtube?.confirmed?.handle ?? s?.setup?.youtube?.handle ?? "")); };
@@ -65,11 +66,9 @@ const SOLUTION = Object.freeze({
   robots: "Add a robots.txt file at the root of your site that allows search engines and names your sitemap.",
   noindex: "Remove \"noindex\" from these pages if people should find them in search (your website builder's SEO setting for the page).",
 });
-export const readyFromFix = (xs, kind, label, readOn) => xs.flatMap((x) => (x.options?.length ? x.options.map((o, k) => ({ kind, label: `${label} — option ${k + 1}`, text: o.text, for: x.page, source: `written from ${o.from} · read ${day(readOn)}` })) : x.paste ? [{ kind, label, text: x.paste, for: x.page, source: `${x.from} · read ${day(readOn)}` }] : []));
-/* a new page's meta description: its first answer sentences, as written on the client's own page, fitted to 160 characters at a sentence end */
-/* RR-311 E1 (owner): a first sentence over 160 characters is not cut and the page is not skipped — the next complete sentences of the page's
- * own answers are used instead */
-const metaFrom = (answers = []) => { let out = ""; for (const a of answers) for (const s of String(a.text ?? "").split(/(?<=[.!?])\s+/)) { if (s.length > 160) continue; if ((out ? `${out} ${s}` : s).length > 160) return out.length >= 50 ? out : (s.length >= 50 ? s : null); out = out ? `${out} ${s}` : s; } return out.length >= 50 ? out : null; };
+/* RR-318 B: the structured data says which block it is — "who you are" (Organization) or FAQ markup with what it does today — and carries its note */
+const BLOCK = { organization: "Organization — who you are", faq: "FAQ markup — helps search and AI understand this page (not shown in Google)" };
+export const readyFromFix = (xs, kind, label, readOn) => xs.flatMap((x) => (x.options?.length ? x.options.map((o, k) => ({ kind, label: `${label} — option ${k + 1}`, text: o.text, for: x.page, source: `written from ${o.from} · read ${day(readOn)}` })) : x.paste ? [{ kind, label: BLOCK[x.kind] ?? label, text: x.paste, for: x.page, source: `${x.from} · read ${day(readOn)}`, ...(x.note ? { note: x.note } : {}), ...(x.kind ? { block: x.kind } : {}) }] : []));
 export function websiteItems({ card = null, site = null, pages = null, languages = [] }) {
   if (!site?.ok) return [];
   const out = [], n = site.pages.length, readOn = site.readOn;
@@ -105,7 +104,9 @@ export function websiteItems({ card = null, site = null, pages = null, languages
   /* the page plan: questions people search that no page of the client's answers yet → the pages Visibility makes */
   const drafts = (pages?.drafts ?? []).filter((d) => d.readyAsDraft);
   if (drafts.length) out.push(item({ id: "new-pages", area: "New pages", problem: `${plural(drafts.length, "question")} people search ${drafts.length === 1 ? "has" : "have"} no page of yours answering ${drafts.length === 1 ? "it" : "them"}`, solution: "Let Visibility make these pages as drafts (answered from your own pages, checked by the five gates), then publish them when you approve.", count: drafts.length, of: Math.max(drafts.length, 5), fixForMe: "create-pages",
-    ready: drafts.flatMap((d) => { const row = (pages.plan ?? []).find((x) => x.question === d.title); const src = row?.demand?.source ?? "the searches Visibility found"; const m = metaFrom(row?.answers); return [{ kind: "title", label: "New page title", text: d.title, for: d.url, source: src }, ...(m ? [{ kind: "meta description", label: "Its meta description", text: m, for: d.url, source: `the answer on your page ${row.answers[0].link}` }] : [])]; }) }));
+    /* RR-318 B5 (owner: the NZ page's description came from an unrelated page): a new page's description is WRITTEN from its own question and
+     * its own official answer — never another page's sentence */
+    ready: drafts.flatMap((d) => { const row = (pages.plan ?? []).find((x) => x.question === d.title); const src = row?.demand?.source ?? "the searches Visibility found"; const m = newPageDescription(d.title, row?.answers ?? [], siteNameOf(site)); return [{ kind: "title", label: "New page title", text: d.title, for: d.url, source: src }, ...(m ? [{ kind: "meta description", label: "Its meta description", text: m, for: d.url, source: `written from the page's question and its answer's source${row?.answers?.find((a) => a.official) ? ` (${row.answers.find((a) => a.official).body})` : ""}` }] : [])]; }) }));
   const sections = (pages?.plan ?? []).filter((x) => x.kind === "SECTION" && x.answers?.length);
   if (sections.length) out.push(item({ id: "sections", area: "Your pages", problem: `${plural(sections.length, "question")} people search could be answered on a page you already have`, solution: "Add the question as a heading on that page, with the answer right under it.", count: sections.length, of: Math.max(sections.length, 5),
     ready: sections.slice(0, 5).map((x) => ({ kind: "FAQ answer", label: `Add to ${x.into}`, text: `${x.question}\n${x.answers[0].text}`, for: x.into, source: `question: ${x.demand?.source ?? "search data"} · answer: your page ${x.answers[0].link}` })) }));

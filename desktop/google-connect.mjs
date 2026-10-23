@@ -119,6 +119,21 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       if (!j) return null;
       return { kind: "CONNECTED", on: d(0), window: `${d(93)} to ${d(3)}`, queries: (j.rows ?? []).map((r) => ({ query: r.keys[0], clicks: r.clicks, impressions: r.impressions })), site: siteUrl };
     },
+    /**
+     * RR-318 D1 · RANK TRACKING from Search Console's own data (free): each of the last `weeks` weeks (Search Console's data is a few days
+     * old), every search phrase with the page Google showed, its clicks, impressions and AVERAGE position — Google's own figure, never ours.
+     */
+    async performance(siteUrl, { weeks = 8 } = {}) {
+      const d = (n) => new Date(now() - n * 86400000).toISOString().slice(0, 10);
+      const out = [];
+      for (let k = 0; k < weeks; k++) {
+        const from = d(3 + 7 * k + 6), to = d(3 + 7 * k);
+        const j = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate: from, endDate: to, dimensions: ["query", "page"], rowLimit: 1000, type: "web" }) });
+        if (!j) return k ? { kind: "PERFORMANCE", on: d(0), site: siteUrl, weeks: out, partial: `Google gave ${k} of ${weeks} weeks — press Read again later for the rest.` } : null;
+        out.push({ from, to, rows: (j.rows ?? []).map((r) => ({ query: r.keys[0], page: r.keys[1], clicks: r.clicks, impressions: r.impressions, position: Math.round(r.position * 10) / 10 })) });
+      }
+      return { kind: "PERFORMANCE", on: d(0), site: siteUrl, weeks: out.reverse() };
+    },
     signOut() { keys.remove(KEYS.refresh); access = null; },
   });
 }

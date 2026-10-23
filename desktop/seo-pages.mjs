@@ -21,6 +21,24 @@ import { GUIDANCE } from "../config/guidance/guidance-read.mjs";
 import { createHash } from "node:crypto";
 import { tokens } from "./youtube-advice.mjs";
 import { properNames } from "./youtube-niche.mjs";
+import { countriesIn, destinationsIn } from "./world.mjs";
+import { cleanAnswer, wholeSentences } from "./web-text.mjs";
+
+/*
+ * RR-318 B4 · THE SAMENESS GATE (owner: "OET Requirements for Ireland" and "OET Score for Ireland" were two pages for ONE need; Google calls
+ * many pages for the variations of one question "scaled content abuse"). Two searches are ONE page when they are about the same country (the
+ * country a person goes to — never the one they come from) and share the same subject ("oet"), whatever the asking words ("requirements",
+ * "score", "accepted", "for nurses"): the country's page holds every such question, each profession as a section inside it.
+ */
+const ASKING = new Set(["requirement", "requirements", "required", "require", "score", "scores", "minimum", "need", "needed", "needs", "accepted", "accept", "accepts", "acceptance", "recognised", "recognized", "recognition", "valid", "band", "bands", "grade", "grades", "pass", "passing", "mark", "marks", "result", "results", "rules", "rule", "registration", "register", "nurses", "nurse", "nursing", "doctors", "doctor", "medicine", "dentists", "pharmacists", "midwives", "for", "in", "to", "is", "the", "a", "what", "how", "much", "do", "does", "i", "you", "of"]);
+export function sameNeed(a, b) {
+  const da = destinationsIn(a), db = destinationsIn(b);
+  if (!da.length || da.length !== db.length || !da.every((c) => db.includes(c))) return false;
+  const placeWords = new Set([...da].flatMap((c) => tokens(c)).concat(tokens(String(a).match(/\b(nz|uk|uae|usa|ksa)\b/gi)?.join(" ") ?? ""), tokens(String(b).match(/\b(nz|uk|uae|usa|ksa)\b/gi)?.join(" ") ?? "")));
+  const rest = (s) => new Set(tokens(s).filter((w) => !ASKING.has(w) && !placeWords.has(w)));
+  const ra = rest(a), rb = rest(b);
+  return [...ra].some((w) => rb.has(w));
+}
 
 export const GATE_WORDS = Object.freeze({ [GATES.A]: "not a copy of another page", [GATES.B]: "not competing with another page for the same search", [GATES.C]: "technically ready for search and AI engines", [GATES.D]: "made inside its cost", [GATES.E]: "no existing page already does the job" });
 /* checks that can only be true once the page is live on the client's site (it is a draft until then) */
@@ -35,7 +53,7 @@ export const casingOf = (site) => { const m = new Map(); for (const p of site.pa
 /* RR-309 B2: names keep their capitals in a page's title ("Is OET accepted in canada" → "Canada") — the site's own spelling first, then known names */
 /* RR-311 E2: a page title that is not a question gets title case ("AHPRA Speech Pathology"); a question keeps sentence case */
 const SMALL_WORDS = new Set(["a", "an", "the", "and", "or", "for", "in", "on", "of", "to", "at", "by", "with", "from", "vs"]);
-export const asQuestion = (s, casing = new Map()) => { let t = properNames(String(s).trim().replace(/\s+/g, " ").split(" ").map((w) => casing.get(w.toLowerCase()) ?? w).join(" "));
+export const asQuestion = (s, casing = new Map()) => { let t = properNames(String(s).trim().replace(/\s+/g, " ").replace(/(?<![\p{L}])(nz|uk|uae|usa|ksa|nhs)(?![\p{L}])/giu, (m) => m.toUpperCase()) /* RR-318: "oet nz" → "OET NZ" */.split(" ").map((w) => casing.get(w.toLowerCase()) ?? w).join(" "));
   if (!/^(how|what|why|which|where|when|who|is|are|can|does|do|should|will)\b/i.test(t)) t = t.split(" ").map((w, i) => (i > 0 && SMALL_WORDS.has(w.toLowerCase()) ? w.toLowerCase() : w === w.toLowerCase() ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
   return t.charAt(0).toUpperCase() + t.slice(1); };
 
@@ -52,8 +70,10 @@ export function designFromSite(site) {
 }
 
 /** The demand: each search or question once, with its strongest source (Search Console impressions first). */
-export function demandOf({ searchConsole = null, files = [], youtube = null }) {
+export function demandOf({ searchConsole = null, files = [], youtube = null, planned = [] }) {
   const out = new Map();
+  /* RR-318 C5: the pages the client chose in "How many pages can I make?" — each confirmed by an official page */
+  for (const p of planned) if (tokens(p.text).length >= 2) out.set(tokens(p.text).join(" "), { text: String(p.text).trim(), source: p.source, weight: 4 });
   const add = (text, source, weight) => { const k = tokens(text).join(" "); if (tokens(text).length < 2) return; const x = out.get(k); if (!x || x.weight < weight) out.set(k, { text: String(text).trim(), source, weight }); };
   for (const q of searchConsole?.queries ?? []) add(q.query, `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} in search (${searchConsole.window})`, 10 + Math.log10(1 + q.impressions));
   for (const f of files) add(f.phrase, `your file ${f.file} (${f.on})`, 5 + Math.log10(1 + (f.impressions ?? 0)));
@@ -66,11 +86,16 @@ export function demandOf({ searchConsole = null, files = [], youtube = null }) {
 export function answersFromSite(text, site, max = 3) {
   const want = new Set(tokens(text)); if (want.size < 2) return [];
   const day = String(site.readOn).slice(0, 10);
+  /* RR-318 B5 (owner: the Ireland page got a UK "HCPC" line): a search that names where it is about is answered only by a line that names
+   * that same country — never a line about another one */
+  const where = destinationsIn(text);
   const cands = [];
   for (const p of site.pages) {
-    const lines = [...p.qa.filter((x) => x.a).map((x) => x.a), ...p.facts];
+    const lines = [...p.qa.filter((x) => x.a).map((x) => cleanAnswer(x.a)), ...p.facts.map(cleanAnswer)];
     for (const line of lines) { const t = new Set(tokens(line)); let n = 0; for (const w of want) if (t.has(w)) n++; /* RR-307: an answer holds at least two thirds of the search's words — "fee in Pakistan" is never "answered" by a sentence that only shares "exam" */
-      if (n >= Math.max(2, Math.ceil(want.size * 2 / 3))) cands.push({ text: line.length > 400 ? `${line.slice(0, 399)}…` : line, link: p.url, readOn: day, score: n / want.size }); }
+      if (where.length && !countriesIn(line).some((c) => where.includes(c))) continue;
+      const whole = wholeSentences(line, 600); // RR-318 B2: never cut mid-word
+      if (n >= Math.max(2, Math.ceil(want.size * 2 / 3)) && whole) cands.push({ text: whole, link: p.url, readOn: day, score: n / want.size }); }
   }
   return [...new Map(cands.sort((a, b) => b.score - a.score).map((c) => [c.text, c])).values()].slice(0, max).map((c) => ({ claimId: `site-${createHash("sha256").update(`${c.link}|${c.text}`).digest("hex").slice(0, 16)}`, text: c.text, link: c.link, readOn: c.readOn, source: new URL(c.link).hostname }));
 }
@@ -79,13 +104,16 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {} }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [] }) {
+  /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
+   * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
+  const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
   if (!site?.ok) return { plan: [], drafts: [], notEnough: ["Visibility needs your website to plan pages — add it in the product's Settings, then press Check now."] };
-  const demand = demandOf({ searchConsole, files, youtube }).slice(0, max * 3);
+  const demand = demandOf({ searchConsole, files, youtube, planned }).slice(0, max * 3);
   if (!demand.length) return { plan: [], drafts: [], notEnough: ["No searches or questions are known for this product yet. Connect Google Search Console (or add its export file), add a search-data file, or confirm your YouTube channel — then press Create SEO pages again."] };
   const needs = [], meta = new Map(), casing = casingOf(site);
   for (const d of demand) {
-    const claims = answersFromSite(d.text, site);
+    const claims = [...officialFor(d.text), ...answersFromSite(d.text, site)].slice(0, 5);
     const needId = `need-${slug(d.text)}`;
     meta.set(needId, { demand: d, answers: claims });
     needs.push({ needId, label: "DEMAND", path: `/${slug(d.text)}`, question: asQuestion(d.text, casing), claims });
@@ -97,7 +125,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     for (let j = i + 1; j < needs.length; j++) {
       if (needs[j].merged) continue;
       const b = new Set(tokens(needs[j].question)); const both = [...a].filter((w) => b.has(w)).length;
-      if ([...a].every((w) => b.has(w)) || [...b].every((w) => a.has(w)) || both / new Set([...a, ...b]).size >= 0.6) {
+      if ([...a].every((w) => b.has(w)) || [...b].every((w) => a.has(w)) || both / new Set([...a, ...b]).size >= 0.6 || sameNeed(needs[i].question, needs[j].question)) {
         needs[i].alsoAsked = [...(needs[i].alsoAsked ?? []), needs[j].question]; needs[j].merged = needs[i].needId;
         if (!needs[i].claims.length && needs[j].claims.length) needs[i].claims = needs[j].claims;
       }
@@ -107,7 +135,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   for (const n of needs) delete n.merged;
   const existing = site.pages.map((p) => ({ id: p.url, url: p.url, claimIds: [], questions: [p.h1, p.title, ...p.qa.map((x) => x.q)].filter(Boolean) }));
   /* an answer taken from ONE existing page means that page already does the job: improve it (existing page first) */
-  for (const n of needs) { const pages = new Set(n.claims.map((c) => c.link)); if (pages.size === 1) { const e = existing.find((x) => x.url === [...pages][0]); e.claimIds.push(...n.claims.map((c) => c.claimId)); } }
+  for (const n of needs) { const own = n.claims.filter((c) => !c.official), pages = new Set(own.map((c) => c.link)); if (pages.size === 1 && own.length === n.claims.length) { const e = existing.find((x) => x.url === [...pages][0]); if (e) e.claimIds.push(...own.map((c) => c.claimId)); } } // an official answer is no page of the client's
   const plan = planNewPages({ needs, existing });
   const rows = plan.map((p) => { const m = meta.get(p.needId) ?? {}; return { kind: p.kind, question: p.question ?? p.need?.question ?? needs.find((n) => n.needId === p.needId)?.question, demand: m.demand, alsoAsked: m.alsoAsked ?? [], answers: m.answers ?? [],
     into: p.into ?? null, why: p.kind === "REFUSED" ? (p.reason?.startsWith("its answer is not sourced") ? "No answer to it was found on your pages yet — write the answer on your site (or tell Visibility where it is), then plan again." : p.reason) : p.kind === "SECTION" ? `Improve your existing page ${p.into}: add this question and its answer there — a second page would compete with it.` : "A new page: real demand, answered from your own pages, each answer with its source and date." }; });

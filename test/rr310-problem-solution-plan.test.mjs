@@ -126,7 +126,7 @@ test("B1–B4 · A PRODUCT WITH NO WEBSITE: the gauge is the YouTube /100 and on
   assert.ok(card.areas[0].ticks.some((t) => t.line === "Every video has a description: 2 of 4"));
   const m = menuFor({ noWebsite: true, hasSite: false, youtubeConfirmed: true, youtubeKey: true, check: card });
   assert.equal(m.websiteOnly.title, "Have a website too? These open up");
-  assert.deepEqual(m.websiteOnly.cards.map((c) => c.id).sort(), ["aeo", "articles", "geo", "google", "languages", "links", "publish", "seo-check", "seo-pages"]);
+  assert.deepEqual(m.websiteOnly.cards.map((c) => c.id).sort(), ["aeo", "articles", "geo", "google", "languages", "links", "page-count", "publish", "search-power", "seo-check", "seo-pages"]);
   assert.ok(!m.cards.some((c) => c.needs.some((n) => /website/.test(n.what))), "a 'Needs: your website' card outside the closed section");
   assert.equal(m.cards.find((c) => c.id === "check").title, "Check my channel now");
   assert.deepEqual(m.cards.find((c) => c.id === "social").needs, [], "social posts from videos need a page draft");

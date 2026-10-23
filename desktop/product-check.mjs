@@ -11,7 +11,8 @@
  */
 import { evidenceByUrl, runMode, findingsOf, RESULT } from "../src/report/visibility-score.mjs";
 import { youtubeScore } from "./youtube-plan.mjs";
-import { boilerplate, descriptionOptions, titleOptions } from "./describe.mjs";
+import { titleOptions } from "./describe.mjs";
+import { writtenDescriptions, siteNameOf, organizationLd, cleanAnswer, FAQ_TRUTH } from "./web-text.mjs";
 
 export const NO_PROMISE = "This check measures what it can see today. It promises no ranking, traffic or citation by any search or AI engine.";
 export const wordFor = (score) => (score === null ? "Not measured" : score >= 80 ? "Good" : score >= 50 ? "Needs work" : "Poor");
@@ -146,18 +147,24 @@ function failedCard({ site, youtube, on }) {
 export function fixForMe(id, site) {
   const pages = site?.ok ? site.pages : [];
   /* RR-308 C1: two options per page, written from the page's own main content, unique across the site, complete sentences, never cut */
-  if (id === "title") { const used = new Set(), siteName = site?.design?.siteName?.split(/[|—–-]/).pop().trim() || null;
+  if (id === "title") { const used = new Set(), siteName = site?.ok ? siteNameOf(site) : null;
     return pages.filter((p) => !p.title || p.title.length < 10 || p.title.length > 70).slice(0, 20).map((p) => ({ page: p.url, options: titleOptions(p, { siteName, used }) })).filter((x) => x.options.length)
       .map((x) => ({ page: x.page, paste: x.options[0].text, options: x.options, from: x.options[0].from })); }
-  if (id === "meta-description") { const boiler = boilerplate(pages), used = new Set();
-    return pages.filter((p) => !p.description || p.description.length < 50 || p.description.length > 170).slice(0, 20).map((p) => ({ page: p.url, options: descriptionOptions(p, { boiler, used }) }))
-      .map((x) => (x.options.length ? { page: x.page, paste: x.options[0].text, options: x.options, from: x.options[0].from } : { page: x.page, paste: null, options: [], from: null, none: "This page has too little text of its own to write a good description — add one or two sentences saying what the reader gets here, then press Fix it for me again." })); }
+  /* RR-318 B1 (owner: "meta descriptions are sentences lifted from the page, not written descriptions"): WRITTEN — what the reader gets on
+   * the page, from its main heading and what its sections cover; complete sentences, never cut (desktop/web-text.mjs) */
+  if (id === "meta-description") { const used = new Set(), siteName = siteNameOf(site);
+    return pages.filter((p) => !p.description || p.description.length < 50 || p.description.length > 170).slice(0, 20).map((p) => ({ page: p.url, options: writtenDescriptions(p, { siteName, used }) }))
+      .map((x) => (x.options.length ? { page: x.page, paste: x.options[0].text, options: x.options, from: x.options[0].from } : { page: x.page, paste: null, options: [], from: null, none: "This page has too little of its own (a main heading and what its sections cover) to write a good description — add a main heading and one or two section headings, then press Fix it for me again." })); }
+  /* RR-318 B3 + B2: the Organization is the site's real name (never a page title) with its logo only when one was found; FAQ markup per page,
+   * its answers whole and without the page's source lines, offered as what it is today (Google stopped showing FAQ rich results, 7 May 2026) */
   if (id === "structured-data" || id === "ai:structured-data") {
-    const home = pages[0], d = site.design ?? {};
-    const qa = pages.flatMap((p) => p.qa).filter((x) => x.a).slice(0, 10);
-    const ld = [{ "@context": "https://schema.org", "@type": "Organization", name: d.siteName ?? home?.title, url: site.origin, ...(d.logo ? { logo: d.logo } : {}) }];
-    if (qa.length) ld.push({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map((x) => ({ "@type": "Question", name: x.q, acceptedAnswer: { "@type": "Answer", text: x.a } })) });
-    return ld.map((x) => ({ page: x["@type"] === "FAQPage" ? "the page that shows these questions" : site.origin, paste: `<script type="application/ld+json">${JSON.stringify(x, null, 1)}</script>`, from: x["@type"] === "FAQPage" ? "the questions and answers already on your pages" : "your site's own name, address and logo" }));
+    const org = organizationLd(site);
+    const out = [{ page: site.origin, paste: org.paste, from: org.from, note: org.note, kind: "organization" }];
+    for (const p of pages.filter((x) => x.qa.some((q) => q.a) && !x.structuredTypes.includes("FAQPage")).slice(0, 3)) {
+      const ld = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: p.qa.filter((x) => x.a).slice(0, 10).map((x) => ({ "@type": "Question", name: x.q, acceptedAnswer: { "@type": "Answer", text: cleanAnswer(x.a) } })) };
+      out.push({ page: p.url, paste: `<script type="application/ld+json">${JSON.stringify(ld, null, 1)}</script>`, from: "the questions and answers already on this page", note: FAQ_TRUTH, kind: "faq" });
+    }
+    return out;
   }
   if (id === "ai:robots") return [{ page: `${site.origin}/robots.txt`, paste: ["OAI-SearchBot", "Claude-SearchBot", "PerplexityBot"].map((b) => `User-agent: ${b}\nAllow: /`).join("\n\n"), from: "the AI search bots' published names" }];
   return [];

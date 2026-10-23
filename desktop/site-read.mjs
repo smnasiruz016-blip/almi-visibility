@@ -15,6 +15,8 @@ import { parseSitemap, extractLinkDetails } from "../src/crawl/seeds.mjs";
 import { discoverBlocks } from "../src/page/structured-data.mjs";
 import { visibleText } from "../src/audit/shell.mjs";
 import { AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
+import { cleanAnswer, wholeSentences } from "./web-text.mjs";
+const ANSWER_MAX = 1500;
 
 export const FULL = Object.freeze({ pages: 50, linkChecks: 60, paceMs: 1000, timeoutMs: 15000, maxBytes: 2_000_000, sitemaps: 3 });
 export const USER_AGENT = "AlmiVisibility/1.0 (+https://almivisibility.almiworld.com)";
@@ -36,16 +38,21 @@ export function notCheckedLine(n) {
 
 /** What one page says — pure: html in, facts out (the HTML itself is not kept). */
 export function readPage(html, url) {
-  const h = String(html ?? "");
+  const raw = String(html ?? "");
+  /* RR-318 B (owner: FAQ answers "cut mid-word" and carrying "Source … checked …"): what a reader reads as the ANSWER leaves out the page's
+   * source links, "· checked …" stamps, "Also asked: …" lines and the comparison tables — the sources stay on the visible page */
+  const h = raw.replace(/<(a|span|p|div|small|cite|aside)\b[^>]*\bclass\s*=\s*["'][^"']*\b(src|source|sources|citation|cite|also|also-asked)\b[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, " ");
+  const answer = (s) => { const t = cleanAnswer(strip(String(s ?? "").replace(/<table\b[\s\S]*?<\/table>/gi, " "))); return wholeSentences(t, ANSWER_MAX) ?? t; }; // never cut mid-word
   const body = visibleText(h.replace(/<(nav|header|footer)\b[\s\S]*?<\/\1>/gi, " "));
-  const blocks = discoverBlocks(h);
+  const blocks = discoverBlocks(raw);
   const ldQA = [];
-  for (const b of blocks) { const t = b.texts ?? []; for (let i = 0; i < t.length; i++) if (t[i].kind === "question" && t[i + 1]?.kind === "answer") ldQA.push({ q: strip(t[i].text), a: strip(t[i + 1].text).slice(0, 400), from: "structured data" }); }
-  const details = [...h.matchAll(/<details\b[^>]*>\s*<summary\b[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi)].map((m) => ({ q: strip(m[1]), a: strip(m[2]).slice(0, 400), from: "an open/close answer on the page" }));
+  for (const b of blocks) { const t = b.texts ?? []; for (let i = 0; i < t.length; i++) if (t[i].kind === "question" && t[i + 1]?.kind === "answer") ldQA.push({ q: strip(t[i].text), a: answer(t[i + 1].text), from: "structured data" }); }
+  const details = [...h.matchAll(/<details\b[^>]*>\s*<summary\b[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi)].map((m) => ({ q: strip(m[1]), a: answer(m[2]), from: "an open/close answer on the page" }));
   /* a heading that asks, and the paragraph that follows it (its direct answer, when there is one) */
-  const asked = [...h.matchAll(/<h[2-4]\b[^>]*>([\s\S]*?)<\/h[2-4]>\s*(?:<[^p][^>]*>\s*)*(?:<p\b[^>]*>([\s\S]*?)<\/p>)?/gi)].map((m) => ({ q: strip(m[1]), a: m[2] ? strip(m[2]).slice(0, 600) : null })).filter((x) => /\?\s*$/.test(x.q)).map((x) => ({ ...x, from: "a heading on the page" }));
-  const qa = [...new Map([...ldQA, ...details, ...asked].filter((x) => x.q && x.q.length <= 200).map((x) => [x.q.toLowerCase(), x])).values()];
-  const facts = [...new Set(body.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter((x) => /\d/.test(x) && x.length >= 25 && x.length <= 220))].slice(0, 8);
+  const asked = [...h.matchAll(/<h[2-4]\b[^>]*>([\s\S]*?)<\/h[2-4]>\s*(?:<[^p][^>]*>\s*)*(?:<p\b[^>]*>([\s\S]*?)<\/p>)?/gi)].map((m) => ({ q: strip(m[1]), a: m[2] ? answer(m[2]) : null })).filter((x) => /\?\s*$/.test(x.q)).map((x) => ({ ...x, from: "a heading on the page" }));
+  /* the FIRST reading of a question wins: the page's own structured data (its clean answer) before the open/close text */
+  const qa = [...[...ldQA, ...details, ...asked].filter((x) => x.q && x.q.length <= 200).reduce((m, x) => (m.has(x.q.toLowerCase()) ? m : m.set(x.q.toLowerCase(), x)), new Map()).values()];
+  const facts = [...new Set(body.split(/(?<=[.!?])\s+/).map((x) => cleanAnswer(x)).filter((x) => /\d/.test(x) && x.length >= 25 && x.length <= 220))].slice(0, 8);
   const imgs = [...h.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
   /* RR-308 C1: the page's own sentences, paragraph by paragraph (never the run-together text of cards and buttons) — what a description is
    * written from; C4: each price with the sentence it stands in (what it is for) */

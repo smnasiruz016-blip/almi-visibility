@@ -126,10 +126,10 @@ test("A3 · THE APP TAB stops waiting at a refusal and shows it with \"Try again
 });
 
 /* ── B ── */
-const SCREEN_FNS = ["home", "planScreen", "youtubeSettings", "company", "addProduct", "setup", "work", "publishScreen", "editScreen", "googleSignInScreen", "googleScreen"];
+const SCREEN_FNS = ["home", "planScreen", "youtubeSettings", "company", "addProduct", "setup", "work", "publishScreen", "editScreen", "googleSignInScreen", "googleScreen", /* RR-318 */ "pageCountScreen", "searchScreen"];
 test("B1 · EVERY SCREEN is a step in the window's history: each screen function records itself first; the Back bar is drawn on every screen after the first", () => {
   for (const f of SCREEN_FNS) assert.match(UI, new RegExp(`async function ${f}\\([^)]*\\) \\{\\n(?:  if \\(typeof thenPublish[^\\n]*\\n)?  if \\(!\\(await here\\("${f}"`), `${f} is not recorded in the history`);
-  assert.match(UI, /Object\.assign\(SCREENS, \{ home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen \}\);/);
+  assert.match(UI, /Object\.assign\(SCREENS, \{ home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen, pageCountScreen, searchScreen \}\);/);
   assert.match(UI, /bar\.innerHTML = CUR\?\.depth > 0 \? `<button class="ghost" id="navback" type="button">← Back<\/button>` : "";/);
   assert.match(UI, /\$\("#navback"\)\.onclick = \(\) => history\.back\(\);/);
   assert.match(UI, /<div id="backbar" class="backbar"><\/div>\n<main id="app"><\/main>/);

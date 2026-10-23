@@ -30,14 +30,18 @@ export const FEATURES = Object.freeze([
   { id: "monthly", title: "Monthly report", does: "Puts the month together: what was made, your searches, your YouTube — bad news first.", youGet: "One report you can read or share.", time: "Instant. Free.", needs: (c) => (!c.check ? [{ what: "a check of your product", action: "check" }] : []) },
   /* RR-308 D: publishing, by the client's own connection, after the five gates again */
   { id: "publish", title: "Publish my pages", does: "Puts your finished drafts on your own site — WordPress, GitHub + Vercel, Shopify — or saves them as files for you to add.", youGet: "Approve & Publish and Edit on every draft, the live link, and Undo.", time: "A minute to connect, once. Free.", needs: (c) => (!c.drafts ? [{ what: "a page draft (Create SEO pages first)", action: "seo-pages" }] : []) },
+  /* RR-318 C + D */
+  { id: "page-count", title: "How many pages can I make for this product?", does: "You choose what to make pages for — countries, universities, professions, subjects, cities or your own list. Visibility keeps only what an official page confirms, then says honestly how many pages are possible AND good.", youGet: "The number, the list with each official source and date, and \"Make these pages (drafts)\".", time: "A few minutes (it reads official pages slowly, one every 2 seconds). Free.", needs: (c) => (!c.hasSite ? [{ what: "your website", action: "settings" }] : []) },
+  { id: "search-power", title: "Search Console: positions, opportunities and alerts", does: "Reads your own Search Console week by week: where each search phrase and page stands, which phrases are close to page 1, and what dropped.", youGet: "Rank tracking with the trend, opportunity phrases with ready text, and alerts with a refresh suggestion.", time: "A minute. Free (Google's own data).", needs: (c) => (c.searchConsoleKind !== "CONNECTED" ? [{ what: "Google Search Console, connected", action: "google" }] : []) },
   { id: "google", title: "Connect Google Search Console", does: "Brings in the searches people really make before they find you.", youGet: "Your real searches and the pages they open — the base for new pages.", time: "2 minutes, once. Free.", needs: () => [] },
 ].map(Object.freeze));
 
 /* the cards that only work with a website */
-export const WEBSITE_ONLY = new Set(["seo-pages", "seo-check", "aeo", "geo", "articles", "links", "languages", "publish", "google"]);
+export const WEBSITE_ONLY = new Set(["seo-pages", "seo-check", "aeo", "geo", "articles", "links", "languages", "publish", "google", "page-count", "search-power"]);
 /** The cards for one product: each with its needs, and the top 3 recommended from its check. */
 export function menuFor(ctx) {
-  const cards = FEATURES.map((f) => ({ id: f.id, title: f.title, does: f.does, youGet: f.youGet, time: f.time, needs: f.needs(ctx) }));
+  /* RR-318 B7 (owner: "after Search Console connected, the Connect card still showed"): once connected, the Connect card is gone */
+  const cards = FEATURES.filter((f) => !(f.id === "google" && ctx.searchConsole)).map((f) => ({ id: f.id, title: f.title, does: f.does, youGet: f.youGet, time: f.time, needs: f.needs(ctx) }));
   const rec = [];
   const area = (name) => ctx.check?.areas?.find((a) => a.area === name);
   if (!ctx.check) rec.push("check");

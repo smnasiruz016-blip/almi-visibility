@@ -281,15 +281,18 @@ test("IN THE APP: research in the channel's language (Urdu) keeps Rajab's Family
   } finally { a.close(); g.close(); }
 });
 
-test("E1 + E2 · WEBSITE: a first sentence over 160 characters is not cut — the next complete sentences make the meta description; a regulator keeps its spelling and a page title that is not a question gets title case", async () => {
+/* RR-318 B5 (owner: the NZ page's description came from an unrelated page) replaces RR-311 E1's "the next complete sentences of the answer":
+ * a new page's description is WRITTEN from its own question and its official answer's owner and date — never cut, never another page's line */
+test("E1 + E2 · WEBSITE: a new page's meta description is written from its question and its official answer (never cut, never another page's sentence); a regulator keeps its spelling and a page title that is not a question gets title case", async () => {
   const { websiteItems } = await import("../desktop/action-plan.mjs");
   const { asQuestion } = await import("../desktop/seo-pages.mjs");
   const long = "For an OET taken on or after 23 April 2026, the national boards ask for at least 350 in Listening, 360 in Reading, 350 in Writing and 360 in Speaking for every nurse.";
-  const site = { ok: true, origin: "https://x.test", readOn: "2026-10-21", pages: [{ url: "https://x.test/", title: "X", description: "", qa: [], noindex: false }], robots: { found: true }, sitemap: { found: true }, brokenLinks: [] };
-  const pages = { drafts: [{ url: "https://x.test/oet-ireland", title: "Is OET Accepted in Ireland", readyAsDraft: true }], plan: [{ kind: "NEW", question: "Is OET Accepted in Ireland", demand: { source: "Search Console" }, answers: [{ text: `${long} OET results are accepted for registration in Ireland. You need one sitting.`, link: "https://x.test/guides" }] }] };
+  const site = { ok: true, origin: "https://x.test", readOn: "2026-10-21", pages: [{ url: "https://x.test/", title: "Home | XPrep", description: "", qa: [], noindex: false }, { url: "https://x.test/p", title: "Pricing | XPrep", description: "", qa: [], noindex: false }], robots: { found: true }, sitemap: { found: true }, brokenLinks: [] };
+  const pages = { drafts: [{ url: "https://x.test/oet-ireland", title: "Is OET Accepted in Ireland", readyAsDraft: true }], plan: [{ kind: "NEW", question: "Is OET Accepted in Ireland", demand: { source: "Search Console" }, answers: [{ text: "Medical Council of Ireland names OET on its own page.", link: "https://www.medicalcouncil.ie/x", readOn: "2026-10-23", official: true, body: "Medical Council of Ireland" }, { text: `${long} OET results are accepted for registration in Ireland.`, link: "https://x.test/guides" }] }] };
   const meta = websiteItems({ site, pages }).find((i) => i.id === "new-pages").ready.find((r) => r.kind === "meta description");
   assert.ok(long.length > 160);
-  assert.equal(meta.text, "OET results are accepted for registration in Ireland. You need one sitting.");
+  assert.equal(meta.text, "Is OET Accepted in Ireland? The answer from Medical Council of Ireland's own page (checked 2026-10-23), and how to prepare with XPrep.");
+  assert.ok(meta.text.length <= 160 && !meta.text.includes(long.slice(0, 40)));
   assert.equal(asQuestion("ahpra speech pathology"), "AHPRA Speech Pathology");
   assert.equal(asQuestion("is oet accepted in canada"), "Is OET accepted in Canada");
 });

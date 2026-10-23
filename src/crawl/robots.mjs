@@ -106,7 +106,15 @@ export function isAllowedByRules(rules, url) {
  * `fetchImpl` is injected so the whole thing is testable against a local
  * fixture server with no network egress.
  */
-export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs = 10000, beforeRequest = async () => {} }) {
+/*
+ * 🔴 RR-321 A2 (owner: "follow Google's own robots.txt rule, RFC 9309") — `rfc9309: true` (the desktop's official reader):
+ *   · a 4xx answer (the file is unavailable) means the site may be read, as RFC 9309 §2.3.1.3 and Google say — except 429, which Google
+ *     treats as a server error;
+ *   · a redirect is followed, at most 5 hops (§2.3.1.2), each hop checked by `allowHop` (a public address) and paced like any request;
+ *   · a 5xx, a 429 or no answer means "do not read now": fail closed, marked `retryLater`, never kept past this run.
+ * Without it (the engine's crawler) the stricter RR-135 rule stands: only 404/410 allow, a redirect fails closed.
+ */
+export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs = 10000, beforeRequest = async () => {}, rfc9309 = false, allowHop = async () => true }) {
   const cache = new Map();
   let requestsIssued = 0;
 
@@ -115,24 +123,37 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
 
     let entry;
     try {
-      /* 🔴 A robots.txt request is a request to the host like any other: it waits for the caller's pacer. */
-      await beforeRequest();
-      requestsIssued += 1;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      let res;
-      try {
-        /* RR-135: never followed by the platform. A 3xx is "not ok" below, so a redirected robots.txt is UNKNOWN and fails closed */
-        res = await fetchImpl(`${origin}/robots.txt`, {
-          headers: { "User-Agent": userAgent },
-          redirect: "manual",
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timer);
+      let res, at = `${origin}/robots.txt`;
+      for (let hop = 0; ; hop++) {
+        /* 🔴 A robots.txt request is a request to the host like any other: it waits for the caller's pacer. */
+        await beforeRequest();
+        requestsIssued += 1;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          /* RR-135: never followed by the platform. A 3xx is "not ok" below, so a redirected robots.txt is UNKNOWN and fails closed */
+          res = await fetchImpl(at, {
+            headers: { "User-Agent": userAgent },
+            redirect: "manual",
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+        if (!rfc9309 || !(res.status >= 300 && res.status < 400) || hop >= 5) break;
+        const to = res.headers?.get?.("location"); if (!to) break;
+        const next = new URL(to, at).href; if (!(await allowHop(next))) break;
+        at = next;
       }
 
-      if (res.status >= 500) {
+      if (rfc9309 && res.status >= 300 && res.status < 400) {
+        entry = { state: "UNKNOWN", rules: [], reason: `robots.txt moves more than 5 times or to an address that is not read (HTTP ${res.status})`, failClosed: true, retryLater: true };
+      } else if (rfc9309 && res.status >= 400 && res.status < 500 && res.status !== 429) {
+        // RFC 9309 §2.3.1.3: "unavailable" — the crawler MAY access any resource on the server
+        entry = { state: "ALLOWED", rules: [], reason: `robots.txt unavailable (HTTP ${res.status}) — RFC 9309: the site may be read`, failClosed: false };
+      } else if (rfc9309 && (res.status >= 500 || res.status === 429)) {
+        entry = { state: "UNKNOWN", rules: [], reason: `robots.txt returned HTTP ${res.status} — not read now, tried again on the next run`, failClosed: true, retryLater: true };
+      } else if (res.status >= 500) {
         // 🔴 THE RULE. A server error is not permission.
         entry = { state: "UNKNOWN", rules: [], reason: `robots.txt returned HTTP ${res.status}`, failClosed: true };
       } else if (res.status === 404 || res.status === 410) {
@@ -150,6 +171,7 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
         rules: [],
         reason: `robots.txt could not be read: ${err?.name === "AbortError" ? "timeout" : String(err?.message ?? err)}`,
         failClosed: true,
+        ...(rfc9309 ? { retryLater: true } : {}),
       };
     }
 
@@ -168,7 +190,7 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
     const origin = new URL(url).origin;
     const entry = await forHost(origin);
     if (entry.failClosed) {
-      return { allowed: false, state: "UNKNOWN", reason: entry.reason };
+      return { allowed: false, state: "UNKNOWN", reason: entry.reason, ...(entry.retryLater ? { retryLater: true } : {}) };
     }
     const allowed = isAllowedByRules(entry.rules, url);
     return { allowed, state: allowed ? "ALLOWED" : "DISALLOWED", reason: entry.reason };

@@ -17,10 +17,12 @@
  *   the run record lacks a truncation or refusal count; the cost undercounts requests ............. F19-S12 … F19-S15
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { sabMode, dryPreflight } from "./sab-mode.mjs"; // RR-321 F2: SAB_MODE=dry (pre-flight only) or SAB_MODE=run — else refused
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runSabotages, renderEvidence } from "./f08-sabotage.mjs";
+const SAB = sabMode();
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const T = "test/f19-crawler-bounds.test.mjs";
@@ -109,6 +111,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join
   const outArg = (process.argv.find((a) => a.startsWith("--out=")) ?? "").slice(6);
   const list = only.length ? F19_SABOTAGES.filter((s) => only.includes(s.id)) : F19_SABOTAGES;
   console.log("F19 · SABOTAGE — landed · named test RED · intended reason · restored by raw-byte hash\n");
+  if (SAB === "dry") dryPreflight(list.flatMap((s) => (s.edits ?? [{ file: s.file, from: s.from }]).map((e) => ({ id: s.id, file: e.file, from: e.from }))), REPO);
   const run = runSabotages(list);
   const executed = run.results.filter((r) => !String(r.verdict).startsWith("NOT RUN")).length;
   const bad = run.results.filter((r) => !(r.verdict === "RED, named test, intended reason" && r.restoredClean)).length;

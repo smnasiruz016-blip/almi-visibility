@@ -39,6 +39,42 @@ export function questionsByCountry(rows = [], { top = 6 } = {}) {
   return [...by.values()].map((x) => ({ ...x, searches: x.questions.length, questions: x.questions.sort((a, b) => b.impressions - a.impressions).slice(0, top) })).sort((a, b) => b.impressions - a.impressions);
 }
 
+/**
+ * 🔴 RR-321 B1 + B5 + D4 · THE FIVE ANSWERS FROM THE LEDGER (desktop/plan-list.mjs `numbers`): they ALWAYS run, with no tick — for OET the
+ * built-in lists apply (197 countries, its 12 professions, AlmiStudy's universities); a question is "does not apply" ONLY when the client
+ * says so. Every number here is the ledger's own — the tables, "why not more" and the plan show the same ones (test/rr321).
+ */
+export function fiveFromList({ subject, plan, stats = null, byCountry = null, sc = null, items = [], own = [], notApply = [] }) {
+  const n = plan.numbers, src = (label, title, url, on) => ({ label, title, url: url ?? null, on: on ?? null }), out = [];
+  const na = (id) => ({ id, ask: FIVE.find((f) => f.id === id).ask, applies: false, answer: "Does not apply — you said so.", sources: [] });
+  const T = plan.tables, rec = T.regulator.rows[0];
+  /* Q1 */
+  out.push(notApply.includes("q1") ? na("q1") : { id: "q1", ask: FIVE[0].ask, applies: true, n: stats?.nationalities?.length ?? null,
+    answer: `For ${n.professions} healthcare professions, to register and work: accepted in ${n.accepted} countries, a registration requirement in ${n.requirement}. ${stats?.line ?? `${subject}'s statistics page was not read.`}`,
+    nationalities: stats?.nationalities ?? [], sources: [...(stats?.sources ?? []).map((s) => src(LABEL.official, s.title ?? s.url, s.url, s.on)), src(LABEL.official, `${subject}'s list of recognising organisations`, plan.tables.regulator.rows[0] ? plan.kinds.regulator[0]?.source?.url : null, plan.kinds.regulator[0]?.checkedOn)] });
+  /* Q2 */
+  { const qc = plan.questionCount, obs = items.filter((x) => x.kind === "observed"), tool = items.filter((x) => x.kind === "tool");
+    out.push(notApply.includes("q2") ? na("q2") : { id: "q2", ask: FIVE[1].ask, applies: true, n: byCountry?.length ?? null,
+      answer: `${byCountry ? `${byCountry.length} of 197 countries search for it in your Search Console.` : "Search Console's country data is not read yet — connect Google again (it asks for no new permission)."} ${qc ? qc.line : ""}${obs.length ? "" : " Your AI's browser search has not run yet — it is ready (client-started, 30 a day)."}`,
+      perCountry: (byCountry ?? []).slice(0, 40).map((c) => ({ country: c.country, searches: c.searches, impressions: c.impressions, questions: c.questions.map((q) => ({ text: q.text, impressions: q.impressions })), label: LABEL.search })),
+      observed: obs.slice(0, 60).map((x) => ({ text: x.text, place: x.place, source: x.source, label: LABEL.observed })), tool: tool.slice(0, 60).map((x) => ({ text: x.text, place: x.place, volume: x.volume, source: x.source, label: LABEL.tool })),
+      sources: [src(LABEL.search, `Search Console${sc?.window ? ` (${sc.window})` : ""}${byCountry ? ", by country" : ""}`, null, sc?.on)] }); }
+  /* Q3 — the requirement countries from the subject's own list, and the regulators' own pages read while building (D4: one ledger) */
+  out.push(notApply.includes("q3") ? na("q3") : { id: "q3", ask: FIVE[2].ask, applies: true, n: n.requirement,
+    answer: `A registration requirement in ${n.requirement} countries — a health regulator there accepts it (${subject}'s own list). Accepted by a named body in ${n.accepted} countries in all. Regulators' own pages read while building: ${n.regulatorRead} of ${n.regulatorPages}${n.regulatorNotRead ? ` (${n.regulatorNotRead} could not be read — their pages are built from ${subject}'s list with "check here")` : ""}.`,
+    list: T.regulator.rows[1].kept, sources: [src(LABEL.official, rec.why, plan.kinds.regulator[0]?.source?.url, plan.kinds.regulator[0]?.checkedOn)] });
+  /* Q4 */
+  out.push(notApply.includes("q4") ? na("q4") : { id: "q4", ask: FIVE[3].ask, applies: true, n: n.uniWithFacts,
+    answer: `${n.uniHealth.toLocaleString("en-US")} of ${n.uniAll.toLocaleString("en-US")} universities in AlmiStudy's data teach healthcare; ${n.uniNamed.toLocaleString("en-US")} name a profession; ${n.uniWithFacts.toLocaleString("en-US")} teach one a regulator accepts ${subject} for — their graduates need it. ${n.uniPages.toLocaleString("en-US")} different answers (country + professions).`,
+    sources: [src("your list", "AlmiStudy's full data (read-only)", null, null)] });
+  /* Q5 */
+  { const pairs = T.regulator.rows[3].kept, per = [...new Set(pairs.map((x) => x.name.replace(/ in .*$/, "")))].map((p) => ({ profession: p, countries: pairs.filter((x) => x.name.startsWith(`${p} in `)).map((x) => x.name.replace(/^.* in /, "")) }));
+    out.push(notApply.includes("q5") ? na("q5") : { id: "q5", ask: FIVE[4].ask, applies: true, n: n.professions, answer: `${n.professions} professions (${subject}'s own pages). Where a regulator accepts it: ${per.map((x) => `${x.profession} ${x.countries.length}`).join(" · ")}.`, perProfession: per, sources: [src(LABEL.official, `${subject}'s own profession pages and its list`, null, null)] }); }
+  const pool = items.map((x) => ({ text: x.text, source: x.source, label: { search: LABEL.search, observed: LABEL.observed, tool: LABEL.tool, youtube: LABEL.people, "ai research": LABEL.ai, "official FAQ": LABEL.official }[x.kind] ?? x.kind }));
+  const ownAnswers = own.map((q) => { const t = new Set(tokens(q.text)); const hits = pool.filter((x) => { const u = tokens(x.text); return u.filter((w) => t.has(w)).length >= Math.max(1, Math.ceil(t.size / 2)); }).slice(0, 8); return { id: q.id, ask: q.text, applies: true, answer: hits.length ? `${hits.length} things people search or ask match it.` : "Not answered yet — it is first on your AI's browser-search list.", matches: hits, sources: [] }; });
+  return { questions: out, own: ownAnswers, on: new Date().toISOString().slice(0, 10), fromList: true };
+}
+
 /* ── the browser search (source a): the list Visibility PREPARES; the client's AI runs it in the client's browser ── */
 export function browserSearchList({ subject, countries = [], origins = [], professions = [], own = [], cap = CLIENT_AI_POLICY.dailyCap }) {
   const seeds = [

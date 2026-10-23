@@ -36,7 +36,8 @@ const day = (d) => String(d ?? "").slice(0, 10);
 export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(), paceMs = OFFICIAL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), allowLocal = false, resolve } = {}) {
   let last = 0, count = 0;
   const pace = async () => { const wait = last + paceMs - Date.now(); if (wait > 0) await sleep(wait); last = Date.now(); };
-  const robots = createRobotsCache({ fetchImpl, userAgent: USER_AGENT, beforeRequest: pace });
+  /* RR-321 A2: Google's robots rule (RFC 9309) — a 4xx robots.txt lets the site be read; a 5xx or no answer: not now, again next run */
+  const robots = createRobotsCache({ fetchImpl, userAgent: USER_AGENT, beforeRequest: pace, rfc9309: true, allowHop: async (u) => (await allowedUrl(u)).ok });
   const cache = new Map();
   const get1 = async (u, accept) => { await pace(); count++; try { return await fetchImpl(u, { method: "GET", redirect: "manual", headers: { "User-Agent": USER_AGENT, Accept: accept }, signal: AbortSignal.timeout(OFFICIAL.timeoutMs) }); } catch (e) { return { failed: e?.name === "TimeoutError" ? "timed out" : "no answer" }; } finally { last = Date.now(); } };
   /* a move to another address is followed (up to 3), each new address checked as the first: public, and allowed by ITS robots.txt */
@@ -47,13 +48,13 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
     const run = (async () => {
       const a = await allowedUrl(url); if (!a.ok) return { ok: false, url, why: a.why, checkedOn: day(on) };
       const r = await robots.check(a.u.href);
-      if (!r.allowed) return { ok: false, url, why: r.state === "UNKNOWN" ? "its robots.txt could not be read — not read" : "its robots.txt asks us not to read it — not read", checkedOn: day(on) };
+      if (!r.allowed) return { ok: false, url, why: r.state === "UNKNOWN" ? `its robots.txt could not be read (${r.reason}) — not read now${r.retryLater ? ", tried again on the next run" : ""}` : "its robots.txt asks us not to read it — not read", robots: r.state, retryLater: Boolean(r.retryLater), checkedOn: day(on) };
       const res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf");
       if (res.failed) return { ok: false, url, why: `could not be read (${res.failed})`, checkedOn: day(on) };
       if (!res.ok) return { ok: false, url, why: `the page answered ${res.status}`, checkedOn: day(on) };
       const type = res.headers.get("content-type") ?? "", final = res.finalUrl ?? a.u.href;
       /* RR-319 C3: an official PDF (a registration standard, a guidance document) is read too — its text only, through the engine's PDF reader */
-      if (/application\/pdf/i.test(type) || /\.pdf($|\?)/i.test(final)) {
+      if (/application\/pdf/i.test(type) || (/\.pdf($|\?)/i.test(final) && !/text\/html/i.test(type))) {
         const bytes = Buffer.from(await res.arrayBuffer()).subarray(0, OFFICIAL.maxBytes * 4);
         const p = isPdf(bytes) ? pdfText(bytes) : null;
         if (!p || p.state !== PDF_TEXT.TEXT) return { ok: false, url, why: p?.state === PDF_TEXT.NO_TEXT ? "a PDF with no text (a scanned image)" : "a PDF that could not be read", checkedOn: day(on) };
@@ -62,6 +63,8 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
       }
       if (!/text\/html|application\/xhtml/i.test(type)) return { ok: false, url, why: "not a web page (a file Visibility does not read here)", checkedOn: day(on) };
       const html = Buffer.from(await res.arrayBuffer()).subarray(0, OFFICIAL.maxBytes).toString("utf8");
+      /* RR-321: a site's security service answering in the page's place (SBP: "Sorry, you have been blocked") is a refusal, never the page */
+      if (/<title>\s*(Attention Required!|Just a moment\.\.\.)|Sorry, you have been blocked|cf-error-details/i.test(html.slice(0, 20000))) return { ok: false, url, why: "its security service refused the reading (a block page answered, not the page) — not read", blocked: true, checkedOn: day(on) };
       const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].map((m) => { try { return { href: new URL(decode(m[1]), final).href, text: decode(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() }; } catch { return null; } }).filter(Boolean).slice(0, 3000); // RR-319: a regulator's page can carry hundreds of menu links before its own
       return { ok: true, url: final, title: one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, html), h1: one(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, html), text: pageText(html), links, checkedOn: day(on) };
     })();
@@ -200,7 +203,7 @@ const BODY_PROFESSION = [[/\bnurs|midwi/i, "nursing"], [/\bmedic(al|ine)\b|physi
 /* RR-319 ADD 3 (owner: "Australia listed only Department of Home Affairs") — a body that registers health professionals, never a visa or
  * education office: only such a body's rule splits or answers a requirement page */
 const NOT_HEALTH = /\b(home affairs|immigration|visa|border|education|skills? assessment|citizenship|foreign affairs)\b/i;
-const HEALTH = /\b(health|practitioner|nurs|midwi|medic|dent|pharma|physio|therap|radiograph|dietit|optom|podiat|speech|veterin|ahpra|nmbi|nmc|gmc|regulat|registration|council|board)\b/i;
+const HEALTH = /\b(health(?:care)?|practitioner|nurs|midwi|medic|dent|pharma|physio|therap|radiograph|dietit|optom|podiat|speech|veterin|ahpra|nmbi|nmc|gmc|regulat|registration|council|board)\b/i;
 export const isHealthRegulator = (name) => !NOT_HEALTH.test(String(name ?? "")) && HEALTH.test(String(name ?? ""));
 /** the regulators' own sites the subject's country page links to (an official lead, read before it is used) */
 export const regulatorLinks = (page) => {

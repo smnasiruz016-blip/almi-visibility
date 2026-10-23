@@ -302,7 +302,7 @@ test("B · THE FIVE ANSWERS, each with its sources and labels; per country; 'doe
 });
 
 test("ROUTES + SCREEN · the five questions on the screen with their sources, per-country table, the browser-search list and instruction, the hand-in upload, the search-data files, one table per dimension, the first batch", () => {
-  for (const s of ["The five questions — answered before any page is planned", "Per country — what people search, in their own words", "Your AI's Google search, in your own browser", "Visibility never searches Google itself.", "Copy the instruction", "The file your AI gave you", "Search-data files (free)", "Add my question", "Does not apply to my product", "Make the first batch (drafts)", "How many universities to read now", "never the 12 study subjects", "pcfunnels", "pcrollout"]) assert.ok(UI.includes(s), `the screen lacks: ${s}`);
+  for (const s of ["The five questions — answered before any page is planned", "Per country — what people search, in their own words", "Your AI's Google search, in your own browser", "Visibility never searches Google itself.", "Copy the instruction", "The file your AI gave you", "Search-data files (free)", "Add my question", "Does not apply to my product", "Make the first batch (drafts)", /* RR-321 B3: the deep-read box is removed */ "never the 12 study subjects", "pcfunnels", "pcrollout"]) assert.ok(UI.includes(s), `the screen lacks: ${s}`);
   assert.match(MAIN, /research\\\/handin\|research\\\/file\|research\\\/own/);
   assert.match(MAIN, /const runs = pread\(id, "phrase-runs\.json", \[\]\), t = takeHandIn\(hand, \{ runsBefore: runs \}\);/);
   assert.match(MAIN, /if \(t\.phrases\.length\) pwrite\(id, "phrases\.json"/, "a refused run's phrases kept");

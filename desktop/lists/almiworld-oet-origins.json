@@ -1,0 +1,87 @@
+{
+ "source": "AlmiOET's own origin records (nursing), compiled 2026-08-06 — the home council and its official verification page",
+ "on": "2026-08-06",
+ "from": "almi-oet origin/oet-pseo-rebuild src/lib/oet-seo/origins-neutral.json",
+ "items": [
+  {
+   "country": "Pakistan",
+   "profession": "nursing",
+   "council": "Pakistan Nursing & Midwifery Council",
+   "councilUrl": "https://pnmc.gov.pk/",
+   "verificationUrl": "https://pnmc.gov.pk/verification-registration-2/",
+   "verificationPage": "PNMC — Verification Registration"
+  },
+  {
+   "country": "Nigeria",
+   "profession": "nursing",
+   "council": "Nursing and Midwifery Council of Nigeria",
+   "councilUrl": "https://nmcn.gov.ng/",
+   "verificationUrl": "https://www.nmcn.gov.ng/verify.html",
+   "verificationPage": "NMCN — Verification of Certificate"
+  },
+  {
+   "country": "India",
+   "profession": "nursing",
+   "council": "Indian Nursing Council",
+   "councilUrl": "https://www.indiannursingcouncil.org/",
+   "verificationUrl": "https://www.indiannursingcouncil.org/",
+   "verificationPage": "INC (official) — registration held at state level"
+  },
+  {
+   "country": "Philippines",
+   "profession": "nursing",
+   "council": "Professional Regulation Commission",
+   "councilUrl": "https://www.prc.gov.ph/certification-authentication",
+   "verificationUrl": "https://www.prc.gov.ph/certification-authentication",
+   "verificationPage": "PRC — Certification / Authentication"
+  },
+  {
+   "country": "Ghana",
+   "profession": "nursing",
+   "council": "Nursing and Midwifery Council of Ghana",
+   "councilUrl": "https://www.nmc.gov.gh/web/",
+   "verificationUrl": "https://www.nmc.gov.gh/web/ourservices-mobile/verification-mobile",
+   "verificationPage": "NMC Ghana — Verification service"
+  },
+  {
+   "country": "Kenya",
+   "profession": "nursing",
+   "council": "Nursing Council of Kenya",
+   "councilUrl": "https://nckenya.com/",
+   "verificationUrl": "https://osp.nckenya.com/",
+   "verificationPage": "NCK Online Services Portal"
+  },
+  {
+   "country": "Zimbabwe",
+   "profession": "nursing",
+   "council": "Nurses Council of Zimbabwe",
+   "councilUrl": "https://nursescouncil.co.zw/",
+   "verificationUrl": "https://nursescouncil.co.zw/wp-content/uploads/2022/02/Clearance-form-for-Certificate-of-Good-standing-Verification.pdf",
+   "verificationPage": "NCZ — official Clearance form for CGS Verification (fetched)"
+  },
+  {
+   "country": "Egypt",
+   "profession": "nursing",
+   "council": "the Egyptian Nursing Syndicate",
+   "councilUrl": "https://egyptianursingsyndicate.org/",
+   "verificationUrl": "https://egyptianursingsyndicate.org/",
+   "verificationPage": "Egyptian Nursing Syndicate"
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": "nursing",
+   "council": "Sri Lanka Nursing Council",
+   "councilUrl": "https://www.slnc.lk/about",
+   "verificationUrl": "https://www.slnc.lk/",
+   "verificationPage": "SLNC"
+  },
+  {
+   "country": "Nepal",
+   "profession": "nursing",
+   "council": "Nepal Nursing Council",
+   "councilUrl": "https://nnc.org.np/",
+   "verificationUrl": "https://nnc.org.np/page/verification",
+   "verificationPage": "NNC — Verification (official)"
+  }
+ ]
+}

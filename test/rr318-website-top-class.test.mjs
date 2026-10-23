@@ -54,6 +54,9 @@ test("B2 · FAQ ANSWERS are never cut mid-word and never carry 'Source …', '·
   assert.match(b, /we do not convert your practice into an official score\.$/, "the second answer was cut");
   for (const x of p.qa) assert.doesNotMatch(x.a, /Source:|checked 20\d\d|Also asked|each regulator asks/, x.a);
   assert.equal(cleanAnswer("Yes, online. Source: OET — The OET Test · checked 2026-10-15 Also asked: Is it hard?"), "Yes, online.");
+  /* the page's own source elements are left out by themselves — a source link with no "Source:" word and no date (the sabotage found the
+   * text rule hid this one) */
+  assert.equal(readPage(`<details><summary>Is it accepted?</summary><p>Yes. <a class="src" href="https://x.test/g">Ahpra guidance</a> The test is accepted.</p></details>`, "https://x.test/").qa[0].a, "Yes. The test is accepted.");
   assert.equal(wholeSentences("One two three. Four five six seven.", 20), "One two three.");
   assert.equal(wholeSentences("A sentence that is far too long to fit.", 10), null, "a text shorter than its first sentence must say so, never cut it");
   /* the page's own structured data is read FIRST — its clean answer, not the open/close text */
@@ -85,6 +88,8 @@ test("B1 · META DESCRIPTIONS are WRITTEN — what the reader gets on the page (
 /* ══ B3 · Organization ══ */
 test("B3 · ORGANIZATION: the site's real name (what its page titles share — AlmiOET, never a page title) and its logo only when one was found, said plainly when not", () => {
   assert.equal(siteNameOf(SITE), "AlmiOET");
+  /* the name the page titles SHARE wins over the site's own long label (its last part would be "Home") */
+  assert.equal(siteNameOf({ origin: "https://x.test", design: { siteName: "Practice that works | Home" }, pages: [{ title: "XPrep | Pricing" }, { title: "XPrep | Guides" }] }), "XPrep");
   const o = organizationLd(SITE);
   assert.deepEqual(o.ld, { "@context": "https://schema.org", "@type": "Organization", name: "AlmiOET", url: "https://almioet.almiworld.com" });
   assert.doesNotMatch(o.from, /logo/, "\"from your logo\" claimed without a logo");
@@ -131,6 +136,8 @@ test("B5 + B6 · NEW-PAGE ANSWERS: never a line about another country (the Irela
   const a = answersFromSite("oet score for ireland", SITE);
   assert.ok(a.every((x) => /Ireland/.test(x.text)), a.map((x) => x.text).join(" | "));
   assert.ok(!a.some((x) => /HCPC/.test(x.text)));
+  /* a line sharing the search's words but about ANOTHER country is never its answer */
+  assert.deepEqual(answersFromSite("oet score for ireland", { ...SITE, pages: [{ ...SITE.pages[2], qa: [], facts: ["The OET score for nurses in the United Kingdom is grade B in each sub-test."] }] }), []);
   assert.ok(a.every((x) => !/Source:|checked 2026/.test(x.text)), "a source line inside an answer");
   assert.deepEqual(answersFromSite("oet for nurses in new zealand", { ...SITE, pages: [SITE.pages[2]] }), [], "the NZ page took 'Students practise all four sub-tests'");
   const official = { Ireland: [{ claimId: "o1", text: "Medical Council of Ireland names OET on its own page among the English tests it accepts — the results it names with OET: grade B.", link: "https://www.medicalcouncil.ie/x", readOn: ON, source: "Medical Council of Ireland — its own page", official: true, body: "Medical Council of Ireland" }] };

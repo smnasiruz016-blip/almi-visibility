@@ -245,8 +245,12 @@ export async function bodyAnswer({ url, body: bodyName = null, subject, reader, 
   const sets = subtestResults(good.text, subject), loose = sets.length ? [] : resultsNamedWith(good.text, subject);
   const results = sets.length ? (sets.length === 1 ? ` — ${sets[0]}` : ` — ${sets.map((s, i) => `set ${i + 1} on the page: ${s}`).join("; ")}`) : loose.length ? ` — the results it names with ${subject}: ${loose.join(", ")}` : "";
   const text = `${body} names ${subject} on its own ${good.pdf ? "document" : "page"}${RECOGNISED.test(good.text) ? " among the English tests it accepts" : ""}${results}.`;
-  return { claim: { claimId: claimId(good.url, text), text, link: good.url, readOn: good.checkedOn, source: `${body} — its own ${good.pdf ? "document" : "page"}`, official: true, body, professions: professionsOfBody(body), rule: `${sets.join("|") || loose.join(",") || "named"}`, sets } };
+  return { claim: { claimId: claimId(good.url, text), text, link: good.url, readOn: good.checkedOn, source: `${body} — its own ${good.pdf ? "document" : "page"}`, official: true, body, professions: professionsOfBody(body), named: professionsNamedIn(good.text), rule: `${sets.join("|") || loose.join(",") || "named"}`, sets } };
 }
+/* RR-320 · the professions a regulator's OWN page names as the people it registers ("pharmacists", "medical practitioners") — for a body
+ * whose name names no profession (Ahpra), the page says which professions its rule is for; a page that names none says nothing about one */
+const PEOPLE = [[/\bnurses?\b|\bnursing\b|\bmidwi(fe|ves|fery)\b/i, "nursing"], [/\bmedical practitioners?\b|\bdoctors\b|\bphysicians?\b|\bmedical graduates?\b/i, "medicine"], [/\bdentists?\b|\bdental practitioners?\b/i, "dentistry"], [/\bpharmacists?\b/i, "pharmacy"], [/\bphysiotherapists?\b|\bphysical therapists?\b/i, "physiotherapy"], [/\boccupational therapists?\b/i, "occupational therapy"], [/\bradiographers?\b|\bmedical radiation practitioners?\b/i, "radiography"], [/\bdietitians?\b|\bdieticians?\b/i, "dietetics"], [/\boptometrists?\b/i, "optometry"], [/\bpodiatrists?\b/i, "podiatry"], [/\bspeech (and language )?(pathologists?|therapists?)\b/i, "speech pathology"], [/\bveterinar(y surgeons?|ians?)\b/i, "veterinary science"]];
+export const professionsNamedIn = (text) => PEOPLE.filter(([re]) => re.test(String(text ?? ""))).map(([, p]) => p);
 
 /** The answer lines for one country: from the subject's own page (what it shows) and from each body's own page (read here). */
 export async function officialClaims({ country, subject, subjectName, kept, bodyPages = [], reader }) {

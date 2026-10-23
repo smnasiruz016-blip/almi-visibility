@@ -12,7 +12,8 @@
  * Reads only through desktop/official.mjs (robots obeyed, paced, GET only, nothing kept but what was measured).
  */
 import { COUNTRIES, COUNTRY_LIST_SOURCE, countriesIn, namesOf, slugOf } from "./world.mjs";
-import { itemOnSubjectSite, bodyAnswer, UNIVERSITY_RELATED } from "./official.mjs";
+import { itemOnSubjectSite } from "./official.mjs";
+import { universityFunnel } from "./universities.mjs"; // RR-320 D
 
 export const DIMENSIONS = Object.freeze([
   { id: "countries", label: "Countries", list: `built in — ${COUNTRY_LIST_SOURCE}` },
@@ -67,7 +68,7 @@ export function professionOf(name, professions) {
  * countries default to Visibility's own list. Returns per dimension { candidates, kept:[{ name, source, checkedOn, how }], dropped:[{ name,
  * why }], notVerified?:[…] } — never a kept item without its official page.
  */
-export async function realityFilter({ dims, lists = {}, subject, subjectName = subject, subjectSite, reader, maxUniversityReads = 15, onProgress = () => {} }) {
+export async function realityFilter({ dims, lists = {}, subject, subjectName = subject, subjectSite, reader, maxUniversityReads = 30, siteProfessions = false, queries = [], countryWeight = {}, onProgress = () => {} }) {
   const tell = (s) => { try { onProgress(s); } catch {} };
   tell(`Reading ${subjectName}'s own site (its list of pages)`);
   const sm = await reader.sitemapOf(subjectSite);
@@ -94,7 +95,8 @@ export async function realityFilter({ dims, lists = {}, subject, subjectName = s
   const profRead = new Map();
   const confirm = async (p) => { if (!profRead.has(p.url)) profRead.set(p.url, await reader.read(p.url)); const r = profRead.get(p.url); return r.ok && new RegExp(`\\b${subject.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(`${r.title} ${r.text}`) ? r : null; };
   if (dims.includes("roles")) {
-    const cands = lists.roles ?? [];
+    /* RR-320 A: "12 professions" with no list of his own → the subject site's own profession pages are the list */
+    const cands = lists.roles?.length ? lists.roles : siteProfessions ? professions.map((p) => ({ name: p.slug.replace(/-/g, " ") })) : [];
     const kept = [], dropped = [];
     if (!cands.length) out.dims.roles = { candidates: 0, kept, dropped, missing: "Add your list of professions or job roles as a file — Visibility then keeps only those the official site has a page for." };
     else {
@@ -112,21 +114,13 @@ export async function realityFilter({ dims, lists = {}, subject, subjectName = s
     keptSubjects = new Set(kept.map((k) => slugOf(k.name)));
   }
   /* universities: only in the kept countries and subjects; kept only when the university's OWN page (from the list) names the subject */
+  /* RR-320 D (owner: "graduates of 8,000+ universities need OET to work in these 9 countries"): a university's graduates go TO the
+   * destination countries — so every university that teaches healthcare counts, wherever it is; its COURSE pages are read (RR-319 read its
+   * general English page and found 0) */
   if (dims.includes("universities")) {
     const all = lists.universities ?? [];
-    const inScope = all.filter((u) => (!keptCountries || keptCountries.has(countriesIn(u.country ?? "")[0] ?? u.country)) && (!keptSubjects || !(u.subjects ?? []).length || (u.subjects ?? []).some((x) => keptSubjects.has(slugOf(x)))));
-    const kept = [], dropped = [], notRead = [];
-    /* RR-319 A2: each university's OWN page, and its English-requirement / international-admission pages (never "does not say" from a home
-     * page alone); those with a page of their own first; a few per run, slowly */
-    const order = [...inScope].sort((a, b) => Boolean(b.page) - Boolean(a.page));
-    for (const [i, u] of order.entries()) {
-      if (i >= maxUniversityReads || !u.page) { notRead.push({ name: u.name, country: u.country, why: u.page ? "not read in this run (Visibility reads a few at a time, slowly)" : "your list gives no page of its own" }); continue; }
-      tell(`Checking ${u.name}'s own pages (${i + 1} of ${Math.min(inScope.length, maxUniversityReads)})`);
-      const a = await bodyAnswer({ url: u.page, body: u.name, subject, reader, related: UNIVERSITY_RELATED, sitemap: true });
-      if (a.claim) kept.push({ name: u.name, country: u.country, city: u.city ?? null, source: { url: a.claim.link, title: u.name }, checkedOn: a.claim.readOn, how: `the university's own page names ${subject}`, rule: a.claim.rule });
-      else dropped.push({ name: u.name, country: u.country, why: a.notSaid.line });
-    }
-    out.dims.universities = { candidates: all.length, inScope: inScope.length, from: all.length ? "your list" : null, kept, dropped, notRead, ...(all.length ? {} : { missing: "Add your university list as a file." }) };
+    if (!all.length) out.dims.universities = { candidates: 0, inScope: 0, kept: [], dropped: [], notRead: [], missing: "Add your university list as a file." };
+    else { const f = await universityFunnel({ all, reader, subject, queries, countryWeight, maxReads: maxUniversityReads, tell }); out.dims.universities = { ...f, from: "your list" }; }
   }
   /* cities and the client's own: kept when the subject's own site has a page that names it and the subject */
   for (const id of ["cities", "own"]) {

@@ -117,7 +117,10 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       const d = (n) => new Date(now() - n * 86400000).toISOString().slice(0, 10);
       const j = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate: d(93), endDate: d(3), dimensions: ["query"], rowLimit: 1000 }) });
       if (!j) return null;
-      return { kind: "CONNECTED", on: d(0), window: `${d(93)} to ${d(3)}`, queries: (j.rows ?? []).map((r) => ({ query: r.keys[0], clicks: r.clicks, impressions: r.impressions })), site: siteUrl };
+      /* RR-320 D · the same searches by the COUNTRY of the person searching (Search Console's own country dimension, ISO alpha-3) — which
+       * countries ask which questions; a failed second request leaves it out, never the searches */
+      const c = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate: d(93), endDate: d(3), dimensions: ["query", "country"], rowLimit: 5000 }) }).catch(() => null);
+      return { kind: "CONNECTED", on: d(0), window: `${d(93)} to ${d(3)}`, queries: (j.rows ?? []).map((r) => ({ query: r.keys[0], clicks: r.clicks, impressions: r.impressions })), ...(c ? { byCountry: (c.rows ?? []).map((r) => ({ query: r.keys[0], country: r.keys[1], clicks: r.clicks, impressions: r.impressions })) } : {}), site: siteUrl };
     },
     /**
      * RR-318 D1 · RANK TRACKING from Search Console's own data (free): each of the last `weeks` weeks (Search Console's data is a few days

@@ -54,7 +54,7 @@ textarea{font:inherit;padding:9px 12px;border:1px solid var(--peach);border-radi
 .paste{white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;background:var(--cream);border-radius:8px;padding:8px;overflow-wrap:anywhere}
 /* RR-309: the product box with its Delete; messages coloured by what they say */
 .pbox{display:flex;flex-direction:column;gap:6px} .pbox .product{flex:1} .pbox .del{align-self:flex-end;padding:6px 12px;font-size:13px}
-.msg-ok{color:#1F6F43;font-weight:600;margin-top:8px} .msg-info{color:var(--muted);margin-top:8px}
+.msg-ok{color:#1F6F43;font-weight:600;margin-top:8px} .okbar{background:#E8F6EE;border:1px solid #1F6F43;border-radius:12px;padding:10px 14px;margin:0 0 14px;color:#14532D} .msg-info{color:var(--muted);margin-top:8px}
 /* RR-308: ready options with Copy, the plan, a failed check, publishing */
 .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:6px 0} .opt{border:1px solid var(--peach);border-radius:12px;padding:10px;background:var(--white)} .opt .row{margin:4px 0} .opt pre{margin-top:2px}
 button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#FFF8EF;border-color:var(--sunrise)} .failed{background:#FDECEC;border:1px solid #C0392B;border-radius:12px;padding:12px 14px}
@@ -364,7 +364,7 @@ async function setup() {
 /* RR-308 B: the YouTube tab — the YouTube score, "Do these first this week", what viewers of the niche watch most, new video ideas, and
    the 20 most-viewed and newest videos with 3 ready options each (Copy), the rest behind "Show more" — never a wall of every video */
 const copyBtn = (text) => `<button class="ghost copy" type="button" data-copy="${esc(text)}">Copy</button>`;
-function wireCopy(root = document) { root.querySelectorAll("[data-copy]").forEach((b) => { const label = b.textContent; b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied ✓"; } catch { b.textContent = "Select and copy by hand"; } setTimeout(() => (b.textContent = label), 1600); }; }); }
+function wireCopy(root = document) { root.querySelectorAll("[data-copy]").forEach((b) => { const label = b.textContent; b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied ✓"; } catch { b.textContent = "Select and copy by hand"; } setTimeout(() => (b.textContent = label), 1600); }; }); wireAIW(root); } // RR-318 A: the AI buttons are wired with the Copy buttons
 /* RR-317 C3: "Use this one" — the option's title, description and hashtags copied together, ready to paste into YouTube Studio */
 const useText = (o) => `${o.title}\n\n${o.description}\n\n${o.hashtags.join(" ")}`;
 /* RR-311 D1: "Apply to YouTube" on each option when the channel owner turned it on (never AlmiWorld's own channel) */
@@ -577,11 +577,15 @@ async function overview() {
     ${F.prices.length ? `<details><summary>Prices on your pages (${F.prices.length})</summary><table class="prices"><tr><th>Price</th><th>Page</th><th>What it is for (the page's own words)</th></tr>${F.prices.map((p) => `<tr><td><b>${esc(p.price)}</b></td><td>${esc(p.pageTitle)}<div class="src">${esc(p.page)}</div></td><td>${esc(p.for ?? "—")}</td></tr>`).join("")}</table></details>` : ""}
     ${F.notChecked ? `<p class="meta">${esc(F.notChecked)}</p>` : ""}
     ${F.missing.length ? `<h3>Add more sources</h3><ul>${F.missing.map((m) => `<li><b>${esc(m.what)}</b> — adds: ${esc(m.adds)} <button class="ghost" data-act="${esc(m.action)}">Connect</button></li>`).join("")}</ul>` : ""}`;
+  /* RR-318 B7 (owner: "the confirmation was tiny at the bottom and the Connect card still showed"): connected → said at the TOP */
+  const G = O.google, gscBar = G?.kind === "CONNECTED" ? `<div class="okbar" id="gscbar"><b>Connected ✓ — ${G.searches} search${G.searches === 1 ? "" : "es"} read</b> from Google Search Console (${esc(G.site)}, ${esc(G.window)}). <button class="ghost" id="gscpower">Positions and opportunities →</button></div>` : G?.kind === "EXPORT" ? `<div class="okbar" id="gscbar"><b>Search Console download added ✓ — ${G.searches} searches</b> (${esc(G.window)}).</div>` : "";
   const todo = O.todo.length ? `<h3>To-do</h3><ul>${O.todo.map((t) => `<li>${esc(t.what)} <button class="ghost" data-act="${esc(t.action)}">Add now</button></li>`).join("")}</ul>` : "";
-  $("#ov").innerHTML = `${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${willHtml}<div id="planbox">${fix}</div>${todo}
+  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}<div id="planbox">${fix}</div>${todo}
     <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
+  if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
   if ($("#fixaddr")) $("#fixaddr").onclick = () => act("settings");
+  if ($("#pcbtn")) $("#pcbtn").onclick = pageCountScreen; // RR-318 C1: a clear button on every product
   if (O.checking || (O.planning && !O.plan)) setTimeout(() => { if ($("#scorebox") && P === pid) overview(); }, 2000);
   if ($("#chk")) $("#chk").onclick = async () => { $("#chk").disabled = true; await post(`/api/products/${encodeURIComponent(P)}/check`, {}); overview(); };
   if ($("#chk2")) $("#chk2").onclick = () => $("#chk").click();
@@ -595,7 +599,24 @@ async function overview() {
   document.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act)));
 }
 /* RR-310 A1 · every finding as Problem → Solution → Ready to use (each ready text with Copy and where it came from) */
-function readyHtml(r) { return `<div class="opt"><b>${esc(r.label)}</b>${r.for ? ` <span class="meta">for ${esc(r.for)}</span>` : ""} ${copyBtn(r.text)}<pre>${esc(r.text)}</pre><div class="src">From: ${esc(r.source)}</div></div>`; }
+/* RR-318 A: every website text Visibility writes has "Write better with AI" under it — the same truth guard as YouTube; B: a block's note
+ * (FAQ markup is not shown in Google since 7 May 2026; no logo found) is said with it */
+const AIW_KIND = (r) => (r.block === "organization" ? "organization" : r.label === "New page title" ? "new page" : ["title", "meta description", "FAQ answer"].includes(r.kind) ? r.kind : null);
+const AIW_LABEL = { title: "Write better with AI", "meta description": "Write better with AI", "FAQ answer": "Write better with AI", "new page": "Write its opening answer with AI", organization: "Write its description with AI" };
+function aiwBtn(r) { const k = AIW_KIND(r); if (!k) return ""; const q = k === "FAQ answer" ? String(r.text).split("\n")[0] : k === "new page" ? r.text : ""; return `<p><button class="ghost" type="button" data-aiw="${esc(k)}" data-aiw-page="${esc(r.for ?? "")}" data-aiw-q="${esc(q)}" data-aiw-present="${esc(k === "new page" ? "" : r.text)}">${esc(AIW_LABEL[k])}</button> <span class="meta aiwmsg"></span></p><div class="aiwbox"></div>`; }
+function readyHtml(r) { return `<div class="opt"><b>${esc(r.label)}</b>${r.for ? ` <span class="meta">for ${esc(r.for)}</span>` : ""} ${copyBtn(r.text)}<pre>${esc(r.text)}</pre><div class="src">From: ${esc(r.source)}</div>${r.note ? `<p class="meta">${esc(r.note)}</p>` : ""}${aiwBtn(r)}</div>`; }
+function wireAIW(root = document) {
+  root.querySelectorAll("[data-aiw]").forEach((b) => (b.onclick = async () => {
+    const box = b.parentElement.nextElementSibling, msg = b.parentElement.querySelector(".aiwmsg");
+    b.disabled = true; note(msg, "Your AI is writing… (up to a minute)");
+    const r = await post(`/api/products/${encodeURIComponent(P)}/web/write`, { kind: b.dataset.aiw, page: b.dataset.aiwPage || null, question: b.dataset.aiwQ || null, present: b.dataset.aiwPresent || null });
+    b.disabled = false;
+    if (r.refused) { note(msg, `${r.refused}${r.aiCost ? ` ${r.aiCost}` : ""}`, r.fallback ? "info" : "err"); return; } // RR-317 A: the templates instead, said plainly — not an error
+    note(msg, `${r.options.length} option${r.options.length === 1 ? "" : "s"} written with your AI. ${r.aiCost ?? ""}`, "ok");
+    box.innerHTML = `<div class="opts">${r.options.map((o) => `<div class="opt"><b>AI option ${o.n}</b> <span class="meta">(${o.characters} characters)</span> ${copyBtn(o.text).replace(">Copy<", ">Use this one<")}<pre>${esc(o.text)}</pre>${o.check.length ? `<p class="warn">${o.check.map(esc).join("<br>")}</p>` : ""}<div class="src">${o.basedOn.map(esc).join("<br>")}</div></div>`).join("")}</div>`;
+    wireCopy(box);
+  }));
+}
 function itemHtml(i, k) {
   return `<div class="item"><h4>${k + 1}. ${esc(i.area)}</h4><p><b>Problem:</b> ${esc(i.problem)}</p><p><b>Solution:</b> ${esc(i.solution)}</p>
   ${i.ready?.length ? `<div><b>Ready to use</b>${i.ready.map(readyHtml).join("")}</div>` : ""}${i.note ? `<p class="meta">${esc(i.note)}</p>` : ""}${i.fixForMe ? `<p><button class="ghost" data-do="${esc(i.fixForMe)}">Fix it for me</button> <span class="domsg"></span></p>` : ""}</div>`;
@@ -649,6 +670,8 @@ async function openFeature(f) {
   if (r.needs) return (box.innerHTML = `<div class="card"><h3>First, Visibility needs:</h3><ul>${r.needs.map((n) => `<li>${esc(n.what)} <button data-act="${esc(n.action)}">Set it up now</button></li>`).join("")}</ul><button class="ghost" id="skipneed">Skip for now</button></div>`, document.querySelectorAll("#featbox [data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act))), ($("#skipneed").onclick = () => (box.innerHTML = "")));
   if (r.open === "youtube") return work("YouTube");
   if (r.open === "google") return googleScreen();
+  if (r.open === "page-count") return pageCountScreen(); // RR-318 C
+  if (r.open === "search") return searchScreen(); // RR-318 D
   if (r.open === "publish") return work("Pages and articles");
   if (r.card || r.checking) return overview();
   if (r.result) return (setTimeout(() => wireCopy(box), 0), box.innerHTML = `<div class="card"><h3>${esc(r.result.title)}</h3><p class="meta">${esc(r.result.read)}</p><ul class="lines">${r.result.lines.map(lineHtml).join("")}</ul>${r.result.note ? `<p class="meta">${esc(r.result.note)}</p>` : ""}</div>`);
@@ -770,7 +793,7 @@ async function googleSignInScreen(back = null) {
 async function googleScreen() {
   if (!(await here("googleScreen"))) return;
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`), g = O.google;
-  const status = g.kind === "CONNECTED" ? `<p class="ok">Connected ✓ — ${esc(g.site)} (${esc(g.window)})</p>` : g.kind === "EXPORT" ? `<p class="ok">Search Console download added ✓ (${esc(g.window)})</p>` : `<p><b>Not connected</b> — connect now to bring in the real searches people make.</p>`;
+  const status = g.kind === "CONNECTED" ? `<div class="okbar" id="gscbar"><b>Connected ✓ — ${g.searches} search${g.searches === 1 ? "" : "es"} read</b> from ${esc(g.site)} (${esc(g.window)}). <button class="ghost" id="gscpower">Positions and opportunities →</button></div>` : g.kind === "EXPORT" ? `<p class="ok">Search Console download added ✓ (${esc(g.window)})</p>` : `<p><b>Not connected</b> — connect now to bring in the real searches people make.</p>`;
   $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>Google Search Console</h2>${status}
     <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><button id="connect">Connect Google</button>`) : `<p class="meta">Google sign-in is off — switch it on with the button "Google sign-in: switch it on" below. Meanwhile, add Search Console's download file below — it gives the same searches.</p>`}
     <h3 style="margin-top:14px">Or add Search Console's download</h3><div class="howto">${esc(O.howTo.google)}</div><label>The download (the ZIP, or its CSV files)<input id="gf" type="file" accept=".zip,.csv" multiple></label><button id="gup">Add the download</button>
@@ -779,11 +802,71 @@ async function googleScreen() {
   wireGuides();
   $("#back").onclick = () => work("Overview");
   if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); signinOpened($("#err"), r, "Google will ask which account — choose the Google account that owns your Search Console.", async () => (await get("/api/google/client")).signedIn === true, () => googleScreen()); };
-  if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); }; }
+  if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 600); }; } // RR-318 B7: the screen is drawn again — Connected ✓ at the top
   $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 1200); };
   $("#gsignon").onclick = () => googleSignInScreen(googleScreen); // RR-313 B1: the one place
+  if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
 }
-Object.assign(SCREENS, { home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen });
+/*
+ * RR-318 C · "HOW MANY PAGES CAN I MAKE FOR THIS PRODUCT?" (the owner's own design): 1 what the product is about and its official site;
+ * 2 the dimensions (several can be picked), each with its list; 3 the reality filter, each kept item with its official page and date;
+ * 4 the honest advice and the number; 5 "Make these pages (drafts)".
+ */
+const DIM_INPUT = { universities: "file", roles: "file", subjects: "both", cities: "both", own: "text" };
+async function pageCountScreen() {
+  if (!(await here("pageCountScreen"))) return;
+  const pid = P, C = await get(`/api/products/${encodeURIComponent(P)}/count`);
+  if (P !== pid) return;
+  const L = C.last, A = L?.advice, R = L?.result;
+  const dimRow = (d) => `<label class="choice"><input type="checkbox" name="dim" value="${esc(d.id)}" ${L?.dims?.includes(d.id) ? "checked" : ""}> <b>${esc(d.label)}</b> <span class="meta">— the list: ${esc(d.list)}</span>
+    ${DIM_INPUT[d.id] === "file" || DIM_INPUT[d.id] === "both" ? `<input type="file" data-dimfile="${esc(d.id)}" accept=".json,.csv,.txt">` : ""}${DIM_INPUT[d.id] === "text" || DIM_INPUT[d.id] === "both" ? `<textarea data-dimtext="${esc(d.id)}" placeholder="One per line"></textarea>` : ""}</label>`;
+  const keptHtml = (id, x) => `<details ${id === "countries" ? "open" : ""}><summary><b>${esc(C.dimensions.find((d) => d.id === id)?.label ?? id)}</b>: ${x.candidates.toLocaleString("en-US")} → <b>${x.kept.length} kept</b>${x.inScope !== undefined ? ` <span class="meta">(${x.inScope} in the kept countries and subjects; ${x.notRead.length} not read yet)</span>` : ""}</summary>
+    ${x.missing ? `<p class="warn">${esc(x.missing)}</p>` : ""}<ol>${x.kept.slice(0, 80).map((k) => `<li><b>${esc(k.name)}</b>${k.profession ? ` <span class="meta">(${esc(k.profession)})</span>` : ""} — ${esc(k.how)}<div class="src">Source: <a href="${esc(k.source.url)}" target="_blank" rel="noopener">${esc(k.source.title ?? k.source.url)}</a> · checked ${esc(k.checkedOn)}</div></li>`).join("")}</ol>
+    ${x.kept.length > 80 ? `<p class="meta">…and ${x.kept.length - 80} more.</p>` : ""}<details><summary class="meta">Not kept (${x.dropped.length})</summary><ul>${x.dropped.slice(0, 60).map((k) => `<li class="meta">${esc(k.name)} — ${esc(k.why)}</li>`).join("")}</ul></details></details>`;
+  $("#app").innerHTML = `<div class="card"><h2>How many pages can I make for ${esc(S.product.name)}?</h2><p class="ask">Visibility keeps only what an official page confirms — each with its page and the day it was checked — and then says honestly how many pages are possible and good.</p>
+    ${C.almiworld ? `<p class="warn">AlmiWorld's own product: the pages are made as drafts only — nothing is published (owner's rule).</p>` : ""}
+    <h3>1 · What is your product about?</h3><label>Its subject, as people search it (for example OET)<input id="pcsub" value="${esc(C.subject ?? "")}"></label><label>That subject's own official site (for example oet.com)<input id="pcsite" value="${esc(C.site ?? "")}" placeholder="oet.com"></label>
+    <h3>2 · Pages for what? (choose one or more)</h3>${C.dimensions.map(dimRow).join("")}
+    <p><button id="pcgo">Count the pages</button> <span id="pcmsg"></span></p><div class="err" id="err"></div></div>
+    <div id="pcres">${C.running ? `<div class="card"><p><b>Counting…</b> ${esc(C.progress?.stage ?? "Starting")}</p><div class="progress"><div style="width:40%"></div></div><p class="meta">Visibility reads official pages slowly (one every 2 seconds), robots obeyed. You can leave this screen.</p></div>` : ""}
+    ${R && !C.running ? (R.ok === false ? `<div class="card"><p class="err">${esc(R.why)}</p></div>` : `<div class="card"><h3>3 · What is real — checked on official pages</h3><p class="meta">${esc(R.subjectName)}'s own site: ${esc(R.subjectSite)} — ${R.pagesListed} pages listed, read on ${esc(R.checkedOn)}.</p>${Object.entries(R.dims).map(([id, x]) => keptHtml(id, x)).join("")}</div>`) : ""}
+    ${A && !C.running ? `<div class="card plan"><h3>4 · The advice</h3><p class="${A.verdict === "YES" ? "ok" : "warn"}" id="pcverdict"><b>${esc(A.line)}</b></p><p>${esc(A.why ?? "")}</p><p class="meta">The sameness rule: ${esc(A.sameness)}</p>
+      <h3>The ${A.number} page${A.number === 1 ? "" : "s"}</h3><ol>${A.pages.map((p) => `<li><b>${esc(p.title)}</b>${p.searched.length ? ` <span class="tag">searched: ${esc(p.searched.join(" · "))}</span>` : ""}${p.sections.map((s) => `<div class="meta">Section — ${esc(s.dim)}: ${esc(s.items.slice(0, 12).join(", "))}${s.items.length > 12 ? ` and ${s.items.length - 12} more` : ""}</div>`).join("")}${p.bodies?.length ? `<div class="meta">Bodies named on the official page: ${esc(p.bodies.slice(0, 5).join(", "))}</div>` : ""}<div class="src">Source: <a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.title ?? p.source.url)}</a> · checked ${esc(p.checkedOn)}</div></li>`).join("")}</ol>
+      <h3>5 · Make them</h3><p class="meta">Each page is answered from its official pages: ${esc(R.subjectName)}'s own page, and each body's own page you add (or your AI finds — Visibility reads every one itself before it is used).</p>
+      <p><button id="pcmake">Make these pages (drafts)</button> <button class="ghost" id="pcai">Find the official bodies' pages with my AI</button> <span id="pcmk"></span></p>
+      <details><summary>Add an official page yourself</summary><label>Country<input id="opc"></label><label>The body (for example Nursing and Midwifery Board of Ireland)<input id="opb"></label><label>Its official page's address<input id="opu"></label><button class="ghost" id="opadd">Read and add</button> <span id="opmsg"></span></details></div>` : ""}</div>`;
+  if (C.running) setTimeout(() => { if (P === pid && $("#pcres")) pageCountScreen(); }, 2500);
+  $("#pcgo").onclick = async () => {
+    const dims = [...document.querySelectorAll("input[name=dim]:checked")].map((x) => x.value);
+    const files = []; for (const f of document.querySelectorAll("[data-dimfile]")) for (const file of f.files) files.push({ dim: f.dataset.dimfile, name: file.name, base64: await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(file); }) });
+    const typed = Object.fromEntries([...document.querySelectorAll("[data-dimtext]")].map((t) => [t.dataset.dimtext, t.value]));
+    const r = await post(`/api/products/${encodeURIComponent(P)}/count`, { dims, subject: $("#pcsub").value, site: $("#pcsite").value, files, typed });
+    if (r.refused) return note($("#err"), r.refused, "err");
+    pageCountScreen();
+  };
+  if ($("#pcmake")) $("#pcmake").onclick = async () => { $("#pcmake").disabled = true; note($("#pcmk"), "Reading the official pages and making the drafts… (a few minutes)"); const r = await post(`/api/products/${encodeURIComponent(P)}/count/make`, {}); $("#pcmake").disabled = false; note($("#pcmk"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
+  if ($("#pcai")) $("#pcai").onclick = async () => { note($("#pcmk"), "Your AI is searching; then Visibility reads each page itself… (a few minutes)"); const r = await post(`/api/products/${encodeURIComponent(P)}/official/suggest`, { items: A.pages.map((p) => p.item) }); note($("#pcmk"), r.refused ?? `${r.suggested} pages suggested and read — each kept only where its own text says it. ${r.aiCost ?? ""}`, r.ok ? "ok" : "err"); };
+  if ($("#opadd")) $("#opadd").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/official/page`, { item: $("#opc").value, body: $("#opb").value, url: $("#opu").value }); note($("#opmsg"), r.refused ?? [...r.claims.map((c) => c.text), ...r.notSaid.map((n) => n.line)].join(" · "), r.ok ? "ok" : "err"); };
+}
+/* RR-318 D · Search Console power: rank tracking, opportunities, alerts — and the Generative AI report, said plainly */
+async function searchScreen() {
+  if (!(await here("searchScreen"))) return;
+  const pid = P, X = await get(`/api/products/${encodeURIComponent(P)}/search`);
+  if (P !== pid) return;
+  const W = X.power, trendIcon = (t) => (t === "better" ? "▲" : t === "worse" ? "▼" : t === "new" ? "new" : t === "same" ? "=" : "–");
+  $("#app").innerHTML = `<div class="card"><h2>Search Console — positions, opportunities and alerts</h2>
+    ${X.connected ? `<div class="okbar"><b>Connected ✓ — ${X.searches} searches read</b> from ${esc(X.site)} (${esc(X.window)}).</div>` : `<p class="warn">Connect Google Search Console first. <button class="ghost" id="sgo">Connect</button></p>`}
+    <p><button id="sread" ${X.connected ? "" : "disabled"}>${W ? "Read again from Google" : "Read 3 months of positions from Google"}</button> <span id="smsg"></span></p>
+    ${W ? `${W.thin ? `<p class="warn">${esc(W.thin)}</p>` : ""}<p class="meta">${esc(W.tracking.note)}</p>
+    <h3>Rank tracking — ${W.tracking.rows.length} phrase${W.tracking.rows.length === 1 ? "" : "s"}, week by week</h3><div style="overflow-x:auto"><table class="prices" id="ranks"><tr><th>Search phrase → page</th>${W.weeks.map((w) => `<th>${esc(w.to.slice(5))}</th>`).join("")}<th>Trend</th></tr>${W.tracking.rows.slice(0, 100).map((r) => `<tr><td>${esc(r.query)}<div class="src">${esc(r.page)}</div></td>${r.byWeek.map((p) => `<td>${p ?? "–"}</td>`).join("")}<td>${trendIcon(r.trend)} <span class="meta">${esc(r.trend)}</span></td></tr>`).join("")}</table></div>
+    <h3>Opportunities — position 8 to 20 (${W.opportunities.length})</h3>${W.opportunities.length ? W.opportunities.map((o, k) => itemHtml({ area: "Opportunity", problem: o.problem, solution: o.solution, ready: o.ready }, k)).join("") : `<p class="meta">No phrase is at position 8–20 yet.</p>`}
+    <h3>Alerts (${W.alerts.length})</h3>${W.alerts.length ? `<ul>${W.alerts.map((a) => `<li><b>${esc(a.line)}</b><div>${esc(a.refresh)}</div></li>`).join("")}</ul>` : `<p class="meta">Nothing dropped and no page is losing clicks.</p>`}
+    <h3>Generative AI performance (AI Overviews, AI Mode)</h3><p class="msg-info" id="genai">${esc(W.genai.line)}</p>` : `<p class="meta">${esc((X.connected ? "" : ""))}Press the button to read where each of your searches stands, week by week.</p>`}</div>`;
+  wireCopy($("#app"));
+  if ($("#sgo")) $("#sgo").onclick = googleScreen;
+  $("#sread").onclick = async () => { $("#sread").disabled = true; note($("#smsg"), "Reading from Google… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/search/read`, {}); if (r.refused) { $("#sread").disabled = false; return note($("#smsg"), r.refused, "err"); } searchScreen(); };
+}
+Object.assign(SCREENS, { home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen, pageCountScreen, searchScreen });
 const hash = location.hash.slice(1);
 const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });
 /* RR-303: #plan opens "Your plan"; #youtube=<product id> opens that product's YouTube settings (a link straight to a screen) */

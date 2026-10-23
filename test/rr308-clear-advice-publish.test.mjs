@@ -160,8 +160,11 @@ test("B6 · AI WRITING with the client's own key: only Anthropic's address, the 
   assert.deepEqual(inventedIn("Morning Routine in Paris", materialOf(video, ctx)), ["Paris"], "a place outside the material was not caught, or an ordinary word was");
 });
 
-test("C1 · FIX IT FOR ME descriptions: from each page's own sentences, unique per page, complete, 120–160 characters, never '…', never a line the site repeats, never a card fragment; two options each", () => {
-  const page = (url, h1, lead) => ({ url, h1, title: h1, description: null, lead, h2: [] });
+/* RR-318 B1 (owner, 23 Oct 2026: "meta descriptions are sentences lifted from the page, not written descriptions") replaces the RR-308 C1
+ * rule "from each page's own sentences": a description is WRITTEN — the page's main heading and what its sections cover — complete, never
+ * cut, never "…", never a sentence lifted from the page's body, unique per page */
+test("C1 · FIX IT FOR ME descriptions: WRITTEN from what the page gives (its heading and its sections), unique per page, complete, at most 160 characters, never '…', never a body sentence lifted", () => {
+  const page = (url, h1, lead, h2 = ["What the test covers", "How it is marked", "What it costs"]) => ({ url, h1, title: h1, description: null, lead, h2, qa: [] });
   /* both of a length a description could take (120–160) — only the boilerplate and fragment rules keep them out */
   const shared = "Each of these seventeen questions is answered below on this page, and each answer comes with its own source and the day it was checked.";
   const fragment = "Fee AU$587 Source: OET results and scoring · checked 2026-10-15 What is the fee for nurses in Pakistan today, and how is it paid please.";
@@ -170,19 +173,22 @@ test("C1 · FIX IT FOR ME descriptions: from each page's own sentences, unique p
   const pages = [
     page("https://x.test/a", "OET for nurses", [long, "The OET for nurses tests the English used every day on a hospital ward, in all four skills, with tasks taken from real care settings.", "Most nurses need a B in each sub-test, and this page shows what each band means for registration in Ireland and the UK.", shared]),
     page("https://x.test/b", "OET for doctors", ["Doctors take the same Listening and Reading tests as nurses, but their Writing task is a referral letter to another doctor about a patient.", shared, "1800 Source: HCPC — English language proficiency · checked 2026-10-15 What OET score do speech therapists need?", fragment]),
-    page("https://x.test/c", "Short", ["Too short."]),
-    page("https://x.test/d", "Questions", [shared, fragment]),
+    page("https://x.test/c", "Short", ["Too short."], []),
+    page("https://x.test/d", "Questions", [shared, fragment], ["Key facts", "Questions and answers"]),
   ];
-  const items = fixForMe("meta-description", { ok: true, pages, design: {} });
+  const items = fixForMe("meta-description", { ok: true, origin: "https://x.test", pages, design: {} });
   const all = items.flatMap((x) => x.options ?? []).map((o) => o.text);
-  assert.ok(items.find((x) => x.page.endsWith("/a")).options.length === 2);
+  assert.equal(items.find((x) => x.page.endsWith("/a")).options[0].text, "OET for nurses. Inside: what the test covers; how it is marked; what it costs.");
+  const lead = pages.flatMap((p) => p.lead);
   for (const t of all) {
-    assert.ok(t.length >= 90 && t.length <= 160, `${t.length}: ${t}`);
+    assert.ok(t.length >= 70 && t.length <= 160, `${t.length}: ${t}`);
     assert.doesNotMatch(t, /…|answered below|Source:|checked 2026/, t);
-    assert.match(t, /[.!]$/);
+    assert.match(t, /[.!?]$/);
+    assert.ok(!lead.some((s) => t.includes(s)), `a sentence lifted from the page: ${t}`);
   }
   assert.equal(new Set(all).size, all.length, "the same description for two pages");
-  assert.match(items.find((x) => x.page.endsWith("/c")).none, /too little text of its own/);
+  assert.match(items.find((x) => x.page.endsWith("/c")).none, /too little of its own/);
+  assert.match(items.find((x) => x.page.endsWith("/d")).none, /too little of its own/, "a page whose sections say nothing ('Key facts') got a description");
   assert.equal(boilerplate(pages).size, 2, "the two repeated lines (the shared one and the card fragment) were not found as boilerplate");
 });
 

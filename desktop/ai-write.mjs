@@ -234,3 +234,5 @@ export async function writeWithAI({ provider, key, video, ctx, fetchImpl = fetch
       basedOn: [`Written with your AI (Claude, ${AI.model}) from ${used} — checked: no place, person, price or claim outside them`, ...o.corrected.map((c) => `corrected from your description: ${c}`), ...(o.facts ?? []).slice(0, 3).map((x) => `fact: ${x.fact} — from "${x.quote}"`)] })) };
 }
 const sum = (us) => (us.length ? { input: us.reduce((n, u) => n + (u.input ?? 0), 0), output: us.reduce((n, u) => n + (u.output ?? 0), 0) } : null);
+/* RR-318 A: the same truth guard writes for the website (desktop/web-ai.mjs) — one set of rules, never a copy */
+export { lev, numbersIn, wordsIn, PRICE as PRICE_IN_TEXT, COMMON as COMMON_WORDS };

@@ -119,6 +119,26 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       if (!j) return null;
       return { kind: "CONNECTED", on: d(0), window: `${d(93)} to ${d(3)}`, queries: (j.rows ?? []).map((r) => ({ query: r.keys[0], clicks: r.clicks, impressions: r.impressions })), site: siteUrl };
     },
+    /**
+     * RR-318 D1 · RANK TRACKING from Search Console's own data (free): each of the last `weeks` weeks (Search Console's data is a few days
+     * old), every search phrase with the page Google showed, its clicks, impressions and AVERAGE position — Google's own figure, never ours.
+     */
+    /* ONE request for the whole window (each day, phrase and page), put into weeks here: a week's position is Google's daily average
+     * positions weighted by that day's impressions (RR-318 proof: 8 weekly requests gave nothing where the searches were older) */
+    async performance(siteUrl, { weeks = 13 } = {}) {
+      const d = (n) => new Date(now() - n * 86400000).toISOString().slice(0, 10);
+      const j = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate: d(3 + 7 * weeks - 1), endDate: d(3), dimensions: ["date", "query", "page"], rowLimit: 25000, type: "web" }) });
+      if (!j) return null;
+      const out = Array.from({ length: weeks }, (_, k) => ({ from: d(3 + 7 * k + 6), to: d(3 + 7 * k), rows: new Map() }));
+      const end = Date.parse(`${d(3)}T00:00:00Z`);
+      for (const r of j.rows ?? []) {
+        const k = Math.floor((end - Date.parse(`${r.keys[0]}T00:00:00Z`)) / (7 * 86400000)); if (!(k >= 0 && k < weeks)) continue;
+        const key = `${r.keys[1]}\u0000${r.keys[2]}`, x = out[k].rows.get(key) ?? { query: r.keys[1], page: r.keys[2], clicks: 0, impressions: 0, weighted: 0 };
+        x.clicks += r.clicks; x.impressions += r.impressions; x.weighted += r.position * Math.max(1, r.impressions); x.n = (x.n ?? 0) + Math.max(1, r.impressions);
+        out[k].rows.set(key, x);
+      }
+      return { kind: "PERFORMANCE", on: d(0), site: siteUrl, weeks: out.reverse().map((w) => ({ from: w.from, to: w.to, rows: [...w.rows.values()].map(({ weighted, n, ...x }) => ({ ...x, position: Math.round((weighted / n) * 10) / 10 })) })) };
+    },
     signOut() { keys.remove(KEYS.refresh); access = null; },
   });
 }

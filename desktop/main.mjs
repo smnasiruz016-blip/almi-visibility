@@ -36,6 +36,12 @@ import { guidePage } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
 import { actionPlan, willDo, planDocument, isAlmiWorld, subjectOf } from "./action-plan.mjs";
 import { plainYouTubeWhy } from "../src/video/youtube.mjs"; // RR-313 A3
+import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS } from "./web-ai.mjs"; // RR-318 A
+import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
+import { realityFilter, advise, listFromFile, DIMENSIONS } from "./page-count.mjs"; // RR-318 C
+import { searchPower, mergeHistory } from "./search-power.mjs"; // RR-318 D
+import { siteNameOf } from "./web-text.mjs";
+import { destinationsIn } from "./world.mjs";
 import { newIndexNowKey, checkKeyFile, keyFileHowTo, keyFileUrl, indexNow, inSitemap, submissionLines, INDEXNOW_ENDPOINT } from "./submit.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -136,7 +142,7 @@ const progressOf = (id) => { const p = progress.get(id); return p ? { ...p, seco
 const searchConsoleOf = (id) => pread(id, "search-console.json");
 function contextOf(id) {
   const s = store.read(id), site = pread(id, "site-read.json"), sc = searchConsoleOf(id), files = (() => { try { return JSON.parse(readFileSync(pfile(id, "search-data-files.json"), "utf8")); } catch { return []; } })();
-  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), noWebsite: !hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), files: files.length > 0, drafts: Boolean(pread(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
+  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), noWebsite: !hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), searchConsoleKind: sc?.kind ?? null, files: files.length > 0, drafts: Boolean(pread(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
 }
 /* ── RR-308 D · publishing ── */
 /* each product's connection key has its own NAME in Windows' secure store (two products may be two WordPress sites) */
@@ -149,7 +155,7 @@ async function publishOne(id, url) {
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
   if (!site) return { ok: false, why: "Check your product first — the gates need your site's latest read." };
-  const again = seoPages({ site, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}) });
+  const again = seoPages({ site, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) });
   const d = again.drafts.find((x) => x.url === url);
   if (!d) return { ok: false, why: "This draft is out of date — what Visibility knows changed since it was made. Press Create SEO pages again." };
   if (!d.readyAsDraft) return { ok: false, gates: d.gates, why: `Not published — a check failed right before publishing: ${d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `${g.words}: ${g.failing.join("; ")}`).join(" · ")}` };
@@ -189,7 +195,7 @@ async function buildPlan(id) {
     if (ctx.youtubeConfirmed && ctx.youtubeKey) { try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
     const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
     const web = hasWebsite(s) && site?.ok ? site : null;
-    const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}) }) : null;
+    const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) }) : null;
     const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on });
     const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
     pwrite(id, "plan.json", plan);
@@ -201,11 +207,38 @@ async function buildPlan(id) {
 const weeklyOf = (id) => { const w = pread(id, "weekly.json", {}), c = pread(id, "check.json"); const last = c?.on ?? null; return { on: w.on !== false, last, next: last ? new Date(Date.parse(last) + 7 * 864e5).toISOString() : null }; };
 const willDoOf = (id, plan) => { const s = store.read(id), sc = searchConsoleOf(id), inx = pread(id, "indexnow.json");
   return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: isAlmiWorld(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: subjectOf({ what: s.setup?.product?.what, name: s.product?.name }) }); };
+/* ── RR-318 · the official answers, "How many pages", the website's AI writing, Search Console power ── */
+const officialOf = (id) => pread(id, "official.json", {});
+const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
+const plannedOf = (id) => pread(id, "planned.json", []);
+/* the client's AI (Settings → Your AI connection): its provider and key — the key only ever goes to the provider */
+const aiOf = (s) => { const c = s.setup?.aiConnection, p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName); return p && KEYS.status(p.keyName).saved ? { provider: p.id, key: KEYS.get(p.keyName) } : null; };
+const reader = () => officialReader({ allowLocal, on: new Date().toISOString(), ...(Number.isInteger(CONFIG.testOfficialPaceMs) ? { paceMs: CONFIG.testOfficialPaceMs } : {}) });
+/* what the product is about, and the official site of that (e.g. "OET", oet.com) — the client says it once in "How many pages"; a short
+ * name in brackets in the product's own description is offered first */
+const aboutOf = (s) => s.setup?.official?.subject ?? /\(([A-Z][A-Z0-9]{1,9})\)/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? null;
+/** the official answers for the countries the searches are about: the subject's own page for each, and each body's own page — read here */
+async function refreshOfficial(id, countries) {
+  const s = store.read(id), o = s.setup?.official; if (!o?.subject || !o?.site) return { ok: false, why: "Tell Visibility what your product is about and that subject's official site (How many pages can I make? → step 1) — new pages are answered from the official bodies." };
+  const have = officialOf(id), notSaid = pread(id, "official-notsaid.json", {}), leads = pread(id, "official-sources.json", {}), rd = reader();
+  const sm = await rd.sitemapOf(o.site); if (!sm.ok) return { ok: false, why: `${o.site} could not be read: ${sm.why}` };
+  const { itemOnSubjectSite } = await import("./official.mjs");
+  for (const c of countries) {
+    const kept = await itemOnSubjectSite({ item: c, subject: o.subject, subjectName: o.subject, sitemapUrls: sm.urls, reader: rd });
+    const r = await officialClaims({ country: c, subject: o.subject, subjectName: o.subject, kept, bodyPages: leads[c] ?? [], reader: rd });
+    have[c] = r.claims; notSaid[c] = [...r.notSaid, ...(kept.kept ? [] : [{ body: o.subject, url: o.site, checkedOn: kept.checkedOn, line: `${o.subject}'s official site, checked ${kept.checkedOn}, does not say this (${kept.why}).` }])];
+  }
+  pwrite(id, "official.json", have); pwrite(id, "official-notsaid.json", notSaid);
+  return { ok: true, requests: rd.requests() };
+}
 /** Create SEO pages: the drafts (kept in pages.json); published at once only when the client chose "automatically after the gates" */
 async function createPages(id) {
   const { s, site, sc, files, ctx } = contextOf(id);
   const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
-  const pages = seoPages({ site, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}) });
+  /* RR-318 B6: the countries the searches are about get their official answers first (read once; a country already read is kept) */
+  const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
+  if (want.length && s.setup?.official?.site) await refreshOfficial(id, want.slice(0, 12)).catch(() => null);
+  const pages = seoPages({ site, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) });
   pwrite(id, "pages.json", pages);
   /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
   let auto = null;
@@ -372,7 +405,7 @@ const server = createServer((req, res) => {
             const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
             const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
             return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, weekly: weeklyOf(id), since, almiworld: isAlmiWorld(s), noWebsite: ctx.noWebsite,
-              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null }, howTo: HOWTO });
+              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
           }
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
           if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
@@ -436,9 +469,11 @@ const server = createServer((req, res) => {
             if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }) });
             if (f === "youtube") return send(200, { open: "youtube" });
             if (f === "google") return send(200, { open: "google" });
+            if (f === "page-count") return send(200, { open: "page-count" }); // RR-318 C
+            if (f === "search-power") return send(200, { open: "search" }); // RR-318 D
             if (f === "publish") return send(200, { open: "publish" });
             if (f === "seo-pages" || f === "articles") {
-              const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}) });
+              const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) });
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
               let auto = null;
@@ -454,6 +489,84 @@ const server = createServer((req, res) => {
             if (f === "social") { const p = pread(id, "pages.json"); const d = p?.drafts?.[0]; return send(200, { social: socialFor(d, p?.plan?.find((x) => x.kind === "NEW" && d?.title === x.question) ?? p?.plan?.find((x) => x.kind === "NEW")) }); }
             if (f === "monthly") { const rep = monthReport({ product: s.product?.name, month: new Date().toISOString().slice(0, 7), drafts: pread(id, "pages.json")?.drafts ?? [], searchRecord: sc?.record ?? null, youtube: ctx.youtubeConfirmed ? { connected: true, lines: await YT.lines(id) } : null }); return send(200, { report: { lines: rep.lines, attention: rep.attention } }); }
             return send(404, { refused: "not a feature of this version" });
+          }
+        } }
+      /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+        if (r) {
+          const id = decodeURIComponent(r[1]);
+          try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
+          const { s, site, sc, files } = contextOf(id);
+          /* A · "Write better with AI" under a website item: its page's fact sheet (and its official answers), the same truth guard as YouTube */
+          if (r[2] === "web/write" && req.method === "POST") {
+            const v = json(); if (!WEB_KINDS[v.kind]) return send(400, { refused: "Visibility does not write that with AI." });
+            if (!site) return send(400, { refused: "Check your product first — the AI writes from your pages." });
+            const ai = aiOf(s); if (!ai) return send(400, { refused: "Connect your AI key first (Settings → Your AI connection)." });
+            const ok = LEDGER.allowed(); if (!ok.ok) return send(400, { refused: ok.why });
+            const page = site.pages.find((p) => p.url === v.page) ?? (v.kind === "organization" ? site.pages[0] : null);
+            const official = v.kind === "new page" || v.kind === "FAQ answer" ? destinationsIn(v.question ?? v.present ?? "").flatMap((c) => officialOf(id)[c] ?? []) : [];
+            const material = webMaterial({ kind: v.kind, page, siteName: siteNameOf(site), origin: site.origin, question: v.question ?? null, present: v.present ?? null, official, productWhat: v.kind === "organization" ? s.setup?.product?.what : null });
+            const out = await writeWebWithAI({ ...ai, kind: v.kind, material, siteName: siteNameOf(site), ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) });
+            for (const x of out.usages ?? []) LEDGER.add(x);
+            return send(out.ok ? 200 : 400, out.ok ? { ...out, aiCost: LEDGER.line() } : { refused: out.why, fallback: out.fallback === true, aiCost: LEDGER.line() });
+          }
+          /* C · "How many pages can I make?" — the last answer, or the one running now */
+          if (r[2] === "count" && req.method === "GET") return send(200, { dimensions: DIMENSIONS, running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), site: s.setup?.official?.site ?? "", last: pread(id, "page-count.json"), almiworld: isAlmiWorld(s) });
+          if (r[2] === "count" && req.method === "POST") {
+            const v = json(); const dims = (Array.isArray(v.dims) ? v.dims : []).filter((d) => DIMENSIONS.some((x) => x.id === d));
+            if (!dims.length) return send(400, { refused: "Choose at least one: countries, universities, professions, subjects, cities or your own." });
+            const subject = String(v.subject ?? "").trim(), offSite = webAddress(String(v.site ?? "").trim());
+            if (!subject || !offSite) return send(400, { refused: "Say what your product is about (for example OET) and that subject's own official site (for example oet.com)." });
+            if (counting.has(id)) return send(409, { refused: "A count is running for this product — wait for it to finish." });
+            const lists = {};
+            for (const f of Array.isArray(v.files) ? v.files : []) { const x = listFromFile(String(f.name ?? ""), Buffer.from(String(f.base64 ?? ""), "base64").toString("utf8")); if (!x.ok) return send(400, { refused: `${f.name}: ${x.why}` }); lists[f.dim] = [...(lists[f.dim] ?? []), ...x.items]; }
+            for (const [dim, text] of Object.entries(v.typed ?? {})) { const items = String(text ?? "").split(/\r?\n/).map((t) => t.trim()).filter(Boolean).map((name) => ({ name })); if (items.length) lists[dim] = [...(lists[dim] ?? []), ...items]; }
+            const st = store.read(id); st.setup.official = { subject, site: offSite }; store.write(id, st);
+            const run = (async () => {
+              const res = await realityFilter({ dims, lists, subject, subjectName: subject, subjectSite: offSite, reader: reader(), onProgress: (p) => countProgress.set(id, { stage: p, at: new Date().toISOString() }) });
+              const demand = [...(sc?.queries ?? []).map((q) => ({ text: q.query })), ...files.map((f) => ({ text: f.phrase }))];
+              pwrite(id, "page-count.json", { on: new Date().toISOString(), dims, subject, site: offSite, result: res, advice: advise(res, { demand }) });
+            })().catch((e) => pwrite(id, "page-count.json", { on: new Date().toISOString(), dims, subject, site: offSite, result: { ok: false, why: `The count stopped: ${e.message}` }, advice: null })).finally(() => { counting.delete(id); countProgress.delete(id); });
+            counting.set(id, run);
+            return send(200, { ok: true, running: true });
+          }
+          /* C5 · "Make these pages (drafts)" — the chosen pages, each answered from its official pages; nothing is published for AlmiWorld */
+          if (r[2] === "count/make" && req.method === "POST") {
+            const c = pread(id, "page-count.json"); if (!c?.advice?.pages?.length) return send(400, { refused: "Count first — then make the pages Visibility advised." });
+            if (!site) return send(400, { refused: "Check your website first — the pages are made in its look and linked to it." });
+            pwrite(id, "planned.json", c.advice.pages.map((p) => ({ text: p.title, source: `How many pages: ${c.subject}'s own page for ${p.item}, checked ${p.checkedOn}` })));
+            await refreshOfficial(id, c.advice.pages.map((p) => p.item).filter((x) => destinationsIn(x).length));
+            const x = await createPages(id); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
+            didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (${c.advice.pages.length} advised).`);
+            return send(200, { ok: true, line: `${n} draft${n === 1 ? "" : "s"} made — read them under "Pages and articles".${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}`, drafts: n });
+          }
+          /* B6 · the official pages per country: what was read, what each says, and the leads to read (pasted, or suggested by the client's AI) */
+          if (r[2] === "official" && req.method === "GET") return send(200, { subject: aboutOf(s), site: s.setup?.official?.site ?? null, claims: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), leads: pread(id, "official-sources.json", {}) });
+          if (r[2] === "official/page" && req.method === "POST") {
+            const v = json(), item = String(v.item ?? "").trim(); let url; try { url = new URL(String(v.url ?? "").trim()); } catch { return send(400, { refused: "That is not a web address." }); }
+            if (!/^https?:$/.test(url.protocol) || !item) return send(400, { refused: "Give the country and the official page's address." });
+            const leads = pread(id, "official-sources.json", {}); leads[item] = v.remove ? (leads[item] ?? []).filter((x) => x.url !== url.href) : [...(leads[item] ?? []).filter((x) => x.url !== url.href), { url: url.href, body: String(v.body ?? "").trim() || null, from: "you" }];
+            pwrite(id, "official-sources.json", leads);
+            const o = await refreshOfficial(id, [item]); return send(o.ok ? 200 : 400, o.ok ? { ok: true, claims: officialOf(id)[item] ?? [], notSaid: pread(id, "official-notsaid.json", {})[item] ?? [] } : { refused: o.why });
+          }
+          if (r[2] === "official/suggest" && req.method === "POST") {
+            const ai = aiOf(s); if (!ai) return send(400, { refused: "Connect your AI key first (Settings → Your AI connection) — or paste the official pages yourself." });
+            const ok = LEDGER.allowed(); if (!ok.ok) return send(400, { refused: ok.why });
+            const items = (Array.isArray(json().items) ? json().items : []).slice(0, 10).map(String); if (!items.length || !aboutOf(s)) return send(400, { refused: "Count first, then ask for the official pages of the countries kept." });
+            const g = await suggestOfficialPages({ ...ai, subject: aboutOf(s), items, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }); if (g.usage) LEDGER.add(g.usage);
+            if (!g.ok) return send(400, { refused: g.why, aiCost: LEDGER.line() });
+            const leads = pread(id, "official-sources.json", {}); for (const p of g.pages) leads[p.item] = [...(leads[p.item] ?? []).filter((x) => x.url !== p.url), { url: p.url, body: p.body, from: "your AI's search (read by Visibility before it is used)" }];
+            pwrite(id, "official-sources.json", leads);
+            const o = await refreshOfficial(id, items);
+            return send(o.ok ? 200 : 400, o.ok ? { ok: true, suggested: g.pages.length, claims: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), aiCost: LEDGER.line() } : { refused: o.why });
+          }
+          /* D · Search Console power: rank tracking, opportunities, alerts — and the Generative AI report, said plainly */
+          if (r[2] === "search" && req.method === "GET") { const h = pread(id, "search-history.json"); return send(200, { connected: sc?.kind === "CONNECTED", site: sc?.site ?? null, searches: sc?.queries?.length ?? 0, window: sc?.window ?? null, power: h ? searchPower(h, { siteName: site ? siteNameOf(site) : null }) : null }); }
+          if (r[2] === "search/read" && req.method === "POST") {
+            if (sc?.kind !== "CONNECTED") return send(400, { refused: "Connect Google Search Console first — rank tracking reads Google's own figures for your site, week by week." });
+            const p = await GOOGLE.performance(sc.site, { weeks: 13 }); if (!p) return send(400, { refused: "Google did not give the weekly figures — press Connect again in Google Search Console." });
+            const h = mergeHistory(pread(id, "search-history.json"), p); pwrite(id, "search-history.json", h);
+            return send(200, { ok: true, line: `Read ✓ — ${h.weeks.length} weeks of positions from Google Search Console (the last 3 months).`, power: searchPower(h, { siteName: site ? siteNameOf(site) : null }) });
           }
         } }
       /* ── RR-308 D · PUBLISH: where the site is built, Approve & Publish (the five gates again, right before), Edit, Unpublish ── */

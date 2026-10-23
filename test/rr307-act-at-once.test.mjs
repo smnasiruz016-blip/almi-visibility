@@ -79,8 +79,10 @@ test("A2 + A3 · THE SCORE CARD: the number is the engine's own score (never a s
     assert.ok(card.fixFirst.some((f) => f.id === "ai:robots" && f.fixForMe));
     const robots = fixForMe("ai:robots", site);
     assert.match(robots[0].paste, /User-agent: PerplexityBot\nAllow: \//);
-    const ld = fixForMe("structured-data", site).find((x) => /FAQPage/.test(x.paste));
-    assert.match(ld.paste, /Can I take the Fixture exam online\?/);
+    /* RR-318 B: FAQ markup is offered only for a page that does not carry it yet (this page already does); the Organization is the site's name */
+    const blocks = fixForMe("structured-data", site);
+    assert.ok(!blocks.some((x) => /FAQPage/.test(x.paste)), "FAQ markup offered again for a page that already carries it");
+    assert.match(blocks[0].paste, /"@type": "Organization"/);
     const yOnly = scoreCard({ site: null, youtube: { confirmed: true, videos: [{}], check: [{ findings: [] }] }, on: ON });
     assert.deepEqual([yOnly.score, yOnly.gauge, yOnly.word], [null, "Not measured", "Not measured"]);
     assert.ok(yOnly.areas.filter((a) => a.area !== "YouTube").every((a) => a.state === "NOT_MEASURED"));

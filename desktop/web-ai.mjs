@@ -99,7 +99,7 @@ export async function writeWebWithAI({ provider, key, kind, material, siteName, 
   const hiddenOnes = judged.filter((j) => j.state === "HIDDEN"), example = hiddenOnes.flatMap((j) => j.hidden ?? [])[0];
   const outcome = !kept.length ? "templates instead" : hiddenOnes.length ? "one option hidden" : kept.some((o) => o.check.length) ? "shown with a note" : doubtful.length ? "retried and passed" : "shown clean";
   /* RR-317 A, for the website: an invention is never shown; with none left, the ready options (from the client's own pages) stay */
-  if (!kept.length) return { ok: false, fallback: true, outcome, why: hiddenOnes.length ? `Your AI's options named something that is not on this page or in its official sources${example ? ` (e.g. ${example})` : ""} — the ready options above are from your own pages.` : "Your AI's options could not be used — the ready options above are from your own pages.", dropped: hiddenOnes.map((j) => ({ text: j.text, why: j.why })), usages, usage: sum(usages) };
+  if (!kept.length) return { ok: false, fallback: true, outcome, why: hiddenOnes.length ? `Your AI's options named something that is not on this page or in its official sources${example ? ` (e.g. ${example})` : ""} — the ready options here are from your own pages.` : "Your AI's options could not be used — the ready options here are from your own pages.", dropped: hiddenOnes.map((j) => ({ text: j.text, why: j.why })), usages, usage: sum(usages) };
   return { ok: true, outcome, dropped: hiddenOnes.map((j) => ({ text: j.text, why: j.why })), usages, usage: sum(usages),
     options: kept.map((j, i) => ({ n: i + 1, text: j.text, characters: j.text.length, check: j.check, byAI: true, basedOn: [`Written with your AI (Claude, ${AI.model}) from this page's own words${/OFFICIAL FACTS/.test(material) ? " and the official pages Visibility read" : ""} — checked: no place, person, organisation, price or claim outside them`, ...(j.facts ?? []).slice(0, 3).map((x) => `fact: ${x.fact} — from "${x.quote}"`)] })) };
 }
@@ -120,4 +120,40 @@ export async function suggestOfficialPages({ provider, key, subject, items, fetc
   let pages = [];
   try { pages = JSON.parse((body?.content ?? []).filter((b) => b?.type === "text").at(-1)?.text)?.pages ?? []; } catch { return { ok: false, why: "Your AI's answer could not be read.", usage }; }
   return { ok: true, usage, pages: pages.filter((p) => /^https:\/\//.test(p.url ?? "") && items.includes(p.item)).slice(0, items.length * 3) };
+}
+
+/* ── RR-319 · the client's own AI reads his formula, and researches the questions people ask (on his click, his key, his cap) ── */
+async function askJSON({ key, system, user, schema, fetchImpl = fetch, base = AI.origin, maxTokens = 3000 }) {
+  let r;
+  try { r = await fetchImpl(`${base}${AI.path}`, { method: "POST", signal: AbortSignal.timeout(120000), headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": AI.version }, body: JSON.stringify({ model: AI.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }], output_config: { effort: "low", format: { type: "json_schema", schema } } }) }); }
+  catch { return { ok: false, why: "Your AI did not answer." }; }
+  if (!r.ok) return { ok: false, why: r.status === 401 || r.status === 403 ? "Your AI refused the key — check it in Settings → Your AI connection." : `Your AI answered with an error (${r.status}).` };
+  const body = await r.json().catch(() => null);
+  const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens, model: body.model ?? AI.model } : null;
+  try { return { ok: true, usage, data: JSON.parse((body?.content ?? []).filter((b) => b?.type === "text").at(-1)?.text) }; } catch { return { ok: false, why: "Your AI's answer could not be read.", usage }; }
+}
+const DIM_ENUM = ["countries", "universities", "roles", "subjects", "cities"];
+/** the client's sentence → the same parts parseFormula makes; Visibility checks every number and word is in his own sentence */
+export async function understandFormulaAI({ provider, key, text, fetchImpl = fetch, base = AI.origin }) {
+  if (provider !== "anthropic" || !key) return { ok: false };
+  const schema = { type: "object", additionalProperties: false, required: ["parts"], properties: { parts: { type: "array", items: { type: "object", additionalProperties: false, required: ["text", "dims"], properties: { text: { type: "string" }, dims: { type: "array", items: { type: "object", additionalProperties: false, required: ["dim", "n", "role"], properties: { dim: { type: "string", enum: DIM_ENUM }, n: { type: "integer" }, role: { type: "string", enum: ["origin", "destination", "located", "none"] } } } } } } } } };
+  const out = await askJSON({ key, schema, fetchImpl, base, system: "Split the client's sentence about which web pages he wants into its parts. For each part list the dimensions he names with the number he gives: countries (role origin = where people come from, destination = where they go, located = where universities are), universities, roles (job roles / professions), subjects, cities. Use only numbers he wrote.", user: String(text).slice(0, 2000) });
+  if (!out.ok) return out;
+  const nums = new Set((String(text).match(/\d[\d,.]*/g) ?? []).map((n) => Number(n.replace(/,/g, ""))));
+  const parts = (out.data?.parts ?? []).map((p) => ({ text: p.text, dims: (p.dims ?? []).filter((d) => DIM_ENUM.includes(d.dim) && (nums.has(d.n) || nums.has(d.n / 1000))).map((d) => ({ dim: d.dim, n: d.n, role: d.dim === "countries" ? (d.role === "none" ? "destination" : d.role) : null })) })).filter((p) => p.dims.length);
+  return { ok: parts.length > 0, parts, usage: out.usage };
+}
+/**
+ * The client's AI suggests the questions people ask about the subject — RESEARCH, never counted as searches: each is said as "your AI's
+ * research", and a question naming a place or body none of the material names is left out (the truth guard's rule).
+ */
+export async function researchQuestionsAI({ provider, key, subject, what = "", countries = [], professions = [], fetchImpl = fetch, base = AI.origin }) {
+  if (provider !== "anthropic" || !key) return { ok: false, why: "Connect your AI to add its research." };
+  const schema = { type: "object", additionalProperties: false, required: ["questions"], properties: { questions: { type: "array", items: { type: "string" } } } };
+  const material = `SUBJECT: ${subject}\nWHAT THE PRODUCT IS: ${String(what).slice(0, 800)}\nCOUNTRIES: ${countries.join(", ")}\nPROFESSIONS: ${professions.join(", ")}`;
+  const out = await askJSON({ key, schema, fetchImpl, base, system: `List up to 40 real questions people ask about ${subject} before and while they prepare: requirements per country and profession, fees, scoring, comparisons with other tests, taking it on computer or at home, results, preparation. Short, as people type them. Only places and professions from the material.`, user: material });
+  if (!out.ok) return out;
+  const allowed = new Set([...countries.map((c) => c.toLowerCase()), ...professions.map((p) => p.toLowerCase())]);
+  const qs = (out.data?.questions ?? []).map((q) => String(q).trim()).filter((q) => q.length >= 8 && q.length <= 160).filter((q) => countriesIn(q).every((c) => allowed.has(c.toLowerCase())));
+  return { ok: true, usage: out.usage, questions: qs.slice(0, 40) };
 }

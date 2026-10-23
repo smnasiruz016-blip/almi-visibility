@@ -13,7 +13,9 @@ import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "nod
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { writeWithAI } from "../desktop/ai-write.mjs";
-import { optionsFor, noRepeats, pagesNamedIn, orderLinks, linksFor } from "../desktop/youtube-plan.mjs";
+import { optionsFor, noRepeats, pagesNamedIn, orderLinks, linksFor, brandsOf } from "../desktop/youtube-plan.mjs";
+/* RR-319 C6: each link line names whose page it is — the brands as the product's own words write them */
+const BR = brandsOf({ what: "AlmiWorld — AlmiCV builds your CV." }); // the app passes the product's own words, not the channel title "Almiworld"
 import { productStore } from "../desktop/products.mjs";
 import { keyStore, memoryBackend } from "../desktop/secrets.mjs";
 import { youtubeApp } from "../desktop/youtube-app.mjs";
@@ -30,7 +32,7 @@ const OWN = [CV,
 const AW = { channel: { title: "Almiworld", handle: "@almiworld-world", description: "" }, ownNames: ["https://almiworld.com/", "AlmiCV", "AlmiPrep"], persona: {}, niche: { queries: [{ q: "CV builder" }] }, kind: "LONG", style: "English", language: "English" };
 const sentences = (d) => String(d).split("\n").flatMap((l) => l.split(/(?<=[.!?])\s+/)).map((s) => s.toLowerCase().replace(/https?:\/\/\S+|\b[\w-]+(\.[\w-]+)+\b/g, " ").split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2)).filter((w) => w.length >= 4);
 const repeats = (d) => { const s = sentences(d), out = []; s.forEach((a, i) => s.slice(0, i).forEach((b) => { const A = new Set(a), B = new Set(b); let n = 0; for (const w of A) if (B.has(w)) n++; if (n / Math.max(A.size, B.size) >= 0.8) out.push(a.join(" ")); })); return out; };
-const linkLines = (d) => String(d).split("\n").filter((l) => /^(More|Subscribe): https:\/\//.test(l));
+const linkLines = (d) => String(d).split("\n").filter((l) => /^[\p{L}\p{N}]+: https:\/\//u.test(l));
 
 test("B1 · NO SENTENCE TWICE: the real answer's repeat is dropped; a different sentence stays", () => {
   const real = "How to create your CV online with AlmiCV.\nCV Builder · AlmiCV\n\nAlmiCV helps you create your CV for your better future.\nalmicv.almiworld.com helps you create your CV for your better future.\n\nMore: https://almiworld.com/";
@@ -42,32 +44,32 @@ test("B1 · NO SENTENCE TWICE: the real answer's repeat is dropped; a different 
 
 test("B2 · THE PAGE THE VIDEO NAMES, FIRST: almicv.almiworld.com → https://almicv.almiworld.com, before the product's site and the channel; never a Facebook link", () => {
   assert.deepEqual(pagesNamedIn(CV), ["https://almicv.almiworld.com"]);
-  const L = linksFor(CV, { url: "https://almiworld.com/" }, "@almiworld-world").map((l) => `${l.label}: ${l.url}`);
-  assert.deepEqual(L, ["More: https://almicv.almiworld.com", "More: https://almiworld.com/", "Subscribe: https://www.youtube.com/@almiworld-world?sub_confirmation=1"]);
+  const L = linksFor(CV, { url: "https://almiworld.com/" }, "@almiworld-world", BR).map((l) => `${l.label}: ${l.url}`);
+  assert.deepEqual(L, ["AlmiCV: https://almicv.almiworld.com", "AlmiWorld: https://almiworld.com/", "Subscribe: https://www.youtube.com/@almiworld-world?sub_confirmation=1"]);
   assert.deepEqual(linksFor({ title: "Day out", description: "Follow us https://www.facebook.com/x" }, { url: "https://almiworld.com/" }, null).map((l) => l.url), ["https://almiworld.com/"]);
   /* an AI description's own link lines are put in that order; a sentence that names the address keeps it */
-  const o = orderLinks("Create your CV online.\nalmicv.almiworld.com helps you.\nhttps://almiworld.com/\nSubscribe: @almiworld-world", linksFor(CV, { url: "https://almiworld.com/" }, "@almiworld-world"));
-  assert.deepEqual(linkLines(o), L); assert.match(o, /^Create your CV online\.\nalmicv\.almiworld\.com helps you\.\n\nMore:/);
+  const o = orderLinks("Create your CV online.\nalmicv.almiworld.com helps you.\nhttps://almiworld.com/\nSubscribe: @almiworld-world", linksFor(CV, { url: "https://almiworld.com/" }, "@almiworld-world", BR));
+  assert.deepEqual(linkLines(o), L); assert.match(o, /^Create your CV online\.\nalmicv\.almiworld\.com helps you\.\n\nAlmiCV:/);
 });
 
 test("B1 + B2 · EVERY TEMPLATE OPTION of the owner's videos: no sentence twice, and the AlmiCV page first where the video names it", () => {
-  const ctx = { channel: { title: "Almiworld", handle: "@almiworld-world" }, persona: {}, niche: { queries: [{ q: "cv builder" }] }, summary: null, readOn: "2026-10-22", productUrl: "https://almiworld.com/", productIsChannel: false, relatedPages: [] };
+  const ctx = { channel: { title: "Almiworld", handle: "@almiworld-world" }, persona: {}, niche: { queries: [{ q: "cv builder" }] }, summary: null, readOn: "2026-10-22", productUrl: "https://almiworld.com/", productIsChannel: false, relatedPages: [], linkBrands: BR };
   for (const v of OWN) for (const o of optionsFor(v, ctx).options) {
     assert.deepEqual(repeats(o.description), [], `${v.title}: ${o.description}`);
     const first = linkLines(o.description)[0];
-    assert.equal(first, /almicv\.almiworld\.com/.test(v.description) ? "More: https://almicv.almiworld.com" : "More: https://almiworld.com/", `${v.title}: ${o.description}`);
+    assert.equal(first, /almicv\.almiworld\.com/.test(v.description) ? "AlmiCV: https://almicv.almiworld.com" : "AlmiWorld: https://almiworld.com/", `${v.title}: ${o.description}`);
   }
 });
 
 test("A + D · THE STAND-IN SET with today's real case (the repeat, no AlmiCV link): every AI option has no sentence twice and the named page first; an invention is never shown — the templates instead", async () => {
   const n = {};
   for (const v of OWN) {
-    const r = await writeWithAI({ provider: "anthropic", key: "k", video: v, ctx: { ...AW, linkOrder: linksFor(v, { url: "https://almiworld.com/" }, "@almiworld-world"), links: linksFor(v, { url: "https://almiworld.com/" }, "@almiworld-world").map((l) => l.url) }, fetchImpl: modelFetch([]), base: "http://127.0.0.1:9" });
+    const r = await writeWithAI({ provider: "anthropic", key: "k", video: v, ctx: { ...AW, linkOrder: linksFor(v, { url: "https://almiworld.com/" }, "@almiworld-world", BR), links: linksFor(v, { url: "https://almiworld.com/" }, "@almiworld-world").map((l) => l.url) }, fetchImpl: modelFetch([]), base: "http://127.0.0.1:9" });
     n[r.outcome] = (n[r.outcome] ?? 0) + 1;
     assert.equal(r.ok, true, `${v.title}: ${r.why}`);
     for (const o of r.options) {
       assert.deepEqual(repeats(o.description), [], `${v.title}: ${o.description}`);
-      assert.equal(linkLines(o.description)[0], /almicv\.almiworld\.com/.test(v.description) ? "More: https://almicv.almiworld.com" : "More: https://almiworld.com/", o.description);
+      assert.equal(linkLines(o.description)[0], /almicv\.almiworld\.com/.test(v.description) ? "AlmiCV: https://almicv.almiworld.com" : "AlmiWorld: https://almiworld.com/", o.description);
     }
   }
   /* the stand-in really repeats (the set proves something) */
@@ -76,7 +78,7 @@ test("A + D · THE STAND-IN SET with today's real case (the repeat, no AlmiCV li
   /* an invented place in every option, even after the retry: the templates, said in one plain line */
   const inv = await writeWithAI({ provider: "anthropic", key: "k", video: CV, ctx: AW, base: "http://127.0.0.1:9", fetchImpl: async () => new Response(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ options: [{ title: "CV Builder in Paris", description: "Create your CV in Paris with AlmiCV — ready to send today.", hashtags: ["#CV"], thumbnail: "CV PARIS", names: [], facts: [] }] }) }], usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 }) });
   assert.deepEqual([inv.ok, inv.fallback, inv.outcome], [false, true, "templates instead"]);
-  assert.equal(inv.why, "Your AI's options named something that is not in this video (e.g. Paris) — the ready options below are from your own words.");
+  assert.equal(inv.why, "Your AI's options named something that is not in this video (e.g. Paris) — the ready options here are from your own words.");
 });
 
 test("A · IN THE APP: the write route says the fallback, and the screen shows it as plain information with the templates kept", () => {
@@ -106,6 +108,6 @@ test("A + B · IN THE APP: the write sends the links in order and the shown opti
     const r = await YT.write(made.id, { videoId: CV.videoId });
     assert.equal(r.ok, true, r.why);
     assert.match(seen[0].messages[0].content, /^LINKS TO USE: https:\/\/almicv\.almiworld\.com https:\/\/almiworld\.com\/ https:\/\/www\.youtube\.com\/@almiworld-world\?sub_confirmation=1$/m);
-    for (const o of r.options) { assert.deepEqual(repeats(o.description), [], o.description); assert.equal(linkLines(o.description)[0], "More: https://almicv.almiworld.com"); }
+    for (const o of r.options) { assert.deepEqual(repeats(o.description), [], o.description); assert.equal(linkLines(o.description)[0], "AlmiCV: https://almicv.almiworld.com"); assert.match(o.description, /^AlmiWorld: https:\/\/almiworld\.com\/$/m); assert.doesNotMatch(o.description, /^More:/m); }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

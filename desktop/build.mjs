@@ -25,10 +25,12 @@ mkdirSync(join(stage, "runtime"), { recursive: true });
 copyFileSync(process.execPath, join(stage, "runtime", "node.exe"));
 for (const d of ["src", "config"]) cpSync(join(REPO, d), join(stage, d), { recursive: true });
 mkdirSync(join(stage, "desktop", "keys"), { recursive: true });
-for (const f of ["main.mjs", /* RR-318 */ "world.mjs", "web-text.mjs", "official.mjs", "page-count.mjs", "search-power.mjs", "web-ai.mjs", "setup.mjs", "licence.mjs", "updater.mjs", "products.mjs", "theme.mjs", "ui.html", "secrets.mjs", "youtube-app.mjs", "open-browser.mjs", "youtube-advice.mjs", "site-read.mjs", "product-check.mjs", "google-connect.mjs", "seo-pages.mjs", "features.mjs", /* RR-308 */ "youtube-niche.mjs", "youtube-plan.mjs", "describe.mjs", "publish.mjs", /* RR-310 */ "action-plan.mjs", "submit.mjs", "ai-write.mjs", /* RR-311 */ "youtube-signin.mjs", "youtube-insights.mjs", "ai-coach.mjs", /* RR-315 */ "guides.mjs"]) copyFileSync(join(REPO, "desktop", f), join(stage, "desktop", f));
+for (const f of ["main.mjs", /* RR-318 */ "world.mjs", "web-text.mjs", "official.mjs", "page-count.mjs", /* RR-319 */ "lists.mjs", "page-plan.mjs", "search-power.mjs", "web-ai.mjs", "setup.mjs", "licence.mjs", "updater.mjs", "products.mjs", "theme.mjs", "ui.html", "secrets.mjs", "youtube-app.mjs", "open-browser.mjs", "youtube-advice.mjs", "site-read.mjs", "product-check.mjs", "google-connect.mjs", "seo-pages.mjs", "features.mjs", /* RR-308 */ "youtube-niche.mjs", "youtube-plan.mjs", "describe.mjs", "publish.mjs", /* RR-310 */ "action-plan.mjs", "submit.mjs", "ai-write.mjs", /* RR-311 */ "youtube-signin.mjs", "youtube-insights.mjs", "ai-coach.mjs", /* RR-315 */ "guides.mjs"]) copyFileSync(join(REPO, "desktop", f), join(stage, "desktop", f));
 /* RR-307: the full site reader shares the public free test's own safety code (public addresses only, robots obeyed) — never a copy of it */
 mkdirSync(join(stage, "site"), { recursive: true });
 for (const f of ["free-test.mjs", "leads.mjs"]) copyFileSync(join(REPO, "site", f), join(stage, "site", f));
+/* RR-319 B1: AlmiWorld's own lists (AlmiStudy universities, AlmiSalary job roles, AlmiStudy subjects) — read-only copies, offered to AlmiWorld products */
+cpSync(join(REPO, "desktop", "lists"), join(stage, "desktop", "lists"), { recursive: true });
 mkdirSync(join(stage, "desktop", "brand"), { recursive: true });
 copyFileSync(join(REPO, "desktop", "brand", "almiworld-logo.png"), join(stage, "desktop", "brand", "almiworld-logo.png"));
 for (const f of ["licence-public.pem", "update-public.pem"]) copyFileSync(join(KEYS, f), join(stage, "desktop", "keys", f));

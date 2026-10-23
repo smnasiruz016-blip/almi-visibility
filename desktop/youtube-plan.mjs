@@ -107,7 +107,11 @@ export function orderLinks(description, links = []) {
 /* only a page of the product's OWN site counts as "the page the video names" (almicv.almiworld.com for almiworld.com) — never a Facebook or
  * other link of the channel's greeting */
 const baseOf = (u) => hostOf(u).split(".").slice(-2).join(".");
-export const linksFor = (v, target, handle) => [...new Map([...(target ? pagesNamedIn(v).filter((u) => baseOf(u) === baseOf(target.url)) : []).map((url) => ({ label: "More", url })), ...(target ? [{ label: "More", url: String(target.url) }] : []), ...(handle ? [{ label: "Subscribe", url: `https://www.youtube.com/${handle}?sub_confirmation=1` }] : [])].map((l) => [l.url.toLowerCase().replace(/^https?:\/\/(www\.)?/, ""), l])).values()];
+/* RR-319 C6 (owner): each link says WHOSE page it is — "AlmiCV: https://almicv.almiworld.com", "AlmiWorld: https://almiworld.com/" — never two "More:" lines; the name in the family's own casing */
+/* a name the video itself writes with two or more capitals (AlmiCV, IELTS) is how its page is named */
+const brandsInText = (t) => new Map((String(t).match(/[\p{L}\p{N}]+/gu) ?? []).filter((w) => (w.match(/\p{Lu}/gu) ?? []).length >= 2).map((w) => [w.toLowerCase(), w]));
+export const linkLabel = (url, brands) => { const name = hostOf(url).replace(/^www\./, "").split(".")[0]; return brands?.get?.(name) ?? (name ? name.charAt(0).toUpperCase() + name.slice(1) : "More"); };
+export const linksFor = (v, target, handle, given = null) => { const brands = new Map([...brandsInText(`${v?.title ?? ""} ${v?.description ?? ""}`), ...(given ?? [])]); return [...new Map([...(target ? pagesNamedIn(v).filter((u) => baseOf(u) === baseOf(target.url)) : []).map((url) => ({ label: linkLabel(url, brands), url })), ...(target ? [{ label: linkLabel(String(target.url), brands), url: String(target.url) }] : []), ...(handle ? [{ label: "Subscribe", url: `https://www.youtube.com/${handle}?sub_confirmation=1` }] : [])].map((l) => [l.url.toLowerCase().replace(/^https?:\/\/(www\.)?/, ""), l])).values()]; };
 /** a text with every family name in its own casing ("Almicv Builder" → "AlmiCV Builder") — whole words only */
 /* RR-314 B3: does a text already say these WORDS ("Almiworld New Tutorial" says "Almiworld"; "Iceland" does not say a channel named "D") */
 export const saysWords = (text, name) => { const w = (s) => ` ${String(s ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).join(" ")} `; return w(name).trim() !== "" && w(text).includes(w(name)); };
@@ -263,7 +267,7 @@ export function optionsFor(v, ctx) {
   const summaryLines = own.firstLine ? [own.firstLine.replace(/\s+([,.;:!?])/g, "$1")] : []; // "tutorial almiworld , about products" → "…almiworld, about products"
   const real = ctx.chapters?.[v.videoId] ?? null;
   const chapters = kind === "LONG" && real ? ["", "Chapters:", real] : [];
-  const links = linksFor(v, target, channel.handle).map((l) => `${l.label}: ${l.url}`); // RR-317 B2: the page the video names first
+  const links = linksFor(v, target, channel.handle, ctx.linkBrands ?? ctx.brands).map((l) => `${l.label}: ${l.url}`); // RR-317 B2: the page the video names first
   /* always 3 hashtags: what happens, where, who, the niche's phrases, then the video's own main words and the channel's own name */
   /* RR-311 (owner: "#IcelandHum"): a hashtag only from a WHOLE short phrase (3 words or fewer) with no Roman-Urdu joining word in it */
   /* RR-314 B5: one spelling for a short name ("CV", never "Cv" in one tag and "CV" in the next); no tag of one empty word ("#Try") */

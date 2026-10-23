@@ -80,7 +80,8 @@ export async function universityFunnel({ all, reader, subject, queries = [], cou
   for (const [i, x] of order.entries()) {
     if (i >= maxReads) { notRead.push({ name: x.u.name, country: x.u.country, why: "not read in this run (Visibility reads a few at a time, slowly)" }); continue; }
     tell(`Reading ${x.u.name}'s own course pages (${i + 1} of ${Math.min(order.length, maxReads)})`);
-    const c = await coursePagesOf({ u: x.u, reader, subject });
+    /* RR-320 proof: one university's odd site (a robots rule that broke a pattern) stopped the whole count — one site's error is that site's */
+    const c = await coursePagesOf({ u: x.u, reader, subject }).catch((e) => ({ state: "UNREADABLE", why: `its site could not be read (${String(e?.message ?? e).slice(0, 80)})`, courses: [] }));
     read.push({ ...x, site: c });
   }
   const entry = (x) => ({ name: x.u.name, country: x.u.country, city: x.u.city ?? null, page: x.u.page, type: x.u.type ?? null, fields: fieldsOf(x.u).slice(0, 12), professions: [...new Set([...x.professions, ...(x.site?.courses ?? []).map((c) => c.profession)])], listProfessions: x.professions, accreditation: x.u.accreditation ?? null, verifiedOn: x.u.verifiedOn ?? null, listSource: x.u.source ?? null, searched: x.searched, site: x.site ?? null });

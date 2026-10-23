@@ -73,9 +73,11 @@ export function parseRobots(body, userAgent = USER_AGENT) {
 /** Does `rule.path` match `pathname`? Supports the `*` and `$` conventions. */
 function ruleMatches(rulePath, pathname) {
   if (rulePath === "") return false;
-  const escaped = rulePath.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-  const anchored = escaped.endsWith("$") ? "^" + escaped : "^" + escaped;
-  return new RegExp(anchored).test(pathname);
+  /* RR-320 proof: a university's rule "/*?????*" crashed the count (an unescaped "?"); and a trailing "$" was escaped, so it never anchored
+   * the end (RFC 9309: "$" ends the path) — every special character escaped, "*" any characters, a final "$" the end */
+  const end = rulePath.endsWith("$"), body = end ? rulePath.slice(0, -1) : rulePath;
+  const escaped = body.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  return new RegExp(`^${escaped}${end ? "$" : ""}`).test(pathname);
 }
 
 /**
@@ -85,7 +87,7 @@ function ruleMatches(rulePath, pathname) {
  * length, which is the conventional reading.
  */
 export function isAllowedByRules(rules, url) {
-  const pathname = new URL(url).pathname;
+  const u = new URL(url), pathname = u.pathname + u.search; // RR-320: RFC 9309 matches the path WITH its query ("Disallow: /*?")
   let best = null;
   for (const rule of rules) {
     if (!ruleMatches(rule.path, pathname)) continue;

@@ -27,6 +27,7 @@ import { professionsOfFields, teachesHealth, searchesNaming, coursePagesOf, univ
 import { FIVE, LABEL, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, figureOf, fiveAnswers } from "../desktop/research5.mjs";
 import { understandFormulaAI } from "../desktop/web-ai.mjs";
 import { CLIENT_AI_POLICY } from "../src/discovery/search-phrase-sources.mjs";
+import { parseRobots, isAllowedByRules } from "../src/crawl/robots.mjs";
 
 const REPO = join(import.meta.dirname, "..");
 const UI = readFileSync(join(REPO, "desktop", "ui.html"), "utf8"), MAIN = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"), R5 = readFileSync(join(REPO, "desktop", "research5.mjs"), "utf8");
@@ -219,6 +220,10 @@ test("D · COURSE PAGES (RR-319 found 0 on general English pages): a university'
     assert.deepEqual([f.candidates, f.health, f.read.length, f.kept.length, f.blocked.robots, f.notRead.length, f.namesSubject, f.searched], [5, 4, 3, 2, 1, 1, 1, 0], "the funnel's numbers");
     assert.deepEqual(f.read.map((x) => x.name), ["Uni A", "Uni R", "Uni B"], "the countries people search from first");
     assert.equal(f.dropped.find((d) => d.name === "Uni R")?.why, "its robots.txt asks us not to read it — not read");
+    /* one site that throws never stops the count (the proof: one robots rule stopped all 120) */
+    const boom = { ...rd, read: async (u) => { if (/boom/.test(u)) throw new Error("Invalid regular expression"); return rd.read(u); } };
+    const g = await universityFunnel({ all: [{ name: "Uni Boom", country: "India", page: `${base}/boom/`, fields: ["Nursing"] }, { name: "Uni A", country: "India", page: `${base}/a/`, fields: ["Nursing"] }], reader: boom, subject: "OET", maxReads: 5 });
+    assert.deepEqual([g.read.length, g.kept.map((x) => x.name), g.blocked.unreadable], [2, ["Uni A"], 1]);
   } finally { s.close(); }
 });
 
@@ -384,4 +389,11 @@ test("IN THE APP · the owner's three questions → the five answers (Search Con
     const made = JSON.parse(readFileSync(join(a.dir, "products", id, "made-plan.json"), "utf8"));
     assert.deepEqual(made.map((p) => p.title).sort(), [...st2.last.plan.rollout.first].sort(), "Make made more than the first batch");
   } finally { a.close(); s.close(); }
+});
+
+/* ══ the proof (23 Oct): a university's robots.txt rule "/*?????*" stopped the whole count — every rule is read, and obeyed ══ */
+test("ROBOTS · a rule with '?' never crashes the count; '$' ends the path; the query counts (RFC 9309) — always the stricter reading", () => {
+  const rules = parseRobots("User-agent: *\nDisallow: /*?????*\nDisallow: /*.pdf$\nDisallow: /search?\n");
+  const ok = (p) => isAllowedByRules(rules, `https://u.test${p}`);
+  assert.deepEqual([ok("/nursing"), ok("/x?????y"), ok("/files/a.pdf"), ok("/files/a.pdf.html"), ok("/search?q=oet"), ok("/search")], [true, false, false, true, false, true]);
 });

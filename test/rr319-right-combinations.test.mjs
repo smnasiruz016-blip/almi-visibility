@@ -203,8 +203,9 @@ test("C3 + C4 + C5 · NEVER 'does not say' FROM A MAIN PAGE ALONE: Ahpra and NMC
     assert.equal(q.notSaid.line, `The official page of Department of Healthcare Professions, checked ${ON}, does not say this.`);
   } finally { s.close(); }
   assert.deepEqual([professionsOfBody("Nursing and Midwifery Board of Ireland"), professionsOfBody("Medical Council"), professionsOfBody("Australian Health Practitioner Regulation Agency")], [["nursing"], ["medicine"], null]);
-  /* NMBI's real page shape (23 Oct): one set, then "OET (Nursing) with Grade B in three components and C+ in one component" — never a 2nd set */
-  assert.deepEqual(subtestResults("IELTS Listening 7.0 Reading 7.0 Writing 6.5 Speaking 7.0 Overall 7.0 OET Minimum Occupational English Test (OET) Grade and S cores Listening B (350 - 450) OET (Nursing) with Grade B in three components and C+ in one component. (please see table for example) Reading B (350 - 450) Writing C+ (300 - 340) Speaking B (350 - 450) Please note that: We only accept IELTS/OET test results", "OET"), ["Listening B (350–450) · Reading B (350–450) · Writing C+ (300–340) · Speaking B (350–450)"]);
+  /* NMBI's page SHAPE (23 Oct; our own words — never a passage of the page): one set, then the test named again with a rule ("B in three
+   * parts, C+ in one") before the remaining sub-tests — never a 2nd set */
+  assert.deepEqual(subtestResults("Band table Listening 7.0 Reading 7.0 Writing 6.5 Speaking 7.0 OET grades needed Listening B (350 - 450) OET for nurses: B in three parts, C+ in one. (an example follows) Reading B (350 - 450) Writing C+ (300 - 340) Speaking B (350 - 450) Results must be recent", "OET"), ["Listening B (350–450) · Reading B (350–450) · Writing C+ (300–340) · Speaking B (350–450)"]);
   assert.deepEqual(subtestResults("Test Listening Reading Writing Speaking OET B (350 or above) B (350 or above) C+ (300 or above) B (350 or above)", "OET"), ["Listening B (350 or above) · Reading B (350 or above) · Writing C+ (300 or above) · Speaking B (350 or above)"]);
 });
 

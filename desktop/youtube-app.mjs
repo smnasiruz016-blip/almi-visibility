@@ -16,7 +16,7 @@ import { AI_PROVIDERS } from "./secrets.mjs";
 import { autoTopics, tokens, channelAdvice, researchTerms, researchQuestions } from "./youtube-advice.mjs";
 import { nicheOf, nicheSummary, onTopic, channelScripts, inOwnScripts, JUNK_WORDS, JUNK_PHRASE } from "./youtube-niche.mjs";
 import { channelLanguage, sameLanguage, langOf, questionIdea, currentYearTerms, usableKeywords, ownDataFindings, keywordIdeas, scorecard, newUploads, suggestCompetitors, beforeAfter, chaptersFrom, parseVtt } from "./youtube-insights.mjs";
-import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N, brandsOf, linkSuggestions } from "./youtube-plan.mjs";
+import { youtubeScore, priorityOrder, optionsFor, doFirst, ideasFor, boilerplateOf, styleOf, gapFixes, TOP_N, brandsOf, linkSuggestions, linksFor } from "./youtube-plan.mjs";
 import { writeWithAI } from "./ai-write.mjs";
 import { youtubeItems } from "./action-plan.mjs";
 
@@ -294,8 +294,9 @@ export function youtubeApp({ store, dataDir, keys, config = {}, fetchImpl = (u, 
       const chapters = readJson(join(store.dirOf(id), "youtube-chapters.json"), {})[videoId] ?? null;
       /* RR-316 A1: the channel's own names — its site, the product's own names and the pages it links to — are always in the material */
       const siteRead = readJson(join(store.dirOf(id), "site-read.json"), null);
+      const linkOrder = linksFor(v, target, y.confirmed.handle); // RR-317 B2: the page the video names first
       const ownNames = [s.product?.site, s.product?.name, ...brandsOf({ what: s.setup?.product?.what, menu: siteRead?.design?.menu, channelTitle: y.confirmed.title }).values(), ...(y.relatedPages ?? []).map((p) => p.url)].filter(Boolean);
-      const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, channel: { ...(ctx.channel ?? {}), title: y.confirmed.title, handle: y.confirmed.handle, description: ctx.channel?.description ?? y.confirmed.description }, ownNames, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, links: [...(target ? [target.url] : []), `https://www.youtube.com/${y.confirmed.handle}`] }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
+      const r = await writeWithAI({ provider: ai.provider, key: keys.get(ai.keyName), video: v, ctx: { ...ctx, channel: { ...(ctx.channel ?? {}), title: y.confirmed.title, handle: y.confirmed.handle, description: ctx.channel?.description ?? y.confirmed.description }, ownNames, kind: videoKind(v), style: styleOf(v), language: channelLanguage(raw.videos).label, captions, chapters, ownData: own, linkOrder, links: linkOrder.map((l) => l.url) }, fetchImpl: aiFetchImpl, ...(config.aiApiBase ? { base: config.aiApiBase } : {}) });
       if (ledger) for (const u of r.usages ?? (r.usage ? [r.usage] : [])) ledger.add(u); // RR-312: the retry is a request too
       return { ...r, aiCost: ledger ? ledger.line() : null };
     },

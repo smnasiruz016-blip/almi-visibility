@@ -71,7 +71,7 @@ test("5 · HIDE ONLY A CLEAR INVENTION: a Paris that stays after the re-check is
 test("7 · THE FIXED TEST SET (30 videos shaped like Dhanak's, a stand-in that slips like a real model): all hidden 0; every invented place caught; clean + retried-and-passed ≥ 27", async () => {
   const T = ["Ghar ka kaam aur bachon ki masti", "Iceland ki sardi aur hum", "Eid ki tayari | family vlog", "Sunday cleaning reset", "Baby Ki Choti Phupo Iceland Pohanch Gayi!", "Ammi ka birthday | daily vlog"];
   const videos = Array.from({ length: 30 }, (_, i) => ({ title: `${T[i % T.length]} ${i + 1}`, description: i % 5 === 0 ? "these videos are my old travel videos from year 2016, 2017, 1018" : i % 7 === 0 ? "Hum sab togather, bohot maza aaya." : "Hum sab ne bohot maza kiya, ghar mein masti." }));
-  const n = { "shown clean": 0, "retried and passed": 0, "shown with a note": 0, "one option hidden": 0, "all hidden": 0 };
+  const n = { "shown clean": 0, "retried and passed": 0, "shown with a note": 0, "one option hidden": 0, "templates instead": 0 }; // RR-317: "all hidden" is now "templates instead"
   let placeShown = 0, placeMade = 0;
   for (const v of videos) {
     const seen = [];
@@ -80,7 +80,7 @@ test("7 · THE FIXED TEST SET (30 videos shaped like Dhanak's, a stand-in that s
     placeMade +=seen.length > 1 && /Paris/.test(seen[1].messages[0].content) ? 1 : 0;
     if ((r.options ?? []).some((o) => /Paris/.test(`${o.title} ${o.description}`))) placeShown++;
   }
-  assert.equal(n["all hidden"], 0, JSON.stringify(n));
+  assert.equal(n["templates instead"], 0, JSON.stringify(n)); assert.equal(Object.keys(n).length, 5, `an unknown outcome: ${JSON.stringify(n)}`);
   assert.equal(placeShown, 0, "an invented place was shown");
   assert.ok(placeMade >= 1, "the stand-in invented no place — the set proves nothing");
   assert.ok(n["shown clean"] + n["retried and passed"] >= 27, JSON.stringify(n));

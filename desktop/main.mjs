@@ -572,7 +572,7 @@ const server = createServer((req, res) => {
               if (!offset) { if (YT_SIGNIN.status(yid).signedIn) await YT.refreshSigned(yid).catch(() => null); const c = pread(yid, "youtube-competitors.json", {}); if (!c._on || String(c._on).slice(0, 10) !== new Date().toISOString().slice(0, 10)) await YT.refreshCompetitors(yid).catch(() => null); }
               return send(200, { ...(await YT.advice(yid, { offset })), almiworld: isAlmiWorld(store.read(yid)) });
             }
-            if (y[2] === "write" && req.method === "POST") { const r = await YT.write(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
+            if (y[2] === "write" && req.method === "POST") { const r = await YT.write(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why, fallback: r.fallback === true, aiCost: r.aiCost ?? null }); } // RR-317 A: the templates instead, said plainly
             if (y[2] === "file" && req.method === "POST") { const r = YT.addFile(yid, json()); return send(r.ok ? 200 : 400, r.ok ? r : { refused: r.why }); }
             /* ── RR-311 A · YouTube sign-in (the channel owner, in his browser), its data, real chapters ── */
             if (y[2] === "signin" && req.method === "GET") { const st = YT_SIGNIN.status(yid); return send(200, { ready: st.ready, signedIn: st.signedIn, write: st.write, last: st.signedIn ? null : YT_LAST.get(yid)?.line ?? null }); } // RR-314 A1: the tab waits for this; RR-315 A3: or for a refusal

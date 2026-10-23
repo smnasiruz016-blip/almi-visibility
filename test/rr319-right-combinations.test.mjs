@@ -28,15 +28,17 @@ const ON = "2026-10-23";
 const OWNER = "from 197 countries to 9 countries; from 8,000 universities to 197 countries for 12 subjects; for 519 job roles from 197 countries.";
 
 /* ══ ADD · the client's own formula ══ */
-test("ADD · THE OWNER'S EXACT SENTENCE is read back in plain words: origin → destination · universities in their countries × subjects · job roles × origin", () => {
+/* RR-320 (owner: "it multiplied everything and took the wrong 12"): the RR-319 sentence is read by its RELATIONS now — the universities'
+ * graduates go TO the countries; the read-back no longer multiplies (test/rr320-five-questions.test.mjs holds the owner's three questions) */
+test("ADD · THE OWNER'S EXACT SENTENCE is read back in plain words: origin → destination · universities' graduates → destination countries · job roles × origin", () => {
   const f = parseFormula(OWNER);
   assert.equal(f.ok, true);
-  assert.equal(f.line, "You mean: origin country (197) → destination country (9) · universities (8,000) × country (197) × subjects (12) · job roles (519) × origin country (197)");
-  assert.deepEqual(f.parts.map((p) => p.dims.map((d) => `${d.dim}:${d.n}:${d.role}`)), [["countries:197:origin", "countries:9:destination"], ["universities:8000:null", "countries:197:located", "subjects:12:null"], ["roles:519:null", "countries:197:origin"]]);
+  assert.equal(f.line, "You mean: people from origin country (197) → destination country (9) · graduates of universities (8,000) → working in destination country (197) · origin country (197) → job roles (519)");
+  assert.deepEqual(f.parts.map((p) => p.dims.map((d) => `${d.dim}:${d.n}:${d.role}`)), [["countries:197:origin", "countries:9:destination"], ["universities:8000:null", "countries:197:destination", "subjects:12:null"], ["roles:519:null", "countries:197:origin"]]);
   assert.deepEqual(f.run.sort(), ["countries", "origins", "roles", "subjects", "universities"]);
   /* the brief's own example wording, and the guided form without AI */
-  assert.equal(parseFormula("people from 197 countries going to 9 countries; 8,000 universities in 12 subjects; 519 job roles").line, "You mean: origin country (197) → destination country (9) · universities (8,000) × subjects (12) · job roles (519)");
-  assert.equal(fromGuided({ from: "197 countries", to: "9 countries", for: "519 job roles" }).line, "You mean: origin country (197) → destination country (9) × job roles (519)");
+  assert.equal(parseFormula("people from 197 countries going to 9 countries; 8,000 universities in 12 subjects; 519 job roles").line, "You mean: people from origin country (197) → destination country (9) · graduates of universities (8,000) → working in the destination countries · job roles (519)");
+  assert.equal(fromGuided({ from: "197 countries", to: "9 countries", for: "519 job roles" }).line, "You mean: people from origin country (197) → job roles (519) in destination country (9)");
   assert.equal(parseFormula("I want nice pages").ok, false);
 });
 
@@ -62,7 +64,7 @@ test("ADD 3 · YOUR AI's QUESTION RESEARCH is research (never searches), and a q
   const fetchImpl = async () => new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify({ questions: ["oet score for nurses in ireland", "oet requirements for doctors in germany", "how is oet scored"] }) }], usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 });
   const r = await researchQuestionsAI({ provider: "anthropic", key: "standin", subject: "OET", countries: ["Ireland"], professions: ["nursing"], fetchImpl, base: "http://127.0.0.1:9" });
   assert.deepEqual(r.questions, ["oet score for nurses in ireland", "how is oet scored"]);
-  assert.match(MAIN, /source: "your AI's research \(not search data\)"/);
+  assert.match(MAIN, /source: "your AI's research — an AI estimate, not search data"/); // RR-320: "an AI estimate", the owner's words
 });
 
 /* ══ A · the plan ══ */
@@ -85,61 +87,61 @@ const Q = groupQuestions([
   { text: "oet test centre philippines fee", source: "SC", weight: 6 }, { text: "oet vs ielts which is easier", source: "AI" }, { text: "how is oet scored", source: "FAQ" }, { text: "best pizza near me", source: "SC" },
 ]);
 
-test("A · THE PLAN PER KIND: Ireland splits (NMBI for nurses ≠ Medical Council for doctors), Australia is ONE page (Ahpra for every profession; Home Affairs is a visa office, never the rule), the UK has no regulator read yet — said plainly", () => {
+/* RR-320 (owner policy, final): a profession page only where that country's regulator accepts it for that profession — the RR-319 plan
+ * (a country page with a section per profession) is replaced; the rules that stay are pinned here: Home Affairs never sets the rule, the
+ * subject is never "another body", a vets' search is never a page's main search, "test centres" is about taking it, weak taking pages are one */
+test("A · THE PLAN PER KIND: Ireland splits (NMBI for nurses ≠ Medical Council for doctors); Australia's pages come from Ahpra's own page naming the professions (Home Affairs is a visa office, never the rule); the UK has no regulator read yet — said plainly", () => {
   const p = planPages({ r: R(), official: OFFICIAL, notSaid: { "United Kingdom": [{ line: "The official page of NMC, checked 2026-10-23, does not say this." }] }, questions: Q, formula: parseFormula(OWNER), subject: "OET" });
-  assert.deepEqual(p.kinds.requirement.map((x) => x.title), ["OET for Nursing in Ireland", "OET for Medicine in Ireland", "OET for Ireland", "OET for Australia", "OET for United Kingdom"]);
-  const au = p.kinds.requirement.find((x) => x.country === "Australia");
-  assert.match(au.why, /^one rule for every profession \(Australian Health Practitioner Regulation Agency\)/);
-  assert.deepEqual(au.otherBodies, ["Department of Home Affairs"]);
-  const withOwn = planPages({ r: R(), official: { ...OFFICIAL, Ireland: [...OFFICIAL.Ireland, { body: "OET", text: "OET's own page", link: "x", readOn: ON }] }, questions: [], subject: "OET" });
-  assert.ok(withOwn.kinds.requirement.every((x) => !x.otherBodies.includes("OET")), "the subject named as a body that is not a health regulator");
-  const uk = p.kinds.requirement.find((x) => x.country === "United Kingdom");
+  assert.deepEqual(p.kinds.requirement.map((x) => x.title), ["OET for Nursing in Ireland", "OET for Medicine in Ireland"]);
+  assert.deepEqual(p.gaps.filter((g) => g.country === "Australia").map((g) => g.why), ["Department of Home Affairs, Australian Health Practitioner Regulation Agency: its own page names OET, but not nursing", "Department of Home Affairs, Australian Health Practitioner Regulation Agency: its own page names OET, but not medicine"].map((x) => x.replace("Department of Home Affairs, ", "")));
+  const named = { ...OFFICIAL, Australia: OFFICIAL.Australia.map((x) => (x.body.startsWith("Australian") ? { ...x, named: ["nursing", "medicine"] } : x)) };
+  const au = planPages({ r: R(), official: named, questions: [], subject: "OET" }).kinds.requirement.filter((x) => x.country === "Australia");
+  assert.deepEqual(au.map((x) => [x.title, x.bodies]), [["OET for Nursing and Medicine in Australia", ["Australian Health Practitioner Regulation Agency"]]], "Home Affairs set a profession's rule");
+  const hub = planPages({ r: R(), official: { ...OFFICIAL, Australia: [...OFFICIAL.Australia, { body: "OET", source: "OET — its page for Australia", text: "x", link: "y", readOn: ON }] }, questions: groupQuestions([{ text: "oet australia", kind: "search" }]), subject: "OET" }).kinds.requirement.find((x) => x.hub);
+  assert.deepEqual([hub.title, hub.otherBodies], ["OET in Australia: professions and regulators", ["Department of Home Affairs"]], "the subject named as a body that is not a health regulator");
+  const uk = planPages({ r: R(), official: OFFICIAL, notSaid: { "United Kingdom": [{ line: "The official page of NMC, checked 2026-10-23, does not say this." }] }, questions: groupQuestions([{ text: "oet uk", kind: "search" }]), subject: "OET" }).kinds.requirement.find((x) => x.country === "United Kingdom");
   assert.equal(uk.regulator, "No health regulator's own page for United Kingdom names OET yet — checked: 1 official page.");
-  assert.equal(p.kinds.university.length, 1); assert.equal(p.kinds.university[0].title, "Universities in Ireland that accept OET");
-  assert.deepEqual(p.kinds.taking[0].claims.map((c) => [c.text, c.link, c.official]), [["OET's own page states the fee — AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22).", "https://oet.test/fees", true]]);
-  assert.deepEqual(p.kinds.taking.map((x) => [x.title, x.fee]), [["Taking OET in Philippines: venues, dates and fee", "AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22)"]]);
+  assert.equal(p.kinds.university.length, 1); assert.equal(p.kinds.university[0].title, "OET for Uni A graduates");
+  assert.deepEqual(p.kinds.taking[0].claims.map((c) => [c.text, c.link, c.official]), [["OET's own page states the fee — AUD 587.", "https://oet.test/fees", true]]);
+  const searched = planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "oet test centre philippines fee", kind: "search" }]), subject: "OET" });
+  assert.deepEqual(searched.kinds.taking.map((x) => [x.title, x.fee]), [["Taking OET in Philippines: venues, dates and fee", "AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22)"]]);
+  assert.deepEqual(searched.kinds.taking[0].claims.map((c) => [c.text, c.official]), [["OET's own page states the fee — AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22).", true]], "a country's own taking page with no sourced fee");
 });
 
-test("ADD 3 · EVERY QUESTION TO ONE PAGE: each page lists what it answers; a vets' search is never a nurses' page's MAIN search; topic pages for the rest; a page with no question is an honest opportunity page", () => {
+test("ADD 3 · EVERY QUESTION TO ONE PAGE: each page lists what it answers; a vets' search is never a page's MAIN search; topic pages for the rest; a page with no question is an honest opportunity page", () => {
   const p = planPages({ r: R(), official: OFFICIAL, questions: Q, formula: parseFormula(OWNER), subject: "OET" });
   const page = (t) => [...p.kinds.requirement, ...p.kinds.taking, ...p.kinds.topic].find((x) => x.title === t);
   assert.deepEqual(page("OET for Nursing in Ireland").questions.map((q) => q.question), ["oet score for nurses in ireland"]);
   assert.deepEqual(page("OET for Medicine in Ireland").questions.map((q) => q.question), ["oet requirements doctors ireland"]);
-  const au = page("OET for Australia");
-  assert.deepEqual(au.questions.map((q) => [q.question, q.section]), [["oet australia nurses", "nursing"]]);
-  assert.equal(au.main, null, "a vets' search (avbc) became the Australia page's main search");
-  assert.deepEqual(page("Taking OET in Philippines: venues, dates and fee").questions.map((q) => q.question), ["oet test centre philippines fee"]);
+  assert.deepEqual(page("Where to take OET: venues, dates and fees by country").questions.map((q) => q.question), ["oet test centre philippines fee"], "no search evidence (the fixture's sources name no kind) — a section, never its own page");
   assert.deepEqual(p.kinds.topic.map((t) => t.title), ["OET vs IELTS and other tests", "How OET is scored"]);
-  assert.deepEqual(p.unused.map((u) => [u.question, u.why]), [["avbc australia oet", "about veterinary science, which OET is not for"], ["best pizza near me", "not about OET or one of the kept countries or professions"]]);
+  assert.deepEqual(p.unused.map((u) => [u.question, u.why]), [["avbc australia oet", "about veterinary science, which OET is not for"], ["oet australia nurses", "no regulator's own page says OET is accepted for nursing in Australia yet"], ["best pizza near me", "not about OET or one of the kept countries or professions"]]);
   /* the real run (23 Oct): AVBC, Dalhousie PGME and Singapore physiotherapy searches became topic pages */
   const real = planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "pgme dalhousie" }, { text: "singapore physiotherapy registration" }, { text: "australasian veterinary boards council (avbc)" }]), subject: "OET" });
   assert.deepEqual([real.kinds.topic.length, real.unused.length], [0, 3]);
-  /* OET is also for vets: "avbc australia" is the Australia page's VETERINARY SECTION, never its main search (owner, 23 Oct) */
+  /* OET is also for vets: "avbc australia" (searched) is the Australia country page's VETERINARY SECTION, never its main search (owner, 23 Oct) */
   const vet = R(); vet.dims.roles.professions = ["nursing", "medicine", "veterinary science"];
-  const auv = planPages({ r: vet, official: OFFICIAL, questions: groupQuestions([{ text: "avbc australia", weight: 9 }, { text: "oet australia", weight: 1 }]), subject: "OET" }).kinds.requirement.find((x) => x.country === "Australia");
+  const auv = planPages({ r: vet, official: OFFICIAL, questions: groupQuestions([{ text: "avbc australia", kind: "search", weight: 9 }, { text: "oet australia", kind: "search", weight: 1 }]), subject: "OET" }).kinds.requirement.find((x) => x.country === "Australia");
   assert.deepEqual([auv.main, auv.questions.map((q) => q.section)], ["oet australia", ["veterinary science", null]]);
   /* the subject's own FAQ question is about the subject even without its name */
   assert.deepEqual(planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "What can I bring on test day?", kind: "official FAQ" }]), subject: "OET" }).kinds.topic.map((x) => x.title), ["OET test day: what to bring and expect"]);
   /* "test centres" (plural) is a question about taking the test there (proof: it went to the requirement page) */
-  assert.deepEqual(planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "oet test centres in philippines" }]), subject: "OET" }).kinds.taking[0].questions.map((q) => q.question), ["oet test centres in philippines"]);
+  assert.deepEqual(planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "oet test centres in philippines", kind: "search" }]), subject: "OET" }).kinds.taking[0].questions.map((q) => q.question), ["oet test centres in philippines"]);
   /* weak taking pages: one page with a section per country, never one each */
   const three = R(); three.dims.origins.kept = ["India", "Kenya", "Philippines"].map((name) => ({ name, source: { url: `https://oet.test/${name}`, title: name }, checkedOn: ON, how: "venue" }));
   const m = planPages({ r: three, official: OFFICIAL, questions: [], subject: "OET" });
   assert.deepEqual(m.kinds.taking.map((x) => [x.title, x.countries]), [["Where to take OET: venues, dates and fees by country", ["India", "Kenya", "Philippines"]]]);
   assert.match(m.kinds.taking[0].fees[1], /^Kenya: AUD 587 — the European Central Bank publishes no reference rate/);
-  assert.equal(page("OET for Ireland").weak, true); assert.equal(page("OET for Nursing in Ireland").weak, false);
-  assert.deepEqual(p.counts.requirement, { total: 5, withQuestions: 3, opportunity: 2 });
-  assert.equal(p.total, 5 + 1 + 1 + 2);
+  assert.equal(m.kinds.requirement.find((x) => x.title === "OET for Medicine in Ireland").weak, true); assert.equal(page("OET for Nursing in Ireland").weak, false);
+  assert.deepEqual(p.counts.requirement, { total: 2, withQuestions: 2, opportunity: 0, searched: 0 });
+  assert.equal(p.total, 2 + 1 + 1 + 2);
 });
 
-test("A · WHY NOT MORE, and the honest answer per part of the owner's formula", () => {
+test("A · WHY NOT MORE, and the table per part of the owner's formula", () => {
   const p = planPages({ r: R(), official: OFFICIAL, questions: Q, formula: parseFormula(OWNER), subject: "OET" });
-  assert.equal(p.whyNotMore.line, "Not 7,361,496,000 pages (9 × 519 × 197 × 8,000): pages that differ only by a name are near-identical, and Google calls that scaled content abuse.");
-  assert.ok(p.whyNotMore.lines.some((l) => /^The country people come FROM does not change the requirement answer/.test(l)));
-  assert.equal(p.perPart.length, 3);
-  assert.match(p.perPart[0].answer, /^Better this way: 5 requirement pages for the 3 countries that recognise OET .* the countries people come from matter only for taking the test — 1 page for the 1 country where an official page names a venue\.$/);
-  assert.match(p.perPart[1].answer, /^Better this way: 1 page — one per country, its universities as sections: 8,862 universities → 3 in the 3 countries .* → 1 whose own page names OET \(1 still to check\)\.$/);
-  assert.match(p.perPart[2].answer, /^Better this way: 519 job roles → the 2 professions OET is for, as sections of the requirement pages; the 197 countries people come from do not change that answer — no page per origin\.$/);
+  assert.equal(p.whyNotMore.line, "Not 992,187 pages (920,187 + 72,000): pages that differ only by a name are near-identical, and Google calls that scaled content abuse.");
+  assert.ok(p.whyNotMore.lines.some((l) => /^Origin countries: 197 → 1 — a country's own page only where the answer differs AND people search for it\.$/.test(l)));
+  assert.deepEqual(p.perPart.map((x) => [x.kind, x.funnel]), [["profession", "professions"], ["university", "universities"], ["roles", "professions"]]);
 });
 
 test("A · MAKE THESE PAGES: each planned page is its OWN draft — Ireland's two rules stay two pages, a topic page is made, its questions are its 'also asked' (proof: 3 of 18 when the plan was merged again with old searches)", () => {

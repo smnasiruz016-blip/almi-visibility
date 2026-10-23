@@ -226,13 +226,14 @@ test("C · HOW MANY PAGES: the chosen dimensions filtered by REALITY on official
     assert.deepEqual(r.dims.roles.kept.map((k) => [k.name, k.profession]), [["Registered Nurse", "nursing"], ["Doctor", "medicine"], ["Dietitian", "dietetics"]]);
     assert.ok(["Pharmacy Technician", "Dental Assistant", "Software Engineer"].every((n) => r.dims.roles.dropped.some((d) => d.name === n)), "a support role counted as the profession");
     assert.deepEqual(r.dims.subjects.kept.map((k) => k.name), ["medicine-health-sciences"]);
-    assert.deepEqual([r.dims.universities.inScope, r.dims.universities.kept.map((k) => k.name), r.dims.universities.dropped.map((d) => d.why)], [2, ["Uni A"], [`The official page of Uni B, checked ${ON}, does not say this.`]]); // RR-319 A2: its own page AND its English/admission pages
+    /* RR-320 D (owner): graduates of EVERY university that teaches healthcare go to the destinations — its COURSE pages are read; none here has one */
+    assert.deepEqual([r.dims.universities.health, r.dims.universities.read.length, r.dims.universities.kept.length, r.dims.universities.dropped[0].why], [3, 3, 0, `its own site was read (${ON}) — no health course page found on it`]);
     const a = advise(r, { demand: [{ text: "oet score for ireland" }] });
     assert.equal(a.verdict, "BETTER"); assert.equal(a.number, 2); assert.equal(a.line, "No — better this way: 2 pages, one per country.");
     assert.match(a.why, /^Not 9,456 pages \(197 countries × 6 professions \/ job roles × 2 subjects × 4 universities\)/);
     assert.match(a.why, /scaled content abuse/); assert.match(a.sameness, /comes from never splits a question/);
     const ie = a.pages.find((p) => p.item === "Ireland");
-    assert.deepEqual(ie.sections.map((x) => [x.dim, x.items]), [["professions / job roles", ["nursing", "medicine", "dietetics"]], ["subjects", ["medicine-health-sciences"]], ["universities", ["Uni A"]]]);
+    assert.deepEqual(ie.sections.map((x) => [x.dim, x.items]), [["professions / job roles", ["nursing", "medicine", "dietetics"]], ["subjects", ["medicine-health-sciences"]]]);
     assert.deepEqual(ie.searched, ["oet score for ireland"]);
     /* one dimension, few kept: "Yes — possible and good" */
     const one = await realityFilter({ dims: ["countries"], lists: {}, subject: "XTEST", subjectSite: `${base}/`, reader: rd });
@@ -384,6 +385,8 @@ test("IN THE APP · How many pages (count → advice → drafts answered from th
     let o; for (let i = 0; i < 200; i++) { o = await a.get(`/api/products/${id}/overview`); if (!o.checking && o.card) break; await new Promise((r) => setTimeout(r, 150)); }
     /* C: refused without a subject; then the count runs, and the advice comes from the official pages */
     assert.match((await a.post(`/api/products/${id}/count`, { dims: ["countries"] })).refused, /^Say what your product is about/);
+    /* RR-320 (owner): a profession page only where the regulator's own page accepts it — the client pasted the regulator's page as a lead */
+    writeFileSync(join(a.dir, "products", id, "official-sources.json"), JSON.stringify({ Ireland: [{ url: `${offBase}/board/english`, body: "Nursing Board of Ireland", from: "you" }] }));
     const c = await a.post(`/api/products/${id}/count`, { dims: ["countries", "roles"], subject: "XTEST", site: `${offBase}/`, files: [{ dim: "roles", name: "roles.txt", base64: Buffer.from("Registered Nurse\nDoctor\nPilot\n").toString("base64") }] });
     assert.equal(c.running, true);
     let st; for (let i = 0; i < 200; i++) { st = await a.get(`/api/products/${id}/count`); if (!st.running && st.last) break; await new Promise((r) => setTimeout(r, 150)); }

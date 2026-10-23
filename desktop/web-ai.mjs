@@ -108,18 +108,18 @@ export async function writeWebWithAI({ provider, key, kind, material, siteName, 
  * RR-318 B6 · the client's own AI SUGGESTS where each country's official bodies say it (its web search) — Visibility then READS every page
  * itself (desktop/official.mjs) and keeps only what the page shows. An address the AI gives is a lead, never a source.
  */
-export async function suggestOfficialPages({ provider, key, subject, items, fetchImpl = fetch, base = AI.origin }) {
+export async function suggestOfficialPages({ provider, key, subject, items, professions = [], fetchImpl = fetch, base = AI.origin }) {
   if (provider !== "anthropic" || !key) return { ok: false, why: "Finding official pages with AI needs an Anthropic (Claude) key (Settings → Your AI connection). You can also paste the pages yourself." };
   const schema = { type: "object", additionalProperties: false, required: ["pages"], properties: { pages: { type: "array", items: { type: "object", additionalProperties: false, required: ["item", "body", "url"], properties: { item: { type: "string" }, body: { type: "string" }, url: { type: "string" } } } } } };
   let r;
-  try { r = await fetchImpl(`${base}${AI.path}`, { method: "POST", signal: AbortSignal.timeout(180000), headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": AI.version }, body: JSON.stringify({ model: AI.model, max_tokens: 6000, system: `For each item, find the OFFICIAL page of each body (a regulator, a government office) that states its English-language requirement for ${subject} — the body's own website only, never a test-prep, agency or news site. Give at most 3 bodies per item. Only addresses you found in your search.`, tools: [{ type: "web_search_20260209", name: "web_search", max_uses: Math.min(10, items.length * 2) }], messages: [{ role: "user", content: `Subject: ${subject}\nItems: ${items.join(", ")}` }], output_config: { format: { type: "json_schema", schema } } }) }); }
+  try { r = await fetchImpl(`${base}${AI.path}`, { method: "POST", signal: AbortSignal.timeout(180000), headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": AI.version }, body: JSON.stringify({ model: AI.model, max_tokens: 6000, system: professions.length ? `For each item (a country), find the OFFICIAL page of each health regulator that registers one of these professions — ${professions.join(", ")} — where it states its English-language requirement for ${subject}: the regulator's own website only, never a test-prep, agency or news site. One page per regulator, at most ${Math.min(12, professions.length)} per item. Only addresses you found in your search.` : `For each item, find the OFFICIAL page of each body (a regulator, a government office) that states its English-language requirement for ${subject} — the body's own website only, never a test-prep, agency or news site. Give at most 3 bodies per item. Only addresses you found in your search.`, tools: [{ type: "web_search_20260209", name: "web_search", max_uses: Math.min(professions.length ? 30 : 10, items.length * (professions.length ? 4 : 2)) }], messages: [{ role: "user", content: `Subject: ${subject}\nItems: ${items.join(", ")}` }], output_config: { format: { type: "json_schema", schema } } }) }); }
   catch { return { ok: false, why: "Your AI did not answer." }; }
   if (!r.ok) return { ok: false, why: r.status === 401 || r.status === 403 ? "Your AI refused the key — check it in Settings → Your AI connection." : `Your AI answered with an error (${r.status}).` };
   const body = await r.json().catch(() => null);
   const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens, model: body.model ?? AI.model } : null;
   let pages = [];
   try { pages = JSON.parse((body?.content ?? []).filter((b) => b?.type === "text").at(-1)?.text)?.pages ?? []; } catch { return { ok: false, why: "Your AI's answer could not be read.", usage }; }
-  return { ok: true, usage, pages: pages.filter((p) => /^https:\/\//.test(p.url ?? "") && items.includes(p.item)).slice(0, items.length * 3) };
+  return { ok: true, usage, pages: pages.filter((p) => /^https:\/\//.test(p.url ?? "") && items.includes(p.item)).slice(0, items.length * (professions.length ? 12 : 3)) };
 }
 
 /* ── RR-319 · the client's own AI reads his formula, and researches the questions people ask (on his click, his key, his cap) ── */
@@ -132,16 +132,36 @@ async function askJSON({ key, system, user, schema, fetchImpl = fetch, base = AI
   const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens, model: body.model ?? AI.model } : null;
   try { return { ok: true, usage, data: JSON.parse((body?.content ?? []).filter((b) => b?.type === "text").at(-1)?.text) }; } catch { return { ok: false, why: "Your AI's answer could not be read.", usage }; }
 }
-const DIM_ENUM = ["countries", "universities", "roles", "subjects", "cities"];
-/** the client's sentence → the same parts parseFormula makes; Visibility checks every number and word is in his own sentence */
+const DIM_ENUM = ["countries", "universities", "professions", "job roles", "subjects", "cities", "questions"];
+/**
+ * the client's sentence → the same parts parseFormula makes; Visibility checks every number is in his own sentence. RR-320 B: the RELATIONS
+ * ("people from X", "in the 9 destination countries", "graduates of 8,000 universities … to work in Y", "how many questions") — never a
+ * product of every number; "professions" are the subject's professions, never study subjects.
+ */
 export async function understandFormulaAI({ provider, key, text, fetchImpl = fetch, base = AI.origin }) {
   if (provider !== "anthropic" || !key) return { ok: false };
-  const schema = { type: "object", additionalProperties: false, required: ["parts"], properties: { parts: { type: "array", items: { type: "object", additionalProperties: false, required: ["text", "dims"], properties: { text: { type: "string" }, dims: { type: "array", items: { type: "object", additionalProperties: false, required: ["dim", "n", "role"], properties: { dim: { type: "string", enum: DIM_ENUM }, n: { type: "integer" }, role: { type: "string", enum: ["origin", "destination", "located", "none"] } } } } } } } } };
-  const out = await askJSON({ key, schema, fetchImpl, base, system: "Split the client's sentence about which web pages he wants into its parts. For each part list the dimensions he names with the number he gives: countries (role origin = where people come from, destination = where they go, located = where universities are), universities, roles (job roles / professions), subjects, cities. Use only numbers he wrote.", user: String(text).slice(0, 2000) });
+  const schema = { type: "object", additionalProperties: false, required: ["parts"], properties: { parts: { type: "array", items: { type: "object", additionalProperties: false, required: ["text", "dims"], properties: { text: { type: "string" }, dims: { type: "array", items: { type: "object", additionalProperties: false, required: ["dim", "n", "role"], properties: { dim: { type: "string", enum: DIM_ENUM }, n: { type: "integer" }, role: { type: "string", enum: ["origin", "destination", "located", "graduates", "none"] } } } } } } } } };
+  const out = await askJSON({ key, schema, fetchImpl, base, system: "Split the client's sentence about which web pages he wants into its parts (one per question he asks). For each part list the dimensions he names with the number he gives — read the RELATION, never multiply: countries (role origin = where people come FROM; destination = where they go, work or register; located = only where universities stand), universities (role graduates when he speaks of their graduates), professions (the professions a test is for — never study subjects), job roles, subjects, cities, questions (n 0, when he asks how many questions people ask). Use only numbers he wrote.", user: String(text).slice(0, 2000) });
   if (!out.ok) return out;
   const nums = new Set((String(text).match(/\d[\d,.]*/g) ?? []).map((n) => Number(n.replace(/,/g, ""))));
-  const parts = (out.data?.parts ?? []).map((p) => ({ text: p.text, dims: (p.dims ?? []).filter((d) => DIM_ENUM.includes(d.dim) && (nums.has(d.n) || nums.has(d.n / 1000))).map((d) => ({ dim: d.dim, n: d.n, role: d.dim === "countries" ? (d.role === "none" ? "destination" : d.role) : null })) })).filter((p) => p.dims.length);
+  const DIM = { professions: ["roles", "professions"], "job roles": ["roles", "job roles"] };
+  const parts = (out.data?.parts ?? []).map((p) => ({ text: p.text, dims: (p.dims ?? []).filter((d) => DIM_ENUM.includes(d.dim) && (d.dim === "questions" || nums.has(d.n) || nums.has(d.n / 1000))).map((d) => ({ dim: DIM[d.dim]?.[0] ?? d.dim, n: d.dim === "questions" ? null : d.n, word: DIM[d.dim]?.[1] ?? d.dim, role: d.dim === "countries" ? (d.role === "none" || d.role === "graduates" ? "destination" : d.role) : d.dim === "universities" && d.role === "graduates" ? "graduates" : null })) })).filter((p) => p.dims.length);
   return { ok: parts.length > 0, parts, usage: out.usage };
+}
+/**
+ * RR-320 B · Q1 "how many people take it": the client's AI SEARCHES the web for a page that states a figure — a lead only; Visibility then
+ * READS that page itself and keeps the figure only where the page states it (desktop/research5.mjs figureOf).
+ */
+export async function figureLeadAI({ provider, key, subject, fetchImpl = fetch, base = AI.origin }) {
+  if (provider !== "anthropic" || !key) return { ok: false, why: "Connect your AI to look this up." };
+  const schema = { type: "object", additionalProperties: false, required: ["url"], properties: { url: { type: "string" } } };
+  let r;
+  try { r = await fetchImpl(`${base}${AI.path}`, { method: "POST", signal: AbortSignal.timeout(120000), headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": AI.version }, body: JSON.stringify({ model: AI.model, max_tokens: 1500, system: `Find ONE page that states how many people take ${subject} (a yearly or total figure) — its own official site first. Give its address only; an address you found in your search.`, tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }], messages: [{ role: "user", content: `Subject: ${subject}` }], output_config: { format: { type: "json_schema", schema } } }) }); }
+  catch { return { ok: false, why: "Your AI did not answer." }; }
+  if (!r.ok) return { ok: false, why: `Your AI answered with an error (${r.status}).` };
+  const body = await r.json().catch(() => null);
+  const usage = body?.usage ? { input: body.usage.input_tokens, output: body.usage.output_tokens, model: body.model ?? AI.model } : null;
+  try { const url = JSON.parse((body?.content ?? []).filter((b) => b?.type === "text").at(-1)?.text)?.url; return /^https:\/\//.test(url ?? "") ? { ok: true, url, usage } : { ok: false, why: "Your AI found no page.", usage }; } catch { return { ok: false, why: "Your AI's answer could not be read.", usage }; }
 }
 /**
  * The client's AI suggests the questions people ask about the subject — RESEARCH, never counted as searches: each is said as "your AI's

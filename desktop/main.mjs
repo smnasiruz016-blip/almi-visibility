@@ -36,10 +36,11 @@ import { guidePage } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
 import { actionPlan, willDo, planDocument, isAlmiWorld, subjectOf } from "./action-plan.mjs";
 import { plainYouTubeWhy } from "../src/video/youtube.mjs"; // RR-313 A3
-import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS, understandFormulaAI, researchQuestionsAI } from "./web-ai.mjs"; // RR-318 A
+import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS, understandFormulaAI, researchQuestionsAI, figureLeadAI } from "./web-ai.mjs"; // RR-318 A
 import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
 import { realityFilter, advise, listFromFile, DIMENSIONS } from "./page-count.mjs"; // RR-318 C
-import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subjectProblem } from "./page-plan.mjs"; // RR-319
+import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subjectProblem, formulaOf } from "./page-plan.mjs"; // RR-319
+import { fiveAnswers, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, figureOf } from "./research5.mjs"; // RR-320 B
 import { builtInList, HOWTO as LIST_HOWTO, WORLD_LISTS, draftList } from "./lists.mjs"; // RR-319 B
 import { searchPower, mergeHistory } from "./search-power.mjs"; // RR-318 D
 import { siteNameOf } from "./web-text.mjs";
@@ -251,14 +252,33 @@ async function researchFor({ id, s, sc, subject, subjectSite, rd, res }) {
   for (const u of faqUrls) { const p = await rd.read(u); if (p.ok) faqPages.push(p); }
   const fq = faqQuestions(faqPages);
   items.push(...fq); sources.push({ kind: "official FAQ", n: fq.length, line: `${fq.length} questions on ${subject}'s own FAQ and help pages (${faqPages.length} of ${faqUrls.length} read)` });
+  /* RR-320 B · what the client's own AI saw in Google in the client's own browser (F11 source a, accepted runs only), and his search-data
+   * files (Keyword Planner, Bing Webmaster) — each with its own label */
+  const held = pread(id, "phrases.json", []);
+  items.push(...phraseItems(id));
+  sources.push({ kind: "your AI in your browser", n: held.filter((p) => p.kind === "observed").length, line: `${held.filter((p) => p.kind === "observed").length} phrases your AI saw in Google, in your own browser (client-started, 30 a day)` });
+  if (held.some((p) => p.kind === "tool")) sources.push({ kind: "search-data files", n: held.filter((p) => p.kind === "tool").length, line: `${held.filter((p) => p.kind === "tool").length} from your Keyword Planner / Bing Webmaster files (the tool's own estimates)` });
   const ai = aiOf(s); let aiCost = null;
   if (ai && LEDGER.allowed().ok) {
-    const a = await researchQuestionsAI({ ...ai, subject, what: s.setup?.official?.description ?? s.setup?.product?.what ?? "", countries: (res.dims.countries?.kept ?? []).map((k) => k.name), professions: res.dims.roles?.professions ?? [], ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) });
+    const origins = questionsByCountry(sc?.byCountry ?? []).slice(0, 12).map((c) => c.country).filter((c) => !/^other/.test(c));
+    const a = await researchQuestionsAI({ ...ai, subject, what: s.setup?.official?.description ?? s.setup?.product?.what ?? "", countries: [...new Set([...(res.dims.countries?.kept ?? []).map((k) => k.name), ...origins])], professions: res.dims.roles?.professions ?? [], ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) });
     if (a.usage) LEDGER.add(a.usage); aiCost = LEDGER.line();
-    const aq = (a.questions ?? []).map((q) => ({ text: q, source: "your AI's research (not search data)", on: new Date().toISOString().slice(0, 10), kind: "ai research", weight: 1 }));
+    const aq = (a.questions ?? []).map((q) => ({ text: q, source: "your AI's research — an AI estimate, not search data", on: new Date().toISOString().slice(0, 10), kind: "ai research", weight: 1 }));
     items.push(...aq); sources.push({ kind: "your AI", n: aq.length, line: a.ok ? `${aq.length} questions from your AI's research — research, not searches` : `Your AI's research: ${a.why}` });
   } else sources.push({ kind: "your AI", n: 0, line: "Connect your AI (Settings → Your AI connection) to add its research of the questions people ask" });
   return { items, sources, aiCost };
+}
+/* RR-320 B · a phrase is kept once (same words, same source kind, same place) */
+const mergePhrases = (held, more) => { const key = (p) => `${p.kind}|${String(p.place ?? "")}|${String(p.text).toLowerCase().replace(/\s+/g, " ").trim()}`, seen = new Set(held.map(key)); return [...held, ...more.filter((p) => { const k = key(p); if (seen.has(k)) return false; seen.add(k); return true; })]; };
+const phraseItems = (id) => pread(id, "phrases.json", []).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 }));
+/** the plan and the five answers made again from what is saved — no page is read again (pages never wait for the browser search) */
+function replan(id) {
+  const c = pread(id, "page-count.json"); if (!c?.result?.ok) return false;
+  const items = [...(c.items ?? []), ...phraseItems(id)], questions = groupQuestions(items);
+  const plan = planPages({ r: c.result, official: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), questions, formula: c.formula, subject: c.subject });
+  const five = fiveAnswers({ subject: c.subject, res: c.result, plan, official: officialOf(id), byCountry: c.byCountry, sc: searchConsoleOf(id), items, figure: c.figure, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []), dims: c.dims });
+  pwrite(id, "page-count.json", { ...c, plan, questions, five, replannedOn: new Date().toISOString() });
+  return true;
 }
 /** Create SEO pages: the drafts (kept in pages.json); published at once only when the client chose "automatically after the gates" */
 async function createPages(id) {
@@ -521,7 +541,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -543,13 +563,17 @@ const server = createServer((req, res) => {
            * the questions people ask, and the plan per kind of page */
           if (r[2] === "count" && req.method === "GET") {
             const aw = isAlmiWorld(s), bi = (k) => { const x = aw ? builtInList(k) : null; return x ? { n: x.items.length, source: x.source } : null; };
-            return send(200, { dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects") } : null, aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: pread(id, "page-count.json"), almiworld: aw });
+            /* RR-320 B: today's browser-search list for the client's own AI (Visibility never runs it), and the runs his AI handed in */
+            const lastC = pread(id, "page-count.json"), runs = pread(id, "phrase-runs.json", []), today = new Date().toISOString().slice(0, 10);
+            const browser = aboutOf(s) ? browserSearchList({ subject: aboutOf(s), countries: (lastC?.result?.dims?.countries?.kept ?? []).map((k) => k.name), origins: (lastC?.byCountry ?? []).map((c) => c.country).filter((c) => !/^other/.test(c)), professions: lastC?.result?.dims?.roles?.professions ?? [], own: pread(id, "research-own.json", []) }) : null;
+            const usedToday = runs.filter((x) => x.date === today && x.verdict === "ACCEPTED").reduce((n, x) => n + (x.searchesUsed ?? 0), 0);
+            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions") } : null, aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: pread(id, "page-count.json"), almiworld: aw });
           }
           /* RR-319 ADD · the client's own words → what Visibility understood (his AI when connected; else the plain reader); he confirms */
           if (r[2] === "count/understand" && req.method === "POST") {
             const v = json(); let f = v.guided ? fromGuided(v.guided) : parseFormula(v.text), byAI = false;
             const ai = aiOf(s);
-            if (!v.guided && ai && String(v.text ?? "").trim() && LEDGER.allowed().ok) { const a = await understandFormulaAI({ ...ai, text: v.text, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }); if (a.usage) LEDGER.add(a.usage); if (a.ok) { const g = parseFormula(""); f = { ...g, parts: a.parts, ok: true }; f.line = parseFormula(a.parts.map((p) => p.text).join("; ")).line ?? f.line; f.run = [...new Set(a.parts.flatMap((p) => p.dims.map((d) => (d.dim === "countries" ? (d.role === "origin" ? "origins" : "countries") : d.dim))))]; if (f.run.includes("origins") && !f.run.includes("countries")) f.run.push("countries"); byAI = true; } }
+            if (!v.guided && ai && String(v.text ?? "").trim() && LEDGER.allowed().ok) { const a = await understandFormulaAI({ ...ai, text: v.text, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }); if (a.usage) LEDGER.add(a.usage); if (a.ok) { f = formulaOf(a.parts); byAI = true; } /* RR-320 B: the AI's parts read with the same relations as the plain reader */ }
             if (!f.ok) return send(400, { refused: "Visibility could not read which pages you mean. Use the three boxes: from what → to what → for what (for example: from 197 countries → to 9 countries → for 519 job roles)." });
             const saved = { text: v.text ?? null, guided: v.guided ?? null, ...f, byAI, confirmed: false, on: new Date().toISOString() };
             pwrite(id, "formula.json", saved);
@@ -570,42 +594,79 @@ const server = createServer((req, res) => {
             for (const f of Array.isArray(v.files) ? v.files : []) { const x = listFromFile(String(f.name ?? ""), Buffer.from(String(f.base64 ?? ""), "base64")); if (!x.ok) return send(400, { refused: `${f.name}: ${x.why}` }); lists[f.dim] = [...(lists[f.dim] ?? []), ...x.items]; }
             for (const [dim, text] of Object.entries(v.typed ?? {})) { const items = String(text ?? "").split(/\r?\n/).map((t) => t.trim()).filter(Boolean).map((name) => ({ name })); if (items.length) lists[dim] = [...(lists[dim] ?? []), ...items]; }
             for (const k of ["roles", "universities", "subjects"]) if (aw && v.builtin?.[k] && dims.includes(k) && !lists[k]?.length) { const b = builtInList(k); if (b) lists[k] = b.items; }
+            /* RR-320 A: "12 professions" are the subject's professions — for AlmiWorld, OET's own 12 (oet.com), never AlmiStudy's 12 subjects */
+            if (aw && dims.includes("roles") && v.builtin?.professions !== false && (formula?.professions || v.builtin?.professions) &&!Object.keys(v.typed ?? {}).some((k) => k === "roles" && String(v.typed.roles).trim())) { const b = builtInList("professions"); if (b) lists.roles = b.items; }
+            const universityReads = Math.max(1, Math.min(300, Number.isInteger(v.universityReads) ? v.universityReads : 30));
             const st = store.read(id); st.setup.official = { subject, site: offSite, description: String(v.description ?? "").slice(0, 2000) || null }; store.write(id, st);
             if (formula) pwrite(id, "formula.json", { ...formula, confirmed: true });
             const run = (async () => {
               const say = (p) => countProgress.set(id, { stage: p, at: new Date().toISOString() });
               const rd = reader();
-              const res = await realityFilter({ dims, lists, subject, subjectName: subject, subjectSite: offSite, reader: rd, onProgress: say });
-              let plan = null, questions = [], research = null, offRead = null;
+              /* RR-320 D · Search Console again, now WITH its country dimension (read-only; the client's own connection) — the saved one if not */
+              let scNow = sc;
+              if (sc?.kind === "CONNECTED" && sc.site) { say("Reading your Search Console, by country"); const q = await GOOGLE.queries(sc.site).catch(() => null); if (q) { pwrite(id, "search-console.json", q); scNow = q; } }
+              const byCountry = scNow?.byCountry ? questionsByCountry(scNow.byCountry) : null;
+              const res = await realityFilter({ dims, lists, subject, subjectName: subject, subjectSite: offSite, reader: rd, onProgress: say, maxUniversityReads: universityReads, siteProfessions: Boolean(formula?.professions), queries: (scNow?.queries ?? []).map((q) => q.query), countryWeight: Object.fromEntries((byCountry ?? []).map((c) => [c.country, c.impressions])) });
+              let plan = null, questions = [], research = null, offRead = null, five = null, figure = null;
               if (res.ok) {
                 const kept = (res.dims.countries?.kept ?? []).map((k) => k.name);
-                /* RR-319 C5 + ADD 3: each kept country's health regulators — the client's AI suggests their pages when it is connected (a lead,
-                 * never a source); Visibility reads every one itself */
+                /* RR-319 C5 + ADD 3, RR-320: each kept country's health regulators, for each profession — the client's AI suggests their pages when it
+                 * is connected (a lead, never a source); Visibility reads every one itself */
                 const ai = aiOf(s), leads = pread(id, "official-sources.json", {}), need = kept.filter((c) => !(leads[c] ?? []).length);
-                if (ai && need.length && LEDGER.allowed().ok) { say("Asking your AI where each country's health regulators state it"); const g = await suggestOfficialPages({ ...ai, subject, items: need.slice(0, 10), ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }).catch(() => ({ ok: false })); if (g.usage) LEDGER.add(g.usage); if (g.ok) { for (const p of g.pages) leads[p.item] = [...(leads[p.item] ?? []).filter((x) => x.url !== p.url), { url: p.url, body: p.body, from: "your AI's search (read by Visibility before it is used)" }]; pwrite(id, "official-sources.json", leads); } }
+                if (ai && need.length && LEDGER.allowed().ok) { say("Asking your AI where each country's health regulators state it"); const g = await suggestOfficialPages({ ...ai, subject, items: need.slice(0, 10), professions: res.dims.roles?.professions ?? [], ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }).catch(() => ({ ok: false })); if (g.usage) LEDGER.add(g.usage); if (g.ok) { for (const p of g.pages) leads[p.item] = [...(leads[p.item] ?? []).filter((x) => x.url !== p.url), { url: p.url, body: p.body, from: "your AI's search (read by Visibility before it is used)" }]; pwrite(id, "official-sources.json", leads); } }
                 say("Reading the official bodies' pages for the kept countries");
                 offRead = kept.length ? await refreshOfficial(id, kept).catch((e) => ({ ok: false, why: `The official bodies' pages could not be read: ${e.message}` })) : null; // RR-319: never swallowed
+                /* RR-320 B · Q1: a figure of how many take it — the subject's own pages, and the page the client's AI points to (read here) */
+                say(`Looking for how many people take ${subject}`);
+                let lead = null; if (ai && LEDGER.allowed().ok) { const l = await figureLeadAI({ ...ai, subject, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }).catch(() => ({ ok: false })); if (l.usage) LEDGER.add(l.usage); if (l.ok) lead = { url: l.url }; }
+                figure = await figureOf({ urls: (await rd.sitemapOf(offSite)).urls ?? [], subject, reader: rd, lead });
                 say("Gathering the questions people ask");
-                research = await researchFor({ id, s, sc, subject, subjectSite: offSite, rd, res });
+                research = await researchFor({ id, s, sc: scNow, subject, subjectSite: offSite, rd, res });
                 questions = groupQuestions(research.items);
                 plan = planPages({ r: res, official: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), questions, formula, subject });
+                five = fiveAnswers({ subject, res, plan, official: officialOf(id), byCountry, sc: scNow, items: research.items, figure, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []), dims });
               }
-              pwrite(id, "page-count.json", { on: new Date().toISOString(), dims, subject, site: offSite, formula, result: res, plan, questions, research: research ? { sources: research.sources, aiCost: research.aiCost } : null, officialRead: offRead ?? null, advice: advise(res, { demand: [...(sc?.queries ?? []).map((q) => ({ text: q.query }))] }) });
+              pwrite(id, "page-count.json", { on: new Date().toISOString(), dims, subject, site: offSite, formula, result: res, plan, questions, five, figure, byCountry, items: research?.items.filter((x) => x.kind !== "observed" && x.kind !== "tool") ?? [], research: research ? { sources: research.sources, aiCost: research.aiCost } : null, officialRead: offRead ?? null, advice: advise(res, { demand: [...(scNow?.queries ?? []).map((q) => ({ text: q.query }))] }) });
             })().catch((e) => pwrite(id, "page-count.json", { on: new Date().toISOString(), dims, subject, site: offSite, result: { ok: false, why: `The count stopped: ${e.message}` }, plan: null })).finally(() => { counting.delete(id); countProgress.delete(id); });
             counting.set(id, run);
             return send(200, { ok: true, running: true });
           }
-          /* C5 · "Make these pages (drafts)" — every planned page (its questions are its demand), answered from its official pages; nothing is
-           * published for AlmiWorld */
+          /* RR-320 B · the browser search (F11 source a): what the client's OWN AI saw in Google in his OWN browser — accepted only by the F11
+           * rules (client-started, notice first, ≥20 s apart, ≤30 a day, stopped at once on a captcha); the plan is made again at once from it */
+          if (r[2] === "research/handin" && req.method === "POST") {
+            let hand; try { hand = JSON.parse(Buffer.from(String(json().base64 ?? ""), "base64").toString("utf8")); } catch { return send(400, { refused: "That file is not the file your AI gave you after its search." }); }
+            const runs = pread(id, "phrase-runs.json", []), t = takeHandIn(hand, { runsBefore: runs });
+            pwrite(id, "phrase-runs.json", [...runs, ...t.runs]);
+            if (t.phrases.length) pwrite(id, "phrases.json", mergePhrases(pread(id, "phrases.json", []), t.phrases));
+            const re = replan(id);
+            return send(t.runs.some((x) => x.verdict === "ACCEPTED") ? 200 : 400, { ok: t.runs.some((x) => x.verdict === "ACCEPTED"), line: `${t.line}${re ? " The plan is made again with them." : ""}`, ...(t.runs.some((x) => x.verdict === "ACCEPTED") ? {} : { refused: t.line }) });
+          }
+          if (r[2] === "research/file" && req.method === "POST") {
+            const v = json(), text = Buffer.from(String(v.base64 ?? ""), "base64").toString("utf8");
+            const f = takeSearchFile(text, { country: v.country ? String(v.country) : null, language: v.language ? String(v.language) : null, exportedOn: /^\d{4}-\d{2}-\d{2}$/.test(v.exportedOn ?? "") ? v.exportedOn : new Date().toISOString().slice(0, 10) });
+            if (!f.kind) return send(400, { refused: "That is not a Keyword Planner or Bing Webmaster file (it needs a \"Keyword\" column and \"Avg. monthly searches\" or \"Impressions\")." });
+            pwrite(id, "phrases.json", mergePhrases(pread(id, "phrases.json", []), f.phrases)); replan(id);
+            return send(200, { ok: true, line: `${f.phrases.length} phrases read from your ${f.kind} file — the tool's own estimates, labelled so.` });
+          }
+          /* the client's own question, added to the five (free text) */
+          if (r[2] === "research/own" && req.method === "POST") {
+            const v = json(), own = pread(id, "research-own.json", []);
+            if (v.notApply) { const na = new Set(pread(id, "research-notapply.json", [])); if (v.on === false) na.delete(String(v.notApply)); else na.add(String(v.notApply)); pwrite(id, "research-notapply.json", [...na].filter((x) => /^q[1-5]$/.test(x))); replan(id); return send(200, { ok: true }); }
+            const text = String(v.text ?? "").trim().slice(0, 300); if (text.length < 5) return send(400, { refused: "Write your question (a few words at least)." });
+            pwrite(id, "research-own.json", [...own, { id: `own-${own.length + 1}`, text, on: new Date().toISOString().slice(0, 10) }]); replan(id);
+            return send(200, { ok: true, line: "Added — it is answered from the sources below, and goes first on your AI's browser-search list." });
+          }
+          /* C5 · "Make these pages (drafts)" — THE FIRST BATCH (RR-320: 50–100; the next only when Google shows them), answered from their official
+           * pages; nothing is published for AlmiWorld */
           if (r[2] === "count/make" && req.method === "POST") {
-            const c = pread(id, "page-count.json"); const pages = c?.plan ? Object.values(c.plan.kinds).flat() : [];
+            const c = pread(id, "page-count.json"); const all = c?.plan ? Object.values(c.plan.kinds).flat() : [], first = new Set(c?.plan?.rollout?.first ?? all.map((p) => p.title)), pages = all.filter((p) => first.has(p.title));
             if (!pages.length) return send(400, { refused: "Count first — then make the pages Visibility planned." });
             if (!site) return send(400, { refused: "Check your website first — the pages are made in its look and linked to it." });
             pwrite(id, "planned.json", pages.map((p) => ({ text: p.title, source: `How many pages (${p.kind}${p.weak ? ", an opportunity page — no search yet" : `, answers ${p.questions.length} question${p.questions.length === 1 ? "" : "s"}`})` })));
             pwrite(id, "made-plan.json", pages);
             const x = await createPages(id); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
-            didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (${pages.length} planned).`);
-            return send(200, { ok: true, line: `${n} of ${pages.length} planned page${pages.length === 1 ? "" : "s"} made as drafts — read them under "Pages and articles". A page that is not ready lacks an official fact with its source and date (it says which).${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}`, drafts: n, planned: pages.length });
+            didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned).`);
+            return send(200, { ok: true, line: `${n} of the first batch's ${pages.length} page${pages.length === 1 ? "" : "s"} made as drafts (${all.length} planned in all) — read them under "Pages and articles". A page that is not ready lacks an official fact with its source and date (it says which). The next batch comes when your Search Console shows Google showing these.${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}`, drafts: n, planned: pages.length, all: all.length });
           }
           /* B6 · the official pages per country: what was read, what each says, and the leads to read (pasted, or suggested by the client's AI) */
           if (r[2] === "official" && req.method === "GET") return send(200, { subject: aboutOf(s), site: s.setup?.official?.site ?? null, claims: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), leads: pread(id, "official-sources.json", {}) });

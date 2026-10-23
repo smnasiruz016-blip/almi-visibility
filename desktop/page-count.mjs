@@ -57,7 +57,7 @@ export function professionPagesOf(urls) {
 /* a word's stem, so "nurse" meets "nursing" and "pharmacist" meets "pharmacy" */
 const stem = (w) => { w = String(w).toLowerCase(); for (const s of ["istry", "ists", "ist", "ians", "ian", "ics", "ing", "ers", "er", "y", "s", "e"]) if (w.length - s.length >= 4 && w.endsWith(s)) return w.slice(0, -s.length); return w; };
 /* the plain words a profession is also called by (a doctor works in "medicine"; a dietitian in "dietetics") */
-const ALSO = Object.freeze({ medicin: ["doctor", "physician", "surgeon", "general practitioner", "medical practitioner"], dietet: ["dietitian", "dietician", "nutritionist"], veterinar: ["veterinarian", "vet", "veterinary surgeon"], "speech patholog": ["speech therapist", "speech and language therapist", "speech-language pathologist"], nurs: ["midwife"] });
+const ALSO = Object.freeze({ physiotherap: ["physical therapist", "physiotherapist"], dent: ["oral surgeon", "orthodontist", "periodontist", "endodontist", "prosthodontist"], medicin: ["doctor", "physician", "surgeon", "general practitioner", "medical practitioner"], dietet: ["dietitian", "dietician", "nutritionist"], veterinar: ["veterinarian", "vet", "veterinary surgeon"], "speech patholog": ["speech therapist", "speech and language therapist", "speech-language pathologist"], nurs: ["midwife"] });
 const GENERIC = new Set(["science", "sciences", "studies", "practice", "test", "tests"]);
 const keyOf = (slug) => slug.split("-").filter((w) => !GENERIC.has(w)).map(stem).join(" ");
 /** which profession page of the subject's site a role or subject is (or null) */
@@ -66,12 +66,12 @@ const SUPPORT = new Set(["technician", "technologist", "assistant", "aide", "rec
 export function professionOf(name, professions) {
   const words = String(name).toLowerCase().replace(/[^a-z ]+/g, " ").split(/\s+/).filter(Boolean), stems = words.map(stem), text = ` ${words.join(" ")} `;
   if (SUPPORT.has(words.at(-1))) return null;
-  for (const p of professions) {
-    const k = keyOf(p.slug), ks = k.split(" ");
-    if (ks.every((x) => stems.includes(x))) return p;
-    if ((ALSO[k] ?? []).some((a) => text.includes(` ${a} `) || stems.join(" ").includes(a.split(" ").map(stem).join(" ")))) return p;
-  }
-  return null;
+  for (const p of professions) { const ks = keyOf(p.slug).split(" "); if (ks.every((x) => stems.includes(x))) return p; }
+  /* the plain words, as WHOLE words ("physician" is not inside "physical"), the longest first ("oral surgeon" is a dentist before "surgeon"
+   * is a doctor) */
+  const st = ` ${stems.join(" ")} `;
+  const hits = professions.flatMap((p) => (ALSO[keyOf(p.slug)] ?? []).filter((a) => text.includes(` ${a} `) || st.includes(` ${a.split(" ").map(stem).join(" ")} `) || (!a.includes(" ") && a.length >= 6 && words.some((w) => w.endsWith(a)))).map((a) => ({ p, len: a.length }))); // "neurosurgeon" ends with "surgeon"
+  return hits.sort((x, y) => y.len - x.len)[0]?.p ?? null;
 }
 
 /**

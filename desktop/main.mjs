@@ -155,7 +155,7 @@ async function publishOne(id, url) {
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
   if (!site) return { ok: false, why: "Check your product first — the gates need your site's latest read." };
-  const again = seoPages({ site, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id) });
+  const again = seoPages({ site, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) });
   const d = again.drafts.find((x) => x.url === url);
   if (!d) return { ok: false, why: "This draft is out of date — what Visibility knows changed since it was made. Press Create SEO pages again." };
   if (!d.readyAsDraft) return { ok: false, gates: d.gates, why: `Not published — a check failed right before publishing: ${d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `${g.words}: ${g.failing.join("; ")}`).join(" · ")}` };
@@ -195,7 +195,7 @@ async function buildPlan(id) {
     if (ctx.youtubeConfirmed && ctx.youtubeKey) { try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
     const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
     const web = hasWebsite(s) && site?.ok ? site : null;
-    const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id) }) : null;
+    const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) }) : null;
     const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on });
     const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
     pwrite(id, "plan.json", plan);
@@ -238,7 +238,7 @@ async function createPages(id) {
   /* RR-318 B6: the countries the searches are about get their official answers first (read once; a country already read is kept) */
   const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
   if (want.length && s.setup?.official?.site) await refreshOfficial(id, want.slice(0, 12)).catch(() => null);
-  const pages = seoPages({ site, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id) });
+  const pages = seoPages({ site, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) });
   pwrite(id, "pages.json", pages);
   /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
   let auto = null;
@@ -473,7 +473,7 @@ const server = createServer((req, res) => {
             if (f === "search-power") return send(200, { open: "search" }); // RR-318 D
             if (f === "publish") return send(200, { open: "publish" });
             if (f === "seo-pages" || f === "articles") {
-              const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id) });
+              const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialOf(id), planned: plannedOf(id), subject: aboutOf(store.read(id)) });
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
               let auto = null;
@@ -564,9 +564,9 @@ const server = createServer((req, res) => {
           if (r[2] === "search" && req.method === "GET") { const h = pread(id, "search-history.json"); return send(200, { connected: sc?.kind === "CONNECTED", site: sc?.site ?? null, searches: sc?.queries?.length ?? 0, window: sc?.window ?? null, power: h ? searchPower(h, { siteName: site ? siteNameOf(site) : null }) : null }); }
           if (r[2] === "search/read" && req.method === "POST") {
             if (sc?.kind !== "CONNECTED") return send(400, { refused: "Connect Google Search Console first — rank tracking reads Google's own figures for your site, week by week." });
-            const p = await GOOGLE.performance(sc.site, { weeks: 8 }); if (!p) return send(400, { refused: "Google did not give the weekly figures — press Connect again in Google Search Console." });
+            const p = await GOOGLE.performance(sc.site, { weeks: 13 }); if (!p) return send(400, { refused: "Google did not give the weekly figures — press Connect again in Google Search Console." });
             const h = mergeHistory(pread(id, "search-history.json"), p); pwrite(id, "search-history.json", h);
-            return send(200, { ok: true, line: `Read ✓ — ${h.weeks.length} weeks of positions from Google Search Console.${p.partial ? ` ${p.partial}` : ""}`, power: searchPower(h, { siteName: site ? siteNameOf(site) : null }) });
+            return send(200, { ok: true, line: `Read ✓ — ${h.weeks.length} weeks of positions from Google Search Console (the last 3 months).`, power: searchPower(h, { siteName: site ? siteNameOf(site) : null }) });
           }
         } }
       /* ── RR-308 D · PUBLISH: where the site is built, Approve & Publish (the five gates again, right before), Edit, Unpublish ── */

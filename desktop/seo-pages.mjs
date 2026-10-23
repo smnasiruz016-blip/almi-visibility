@@ -31,9 +31,13 @@ import { cleanAnswer, wholeSentences } from "./web-text.mjs";
  * "score", "accepted", "for nurses"): the country's page holds every such question, each profession as a section inside it.
  */
 const ASKING = new Set(["requirement", "requirements", "required", "require", "score", "scores", "minimum", "need", "needed", "needs", "accepted", "accept", "accepts", "acceptance", "recognised", "recognized", "recognition", "valid", "band", "bands", "grade", "grades", "pass", "passing", "mark", "marks", "result", "results", "rules", "rule", "registration", "register", "nurses", "nurse", "nursing", "doctors", "doctor", "medicine", "dentists", "pharmacists", "midwives", "for", "in", "to", "is", "the", "a", "what", "how", "much", "do", "does", "i", "you", "of"]);
-export function sameNeed(a, b) {
+export function sameNeed(a, b, subject = null) {
   const da = destinationsIn(a), db = destinationsIn(b);
   if (!da.length || da.length !== db.length || !da.every((c) => db.includes(c))) return false;
+  /* when the product's subject is known ("OET"), a search about the same country is a section of the subject's page for it ("avbc australia"
+   * goes inside "OET for Australia") — never a second page for that country */
+  const named = (s) => subject && new RegExp(`(?<![\\p{L}\\p{N}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(s);
+  if (named(a) || named(b)) return true;
   const placeWords = new Set([...da].flatMap((c) => tokens(c)).concat(tokens(String(a).match(/\b(nz|uk|uae|usa|ksa)\b/gi)?.join(" ") ?? ""), tokens(String(b).match(/\b(nz|uk|uae|usa|ksa)\b/gi)?.join(" ") ?? "")));
   const rest = (s) => new Set(tokens(s).filter((w) => !ASKING.has(w) && !placeWords.has(w)));
   const ra = rest(a), rb = rest(b);
@@ -104,7 +108,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [] }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], subject = null }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -125,7 +129,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     for (let j = i + 1; j < needs.length; j++) {
       if (needs[j].merged) continue;
       const b = new Set(tokens(needs[j].question)); const both = [...a].filter((w) => b.has(w)).length;
-      if ([...a].every((w) => b.has(w)) || [...b].every((w) => a.has(w)) || both / new Set([...a, ...b]).size >= 0.6 || sameNeed(needs[i].question, needs[j].question)) {
+      if ([...a].every((w) => b.has(w)) || [...b].every((w) => a.has(w)) || both / new Set([...a, ...b]).size >= 0.6 || sameNeed(needs[i].question, needs[j].question, subject)) {
         needs[i].alsoAsked = [...(needs[i].alsoAsked ?? []), needs[j].question]; needs[j].merged = needs[i].needId;
         if (!needs[i].claims.length && needs[j].claims.length) needs[i].claims = needs[j].claims;
       }

@@ -10,7 +10,7 @@
  */
 import { asQuestion } from "./seo-pages.mjs";
 
-export const GENAI = Object.freeze({ available: false, line: "Search Console's Generative AI performance report (June 2026) is not offered by Google's Search Console API: the API's report types are web, image, video, news, Discover and Google News (Google's API reference, last updated 11 Aug 2026). Visibility cannot read it for you — open it yourself in Search Console → Performance → Generative AI.", sources: ["https://developers.google.com/webmaster-tools/v1/searchanalytics/query", "https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports"], checkedOn: "2026-10-23" });
+export const GENAI = Object.freeze({ available: false, line: "Search Console's Generative AI performance report (June 2026) is not yet given by Google to other programs: Google's own reference for reading Search Console data lists only web, image, video, news, Discover and Google News results (last updated 11 Aug 2026). So Visibility cannot read it for you — open it yourself in Search Console → Performance → Generative AI.", sources: ["https://developers.google.com/webmaster-tools/v1/searchanalytics/query", "https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports"], checkedOn: "2026-10-23" });
 export const POSITION_NOTE = "Position is Google's own average for that week (1 = the top). It moves day to day, and it is not a promise of where you will be.";
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
 const avg = (xs) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null);
@@ -71,5 +71,5 @@ export function searchPower(history, { siteName = null } = {}) {
   const t = rankTracking(history);
   const total = t.rows.reduce((a, r) => a + r.impressions, 0);
   return { on: history?.on ?? null, weeks: t.weeks, tracking: t, opportunities: opportunities(history, { siteName }), alerts: alerts(history), genai: GENAI,
-    thin: total < 100 ? `Few searches so far: ${fmt(total)} impression${total === 1 ? "" : "s"} in ${t.weeks.length} week${t.weeks.length === 1 ? "" : "s"}. Positions from so few searches move a lot — read the trend, not one week.` : null };
+    thin: total === 0 ? `Google showed none of your pages for a search in these ${t.weeks.length} week${t.weeks.length === 1 ? "" : "s"} — your searches happened earlier, or were too few for Google to report. Positions appear here once people see your pages in search.` : total < 100 ? `Few searches so far: ${fmt(total)} impression${total === 1 ? "" : "s"} in ${t.weeks.length} week${t.weeks.length === 1 ? "" : "s"}. Positions from so few searches move a lot — read the trend, not one week.` : null };
 }

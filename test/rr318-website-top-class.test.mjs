@@ -107,6 +107,7 @@ test("B4 · DUPLICATES MERGED BY THE GATE: one need per country the person goes 
   assert.ok(sameNeed("oet requirements for ireland", "oet score for ireland"));
   assert.ok(sameNeed("oet for nurses in new zealand", "oet nz"));
   assert.ok(sameNeed("oet for pakistani nurses in the uk", "oet uk"), "the country a person comes from split a question");
+  assert.ok(!sameNeed("avbc australia", "oet for australia") && sameNeed("avbc australia", "oet for australia", "OET"), "with the subject known, a search about the same country is a section of its page (the proof found AVBC Australia as a second page)");
   assert.ok(!sameNeed("oet score for ireland", "oet score for canada"));
   assert.ok(!sameNeed("nursing jobs in ireland", "doctor salary in ireland"), "two subjects in one country merged");
   assert.deepEqual(countriesIn("oet nz"), ["New Zealand"]); assert.deepEqual(countriesIn("OET for us"), [], "'us' is a word, not the United States");
@@ -223,6 +224,9 @@ test("C · HOW MANY PAGES: the chosen dimensions filtered by REALITY on official
     assert.equal(none.ok, false); assert.match(none.why, /keeps nothing it cannot check on an official page/);
     assert.equal(professionPagesOf([`${base}/post/a-b`, `${base}/x`]).length, 0);
     assert.equal(professionOf("Veterinary Nurse", [{ slug: "nursing" }])?.slug, "nursing");
+    /* the proof found these on the real list: "physician" is not inside "physical"; an oral surgeon is a dentist before a surgeon is a doctor */
+    const P3 = [{ slug: "medicine" }, { slug: "dentistry" }, { slug: "physiotherapy" }];
+    assert.deepEqual(["Physical Therapist", "Oral Surgeon", "Neurosurgeon", "General Surgeon"].map((n) => professionOf(n, P3)?.slug ?? null), ["physiotherapy", "dentistry", "medicine", "medicine"]);
   } finally { s.close(); }
 });
 
@@ -249,20 +253,22 @@ test("D · SEARCH CONSOLE POWER: rank tracking week by week with the trend; oppo
   const eight = { ...HISTORY, weeks: [...["08-04", "08-11", "08-18", "08-25"].map((d) => W(`2026-${d}`, [{ query: "q", page: "https://x.test/p", clicks: 5, impressions: 50, position: 3 }])), ...["09-01", "09-08", "09-15", "09-22"].map((d) => W(`2026-${d}`, [{ query: "q", page: "https://x.test/p", clicks: 1, impressions: 50, position: 3 }]))] };
   assert.ok(alerts(eight).some((a) => a.kind === "CLICKS_FALL" && /fell from 20 to 4/.test(a.line)));
   const p = searchPower(HISTORY, { siteName: "AlmiOET" });
-  assert.equal(p.genai.available, false); assert.match(p.genai.line, /not offered by Google's Search Console API/); assert.match(p.genai.line, /Search Console → Performance → Generative AI/);
+  assert.equal(p.genai.available, false); assert.match(p.genai.line, /is not yet given by Google to other programs/); assert.doesNotMatch(p.genai.line, /API/); assert.match(p.genai.line, /Search Console → Performance → Generative AI/);
   assert.equal(GENAI.checkedOn, "2026-10-23");
   assert.equal(p.thin, null, "133 impressions called few");
   assert.match(searchPower({ weeks: [W("2026-09-22", [{ query: "oet nz", page: "https://x.test/", clicks: 0, impressions: 2, position: 14 }])] }).thin, /^Few searches so far: 2 impressions in 1 weeks?. Positions from so few searches move a lot/);
   const m = mergeHistory({ weeks: [W("2026-09-01", []), W("2026-09-08", [])] }, { site: "s", on: ON, weeks: [W("2026-09-08", [{ query: "a" }]), W("2026-09-15", [])] });
   assert.deepEqual(m.weeks.map((w) => [w.to, w.rows.length]), [["2026-09-01", 0], ["2026-09-08", 1], ["2026-09-15", 0]]);
-  /* google-connect reads each week through Google's own Search Analytics service, "query" and "page", type web — with Google's position */
+  /* google-connect reads the whole window in ONE request through Google's own Search Analytics service (day, phrase, page; web) and puts
+   * it into weeks — a week's position is the days' positions weighted by their impressions (Google's own figures) */
   const asked = [];
   const g = googleConnect({ keys: { get: (n) => (n === "GOOGLE_REFRESH_TOKEN" || n === "GOOGLE_CLIENT_SECRET" ? "x" : null) }, config: { googleClientId: "id.apps.googleusercontent.com", googleTestEndpoints: { auth: "http://127.0.0.1:9/a", token: "http://127.0.0.1:9/t", api: "http://127.0.0.1:9/api/" } }, now: () => Date.parse(`${ON}T12:00:00Z`),
-    fetchImpl: async (u, init) => { if (/\/t$/.test(u)) return new Response(JSON.stringify({ access_token: "a", expires_in: 3600 })); asked.push(JSON.parse(init.body)); return new Response(JSON.stringify({ rows: [{ keys: ["oet nz", "https://x.test/nz"], clicks: 1, impressions: 2, position: 11.43 }] })); } });
+    fetchImpl: async (u, init) => { if (/\/t$/.test(u)) return new Response(JSON.stringify({ access_token: "a", expires_in: 3600 })); asked.push(JSON.parse(init.body)); return new Response(JSON.stringify({ rows: [{ keys: ["2026-10-20", "oet nz", "https://x.test/nz"], clicks: 1, impressions: 1, position: 10 }, { keys: ["2026-10-18", "oet nz", "https://x.test/nz"], clicks: 0, impressions: 3, position: 14 }, { keys: ["2026-10-05", "oet nz", "https://x.test/nz"], clicks: 0, impressions: 2, position: 20.04 }, { keys: ["2026-09-01", "old", "https://x.test/"], clicks: 0, impressions: 1, position: 3 }] })); } });
   const perf = await g.performance("sc-domain:x.test", { weeks: 3 });
-  assert.equal(asked.length, 3); assert.deepEqual(asked[0].dimensions, ["query", "page"]); assert.equal(asked[0].type, "web");
-  assert.deepEqual([asked[0].startDate, asked[0].endDate, asked[2].endDate], ["2026-10-14", "2026-10-20", "2026-10-06"]);
-  assert.deepEqual(perf.weeks.map((w) => w.to), ["2026-10-06", "2026-10-13", "2026-10-20"]); assert.equal(perf.weeks[0].rows[0].position, 11.4);
+  assert.equal(asked.length, 1); assert.deepEqual(asked[0].dimensions, ["date", "query", "page"]); assert.equal(asked[0].type, "web");
+  assert.deepEqual([asked[0].startDate, asked[0].endDate], ["2026-09-30", "2026-10-20"]);
+  assert.deepEqual(perf.weeks.map((w) => w.to), ["2026-10-06", "2026-10-13", "2026-10-20"]);
+  assert.deepEqual(perf.weeks.map((w) => w.rows.map((r) => [r.query, r.impressions, r.position])), [[["oet nz", 2, 20]], [], [["oet nz", 4, 13]]], "the week's position is not the impression-weighted average of its days");
 });
 
 /* ══ A · the website's AI writing ══ */
@@ -348,7 +354,7 @@ test("IN THE APP · How many pages (count → advice → drafts answered from th
   let gWeeks = 0;
   const g = createServer((q, r) => { let b = ""; q.on("data", (c) => (b += c)); q.on("end", () => {
     if (q.url === "/token") { r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify({ access_token: "a", expires_in: 3600, refresh_token: "standin-refresh", scope: "https://www.googleapis.com/auth/webmasters.readonly" })); }
-    if (/searchAnalytics/.test(q.url)) { gWeeks++; r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify({ rows: [{ keys: ["xtest for nurses in ireland", `${csBase}/guides`], clicks: 0, impressions: 3, position: 9 + gWeeks }] })); }
+    if (/searchAnalytics/.test(q.url)) { gWeeks++; r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify({ rows: [{ keys: [new Date(Date.now() - 4 * 864e5).toISOString().slice(0, 10), "xtest for nurses in ireland", `${csBase}/guides`], clicks: 0, impressions: 3, position: 9 }] })); }
     if (q.url === "/v1/messages") { r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify(webModelReply(JSON.parse(b), { mode: "invent" }))); }
     r.writeHead(404); r.end(); }); });
   await new Promise((res) => g.listen(0, "127.0.0.1", res)); const gBase = `http://127.0.0.1:${g.address().port}`;
@@ -381,8 +387,8 @@ test("IN THE APP · How many pages (count → advice → drafts answered from th
     const state = new URL(gs.url).searchParams.get("state");
     assert.equal((await fetch(`${a.url}/oauth/google?code=one-time&state=${encodeURIComponent(state)}`)).status, 200);
     const sr = await a.post(`/api/products/${id}/search/read`, {});
-    assert.equal(sr.ok, true, sr.refused); assert.equal(gWeeks, 8);
-    assert.equal(sr.power.tracking.rows[0].byWeek.length, 8); assert.equal(sr.power.genai.available, false);
+    assert.equal(sr.ok, true, sr.refused); assert.equal(gWeeks, 1, "more than one request for the positions");
+    assert.equal(sr.power.tracking.rows[0].byWeek.length, 13); assert.equal(sr.power.genai.available, false);
     const ov = await a.get(`/api/products/${id}/overview`);
     assert.deepEqual([ov.google.kind, ov.google.searches], ["CONNECTED", 1]); assert.ok(!ov.menu.cards.some((x) => x.id === "google"));
     /* A: the AI writes; it invents every time → the templates stay, said plainly; the cost is counted */

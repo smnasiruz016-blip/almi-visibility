@@ -105,6 +105,7 @@ test("A · THE PLAN PER KIND: Ireland splits (NMBI for nurses ≠ Medical Counci
   assert.deepEqual(p.kinds.taking[0].claims.map((c) => [c.text, c.link, c.official]), [["OET's own page states the fee — AUD 587.", "https://oet.test/fees", true]]);
   const searched = planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "oet test centre philippines fee", kind: "search" }]), subject: "OET" });
   assert.deepEqual(searched.kinds.taking.map((x) => [x.title, x.fee]), [["Taking OET in Philippines: venues, dates and fee", "AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22)"]]);
+  assert.deepEqual(searched.kinds.taking[0].claims.map((c) => [c.text, c.official]), [["OET's own page states the fee — AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22).", true]], "a country's own taking page with no sourced fee");
 });
 
 test("ADD 3 · EVERY QUESTION TO ONE PAGE: each page lists what it answers; a vets' search is never a page's MAIN search; topic pages for the rest; a page with no question is an honest opportunity page", () => {

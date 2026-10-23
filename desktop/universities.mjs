@@ -21,7 +21,7 @@ const fieldsOf = (u) => u.fields ?? u.subjects ?? [];
 export const teachesHealth = (u) => fieldsOf(u).some((f) => HEALTH_FIELD.test(f)) || (u.subjects ?? []).some((s) => /medicine-health/.test(s));
 
 /* the words of a university's name that are its own (never "University", "College", "of", nor its city) */
-const GENERIC = new Set(["university", "universitas", "universidad", "universidade", "universite", "université", "universita", "università", "universiti", "college", "institute", "institut", "instituto", "school", "faculty", "academy", "of", "the", "and", "for", "de", "del", "di", "la", "le", "des", "do", "da", "national", "state", "federal", "public", "medical", "health", "sciences", "science", "technology", "polytechnic", "international", "central", "royal"]);
+const GENERIC = new Set(["university", "universitas", "universidad", "universidade", "universite", "université", "universita", "università", "universiti", "college", "institute", "institut", "instituto", "school", "faculty", "academy", "of", "the", "and", "for", "de", "del", "di", "la", "le", "des", "do", "da", "national", "state", "federal", "public", "medical", "health", "healthcare", "care", "nursing", "pharmacy", "pharmaceutical", "medicine", "veterinary", "dental", "dentistry", "sciences", "science", "technology", "polytechnic", "international", "central", "royal"]);
 const ownWords = (u) => String(u.name).replace(/\([^)]*\)/g, " ").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !GENERIC.has(w) && w !== String(u.city ?? "").toLowerCase());
 const shortName = (u) => /\(([A-Z][A-Za-z-]{1,9})(?:\s*\/[^)]*)?\)/.exec(u.name)?.[1] ?? null;
 /** the client's searches that name this university (its own words all, or its short name in brackets) */
@@ -32,7 +32,7 @@ export function searchesNaming(u, queries = []) {
 
 /* a COURSE page of a health profession, by its address: the profession's word in its last two parts, and a study word or a school name */
 const COURSE_WORD = /cours|program|degree|stud(y|ies)|undergrad|postgrad|bachelor|master|bsc|msc|mbbs|school|faculty|department|nursing|medicine|pharmacy|dentistry/i;
-const NOT_COURSE = /news|event|blog|staff|people|profile|research-?(project|group|centre)|story|stories|press|media|alumni|calendar|job|vacanc|career|tender|\.(jpg|png|pdf|docx?)$/i;
+const NOT_COURSE = /news|video|gallery|photo|album|announcement|notice|tag|search|event|blog|staff|people|profile|research-?(project|group|centre)|story|stories|press|media|alumni|calendar|job|vacanc|career|tender|\.(jpg|png|pdf|docx?)$/i;
 function courseProfession(url) {
   let p; try { p = decodeURIComponent(new URL(url).pathname).toLowerCase(); } catch { return null; }
   if (NOT_COURSE.test(p)) return null;
@@ -59,7 +59,7 @@ export async function coursePagesOf({ u, reader, subject, maxCourses = 3 }) {
   const byProf = new Map(); for (const c of cands.sort((a, b) => a.url.length - b.url.length)) if (!byProf.has(c.profession)) byProf.set(c.profession, c);
   const pick = [...byProf.values(), ...cands.filter((c) => ![...byProf.values()].includes(c))].slice(0, maxCourses);
   const courses = [];
-  for (const c of pick) { const r = await reader.read(c.url); if (r.ok) courses.push({ url: r.url, title: r.title ?? r.h1 ?? c.url, profession: c.profession, readOn: r.checkedOn, namesSubject: has(`${r.title} ${r.text}`, subject) }); }
+  for (const c of pick) { const r = await reader.read(c.url); if (r.ok && courseProfession(r.url)) courses.push( /* RR-320 proof: a link that moved to the home page is no course page */{ url: r.url, title: r.title ?? r.h1 ?? c.url, profession: c.profession, readOn: r.checkedOn, namesSubject: has(`${r.title} ${r.text}`, subject) }); }
   return { state: "READ", checkedOn: home.checkedOn, courses, homeNamesSubject: has(home.text, subject), found: cands.length };
 }
 

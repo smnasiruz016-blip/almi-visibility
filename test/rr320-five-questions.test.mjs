@@ -18,7 +18,7 @@ import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, createHash } from "node:crypto";
 import { parseFormula, formulaOf, groupQuestions, planPages, rolloutOf, BATCH } from "../desktop/page-plan.mjs";
 import { builtInList } from "../desktop/lists.mjs";
 import { countryOfCode, ISO3_CODES, COUNTRIES } from "../desktop/world.mjs";
@@ -31,6 +31,7 @@ import { CLIENT_AI_POLICY } from "../src/discovery/search-phrase-sources.mjs";
 const REPO = join(import.meta.dirname, "..");
 const UI = readFileSync(join(REPO, "desktop", "ui.html"), "utf8"), MAIN = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"), R5 = readFileSync(join(REPO, "desktop", "research5.mjs"), "utf8");
 const ON = "2026-10-23";
+const ISO3_PIN = "b9482c8091ae2d8e1b036d8a364d64bcb74851c81858a3b1ff67a9ed85952ba5"; // the ISO3 table checked against UN M49 (scratch m49check), 23 Oct 2026
 const OWNER = "1) People from 197 countries apply for 12 professions in the 9 OET destination countries. How many pages?\n2) Graduates of 8,000+ universities need OET to work in these 9 countries. How many pages?\n3) How many questions do people from 197 countries ask about OET?";
 
 /* ══ C · the formula, by its relations ══ */
@@ -76,6 +77,8 @@ test("Q2 · SEARCH CONSOLE'S COUNTRY DIMENSION: Google's ISO codes → the 197 n
   assert.equal(ISO3_CODES.length, COUNTRIES.length); assert.equal(new Set(ISO3_CODES).size, 197);
   assert.deepEqual(["pak", "IND", "gbr", "phl", "are", "xkk", "civ", "usa"].map(countryOfCode), ["Pakistan", "India", "United Kingdom", "Philippines", "United Arab Emirates", "Kosovo", "Côte d'Ivoire", "United States"]);
   assert.equal(countryOfCode("zzz"), null);
+  /* the WHOLE table, as checked against the UN's M49 list on 23 Oct 2026 (any swap turns this red) */
+  assert.equal(createHash("sha256").update(ISO3_CODES.map((c, i) => `${c}=${COUNTRIES[i]}`).join("|")).digest("hex"), ISO3_PIN);
   const by = questionsByCountry([{ query: "oet pakistan", country: "pak", impressions: 9 }, { query: "oet fee", country: "pak", impressions: 3 }, { query: "oet uk", country: "gbr", impressions: 20 }, { query: "x", country: "hkg", impressions: 1 }]);
   assert.deepEqual(by.map((c) => [c.country, c.searches, c.questions.map((q) => q.text)]), [["United Kingdom", 1, ["oet uk"]], ["Pakistan", 2, ["oet pakistan", "oet fee"]], ["other (HKG)", 1, ["x"]]]);
   const GC = readFileSync(join(REPO, "desktop", "google-connect.mjs"), "utf8");
@@ -118,6 +121,7 @@ test("PAGES · PROFESSION PAGES only where that country's regulator accepts it f
   assert.ok(!p.kinds.requirement.some((x) => /Veterinary/.test(x.title)), "a vets' page where no regulator's page says it");
   assert.ok(!p.kinds.requirement.some((x) => x.bodies?.includes("Department of Home Affairs") && !x.hub), "a visa office set a profession's rule");
   assert.deepEqual(p.gaps.filter((g) => g.country === "United Kingdom").map((g) => g.reason), ["not said", "not said", "not said"]);
+  assert.equal(p.gaps.find((g) => g.country === "Australia" && g.profession === "veterinary science").why, "Australian Health Practitioner Regulation Agency: its own page names OET, but not veterinary science", "a visa office read as a regulator");
   /* an AI's question is never search evidence: "pharmacists in australia" waits */
   assert.ok(p.unused.some((u) => u.question === "oet for pharmacists in australia" && /^about pharmacy, which OET is not for$/.test(u.why)) || p.unused.some((u) => u.question === "oet for pharmacists in australia"));
   const hub = p.kinds.requirement.find((x) => x.hub && x.country === "United Kingdom");
@@ -173,6 +177,11 @@ test("D · UNIVERSITIES: healthcare from the list's own subjects, the profession
   assert.deepEqual(searchesNaming(dal, ["pgme dalhousie", "oet halifax"]), ["pgme dalhousie"]);
   assert.deepEqual(searchesNaming(syd, ["oet sydney", "university of sydney oet"]), [], "the city alone is not the university");
   assert.deepEqual(searchesNaming(ks, ["ksau-hs nursing oet"]), ["ksau-hs nursing oet"]);
+  /* the real run (23 Oct): a subject word in a name is not the university ("college of pharmacy pei" is not Hanoi's; "bc care registry" not Tallinn's) */
+  assert.deepEqual(searchesNaming({ name: "Hanoi University of Pharmacy (Trường Đại học Dược Hà Nội, HUP)", city: "Hanoi" }, ["college of pharmacy pei", "pharmacy deakin"]), []);
+  assert.deepEqual(searchesNaming({ name: "Tallinn Health Care College", city: "Tallinn" }, ["bc care registry"]), []);
+  assert.deepEqual(searchesNaming({ name: "University of Veterinary Sciences Brno (VETUNI / VFU)", city: "Brno" }, ["australasian veterinary boards council (avbc)"]), []);
+  assert.deepEqual(searchesNaming({ name: "Deakin University", city: "Geelong" }, ["pharmacy deakin"]), ["pharmacy deakin"]);
 });
 
 function uniSites() {
@@ -186,8 +195,11 @@ function uniSites() {
     if (q.url === "/a/") return h(P("Uni A", `<a href="${base}/a/about">About</a>`));
     if (q.url === "/a/study/courses/bachelor-of-nursing") return h(P("Bachelor of Nursing | Uni A", "<p>International applicants: IELTS 7 or OET grade B in each sub-test.</p>"));
     if (q.url === "/a/study/courses/pharmacy") return h(P("Pharmacy | Uni A", "<p>Our pharmacy degree.</p>"));
-    if (q.url === "/b/") return h(P("Uni B", `<a href="${base}/b/faculty/medicine">Faculty of Medicine</a>`));
+    if (q.url === "/b/") return h(P("Uni B", `<a href="${base}/b/faculty/medicine">Faculty of Medicine</a> <a href="${base}/b/video/nursing-day">Video</a> <a href="${base}/b/school/nursing">Nursing</a>`));
     if (q.url === "/b/faculty/medicine") return h(P("Faculty of Medicine | Uni B", "<p>MBBS.</p>"));
+    if (q.url === "/a/news/nursing-award") return h(P("Nursing award | Uni A", "<p>Our nursing students won.</p>"));
+    if (q.url === "/b/video/nursing-day") return h(P("Video | Uni B", "<p>A video.</p>"));
+    if (q.url === "/b/school/nursing") { r.writeHead(301, { location: `${base}/b/` }); return r.end(); } // the real run: a link that moves to the home page
     void host; void path; r.writeHead(404); r.end();
   });
   return { listen: () => new Promise((res) => srv.listen(0, "127.0.0.1", () => { base = `http://127.0.0.1:${srv.address().port}`; res(base); })), close: () => srv.close() };

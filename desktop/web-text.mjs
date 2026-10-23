@@ -84,7 +84,8 @@ export function writtenDescriptions(page, { siteName = null, used = new Set(), m
 /** A NEW page's meta description: its question, and what the page gives — the official answer with its owner and date (never another page's sentence). */
 export function newPageDescription(question, claims = [], brand = null, max = 160) {
   const q = sentence(question).replace(/\.$/, /^(how|what|why|which|where|when|who|is|are|can|does|do|should|will)\b/i.test(question) ? "?" : ".");
-  const official = claims.find((c) => c.official);
+  /* the fact's OWNER first: a body's own page (a regulator) before the subject's own site */
+  const official = claims.find((c) => c.official && !/— its page for /.test(c.source ?? "")) ?? claims.find((c) => c.official);
   const body = official?.body ?? null, day = official?.readOn ?? null;
   const tries = [
     body && day ? `${q} The answer from ${body}'s own page (checked ${day})${brand ? `, and how to prepare with ${brand}` : ""}.` : null,

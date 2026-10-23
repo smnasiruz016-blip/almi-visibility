@@ -108,6 +108,8 @@ test("B4 · DUPLICATES MERGED BY THE GATE: one need per country the person goes 
   assert.ok(sameNeed("oet for nurses in new zealand", "oet nz"));
   assert.ok(sameNeed("oet for pakistani nurses in the uk", "oet uk"), "the country a person comes from split a question");
   assert.ok(!sameNeed("avbc australia", "oet for australia") && sameNeed("avbc australia", "oet for australia", "OET"), "with the subject known, a search about the same country is a section of its page (the proof found AVBC Australia as a second page)");
+  const au = seoPages({ site: SITE, searchConsole: { kind: "CONNECTED", window: "w", queries: [{ query: "avbc australia", impressions: 1 }] }, planned: [{ text: "OET for Australia", source: "How many pages" }], subject: "OET", on: `${ON}T00:00:00Z`, official: { Australia: [{ claimId: "a1", text: "OET's own page for Australia says OET is recognised or accepted there.", link: "https://oet.test/au", readOn: ON, source: "OET — its page for Australia", official: true, body: "OET" }] } });
+  assert.deepEqual(au.plan.filter((r) => /Australia/i.test(r.question)).map((r) => [r.question, r.alsoAsked]), [["OET for Australia", ["AVBC Australia"]]], "the subject's wording is not the title of the country's one page");
   assert.ok(!sameNeed("oet score for ireland", "oet score for canada"));
   assert.ok(!sameNeed("nursing jobs in ireland", "doctor salary in ireland"), "two subjects in one country merged");
   assert.deepEqual(countriesIn("oet nz"), ["New Zealand"]); assert.deepEqual(countriesIn("OET for us"), [], "'us' is a word, not the United States");
@@ -137,6 +139,15 @@ test("B5 + B6 · NEW-PAGE ANSWERS: never a line about another country (the Irela
   assert.equal(row.kind, "NEW"); assert.equal(row.answers[0].body, "Medical Council of Ireland");
   assert.equal(newPageDescription(row.question, row.answers, "AlmiOET"), "Is OET accepted in Ireland? The answer from Medical Council of Ireland's own page (checked 2026-10-23), and how to prepare with AlmiOET.");
   assert.equal(newPageDescription("OET in Chad", [], "AlmiOET"), null, "a description made up with no answer behind it");
+  /* the proof's Ireland page: the fact's OWNER (the regulator) before the subject's own site; a key fact only from what is about Ireland */
+  const both = { Ireland: [{ claimId: "s1", text: "OET's own page for Ireland says OET is recognised or accepted there.", link: "https://oet.test/ie", readOn: ON, source: "OET — its page for Ireland", official: true, body: "OET" }, { claimId: "n1", text: "Nursing and Midwifery Board of Ireland names OET on its own page among the English tests it accepts — the results it names with OET: 350, 300.", link: "https://www.nmbi.ie/x", readOn: ON, source: "Nursing and Midwifery Board of Ireland — its own page", official: true, body: "Nursing and Midwifery Board of Ireland" }] };
+  assert.match(newPageDescription("OET Requirements for Ireland", both.Ireland, "AlmiOET"), /^OET Requirements for Ireland\. The answer from Nursing and Midwifery Board of Ireland's own page/);
+  const q = seoPages({ site: SITE, searchConsole: { kind: "CONNECTED", window: "w", queries: [{ query: "oet requirements for ireland", impressions: 1 }] }, on: `${ON}T00:00:00Z`, official: both });
+  const ie = q.drafts.find((d) => /Ireland/.test(d.title));
+  assert.ok(ie.html.includes("OET: 350, 300"), "the regulator's results are not a key fact");
+  const seen = ie.html.replace(/<(head|script|style)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const cards = seen.slice(seen.indexOf("Key facts"), seen.indexOf("Questions and answers"));
+  assert.ok(cards.includes("OET: 350, 300") && !/23 April/.test(cards), `a key fact not about Ireland: ${cards}`);
 });
 
 /* ══ the stand-in official site ══ */

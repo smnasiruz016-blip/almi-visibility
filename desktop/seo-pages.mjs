@@ -31,13 +31,13 @@ import { cleanAnswer, wholeSentences } from "./web-text.mjs";
  * "score", "accepted", "for nurses"): the country's page holds every such question, each profession as a section inside it.
  */
 const ASKING = new Set(["requirement", "requirements", "required", "require", "score", "scores", "minimum", "need", "needed", "needs", "accepted", "accept", "accepts", "acceptance", "recognised", "recognized", "recognition", "valid", "band", "bands", "grade", "grades", "pass", "passing", "mark", "marks", "result", "results", "rules", "rule", "registration", "register", "nurses", "nurse", "nursing", "doctors", "doctor", "medicine", "dentists", "pharmacists", "midwives", "for", "in", "to", "is", "the", "a", "what", "how", "much", "do", "does", "i", "you", "of"]);
+const namesSubject = (s, subject) => Boolean(subject) && new RegExp(`(?<![\\p{L}\\p{N}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(s);
 export function sameNeed(a, b, subject = null) {
   const da = destinationsIn(a), db = destinationsIn(b);
   if (!da.length || da.length !== db.length || !da.every((c) => db.includes(c))) return false;
   /* when the product's subject is known ("OET"), a search about the same country is a section of the subject's page for it ("avbc australia"
    * goes inside "OET for Australia") — never a second page for that country */
-  const named = (s) => subject && new RegExp(`(?<![\\p{L}\\p{N}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(s);
-  if (named(a) || named(b)) return true;
+  if (namesSubject(a, subject) || namesSubject(b, subject)) return true;
   const placeWords = new Set([...da].flatMap((c) => tokens(c)).concat(tokens(String(a).match(/\b(nz|uk|uae|usa|ksa)\b/gi)?.join(" ") ?? ""), tokens(String(b).match(/\b(nz|uk|uae|usa|ksa)\b/gi)?.join(" ") ?? "")));
   const rest = (s) => new Set(tokens(s).filter((w) => !ASKING.has(w) && !placeWords.has(w)));
   const ra = rest(a), rb = rest(b);
@@ -125,11 +125,17 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   /* the same need asked two ways ("OET Ireland" / "OET requirements for Ireland"): its words inside the other's, or 60% shared — one page,
    * the weaker wording kept as "also asked" (never two pages competing for one search) */
   for (let i = 0; i < needs.length; i++) {
-    const a = new Set(tokens(needs[i].question)); if (!a.size || needs[i].merged) continue;
+    let a = new Set(tokens(needs[i].question)); if (!a.size || needs[i].merged) continue;
     for (let j = i + 1; j < needs.length; j++) {
       if (needs[j].merged) continue;
       const b = new Set(tokens(needs[j].question)); const both = [...a].filter((w) => b.has(w)).length;
       if ([...a].every((w) => b.has(w)) || [...b].every((w) => a.has(w)) || both / new Set([...a, ...b]).size >= 0.6 || sameNeed(needs[i].question, needs[j].question, subject)) {
+        /* RR-318 proof ("AVBC Australia" became the title of the Australia page): the wording that names the subject is the page's title */
+        if (namesSubject(needs[j].question, subject) && !namesSubject(needs[i].question, subject)) {
+          const x = needs[i]; needs[i] = needs[j]; needs[j] = x; needs[i].alsoAsked = x.alsoAsked ?? []; delete x.alsoAsked;
+          for (const n of needs) if (n.merged === x.needId) n.merged = needs[i].needId;
+          a = new Set(tokens(needs[i].question));
+        }
         needs[i].alsoAsked = [...(needs[i].alsoAsked ?? []), needs[j].question]; needs[j].merged = needs[i].needId;
         if (!needs[i].claims.length && needs[j].claims.length) needs[i].claims = needs[j].claims;
       }
@@ -147,7 +153,10 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const design = designFromSite(site);
   /* key-fact cards: a price, or a number with its word, standing IN one of the page's own sourced answer sentences (never typed in) */
   const valueIn = (s) => (String(s).match(/(?:[$£€₹]|\b(?:USD|GBP|EUR|PKR|INR|AUD|CAD)\s?)\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:\/|per)\s?(?:month|year|week))?/i) ?? String(s).match(/\b\d[\d,.–-]*\s?(?:%|[A-Za-z]+)/) ?? [])[0];
-  const keyFacts = news.flatMap((p) => p.need.claims.map((c) => ({ claimId: c.claimId, value: valueIn(c.text) })).filter((k) => k.value).slice(0, 2));
+  /* RR-318 proof (the Ireland page showed "23 April" — Australia's date — as a key fact): a page about a country takes a key fact only from a
+   * sentence that names that country; the official answers first */
+  const factIn = (c, where) => { const r = c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`; const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
+  const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question); return p.need.claims.map((c) => ({ claimId: c.claimId, value: factIn(c, where) })).filter((k) => k.value).slice(0, 2); });
   let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin }) : [];
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
   built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));

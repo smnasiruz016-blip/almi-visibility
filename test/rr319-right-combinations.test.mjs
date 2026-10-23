@@ -120,6 +120,8 @@ test("ADD 3 · EVERY QUESTION TO ONE PAGE: each page lists what it answers; a ve
   assert.deepEqual([auv.main, auv.questions.map((q) => q.section)], ["oet australia", ["veterinary science", null]]);
   /* the subject's own FAQ question is about the subject even without its name */
   assert.deepEqual(planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "What can I bring on test day?", kind: "official FAQ" }]), subject: "OET" }).kinds.topic.map((x) => x.title), ["OET test day: what to bring and expect"]);
+  /* "test centres" (plural) is a question about taking the test there (proof: it went to the requirement page) */
+  assert.deepEqual(planPages({ r: R(), official: OFFICIAL, questions: groupQuestions([{ text: "oet test centres in philippines" }]), subject: "OET" }).kinds.taking[0].questions.map((q) => q.question), ["oet test centres in philippines"]);
   /* weak taking pages: one page with a section per country, never one each */
   const three = R(); three.dims.origins.kept = ["India", "Kenya", "Philippines"].map((name) => ({ name, source: { url: `https://oet.test/${name}`, title: name }, checkedOn: ON, how: "venue" }));
   const m = planPages({ r: three, official: OFFICIAL, questions: [], subject: "OET" });
@@ -207,7 +209,7 @@ test("C3 + C4 + C5 · NEVER 'does not say' FROM A MAIN PAGE ALONE: Ahpra and NMC
 });
 
 test("ADD 3 · AUSTRALIA'S HEALTH REGULATORS: the subject's own country page links to Ahpra → it is read; Home Affairs is a visa office, never a health regulator; social links never", async () => {
-  assert.deepEqual([isHealthRegulator("Australian Health Practitioner Regulation Agency"), isHealthRegulator("Department of Home Affairs"), isHealthRegulator("Nursing and Midwifery Council"), isHealthRegulator("Ministry of Education")], [true, false, true, false]);
+  assert.deepEqual([isHealthRegulator("Australian Health Practitioner Regulation Agency"), isHealthRegulator("Department of Home Affairs"), isHealthRegulator("Nursing and Midwifery Council"), isHealthRegulator("Ministry of Education"), isHealthRegulator("Immigration and Border Protection Board")], [true, false, true, false, false], "a visa or border office counted as a health regulator");
   const s = regulatorSite(); const base = await s.listen();
   try {
     const rd = officialReader({ allowLocal: true, paceMs: 0, on: `${ON}T10:00:00Z` });

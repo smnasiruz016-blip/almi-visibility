@@ -226,7 +226,7 @@ export async function writeWithAI({ provider, key, video, ctx, fetchImpl = fetch
   const dropped = hiddenOnes.map((j) => ({ title: j.option.title, why: j.why, hidden: j.hidden }));
   const outcome = !kept.length ? "templates instead" : hiddenOnes.length ? "one option hidden" : kept.some((o) => o.check.length) ? "shown with a note" : retried ? "retried and passed" : "shown clean";
   const example = hiddenOnes.flatMap((j) => j.hidden ?? [])[0];
-  if (!kept.length) return { ok: false, fallback: true, outcome, why: hiddenOnes.length ? `Your AI's options named something that is not in this video${example ? ` (e.g. ${example})` : ""} — the ready options below are from your own words.` : "Your AI's options could not be used — the ready options below are from your own words.", dropped, retried, usages, usage: sum(usages) };
+  if (!kept.length) return { ok: false, fallback: true, outcome, why: hiddenOnes.length ? `Your AI's options named something that is not in this video${example ? ` (e.g. ${example})` : ""} — the ready options here are from your own words.` : "Your AI's options could not be used — the ready options here are from your own words.", dropped, retried, usages, usage: sum(usages) };
   const used = `this video's own title, description${material.includes("VIDEO CAPTIONS") ? ", captions" : ""}, its fact sheet, your channel's data and the matching niche research`;
   return { ok: true, outcome, retried, passedOnRetry, dropped, usages, usage: sum(usages),
     /* RR-317 B: no sentence said twice; the links in order — the page the video names first, then the product's page, then the channel */

@@ -226,7 +226,7 @@ test("C · HOW MANY PAGES: the chosen dimensions filtered by REALITY on official
     assert.deepEqual(r.dims.roles.kept.map((k) => [k.name, k.profession]), [["Registered Nurse", "nursing"], ["Doctor", "medicine"], ["Dietitian", "dietetics"]]);
     assert.ok(["Pharmacy Technician", "Dental Assistant", "Software Engineer"].every((n) => r.dims.roles.dropped.some((d) => d.name === n)), "a support role counted as the profession");
     assert.deepEqual(r.dims.subjects.kept.map((k) => k.name), ["medicine-health-sciences"]);
-    assert.deepEqual([r.dims.universities.inScope, r.dims.universities.kept.map((k) => k.name), r.dims.universities.dropped.map((d) => d.why)], [2, ["Uni A"], [`its own page, checked ${ON}, does not say this`]]);
+    assert.deepEqual([r.dims.universities.inScope, r.dims.universities.kept.map((k) => k.name), r.dims.universities.dropped.map((d) => d.why)], [2, ["Uni A"], [`The official page of Uni B, checked ${ON}, does not say this.`]]); // RR-319 A2: its own page AND its English/admission pages
     const a = advise(r, { demand: [{ text: "oet score for ireland" }] });
     assert.equal(a.verdict, "BETTER"); assert.equal(a.number, 2); assert.equal(a.line, "No — better this way: 2 pages, one per country.");
     assert.match(a.why, /^Not 9,456 pages \(197 countries × 6 professions \/ job roles × 2 subjects × 4 universities\)/);
@@ -302,7 +302,7 @@ test("A · WRITE BETTER WITH AI for the website: a fact sheet per page; WRITTEN 
   const f = webModelFetch({ mode: "invent" });
   const inv = await writeWebWithAI({ provider: "anthropic", key: "k", kind: "FAQ answer", material: faqMat, siteName: "AlmiOET", fetchImpl: f });
   assert.deepEqual([inv.ok, inv.fallback, inv.outcome, inv.options], [false, true, "templates instead", undefined]);
-  assert.equal(inv.why, "Your AI's options named something that is not on this page or in its official sources (e.g. Paris) — the ready options above are from your own pages.");
+  assert.equal(inv.why, "Your AI's options named something that is not on this page or in its official sources (e.g. Paris) — the ready options here are from your own pages.");
   assert.equal(f.count(), 2, "the doubtful options were not sent back once (or were sent more than once)");
   /* invents once; told what to avoid, it drops it: shown, and the invention never */
   const once = await writeWebWithAI({ provider: "anthropic", key: "k", kind: "FAQ answer", material: faqMat, siteName: "AlmiOET", fetchImpl: webModelFetch({ mode: "invent-once" }) });
@@ -414,7 +414,7 @@ test("IN THE APP · How many pages (count → advice → drafts answered from th
     const st2 = await a.get(`/api/products/${id}/state`); void st2;
     await a.post(`/api/products/${id}/setup`, { id: "aiConnection", value: { provider: "anthropic", key: "sk-ant-standin-not-a-real-key" } });
     const w = await a.post(`/api/products/${id}/web/write`, { kind: "FAQ answer", page: `${csBase}/guides`, question: "Is XTEST accepted in Ireland?", present: "Is XTEST accepted in Ireland?\nYes." });
-    assert.equal(w.fallback, true); assert.match(w.refused, /\(e\.g\. Paris\) — the ready options above are from your own pages\.$/);
+    assert.equal(w.fallback, true); assert.match(w.refused, /\(e\.g\. Paris\) — the ready options here are from your own pages\.$/);
     assert.match(w.aiCost, /2 requests?/);
   } finally { a.close(); off.close(); cs.close(); g.close(); }
 });

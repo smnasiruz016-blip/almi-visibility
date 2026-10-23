@@ -12,7 +12,7 @@
  * Reads only through desktop/official.mjs (robots obeyed, paced, GET only, nothing kept but what was measured).
  */
 import { COUNTRIES, COUNTRY_LIST_SOURCE, countriesIn, namesOf, slugOf } from "./world.mjs";
-import { itemOnSubjectSite } from "./official.mjs";
+import { itemOnSubjectSite, bodyAnswer, UNIVERSITY_RELATED } from "./official.mjs";
 
 export const DIMENSIONS = Object.freeze([
   { id: "countries", label: "Countries", list: `built in — ${COUNTRY_LIST_SOURCE}` },
@@ -28,20 +28,8 @@ export const SAMENESS = "The country a person comes from never splits a question
 const plural = (n, one, many = `${one}s`) => `${Number(n).toLocaleString("en-US")} ${n === 1 ? one : many}`;
 const day = (d) => String(d ?? "").slice(0, 10);
 
-/** A list file the client adds — JSON (an array of names, or of objects with a name), CSV (its first column) or one name per line. */
-export function listFromFile(name, text) {
-  const t = String(text ?? "").replace(/^\uFEFF/, "");
-  if (/\.json$/i.test(name) || /^\s*[[{]/.test(t)) {
-    let j; try { j = JSON.parse(t); } catch { return { ok: false, why: "That JSON file could not be read." }; }
-    const arr = Array.isArray(j) ? j : Object.values(j).find(Array.isArray) ?? [];
-    const items = arr.map((x) => (typeof x === "string" ? { name: x } : { name: x?.name ?? x?.title, aliases: x?.aliases ?? [], country: x?.country?.name ?? x?.countryName ?? x?.country ?? null, subjects: x?.subjectSlugs ?? x?.subjects ?? [], page: x?.admissionsUrl ?? x?.officialWebsite ?? x?.url ?? null })).filter((x) => typeof x.name === "string" && x.name.trim());
-    return items.length ? { ok: true, items } : { ok: false, why: "No names were found in that file." };
-  }
-  const rows = t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const csv = rows.length > 1 && rows[0].includes(",");
-  const items = (csv ? rows.slice(1).map((l) => l.split(",")[0].replace(/^"|"$/g, "").trim()) : rows).filter(Boolean).map((n) => ({ name: n }));
-  return items.length ? { ok: true, items } : { ok: false, why: "No names were found in that file." };
-}
+/** A list file the client adds — CSV, Excel, JSON or one per line (desktop/lists.mjs, RR-319 B2) */
+export { listFromFile } from "./lists.mjs";
 
 /* ── the subject's own site, as lists ── */
 /* the parent address with the most short child pages that are not countries is the site's list of professions (oet.com: its 12 sample-test
@@ -128,12 +116,15 @@ export async function realityFilter({ dims, lists = {}, subject, subjectName = s
     const all = lists.universities ?? [];
     const inScope = all.filter((u) => (!keptCountries || keptCountries.has(countriesIn(u.country ?? "")[0] ?? u.country)) && (!keptSubjects || !(u.subjects ?? []).length || (u.subjects ?? []).some((x) => keptSubjects.has(slugOf(x)))));
     const kept = [], dropped = [], notRead = [];
-    for (const [i, u] of inScope.entries()) {
-      if (i >= maxUniversityReads || !u.page) { notRead.push({ name: u.name, why: u.page ? "not read in this run (Visibility reads a few at a time, slowly)" : "your list gives no page of its own" }); continue; }
-      tell(`Checking ${u.name}'s own page (${i + 1} of ${Math.min(inScope.length, maxUniversityReads)})`);
-      const r = await reader.read(u.page);
-      if (r.ok && new RegExp(`\\b${subject}\\b`, "i").test(r.text)) kept.push({ name: u.name, country: u.country, source: { url: r.url, title: r.title }, checkedOn: r.checkedOn, how: `the university's own page names ${subject}` });
-      else dropped.push({ name: u.name, why: r.ok ? `its own page, checked ${r.checkedOn}, does not say this` : `its own page could not be read (${r.why})` });
+    /* RR-319 A2: each university's OWN page, and its English-requirement / international-admission pages (never "does not say" from a home
+     * page alone); those with a page of their own first; a few per run, slowly */
+    const order = [...inScope].sort((a, b) => Boolean(b.page) - Boolean(a.page));
+    for (const [i, u] of order.entries()) {
+      if (i >= maxUniversityReads || !u.page) { notRead.push({ name: u.name, country: u.country, why: u.page ? "not read in this run (Visibility reads a few at a time, slowly)" : "your list gives no page of its own" }); continue; }
+      tell(`Checking ${u.name}'s own pages (${i + 1} of ${Math.min(inScope.length, maxUniversityReads)})`);
+      const a = await bodyAnswer({ url: u.page, body: u.name, subject, reader, related: UNIVERSITY_RELATED, sitemap: true });
+      if (a.claim) kept.push({ name: u.name, country: u.country, city: u.city ?? null, source: { url: a.claim.link, title: u.name }, checkedOn: a.claim.readOn, how: `the university's own page names ${subject}`, rule: a.claim.rule });
+      else dropped.push({ name: u.name, country: u.country, why: a.notSaid.line });
     }
     out.dims.universities = { candidates: all.length, inScope: inScope.length, from: all.length ? "your list" : null, kept, dropped, notRead, ...(all.length ? {} : { missing: "Add your university list as a file." }) };
   }
@@ -144,8 +135,57 @@ export async function realityFilter({ dims, lists = {}, subject, subjectName = s
     for (const it of cands) { const k = await itemOnSubjectSite({ item: it.name, names: [it.name], subject, subjectName, sitemapUrls: sm.urls, reader }); if (k.kept) kept.push({ name: it.name, source: k.source, checkedOn: k.checkedOn, how: k.how }); else dropped.push({ name: it.name, why: k.why }); }
     out.dims[id] = { candidates: cands.length, from: "your list", kept, dropped, ...(cands.length ? {} : { missing: "Type them one per line, or add a file." }) };
   }
+  /* RR-319 A3 · where the test can be TAKEN: an origin country is kept only where the subject's own site names a venue, test centre or test
+   * dates there; then the fee from its own page, in the local currency with the ECB's official reference rate and its date */
+  if (dims.includes("origins")) {
+    const cands = (lists.origins?.length ? lists.origins.map((x) => x.name) : COUNTRIES);
+    const kept = [], dropped = [];
+    for (const [i, c] of cands.entries()) {
+      const slugs = namesOf(c).map(slugOf);
+      const listed = sm.urls.some((u) => slugs.some((s) => new RegExp(`(^|/|-)${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(/|-|$)`).test(new URL(u).pathname.toLowerCase())));
+      if (!listed) { dropped.push({ name: c, why: `${subjectName}'s own site names no test venue there (no page of its site is about ${c})` }); continue; }
+      tell(`Checking test venues in ${c} (${i + 1} of ${cands.length})`);
+      const k = await itemOnSubjectSite({ item: c, subject, subjectName, sitemapUrls: sm.urls, reader, mode: "venue" });
+      if (k.kept) kept.push({ name: c, source: k.source, checkedOn: k.checkedOn, how: k.how }); else dropped.push({ name: c, why: k.why });
+    }
+    out.dims.origins = { candidates: cands.length, from: lists.origins?.length ? "your list" : COUNTRY_LIST_SOURCE, kept, dropped };
+    tell(`Reading the fee on ${subjectName}'s own site`);
+    out.fee = await feeOf({ urls: sm.urls, subject, subjectName, reader });
+    if (out.fee?.ok && kept.length) { tell("Reading the European Central Bank's reference rates"); out.rates = await ecbRates(reader); }
+  }
   out.requests = reader.requests();
   return out;
+}
+
+/* ── RR-319 A3 · the fee, and the official rate ── */
+const PRICE = /(A\$|AU\$|AUD|US\$|USD|£|GBP|€|EUR)\s?(\d{2,4}(?:[.,]\d{2})?)/i;
+const CUR = { "A$": "AUD", "AU$": "AUD", AUD: "AUD", "US$": "USD", USD: "USD", "£": "GBP", GBP: "GBP", "€": "EUR", EUR: "EUR" };
+/** the subject's fee as its own site states it: the first price in a sentence that names the subject, on a page about fees, costs or booking */
+export async function feeOf({ urls, subject, subjectName, reader }) {
+  const pages = urls.filter((u) => /fee|cost|price|pricing|book-a-test|how-much/i.test(new URL(u).pathname)).sort((a, b) => a.length - b.length).slice(0, 4);
+  for (const u of pages) { const r = await reader.read(u); if (!r.ok) continue; for (const s of r.text.split(/(?<=[.!?])\s+/)) { if (!has(s, subject)) continue; const m = PRICE.exec(s); if (m) return { ok: true, amount: Number(m[2].replace(",", ".")), currency: CUR[m[1].toUpperCase()] ?? CUR[m[1]], source: { url: r.url, title: r.title }, checkedOn: r.checkedOn }; } }
+  return { ok: false, why: `${subjectName}'s own pages about fees and booking (${pages.length} checked) state no fee Visibility could read — open them to see it.` };
+}
+const has = (text, word) => new RegExp(`(?<![\\p{L}\\p{N}])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(text);
+export const ECB_RATES = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
+/** the European Central Bank's euro reference rates (its own daily file) → { date, rates: { CUR: per euro } } or null */
+export async function ecbRates(reader) {
+  const x = await reader.raw?.(ECB_RATES); if (!x) return null;
+  const date = /time=['"](\d{4}-\d{2}-\d{2})['"]/.exec(x)?.[1] ?? null, rates = { EUR: 1 };
+  for (const m of x.matchAll(/currency=['"]([A-Z]{3})['"]\s+rate=['"]([\d.]+)['"]/g)) rates[m[1]] = Number(m[2]);
+  return date ? { date, rates, source: ECB_RATES } : null;
+}
+/* a country's currency — only those the ECB publishes a reference rate for (others say so) */
+const CURRENCY_OF = { "United States": "USD", Japan: "JPY", "Czech Republic": "CZK", Denmark: "DKK", "United Kingdom": "GBP", Hungary: "HUF", Poland: "PLN", Romania: "RON", Sweden: "SEK", Switzerland: "CHF", Iceland: "ISK", Norway: "NOK", "Türkiye": "TRY", Australia: "AUD", Brazil: "BRL", Canada: "CAD", China: "CNY", "Hong Kong": "HKD", Indonesia: "IDR", Israel: "ILS", India: "INR", "South Korea": "KRW", Mexico: "MXN", Malaysia: "MYR", "New Zealand": "NZD", Philippines: "PHP", Singapore: "SGD", Thailand: "THB", "South Africa": "ZAR", Ireland: "EUR", Germany: "EUR", France: "EUR", Italy: "EUR", Spain: "EUR", Portugal: "EUR", Netherlands: "EUR", Belgium: "EUR", Austria: "EUR", Finland: "EUR", Greece: "EUR", Croatia: "EUR", Cyprus: "EUR", Malta: "EUR", Slovakia: "EUR", Slovenia: "EUR", Estonia: "EUR", Latvia: "EUR", Lithuania: "EUR", Luxembourg: "EUR" };
+/** the fee in a country's own currency, with the rate's source and date — or why not */
+export function localFee(fee, country, rates) {
+  if (!fee?.ok) return null;
+  const cur = CURRENCY_OF[country];
+  if (!cur) return { line: `${fee.currency} ${fee.amount} — the European Central Bank publishes no reference rate for ${country}'s currency, so it is shown in ${fee.currency}.` };
+  if (cur === fee.currency) return { line: `${fee.currency} ${fee.amount}`, currency: cur, amount: fee.amount };
+  if (!rates?.rates?.[cur] || !rates.rates[fee.currency]) return { line: `${fee.currency} ${fee.amount} — no official rate was read today.` };
+  const local = (fee.amount / rates.rates[fee.currency]) * rates.rates[cur];
+  return { line: `${fee.currency} ${fee.amount} ≈ ${cur} ${Math.round(local).toLocaleString("en-US")} (the European Central Bank's reference rates of ${rates.date})`, currency: cur, amount: Math.round(local) };
 }
 
 /**

@@ -11,6 +11,8 @@
  *       no score is derived.
  */
 import { videoKind, linkTargetFor, TITLE_MAX } from "../src/video/youtube.mjs";
+/** RR-319 C6 · a link line names WHOSE page it is: the brand as the video writes it (AlmiCV), else the site name */
+export const linkName = (url, text = "") => { let n = ""; try { n = new URL(String(url)).hostname.replace(/^www\./, "").split(".")[0]; } catch { return "More"; } return (String(text).match(/[\p{L}\p{N}]+/gu) ?? []).find((w) => w.toLowerCase() === n && (w.match(/\p{Lu}/gu) ?? []).length >= 2) ?? (n ? n.charAt(0).toUpperCase() + n.slice(1) : "More"); };
 
 export const RULES = Object.freeze({
   chapters: Object.freeze({ firstAt: "00:00", min: 3, minSec: 10, source: "YouTube Help — \"Video chapters\" (support.google.com/youtube/answer/9884579), read 2026-10-21" }),
@@ -180,7 +182,7 @@ export function adviceForVideo(v, { terms, questions, productUrl = null, product
     const first = String(v.description ?? "").split(/\n/).map((x) => x.trim()).find((x) => x && !/^#/.test(x) && !/^https?:/.test(x));
     const lines = [`${leadText}: ${first ?? cleanTitle}`];
     if (qs.length) lines.push(`This video answers: ${qs.map((q) => q.text).join(" · ")}`);
-    if (target) lines.push(`More: ${target.url}`);
+    if (target) lines.push(`${linkName(target.url, `${v.title ?? ""} ${v.description ?? ""}`)}: ${target.url}`); // RR-319 C6: whose page, never "More:"
     out.items.push({ what: "Description", advice: lines.join("\n"), from: [lead.sources[0], ...qs.map((q) => q.source), ...(target ? [target.why] : [])].join(" · ") });
     if (!target && productIsChannel) out.items.push({ what: "Link", advice: "No product page to link: this product is the channel itself. If this video is about one of your products, add that product's page under \"Related pages\" in YouTube settings.", from: "your YouTube settings" });
     const relevant = [...new Map(matched.slice(0, 3).map((t) => [camelTag(t.display ?? t.phrase).toLowerCase(), { tag: `#${camelTag(t.display ?? t.phrase)}`, from: t.sources[0] }])).values()].filter((h) => h.tag.length > 2);

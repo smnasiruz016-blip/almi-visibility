@@ -176,7 +176,7 @@ test("B7 · EACH VIDEO TO ITS PRODUCT'S PAGE: offered from the site's own menu (
   assert.deepEqual(to, ["https://almicv.almiworld.com/", "https://almiprep.almiworld.com/", "https://almiworld.com/", "https://almicv.almiworld.com/", "https://almicv.almiworld.com/"], "a video linked to the wrong product (the IELTS video's last line mentions AlmiCV)");
   assert.equal(linkTargetFor(OWN[2], { productUrl: null, relatedPages: [{ words: ["x"], url: "https://almicv.almiworld.com/" }] }), null, "a one-letter word matched every video");
   const withLinks = optionsFor(OWN[0], { ...CTX, relatedPages: rel });
-  assert.match(withLinks.options[0].description, /More: https:\/\/almicv\.almiworld\.com\//);
+  assert.match(withLinks.options[0].description, /AlmiCV: https:\/\/almicv\.almiworld\.com\//);
 });
 
 test("B7 · ASKED ONCE: the answer (yes or no) is kept, the offer is not shown again", async () => {

@@ -108,11 +108,24 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], subject = null }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], subject = null, pagePlan = null }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
   if (!site?.ok) return { plan: [], drafts: [], notEnough: ["Visibility needs your website to plan pages — add it in the product's Settings, then press Check now."] };
+  /* RR-319 (proof: "Make these pages" made 3 of 18 — the plan's pages were merged again with the old searches, Ireland's two rules joined,
+   * the topic pages dropped): the PLAN is already one page per different answer — each planned page is its own need, its questions are its
+   * "also asked", its own official claims answer it first */
+  if (pagePlan?.length) {
+    const needs = [], meta = new Map();
+    for (const p of pagePlan) {
+      const qs = (p.questions ?? []).map((q) => q.question ?? q), needId = `need-${slug(p.title)}`;
+      const claims = [...(p.claims?.length ? p.claims : p.country ? official[p.country] ?? [] : []), ...answersFromSite([p.title, ...qs].join(" "), site)].slice(0, 5);
+      meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: claims, alsoAsked: qs });
+      needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, question: p.title, claims });
+    }
+    return finish({ needs, meta });
+  }
   const demand = demandOf({ searchConsole, files, youtube, planned }).slice(0, max * 3);
   if (!demand.length) return { plan: [], drafts: [], notEnough: ["No searches or questions are known for this product yet. Connect Google Search Console (or add its export file), add a search-data file, or confirm your YouTube channel — then press Create SEO pages again."] };
   const needs = [], meta = new Map(), casing = casingOf(site);
@@ -143,6 +156,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   }
   for (let k = needs.length - 1; k >= 0; k--) if (needs[k].merged) { meta.get(needs[k].merged).alsoAsked = [...(meta.get(needs[k].merged).alsoAsked ?? []), needs[k].question]; needs.splice(k, 1); }
   for (const n of needs) delete n.merged;
+  return finish({ needs, meta });
+  function finish({ needs, meta }) {
   const existing = site.pages.map((p) => ({ id: p.url, url: p.url, claimIds: [], questions: [p.h1, p.title, ...p.qa.map((x) => x.q)].filter(Boolean) }));
   /* an answer taken from ONE existing page means that page already does the job: improve it (existing page first) */
   for (const n of needs) { const own = n.claims.filter((c) => !c.official), pages = new Set(own.map((c) => c.link)); if (pages.size === 1 && own.length === n.claims.length) { const e = existing.find((x) => x.url === [...pages][0]); if (e) e.claimIds.push(...own.map((c) => c.claimId)); } } // an official answer is no page of the client's
@@ -155,7 +170,10 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const valueIn = (s) => (String(s).match(/(?:[$£€₹]|\b(?:USD|GBP|EUR|PKR|INR|AUD|CAD)\s?)\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:\/|per)\s?(?:month|year|week))?/i) ?? String(s).match(/\b\d[\d,.–-]*\s?(?:%|[A-Za-z]+)/) ?? [])[0];
   /* RR-318 proof (the Ireland page showed "23 April" — Australia's date — as a key fact): a page about a country takes a key fact only from a
    * sentence that names that country; the official answers first */
-  const factIn = (c, where) => { const r = c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`; const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
+  const factIn = (c, where) => { const r = c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`;
+    /* RR-319 proof (8 of 13 drafts "no key-fact card"): an official answer's scores ("— Listening 350 · Reading 360 …"), its fee, or the
+     * official page's own word that it is recognised there */
+    if (c.official) { const m = / — ([^—]+)\.$/.exec(c.text); if (m && /\d|grade/i.test(m[1])) return m[1].trim(); if (/is recognised or accepted there/.test(c.text)) return "recognised or accepted there"; } /* the card's words stand IN the sourced sentence */ const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
   const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question); return p.need.claims.map((c) => ({ claimId: c.claimId, value: factIn(c, where) })).filter((k) => k.value).slice(0, 2); });
   let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin }) : [];
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
@@ -166,6 +184,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const drafts = built.map((b, i) => ({ url: b.url, title: b.title, html: b.html, pass: gated[i].pass, gates: Object.entries(gated[i].gates).map(([k, g]) => ({ gate: k, words: GATE_WORDS[g.gate] ?? g.gate, pass: g.pass, failing: (g.checks ?? []).filter((c) => c.result === "FAIL" && !AFTER_PUBLISHING.test(c.name)).map((c) => `${c.name}${c.reason ? ` — ${c.reason}` : ""}`), afterPublishing: (g.checks ?? []).filter((c) => c.result !== "PASS" && (AFTER_PUBLISHING.test(c.name) || c.result === "NOT MEASURED")).map((c) => c.name) })) }));
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
   return { plan: rows, drafts, design: design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };
+  }
 }
 
 /** The day's ARTICLE: the best draft not made before (one a day). */

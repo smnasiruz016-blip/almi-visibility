@@ -44,7 +44,7 @@ test("A2 · NEVER AN EMPTY VIDEO, NEVER AN INVENTION (RR-317 A, truth first): re
   const all = await writeWithAI({ provider: "anthropic", key: "k", video: CV, ctx: AW, base: "http://127.0.0.1:9", fetchImpl: async () => (++call, reply([opt("AlmiCV Builder in Paris", "Build your CV with AlmiCV — in Paris."), opt("AlmiCV by Sara", "Build your CV with AlmiCV.", { names: ["Sara"] })])) });
   assert.equal(call, 2, "no retry");
   assert.deepEqual([all.ok, all.fallback, all.outcome, all.options], [false, true, "templates instead", undefined], "an invented place or person was shown");
-  assert.equal(all.why, "Your AI's options named something that is not in this video (e.g. Paris) — the ready options below are from your own words.");
+  assert.equal(all.why, "Your AI's options named something that is not in this video (e.g. Paris) — the ready options here are from your own words.");
   call = 0;
   const one = await writeWithAI({ provider: "anthropic", key: "k", video: CV, ctx: AW, base: "http://127.0.0.1:9", fetchImpl: async () => (++call === 1 ? reply([opt("AlmiCV Builder", "Build your CV with AlmiCV in minutes."), opt("AlmiCV Builder in Paris", "Build your CV with AlmiCV — in Paris.")]) : reply([opt("AlmiCV Builder in Paris", "Build your CV with AlmiCV — in Paris.")])) });
   assert.deepEqual(one.options.map((o) => o.title), ["AlmiCV Builder"]); assert.deepEqual(one.dropped.map((d) => d.hidden), [["Paris"]]);

@@ -130,7 +130,7 @@ test("C · ADVICE THAT NAMES ITS SOURCE: main words first, a description with th
   assert.match(d.notEnough, /^Not enough research for this video yet — its own tags mention "IELTS writing task 2", but its title and description do not/);
   assert.deepEqual(d.items.filter((i) => ["Title", "Description", "Hashtags", "Thumbnail text"].includes(i.what)), []);
   assert.match(by("Title").from, /YouTube search "IELTS writing" — used by 2 of its top 2 videos \(read 2026-10-21\)/);
-  assert.match(by("Description").advice, /More: https:\/\/ielts\.example\.test/);
+  assert.match(by("Description").advice, /IELTS: https:\/\/ielts\.example\.test/);
   assert.match(by("Hashtags").advice, /^Replace #viral #fyp — they say nothing about this video — with #IELTSWritingTask2 /);
   assert.equal(by("Chapters").advice, "None — Shorts have no chapters.");
   assert.ok(by("Thumbnail text").advice.length > 0);

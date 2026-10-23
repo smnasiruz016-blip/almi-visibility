@@ -113,12 +113,12 @@ const NOTSAID = { "United Kingdom": [{ line: "The official page of NMC, checked 
 
 test("PAGES · PROFESSION PAGES only where that country's regulator accepts it for that profession (its NAME names it, or its own page names its people — Ahpra); a country page only where people SEARCH for the country in general", () => {
   const p = planPages({ r: R(), official: OFFICIAL, notSaid: NOTSAID, questions: Q(), formula: parseFormula(OWNER), subject: "OET" });
-  assert.deepEqual(p.kinds.requirement.map((x) => x.title), ["OET for Nursing in Ireland", "OET for Medicine in Ireland", "OET for Nursing in Australia", "OET for Medicine in Australia", "OET in Australia: which professions and regulators accept it", "OET in United Kingdom: which professions and regulators accept it"]);
+  assert.deepEqual(p.kinds.requirement.map((x) => x.title), ["OET for Nursing in Ireland", "OET for Medicine in Ireland", "OET for Nursing and Medicine in Australia", "OET in Australia: professions and regulators", "OET in United Kingdom: professions and regulators"], "Ahpra's ONE rule for nurses and doctors is one page (the proof: 9 near-identical Australian pages)");
   /* a regulator's own page names the PEOPLE it registers (Ahpra's page names no profession in its name) */
   assert.deepEqual(professionsNamedIn("Registered nurses and midwives, medical practitioners, pharmacists and dental practitioners must show English skills."), ["nursing", "medicine", "dentistry", "pharmacy"]);
   assert.deepEqual(professionsNamedIn("Applicants must show English skills."), []);
-  const au = p.kinds.requirement.find((x) => x.title === "OET for Nursing in Australia");
-  assert.equal(au.why, "Australian Health Practitioner Regulation Agency: its own page names OET (Listening 350 · Reading 360 · Writing 350 · Speaking 360) and names nursing among the people it registers");
+  const au = p.kinds.requirement.find((x) => x.title === "OET for Nursing and Medicine in Australia");
+  assert.equal(au.why, "Australian Health Practitioner Regulation Agency: one rule for nursing, medicine — one page, a section per profession");
   assert.ok(!p.kinds.requirement.some((x) => /Veterinary/.test(x.title)), "a vets' page where no regulator's page says it");
   assert.ok(!p.kinds.requirement.some((x) => x.bodies?.includes("Department of Home Affairs") && !x.hub), "a visa office set a profession's rule");
   assert.deepEqual(p.gaps.filter((g) => g.country === "United Kingdom").map((g) => g.reason), ["not said", "not said", "not said"]);
@@ -138,7 +138,7 @@ test("PAGES · ORIGIN pages only where the answer differs (a venue, the fee in i
   assert.equal(p.kinds.taking[0].fee, "AUD 587 ≈ PHP 22,444 (the European Central Bank's reference rates of 2026-10-22)");
   assert.deepEqual(p.kinds.taking[1].questions.map((q) => q.question), ["oet test centres india"], "an AI's question makes no origin page of its own");
   const u = p.kinds.university;
-  assert.deepEqual(u.map((x) => x.title), ["OET for graduates of Uni A: what each of the 3 countries asks"], "one page per university — never one per country; Uni V's vets have no regulator fact");
+  assert.deepEqual(u.map((x) => x.title), ["OET for Uni A graduates"], "one page per university — never one per country; Uni V's vets have no regulator fact");
   assert.deepEqual(u[0].destinations.map((d) => [d.country, d.facts.map((f) => f.body)]), [["Ireland", ["Nursing and Midwifery Board of Ireland"]], ["Australia", ["Australian Health Practitioner Regulation Agency"]], ["United Kingdom", []]]);
   assert.equal(u[0].destinations[2].says, "No health regulator's own page for United Kingdom names OET yet — checked: 1 official page.");
   assert.deepEqual(u[0].claims.map((c) => [c.text, c.link]), [["Uni A lists a nursing course on its own site.", "https://a.test/nursing"], ["Uni A's own nursing page names OET.", "https://a.test/nursing"], ["Nursing and Midwifery Board of Ireland names OET on its own page.", "https://nmbi.test"], ["Ahpra names OET on its own page.", "https://ahpra.test"]]);
@@ -152,7 +152,7 @@ test("PAGES · ORIGIN pages only where the answer differs (a venue, the fee in i
 test("C · ONE TABLE PER DIMENSION — every combination → real pages → why, with the real number at every step; 'why not more' adds the owner's own numbers, never multiplies them all", () => {
   const p = planPages({ r: R(), official: OFFICIAL, notSaid: NOTSAID, questions: Q(), formula: parseFormula(OWNER), subject: "OET" });
   const t = (f) => f.rows.map((r) => [r.step, r.n]);
-  assert.deepEqual(t(p.funnels.professions), [["Every combination of your numbers", 21276], ["Destination countries where OET's own site says it is recognised", 3], ["Professions OET has a test for (its own site)", 3], ["Destination × profession", 9], ["…where that country's regulator accepts OET for that profession (its own page, read)", 4], ["Not a page: no regulator's own page found to read", 0], ["Not a page: official pages checked, they do not say it", 5], ["Not a page: the regulator's robots.txt refused the reading", 0], ["Country pages people search for in general", 2], ["Real pages", 6]]);
+  assert.deepEqual(t(p.funnels.professions), [["Every combination of your numbers", 21276], ["Destination countries where OET's own site says it is recognised", 3], ["Professions OET has a test for (its own site)", 3], ["Destination × profession", 9], ["…where that country's regulator accepts OET for that profession (its own page, read)", 4], ["…sharing one regulator and one rule with another profession — a section of that one page", 1], ["Not a page: no regulator's own page found to read", 0], ["Not a page: official pages checked, they do not say it", 5], ["Not a page: the regulator's robots.txt refused the reading", 0], ["Country pages people search for in general", 2], ["Real pages", 5]]);
   assert.deepEqual(t(p.funnels.origins), [["Countries people come from", 197], ["…where OET's own site names a venue", 3], ["…where the fee differs in the local currency (ECB rate)", 2], ["…with their own council's verification step", null], ["…and people search for taking it there (your Search Console)", 1], ["Real pages", 2]]);
   assert.deepEqual(t(p.funnels.universities), [["Every combination of your numbers", 72000], ["Universities in your list", 8862], ["…that teach healthcare (the list's own subjects)", 3482], ["…whose professions have a destination fact (a regulator's own page)", 2], ["Own site read in this run", 3], ["…a health course page found on its own site", 2], ["Search evidence (your Search Console names it)", 1], ["Real pages now", 1]]);
   assert.equal(p.whyNotMore.line, "Not 93,276 pages (21,276 + 72,000): pages that differ only by a name are near-identical, and Google calls that scaled content abuse.");
@@ -161,7 +161,7 @@ test("C · ONE TABLE PER DIMENSION — every combination → real pages → why,
 
 test("ROLLOUT · the first batch is 50–100 pages, the searched ones first; the next only when Search Console shows Google showing them; 'Make' makes the first batch only", () => {
   const p = planPages({ r: R(), official: OFFICIAL, notSaid: NOTSAID, questions: Q(), formula: parseFormula(OWNER), subject: "OET" });
-  assert.equal(p.rollout.size, p.total); assert.match(p.rollout.line, /^All 11 pages in the first batch \(fewer than 50 — every page that is real now\)\. The next batch is made only when your Search Console shows Google is showing these pages/);
+  assert.equal(p.rollout.size, p.total); assert.match(p.rollout.line, /^All 10 pages in the first batch \(fewer than 50 — every page that is real now\)\. The next batch is made only when your Search Console shows Google is showing these pages/);
   const many = Array.from({ length: 140 }, (_, i) => ({ kind: "university", title: `U${i}`, questions: [], destinations: [] }));
   many[120].searched = true;
   const r = rolloutOf(many);
@@ -366,7 +366,7 @@ test("IN THE APP · the owner's three questions → the five answers (Search Con
     assert.match(L.five.questions[0].answer, /XTEST's own page states a figure of 12,000 candidates\./);
     assert.deepEqual(Object.keys(L.plan.funnels).sort(), ["origins", "professions", "universities"]);
     assert.deepEqual(L.plan.kinds.requirement.map((p) => p.title), ["XTEST for Nursing in Ireland"]);
-    assert.deepEqual(L.plan.kinds.university.map((p) => p.title), ["XTEST for graduates of Uni A: what each of the 1 countries asks"]);
+    assert.deepEqual(L.plan.kinds.university.map((p) => p.title), ["XTEST for Uni A graduates"]);
     assert.deepEqual(L.plan.kinds.taking.map((p) => p.title), ["Taking XTEST in Pakistan: venues, dates and fee"], "people search for taking it there");
     /* the browser search: the list and the instruction; a refused hand-in keeps nothing; an accepted one re-plans at once */
     assert.ok(st.browser.list.length > 0 && st.browser.list.length <= 30); assert.equal(st.browser.usedToday, 0);

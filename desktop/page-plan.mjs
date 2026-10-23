@@ -136,6 +136,9 @@ const TOPICS = [["fees", /\b(fee|fees|cost|costs|price|how much|cheap)/i, (s) =>
  * never an AI's research or a FAQ */
 const searched = (g) => (g.sources ?? []).some((x) => x.kind === "search" || x.kind === "observed" || (x.kind === "tool" && parseFloat(String(x.volume?.estimate ?? x.volume ?? 0).replace(/[^\d.]/g, "")) > 0));
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+/* RR-320 proof: 21 of 22 university drafts failed only the title check (over 70 characters) — the university's own name; its short name
+ * (in brackets) when the whole name is long */
+const uniTitle = (subject, x) => { const name = String(x.name).replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim(), short = /\(([^)/]{2,20})/.exec(x.name)?.[1]?.trim(); const t = `${subject} for ${name} graduates`; return t.length <= 60 || !short ? t : `${subject} for ${short} graduates`; };
 /* a body's rule is for a profession when its NAME names it (Nursing and Midwifery Board → nursing), or — for a body whose name names none
  * (Ahpra) — when its own page names the people of that profession */
 const accepts = (cl, prof) => (cl.professions?.length ? cl.professions.includes(prof) : (cl.named ?? []).includes(prof));
@@ -168,15 +171,24 @@ export function planPages({ r, official = {}, notSaid = {}, questions = [], form
       const b = [...new Set(mine.map((x) => x.body))];
       requirement.push({ kind: "requirement", questions: [], title: `${subject} for ${cap(prof)} in ${c}`, country: c, profession: prof, professions: [prof], bodies: b, claims: [...mine, own].filter(Boolean).slice(0, 4), why: `${b.join(", ")}: its own page names ${subject}${mine[0].sets?.[0] ? ` (${mine[0].sets[0]})` : ""}${mine[0].professions?.length ? "" : ` and names ${prof} among the people it registers`}`, source: { url: mine[0].link, title: mine[0].source }, checkedOn: mine[0].readOn });
     }
+    /* RR-320 proof: Ahpra's ONE rule made 9 near-identical Australian pages (the draft gate then made 8 of them sections) — professions that
+     * share one regulator and one rule are ONE page, a section per profession; a regulator of one profession keeps its own page */
+    const groups = new Map();
+    for (const p of requirement.filter((x) => x.country === c)) { const k = `${p.bodies.join("+")}|${p.claims[0]?.sets?.[0] ?? p.claims[0]?.rule ?? p.claims[0]?.text}`; groups.set(k, [...(groups.get(k) ?? []), p]); }
+    for (const g of groups.values()) if (g.length > 1) {
+      const [first, ...rest] = g, names = g.map((p) => cap(p.profession));
+      Object.assign(first, { professions: g.map((p) => p.profession), title: `${subject} for ${names.length > 3 ? `${names.slice(0, 3).join(", ")} and ${names.length - 3} more` : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`} in ${c}`, why: `${first.bodies.join(", ")}: one rule for ${g.map((p) => p.profession).join(", ")} — one page, a section per profession`, merged: rest.length });
+      for (const p of rest) requirement.splice(requirement.indexOf(p), 1);
+    }
     /* a country's own page exists only where people search for the country in general (decided after the questions are given out) */
-    hubs.set(c, { kind: "requirement", hub: true, title: `${subject} in ${c}: which professions and regulators accept it`, country: c, professions: requirement.filter((p) => p.country === c).map((p) => p.profession), bodies: [...new Set(regs.map((x) => x.body))], claims: [own, ...regs].filter(Boolean).slice(0, 4), why: `people search for ${subject} in ${c} in general — ${requirement.some((p) => p.country === c) ? "this page links its profession pages" : `${subject}'s own page for ${c} says it is recognised there`}`, source: own ? { url: own.link, title: own.source } : country?.source, checkedOn: own?.readOn ?? country?.checkedOn, regulator: regs.length ? null : `No health regulator's own page for ${c} names ${subject} yet${checked.length ? ` — checked: ${checked.length} official page${checked.length === 1 ? "" : "s"}` : ""}.`, notSaid: checked, otherBodies: [...new Set([...claims.map((x) => x.body), ...(country?.bodies ?? [])].filter((x) => x && x !== subject && !isHealthRegulator(x)))], questions: [] });
+    hubs.set(c, { kind: "requirement", hub: true, title: `${subject} in ${c}: professions and regulators`, country: c, professions: requirement.filter((p) => p.country === c).flatMap((p) => p.professions), bodies: [...new Set(regs.map((x) => x.body))], claims: [own, ...regs].filter(Boolean).slice(0, 4), why: `people search for ${subject} in ${c} in general — ${requirement.some((p) => p.country === c) ? "this page links its profession pages" : `${subject}'s own page for ${c} says it is recognised there`}`, source: own ? { url: own.link, title: own.source } : country?.source, checkedOn: own?.readOn ?? country?.checkedOn, regulator: regs.length ? null : `No health regulator's own page for ${c} names ${subject} yet${checked.length ? ` — checked: ${checked.length} official page${checked.length === 1 ? "" : "s"}` : ""}.`, notSaid: checked, otherBodies: [...new Set([...claims.map((x) => x.body), ...(country?.bodies ?? [])].filter((x) => x && x !== subject && !isHealthRegulator(x)))], questions: [] });
   }
   /* ── TAKING: where to sit it, the fee in the local currency ── */
   const feeClaim = (country) => (r.fee?.ok && r.fee.source?.url ? { claimId: `fee-${slugOf(country ?? "all")}`, text: `${subject}'s own page states the fee — ${country ? localFee(r.fee, country, r.rates)?.line ?? `${r.fee.currency} ${r.fee.amount}` : `${r.fee.currency} ${r.fee.amount}`}.`, link: r.fee.source.url, readOn: r.fee.checkedOn, source: `${subject} — its own page`, official: true, body: subject } : null);
   const taking = kept("origins").map((k) => ({ claims: [feeClaim(k.name)].filter(Boolean), kind: "taking", title: `Taking ${subject} in ${k.name}: venues, dates and fee`, country: k.name, fee: localFee(r.fee, k.name, r.rates)?.line ?? null, why: `${k.how} — where and how to sit it, and what it costs there`, source: k.source, checkedOn: k.checkedOn, questions: [] }));
   /* ── UNIVERSITY: one page per university whose own site was read, every destination inside it ── */
   const U = D.universities, university = [], uniDropped = [];
-  const factsFor = (profs = []) => countries.map((c) => { const facts = requirement.filter((p) => !p.hub && p.country === c && (!profs.length || profs.includes(p.profession))).map((p) => ({ profession: p.profession, body: p.bodies.join(", "), text: p.claims[0].text, link: p.claims[0].link, readOn: p.claims[0].readOn, page: p.title })); return { country: c, facts, says: facts.length ? null : hubs.get(c)?.regulator ?? `Official pages checked — none says what ${profs.length ? profs.join(", ") : "its"} graduates need for ${c} yet.` }; });
+  const factsFor = (profs = []) => countries.map((c) => { const facts = requirement.filter((p) => !p.hub && p.country === c && (!profs.length || p.professions.some((q) => profs.includes(q)))).map((p) => ({ profession: (profs.length ? p.professions.filter((q) => profs.includes(q)) : p.professions).join(", "), body: p.bodies.join(", "), text: p.claims[0].text, link: p.claims[0].link, readOn: p.claims[0].readOn, page: p.title })); return { country: c, facts, says: facts.length ? null : hubs.get(c)?.regulator ?? `Official pages checked — none says what ${profs.length ? profs.join(", ") : "its"} graduates need for ${c} yet.` }; });
   for (const x0 of U?.kept ?? []) {
     const x = { ...x0, professions: x0.professions ?? [] }; // a count saved before RR-320 has no professions
     const dest = factsFor(x.professions), withFacts = dest.filter((d) => d.facts.length);
@@ -187,7 +199,7 @@ export function planPages({ r, official = {}, notSaid = {}, questions = [], form
       ...(named ? [{ claimId: `course-subject-${slugOf(named.url).slice(-40)}`, text: `${x.name}'s own ${named.profession} page names ${subject}.`, link: named.url, readOn: named.readOn, source: `${x.name} — its own page`, official: true, body: x.name }] : []),
       ...withFacts.slice(0, 2).map((d) => requirement.find((p) => p.title === d.facts[0].page)?.claims[0]).filter(Boolean),
     ].slice(0, 5);
-    university.push({ kind: "university", title: `${subject} for graduates of ${x.name}: what each of the ${countries.length} countries asks`, university: x.name, country: x.country, city: x.city, professions: x.professions, destinations: dest, courses, namesSubject: Boolean(named) || Boolean(x.site?.homeNamesSubject), accreditation: x.accreditation, listVerifiedOn: x.verifiedOn, listSource: x.listSource,
+    university.push({ kind: "university", title: uniTitle(subject, x), university: x.name, country: x.country, city: x.city, professions: x.professions, destinations: dest, courses, namesSubject: Boolean(named) || Boolean(x.site?.homeNamesSubject), accreditation: x.accreditation, listVerifiedOn: x.verifiedOn, listSource: x.listSource,
       directories: RECOGNITION_DIRECTORIES.filter((d) => d.professions.some((p) => x.professions.includes(p))).map((d) => ({ name: d.name, url: d.url, line: d.line })),
       claims, why: `its own site lists ${[...new Set(courses.map((c) => c.profession))].join(", ")} course pages (read ${courses[0]?.readOn ?? "?"}); ${withFacts.length} of ${countries.length} destinations have a regulator's own page for them`, source: { url: courses[0]?.url ?? x.page, title: courses[0]?.title ?? x.name }, checkedOn: courses[0]?.readOn ?? null, searchedBy: x.searched ?? [], questions: [] });
   }
@@ -200,7 +212,7 @@ export function planPages({ r, official = {}, notSaid = {}, questions = [], form
     let page = null;
     if (UNIVERSITY.test(q)) page = university.find((p) => (p.searchedBy ?? []).some((s) => q.toLowerCase().includes(String(s).toLowerCase())));
     if (!page && TAKING.test(q) && orig.length) page = taking.find((p) => p.country === orig[0]);
-    if (!page && dest.length && prof) page = requirement.find((p) => p.country === dest[0] && p.profession === prof) ?? null;
+    if (!page && dest.length && prof) page = requirement.find((p) => p.country === dest[0] && !p.hub && p.professions.includes(prof)) ?? null;
     if (!page && dest.length) { if (prof && !searched(g)) { unused.push({ question: g.question, why: `no regulator's own page says ${subject} is accepted for ${prof} in ${dest[0]} yet` }); continue; } page = hubs.get(dest[0]); }
     if (page) { page.questions.push({ ...g, section: prof }); continue; }
     if (!about) { unused.push({ question: g.question, why: `not about ${subject} or one of the kept countries or professions` }); continue; }
@@ -244,13 +256,15 @@ function funnelsOf({ r, formula, countries, professions, requirement, gaps, taki
   if (D.countries || D.roles) {
     const o = has("countries", "origin") ?? D.origins?.candidates ?? 197, pr = has("roles") ?? D.roles?.candidates ?? professions.length, de = has("countries", "destination") ?? D.countries?.candidates ?? countries.length;
     const by = (k) => gaps.filter((g) => g.reason === k).length;
-    const per = countries.map((c) => `${c} ${requirement.filter((p) => p.country === c && !p.hub).length}`).join(", ");
+    const pairs = (xs) => xs.filter((p) => !p.hub).reduce((n, p) => n + p.professions.length, 0), merged = requirement.reduce((n, p) => n + (p.merged ?? 0), 0);
+    const per = countries.map((c) => `${c} ${pairs(requirement.filter((p) => p.country === c))}`).join(", ");
     out.professions = { title: `Professions — who needs ${subject}, for which job, where`, rows: [
       { step: "Every combination of your numbers", n: o * pr * de, why: `${fmt(o)} countries people come from × ${fmt(pr)} professions × ${fmt(de)} destination countries — what multiplying gives` },
       { step: `Destination countries where ${subject}'s own site says it is recognised`, n: countries.length, why: `of ${fmt(D.countries?.candidates ?? 0)} checked on ${subject}'s own pages` },
       { step: `Professions ${subject} has a test for (its own site)`, n: professions.length, why: `of ${fmt(D.roles?.candidates ?? 0)} in your list` },
       { step: "Destination × profession", n: countries.length * professions.length, why: "the country a person comes FROM does not change what a destination's regulator asks (the sameness rule), so it never multiplies these" },
-      { step: `…where that country's regulator accepts ${subject} for that profession (its own page, read)`, n: requirement.filter((p) => !p.hub).length, why: per || "none" },
+      { step: `…where that country's regulator accepts ${subject} for that profession (its own page, read)`, n: pairs(requirement), why: per || "none" },
+      { step: "…sharing one regulator and one rule with another profession — a section of that one page", n: merged, why: "the same answer is never two pages (the sameness rule)" },
       { step: "Not a page: no regulator's own page found to read", n: by("no page"), why: "no official page yet — never a guess" },
       { step: "Not a page: official pages checked, they do not say it", n: by("not said") + by("read"), why: `${by("read")} where the regulator's page names ${subject} but not that profession` },
       { step: "Not a page: the regulator's robots.txt refused the reading", n: by("robots"), why: "robots are always obeyed" },

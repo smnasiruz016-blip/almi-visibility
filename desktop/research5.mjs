@@ -138,7 +138,7 @@ export function fiveAnswers({ subject, res, plan, official = {}, byCountry = nul
   /* Q5 */
   if (notApply.includes("q5") || !D.roles) out.push(na("q5", D.roles ? "you said so" : "no professions in the pages you have in mind"));
   else {
-    const req = P?.kinds?.requirement?.filter((p) => !p.hub) ?? [], per = (D.roles.professions ?? []).map((p) => ({ profession: p, countries: req.filter((x) => x.profession === p).map((x) => x.country) }));
+    const req = P?.kinds?.requirement?.filter((p) => !p.hub) ?? [], per = (D.roles.professions ?? []).map((p) => ({ profession: p, countries: req.filter((x) => (x.professions ?? [x.profession]).includes(p)).map((x) => x.country) }));
     out.push({ id: "q5", ask: FIVE[4].ask, applies: true, n: (D.roles.professions ?? []).length, answer: `${(D.roles.professions ?? []).length} professions (${subject}'s own pages). A regulator's own page accepts it — ${per.map((x) => `${x.profession}: ${x.countries.length}`).join(" · ")}.`,
       perProfession: per, sources: D.roles.kept.slice(0, 12).map((k) => src(LABEL.official, `${subject}'s own page for ${k.profession}`, k.source?.url, k.checkedOn)) });
   }

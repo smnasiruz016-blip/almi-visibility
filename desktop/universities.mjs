@@ -32,7 +32,7 @@ export function searchesNaming(u, queries = []) {
 
 /* a COURSE page of a health profession, by its address: the profession's word in its last two parts, and a study word or a school name */
 const COURSE_WORD = /cours|program|degree|stud(y|ies)|undergrad|postgrad|bachelor|master|bsc|msc|mbbs|school|faculty|department|nursing|medicine|pharmacy|dentistry/i;
-const NOT_COURSE = /news|video|gallery|photo|album|announcement|notice|tag|search|event|blog|staff|people|profile|research-?(project|group|centre)|story|stories|press|media|alumni|calendar|job|vacanc|career|tender|\.(jpg|png|pdf|docx?)$/i;
+const NOT_COURSE = /\/(19|20)\d\d\/\d\d\/|officials?\b|news|video|gallery|photo|album|announcement|notice|tag|search|event|blog|staff|people|profile|research-?(project|group|centre)|story|stories|press|media|alumni|calendar|job|vacanc|career|tender|\.(jpg|png|pdf|docx?)$/i; // RR-320 proof: a dated news post and a staff list were taken as course pages
 function courseProfession(url) {
   let p; try { p = decodeURIComponent(new URL(url).pathname).toLowerCase(); } catch { return null; }
   if (NOT_COURSE.test(p)) return null;

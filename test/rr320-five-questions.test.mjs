@@ -192,13 +192,15 @@ function uniSites() {
     const host = q.url.split("/")[1], path = `/${q.url.split("/").slice(2).join("/")}`;
     const h = (s, type = "text/html") => { r.writeHead(200, { "content-type": type }); r.end(s); };
     if (q.url === "/robots.txt") return h("User-agent: *\nDisallow: /blocked/\n", "text/plain");
-    if (q.url === "/sitemap.xml") return h(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/a/study/courses/bachelor-of-nursing", "/a/news/nursing-award", "/a/study/courses/pharmacy"].map((p) => `<url><loc>${base}${p}</loc></url>`).join("")}</urlset>`, "application/xml");
+    if (q.url === "/sitemap.xml") return h(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/a/study/courses/bachelor-of-nursing", "/a/news/nursing-award", "/a/2022/03/09/nursing-day", "/a/college-of-nursing-officials/", "/a/study/courses/pharmacy"].map((p) => `<url><loc>${base}${p}</loc></url>`).join("")}</urlset>`, "application/xml");
     if (q.url === "/a/") return h(P("Uni A", `<a href="${base}/a/about">About</a>`));
     if (q.url === "/a/study/courses/bachelor-of-nursing") return h(P("Bachelor of Nursing | Uni A", "<p>International applicants: IELTS 7 or OET grade B in each sub-test.</p>"));
     if (q.url === "/a/study/courses/pharmacy") return h(P("Pharmacy | Uni A", "<p>Our pharmacy degree.</p>"));
     if (q.url === "/b/") return h(P("Uni B", `<a href="${base}/b/faculty/medicine">Faculty of Medicine</a> <a href="${base}/b/video/nursing-day">Video</a> <a href="${base}/b/school/nursing">Nursing</a>`));
     if (q.url === "/b/faculty/medicine") return h(P("Faculty of Medicine | Uni B", "<p>MBBS.</p>"));
     if (q.url === "/a/news/nursing-award") return h(P("Nursing award | Uni A", "<p>Our nursing students won.</p>"));
+    if (q.url === "/a/2022/03/09/nursing-day") return h(P("Nursing day | Uni A", "<p>A dated news post.</p>")); // the proof: Cavite's nursing "course" was a 2022 news post
+    if (q.url === "/a/college-of-nursing-officials/") return h(P("Officials | Uni A", "<p>A staff list.</p>"));
     if (q.url === "/b/video/nursing-day") return h(P("Video | Uni B", "<p>A video.</p>"));
     if (q.url === "/b/school/nursing") { r.writeHead(301, { location: `${base}/b/` }); return r.end(); } // the real run: a link that moves to the home page
     void host; void path; r.writeHead(404); r.end();

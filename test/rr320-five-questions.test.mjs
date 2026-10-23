@@ -110,6 +110,9 @@ const NOTSAID = { "United Kingdom": [{ line: "The official page of NMC, checked 
 test("PAGES · PROFESSION PAGES only where that country's regulator accepts it for that profession (its NAME names it, or its own page names its people — Ahpra); a country page only where people SEARCH for the country in general", () => {
   const p = planPages({ r: R(), official: OFFICIAL, notSaid: NOTSAID, questions: Q(), formula: parseFormula(OWNER), subject: "OET" });
   assert.deepEqual(p.kinds.requirement.map((x) => x.title), ["OET for Nursing in Ireland", "OET for Medicine in Ireland", "OET for Nursing in Australia", "OET for Medicine in Australia", "OET in Australia: which professions and regulators accept it", "OET in United Kingdom: which professions and regulators accept it"]);
+  /* a regulator's own page names the PEOPLE it registers (Ahpra's page names no profession in its name) */
+  assert.deepEqual(professionsNamedIn("Registered nurses and midwives, medical practitioners, pharmacists and dental practitioners must show English skills."), ["nursing", "medicine", "dentistry", "pharmacy"]);
+  assert.deepEqual(professionsNamedIn("Applicants must show English skills."), []);
   const au = p.kinds.requirement.find((x) => x.title === "OET for Nursing in Australia");
   assert.equal(au.why, "Australian Health Practitioner Regulation Agency: its own page names OET (Listening 350 · Reading 360 · Writing 350 · Speaking 360) and names nursing among the people it registers");
   assert.ok(!p.kinds.requirement.some((x) => /Veterinary/.test(x.title)), "a vets' page where no regulator's page says it");

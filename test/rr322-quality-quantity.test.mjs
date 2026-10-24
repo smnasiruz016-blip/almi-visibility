@@ -168,7 +168,7 @@ test("B6 + B7 · every page's content: a 40–60-word answer with a number FIRST
   /* the proof: 20 of 25 drafts failed "a direct answer near the top" — the answer had no source; it now cites the page's first sourced claim */
   assert.match(out.html, /<p class="answer" data-answer data-claim-id="w-min">An answer with 45 minutes\.<\/p><p class="citation">Source: <a href="https:\/\/oet\.example\/ready\/writing"[^>]*>OET's own page<\/a> — read 2026-10-24<\/p>/);
   assert.equal(planOf().kinds.subtest[0].content.lastUpdated, ON, "last updated is a date"); assert.equal(contentOf({ kind: "topic", title: "t", claims: [], questions: [] }, { on: `${ON}T03:53:57.142Z` }).lastUpdated ?? ON, ON);
-  assert.ok(out.html.indexOf('data-answer') < out.html.indexOf("<p>old</p>"), "the answer right under the title"); assert.match(out.html, /<table class="key" data-key-table>/); assert.match(out.html, /"@type":"Article"/); assert.match(out.html, /<html lang="ur" dir="rtl"/); assert.match(out.html, /data-last-updated="2026-10-24"/); assert.match(out.html, /data-cta><a href="https:\/\/x\/practice">/);
+  assert.ok(out.html.indexOf('data-answer') < out.html.indexOf("<p>old</p>"), "the answer right under the title"); assert.match(out.html, /<table class="key" data-key-table>/); assert.match(out.html, /"@type":"Article"/); assert.match(out.html, /<html lang="ur" dir="rtl"/); assert.match(out.html, /data-last-updated="2026-10-24"/); assert.match(out.html, /data-cta><a class="cta" href="https:\/\/x\/practice">/); // RR-323: the button's own class on the link (its words were invisible)
 });
 
 test("C2 · the template read aloud: five pages of a family, and how much of their answer is the same once names and numbers go", () => {

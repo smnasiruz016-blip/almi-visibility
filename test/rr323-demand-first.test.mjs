@@ -24,6 +24,7 @@ import { subjectFactsOf, SUBJECT_FACT_PAGES } from "../desktop/subject-facts.mjs
 import { checkSample, labelOf, hashesOfPages, formatFaults } from "../desktop/samples.mjs";
 import { longestRun, shingleHashes } from "../src/facts/licence-guard.mjs";
 import { richPage, seoPages } from "../desktop/seo-pages.mjs";
+import { styleOf, contrast } from "../src/page/joined-page.mjs";
 
 const UI = readFileSync(new URL("../desktop/ui.html", import.meta.url), "utf8"), MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), SETUP = readFileSync(new URL("../installer/Setup.cs", import.meta.url), "utf8");
 const ON = "2026-10-24", PROFS = builtInList("professions").items.map((x) => x.name.toLowerCase()), REC = recognitionOf(builtInList("recognising"), { professions: PROFS });
@@ -175,4 +176,12 @@ test("8 · English first; the screen says the range and the sample's check; E ·
   assert.match(SETUP, /for \(int i = 0; i < 150 && \(port = PortIn\(runFile\)\) == ""; i\+\+\) Thread\.Sleep\(100\);/, "the launcher waits for a run.json that holds a port");
   assert.ok(!/File\.ReadAllText\([^)]*run/.test(SETUP), "no plain read of run.json is left (it fails while the app is writing it)");
   assert.match(SETUP, /var port = PortIn\(run\);/, "asking the app to quit reads it shared too");
+});
+
+test("PROOF · the call to action is readable: its words take the site's ink only where it reads on the button (WCAG 4.5:1); a design that read well is unchanged", () => {
+  const css = (colours) => styleOf({ colours }).match(/\.cta\{[^}]*\}/)[0];
+  assert.match(css({ primary: "#333333", ink: "#111111" }), /color:#ffffff/, "near-black on dark grey (the proof) → white");
+  assert.match(css({ primary: "#f5d90a", ink: "#111111" }), /color:#111111/, "dark ink on yellow already read — unchanged");
+  assert.ok(contrast("#ffffff", "#333333") >= 4.5 && contrast("#111111", "#333333") < 4.5);
+  assert.match(readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"), /<p class="cta-row" data-cta><a class="cta" href=/, "the button's class on the LINK (a{color} beat it on the paragraph)");
 });

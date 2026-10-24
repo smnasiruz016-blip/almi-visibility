@@ -25,6 +25,7 @@ import { questionCount } from "./questions.mjs";
 import { runGates, linkPages, batchesOf, contentOf, languageDemand, strongForLanguage, templateCheck, SUBTESTS, GATES, BATCH_SIZES } from "./pseo.mjs";
 import { clusterKeywords, sumRanges } from "./demand.mjs"; // RR-323
 import { FACTS_FOR } from "./subject-facts.mjs"; // RR-323
+import { labelOf } from "./samples.mjs"; // RR-324 D2
 
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -53,7 +54,7 @@ const lettersOf = (text) => { const g = {}; for (const s of SUBTESTS) { const m 
  * pages read while building (by list id); `ai` = what the client's AI wrote (explanation only: { topics: { title: {…} }, subtests: {…} });
  * `languages` = the client's chosen language codes; `items` = every question found (for the languages people ask in); `cta` = the call to act.
  */
-export function planFromList({ subject, rec, professions, universities = [], light = {}, venues = { countries: [], home: null }, fee = null, rates = null, stats = null, subtests = {}, groups = [], sorted = null, byCountry = [], reads = {}, on = null, councils = null, ai = {}, languages = [], items = [], cta = null, subjectPages = {}, facts = {}, translatable = [] }) {
+export function planFromList({ subject, rec, professions, universities = [], light = {}, venues = { countries: [], home: null }, fee = null, rates = null, stats = null, subtests = {}, groups = [], sorted = null, byCountry = [], reads = {}, on = null, councils = null, ai = {}, languages = [], items = [], cta = null, subjectPages = {}, facts = {}, translatable = [], by = null }) {
   /* B3 · a home country's council and its official verification page (AlmiOET's records — nursing), as a "check here" fact */
   const councilOf = (country, profs = ["nursing"]) => { const c = (councils?.items ?? []).find((x) => x.country === country && profs.includes(x.profession)); return c ? { ...c, claim: { claimId: `council-${country.toLowerCase().replace(/[^a-z]+/g, "-")}`, text: `To verify a ${c.profession} registration from ${country}, the home council is the ${c.council}: check here — its own verification page.`, link: c.verificationUrl ?? c.councilUrl, readOn: councils.on, source: `AlmiOET's record of the ${c.council}`, official: true, body: c.council } } : null; };
   /* ── REGULATOR: one page per regulator rule; CONFIRMED only where a regulator's own page states the score ── */
@@ -148,7 +149,7 @@ export function planFromList({ subject, rec, professions, universities = [], lig
   const practice = PRACTICE_UNIVERSE.map(([intent, s, prof]) => {
     const key = `practice|${intent}|${s ?? "-"}|${prof ?? "-"}`, sm = ai.samples?.[key] ?? null, hub = intent === "sample" && !s;
     const fs = s ? factsOf(FACTS_FOR[s] ?? []) : factsOf(["listeningMarks", "readingMarks", "writingWords", "speakingRoleplay", "practiceEvery", "gradeB"]);
-    const p = { kind: "practice", key, intent, subtest: s, profession: prof, title: practiceTitle(intent, s, prof), required: s ? required(prof, s) : [], ai: ai.practice?.[key] ?? null, sample: sm?.check?.ok ? sm : null, sampleCheck: sm?.check ?? null, questions: [], kpRanges: [],
+    const p = { kind: "practice", key, intent, subtest: s, profession: prof, title: practiceTitle(intent, s, prof), required: s ? required(prof, s) : [], ai: ai.practice?.[key] ?? null, sample: sm?.check?.ok ? (by ? { ...sm, label: labelOf(by, subject) } : sm) : null, /* RR-324 D2: labelled in today's display name */ sampleCheck: sm?.check ?? null, questions: [], kpRanges: [],
       claims: [...fs, sampleLink(prof)].filter(Boolean), why: hub ? `the practice hub${prof ? ` for ${PEOPLE_WORD[prof] ?? prof}` : ""}: every sub-test's format and its practice page` : `${intent === "tips" ? "tips and common mistakes" : "an original practice sample"} for ${s}${prof ? ` (${PEOPLE_WORD[prof] ?? prof})` : ""}` };
     if (hub) { p.head = ["Sub-test", "Format (the subject's own pages)"]; p.rows = SUBTESTS.map((x) => [x, factsOf(FACTS_FOR[x] ?? []).slice(0, 2).map((c) => c.text.replace(new RegExp(`^${subject}'s own page:? `), "")).join(" ") || "see its practice page"]); }
     if (intent === "sample" && s) p.waitFor = !sm ? "its practice sample is not written yet — your AI writes it (original, never copied)" : !sm.check?.ok ? `its sample did not pass the originality check: ${sm.check?.why ?? "not checked"}` : null;

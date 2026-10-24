@@ -55,7 +55,7 @@ test("2 · the client's own export comes in: UTF-16 with its mark and two title 
   assert.deepEqual([f.kind, f.phrases.length, f.refused.length], ["Keyword Planner", KW.length, 0]);
   assert.equal(takeSearchFile("Keyword Stats 2026-10-24\nnothing else", { exportedOn: ON }).kind, null, "a title line alone is no header");
   assert.equal(searchFileText(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("Keyword,Avg. monthly searches\nx,50")])), "Keyword,Avg. monthly searches\nx,50");
-  assert.match(MAIN, /text = searchFileText\(Buffer\.from\(String\(v\.base64 \?\? ""\), "base64"\)\)/, "the client's upload route decodes by the byte-order mark");
+  assert.match(MAIN, /bytes = Buffer\.from\(String\(v\.base64 \?\? ""\), "base64"\), text = searchFileText\(bytes\)/, "the client's upload route decodes by the byte-order mark");
   assert.match(UI, /const fileText = async \(f\) =>/); assert.match(UI, /text: await fileText\(f\)/, "the YouTube search-data file too");
 });
 

@@ -11,7 +11,7 @@
  */
 import { createServer } from "node:http";
 import { browserOpener } from "./open-browser.mjs"; // RR-314 A1
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync, readdirSync } from "node:fs";
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,7 +51,10 @@ import { regulatorPagesOf } from "./recognition.mjs"; // RR-322 A2
 import { subtestFactsOf } from "./pseo.mjs"; // RR-322 B5
 import { lightCheck, teachesHealth, professionsOfFields, professionsInName } from "./universities.mjs"; // RR-322 A1
 import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.mjs"; // RR-323
-import { checkSample, hashesOfPages, labelOf } from "./samples.mjs"; // RR-323
+import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
+import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES } from "./keyword-db.mjs"; // RR-324 A
+import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
+import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
 import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
 import { CENTRAL_BANKS, PEGS } from "./rates.mjs"; // RR-322 A3
@@ -97,7 +100,7 @@ let updateFound = null;
 /* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
  * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
 const KEYS = keyStore({ backend: CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
-const KEY_ALLOWED = new Set([KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName)]);
+const KEY_ALLOWED = new Set([KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName), ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password]); // RR-324 B/C: by name only
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
 /* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
 const LEDGER = aiLedger(join(DATA, "ai-usage.json"), { cap: () => Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD) });
@@ -285,7 +288,40 @@ async function researchFor({ id, s, sc, subject, subjectSite, rd, res }) {
 }
 /* RR-320 B · a phrase is kept once (same words, same source kind, same place) */
 const mergePhrases = (held, more) => { const key = (p) => `${p.kind}|${String(p.place ?? "")}|${String(p.text).toLowerCase().replace(/\s+/g, " ").trim()}`, seen = new Set(held.map(key)); return [...held, ...more.filter((p) => { const k = key(p); if (seen.has(k)) return false; seen.add(k); return true; })]; };
-const phraseItems = (id) => pread(id, "phrases.json", []).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 }));
+/* RR-324 A: the Keyword Planner keywords come from the ONE keyword database (each once, its current range); a search-data phrase read
+ * before the database existed still counts until the database holds the same keyword */
+const keywordStore = (id) => localKeywordStore({ read: (n, d) => pread(id, n, d), write: (n, v) => pwrite(id, n, v) });
+const phraseItems = (id) => { const db = keywordStore(id).load(), held = new Set(Object.keys(db.keywords));
+  return [...pread(id, "phrases.json", []).filter((p) => !(p.kind === "tool" && held.has(keyOf(p.text)))).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 })),
+    ...itemsOf(db).map((x) => ({ ...x, on: x.date }))]; };
+/* RR-324 A: the folder the client named — its Keyword Planner files (keyword-planner-*.csv, "Keyword Stats …") read once each, by fingerprint */
+const keywordFolder = () => CONFIG.keywordFolder?.dir ? CONFIG.keywordFolder : null;
+function pickUpFolder(id) {
+  const f = keywordFolder(); if (!f || !existsSync(f.dir)) return { lines: f ? [`The folder ${f.dir} is not there.`] : [], read: 0 };
+  const st = keywordStore(id); let db = st.load(); const lines = []; let read = 0;
+  for (const name of readdirSync(f.dir).filter((n) => FILE_NAME.test(n)).sort()) {
+    const bytes = readFileSync(join(f.dir, name)); if (db.files[fileIdOf(bytes)]) continue;
+    const m = mergeFile(db, { name, bytes, text: searchFileText(bytes), location: f.location ?? null, readOn: new Date().toISOString().slice(0, 10) });
+    lines.push(m.line); if (!m.refused && !m.alreadyRead) { db = m.db; read++; }
+  }
+  if (read) { st.save(db); replan(id); }
+  return { lines, read };
+}
+/* RR-324 B/C: the two connectors, READY BUT OFF — their settings are the client's (CONFIG), their keys in the secure store by name */
+const adsOf = () => googleAds({ keys: KEYS, settings: CONFIG.googleAds ?? {}, ...(CONFIG.googleAdsTestEndpoints ? { endpoints: CONFIG.googleAdsTestEndpoints } : {}) });
+let ADS = null; const ads = () => (ADS ??= adsOf());
+const DFS_LEDGER_FILE = join(DATA, "dataforseo-ledger.json");
+const dfsLedger = () => { try { return JSON.parse(readFileSync(DFS_LEDGER_FILE, "utf8")); } catch { return emptyDfsLedger(); } };
+const dfsOf = () => dataForSeo({ keys: KEYS, settings: CONFIG.dataForSeo ?? {}, ledger: dfsLedger(), save: (l) => writeFileSync(DFS_LEDGER_FILE, JSON.stringify(l)), ...(CONFIG.dataForSeoTestBase ? { base: CONFIG.dataForSeoTestBase } : {}) });
+function keywordView(id) {
+  const db = keywordStore(id).load(), plan = pread(id, "page-count.json")?.plan ?? null, today = new Date().toISOString().slice(0, 10);
+  const top = Object.values(db.keywords).map((k) => ({ k, c: currentOf(k) })).sort((a, b) => (b.c?.high ?? 0) - (a.c?.high ?? 0) || a.k.text.localeCompare(b.k.text)).slice(0, 25)
+    .map(({ k, c }) => { const t = trendOf(k); return { text: k.text, range: c?.label ?? null, period: c?.period ?? null, location: c?.location ?? null, source: c?.source ?? null, firstSeen: k.firstSeen, lastSeen: k.lastSeen, seen: t.points.length, direction: t.direction, change3m: t.change3m, yoy: t.yoy }; });
+  const dfsSet = CONFIG.dataForSeo ?? {};
+  return { summary: summaryOf(db, { today, plan }), folder: keywordFolder(), top, store: "this computer (the product's folder) — ready to move to AlmiWorld's own keyword service later",
+    ads: { ...ads().status(), settings: { access: CONFIG.googleAds?.access ?? "test", applied: CONFIG.googleAds?.applied ?? [], clientIdSet: Boolean(CONFIG.googleAds?.clientId), customerIdSet: Boolean(CONFIG.googleAds?.customerId), secret: KEYS.status(ADS_KEYS.secret).saved } },
+    dfs: { ...dfsOf().status(), settings: { on: dfsSet.on === true, capDay: dfsSet.capDay ?? null, capMonth: dfsSet.capMonth ?? null, prices: DFS_PRICES }, keySaved: KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved } };
+}
 /*
  * 🔴 RR-321 · THE COUNT FROM THE SUBJECT'S OWN LIST (AlmiWorld's OET: the built-in "who recognises OET" list, AlmiStudy's universities, OET's
  * 12 professions) — fast, and the plan, the tables, the five answers and the total all from ONE ledger. The regulators' own pages are read
@@ -305,7 +341,7 @@ function translatableOf(id) {
 function listPlan(id, c) {
   const s = store.read(id), list = listOf(s, c.subject, id); if (!list) return null;
   const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
-  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, translatable: translatableOf(id) });
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, translatable: translatableOf(id), by: displayNameOf(s.product) });
   const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
   return { plan, five, questions: groups };
 }
@@ -356,7 +392,7 @@ async function aiContentFor(id, { only = null } = {}) {
     const part = tips.slice(i, i + 12).map(([title, key]) => ({ title, key, questions: [], facts: factText(key.split("|")[2]) })), out = await explainPagesAI({ ...ai, subject: c.subject, pages: part, ...base }); if (out.usage) LEDGER.add(out.usage); if (!out.ok) break;
     for (const p of part) if (out.pages[p.title]) (all.practice ??= {})[p.key] = out.pages[p.title];
   }
-  const by = s.product?.name ?? "this site", sh = pread(id, "subject-shingles.json", null), read = new Set(sh?.hashes ?? []), barred = licenceShingles();
+  const by = displayNameOf(s.product), sh = pread(id, "subject-shingles.json", null), read = new Set(sh?.hashes ?? []), barred = licenceShingles();
   const toWrite = Object.entries(PK).filter(([t, k]) => k.startsWith("practice|sample|") && k.split("|")[2] !== "-" && !all.samples?.[k]?.check?.ok && (!only || only.includes(t)));
   for (let i = 0; i < toWrite.length; i += 4) {
     const part = toWrite.slice(i, i + 4).map(([title, key]) => { const [, , st, prof] = key.split("|"); return { key, title, subtest: st, profession: prof === "-" ? null : prof, facts: factText(st) }; });
@@ -711,7 +747,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -855,12 +891,60 @@ const server = createServer((req, res) => {
             return send(t.runs.some((x) => x.verdict === "ACCEPTED") ? 200 : 400, { ok: t.runs.some((x) => x.verdict === "ACCEPTED"), line: `${t.line}${re ? " The plan is made again with them." : ""}`, ...(t.runs.some((x) => x.verdict === "ACCEPTED") ? {} : { refused: t.line }) });
           }
           if (r[2] === "research/file" && req.method === "POST") {
-            const v = json(), text = searchFileText(Buffer.from(String(v.base64 ?? ""), "base64")); // RR-323: a Keyword Planner export is UTF-16
+            const v = json(), bytes = Buffer.from(String(v.base64 ?? ""), "base64"), text = searchFileText(bytes); // RR-323: a Keyword Planner export is UTF-16
+            /* RR-324 A: a Keyword Planner file goes into the ONE keyword database (a file read twice adds nothing; a newer one updates the ranges) */
+            if (/Avg\. monthly searches/i.test(text.slice(0, 4000))) {
+              const st = keywordStore(id), before = st.load(), m = mergeFile(before, { name: String(v.name ?? "keyword-planner.csv").slice(0, 200), bytes, text, location: v.country ? String(v.country) : null, readOn: new Date().toISOString().slice(0, 10), exportedOn: /^\d{4}-\d{2}-\d{2}$/.test(v.exportedOn ?? "") ? v.exportedOn : null });
+              if (m.refused) return send(400, { refused: m.refused });
+              if (!m.alreadyRead) { st.save(m.db); replan(id); }
+              const sum = keywordView(id).summary;
+              return send(200, { ok: true, alreadyRead: m.alreadyRead, added: m.added, merged: m.merged, updated: m.updated, before: Object.keys(before.keywords).length, after: sum.total, line: `${m.line} ${sum.line} Google's ranges, never exact numbers.` });
+            }
             const f = takeSearchFile(text, { country: v.country ? String(v.country) : null, language: v.language ? String(v.language) : null, exportedOn: /^\d{4}-\d{2}-\d{2}$/.test(v.exportedOn ?? "") ? v.exportedOn : new Date().toISOString().slice(0, 10) });
             if (!f.kind) return send(400, { refused: "That is not a Keyword Planner or Bing Webmaster file (it needs a \"Keyword\" column and \"Avg. monthly searches\" or \"Impressions\")." });
             pwrite(id, "phrases.json", mergePhrases(pread(id, "phrases.json", []), f.phrases)); replan(id);
             const dl = pread(id, "page-count.json")?.plan?.demand?.line; // RR-323: keywords → clusters → pages, said at once
             return send(200, { ok: true, line: `${f.phrases.length} phrases read from your ${f.kind} file — the tool's own estimates (Google's ranges), labelled so.${dl ? ` ${dl}.` : ""}` });
+          }
+          /* RR-324 A: the keyword database — the screen (the folder the client named is read first, new files only), and its folder */
+          if (r[2] === "keywords" && req.method === "GET") { const pk = CONFIG.keywordFolder?.auto ? pickUpFolder(id) : { lines: [], read: 0 }; return send(200, { ...keywordView(id), picked: pk }); }
+          if (r[2] === "keywords/folder" && req.method === "POST") {
+            const v = json(), dir = String(v.dir ?? "").trim();
+            if (!dir) { delete CONFIG.keywordFolder; saveConfig(); return send(200, { ok: true, line: "No folder — files are added one by one." }); }
+            if (!existsSync(dir)) return send(400, { refused: "That folder is not on this computer." });
+            CONFIG.keywordFolder = { dir, auto: v.auto !== false, location: v.location ? String(v.location).slice(0, 80) : null }; saveConfig();
+            const pk = pickUpFolder(id); return send(200, { ok: true, line: pk.read ? `${pk.read} new file${pk.read === 1 ? "" : "s"} read. ${pk.lines.join(" ")}` : `No new Keyword Planner file in that folder (keyword-planner-*.csv or "Keyword Stats …").${pk.lines.length ? ` ${pk.lines.join(" ")}` : ""}` });
+          }
+          /* RR-324 B: Google Ads API — the client's settings (stated by him: his project's access level), his own sign-in; OFF until he switches it on */
+          if (r[2] === "keywords/ads" && req.method === "POST") {
+            const v = json(), g = { ...(CONFIG.googleAds ?? {}) };
+            if (v.access !== undefined) g.access = ["test", "explorer", "basic", "standard"].includes(v.access) ? v.access : "test";
+            if (Array.isArray(v.applied)) g.applied = v.applied.filter((x) => ["explorer", "basic", "standard"].includes(x));
+            if (v.clientId !== undefined) { if (v.clientId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(String(v.clientId))) return send(400, { refused: "That is not an OAuth client ID (it ends .apps.googleusercontent.com)." }); g.clientId = v.clientId || null; }
+            if (v.customerId !== undefined) { const d = String(v.customerId ?? "").replace(/\D/g, ""); if (d && d.length !== 10) return send(400, { refused: "A Google Ads customer ID has 10 digits." }); g.customerId = d || null; }
+            if (v.on !== undefined) g.on = v.on === true;
+            CONFIG.googleAds = g; saveConfig(); ADS = null; return send(200, { ok: true, ...ads().status() });
+          }
+          if (r[2] === "keywords/ads/start" && req.method === "POST") { const g = ads().start(`http://127.0.0.1:${server.address().port}/oauth/google-ads`); if (g.ok) { CONFIG.googleAdsPendingProduct = id; saveConfig(); } return send(g.ok ? 200 : 400, g.ok ? { ok: true, opened: openInBrowser(g.url), line: "Google's own page is open in your browser — sign in there yourself." } : { refused: g.why }); }
+          if (r[2] === "keywords/ads/ideas" && req.method === "POST") {
+            const v = json(), seeds = (Array.isArray(v.seeds) ? v.seeds : String(v.seeds ?? "").split(/[,\n]/)).map((x) => String(x).trim()).filter(Boolean).slice(0, 20);
+            const out = await ads().ideas({ seeds, url: v.url ?? null, geo: Array.isArray(v.geo) ? v.geo : [] }); if (!out.ok) return send(400, { refused: out.why });
+            const st = keywordStore(id), m = mergeObservations(st.load(), { id: `ads-${fileIdOf(JSON.stringify(out.rows))}`, name: `Google Ads API ideas (${seeds.join(", ").slice(0, 60)})`, on: new Date().toISOString().slice(0, 10), source: KW_SOURCES.ads, period: out.period, location: v.location ?? null }, out.rows);
+            if (!m.alreadyRead) { st.save(m.db); replan(id); } return send(200, { ok: true, line: m.line });
+          }
+          /* RR-324 C: DataForSEO — OFF, "waiting for the provider's written permission", until the owner ticks it AND switches it on; caps first */
+          if (r[2] === "keywords/dfs" && req.method === "POST") {
+            const v = json(), d = { ...(CONFIG.dataForSeo ?? {}) };
+            if (v.permission !== undefined) d.permission = v.permission === true;
+            if (v.on !== undefined) d.on = v.on === true;
+            for (const k of ["capDay", "capMonth"]) if (v[k] !== undefined) { const n = Number(v[k]); if (!(n >= 0 && n <= 1000)) return send(400, { refused: "A cap is a number of US dollars, 0 to 1,000." }); d[k] = n; }
+            CONFIG.dataForSeo = d; saveConfig(); return send(200, { ok: true, ...dfsOf().status() });
+          }
+          if (r[2] === "keywords/dfs/volume" && req.method === "POST") {
+            const v = json(), db0 = keywordStore(id).load(), words = Array.isArray(v.keywords) ? v.keywords : Object.values(db0.keywords).map((k) => k.text);
+            const out = await dfsOf().volume(words, { location: v.location ?? null, language: v.language ?? null }); if (!out.ok && !out.rows?.length) return send(400, { refused: out.why });
+            const st = keywordStore(id), m = mergeObservations(st.load(), { id: `dfs-${fileIdOf(JSON.stringify(out.rows))}`, name: "DataForSEO search volume", on: new Date().toISOString().slice(0, 10), source: KW_SOURCES.dataforseo, period: null, location: v.location ? String(v.location) : null }, out.rows);
+            if (!m.alreadyRead) { st.save(m.db); replan(id); } return send(200, { ok: true, line: `${m.line} Bought ${out.bought ?? 0}, from the cache ${out.cached ?? 0}; cost $${(out.cost ?? 0).toFixed(4)}.` });
           }
           /* the client's own question, added to the five (free text) */
           if (r[2] === "research/own" && req.method === "POST") {
@@ -1039,6 +1123,11 @@ const server = createServer((req, res) => {
         const s = YT_SIGNIN.start(id, `http://127.0.0.1:${server.address().port}/oauth/youtube`, { write: u.searchParams.get("write") === "1" });
         if (!s.ok) return send(400, s.why, "text/plain; charset=utf-8");
         res.writeHead(302, { location: s.url }); return res.end();
+      }
+      /* RR-324 B: Google sends the browser back here after the client signed in to Google Ads himself */
+      if (req.method === "GET" && u.pathname === "/oauth/google-ads") {
+        const r = await ads().finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
+        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${r.ok ? "Signed in to Google Ads ✓" : "Not connected"}</h2><p>${r.ok ? "Go back to AlmiVisibility." : String(r.why).replace(/</g, "&lt;")}</p><p><a href="/#count=${encodeURIComponent(CONFIG.googleAdsPendingProduct ?? "")}">Back to AlmiVisibility</a></p></body>`, "text/html; charset=utf-8");
       }
       if (req.method === "GET" && u.pathname === "/oauth/google") {
         const r = await GOOGLE.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });

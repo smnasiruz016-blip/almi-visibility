@@ -175,26 +175,27 @@ test("C · caps per day and month (refused BEFORE sending, at the highest price)
 });
 
 /* ── D ── */
-test("D1 · the FULL local suite holds the harness lock: npm test marks its run (runner and tests pid) and the guard refuses edits, tests and git while either lives; started directly it is refused", () => {
-  const PKG = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")); assert.equal(PKG.scripts.test, "node tools/full-suite.mjs");
+test("D1 · the FULL local suite holds the harness lock: tools/full-suite.mjs marks its run (runner and tests pid) and the guard refuses edits, tests and git while either lives; the folder or npm test started directly is refused", () => {
+  /* npm test stays what CI runs and the board's R-CI tests pin (CI found it: R33-E9, R3-CI, R4-CI) */
+  const PKG = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")); assert.equal(PKG.scripts.test, "node --test test/*.test.mjs");
   const FS = readFileSync(join(REPO, "tools", "full-suite.mjs"), "utf8"); assert.match(FS, /SUITE_RUNS_DIR = "almivisibility-suite-runs"/); assert.match(FS, /write\(run\.pid\)/); assert.match(FS, /run\.on\("exit", \(code, sig\) => \{ off\(\);/);
   const GUARD = join(REPO, "tools", "harness-lock-guard.mjs");
   const guard = (repo, call) => spawnSync(process.execPath, [GUARD], { input: JSON.stringify(call), encoding: "utf8", env: { ...process.env, HARNESS_LOCK_REPOS: repo } });
   const dead = Number(spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" }).stdout.trim());
   for (const [pid, child] of [[process.pid, null], [dead, process.pid]]) {
     const r = mkdtempSync(join(tmpdir(), "rr324-lock-")); mkdirSync(join(r, ".git", "almivisibility-suite-runs"), { recursive: true });
-    writeFileSync(join(r, ".git", "almivisibility-suite-runs", `${pid}.json`), JSON.stringify({ pid, child, file: "the full test suite (npm test)" }));
+    writeFileSync(join(r, ".git", "almivisibility-suite-runs", `${pid}.json`), JSON.stringify({ pid, child, file: "the full test suite (tools/full-suite.mjs)" }));
     try {
       for (const call of [{ tool_name: "Edit", tool_input: { file_path: join(r, "desktop", "main.mjs") } }, { tool_name: "Bash", tool_input: { command: "node --test test/rr324-keyword-database.test.mjs" } }, { tool_name: "Bash", tool_input: { command: "git commit -m x" } }]) {
-        const g = guard(r, call); assert.equal(g.status, 2, `${JSON.stringify(call)} was not refused (pid ${pid}, child ${child})`); assert.match(g.stderr, /REFUSED — a sabotage harness is running: the full test suite \(npm test\)/);
+        const g = guard(r, call); assert.equal(g.status, 2, `${JSON.stringify(call)} was not refused (pid ${pid}, child ${child})`); assert.match(g.stderr, /REFUSED — a sabotage harness is running: the full test suite \(tools\/full-suite\.mjs\)/);
       }
       assert.equal(guard(r, { tool_name: "Read", tool_input: { file_path: join(r, "a.mjs") } }).status, 0);
     } finally { rmSync(r, { recursive: true, force: true }); }
   }
   const none = mkdtempSync(join(tmpdir(), "rr324-lock-")); mkdirSync(join(none, ".git"));
   try {
-    for (const c of ["node --test test/*.test.mjs", "cd /c/x && node --test --test-concurrency=1 test/*.test.mjs 2>&1 | tail", "node --test test/*"]) { const g = guard(none, { tool_name: "Bash", tool_input: { command: c } }); assert.equal(g.status, 2, c); assert.match(g.stderr, /run with npm test \(tools\/full-suite\.mjs\)/); }
-    for (const c of ["npm test", "node --test test/rr324-keyword-database.test.mjs test/rr323-demand-first.test.mjs"]) assert.equal(guard(none, { tool_name: "Bash", tool_input: { command: c } }).status, 0, c);
+    for (const c of ["node --test test/*.test.mjs", "cd /c/x && node --test --test-concurrency=1 test/*.test.mjs 2>&1 | tail", "node --test test/*", "npm test", "cd /c/x && npm run test", "npm.cmd test 2>&1 | tail"]) { const g = guard(none, { tool_name: "Bash", tool_input: { command: c } }); assert.equal(g.status, 2, c); assert.match(g.stderr, /run with node tools\/full-suite\.mjs/); }
+    for (const c of ["node tools/full-suite.mjs", "node --test test/rr324-keyword-database.test.mjs test/rr323-demand-first.test.mjs", "grep -n \"npm test\" test/x.mjs"]) assert.equal(guard(none, { tool_name: "Bash", tool_input: { command: c } }).status, 0, c);
   } finally { rmSync(none, { recursive: true, force: true }); }
 });
 

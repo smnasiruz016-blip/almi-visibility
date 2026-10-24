@@ -603,14 +603,20 @@ function logoImage(l, height) {
 }
 
 const colour = (v, fallback) => (/^#[0-9a-fA-F]{3,8}$/.test(v ?? "") ? v : fallback);
+/* WCAG relative luminance and contrast ratio of two #rgb / #rrggbb colours */
+const lum = (hex) => { let h = String(hex).replace("#", "").slice(0, 6); if (h.length === 3) h = h.split("").map((x) => x + x).join(""); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+export const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 const fontStack = (v) => (present(v) && !/[<>{};]/.test(v) ? v : "system-ui, sans-serif");
 const absolute = (site, href) => { try { return new URL(href, site).href; } catch { return null; } };
 
 /** The page's stylesheet, from the client's own design tokens. Self-contained: no script, no outside file, nothing fetched when opened. */
-function styleOf(design) {
+export function styleOf(design) { // exported for the RR-323 contrast test
   const c = design?.colours ?? {};
   const v = { bg: colour(c.background, "#ffffff"), paper: colour(c.surface, "#ffffff"), line: colour(c.border, "#e3e6ea"), primary: colour(c.primary, "#333333"), primaryDeep: colour(c.primaryDeep, colour(c.primary, "#333333")),
     accent: colour(c.accent, colour(c.primary, "#333333")), ink: colour(c.ink, "#111111"), text: colour(c.text, "#333333"), muted: colour(c.muted, "#555555"), footBg: colour(c.footerBackground, "#111111"), footAccent: colour(c.footerAccent, "#cccccc"), onDark: colour(c.onDark, "#ffffff") };
+  /* RR-323 proof: the call-to-action read "#111111 on #333333" — invisible. The button's words take the site's ink only where it is readable
+   * on the button (WCAG 4.5:1); else white or near-black, whichever reads — a design that already read well is unchanged */
+  v.onPrimary = contrast(v.ink, v.primary) >= 4.5 ? v.ink : contrast("#ffffff", v.primary) >= contrast("#111111", v.primary) ? "#ffffff" : "#111111";
   const radius = /^\d{1,2}px$/.test(design?.card?.radius ?? "") ? design.card.radius : "12px";
   return `*{box-sizing:border-box}body{margin:0;background:${v.bg};color:${v.text};font:17px/1.6 ${fontStack(design?.fonts?.body)}}a{color:${v.accent}}`
     + `.stamp{margin:0;padding:9px 16px;background:#b42318;color:#fff;font-weight:700;font-size:13px;letter-spacing:.05em;text-align:center}`
@@ -619,7 +625,7 @@ function styleOf(design) {
     + `.brands{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.company{display:inline-flex}.logo-file{display:inline-block;position:relative;overflow:hidden;flex:none}.logo-file img{position:absolute;max-width:none}`
     + `.head-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:1;min-width:260px}.acts{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.acts a{color:${v.ink};font-weight:600;text-decoration:none}`
     + `nav{display:flex;align-items:center;justify-content:flex-end;gap:4px 12px;flex-wrap:wrap}nav a{color:${v.ink};font-weight:500;font-size:14px;text-decoration:none}nav a:hover,.acts a:hover{color:${v.primaryDeep}}`
-    + `.cta{display:inline-block;background:${v.primary};color:${v.ink};font-weight:600;text-decoration:none;padding:10px 22px;border-radius:9999px}.cta:hover{background:${v.primaryDeep}}`
+    + `.cta{display:inline-block;background:${v.primary};color:${v.onPrimary};font-weight:600;text-decoration:none;padding:10px 22px;border-radius:9999px}.cta:hover{background:${v.primaryDeep}}`
     + `main{max-width:860px;margin:0 auto;padding:8px 20px 56px}.hero{padding:40px 0 28px}h1{margin:0 0 12px;color:${v.ink};font-size:34px;line-height:1.2}.hero p{margin:0 0 6px;font-size:18px}.hero .cta{margin-top:16px;font-size:16px;padding:13px 28px}`
     + `h2{color:${v.ink};font-size:24px;margin:36px 0 14px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:0;padding:0;list-style:none}`
     + `.card{background:${v.paper};border:1px solid ${v.line};border-radius:${radius};padding:18px}.card .k{display:block;color:${v.muted};font-size:14px}.card .v{display:block;color:${v.ink};font-weight:700;font-size:22px;margin:4px 0 8px}`

@@ -12,7 +12,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 
-import { barredSources, isBarred, withheldRead, withheldExtraction, claimsQuotingBarred, LICENCE_WITHHELD, BUILD_REFUSAL } from "../src/facts/licence-guard.mjs";
+import { barredSources, isBarred, withheldRead, withheldExtraction, claimsQuotingBarred, LICENCE_WITHHELD, BUILD_REFUSAL, shingleHash, wordsOf, longestRun as runOf } from "../src/facts/licence-guard.mjs";
 import { readRecord, extractionRecord } from "../src/facts/source-reader.mjs";
 import { privateSourcesRoot, withPrivateTexts, TEXT_MISSING } from "../src/facts/private-texts.mjs";
 import { loadRegistry } from "../src/facts/registry.mjs";
@@ -102,9 +102,9 @@ test("REAL · the 3 licence-barred records: barred by their own records; no text
 
 /* the census: no tracked file of a PUBLIC tree holds a run of 13+ consecutive words of the 3 pages, nor any 8-word sequence in a quotation field */
 const HASHES = new Set(THREE.shingles);
-const h16 = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
-const words = (s) => String(s).toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
-function longestRun(text, hashes = HASHES) { const w = words(text); let best = 0, a = -1, end = -1; for (let i = 0; i + 8 <= w.length; i++) if (hashes.has(h16(w.slice(i, i + 8).join(" ")))) { if (a < 0 || i > end) a = i; end = i + 8; best = Math.max(best, end - a); } return best; }
+/* RR-323: the census and the practice samples' check share ONE implementation (src/facts/licence-guard.mjs R5) */
+const h16 = shingleHash, words = wordsOf;
+const longestRun = (text, hashes = HASHES) => runOf(text, hashes);
 function censusOf(root) {
   const files = execFileSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8", maxBuffer: 1 << 30 }).split("\0").filter((f) => f && !f.startsWith("runs/crawl/"));
   const out = [];

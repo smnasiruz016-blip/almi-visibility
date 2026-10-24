@@ -23,6 +23,8 @@ import { feeInCurrency } from "./rates.mjs";
 import { professionIn, TAKING, UNIVERSITY, TOPICS, searched } from "./page-plan.mjs";
 import { questionCount } from "./questions.mjs";
 import { runGates, linkPages, batchesOf, contentOf, languageDemand, strongForLanguage, templateCheck, SUBTESTS, GATES, BATCH_SIZES } from "./pseo.mjs";
+import { clusterKeywords, sumRanges } from "./demand.mjs"; // RR-323
+import { FACTS_FOR } from "./subject-facts.mjs"; // RR-323
 
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -33,6 +35,8 @@ const shortOf = (n) => /\(([A-Z][A-Za-z-]{1,9})(?:\s*\/[^)]*)?\)/.exec(n)?.[1] ?
 const plainName = (n) => String(n).replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
 /* RR-322 C3: the first batch is 25, then 50, 100, 200 — each only when the last one is 80% indexed */
 export const BATCH = Object.freeze({ min: BATCH_SIZES[0], max: BATCH_SIZES[0] });
+/* RR-323 decision 9: a parent body whose one English rule covers its boards — the boards are sections of the parent's page */
+export const PARENT_RULES = Object.freeze([{ country: "Australia", parent: /Australian Health Practitioner Regulation Agency|\bAHPRA\b/i, child: /\bBoard of Australia\b/ }]);
 const LANG_NAME = { es: "Spanish", de: "German", it: "Italian", fr: "French", pt: "Portuguese", ar: "Arabic", ur: "Urdu", hi: "Hindi", zh: "Chinese" };
 
 /** a university page's title: its own name (≤ 70 characters; its short name when the whole name is long) */
@@ -49,7 +53,7 @@ const lettersOf = (text) => { const g = {}; for (const s of SUBTESTS) { const m 
  * pages read while building (by list id); `ai` = what the client's AI wrote (explanation only: { topics: { title: {…} }, subtests: {…} });
  * `languages` = the client's chosen language codes; `items` = every question found (for the languages people ask in); `cta` = the call to act.
  */
-export function planFromList({ subject, rec, professions, universities = [], light = {}, venues = { countries: [], home: null }, fee = null, rates = null, stats = null, subtests = {}, groups = [], sorted = null, byCountry = [], reads = {}, on = null, councils = null, ai = {}, languages = [], items = [], cta = null, subjectPages = {} }) {
+export function planFromList({ subject, rec, professions, universities = [], light = {}, venues = { countries: [], home: null }, fee = null, rates = null, stats = null, subtests = {}, groups = [], sorted = null, byCountry = [], reads = {}, on = null, councils = null, ai = {}, languages = [], items = [], cta = null, subjectPages = {}, facts = {}, translatable = [] }) {
   /* B3 · a home country's council and its official verification page (AlmiOET's records — nursing), as a "check here" fact */
   const councilOf = (country, profs = ["nursing"]) => { const c = (councils?.items ?? []).find((x) => x.country === country && profs.includes(x.profession)); return c ? { ...c, claim: { claimId: `council-${country.toLowerCase().replace(/[^a-z]+/g, "-")}`, text: `To verify a ${c.profession} registration from ${country}, the home council is the ${c.council}: check here — its own verification page.`, link: c.verificationUrl ?? c.councilUrl, readOn: councils.on, source: `AlmiOET's record of the ${c.council}`, official: true, body: c.council } } : null; };
   /* ── REGULATOR: one page per regulator rule; CONFIRMED only where a regulator's own page states the score ── */
@@ -58,6 +62,18 @@ export function planFromList({ subject, rec, professions, universities = [], lig
     const rd = reads[p.listId], scores = (rd?.claims ?? []).find((c) => c.fact === "scores");
     return { ...p, claims: [...p.claims, ...(rd?.claims ?? [])], read: rd ? { ok: rd.ok, why: rd.why ?? null, on: rd.on, url: rd.url, browser: rd.browser ?? false, via: rd.via ?? null } : null, confirmed: Boolean(rd?.ok && scores), confirmedGrade: scores ? lettersOf(scores.text) ?? p.grade : null };
   });
+  /* RR-323 decisions 9 + 10 · a parent body whose ONE English rule covers its boards (Ahpra for Australia's national boards): each board is a
+   * SECTION of the parent's page, and the parent's own page confirms it. The Chinese Medicine Board is never "doctors" (its practitioners). */
+  for (const p of regulator) if (/Chinese Medicine/i.test(p.body)) { p.professions = p.professions.filter((x) => x !== "medicine"); p.title = `${subject}: ${p.body} (Chinese medicine practitioners)`; p.peopleSay = "Chinese medicine practitioners"; }
+  for (const P of PARENT_RULES) {
+    const par = regulator.find((p) => p.country === P.country && P.parent.test(`${p.body} ${p.short ?? ""}`)); if (!par) continue;
+    par.boards = [];
+    for (const p of regulator.filter((q) => q !== par && q.country === P.country && P.child.test(q.body))) {
+      p.sectionOf = par.title; p.sectionWhy = `${par.short ?? par.body}'s one English standard covers it`; par.boards.push(p);
+      if (p.confirmed && par.read?.url && p.read?.url === par.read.url) p.confirmedBy = par.short ?? par.body; // its own page IS the parent's (the RR-322 reads)
+      if (par.confirmed && !p.confirmed) { p.confirmed = true; p.confirmedBy = par.short ?? par.body; p.confirmedGrade = par.confirmedGrade; p.claims = [...p.claims, ...par.claims.filter((c) => c.fact === "scores").map((c) => ({ ...c, claimId: `${c.claimId}-for-${String(p.listId ?? p.body).replace(/\W+/g, "-")}`, text: `${c.text} (${par.short ?? par.body}'s standard covers ${p.body})` }))]; }
+    }
+  }
   const reqCountries = rec.requirement.map((c) => c.country);
   /* ── TAKING: ONE page, a section per country where it can be taken ── */
   const vset = new Map(venues.countries.map((v) => [v.name, v]));
@@ -98,6 +114,8 @@ export function planFromList({ subject, rec, professions, universities = [], lig
   /* ── every question to the ONE page whose answer it needs ── */
   const topics = new Map(), unused = [];
   for (const g of groups) {
+    /* RR-323: the client's Keyword Planner keywords are clustered by their need below (desktop/demand.mjs) — not routed one by one here */
+    if ((g.sources ?? []).length && g.sources.every((s) => s.kind === "tool")) continue;
     const q = [g.question, ...(g.also ?? [])].join(" "), dest = destinationsIn(q).filter((c) => reqCountries.includes(c)), orig = [...new Set([...originsIn(q), ...countriesIn(q)])].filter((c) => !reqCountries.includes(c) || TAKING.test(q)), prof = professionIn(q), sub = SUBTESTS.find((s) => new RegExp(`\\b${s}\\b`, "i").test(q));
     let page = null, sec = null;
     /* a question naming a regulator ("oet score for nmbi") is that regulator's page */
@@ -115,7 +133,60 @@ export function planFromList({ subject, rec, professions, universities = [], lig
     if (t?.[0] === "fees" && feeClaim && !tp.claims.includes(feeClaim)) tp.claims.unshift(feeClaim);
     tp.questions.push(g); g.page = tp.title; topics.set(key, tp);
   }
+  /* ── RR-323 · PRACTICE: profession × sub-test × intent (owner decision 4) — the format from the subject's own pages, the grades asked,
+   * and an ORIGINAL practice sample written for the client (never an official paper; checked against what was read — desktop/samples.mjs) ── */
+  const fact = (k) => facts[k] ?? null, factsOf = (keys) => keys.map(fact).filter(Boolean);
+  const sampleLink = (prof) => { const slug = (prof ?? "").replace(/\s+/g, "-"), u = (subjectPages.urls ?? []).filter((x) => /sample-tests/.test(x) && (!prof || x.endsWith(`/${slug}`))).sort((a, b) => a.length - b.length)[0]; return u ? { claimId: `samples-${slug || "all"}`, text: `${subject}'s own free sample tests${prof ? ` for ${PEOPLE_WORD[prof] ?? prof}` : ""} (official — on its own site).`, link: u, readOn: subjectPages.on, source: `${subject} — its own site`, official: true, body: subject, pointer: true } : null; };
+  const required = (prof, s) => (prof ? subtest.find((x) => x.profession === prof && x.subtest === s)?.required ?? [] : []);
+  const practiceTitle = (intent, s, prof) => { const who = prof ? (PEOPLE_WORD[prof] ?? prof) : null;
+    if (intent === "tips") return s ? `${subject} ${s} tips${who ? ` for ${who}` : ""}: the common mistakes` : `${subject} tips: how to pass and the common mistakes`;
+    if (!s) return who ? `${subject} practice test for ${who}` : `${subject} practice test: a free sample for every sub-test`;
+    if (s === "Writing") return `${subject} Writing sample${who ? ` for ${who}` : ""}: case notes and a model letter`;
+    if (s === "Speaking") return `${subject} Speaking sample${who ? ` for ${who}` : ""}: a role-play to practise`;
+    return `${subject} ${s} practice test (a free sample)`; };
+  const PRACTICE_UNIVERSE = [...["sample", "tips"].flatMap((intent) => [...["Writing", "Speaking"].flatMap((s) => [null, ...professions].map((prof) => [intent, s, prof])), [intent, "Listening", null], [intent, "Reading", null], [intent, null, null]]), ...professions.map((prof) => ["sample", null, prof])];
+  const practice = PRACTICE_UNIVERSE.map(([intent, s, prof]) => {
+    const key = `practice|${intent}|${s ?? "-"}|${prof ?? "-"}`, sm = ai.samples?.[key] ?? null, hub = intent === "sample" && !s;
+    const fs = s ? factsOf(FACTS_FOR[s] ?? []) : factsOf(["listeningMarks", "readingMarks", "writingWords", "speakingRoleplay", "practiceEvery", "gradeB"]);
+    const p = { kind: "practice", key, intent, subtest: s, profession: prof, title: practiceTitle(intent, s, prof), required: s ? required(prof, s) : [], ai: ai.practice?.[key] ?? null, sample: sm?.check?.ok ? sm : null, sampleCheck: sm?.check ?? null, questions: [], kpRanges: [],
+      claims: [...fs, sampleLink(prof)].filter(Boolean), why: hub ? `the practice hub${prof ? ` for ${PEOPLE_WORD[prof] ?? prof}` : ""}: every sub-test's format and its practice page` : `${intent === "tips" ? "tips and common mistakes" : "an original practice sample"} for ${s}${prof ? ` (${PEOPLE_WORD[prof] ?? prof})` : ""}` };
+    if (hub) { p.head = ["Sub-test", "Format (the subject's own pages)"]; p.rows = SUBTESTS.map((x) => [x, factsOf(FACTS_FOR[x] ?? []).slice(0, 2).map((c) => c.text.replace(new RegExp(`^${subject}'s own page:? `), "")).join(" ") || "see its practice page"]); }
+    if (intent === "sample" && s) p.waitFor = !sm ? "its practice sample is not written yet — your AI writes it (original, never copied)" : !sm.check?.ok ? `its sample did not pass the originality check: ${sm.check?.why ?? "not checked"}` : null;
+    return p;
+  });
+  /* ── RR-323 · DEMAND FIRST: the client's Keyword Planner keywords, clustered (desktop/demand.mjs) — each cluster to the ONE page it asks for ── */
+  const regNames = regulator.map((p) => ({ key: p.listId ?? p.title, page: p, names: callNames({ short: p.short, name: p.body }).map((x) => x.toLowerCase()).filter((x) => x.length >= 3) }));
+  const demand = clusterKeywords(items.filter((x) => x.kind === "tool"), { regulators: regNames, subject });
+  const DT = { fees: ["fees"], booking: ["booking", `How to book ${subject} and the test dates`], results: ["results", `${subject} results: when they come out`], scores: ["scoring"], computer: ["computer"], prep: ["preparation"], vs: ["versus"], format: ["about", `What is ${subject}: the four sub-tests, the time and the scores`], countries: ["countries", `Which countries accept ${subject}, and the score each asks`] };
+  const topicFor = (key, title) => { const t = TOPICS.find(([k]) => k === key); const tp = topics.get(key) ?? { kind: "topic", title: t ? t[2](subject) : title, claims: [], why: `the searches about ${key} — no country or profession changes this answer`, questions: [] }; topics.set(key, tp); return tp; };
+  const kwPage = new Map(); // keyword → the page it landed on (the question count's lines)
+  for (const c of demand.clusters) {
+    let page = null, sec = null;
+    if (c.intent === "regulator") page = regNames.find((r) => r.key === c.regulator)?.page ?? null;
+    else if (c.intent === "requirement") page = regulator.filter((p) => p.country === c.countries[0] && p.professions.includes(c.profession) && !p.sectionOf).sort((a, b) => b.professions.length - a.professions.length)[0] ?? null;
+    else if (c.intent === "where") page = where;
+    else if (c.intent === "subtest" && c.profession) page = subtest.find((p) => p.subtest === c.subtest && p.profession === c.profession) ?? null;
+    else if (c.intent === "sample" || c.intent === "tips") page = practice.find((p) => p.key === c.key) ?? null;
+    else if (c.intent === "profession") page = null; // its hub below (the hubs are built after)
+    else if (c.intent === "country") page = null;
+    else { const [key, title] = c.key.startsWith("subtest-info|") ? [c.subtest.toLowerCase(), null] : DT[c.intent] ?? [c.intent, cap(c.top)]; page = topicFor(key, title); page.intent = c.key.startsWith("subtest-info|") ? c.subtest : c.intent; }
+    if (page?.sectionOf) page = regulator.find((p) => p.title === page.sectionOf) ?? page; // a board's search → its parent's page
+    c.page = page?.title ?? null; c.sec = sec;
+    if (!page) continue;
+    page.questions.push(...c.keywords.map((k) => ({ question: k.text, also: [], sources: [{ kind: "tool", volume: { estimate: k.range?.said ?? 0 }, label: "Keyword Planner" }], weight: k.range?.high ?? 0 })));
+    (page.kpRanges ??= []).push(...c.keywords.map((k) => k.range)); (page.clusters ??= []).push(c.key);
+    for (const k of c.keywords) kwPage.set(k.text, page.title);
+  }
+  /* RR-323 proof: "OET Writing" and "OET Writing sample" answered with the same facts — the site planner made one a section of the other
+   * ("a second page would compete"). A sub-test's general searches ("oet writing", "oet writing test") go to its ONE practice page */
+  for (const s of SUBTESTS) { const tp = topics.get(s.toLowerCase()), pp = practice.find((p) => p.intent === "sample" && p.subtest === s && !p.profession); if (!tp || !pp) continue;
+    pp.questions.push(...tp.questions); (pp.kpRanges ??= []).push(...(tp.kpRanges ?? [])); for (const g of tp.questions) if (kwPage.has(g.question)) kwPage.set(g.question, pp.title); for (const c of demand.clusters) if (c.page === tp.title) c.page = pp.title; topics.delete(s.toLowerCase()); }
   const topic = [...topics.values()]; for (const tp of topic) tp.ai = ai.topics?.[tp.title] ?? null;
+  /* the demand topics' facts — the subject's own pages, each fact with its page and date (only what a page states) */
+  for (const tp of topic) { const keys = FACTS_FOR[tp.intent] ?? (tp.intent && SUBTESTS.includes(tp.intent) ? FACTS_FOR[tp.intent] : null) ?? []; for (const f of factsOf(keys)) if (!tp.claims.some((c) => c.claimId === f.claimId)) tp.claims.push(f); }
+  { const ct = topics.get("countries"); if (ct) { ct.lead = `${subject} is accepted by a named body in ${rec.accepted.length} countries, and a health regulator in ${reqCountries.length} of them asks for it to register (${subject}'s own list, read ${rec.on}).`; ct.head = ["Country", "Regulators", "Who"]; ct.rows = rec.requirement.map((r) => [r.country, String(r.regulators), [...new Set(regulator.filter((p) => p.country === r.country).flatMap((p) => p.professions))].map((x) => PEOPLE_WORD[x] ?? x).slice(0, 6).join(", ")]); ct.claims.push({ claimId: "countries-list", fact: "countries", text: `${subject}'s own list of recognising organisations names a body in ${rec.accepted.length} countries (AlmiOET's copy, read ${rec.on}).`, link: rec.page ?? subjectPages.urls?.find((u) => /recogni/.test(u)) ?? null, readOn: rec.on, source: `${subject}'s list`, official: true, body: subject }); ct.claims = ct.claims.filter((c) => c.link); } }
+  { const at = topics.get("about"), withMin = SUBTESTS.filter((s) => subtests[s]?.minutes); if (at && withMin.length) { at.lead = `${subject} is the English test for healthcare work, in four sub-tests: ${withMin.map((s) => `${s} (about ${subtests[s].minutes} minutes)`).join(", ")} (${subject}'s own pages, ${subtests[withMin[0]].on}).`; at.head = ["Sub-test", "Time", "What it is"]; at.rows = SUBTESTS.map((s) => [s, subtests[s]?.minutes ? `about ${subtests[s].minutes} minutes` : "see its page", factsOf(FACTS_FOR[s] ?? []).slice(0, 1).map((c) => c.text.replace(new RegExp(`^${subject}'s own page:? `), "")).join("") || "—"]); for (const s of withMin) at.claims.push({ claimId: `about-${s.toLowerCase()}`, fact: "format", text: `${subject}'s own page: ${s} takes about ${subtests[s].minutes} minutes.`, link: subtests[s].link, readOn: subtests[s].on, source: `${subject} — its own page`, official: true, body: subject }); } }
+  { const ft = topics.get("fees"); if (ft) { ft.head = ["Country", "The fee"]; ft.rows = where.sections.filter((s) => s.venue).map((s) => [s.country, String(s.fee)]); if (feeClaim && !ft.claims.includes(feeClaim)) ft.claims.unshift(feeClaim); } }
   /* RR-322 A5: a topic page may be explained by the client's AI; its ONE hard pointer is the subject's own page about it (its sitemap) */
   const POINTER = [[/fee|cost|price/i, /fee|price|book-a-test|at-home/], [/scor|result|grade|valid/i, /results-and-scoring|scor/], [/test day|bring/i, /test-day/], [/computer|home|online/i, /on-computer|at-home/], [/listening/i, /ready\/listening/], [/reading/i, /ready\/reading/], [/writing/i, /ready\/writing/], [/speaking/i, /ready\/speaking/], [/prepar|study|practi|tips|sample/i, /sample-tests$|ready$/], [/ielts|pte|toefl|versus|compare/i, /about|why-oet|oet-test$/]];
   for (const tp of topic.filter((x) => !x.claims.length && subjectPages.urls?.length)) {
@@ -131,6 +202,13 @@ export function planFromList({ subject, rec, professions, universities = [], lig
   const countryHub = reqCountries.map((c) => { const regs = regulator.filter((p) => p.country === c); return { kind: "hub", key: `country|${c}`, country: c, title: `${subject} in ${inCountry(c)}: every regulator and the grades it asks`, keepWhole: true, intro: `${regs.length} regulator${regs.length === 1 ? "" : "s"} in ${inCountry(c)} accept ${subject} — for ${[...new Set(regs.flatMap((p) => p.professions))].map((x) => PEOPLE_WORD[x] ?? x).join(", ")}. Each one's grades are below, with ${subject}'s list or the regulator's own page as the source; open a regulator's page for its steps.`, head: ["Regulator", "Professions", "Grades"], rows: regs.map((p) => [p.body, p.professions.map((x) => PEOPLE_WORD[x] ?? x).join(", "), gradeLine(p.confirmedGrade ?? p.grade) ?? "see its page"]), claims: regs.slice(0, 3).map((p) => p.claims[0]).filter(Boolean), questions: [], why: `the hub of ${c}'s regulator pages` }; });
   const professionHub = professions.map((prof) => { const regs = regulator.filter((p) => p.professions.includes(prof)), people = PEOPLE_WORD[prof] ?? prof; return { kind: "hub", key: `profession|${prof}`, profession: prof, title: `${subject} for ${people}: every country, its regulator and grades`, keepWhole: true, intro: `${cap(people)} can use ${subject} with ${regs.length} regulator${regs.length === 1 ? "" : "s"} in ${new Set(regs.map((p) => p.country)).size} countries. Each regulator's grades are below with their source; the four sub-test pages for ${people} explain how to prepare.`, head: ["Country", "Regulator", "Grades"], rows: regs.map((p) => [p.country, p.body, gradeLine(p.confirmedGrade ?? p.grade) ?? "see its page"]), claims: regs.slice(0, 3).map((p) => p.claims[0]).filter(Boolean), questions: [], why: `the hub of every page for ${people}` }; });
   const hubs = [...countryHub, ...professionHub];
+  /* RR-323: "oet for nurses", "oet nhs" — a profession's or a destination's searches are its hub's (a country with no regulator rule: Where to take) */
+  for (const c of demand.clusters.filter((x) => (x.intent === "profession" || x.intent === "country") && !x.page)) {
+    const page = c.intent === "profession" ? professionHub.find((h) => h.profession === c.profession) : countryHub.find((h) => h.country === c.country) ?? where;
+    if (!page) continue; c.page = page.title;
+    page.questions.push(...c.keywords.map((k) => ({ question: k.text, also: [], sources: [{ kind: "tool", volume: { estimate: k.range?.said ?? 0 }, label: "Keyword Planner" }], weight: k.range?.high ?? 0 })));
+    (page.kpRanges ??= []).push(...c.keywords.map((k) => k.range)); for (const k of c.keywords) kwPage.set(k.text, page.title);
+  }
   const index = { kind: "index", title: `${subject} guides: every country and profession`, keepWhole: true, intro: `Every ${subject} guide on this site, by country and by profession.`, head: ["Guide"], rows: hubs.map((h) => [h.title]), claims: hubs.flatMap((h) => h.claims.slice(0, 1)).slice(0, 3), questions: [], why: "the one page linking every hub — every page within three clicks of the home page" };
   /* ── THE THREE GATES (desktop/pseo.mjs) ── */
   /* gate 3's kept page names every page it covers: "OET score for nurses in the United States: 14 regulators"; "OET for graduates of A, B …" */
@@ -139,17 +217,23 @@ export function planFromList({ subject, rec, professions, universities = [], lig
     if (p.kind === "regulator") { p.title = `${subject} ${people.length > 1 ? "scores" : "score"} for ${people.length > 2 ? "health professionals" : people.join(" and ")} in ${inCountry(p.country)}: ${n} regulators`; p.coverNames = p.covers.map((q) => q.body); p.claims = [...p.claims, ...p.covers.slice(1, 20).map((q) => q.claims.find((c) => c.fromList)).filter(Boolean)]; p.why = `${n} regulators in ${inCountry(p.country)} ask the same — one page, a row each`; }
     if (p.kind === "university") { const nm = p.covers.map((q) => shortOf(q.uni.name) ?? plainName(q.uni.name)); p.title = [`${subject} for graduates of ${nm.slice(0, 2).join(" and ")}${n > 2 ? ` and ${n - 2} more` : ""}${p.uni.city ? ` (${p.uni.city})` : ""}`, `${subject} for graduates of ${nm[0]} and ${n - 1} more universities`].find((t) => t.length <= 70) ?? `${subject} for graduates of ${n} universities in ${inCountry(p.country)}`; p.coverNames = p.covers.map((q) => q.uni.name); p.why = `${n} universities with the same answer (city, professions, destinations) — one page, a section each`; }
   };
-  const families = runGates({ regulator, subtest, university, taking: [where], topic, hub: hubs }, { retitle, parentOf: (p) => p.kind === "regulator" ? countryHub.find((h) => h.country === p.country)?.title : p.kind === "subtest" ? professionHub.find((h) => h.profession === p.profession)?.title : p.kind === "university" ? countryHub[0]?.title : index.title });
+  const practiceHub = practice.find((p) => p.intent === "sample" && !p.subtest && !p.profession);
+  const families = runGates({ regulator, subtest, practice, university, taking: [where], topic, hub: hubs }, { retitle, parentOf: (p) => p.kind === "practice" ? (p.profession ? practice.find((q) => q.intent === "sample" && !q.subtest && q.profession === p.profession)?.title : practiceHub?.title) : p.kind === "regulator" ? countryHub.find((h) => h.country === p.country)?.title : p.kind === "subtest" ? professionHub.find((h) => h.profession === p.profession)?.title : p.kind === "university" ? countryHub[0]?.title : index.title });
   /* C3 · the university pages' own guides, A–Z, 100 a page (never a page per origin country — E1): home → index → A–Z → a university */
   const unis = [...families.university.pages].sort((a, b) => a.title.localeCompare(b.title)), uniIndex = [];
   /* a tail of fewer than 20 joins the part before it (the proof: "part 12" held one university and had 1 link) */
   for (let i = 0, size; i < unis.length; i += size) { size = unis.length - i - 100 < 20 ? unis.length - i : 100; const part = unis.slice(i, i + size), first = part[0].title.replace(new RegExp(`^${subject} for (graduates of )?`), "").charAt(0).toUpperCase(), last = part.at(-1).title.replace(new RegExp(`^${subject} for (graduates of )?`), "").charAt(0).toUpperCase();
     uniIndex.push({ kind: "hub", key: `universities|${i}`, title: `${subject} for university graduates: ${first === last ? first : `${first}–${last}`}${unis.length > 100 ? ` (part ${i / 100 + 1})` : ""}`, keepWhole: true, fixedLinks: true, links: part.map((p) => p.title), intro: `${part.length} universities whose graduates in a health profession can use ${subject} — each one's page gives every destination's regulator and grade.`, head: ["University", "Country"], rows: part.map((p) => [p.title, p.country]), claims: part.slice(0, 2).flatMap((p) => p.claims.slice(0, 1)), questions: [], status: "opportunity", dataPoints: part.map((p) => ({ label: p.title, value: p.country })), why: "a guide of university pages, so each is within three clicks of the home page" }); }
-  families.hub.pages.push(...uniIndex); hubs.push(...uniIndex); index.rows = hubs.map((h) => [h.title]);
+  families.hub.pages.push(...uniIndex); hubs.push(...uniIndex);
+  /* RR-323: the practice hub ("OET practice test: a free sample for every sub-test") links every practice page and is linked from the index */
+  if (practiceHub?.status && !["section", "merged"].includes(practiceHub.status)) { const kids = families.practice.pages.filter((p) => p !== practiceHub); practiceHub.fixedLinks = true; practiceHub.links = [...kids.map((p) => p.title), ...families.topic.pages.filter((t) => SUBTESTS.includes(t.intent)).map((t) => t.title)]; hubs.push(practiceHub); for (const p of kids) p.links = [practiceHub.title, ...(p.links ?? [])]; }
+  index.rows = hubs.map((h) => [h.title]);
   const kept = Object.values(families).flatMap((f) => f.pages);
   /* ── LANGUAGES: the strongest pages, in a language people ask in (of the client's chosen ones) ── */
   const langs = languageDemand(items, languages), language = [];
-  for (const l of langs.filter((x) => x.chosen)) for (const base of strongForLanguage(kept, l.questions.length)) language.push({ kind: "language", lang: l.code, base: base.title, title: ai.translations?.[`${l.code}|${base.title}`]?.title ?? `${base.title} (${LANG_NAME[l.code] ?? l.code})`, translated: Boolean(ai.translations?.[`${l.code}|${base.title}`]), country: base.country, profession: base.profession, claims: base.claims, dataPoints: base.dataPoints, questions: l.questions.slice(0, 6).map((q) => ({ question: q, also: [], sources: [{ kind: "search" }] })), status: "demand", why: `${l.questions.length} question${l.questions.length === 1 ? "" : "s"} people ask in ${LANG_NAME[l.code] ?? l.code}; the strongest page made in it (its facts and their sources unchanged)` });
+  /* RR-323 decision 8: English first — a page is made in another language only after its English page is INDEXED and showing impressions */
+  const canTranslate = new Set(translatable ?? []);
+  for (const l of langs.filter((x) => x.chosen)) for (const base of strongForLanguage(kept, l.questions.length).filter((b) => canTranslate.has(b.title))) language.push({ kind: "language", lang: l.code, base: base.title, title: ai.translations?.[`${l.code}|${base.title}`]?.title ?? `${base.title} (${LANG_NAME[l.code] ?? l.code})`, translated: Boolean(ai.translations?.[`${l.code}|${base.title}`]), country: base.country, profession: base.profession, claims: base.claims, dataPoints: base.dataPoints, questions: l.questions.slice(0, 6).map((q) => ({ question: q, also: [], sources: [{ kind: "search" }] })), status: "demand", why: `${l.questions.length} question${l.questions.length === 1 ? "" : "s"} people ask in ${LANG_NAME[l.code] ?? l.code}; the strongest page made in it (its facts and their sources unchanged)` });
   const pages = [...kept, ...language, index];
   /* ── LINKS + DEPTH ── */
   const linkCheck = linkPages(pages, hubs, families.topic.pages, index);
@@ -164,6 +248,8 @@ export function planFromList({ subject, rec, professions, universities = [], lig
   const reachMap = new Map(); for (const r of byCountry) { const k = String(r.query ?? "").toLowerCase(); const x = reachMap.get(k) ?? { countries: new Set(), impressions: 0 }; x.countries.add(r.country); x.impressions += r.impressions ?? 0; reachMap.set(k, x); }
   const reach = (p) => { const qs = (p.questions ?? []).flatMap((g) => [g.question, ...(g.also ?? [])]).map((q) => reachMap.get(String(q).toLowerCase())).filter(Boolean); return { countries: new Set(qs.flatMap((x) => [...x.countries])).size, impressions: qs.reduce((s, x) => s + x.impressions, 0) }; };
   for (const p of pages) p.reach = reach(p);
+  /* RR-323: a page's search demand — the sum of its keywords' Google ranges (never an exact number) */
+  for (const p of pages) { p.kp = sumRanges(p.kpRanges ?? []); delete p.kpRanges; }
   const batches = batchesOf(pages, reach);
 
   /* ── THE LEDGER: the one place every number lives ── */
@@ -173,6 +259,9 @@ export function planFromList({ subject, rec, professions, universities = [], lig
     regulators: regulator.length, regulatorPages: fam("regulator").pages.length, regulatorConfirmed: regulator.filter((p) => p.confirmed).length, regulatorWaiting: fam("regulator").counts.waiting,
     regulatorRead: regulator.filter((p) => p.read?.ok).length, regulatorNotRead: regulator.filter((p) => p.read && !p.read.ok).length, regulatorNotNamed: regulator.filter((p) => p.read && !p.read.ok && /does not name/.test(p.read.why ?? "")).length, regulatorBrowser: regulator.filter((p) => p.read?.browser).length,
     subtestUniverse: subtest.length, subtestPages: fam("subtest").pages.length,
+    practiceUniverse: practice.length, practicePages: fam("practice").pages.length, practiceWaiting: fam("practice").counts.waiting, practiceDemand: fam("practice").counts.demand,
+    kpKeywords: demand.keywords, kpKept: demand.kept, kpClusters: demand.clusters.length, kpOnPages: demand.clusters.filter((c) => c.page).length, kpBrand: demand.setAside.brand.length, kpNotAbout: demand.setAside.notAbout.length, kpUnclear: demand.setAside.unclear.length,
+    regulatorByParent: regulator.filter((p) => p.confirmedBy).length, regulatorBoards: regulator.filter((p) => p.sectionOf).length,
     uniAll: universities.length, uniHealth: health.length, uniNamed: named.length, uniGeneric: generic.length, uniLightChecked: generic.length - lightPending.length, uniLightFound: lightFound.length, uniLightNone: lightNone.length, uniLightPending: lightPending.length,
     uniWithFacts: withFacts.length, uniPages: fam("university").pages.length,
     venueCountries: vset.size, askedNoVenue: where.sections.filter((s) => !s.venue).length, takingPages: fam("taking").pages.length,
@@ -181,23 +270,24 @@ export function planFromList({ subject, rec, professions, universities = [], lig
     demandPages: Object.values(F).reduce((s, f) => s + f.counts.demand, 0) + language.length, opportunityPages: Object.values(F).reduce((s, f) => s + f.counts.opportunity, 0),
     firstBatch: batches[0]?.length ?? 0, batches: batches.length,
   };
-  n.total = n.regulatorPages + n.subtestPages + n.uniPages + n.takingPages + n.topicPages + n.hubPages + n.languagePages;
-  n.ready = n.total - n.regulatorWaiting;
+  n.total = n.regulatorPages + n.subtestPages + n.practicePages + n.uniPages + n.takingPages + n.topicPages + n.hubPages + n.languagePages;
+  n.waiting = Object.values(F).reduce((s, f) => s + f.counts.waiting, 0);
+  n.ready = n.total - n.waiting;
   const qc = sorted ? questionCount({ sorted, groups, pages, subject }) : null;
   if (qc) Object.assign(n, { questionsFound: qc.found, questionsKept: qc.kept, questionGroups: qc.groups, questionOwnPage: qc.ownPage, questionInside: qc.inside, questionsNotAbout: qc.notAbout, menuLines: qc.menu });
-  const tables = tablesOf({ n, subject, rec, R, regulator, families: F, universities, health, named, generic, lightFound, lightNone, lightPending, noFacts, where, vset, venues, topic, hubs, language, langs });
-  const kinds = { regulator: fam("regulator").pages, subtest: fam("subtest").pages, university: fam("university").pages, taking: fam("taking").pages, topic: fam("topic").pages, hub: [...fam("hub").pages, index], language };
+  const tables = tablesOf({ n, subject, rec, R, regulator, families: F, universities, health, named, generic, lightFound, lightNone, lightPending, noFacts, where, vset, venues, topic, hubs, language, langs, demand, practice });
+  const kinds = { regulator: fam("regulator").pages, subtest: fam("subtest").pages, practice: fam("practice").pages, university: fam("university").pages, taking: fam("taking").pages, topic: fam("topic").pages, hub: [...fam("hub").pages, index], language };
   const byTitle = new Map(pages.map((p) => [p.title, p]));
-  const rollout = { batches: batches.map((b) => b.length), batchTitles: batches, first: batches[0] ?? [], firstWhy: (batches[0] ?? []).map((t) => { const p = byTitle.get(t); return { title: t, kind: p.kind, status: p.status, links: p.links ?? [], why: p.reach.countries ? `searched from ${p.reach.countries} countr${p.reach.countries === 1 ? "y" : "ies"} (${fmt(p.reach.impressions)} time${p.reach.impressions === 1 ? "" : "s"} seen)` : p.status === "demand" ? `demand: ${(p.demand ?? []).join(", ") || "asked in a language"}` : `${p.status} page · ${p.dataPoints?.length ?? 0} data points` }; }), size: batches[0]?.length ?? 0, later: n.ready - (batches[0]?.length ?? 0),
+  const rollout = { batches: batches.map((b) => b.length), batchTitles: batches, first: batches[0] ?? [], firstWhy: (batches[0] ?? []).map((t) => { const p = byTitle.get(t); return { title: t, kind: p.kind, status: p.status, links: p.links ?? [], range: p.kp?.label ?? null, keywords: (p.questions ?? []).filter((g) => g.sources?.some((s) => s.kind === "tool")).length, why: (p.kp ? `Keyword Planner ${p.kp.label} searches a month (Google's ranges, ${(p.questions ?? []).filter((g) => g.sources?.some((s) => s.kind === "tool")).length} keywords) · ` : "") + (p.reach.countries ? `searched from ${p.reach.countries} countr${p.reach.countries === 1 ? "y" : "ies"} (${fmt(p.reach.impressions)} time${p.reach.impressions === 1 ? "" : "s"} seen)` : p.status === "demand" ? `demand: ${(p.demand ?? []).join(", ") || "asked in a language"}` : `${p.status} page · ${p.dataPoints?.length ?? 0} data points`) }; }), size: batches[0]?.length ?? 0, later: n.ready - (batches[0]?.length ?? 0),
     byKind: Object.fromEntries(Object.keys(kinds).map((k) => [k, (batches[0] ?? []).filter((t) => byTitle.get(t)?.kind === k).length])),
     line: `The first ${batches[0]?.length ?? 0} of ${fmt(n.ready)} ready pages — the most-searched first. Then ${BATCH_SIZES.slice(1).join(", ")} …: the next batch only when the last one is 80% indexed within 4 weeks; below 70% at 4 weeks Visibility stops and shows why.` };
   const templates = Object.fromEntries(Object.entries(kinds).filter(([, xs]) => xs.length >= 2).map(([k, xs]) => [k, templateCheck(xs)]));
-  return { list: true, kinds, numbers: n, tables, total: n.total, questionCount: qc, unused, rollout, whyNotMore: whyNotMoreOf(n, subject), stats, venuesHome: venues.home, linkCheck, templates, gates: Object.fromEntries(Object.entries(F).map(([k, f]) => [k, { universe: f.universe, pattern: { sample: f.pattern.sample, withDemand: f.pattern.withDemand, share: f.pattern.share, proven: f.pattern.proven, sampleTitles: f.pattern.sampleTitles }, pages: f.pages.length, sections: f.sections, merged: f.merged, counts: f.counts }])), languages: langs.map((l) => ({ code: l.code, questions: l.questions.length, chosen: l.chosen })),
+  return { list: true, kinds, numbers: n, tables, total: n.total, questionCount: qc, unused, rollout, practiceKeys: Object.fromEntries(practice.map((p) => [p.title, p.key])), demand: { line: demand.line, clusters: demand.clusters.map((c) => ({ key: c.key, top: c.top, keywords: c.keywords.length, range: c.demand?.label ?? null, page: c.page })), setAside: demand.setAside }, whyNotMore: whyNotMoreOf(n, subject), stats, venuesHome: venues.home, linkCheck, templates, gates: Object.fromEntries(Object.entries(F).map(([k, f]) => [k, { universe: f.universe, pattern: { sample: f.pattern.sample, withDemand: f.pattern.withDemand, share: f.pattern.share, proven: f.pattern.proven, sampleTitles: f.pattern.sampleTitles }, pages: f.pages.length, sections: f.sections, merged: f.merged, counts: f.counts }])), languages: langs.map((l) => ({ code: l.code, questions: l.questions.length, chosen: l.chosen })),
     counts: Object.fromEntries(Object.entries(kinds).map(([k, xs]) => [k, { total: xs.length, withQuestions: xs.filter((p) => !p.weak).length, opportunity: xs.filter((p) => p.status === "opportunity").length, searched: xs.filter((p) => p.searched).length }])), countLine: countLine(rec, subject) };
 }
 
 /** B4 + B6 · one table per family, from the ledger; every row's list: what was kept, what was left out, and why */
-function tablesOf({ n, subject, rec, R, regulator, families: F, universities, health, named, generic, lightFound, lightNone, lightPending, noFacts, where, vset, venues, topic, hubs, language, langs }) {
+function tablesOf({ n, subject, rec, R, regulator, families: F, universities, health, named, generic, lightFound, lightNone, lightPending, noFacts, where, vset, venues, topic, hubs, language, langs, demand = { clusters: [], setAside: { brand: [], notAbout: [], unclear: [] } }, practice = [] }) {
   const row = (step, num, why, kept = [], left = []) => ({ step, n: num, why, kept, left });
   const gateRows = (k) => { const f = F[k]; return [row(`Gate 1 · demand in ${f.pattern.sample} sample combinations`, Math.round(f.pattern.share * 100), `${f.pattern.withDemand} of ${f.pattern.sample} show demand — ${f.pattern.proven ? "the pattern is proven (60% or more)" : "below 60%: these pages are OPPORTUNITY pages, made after the demand pages"}`, f.pattern.sampleTitles.filter((x) => /^demand/.test(x.why)), f.pattern.sampleTitles.filter((x) => !/^demand/.test(x.why))), row(`Gate 2 · fewer than ${GATES.minData} data points → a section of a bigger page`, f.sections.length, "never a thin page", [], f.sections), row(`Gate 3 · more than ${Math.round(GATES.maxAlike * 100)}% alike → one page`, f.merged.length, "never a duplicate page", [], f.merged)]; };
   const pagesRow = (k, why) => row("Pages", F[k].pages.length, why, F[k].pages.map((p) => ({ name: p.title, why: `${p.status} · ${p.dataPoints.length} data points` })), []);
@@ -208,8 +298,19 @@ function tablesOf({ n, subject, rec, R, regulator, families: F, universities, he
       row(`${n.requirement} countries × ${n.professions} professions`, n.combos, "every combination — what multiplying gives", [], []),
       row(`…where a regulator accepts ${subject} for that profession`, n.pairs, `${subject}'s own list names the regulator and the profession`, R.pairs.map((x) => ({ name: `${x.profession} in ${x.country}`, why: x.bodies.join(", ") })), R.notAccepted),
       row("One page per regulator rule", R.pages.length, "its professions are sections of its one page", regulator.map((p) => ({ name: p.title, why: p.why })), R.noProfession),
-      row("…its score confirmed on the regulator's own page", n.regulatorConfirmed, `${n.regulatorRead} read; ${n.regulatorNotRead - n.regulatorNotNamed} could not be read (${n.regulatorBrowser} on your AI's browser list) and ${n.regulatorNotNamed} do not name ${subject} on the pages reached`, regulator.filter((p) => p.confirmed).map((p) => ({ name: p.title, why: p.read?.url ?? "" })), regulator.filter((p) => !p.confirmed).map((p) => ({ name: p.title, why: p.read ? p.read.why ?? "its own page names no score" : "not read yet — read while building" }))),
+      row("…its score confirmed on the regulator's own page", n.regulatorConfirmed, `${n.regulatorRead} read; ${n.regulatorByParent} confirmed by a parent body's own page whose one rule covers them (Ahpra for Australia's boards); ${n.regulatorNotRead - n.regulatorNotNamed} could not be read (${n.regulatorBrowser} on your AI's browser list) and ${n.regulatorNotNamed} do not name ${subject} on the pages reached`, regulator.filter((p) => p.confirmed).map((p) => ({ name: p.title, why: p.confirmedBy ? `confirmed by ${p.confirmedBy}'s own page` : p.read?.url ?? "" })), regulator.filter((p) => !p.confirmed).map((p) => ({ name: p.title, why: p.read ? p.read.why ?? "its own page names no score" : "not read yet — read while building" }))),
       ...gateRows("regulator"), pagesRow("regulator", `${n.regulatorWaiting} WAIT for a confirmed score — in the plan, never a ready draft`)] },
+    /* RR-323 · the client's search-data file: keywords → clusters → pages, and what was set aside (each with its list) */
+    demand: { title: "Your search-data file (Keyword Planner) — demand first", rows: [
+      row("Keywords in your file", n.kpKeywords, "Google's ranges (an account with no ads sees 0 / 50 / 500 / 5,000 / 50,000) — shown as ranges, never exact", [], []),
+      row("…set aside: a brand or a website people go to", n.kpBrand, "not our page (e2, Benchmark, the official site, a login …)", [], demand.setAside.brand),
+      row(`…set aside: not about ${subject}`, n.kpNotAbout, `does not name ${subject}`, [], demand.setAside.notAbout),
+      row("…set aside: no clear need", n.kpUnclear, "a word we cannot place, or a profession the test does not cover", [], demand.setAside.unclear),
+      row("Clusters of the same meaning", n.kpClusters, `${fmt(n.kpKept)} keywords; "oet sample test", "sample oet exam" and "oet practice exam" are one`, demand.clusters.map((c) => ({ name: `${c.top} (+${c.keywords.length - 1})`, why: `${c.demand?.label ?? "0"} a month → ${c.page ?? "no page yet"}` })), []),
+      row("…each answered on its one page", n.kpOnPages, "a cluster never gets two pages; a small one is a section of the page that answers it", demand.clusters.filter((c) => c.page).map((c) => ({ name: c.top, why: c.page })), demand.clusters.filter((c) => !c.page).map((c) => ({ name: c.top, why: "no page answers it yet" })))] },
+    practice: { title: "Practice pages (profession × sub-test × intent)", rows: [
+      row("Profession × sub-test × intent (sample / practice test, tips and mistakes)", n.practiceUniverse, "Writing and Speaking per profession; Listening and Reading are the same for every profession", [], []),
+      ...gateRows("practice"), pagesRow("practice", `${n.practiceWaiting} WAIT for their original sample (written by your AI, checked against what was read — never an official paper)`)] },
     subtest: { title: "Sub-test pages (profession × sub-test)", rows: [
       row(`${n.professions} professions × ${SUBTESTS.length} sub-tests`, n.subtestUniverse, `each the sub-test's own facts (${subject}'s pages) and every regulator's grade in it for that profession`, [], []), ...gateRows("subtest"), pagesRow("subtest", "a page each where its data is its own")] },
     university: { title: "University pages (one per university)", rows: [
@@ -228,7 +329,7 @@ function tablesOf({ n, subject, rec, R, regulator, families: F, universities, he
     hub: { title: "Hub pages", rows: [row("A hub per destination country, per profession, and the index", n.hubPages, "every page links its hub; every page within 3 clicks of the home page", hubs.map((h) => ({ name: h.title, why: `${h.links?.length ?? 0} pages linked` })), [])] },
     language: { title: "Pages in other languages", rows: [
       row("Languages people ask in (of your chosen ones)", langs.filter((l) => l.chosen).length, langs.length ? langs.map((l) => `${LANG_NAME[l.code] ?? l.code} ${l.questions.length}${l.chosen ? "" : " (not chosen)"}`).join(", ") : "no question in another language found yet", langs.map((l) => ({ name: LANG_NAME[l.code] ?? l.code, why: l.questions.slice(0, 3).join(" · ") })), []),
-      row("Pages (only the strongest pages, where the language has demand)", n.languagePages, "thin pages translated at scale are what Google punishes — never done", language.map((p) => ({ name: p.title, why: p.why })), [])] },
+      row("Pages (only the strongest pages, where the language has demand)", n.languagePages, "English first (owner): a page is made in another language only after its English page is indexed and showing impressions — thin pages translated at scale are what Google punishes", language.map((p) => ({ name: p.title, why: p.why })), [])] },
   };
 }
 
@@ -240,6 +341,8 @@ export function whyNotMoreOf(n, subject) {
     `Sub-tests: ${fmt(n.subtestUniverse)} profession × sub-test combinations → ${fmt(n.subtestPages)} pages.`,
     `Universities: ${fmt(n.uniAll)} → ${fmt(n.uniHealth)} teach healthcare → ${fmt(n.uniNamed)} named + ${fmt(n.uniLightFound)} found by the light check (${fmt(n.uniLightPending)} not checked yet) → ${fmt(n.uniPages)} pages, one per university.`,
     `Topics: ${fmt(n.topicGroups)} groups → ${fmt(n.topicPages)} pages. Hubs: ${fmt(n.hubPages)}. Other languages: ${fmt(n.languagePages)}.`,
+    ...(n.kpKeywords ? [`Your search-data file: ${fmt(n.kpKeywords)} keywords → ${fmt(n.kpClusters)} clusters of the same meaning (${fmt(n.kpBrand + n.kpNotAbout + n.kpUnclear)} set aside) → answered on ${fmt(n.kpOnPages)} pages — one page per need, never one per keyword.`] : []),
+    `Practice: ${fmt(n.practiceUniverse ?? 0)} profession × sub-test × intent combinations → ${fmt(n.practicePages ?? 0)} pages (${fmt(n.practiceWaiting ?? 0)} wait for their original sample).`,
     `The gates: ${fmt(n.sections)} combinations too thin became sections of a bigger page; ${fmt(n.merged)} too alike became one page.`],
     line: `Not ${fmt(naive)} pages (every country × profession × sub-test, and every university × country): pages that differ only by a name are near-identical, and Google calls that scaled content abuse.` };
 }

@@ -40,7 +40,7 @@ import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS, 
 import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
 import { realityFilter, advise, listFromFile, DIMENSIONS } from "./page-count.mjs"; // RR-318 C
 import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subjectProblem, formulaOf } from "./page-plan.mjs"; // RR-319
-import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, figureOf } from "./research5.mjs"; // RR-320 B
+import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, searchFileText, figureOf } from "./research5.mjs"; // RR-320 B
 import { recognitionOf, callNames } from "./recognition.mjs"; // RR-321 A
 import { planFromList } from "./plan-list.mjs"; // RR-321 B
 import { venueCountries, statisticsOf } from "./venues.mjs"; // RR-321 G1, B2
@@ -50,7 +50,9 @@ import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
 import { regulatorPagesOf } from "./recognition.mjs"; // RR-322 A2
 import { subtestFactsOf } from "./pseo.mjs"; // RR-322 B5
 import { lightCheck, teachesHealth, professionsOfFields, professionsInName } from "./universities.mjs"; // RR-322 A1
-import { explainPagesAI, translatePagesAI } from "./web-ai.mjs"; // RR-322 A5, B4
+import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.mjs"; // RR-323
+import { checkSample, hashesOfPages, labelOf } from "./samples.mjs"; // RR-323
+import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
 import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
 import { CENTRAL_BANKS, PEGS } from "./rates.mjs"; // RR-322 A3
 import { mondayReport, nextBatch, beforeExpand, refreshDue } from "./indexing.mjs"; // RR-322 C3
@@ -295,10 +297,15 @@ const professionsOf = () => (builtInList("professions")?.items ?? []).map((x) =>
 /* RR-322 A3: a rate the client's AI read in his browser (or a peg it confirmed) joins the central banks' rates of the count */
 const ratesOf = (id, c) => { const b = pread(id, "browser-rates.json", {}); return c.rates ? { ...c.rates, banks: { ...(c.rates.banks ?? {}), ...b } } : c.rates; };
 const ctaOf = (s) => { const o0 = s.product?.site ?? null, o = o0 && !/^https?:\/\//.test(o0) ? `https://${o0}` : o0; try { return o ? { label: `Try a free ${aboutOf(s) ?? "practice"} test on ${new URL(o).hostname}`, href: new URL("/practice", o).href } : null; } catch { return null; } };
+/** RR-323 decision 8: the English pages that may now be made in another language — live, INDEXED (the Monday report) and showing impressions */
+function translatableOf(id) {
+  const states = pread(id, "index-states.json", {}), seen = pread(id, "page-impressions.json", {});
+  return pread(id, "published.json", []).filter((x) => x.state === "LIVE" && states[x.url] === "indexed" && (seen[x.url] ?? 0) > 0).map((x) => x.title);
+}
 function listPlan(id, c) {
   const s = store.read(id), list = listOf(s, c.subject, id); if (!list) return null;
   const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
-  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {} });
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, translatable: translatableOf(id) });
   const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
   return { plan, five, questions: groups };
 }
@@ -328,6 +335,8 @@ async function confirmRegulators(id, { say = () => {} } = {}) {
 }
 /** A5 + B4 · the client's AI explains the topic and sub-test pages (numbers only from their facts), and writes the strongest pages in the
  * languages people ask in — saved; the plan made again */
+/** RR-323: the licence-barred pages' 8-word hashes (config/licence-withheld-shingles.json — hashes only), for the samples' check */
+const licenceShingles = () => { try { return new Set(JSON.parse(readFileSync(new URL("../config/licence-withheld-shingles.json", import.meta.url), "utf8")).shingles ?? []); } catch { return new Set(); } };
 async function aiContentFor(id, { only = null } = {}) {
   const s = store.read(id), ai = aiOf(s); if (!ai || !LEDGER.allowed().ok) return { ok: false };
   const c = pread(id, "page-count.json"); if (!c?.plan) return { ok: false };
@@ -338,6 +347,21 @@ async function aiContentFor(id, { only = null } = {}) {
   for (let i = 0; i < want.length; i += 12) {
     const part = want.slice(i, i + 12), out = await explainPagesAI({ ...ai, subject: c.subject, pages: part, ...base }); if (out.usage) LEDGER.add(out.usage); if (!out.ok) break;
     for (const p of part) if (out.pages[p.title]) { if (p.key) (all.subtests ??= {})[p.key] = out.pages[p.title]; else (all.topics ??= {})[p.title] = out.pages[p.title]; }
+  }
+  /* RR-323 · the practice pages: the tips explained; each sample page's ORIGINAL sample written, then CHECKED (desktop/samples.mjs) — a sample
+   * that fails is kept with its reason, and its page keeps waiting */
+  const PK = c.plan.practiceKeys ?? {}, factText = (s) => (FACTS_FOR[s] ?? []).map((f) => c.facts?.[f]?.text).filter(Boolean);
+  const tips = Object.entries(PK).filter(([t, k]) => k.startsWith("practice|tips|") && !all.practice?.[k] && (!only || only.includes(t)));
+  for (let i = 0; i < tips.length; i += 12) {
+    const part = tips.slice(i, i + 12).map(([title, key]) => ({ title, key, questions: [], facts: factText(key.split("|")[2]) })), out = await explainPagesAI({ ...ai, subject: c.subject, pages: part, ...base }); if (out.usage) LEDGER.add(out.usage); if (!out.ok) break;
+    for (const p of part) if (out.pages[p.title]) (all.practice ??= {})[p.key] = out.pages[p.title];
+  }
+  const by = s.product?.name ?? "this site", sh = pread(id, "subject-shingles.json", null), read = new Set(sh?.hashes ?? []), barred = licenceShingles();
+  const toWrite = Object.entries(PK).filter(([t, k]) => k.startsWith("practice|sample|") && k.split("|")[2] !== "-" && !all.samples?.[k]?.check?.ok && (!only || only.includes(t)));
+  for (let i = 0; i < toWrite.length; i += 4) {
+    const part = toWrite.slice(i, i + 4).map(([title, key]) => { const [, , st, prof] = key.split("|"); return { key, title, subtest: st, profession: prof === "-" ? null : prof, facts: factText(st) }; });
+    const out = await samplesAI({ ...ai, subject: c.subject, by, pages: part, ...base }); if (out.usage) LEDGER.add(out.usage); if (!out.ok) break;
+    for (const p of part) { const sm = out.samples[p.key]; if (!sm) continue; const full = { ...sm, label: labelOf(by, c.subject), on: new Date().toISOString().slice(0, 10) }; full.check = { ...checkSample(full, { subtest: p.subtest, by, subject: c.subject, read, barred, facts: c.facts ?? {} }), against: `${sh?.pages?.length ?? 0} of ${c.subject}'s own pages read ${String(sh?.on ?? "").slice(0, 10)} + the licence-barred pages` }; (all.samples ??= {})[p.key] = full; }
   }
   pwrite(id, "ai-content.json", all); replan(id);
   /* the languages: after the plan knows its strongest pages */
@@ -381,6 +405,7 @@ async function indexReport(id) {
   if (sc?.kind === "CONNECTED" && sc.site) for (const u of live.slice(0, 200)) results.push({ url: u, inspection: await GOOGLE.inspect(sc.site, u).catch(() => null) });
   const rep = mondayReport(results, { on }), states = Object.fromEntries(rep.pages.map((p) => [p.url, p.state])); pwrite(id, "index-states.json", states);
   const rows = sc?.kind === "CONNECTED" && sc.site ? await GOOGLE.pageRows(sc.site).catch(() => null) : null, batchesMade = pread(id, "batches.json", []);
+  if (rows) pwrite(id, "page-impressions.json", Object.fromEntries(rows.map((r) => [r.page, r.impressions ?? 0]))); // RR-323 decision 8: a page is translated only once it shows impressions
   const x = { on, report: rep, next: nextBatch(batchesMade.at(-1), states, { on }), before: beforeExpand(rows ?? [], batchesMade.flatMap((b) => b.urls ?? [])), refresh: refreshDue(pread(id, "made-plan.json", []), { on }), searchConsole: Boolean(rows) };
   pwrite(id, "index-report.json", x); return x;
 }
@@ -777,11 +802,17 @@ const server = createServer((req, res) => {
                 say(`Reading ${subject}'s pages about each sub-test`);
                 const subtestPages = []; for (const u of urls.filter((x) => /\/ready\/(listening|reading|writing|speaking)$/i.test(x))) subtestPages.push(await rd.read(u));
                 const subtests = subtestFactsOf(subtestPages);
+                /* RR-323 · the demand pages' facts: booking, test dates, results, scores, each sub-test's format — the subject's own pages, read
+                 * once; their 8-word sequences kept as HASHES ONLY (never their words) so every practice sample can be proven not to copy them */
+                say(`Reading ${subject}'s pages about booking, results and scores`);
+                const factPages = [...subtestPages]; for (const u of urls.filter((x) => SUBJECT_FACT_PAGES.test(x.replace(/\/$/, "")) && !factPages.some((p) => p.url === x))) factPages.push(await rd.read(u));
+                const facts = subjectFactsOf(factPages, subject);
+                pwrite(id, "subject-shingles.json", { on: new Date().toISOString(), pages: factPages.filter((p) => p.ok).map((p) => ({ url: p.url, on: p.checkedOn })), hashes: [...hashesOfPages(factPages)] });
                 say("Gathering the questions people ask");
                 const research = await researchFor({ id, s, sc: scNow, subject, subjectSite: offSite, rd, res });
                 const c = { on: new Date().toISOString(), list: true, dims, subject, site: offSite, formula, before: was,
                   result: { ok: true, subject, subjectName: subject, subjectSite: res.subjectSite, checkedOn: res.checkedOn, pagesListed: res.pagesListed, dims: {}, requests: rd.requests() },
-                  venues, fee: res.fee, rates, stats, subtests, subjectPages: { urls: urls.filter((u) => !/\/(post|blog)\//.test(u)), faq: urls.find((u) => /faq/i.test(u)) ?? null, on: res.checkedOn }, byCountry, scRows: scNow?.byCountry ?? [], items: research.items.filter((x) => x.kind !== "observed" && x.kind !== "tool"), research: { sources: research.sources, aiCost: research.aiCost } };
+                  venues, fee: res.fee, rates, stats, subtests, facts, subjectPages: { urls: urls.filter((u) => !/\/(post|blog)\//.test(u)), faq: urls.find((u) => /faq/i.test(u)) ?? null, on: res.checkedOn }, byCountry, scRows: scNow?.byCountry ?? [], items: research.items.filter((x) => x.kind !== "observed" && x.kind !== "tool"), research: { sources: research.sources, aiCost: research.aiCost } };
                 pwrite(id, "page-count.json", { ...c, ...listPlan(id, c) });
                 /* RR-322 A5 + B4: the client's AI explains the topic and sub-test pages, and writes the strongest pages in a language people ask in */
                 if (aiOf(s) && LEDGER.allowed().ok) { say("Your AI is explaining the topic and sub-test pages"); await aiContentFor(id).catch(() => null); }
@@ -824,11 +855,12 @@ const server = createServer((req, res) => {
             return send(t.runs.some((x) => x.verdict === "ACCEPTED") ? 200 : 400, { ok: t.runs.some((x) => x.verdict === "ACCEPTED"), line: `${t.line}${re ? " The plan is made again with them." : ""}`, ...(t.runs.some((x) => x.verdict === "ACCEPTED") ? {} : { refused: t.line }) });
           }
           if (r[2] === "research/file" && req.method === "POST") {
-            const v = json(), text = Buffer.from(String(v.base64 ?? ""), "base64").toString("utf8");
+            const v = json(), text = searchFileText(Buffer.from(String(v.base64 ?? ""), "base64")); // RR-323: a Keyword Planner export is UTF-16
             const f = takeSearchFile(text, { country: v.country ? String(v.country) : null, language: v.language ? String(v.language) : null, exportedOn: /^\d{4}-\d{2}-\d{2}$/.test(v.exportedOn ?? "") ? v.exportedOn : new Date().toISOString().slice(0, 10) });
             if (!f.kind) return send(400, { refused: "That is not a Keyword Planner or Bing Webmaster file (it needs a \"Keyword\" column and \"Avg. monthly searches\" or \"Impressions\")." });
             pwrite(id, "phrases.json", mergePhrases(pread(id, "phrases.json", []), f.phrases)); replan(id);
-            return send(200, { ok: true, line: `${f.phrases.length} phrases read from your ${f.kind} file — the tool's own estimates, labelled so.` });
+            const dl = pread(id, "page-count.json")?.plan?.demand?.line; // RR-323: keywords → clusters → pages, said at once
+            return send(200, { ok: true, line: `${f.phrases.length} phrases read from your ${f.kind} file — the tool's own estimates (Google's ranges), labelled so.${dl ? ` ${dl}.` : ""}` });
           }
           /* the client's own question, added to the five (free text) */
           if (r[2] === "research/own" && req.method === "POST") {
@@ -853,15 +885,22 @@ const server = createServer((req, res) => {
             if (!rp) return send(400, { refused: "No regulator page is planned." });
             const rd = reader(); await readRegulatorFor(id, rp, rd);
             const sub = K.subtest.find((p) => p.title === v.subtest) ?? K.subtest.find((p) => p.subtest === "Writing" && p.profession === "pharmacy") ?? K.subtest[0];
-            if (aiOf(s) && LEDGER.allowed().ok) await aiContentFor(id, { only: [sub?.title, ...K.topic.slice(0, 1).map((p) => p.title)].filter(Boolean) }).catch(() => null);
+            /* RR-323 PROOF: the demand pages — "OET Writing sample for nurses", "OET exam fees", "How to book OET / the test dates",
+             * "OET Listening practice test" — with the regulator (NMBI) and "Where to take"; their samples written and checked first */
+            const PK = c.plan.practiceKeys ?? {}, keyOf = (re) => Object.entries(PK).find(([t]) => re.test(t))?.[0] ?? null;
+            const wantTitles = [keyOf(/Writing sample for nurses/), keyOf(/^\S+ Listening practice test/)].filter(Boolean);
+            if (aiOf(s) && LEDGER.allowed().ok) await aiContentFor(id, { only: [sub?.title, ...wantTitles, ...K.topic.slice(0, 1).map((p) => p.title)].filter(Boolean) }).catch(() => null);
             replan(id);
-            const c2 = pread(id, "page-count.json"), K2 = c2.plan.kinds, pick = (k, t) => (t ? K2[k].find((p) => p.title === t) : null) ?? null;
-            const six = [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), pick("subtest", sub?.title), K2.university.find((p) => p.title === v.university) ?? K2.university[0], K2.topic[0] ?? null, K2.language[0] ?? null, K2.taking[0]].filter(Boolean);
+            const c2 = pread(id, "page-count.json"), K2 = c2.plan.kinds, pick = (k, t) => (t ? K2[k].find((p) => p.title === t) : null) ?? null, by = (k, re) => (K2[k] ?? []).find((p) => re.test(p.title)) ?? null;
+            const demandFirst = Boolean(c2.plan.numbers?.kpKeywords);
+            const six = (demandFirst ? [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), by("practice", /Writing sample for nurses/), by("topic", /exam fees$/), by("topic", /^How to book/), by("practice", /Listening practice test/), K2.taking[0]]
+              : [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), pick("subtest", sub?.title), K2.university.find((p) => p.title === v.university) ?? K2.university[0], K2.topic[0] ?? null, K2.language[0] ?? null, K2.taking[0]]).filter(Boolean);
             const built = seoPages({ site, on: new Date().toISOString(), pagePlan: six, subject: c.subject, official: officialOf(id) });
             const html = (p) => built.drafts.find((d) => d.title === p.title) ?? null;
-            const judge = (p) => { const x = p.content ?? {}; return { answerWords: x.answerWords, answerOk: x.answerWords >= 40 && x.answerWords <= 60 && x.answerHasNumber, table: (x.table?.length ?? 1) - 1, steps: x.steps?.length ?? 0, checklist: x.checklist?.length ?? 0, faq: x.faq?.length ?? 0, tip: Boolean(x.tip), cta: Boolean(x.cta), lastUpdated: x.lastUpdated, links: p.links?.length ?? 0, dataPoints: p.dataPoints?.length ?? 0, status: p.status }; };
+            const judge = (p) => { const x = p.content ?? {}; return { answerWords: x.answerWords, answerOk: x.answerWords >= 40 && x.answerWords <= 60 && x.answerHasNumber, table: (x.table?.length ?? 1) - 1, steps: x.steps?.length ?? 0, checklist: x.checklist?.length ?? 0, faq: x.faq?.length ?? 0, tip: Boolean(x.tip), cta: Boolean(x.cta), lastUpdated: x.lastUpdated, links: p.links?.length ?? 0, dataPoints: p.dataPoints?.length ?? 0, status: p.status, range: p.kp?.label ?? null, waitFor: p.waitFor ?? null, sample: p.sampleCheck ? { ok: p.sampleCheck.ok, why: p.sampleCheck.why, run: p.sampleCheck.run, labelled: p.sampleCheck.labelled, words: p.sampleCheck.words, against: p.sampleCheck.against ?? null } : null }; };
             const out = six.map((p) => ({ kind: p.kind, title: p.title, read: p.read ?? null, lastChecked: p.lastChecked, claims: p.claims, content: p.content, links: p.links, judge: judge(p), draft: html(p) ? { html: html(p).html, readyAsDraft: html(p).readyAsDraft, gates: html(p).gates } : null }));
-            const missing = [!K2.topic.length && "a topic page (no topic page yet — connect your AI so it can explain them)", !K2.language.length && "a page in another language (no language with demand among your chosen ones yet)"].filter(Boolean);
+            const missing = demandFirst ? [[/Writing sample for nurses/, "practice", "OET Writing sample for nurses"], [/exam fees$/, "topic", "OET exam fees"], [/^How to book/, "topic", "How to book OET and the test dates"], [/Listening practice test/, "practice", "OET Listening practice test"]].map(([re, k, name]) => { const p = by(k, re); return !p ? `${name} (not a page: too thin or not searched)` : p.waitFor ? `${name} — ${p.waitFor}` : null; }).filter(Boolean)
+              : [!K2.topic.length && "a topic page (no topic page yet — connect your AI so it can explain them)", !K2.language.length && "a page in another language (no language with demand among your chosen ones yet)"].filter(Boolean);
             pwrite(id, "preview.json", { on: new Date().toISOString(), pages: out, missing });
             const r2 = six[0];
             return send(200, { ok: true, pages: out, missing, line: `${r2.read?.ok ? `${r2.body}'s own page was read (${r2.read.on})` : `${r2.body}'s own page could not be read (${r2.read?.why ?? "not read"}) — it waits for a confirmed score`}. ${out.length} pages previewed${missing.length ? `; not yet: ${missing.join("; ")}` : ""}.` });
@@ -895,9 +934,11 @@ const server = createServer((req, res) => {
               pwrite(id, "made-plan.json", pages);
               say("Making the drafts");
               const x = await createPages(id); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
+              /* RR-323 proof: 2 of the batch got no draft and the line said only "23 of 25" — each one is named, with the planner's reason */
+              const notMade = pages.filter((p) => !x.pages.drafts.some((d) => d.title === p.title)).map((p) => `${p.title} — ${(x.pages.plan ?? []).find((r) => r.question === p.title)?.why ?? "not built"}`);
               pwrite(id, "batches.json", [...batchesMade, { made: new Date().toISOString(), titles: pages.map((p) => p.title), urls: x.pages.drafts.filter((d) => first.has(d.title)).map((d) => d.url) }]);
               didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned; ${regs.length} regulator pages read).`);
-              pwrite(id, "make.json", { on: new Date().toISOString(), drafts: n, planned: pages.length, all: all.length, read: regs.length, line: `${n} of the first batch's ${pages.length} pages made as drafts (${all.length} planned in all); ${regs.length} regulators' own pages read for it. Read them under "Pages and articles".${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}` });
+              pwrite(id, "make.json", { on: new Date().toISOString(), drafts: n, planned: pages.length, all: all.length, read: regs.length, notMade, line: `${n} of the first batch's ${pages.length} pages made as drafts (${all.length} planned in all); ${regs.length} regulators' own pages read for it.${notMade.length ? ` Not made as a page of its own: ${notMade.join("; ")}.` : ""} Read them under "Pages and articles".${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}` });
             })().catch((e) => pwrite(id, "make.json", { on: new Date().toISOString(), line: `Making stopped: ${e.message}` })).finally(() => { counting.delete(id); countProgress.delete(id); });
             counting.set(id, run);
             return send(200, { ok: true, running: true, line: "Reading each regulator's own page of the first batch, then making the drafts — a few minutes. You can leave this screen." });

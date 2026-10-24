@@ -256,7 +256,8 @@ test("B · SEARCH-DATA FILES (free): a Keyword Planner export and Bing Webmaster
   const b = takeSearchFile("Keyword,Impressions\noet uk,40\n", { country: "United Kingdom", exportedOn: "2026-10-20" });
   assert.deepEqual([b.kind, b.phrases[0].volume.estimate], ["Bing Webmaster", 40]);
   assert.equal(takeSearchFile("name,age\nx,1\n", { exportedOn: ON }).kind, null);
-  assert.match(UI, /Connecting a Google Ads account is parked until after launch\./);
+  /* RR-324 (owner decision 2026-10-24): the Google Ads API is no longer parked — it is a connector, ready but OFF, beside the keyword database */
+  assert.match(UI, /Every Keyword Planner file goes into ONE keyword database below/); assert.doesNotMatch(UI, /parked until after launch/);
 });
 
 function officialSite() {

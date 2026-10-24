@@ -16,6 +16,8 @@
  */
 import { longestRun, shingleHashes, wordsOf, SHINGLE } from "../src/facts/licence-guard.mjs";
 
+/** RR-324 D2 · the product's proper DISPLAY NAME ("AlmiOET"), as the client sets it — a page shows a sample with the name of today, never a frozen one */
+export const displayNameOf = (product) => String(product?.displayName ?? product?.name ?? "").trim() || "this site";
 export const labelOf = (by, subject) => `Practice sample written by ${by}, not an official ${subject} paper`;
 const BRANDS = /\b(e2 ?language|e2 ?oet|e2 test ?prep|benchmark (education|oet)|edubenchmark|kaplan|swoosh|cambridge boxhill|cbla|oet official sample|official (oet )?(sample|paper|test material)|©|copyright|all rights reserved)\b/i;
 const textOf = (s) => [s.title, s.task, ...(s.caseNotes ?? []), s.letter, s.card?.setting, s.card?.role, ...(s.card?.tasks ?? []), s.script, s.text, ...(s.questions ?? []).flatMap((q) => [q.q, ...(q.options ?? []), q.answer])].filter(Boolean).join("\n");

@@ -23,7 +23,7 @@ import { rangeOf, sumRanges, classify, clusterKeywords } from "../desktop/demand
 import { subjectFactsOf, SUBJECT_FACT_PAGES } from "../desktop/subject-facts.mjs";
 import { checkSample, labelOf, hashesOfPages, formatFaults } from "../desktop/samples.mjs";
 import { longestRun, shingleHashes } from "../src/facts/licence-guard.mjs";
-import { richPage } from "../desktop/seo-pages.mjs";
+import { richPage, seoPages } from "../desktop/seo-pages.mjs";
 
 const UI = readFileSync(new URL("../desktop/ui.html", import.meta.url), "utf8"), MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), SETUP = readFileSync(new URL("../installer/Setup.cs", import.meta.url), "utf8");
 const ON = "2026-10-24", PROFS = builtInList("professions").items.map((x) => x.name.toLowerCase()), REC = recognitionOf(builtInList("recognising"), { professions: PROFS });
@@ -81,6 +81,10 @@ test("3 + 5 + 6 · keywords → clusters: same meaning ONE cluster; brands, webs
 test("1 + 7 · demand first: each cluster lands on its ONE page; the first batch by the Keyword Planner range, then Search Console; regulators and universities later as opportunity pages", () => {
   const p = planOf(), n = p.numbers;
   assert.equal(n.kpOnPages, n.kpClusters, "no cluster without its page");
+  /* a keyword of the file is on ONE page — never also routed one by one by the older path (sabotage: NOT RED until this) */
+  const pagesWith = (k) => Object.values(p.kinds).flat().filter((x) => (x.questions ?? []).some((g) => g.question === k)).length;
+  assert.deepEqual(["oet exam fees", "oet booking", "oet result"].map(pagesWith), [1, 1, 1], "each keyword on exactly one page");
+  assert.deepEqual([p.linkCheck.tooDeep.length, p.linkCheck.fewLinks.length], [0, 0], `every page within 3 clicks, ≥ 3 links: ${p.linkCheck.tooDeep.slice(0, 3)}`);
   const firstKinds = p.rollout.firstWhy.slice(0, 5);
   assert.equal(firstKinds[0].title, "What is OET: the four sub-tests, the time and the scores", "the biggest range first");
   const ranges = p.rollout.firstWhy.filter((x) => x.range).map((x) => Object.values(p.kinds).flat().find((y) => y.title === x.title).kp.high);
@@ -120,7 +124,12 @@ test("4 · profession × sub-test × intent: a sample page WAITS until its ORIGI
   assert.deepEqual([w2.status, w2.waitFor ?? null, w2.sample.label], ["demand", null, "Practice sample written by AlmiOET, not an official OET paper"]);
   assert.ok(p2.rollout.batchTitles.flat().includes(w2.title));
   const bad = { ...SAMPLE(), label: "" }; bad.check = checkSample(bad, { subtest: "Writing", by: "AlmiOET", subject: "OET", facts: FACTS });
-  const p3 = planOf({ ai: { samples: { "practice|sample|Writing|nursing": bad } } }); assert.match(p3.kinds.practice.find((x) => x.title === w.title).waitFor, /did not pass the originality check: the label is missing/);
+  const p3 = planOf({ ai: { samples: { "practice|sample|Writing|nursing": bad } } }), w3 = p3.kinds.practice.find((x) => x.title === w.title); assert.match(w3.waitFor, /did not pass the originality check: the label is missing/);
+  assert.equal(w3.sample, null, "a sample that failed its check is never on its page");
+  /* the page builder too: a page whose sample failed its check is built WITHOUT it */
+  const site = { ok: true, origin: "https://x.test", readOn: ON, robotsTxt: null, sitemapUrls: null, pages: [{ url: "https://x.test/", title: "X", h1: "X", h2: [], qa: [], facts: [] }] };
+  const build = (sample) => seoPages({ site, on: `${ON}T10:00:00Z`, subject: "OET", pagePlan: [{ ...w2, sample }] }).drafts[0].html; // one page a call: two pages with the same facts would be one page
+  assert.match(build(w2.sample), /data-sample-label/); assert.doesNotMatch(build(bad), /data-sample/);
   assert.ok(p.kinds.practice.every((x) => !/Listening|Reading/.test(x.subtest ?? "") || !x.profession), "Listening and Reading pages are for every profession");
   const html = richPage({ title: w2.title, html: '<!doctype html><html lang="en"><head></head><body><main><h1>x</h1></main></body></html>' }, { content: w2.content, kind: "practice", sample: w2.sample }, ON).html;
   assert.ok(html.indexOf("data-sample-label") < html.indexOf("data-case-notes") && html.indexOf("data-case-notes") < html.indexOf("data-letter"), "the label first, then the case notes, then the letter");
@@ -130,6 +139,7 @@ test("4 · profession × sub-test × intent: a sample page WAITS until its ORIGI
 test("4 · THE CHECK (the licence guard's own code): no run of 8 words shared with a page read or a licence-barred page; no brand; the label; the format from the subject's own page", () => {
   const read = hashesOfPages([{ ok: true, text: "Before you start the task you should read all the notes slowly and plan who the letter is for and why" }]);
   const ok = SAMPLE(); assert.equal(checkSample(ok, { subtest: "Writing", by: "AlmiOET", subject: "OET", read, facts: FACTS }).ok, true);
+  assert.deepEqual([checkSample({ ...ok, label: "" }, { subtest: "Writing", by: "AlmiOET", subject: "OET", facts: FACTS }).ok, checkSample({ ...ok, label: "" }, { subtest: "Writing", by: "AlmiOET", subject: "OET", facts: FACTS }).why], [false, "the label is missing"]);
   const copied = { ...ok, task: "Before you start the task you should read all the notes slowly" };
   const r = checkSample(copied, { subtest: "Writing", by: "AlmiOET", subject: "OET", read, facts: FACTS }); assert.deepEqual([r.ok, r.run], [false, 12]); assert.match(r.why, /12 words in a row match a page Visibility read/);
   assert.equal(longestRun(copied.task, read), 12, "the SAME implementation as the RR-288 census");

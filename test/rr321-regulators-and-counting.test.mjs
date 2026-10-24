@@ -40,7 +40,7 @@ const ITEMS = [
   ["oet exam in bangladesh", "search"], ["oet fees", "search"], ["oet for doctors uk", "search"], ["Read our re-marking policy Everything you need to know FAQs Book a test Log in", "search"],
   ["How long are OET results valid?", "official FAQ"], ["What do people in Kenya ask about OET for nursing?", "ai research"], ["oet singapore pharmacist", "observed"], ["oet for physiotherapists in australia", "tool"],
 ].map(([text, kind]) => ({ text, kind, source: `${kind} (fixture)`, ...(kind === "official FAQ" ? { link: "https://oet.example/faq", on: ON } : {}) }));
-const SC_ROWS = [{ query: "oet for nurses in new zealand", country: "India", impressions: 40 }, { query: "oet for nurses in new zealand", country: "Kenya", impressions: 9 }, { query: "oet for nurses in new zealand", country: "Nigeria", impressions: 7 }, { query: "oet for nurses in new zealand", country: "Philippines", impressions: 4 }, { query: "oet for nurses in new zealand", country: "Pakistan", impressions: 3 }, { query: "oet for doctors uk", country: "India", impressions: 30 }];
+const SC_ROWS = [{ query: "oet for nurses in new zealand", country: "India", impressions: 40 }, { query: "oet for nurses in new zealand", country: "Kenya", impressions: 9 }, { query: "oet for nurses in new zealand", country: "Nigeria", impressions: 7 }, { query: "oet for nurses in new zealand", country: "Philippines", impressions: 4 }, { query: "oet for nurses in new zealand", country: "Pakistan", impressions: 3 }, { query: "oet for doctors uk", country: "India", impressions: 500 }]; // sab321: seen MORE often, from fewer countries — the countries decide
 const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET", { fullName: "Occupational English Test", regulators: REC.regulators.map(callNames) }); const groups = groupQuestions(sorted.kept); return { sorted, plan: planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: UNIS, venues: VENUES, fee: FEE, rates: null, stats: { ok: true, line: "fixture stats", nationalities: ["Indian", "Pakistani"], sources: [] }, groups, sorted, byCountry: SC_ROWS, reads: {}, on: ON, ...extra }) }; };
 
 test("B5 · ONE SOURCE OF TRUTH: the five answers, the tables, \"why not more\", the question count and the plan show the SAME numbers — any two that differ fail", () => {
@@ -81,6 +81,9 @@ test("A1 + G2 + D6 · the subject's own list: Singapore is a requirement country
   assert.match(REC.notRequirement.find((x) => x.name === "Philippines").why, /no health regulator/);
   assert.ok(acc.length > 9, `G2: more than the old 9 (${acc.length})`);
   assert.ok(!isRegulator({ name: "Australian Department of Home Affairs", kind: "Government" }), "a visa office is no regulator");
+  /* sab321: the line above is held by official.mjs too — this one reaches recognition.mjs's own rule alone (a list that files a visa
+   * office as a credentialing body) */
+  assert.ok(!isRegulator({ name: "Example Immigration Health Office", kind: "Credentialing agency" }), "a visa office filed as credentialing is no regulator");
   assert.ok(isRegulator({ name: "Dubai Healthcare City Authority", kind: "Government" }), "a health authority is");
   const R = regulatorPagesOf(REC, { subject: "OET", professions: PROFS });
   const nmbi = R.pages.find((p) => p.short === "NMBI"), ahpra = R.pages.filter((p) => /AHPRA/.test(p.title));
@@ -129,7 +132,8 @@ test("A2 · ROBOTS BY RFC 9309 (the desktop's reader): 4xx → may read; 429, 5x
   const moved = await rfc(at(301, "", "https://b.example/moved/robots.txt")).check("https://a.example/private/x");
   assert.equal(moved.allowed, false, "the moved robots.txt's own rules apply"); assert.equal((await rfc(at(301, "", "https://b.example/moved/robots.txt")).check("https://a.example/open")).allowed, true);
   assert.equal((await createRobotsCache({ fetchImpl: at(403) }).check("https://a.example/page")).allowed, false, "the engine's crawler: 403 still fails closed (RR-135)");
-  const bad = await createRobotsCache({ fetchImpl: at(301, "", "http://127.0.0.1/robots.txt"), rfc9309: true, allowHop: async (u) => !u.includes("127.0.0.1") }).check("https://a.example/x");
+  /* sab321: the address not read answers an allow-all robots.txt — so only allowHop's refusal keeps the site closed */
+  const bad = await createRobotsCache({ fetchImpl: at(301, "", "http://127.0.0.1/moved/robots.txt"), rfc9309: true, allowHop: async (u) => !u.includes("127.0.0.1") }).check("https://a.example/x");
   assert.equal(bad.allowed, false, "a redirect to an address that is not read fails closed");
 });
 

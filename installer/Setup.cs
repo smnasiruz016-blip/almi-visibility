@@ -169,7 +169,7 @@ static class Program {
     try {
       var run = Path.Combine(DataDir, "run.json");
       if (!File.Exists(run)) { Log(dir, "no run.json — the app's own quit cannot be asked"); return; }
-      var port = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(run), "\"port\"\\s*:\\s*(\\d+)").Groups[1].Value;
+      var port = PortIn(run); // RR-323 E: read shared — the running app may be rewriting it
       if (port == "") return;
       var rq = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + "/api/quit");
       rq.Method = "POST"; rq.ContentLength = 0; rq.Timeout = 3000; rq.Proxy = null;
@@ -300,9 +300,14 @@ static class Program {
 
   /* ── launch: the local app (a server on 127.0.0.1 only) and its own window. RR-305: an app already running is reused — the launcher
    *    no longer starts a second server each time (two were found running on the owner's PC). ── */
+  /* RR-323 E (the real cause of rr305 failing on the owner's PC): the launcher read run.json in the instant the app was still writing it —
+   * File.ReadAllText asks that no one else is writing, so Windows refused ("being used by another process"); the launcher fell to its error
+   * box and never opened the window, though the app had started. Read it SHARED, and only a run.json that holds a port counts. */
+  static string ReadShared(string path) { using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) using (var r = new StreamReader(fs)) return r.ReadToEnd(); }
+  static string PortIn(string runFile) { try { return File.Exists(runFile) ? System.Text.RegularExpressions.Regex.Match(ReadShared(runFile), "\"port\"\\s*:\\s*(\\d+)").Groups[1].Value : ""; } catch (IOException) { return ""; } catch (UnauthorizedAccessException) { return ""; } }
   static string RunningPort(string node) {
     try {
-      var run = File.ReadAllText(Path.Combine(DataDir, "run.json"));
+      var run = ReadShared(Path.Combine(DataDir, "run.json"));
       var port = System.Text.RegularExpressions.Regex.Match(run, "\"port\"\\s*:\\s*(\\d+)").Groups[1].Value;
       var pid = System.Text.RegularExpressions.Regex.Match(run, "\"pid\"\\s*:\\s*(\\d+)").Groups[1].Value;
       if (port == "" || pid == "") return null;
@@ -322,9 +327,9 @@ static class Program {
       if (File.Exists(runFile)) File.Delete(runFile);
       var p = new ProcessStartInfo(node, "\"" + main + "\" --data=\"" + DataDir + "\" --install=\"" + dir + "\"") { CreateNoWindow = true, UseShellExecute = false, WorkingDirectory = Path.Combine(dir, "app") };
       Process.Start(p);
-      for (int i = 0; i < 150 && !File.Exists(runFile); i++) Thread.Sleep(100);
-      if (!File.Exists(runFile)) throw new Blocked("AlmiVisibility did not start within 15 seconds.\n\nWhat to do: wait a minute and open it again. If it still does not start, restart the computer. If your antivirus says it blocked AlmiVisibility, restore it from the antivirus's quarantine and allow it.");
-      port = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(runFile), "\"port\"\\s*:\\s*(\\d+)").Groups[1].Value;
+      port = "";
+      for (int i = 0; i < 150 && (port = PortIn(runFile)) == ""; i++) Thread.Sleep(100);
+      if (port == "") throw new Blocked("AlmiVisibility did not start within 15 seconds.\n\nWhat to do: wait a minute and open it again. If it still does not start, restart the computer. If your antivirus says it blocked AlmiVisibility, restore it from the antivirus's quarantine and allow it.");
       Log(dir, "LAUNCHED the app on port " + port);
     }
     if (!window) return 0;

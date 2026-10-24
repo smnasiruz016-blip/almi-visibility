@@ -103,9 +103,18 @@ export function takeHandIn(handIn, { runsBefore = [] } = {}) {
   const out = clientAiHandIn(handIn, { searchesBefore: before });
   return { phrases: out.records.map((r) => ({ text: r.phrase, kind: "observed", place: r.place, date: r.date ?? today, source: `${SOURCES.CLIENT_AI_GOOGLE.says}${r.place && r.place !== "NOT REPORTED" ? ` (${r.place})` : ""}, ${today}`, observation: r.kind })), runs: out.runs.map((r) => ({ ...r, date: today })), refused: out.refused, line: out.runs.map((r) => (r.verdict === "ACCEPTED" ? `Run ${r.runId}: accepted — ${r.searchesUsed} searches (${r.searchesOfTheDay} of ${r.dailyCap} today), ${r.phrasesKept} phrases kept.` : `Run ${r.runId ?? "?"}: REFUSED — ${r.refusedFor.join(", ")}. None of its phrases is kept.`)).join(" ") || "The file is not a hand-in of your AI's browser search." };
 }
+/** RR-323: a search-data file's BYTES → its text. Keyword Planner exports are UTF-16 (byte-order mark FF FE); read as UTF-8 they were
+ * refused as "not a Keyword Planner file" — the client's own export could not be imported */
+export function searchFileText(buf) {
+  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf ?? []);
+  if (b[0] === 0xff && b[1] === 0xfe) return b.subarray(2).toString("utf16le");
+  if (b[0] === 0xfe && b[1] === 0xff) { const s = Buffer.from(b.subarray(2)); s.swap16(); return s.toString("utf16le"); }
+  return b.toString("utf8").replace(/^﻿/, "");
+}
 /** a search-data FILE the client exported: a Keyword Planner file, or Bing Webmaster's keyword research (CSV with Keyword + Impressions) */
 export function takeSearchFile(text, { country = null, language = null, exportedOn }) {
-  const head = String(text ?? "").replace(/^﻿/, "").split(/\r?\n/).find((l) => /keyword/i.test(l)) ?? "";
+  /* RR-323: a real Keyword Planner export begins "Keyword Stats <date>" — the header is the line whose CELL is "Keyword", not the title */
+  const head = String(text ?? "").replace(/^﻿/, "").split(/\r?\n/).find((l) => /(^|[\t,"])(Keyword|Query|Keywords)([\t,"]|$)/i.test(l)) ?? "";
   if (/Avg\. monthly searches/i.test(head)) { const r = keywordPlannerFile(text, { country, language, exportedOn }); return { kind: "Keyword Planner", phrases: r.records.map((x) => ({ text: x.phrase, kind: "tool", place: country, date: exportedOn, volume: x.volume ?? null, source: `your Keyword Planner file (${exportedOn}) — the tool's own estimate` })), refused: r.refused }; }
   if (/impressions/i.test(head)) {
     const rows = String(text).replace(/^﻿/, "").split(/\r?\n/).filter(Boolean), h = rows.shift().split(/,|\t/).map((x) => x.replace(/"/g, "").trim().toLowerCase()), k = h.findIndex((x) => /keyword|query/.test(x)), im = h.findIndex((x) => /impressions/.test(x));

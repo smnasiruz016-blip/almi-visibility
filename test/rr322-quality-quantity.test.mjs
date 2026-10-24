@@ -41,9 +41,10 @@ const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET"), gro
 test("ONE SOURCE OF TRUTH (B5 kept): the total is every family's pages; the tables, the five answers and \"why not more\" read the same ledger", () => {
   const p = planOf(), n = p.numbers, T = p.tables;
   assert.equal(n.total, Object.values(p.kinds).flat().length, "the total = the plan's pages");
-  const pagesRows = ["regulator", "subtest", "university", "taking", "topic"].reduce((s, k) => s + T[k].rows.find((r) => r.step === "Pages").n, 0) + T.hub.rows[0].n + T.language.rows.at(-1).n;
+  /* RR-323: + the practice family */
+  const pagesRows = ["regulator", "subtest", "practice", "university", "taking", "topic"].reduce((s, k) => s + T[k].rows.find((r) => r.step === "Pages").n, 0) + T.hub.rows[0].n + T.language.rows.at(-1).n;
   assert.equal(pagesRows, n.total, "the tables' page rows add up to the total");
-  assert.equal(n.ready, n.total - n.regulatorWaiting);
+  assert.equal(n.ready, n.total - n.waiting); assert.equal(n.waiting, n.regulatorWaiting + n.practiceWaiting, "RR-323: a practice page without its sample waits too");
   const five = fiveFromList({ subject: "OET", plan: p, items: ITEMS }), q4 = five.questions.find((x) => x.id === "q4");
   assert.match(q4.answer, new RegExp(`${n.uniPages.toLocaleString("en-US")} university pages, one per university`));
   assert.ok(p.whyNotMore.lines.some((l) => l.includes(`${n.subtestPages} pages`)) && p.whyNotMore.lines.some((l) => l.includes(`${n.sections} combinations too thin`)));
@@ -118,7 +119,9 @@ test("B1 + B2 + C1 · the universe, the three gates per family: demand in 20 sam
   assert.deepEqual([pd.sample, pd.proven], [20, true]);
   const half = patternDemand(Array.from({ length: 20 }, (_, i) => ({ title: `h${i}`, questions: i % 2 ? [{ sources: [{ kind: "search" }] }] : [] })));
   assert.deepEqual([half.share, half.proven], [0.5, false], "50% is below the 60% line");
-  const thin = { kind: "topic", title: "Thin", claims: [], questions: [{ question: "a" }] }, rich = { kind: "topic", title: "Rich", claims: [], questions: Array.from({ length: 9 }, (_, i) => ({ question: `q${i}` })) };
+  /* RR-323: 45 keywords that all mean "OET fees" are ONE need — the questions count at most 6 data points; a rich page needs facts too */
+  assert.equal(dataPointsOf({ kind: "topic", claims: [], questions: Array.from({ length: 45 }, (_, i) => ({ question: `oet fees ${i}` })) }).length, 6, "the questions count at most 6");
+  const thin = { kind: "topic", title: "Thin", claims: [], questions: [{ question: "a" }] }, rich = { kind: "topic", title: "Rich", claims: [1, 2, 3].map((i) => ({ claimId: `f${i}`, text: `fact ${i}`, link: `https://x.example/${i}`, readOn: ON, source: "x" })), questions: Array.from({ length: 9 }, (_, i) => ({ question: `q${i}` })) };
   const F = runGates({ topic: [thin, rich] }, { parentOf: () => "the index" });
   assert.deepEqual([thin.status, rich.status], ["section", "opportunity"]); assert.match(F.topic.sections[0].why, /a section of the index/);
   const a = { kind: "hub", title: "A", rows: Array.from({ length: 10 }, (_, i) => [`r${i}`, "x"]) }, b = { kind: "hub", title: "B", rows: [...a.rows.slice(0, 9), ["other", "y"]] };
@@ -131,9 +134,14 @@ test("B1 + B2 + C1 · the universe, the three gates per family: demand in 20 sam
 test("B4 · a question's language (Urdu script, Roman Urdu, Arabic, Hindi); pages in a language only where it has demand AND the client chose it; only strong pages", () => {
   assert.deepEqual(["oet kitni fees hai pakistan mein", "اوئی ٹی کی فیس کتنی ہے", "ما هي رسوم اختبار", "ओईटी फीस", "oet fees"].map(languageOf), ["ur", "ur", "ar", "hi", "en"]);
   const d = languageDemand(ITEMS, ["en", "ur"]); assert.deepEqual(d.map((x) => [x.code, x.questions.length, x.chosen]), [["ur", 2, true]]);
-  const p = planOf(); assert.ok(p.kinds.language.length >= 1 && p.kinds.language.length <= 10);
-  assert.ok(p.kinds.language.every((x) => x.lang === "ur" && p.kinds[Object.keys(p.kinds).find((k) => p.kinds[k].some((y) => y.title === x.base))]?.find((y) => y.title === x.base)?.status === "demand"), "only a demand page is made in another language");
-  assert.equal(planOf({ languages: ["en"] }).kinds.language.length, 0, "a language the client did not choose: none");
+  /* RR-323 decision 8 (owner, supersedes RR-322 B4's "at once"): English first — a page is made in another language only after its English
+   * page is INDEXED and showing impressions (main.translatableOf: published LIVE, the Monday report's "indexed", impressions > 0) */
+  assert.equal(planOf().kinds.language.length, 0, "nothing indexed yet: no page in another language");
+  const strong = planOf().kinds; const bases = Object.values(strong).flat().filter((x) => x.status === "demand" && (x.dataPoints?.length ?? 0) >= 12).map((x) => x.title);
+  const p = planOf({ translatable: bases }); assert.ok(p.kinds.language.length >= 1 && p.kinds.language.length <= 10, "an indexed English page with impressions: its page in the language people ask in");
+  assert.ok(p.kinds.language.every((x) => x.lang === "ur" && bases.includes(x.base)), "only an indexed demand page is made in another language");
+  assert.equal(planOf({ languages: ["en"], translatable: bases }).kinds.language.length, 0, "a language the client did not choose: none");
+  assert.match(MAIN, /states\[x\.url\] === "indexed" && \(seen\[x\.url\] \?\? 0\) > 0/, "translatable = indexed AND showing impressions");
 });
 
 test("B5 · profession × sub-test: the sub-test's own facts and each regulator's grade in it for that profession — every page different", () => {

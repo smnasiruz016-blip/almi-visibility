@@ -8,7 +8,17 @@
  *   R3 THE EXTRACTION  a proposal from a barred source is stored with NO sentence and NO quotation
  *   R4 THE BUILD       a claim that carries a quotation of a barred source is REFUSED, named — never built
  */
+import { createHash } from "node:crypto";
+
 export const LICENCE_WITHHELD = "LICENCE_FORBIDS_STORING_ITS_WORDS";
+/*   R5 THE PASSAGE     (RR-288 census; RR-323 the practice samples) a text's 8-word sequences as hashes — sha256, first 16 hex — the
+ *                      words themselves never kept; a text "holds a passage" of another when a run of its consecutive words is in its hashes */
+export const SHINGLE = 8;
+export const shingleHash = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+export const wordsOf = (s) => String(s ?? "").toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+export function shingleHashes(text) { const w = wordsOf(text), out = new Set(); for (let i = 0; i + SHINGLE <= w.length; i++) out.add(shingleHash(w.slice(i, i + SHINGLE).join(" "))); return out; }
+/** the longest run of consecutive words of `text` whose 8-word sequences are all in `hashes` (0 when none) */
+export function longestRun(text, hashes) { const w = wordsOf(text); let best = 0, a = -1, end = -1; for (let i = 0; i + SHINGLE <= w.length; i++) if (hashes.has(shingleHash(w.slice(i, i + SHINGLE).join(" ")))) { if (a < 0 || i > end) a = i; end = i + SHINGLE; best = Math.max(best, end - a); } return best; }
 export const BUILD_REFUSAL = "CLAIM_QUOTES_A_SOURCE_WHOSE_LICENCE_FORBIDS_STORING_ITS_WORDS";
 const urlOf = (f) => f?.source?.url ?? f?.verification?.sourceUrl ?? null;
 const norm = (u) => String(u ?? "").replace(/#.*$/, "").replace(/\/$/, "");

@@ -13,6 +13,8 @@ import { cssVariables } from "../desktop/theme.mjs";
 import { PRIVACY_LINE, MARKETING_LINE } from "./leads.mjs";
 import { LIMITS, NO_PROMISE } from "./free-test.mjs";
 import { familyStrip, footerColumns } from "./family.mjs";
+import { loadLegal, fillsIn, renderLegal } from "./legal.mjs"; // RR-325 C
+import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -99,7 +101,18 @@ section.band{padding:64px 0} section.paper{background:var(--white);border-top:1p
 .stat{display:inline-block;background:var(--white);border:1px solid var(--peach);border-radius:14px;padding:12px 18px;margin:0 10px 10px 0} .stat b{display:block;font-size:26px;color:var(--ink)}
 @media (max-width:1023px){.rows{display:none} .menu{display:block}}
 @media (max-width:820px){.hero .grid2{grid-template-columns:1fr;gap:36px} .hero{padding:40px 0 56px} .fcols{grid-template-columns:1fr} .admin{flex-direction:column} .admin nav{flex:none;width:100%;display:flex;flex-wrap:wrap}}
-@media (max-width:480px){.wrap{padding:0 16px} .brand img{height:32px} .brand .name{font-size:17px} .gaugebox{grid-template-columns:1fr} .scorecard{padding:18px} section.band{padding:48px 0}}`;
+@media (max-width:480px){.wrap{padding:0 16px} .brand img{height:32px} .brand .name{font-size:17px} .gaugebox{grid-template-columns:1fr} .scorecard{padding:18px} section.band{padding:48px 0}}
+/* RR-325: the owner's legal pages, the keyword finder and the honeypot */
+table.legal{width:100%;border-collapse:collapse;font-size:15px;background:var(--white)} table.legal th,table.legal td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--peach);vertical-align:top} table.legal th{color:var(--ink)}
+.prose ul{padding-left:22px} .prose li{margin:4px 0} mark.fill{background:#FDE68A;color:#1A1A2E;padding:0 4px;border-radius:4px;font-weight:700}
+.soon{display:inline-block;border-radius:999px;background:var(--sunrise);color:#1A1A2E;padding:2px 12px;font-size:13px;font-weight:700;margin-left:8px;vertical-align:middle}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.made{margin-top:28px;text-align:center;font-weight:600;color:var(--ink)}
+/* RR-325: dark mode — the same layout in the night colours; button words stay dark on the coral and sunrise buttons (WCAG 4.5:1) */
+@media (prefers-color-scheme:dark){:root{--cream:#14110D;--white:#1E1A15;--peach:#3A2F22;--ink:#FDF6EC;--text:#E9E1D3;--muted:#C9BDAA}
+.site-header{background:rgba(20,17,13,.95)} .hero{background:linear-gradient(135deg,#14110D 0%,#14110D 50%,#2A2119 100%)} section.peach{background:rgba(58,47,34,.35)}
+.pill,.pill.alt,.steps .card h3::before,.badge,.draft{color:#1A1A2E} .pill.ghost{color:var(--ink)} .badge{background:#FFE8D6} .badge.real{background:#D9F2EE}
+.v.good{color:#5FD39A} .v.warn{color:#F4C15A} .err{color:#FF9B8F} .final{background:#2A2119} .final h2,.final p{color:var(--ink)} .scorecard{box-shadow:none}}`;
 
 /** The half-circle gauge, red → yellow → green; the value arc fills to the score (none when not measured). */
 export function gauge(score) {
@@ -133,20 +146,24 @@ ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}
 export const emailNotice = (e) => (!e ? "" : e.sent ? `<p class="card" role="status" style="margin-top:20px">We have emailed your full report to <b>${esc(e.to)}</b>.</p>` : `<p class="card" role="status" style="margin-top:20px">We could not send the email just now — nothing was sent. Your result is shown here.</p>`);
 
 /** One page, AlmiOET's frame: skip link, sticky header (brand · family strip · product links · mobile menu), the page, the footer. */
-export function frame({ path, title, description, body, noindex = false }) {
-  const strip = familyStrip();
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+/* RR-325 A: the public-lite header — no Pricing, no Download, no Buy (they are not served) */
+const LITE_NAV = [["/", "Home"], ["/#score", "Free score"], ["/privacy", "Privacy"], ["/terms", "Terms"]];
+/* RR-325 A: every footer links AlmiVisibility's own Privacy Policy and Terms of Service */
+const footerCols = () => footerColumns().map((c) => (c.title === "Legal & Contact" ? { ...c, links: [...c.links, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
+export function frame({ path, title, description, body, noindex = false, lite = false }) {
+  const strip = familyStrip(), NAVS = lite ? LITE_NAV : NAV, cta = lite ? ["/#score", "Get my score"] : ["/#test", "Test my site"];
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">${noindex ? '<meta name="robots" content="noindex, nofollow">' : `<link rel="canonical" href="${ORIGIN}${path === "/" ? "/" : path}">`}
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico">
 <style>${CSS}</style></head><body><a class="skip" href="#main">Skip to content</a>
 <header class="site-header" data-testid="global-header"><div class="wrap bar">
 <a class="brand" href="/" aria-label="AlmiVisibility home"><img src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully" width="96" height="40"><span class="name">AlmiVisibility</span></a>
 <div class="rows"><nav class="family" aria-label="Family navigation">${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</nav>
-<nav class="product" aria-label="AlmiVisibility">${NAV.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<a class="pill" href="/#test">Test my site</a></nav></div>
-<details class="menu"><summary aria-label="Open menu">Menu</summary><div class="drawer"><p>AlmiVisibility</p>${NAV.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<p>AlmiWorld</p>${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</div></details>
+<nav class="product" aria-label="AlmiVisibility">${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<a class="pill" href="${cta[0]}">${cta[1]}</a></nav></div>
+<details class="menu"><summary aria-label="Open menu">Menu</summary><div class="drawer"><p>AlmiVisibility</p>${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<p>AlmiWorld</p>${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</div></details>
 </div></header>
 <main id="main">${body}</main>
-<footer class="site-footer"><div class="wrap"><div class="fcols">${footerColumns().map((c) => `<div class="${c.title === "Products" ? "products" : ""}"><p>${esc(c.title)}</p><ul>${c.links.map((l) => `<li><a href="${l.href}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>
+<footer class="site-footer"><div class="wrap"><div class="fcols">${footerCols().map((c) => `<div class="${c.title === "Products" ? "products" : ""}"><p>${esc(c.title)}</p><ul>${c.links.map((l) => `<li><a href="${l.href}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>
 <div class="copy">© ${new Date().getFullYear()} AlmiWorld. All rights reserved. · AlmiVisibility <a href="/privacy">privacy</a> · <a href="/terms">terms</a></div></div></footer>
 </body></html>`;
 }
@@ -234,22 +251,47 @@ ${section("paper", `<h2>After you install</h2>${cardList([
   ["Get results", "Pages, articles, refreshes, social posts and a monthly report — each checked before it goes out."],
 ], "steps")}`)}` });
 
-const draftNote = `<p class="draft">DRAFT for AlmiWorld's review — not legal advice. This text is a plain-words draft and is not yet in force.</p>`;
-export const privacy = () => frame({ path: "/privacy", title: "Privacy — AlmiVisibility", description: "How AlmiVisibility handles the website test and the emails people choose to leave.", noindex: true,
-  body: `<section class="page"><div class="wrap prose"><h1>Privacy</h1>${draftNote}
-<h2>The free website test</h2><p>When you test a website, we read up to ${LIMITS.pagesPerTest} of its public pages, following its robots.txt. We keep a record of each test — the website tested, its score and the date — but not who ran it. To limit tests to ${LIMITS.testsPerPersonPerDay} a day per person, we keep a scrambled code made from your internet address for that day only — not the address itself.</p>
-<h2>Your email</h2><p>Your email is optional. If you give it, we keep it to send you the full report. We send you news about AlmiVisibility only if you tick that separate box. We never sell it. Ask us at any time and we delete it.</p>
-<h2>Where it is kept</h2><p>Emails and test records are kept in AlmiVisibility's own database. Only AlmiWorld can see them.</p>
-<h2>The Windows app</h2><p>The app keeps your products, settings and reports on your own computer.</p>
-<h2>Contact</h2><p>AlmiWorld — <a href="https://almiworld.com/contact-us/">almiworld.com/contact-us</a></p></div></section>` });
+/* ── RR-325 C · the OWNER'S Terms of Service and Privacy Policy — his words exactly (site/legal.generated.json from his Word file). A page
+ * that still holds "[FILL" is not published (null here → the route answers "not found"); a local PREVIEW marks each [FILL] ── */
+export const LEGAL = loadLegal();
+const legalPage = (which, path, title, description, { preview = false, lite = false, legal = LEGAL } = {}) => {
+  const page = legal[which], fills = fillsIn(page);
+  if (!page || (fills.length && !preview)) return null;
+  return frame({ path, title, description, lite, body: `<section class="page"><div class="wrap prose">${fills.length ? `<p class="draft">PREVIEW on this computer — NOT PUBLISHED: the owner fills ${esc(fills.join(", "))} first.</p>` : ""}${renderLegal(page, { preview })}</div></section>` });
+};
+export const privacy = (o = {}) => legalPage("privacy", "/privacy", "Privacy Policy — AlmiVisibility", "How AlmiVisibility, the desktop app and almivisibility.almiworld.com, handles data.", o);
+export const terms = (o = {}) => legalPage("terms", "/terms", "Terms of Service — AlmiVisibility", "The terms of service of AlmiVisibility, made by AlmiWorld.", o);
+export const notFound = (path, { lite = false } = {}) => frame({ path, lite, title: "Not found — AlmiVisibility", description: "This page does not exist.", noindex: true, body: `<section class="page"><div class="wrap"><h1>Page not found</h1><p><a class="pill" href="/">Home</a></p></div></section>` });
 
-export const terms = () => frame({ path: "/terms", title: "Terms — AlmiVisibility", description: "The plain-words terms of AlmiVisibility.", noindex: true,
-  body: `<section class="page"><div class="wrap prose"><h1>Terms</h1>${draftNote}
-<h2>What you get</h2><p>AlmiVisibility helps you plan, build and keep pages for your own products, in your own design. You decide what is published.</p>
-<h2>No guarantee of rankings</h2><p>No one controls search engines or AI answers. AlmiVisibility does not promise any ranking, traffic, citation or sales.</p>
-<h2>Your content and your connections</h2><p>You are responsible for your own products, your own sites and the connections you add (search data, AI account, YouTube). Their costs are yours.</p>
-<h2>Plans and payment</h2><p>Plans are paid monthly. There is no free trial. You can cancel at any time; your data stays on your computer.</p>
-<h2>The free website test</h2><p>Test only websites you are allowed to test. We follow each site's robots.txt and read at most ${LIMITS.pagesPerTest} pages.</p></div></section>` });
+/* ── RR-325 A · THE PUBLIC-LITE HOME: the free score FIRST; the keyword finder and the app "coming soon"; no download, price or buy ── */
+export const KEYWORD_FINDER_LINE = "It will find what people search for about your product, with search volumes from Google Keyword Planner data.";
+export const APP_LINE = "AlmiVisibility is a Windows app that makes your website, products and YouTube channel easier to find on Google and in AI answers. It finds the questions your customers really ask, builds the pages that answer them in your own design — every fact with its source and the date it was checked — and keeps them up to date.";
+export function liteScoreCard({ result = null, error = null, values = {}, scoreOn = false, ticket = null } = {}) {
+  const real = Boolean(result), s = real ? result : SAMPLE;
+  const form = `<form class="testform" method="post" action="/score"><input type="hidden" name="ticket" value="${esc(ticket)}">
+<div class="hp" aria-hidden="true"><label>Leave this empty <input name="homepage" tabindex="-1" autocomplete="off"></label></div>
+<div><label class="f" for="url">Your website address</label><input id="url" name="url" type="text" inputmode="url" autocomplete="url" placeholder="yourwebsite.com" required value="${esc(values.url ?? "")}"></div>
+${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}
+<button class="pill big" type="submit">Get my score</button>
+<p class="fine">Free: ${LITE.perVisitorPerDay} scores a day, up to ${LIMITS.pagesPerTest} pages each. No email needed — the result is shown here only. <a href="/privacy">Privacy</a></p></form>`;
+  const off = `<div class="testform" data-score-off>${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}<p class="fine" role="status" style="font-size:14px;color:var(--ink)">The free score is being switched on. Please come back soon.</p></div>`;
+  return `<div class="scorecard" id="score"><div class="top"><p class="label">${real ? "Your website score" : "Sample estimate"}</p><span class="badge${real ? " real" : ""}">${real ? "Your result" : "Sample"}</span></div>
+${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.pagesRead} of up to ${result.pagesLimit} pages · ${esc(String(result.testedOn).slice(0, 10))}</p>` : ""}
+<div class="gaugebox">${gauge(s.score)}${areaList(s.byCategory)}</div>
+${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
+${scoreOn && ticket ? form : off}</div>`;
+}
+export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null } = {}) => frame({ path: "/", lite: true, title: "AlmiVisibility — get the score of your site", description: "Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+  body: `<section class="hero"><div class="wrap grid2"><div>
+<p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
+<h1>Get the score of your site</h1>
+<p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>
+<p class="small">${esc(NO_PROMISE)}</p></div>
+<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
+${result ? resultDetail(result, left) : ""}
+${section("paper", `<h2 id="keywords">Free keyword finder<span class="soon">Coming soon</span></h2><p class="sub">${esc(KEYWORD_FINDER_LINE)}</p>`)}
+${section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
+${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}` });
 
 export const buyNotConnected = (plan, state = "DEFERRED") => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,
   body: `<section class="page"><div class="wrap prose"><h1>Checkout is not connected here</h1><p>${state === "REFUSED" ? "This plan cannot be bought here." : `This copy of the site has no payment connection${plan ? ` for the plan ${esc(plan)}` : ""}.`} Nothing was charged.</p><p><a class="pill" href="/pricing">Back to the plans</a></p></div></section>` });

@@ -50,7 +50,7 @@ test("LIKE THE FAMILY · the family strip (all 23 products, the package's order)
   const strip = familyStrip().map((l) => l.label);
   assert.deepEqual([strip[0], strip[1], strip.at(-2), strip.at(-1), FAMILY_PRODUCTS.length], ["Home", "eBooks", "Contact Us", Object.values(NETWORK_LINKS).at(-1).label, 23]); /* the last network link by position: a generic test never names a subject (F09) */
   assert.deepEqual(footerColumns().map((c) => c.title), ["AlmiWorld", "Products", "Legal & Contact"]);
-  const all = { home: P.home(), freeTest: P.freeTest(), features: P.features(), pricing: P.pricing(), download: P.download({ setupAvailable: true }), privacy: P.privacy(), terms: P.terms() };
+  const all = { home: P.home(), freeTest: P.freeTest(), features: P.features(), pricing: P.pricing(), download: P.download({ setupAvailable: true }), privacy: P.privacy({ preview: true }), terms: P.terms({ preview: true }) }; /* RR-325: the owner's own text (a local preview while it holds a [FILL]) */
   for (const [k, html] of Object.entries(all)) {
     assert.match(html, /<nav class="family" aria-label="Family navigation"><a href="https:\/\/almiworld\.com\/">Home<\/a><a href="https:\/\/almiworld\.com\/ebooks-2\/">eBooks<\/a><a href="https:\/\/almijob\.almiworld\.com\/">AlmiJob<\/a>/, `${k}: family strip`);
     assert.match(html, /<nav class="product" aria-label="AlmiVisibility"><a href="\/"[^>]*>Home<\/a><a href="\/free-test"[^>]*>Free test<\/a><a href="\/features"[^>]*>Features<\/a><a href="\/pricing"[^>]*>Pricing<\/a><a href="\/download"[^>]*>Download<\/a>/, `${k}: own links`);
@@ -68,7 +68,9 @@ test("LIKE THE FAMILY · the family strip (all 23 products, the package's order)
   for (const code of ["EN", "ES", "DE", "IT", "FR", "PT", "AR", "UR", "HI", "ZH"]) { assert.match(all.features, new RegExp(`\\(${code}\\)`)); assert.match(all.home, new RegExp(`\\(${code}\\)`)); }
   for (const page of [all.home, all.features]) assert.match(page, /<h2>YouTube, too<\/h2>/);
   assert.match(all.home, /<h2>How it works<\/h2><ul class="cards steps"><li class="card"><h3>Install the app<\/h3>.*<h3>Add your product<\/h3>.*<h3>Get results<\/h3>/s);
-  for (const k of ["privacy", "terms"]) assert.match(all[k], /DRAFT for AlmiWorld's review — not legal advice/);
+  /* RR-325 C: the plain-words drafts are replaced by the owner's Terms of Service and Privacy Policy, his words exactly */
+  assert.match(all.terms, /<h1>Terms of Service<\/h1>/); assert.match(all.privacy, /<h1>Privacy Policy — AlmiVisibility<\/h1>/);
+  assert.match(all.privacy, /will adhere to the <a href="https:\/\/developers\.google\.com\/terms\/api-services-user-data-policy">Google API Services User Data Policy<\/a>, including the Limited Use requirements\./);
 });
 
 test("ADMIN · LIKE ALMIWORLD PRODUCTS: an allowed email AND its password; one answer for either being wrong; failed logins limited; daily counts; a CSV a spreadsheet cannot run", async () => {

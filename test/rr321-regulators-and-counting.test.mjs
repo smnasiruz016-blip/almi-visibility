@@ -163,6 +163,9 @@ test("D7 + E1 + G1 · taking it in a country is a SECTION of the one \"Where to 
   assert.ok(w.questions.some((g) => g.question === "oet exam in bangladesh" && g.section === "Bangladesh"), "D7: Bangladesh's question is a section");
   assert.ok(!plan.kinds.topic.some((p) => /bangladesh/i.test(p.title)), "D7: never a topic page");
   const bd = w.sections.find((s) => s.country === "Bangladesh");
+  /* the proof's draft showed 5 facts and no country: every section is a fact of its own, its fee line in it */
+  assert.equal(w.claims.filter((c) => c.section).length, w.sections.length, "a section with no fact on the page");
+  assert.ok(w.claims.find((c) => c.section === "Pakistan").text.includes("The fee: AUD $587") || w.claims.find((c) => c.section === "Pakistan").text.includes("The fee: AUD 587"));
   assert.equal(bd.venue, false); assert.match(bd.says, /name no venue in Bangladesh/); assert.deepEqual(bd.nearest.sort(), ["India", "Nepal", "Pakistan"]);
   assert.equal(COUNTRIES.filter((c) => !REGION_OF[c]).length, 0, "every one of the 197 has its sub-region"); assert.ok(neighboursOf("Kenya").includes("Uganda"));
   assert.equal(plan.numbers.venueCountries, VENUES.countries.length);

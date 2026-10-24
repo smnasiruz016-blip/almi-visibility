@@ -669,7 +669,9 @@ const server = createServer((req, res) => {
                 if (!res.ok) { pwrite(id, "page-count.json", { on: new Date().toISOString(), list: true, dims, subject, site: offSite, formula, result: res, plan: null }); return; }
                 const urls = (await rd.sitemapOf(offSite)).urls ?? [];
                 say(`Reading ${subject}'s pages about venues and taking it at home`);
-                const venues = await venueCountries({ urls, subject, reader: rd, already: res.dims.origins.kept });
+                /* RR-321 proof: the RR-319 per-country check kept a country on a "Book a test now" button of its recognition page — no
+                 * venue named there; only a sentence of the subject's own pages that names a venue in it counts */
+                const venues = await venueCountries({ urls, subject, reader: rd, already: [] });
                 say(`Reading ${subject}'s test statistics`);
                 const stats = await statisticsOf({ urls, subject, reader: rd });
                 say("Reading the central banks' official rates");

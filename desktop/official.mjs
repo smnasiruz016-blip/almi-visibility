@@ -230,7 +230,7 @@ function relatedLinks(page, ranks = RELATED) {
  * up to 4 of its related official pages (accepted tests, English requirements, the registration standard, their PDFs). → { claim } or
  * { notSaid } with EVERY page checked.
  */
-const ENGLISH_PAGE = /english[-_]?language[-_]?(requirements?|proficiency|tests?)|english-requirements|language-requirements|english-proficiency/i;
+const ENGLISH_PAGE = /english[-_]?language[-_]?(requirements?|proficiency|tests?|skills?|standards?)|english-requirements|language-requirements|english-proficiency|accepted[-_]english/i; // RR-321 proof: the Ahpra boards' "English-language-skills" standard
 export async function bodyAnswer({ url, body: bodyName = null, subject, reader, related = RELATED, sitemap = false }) {
   const first = await reader.read(url);
   const body = bodyName || String(first.title ?? "").split(/\s+[|·—–-]\s+/).pop() || new URL(url).hostname;

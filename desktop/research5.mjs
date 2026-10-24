@@ -61,7 +61,7 @@ export function fiveFromList({ subject, plan, stats = null, byCountry = null, sc
       sources: [src(LABEL.search, `Search Console${sc?.window ? ` (${sc.window})` : ""}${byCountry ? ", by country" : ""}`, null, sc?.on)] }); }
   /* Q3 — the requirement countries from the subject's own list, and the regulators' own pages read while building (D4: one ledger) */
   out.push(notApply.includes("q3") ? na("q3") : { id: "q3", ask: FIVE[2].ask, applies: true, n: n.requirement,
-    answer: `A registration requirement in ${n.requirement} countries — a health regulator there accepts it (${subject}'s own list). Accepted by a named body in ${n.accepted} countries in all. Regulators' own pages read while building: ${n.regulatorRead} of ${n.regulatorPages}${n.regulatorNotRead ? ` (${n.regulatorNotRead} could not be read — their pages are built from ${subject}'s list with "check here")` : ""}.`,
+    answer: `A registration requirement in ${n.requirement} countries — a health regulator there accepts it (${subject}'s own list). Accepted by a named body in ${n.accepted} countries in all. Regulators' own pages read while building: ${n.regulatorRead} of ${n.regulatorPages}${n.regulatorNotRead ? ` (${n.regulatorNotRead - (n.regulatorNotNamed ?? 0)} could not be read, ${n.regulatorNotNamed ?? 0} do not name ${subject} on the pages reached — their pages are built from ${subject}'s list with "check here")` : ""}.`,
     list: T.regulator.rows[1].kept, sources: [src(LABEL.official, rec.why, plan.kinds.regulator[0]?.source?.url, plan.kinds.regulator[0]?.checkedOn)] });
   /* Q4 */
   out.push(notApply.includes("q4") ? na("q4") : { id: "q4", ask: FIVE[3].ask, applies: true, n: n.uniWithFacts,

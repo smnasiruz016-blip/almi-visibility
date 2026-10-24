@@ -98,7 +98,8 @@ export function planFromList({ subject, rec, professions, universities = [], ven
   for (const p of topicNoSource) for (const g of p.questions) g.page = null;
   /* D5 · each central bank's rate the page shows is a fact of its own: its source, its link, its date (after the asked-about sections join) */
   const rateClaims = new Map(); for (const s of where.sections) for (const st of s.steps) if (!rateClaims.has(`${st.short}|${st.to}`)) rateClaims.set(`${st.short}|${st.to}`, { claimId: `rate-${st.short.toLowerCase()}-${st.to.toLowerCase()}`, text: `${st.source}: 1 ${st.from} = ${st.said} ${st.to} on ${st.rateDate} (the fee in ${st.to} is an estimate from it, not an official price).`, link: st.link, readOn: st.rateDate, source: st.source, official: true, body: st.short });
-  where.claims.push(...rateClaims.values(), ...where.sections.map((s) => s.council?.claim).filter(Boolean));
+  const sectionClaims = where.sections.map((s) => ({ claimId: `section-${s.country.toLowerCase().replace(/[^a-z]+/g, "-")}`, text: `${s.country}: ${s.venue ? `${subject}'s own page names a venue there` : s.says}${s.nearest?.length ? ` — the nearest venues: ${s.nearest.join(", ")}` : ""}. The fee: ${s.fee}.`, link: s.venue ? s.source.url : venues.home?.url ?? s.source?.url ?? null, readOn: s.venue ? s.checkedOn : venues.home?.checkedOn ?? on, source: `${subject} — its own page`, official: true, body: subject, section: s.country })).filter((c) => c.link && c.readOn);
+  where.claims = [where.claims[0], ...sectionClaims, ...where.claims.slice(1).filter((c) => !/^venue-/.test(c.claimId)), ...rateClaims.values(), ...where.sections.map((s) => s.council?.claim).filter(Boolean)].filter(Boolean);
   /* E3 · internal links: a regulator page links "Where to take" and the topic pages; a university page its regulator pages */
   for (const p of regulator) p.links = [where.title, ...topic.slice(0, 6).map((t) => t.title)];
   where.links = topic.slice(0, 6).map((t) => t.title);
@@ -110,6 +111,7 @@ export function planFromList({ subject, rec, professions, universities = [], ven
   const n = {
     countries: 197, accepted: rec.accepted.length, requirement: reqCountries.length, professions: professions.length, combos: R.combos, pairs: R.pairs.length, regulatorPages: regulator.length,
     regulatorRead: regulator.filter((p) => p.read?.ok).length, regulatorNotRead: regulator.filter((p) => p.read && !p.read.ok).length,
+    regulatorNotNamed: regulator.filter((p) => p.read && !p.read.ok && /does not name/.test(p.read.why ?? "")).length,
     uniAll: universities.length, uniHealth: health.length, uniNamed: named.length, uniWithFacts: withFacts.length, uniPages: university.length,
     venueCountries: vset.size, askedNoVenue: where.sections.filter((s) => !s.venue).length, takingPages: 1,
     topicGroups: topicAll.length, topicPages: topic.length,
@@ -132,7 +134,7 @@ function tablesOf({ n, subject, rec, R, regulator, universities, health, named, 
       row("…where a health regulator accepts it (a registration rule)", n.requirement, "an employer or a school accepting it is not a registration rule", rec.requirement.map((c) => ({ name: c.country, why: `${c.regulators} regulator${c.regulators === 1 ? "" : "s"}` })), rec.notRequirement),
       row(`${n.requirement} countries × ${n.professions} professions`, n.combos, "every combination — what multiplying gives", [], []),
       row(`…where a regulator accepts ${subject} for that profession`, n.pairs, `${subject}'s own list names the regulator and the profession`, R.pairs.map((x) => ({ name: `${x.profession} in ${x.country}`, why: x.bodies.join(", ") })), R.notAccepted),
-      row("One page per regulator rule (its professions are sections of its one page)", n.regulatorPages, `${n.regulatorRead} regulator pages read so far while building, ${n.regulatorNotRead} could not be read (built from ${subject}'s list with "check here")`, regulator.map((p) => ({ name: p.title, why: p.why })), R.noProfession)] },
+      row("One page per regulator rule (its professions are sections of its one page)", n.regulatorPages, `${n.regulatorRead} regulators' own pages confirm it so far (read while building); ${n.regulatorNotRead - n.regulatorNotNamed} could not be read and ${n.regulatorNotNamed} do not name ${subject} on the pages reached — those pages are built from ${subject}'s list with "check here"`, regulator.map((p) => ({ name: p.title, why: p.why })), R.noProfession)] },
     university: { title: "University pages", rows: [
       row("Universities in the list", n.uniAll, "AlmiStudy's full data (read-only)", [], []),
       row("…that teach healthcare", n.uniHealth, "the list's own subjects", [], universities.filter((u) => !teachesHealth(u)).slice(0, 300).map((u) => ({ name: u.name, why: "teaches no healthcare subject in the list" }))),
@@ -156,7 +158,7 @@ export function rolloutOf(pages, byCountry = []) {
   const score = (p) => { const r = of(p); p.reach = r; return r.countries * 1e6 + r.impressions * 10 + (p.searched ? 5000 : 0) + p.questions.length * 50 + ({ regulator: 4, taking: 3, university: 2, topic: 1 }[p.kind] ?? 0); };
   const order = [...pages].map((p) => [p, score(p)]).sort((a, b) => b[1] - a[1]).map(([p]) => p);
   const first = order.slice(0, BATCH.max);
-  return { first: first.map((p) => p.title), firstWhy: first.slice(0, 15).map((p) => ({ title: p.title, why: p.reach.countries ? `searched from ${p.reach.countries} countr${p.reach.countries === 1 ? "y" : "ies"} (${fmt(p.reach.impressions)} times seen)` : p.questions.length ? `${p.questions.length} question${p.questions.length === 1 ? "" : "s"} people ask` : "no search yet" })), size: first.length, later: order.length - first.length,
+  return { first: first.map((p) => p.title), firstWhy: first.slice(0, 15).map((p) => ({ title: p.title, why: p.reach.countries ? `searched from ${p.reach.countries} countr${p.reach.countries === 1 ? "y" : "ies"} (${fmt(p.reach.impressions)} time${p.reach.impressions === 1 ? "" : "s"} seen)` : p.questions.length ? `${p.questions.length} question${p.questions.length === 1 ? "" : "s"} people ask` : "no search yet" })), size: first.length, later: order.length - first.length,
     byKind: Object.fromEntries(["regulator", "university", "taking", "topic"].map((k) => [k, first.filter((p) => p.kind === k).length])),
     line: `The first ${first.length} of ${order.length} pages${order.length < BATCH.min ? ` (fewer than ${BATCH.min}: every page that is real now)` : ""} — the ones answering the most-searched questions first. The next batch only when your Search Console shows Google showing these.` };
 }

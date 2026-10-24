@@ -61,8 +61,9 @@ export function regulatorTitle(subject, r) {
   const people = r.professions.length ? peopleOf(r.professions) : "health professionals", few = r.professions.length > 2 ? "health professionals" : people;
   /* "Medical Radiation Practice Board of Australia" in Australia: the board's name without its country, the country said once */
   const stem = name.replace(new RegExp(`\\s+(of|for)\\s+(the\\s+)?${r.country.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "");
-  const tries = [`${subject} ${score} for ${people} in ${inCountry(r.country)} (${who})`, `${subject} ${score} for ${people}: ${name}`, `${subject} for ${people} in ${inCountry(r.country)}: ${stem}`, `${subject} for ${few}: ${name}`, `${subject} for ${few} in ${inCountry(r.country)}: ${stem}`, `${subject}: ${name}`];
-  return tries.find((t) => t.length <= 70) ?? tries.at(-1);
+  const caps = name.split(/\s+/).filter((w) => /^[A-Z&]/.test(w) && !/^(of|and|the|for)$/i.test(w)).map((w) => w[0]).join("").replace(/&/g, "");
+  const tries = [`${subject} ${score} for ${people} in ${inCountry(r.country)} (${who})`, `${subject} ${score} for ${people}: ${name}`, `${subject} for ${people} in ${inCountry(r.country)}: ${stem}`, `${subject} for ${few}: ${name}`, `${subject} for ${few} in ${inCountry(r.country)}: ${stem}`, `${subject}: ${name}`, ...(caps.length >= 3 && caps.length <= 9 ? [`${subject} ${score} for ${few} in ${inCountry(r.country)} (${caps})`] : [])];
+  return tries.find((t) => t.length <= 70) ?? tries.find((t) => t.includes(`(${caps})`)) ?? tries.at(-1);
 }
 
 /**

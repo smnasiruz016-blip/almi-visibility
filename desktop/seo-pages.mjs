@@ -120,7 +120,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const needs = [], meta = new Map();
     for (const p of pagePlan) {
       const qs = (p.questions ?? []).map((q) => q.question ?? q), needId = `need-${slug(p.title)}`;
-      const claims = [...(p.claims?.length ? p.claims : p.country ? official[p.country] ?? [] : []), ...answersFromSite([p.title, ...qs].join(" "), site)].slice(0, 5);
+      /* RR-321 proof: a page planned from the list keeps ALL its own facts (a section per country) — never its first five */
+      const claims = p.claims?.length > 5 ? p.claims.slice(0, 60) : [...(p.claims?.length ? p.claims : p.country ? official[p.country] ?? [] : []), ...answersFromSite([p.title, ...qs].join(" "), site)].slice(0, 5);
       meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: claims, alsoAsked: qs, links: p.links ?? null, lastChecked: p.lastChecked ?? null });
       needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, question: p.title, claims });
     }
@@ -173,7 +174,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const factIn = (c, where) => { const r = c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`;
     /* RR-319 proof (8 of 13 drafts "no key-fact card"): an official answer's scores ("— Listening 350 · Reading 360 …"), its fee, or the
      * official page's own word that it is recognised there */
-    if (c.official) { const m = / — ([^—]+)\.$/.exec(c.text); if (m && /\d|grade/i.test(m[1])) return m[1].trim(); if (/is recognised or accepted there/.test(c.text)) return "recognised or accepted there"; } /* the card's words stand IN the sourced sentence */ const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
+    if (c.official) { const m = / — ([^—]+)\.$/.exec(c.text); if (m && /\d|grade|Listening [ABC]/i.test(m[1])) return m[1].trim(); if (/is recognised or accepted there/.test(c.text)) return "recognised or accepted there"; } /* the card's words stand IN the sourced sentence */ const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
   const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question); return p.need.claims.map((c) => ({ claimId: c.claimId, value: factIn(c, where) })).filter((k) => k.value).slice(0, 2); });
   /* RR-321 E3: a planned page links the pages its plan names (a university page its regulator pages; a regulator page "Where to take" and
    * the topic pages); E4: it shows when its sources were last checked */

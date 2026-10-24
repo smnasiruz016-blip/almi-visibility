@@ -85,6 +85,9 @@ test("1 + 7 · demand first: each cluster lands on its ONE page; the first batch
   const pagesWith = (k) => Object.values(p.kinds).flat().filter((x) => (x.questions ?? []).some((g) => g.question === k)).length;
   assert.deepEqual(["oet exam fees", "oet booking", "oet result"].map(pagesWith), [1, 1, 1], "each keyword on exactly one page");
   assert.deepEqual([p.linkCheck.tooDeep.length, p.linkCheck.fewLinks.length], [0, 0], `every page within 3 clicks, ≥ 3 links: ${p.linkCheck.tooDeep.slice(0, 3)}`);
+  /* the proof found 3 practice pages too deep: the practice hub's links were cut to 9 — it links EVERY practice page (its guide) */
+  const hub = p.kinds.practice.find((x) => x.title === "OET practice test: a free sample for every sub-test"), kids = p.kinds.practice.filter((x) => x !== hub);
+  assert.ok(kids.length > 9 && kids.every((x) => hub.links.includes(x.title)), `the practice hub links all ${kids.length} practice pages (it links ${hub.links.length})`);
   const firstKinds = p.rollout.firstWhy.slice(0, 5);
   assert.equal(firstKinds[0].title, "What is OET: the four sub-tests, the time and the scores", "the biggest range first");
   const ranges = p.rollout.firstWhy.filter((x) => x.range).map((x) => Object.values(p.kinds).flat().find((y) => y.title === x.title).kp.high);

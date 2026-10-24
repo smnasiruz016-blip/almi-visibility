@@ -21,7 +21,7 @@ export function legalFromDocx(bytes, name) {
 
 if (process.argv[1] && import.meta.url.endsWith(basename(process.argv[1]))) {
   const f = process.argv[2]; if (!f) { console.error("usage: node tools/legal-from-docx.mjs <the owner's .docx>"); process.exit(2); }
-  const g = legalFromDocx(readFileSync(f), basename(f));
-  writeFileSync(new URL("../site/legal.generated.json", import.meta.url), JSON.stringify(g, null, 1) + "\n");
+  const g = legalFromDocx(readFileSync(f), basename(f)), out = new URL("../site/legal.generated.json", import.meta.url); // inside this repository, as tools/family-from-almi-data.mjs writes
+  writeFileSync(out, JSON.stringify(g, null, 1) + "\n");
   console.log(`site/legal.generated.json ← ${g.source.file} · terms ${g.terms.length} blocks${g.fills.terms.length ? ` · NOT PUBLISHED, to fill: ${g.fills.terms.join(" ")}` : " · ready"} · privacy ${g.privacy.length} blocks${g.fills.privacy.length ? ` · NOT PUBLISHED, to fill: ${g.fills.privacy.join(" ")}` : " · ready"}`);
 }

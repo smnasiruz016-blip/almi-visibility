@@ -16,10 +16,11 @@ export const RECHECK_DAYS = 7;
 
 /* each country's central bank: where its US-dollar rate stands, and how to read it (the number as written on the source) */
 export const CENTRAL_BANKS = Object.freeze({
-  PKR: { country: "Pakistan", source: "State Bank of Pakistan — M2M revaluation rates", short: "SBP",
-    urls: (on) => [0, 1, 2, 3, 4, 5, 6].map((k) => { const d = back(on, k); return { url: `https://www.sbp.org.pk/ecodata/rates/m2m/${d.getUTCFullYear()}/${MON[d.getUTCMonth()]}/${String(d.getUTCDate()).padStart(2, "0")}-${MON[d.getUTCMonth()]}-${String(d.getUTCFullYear()).slice(2)}.pdf`, date: iso(d) }; }),
+  PKR: { country: "Pakistan", source: "State Bank of Pakistan — M2M revaluation rates", short: "SBP", page: "https://www.sbp.org.pk/ecodata/rates/m2m/M2M-Current.asp",
+    /* RR-322: its current-rates page first (read on the client's own machine), then the dated files */
+    urls: (on) => [{ url: "https://www.sbp.org.pk/ecodata/rates/m2m/M2M-Current.asp", date: null }, ...[0, 1, 2, 3, 4, 5, 6].map((k) => { const d = back(on, k); return { url: `https://www.sbp.org.pk/ecodata/rates/m2m/${d.getUTCFullYear()}/${MON[d.getUTCMonth()]}/${String(d.getUTCDate()).padStart(2, "0")}-${MON[d.getUTCMonth()]}-${String(d.getUTCFullYear()).slice(2)}.pdf`, date: iso(d) }; })],
     rate: (text) => /\b(?:USD|US\s?Dollar)\b[^\d]{0,40}(\d{3}\.\d{2,4})/i.exec(text)?.[1] ?? null },
-  KES: { country: "Kenya", source: "Central Bank of Kenya — daily KES exchange rates", short: "CBK", file: true,
+  KES: { country: "Kenya", source: "Central Bank of Kenya — daily KES exchange rates", short: "CBK", file: true, page: "https://www.centralbank.go.ke/rates/forex-exchange-rates/",
     urls: () => [{ url: "https://www.centralbank.go.ke/uploads/fx_rates/historical_data.csv", date: null }],
     /* the CSV's latest US-dollar row: date, "US DOLLAR", mean, buy, sell (dates written two ways) */
     rows: (text) => String(text).split(/\r?\n/).map((l) => /^(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}),"?US DOLLAR"?,([\d.]+)/i.exec(l)).filter(Boolean).map((m) => ({ date: m[1].includes("/") ? m[1].split("/").reverse().join("-") : m[1], rate: m[2] })) },
@@ -33,6 +34,12 @@ export const CENTRAL_BANKS = Object.freeze({
   QAR: { country: "Qatar", source: "Qatar Central Bank — exchange rates", short: "QCB",
     urls: () => [{ url: "https://www.qcb.gov.qa/en/Pages/default.aspx", date: null }],
     rate: (text) => /\bUS\s?Dollar\b[^\d]{0,40}(3\.6\d{1,4})/i.exec(text)?.[1] ?? null },
+});
+/* RR-322 A3 (owner: "AED and QAR are officially pegged to USD by their central banks — use the official peg, with its source"): the peg is
+ * the central bank's own fixed rate; its page is put on the client's AI browser list to confirm it (this reader is refused: 403 / no answer) */
+export const PEGS = Object.freeze({
+  AED: Object.freeze({ rate: "3.6725", source: "Central Bank of the UAE — the dirham's official peg to the US dollar", short: "CBUAE", link: "https://www.centralbank.ae/en/forex-eibor/exchange-rates/" }),
+  QAR: Object.freeze({ rate: "3.64", source: "Qatar Central Bank — the riyal's official peg to the US dollar", short: "QCB", link: "https://www.qcb.gov.qa/en/Pages/default.aspx" }),
 });
 /* a country's currency (the five above, and the ones the RBA publishes) */
 export const CURRENCY_OF = Object.freeze({ Pakistan: "PKR", Kenya: "KES", Tanzania: "TZS", "United Arab Emirates": "AED", Qatar: "QAR", India: "INR", Philippines: "PHP", "New Zealand": "NZD", "United Kingdom": "GBP", "United States": "USD", Canada: "CAD", Singapore: "SGD", Malaysia: "MYR", Indonesia: "IDR", Thailand: "THB", Vietnam: "VND", China: "CNY", Japan: "JPY", "South Korea": "KRW", Taiwan: "TWD", Switzerland: "CHF", "Papua New Guinea": "PGK", Australia: "AUD",
@@ -84,14 +91,19 @@ export function feeInCurrency(fee, country, rates) {
   if (!rba?.rates?.USD || fee.currency !== "AUD") return { line: `${said} — the Reserve Bank of Australia's rates could not be read today, so no ${cur} figure is shown`, steps: [] };
   const step = (from, to, rate, date, b) => ({ from, to, rate: Number(rate), said: rate, rateDate: date, source: b.source, short: b.short, link: b.link ?? b.page, recheckDays: RECHECK_DAYS });
   let steps;
+  /* RR-322 A3: until a rate is found — AUD and US dollars (the RBA's rate), the official rate page linked, never a guessed figure; the page
+   * goes on the client's AI browser list */
+  const usd = `${said} ≈ USD ${Math.round(fee.amount * Number(rba.rates.USD)).toLocaleString("en-US")} (the RBA rate of ${rba.date})`;
+  const fallback = (why, b0) => { const b = { ...b0, link: CENTRAL_BANKS[cur]?.page ?? b0.link }; return { line: `${usd} — ${why}, so no ${cur} figure is shown yet; the official rate: ${b.link}`, steps: [step("AUD", "USD", rba.rates.USD, rba.date, { ...RBA, link: RBA.page })], refused: why, browser: { kind: "rate", currency: cur, url: b.link, label: b.source, why } }; };
   if (rba.rates[cur]) steps = [step("AUD", cur, rba.rates[cur], rba.date, { ...RBA, link: RBA.page })];
+  else if (PEGS[cur] && !(rates.banks?.[cur]?.rate)) steps = [step("AUD", "USD", rba.rates.USD, rba.date, { ...RBA, link: RBA.page }), { ...step("USD", cur, PEGS[cur].rate, rba.date, PEGS[cur]), peg: true }];
   else if (CENTRAL_BANKS[cur]) {
     const b = rates.banks?.[cur];
-    if (!b || b.refused) return { line: `${said} — ${b?.refused ?? `${CENTRAL_BANKS[cur].source} was not read`}, so no ${cur} figure is shown`, steps: [], refused: b?.refused ?? null };
-    if (!fresh(b.date)) return { line: `${said} — the latest rate in ${b.source} is of ${b.date}, more than ${RECHECK_DAYS} days old, so no ${cur} figure is shown`, steps: [], stale: b.date };
+    if (!b || b.refused) return fallback(b?.refused ?? `${CENTRAL_BANKS[cur].source} was not read`, b?.link ? b : { link: CENTRAL_BANKS[cur].urls(rates.on)[0].url, source: CENTRAL_BANKS[cur].source });
+    if (!fresh(b.date)) return fallback(`the latest rate in ${b.source} is of ${b.date}, more than ${RECHECK_DAYS} days old`, b);
     steps = [step("AUD", "USD", rba.rates.USD, rba.date, { ...RBA, link: RBA.page }), step("USD", cur, b.rate, b.date, b)];
   } else return { line: `${said} — no central bank's official ${cur} rate is read by Visibility yet, so it is shown in ${fee.currency}`, steps: [] };
   if (!fresh(rba.date)) return { line: `${said} — the RBA's rate is more than ${RECHECK_DAYS} days old`, steps: [] };
   const amount = Math.round(steps.reduce((a, s) => a * s.rate, fee.amount));
-  return { line: `${said} ≈ ${cur} ${amount.toLocaleString("en-US")} — an estimate from the ${steps.map((s) => `${s.short} rate of ${s.rateDate} (1 ${s.from} = ${s.said} ${s.to})`).join(" and the ")}, not an official price`, currency: cur, amount, steps };
+  return { line: `${said} ≈ ${cur} ${amount.toLocaleString("en-US")} — an estimate from the ${steps.map((s) => (s.peg ? `${s.short}'s official peg (1 ${s.from} = ${s.said} ${s.to})` : `${s.short} rate of ${s.rateDate} (1 ${s.from} = ${s.said} ${s.to})`)).join(" and the ")}, not an official price`, currency: cur, amount, steps };
 }

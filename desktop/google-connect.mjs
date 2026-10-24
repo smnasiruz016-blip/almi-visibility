@@ -18,11 +18,11 @@ export const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 /* RR-308 D4: ONE extra permission, asked only when the client ticks "also let Visibility tell Google about my new pages": it can submit a
  * sitemap (it can also change other Search Console settings — Google offers nothing narrower; Visibility only ever submits a sitemap) */
 export const SUBMIT_SCOPE = "https://www.googleapis.com/auth/webmasters";
-export const GOOGLE = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", api: "https://www.googleapis.com/webmasters/v3/" });
+export const GOOGLE = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", api: "https://www.googleapis.com/webmasters/v3/", inspect: "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect" });
 export const KEYS = Object.freeze({ secret: "GOOGLE_CLIENT_SECRET", refresh: "GOOGLE_REFRESH_TOKEN" });
 const b64url = (b) => Buffer.from(b).toString("base64url");
 /* only Google's own addresses — or, in tests, a stand-in on this computer */
-const allowed = (u) => /^https:\/\/(accounts\.google\.com|oauth2\.googleapis\.com|www\.googleapis\.com)\//.test(u) || /^http:\/\/127\.0\.0\.1:\d+\//.test(u);
+const allowed = (u) => /^https:\/\/(accounts\.google\.com|oauth2\.googleapis\.com|www\.googleapis\.com|searchconsole\.googleapis\.com)\//.test(u) || /^http:\/\/127\.0\.0\.1:\d+\//.test(u);
 
 /** A ZIP's files (Search Console's own download) — stored or deflated entries; names → text. */
 export function unzip(buf) {
@@ -141,6 +141,18 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
         out[k].rows.set(key, x);
       }
       return { kind: "PERFORMANCE", on: d(0), site: siteUrl, weeks: out.reverse().map((w) => ({ from: w.from, to: w.to, rows: [...w.rows.values()].map(({ weighted, n, ...x }) => ({ ...x, position: Math.round((weighted / n) * 10) / 10 })) })) };
+    },
+    /** RR-322 C3 · Google's own index state of one page (URL Inspection, read-only; one request per page, Google's daily limit applies) */
+    async inspect(siteUrl, pageUrl) {
+      const t = await token(); if (!t) return null;
+      const r = await fetchImpl(ep.inspect, { method: "POST", headers: { authorization: `Bearer ${t}`, "content-type": "application/json" }, body: JSON.stringify({ inspectionUrl: pageUrl, siteUrl }) }).catch(() => null);
+      return r?.ok ? r.json() : null;
+    },
+    /** the made pages' own rows (page, clicks, impressions, position) over the last 3 months — for "improve before expand" */
+    async pageRows(siteUrl) {
+      const d = (n) => new Date(now() - n * 86400000).toISOString().slice(0, 10);
+      const j = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate: d(93), endDate: d(3), dimensions: ["page"], rowLimit: 5000 }) });
+      return j ? (j.rows ?? []).map((r) => ({ page: r.keys[0], clicks: r.clicks, impressions: r.impressions, position: r.position })) : null;
     },
     signOut() { keys.remove(KEYS.refresh); access = null; },
   });

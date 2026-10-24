@@ -52,10 +52,13 @@ before(async () => {
     if (req.url === "/under") return send(200, "z".repeat(999));
     return send(200, "<html>ok</html>");
   });
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  /* RR-322 E (the full-suite run where this file died in 2.2 s before any test — no reason printed): a fixture server that cannot listen is
+   * an ERROR WITH ITS REASON, retried three times when the cause is transient (a busy machine), never an unhandled event that kills the file */
+  const listen = async (s, host) => { for (let k = 0; ; k++) { try { await new Promise((ok, no) => { s.once("error", no); s.listen(0, host, () => { s.off("error", no); ok(); }); }); return; } catch (e) { if (k >= 2 || !/EADDRINUSE|EACCES|EADDRNOTAVAIL|EAGAIN/.test(e?.code ?? "")) throw new Error(`F19-FIXTURE: the fixture server on ${host} could not listen (${e?.code ?? e?.message})`); await new Promise((r) => setTimeout(r, 300)); } } };
+  await listen(server, "127.0.0.1");
   origin = `http://127.0.0.1:${server.address().port}`;
   server2 = createServer(server.listeners("request")[0]);
-  await new Promise((r) => server2.listen(0, "127.0.0.2", r));
+  await listen(server2, "127.0.0.2");
   origin2 = `http://127.0.0.2:${server2.address().port}`;
 });
 after(() => { for (const t of held) clearTimeout(t); for (const s of [server, server2]) { s?.closeAllConnections?.(); s?.close(); } });

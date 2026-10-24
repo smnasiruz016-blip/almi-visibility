@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { builtInList } from "../desktop/lists.mjs";
 import { recognitionOf, regulatorPagesOf, regulatorTitle, isRegulator, gradeLine, callNames } from "../desktop/recognition.mjs";
-import { planFromList, rolloutOf, whyNotMoreOf, universityTitle } from "../desktop/plan-list.mjs";
+import { planFromList, whyNotMoreOf, universityTitle } from "../desktop/plan-list.mjs";
 import { fiveFromList } from "../desktop/research5.mjs";
 import { sortQuestions, isMenuText, aboutProduct } from "../desktop/questions.mjs";
 import { groupQuestions, faqQuestions } from "../desktop/page-plan.mjs";
@@ -53,22 +53,23 @@ test("B5 · ONE SOURCE OF TRUTH: the five answers, the tables, \"why not more\",
   assert.deepEqual([plan.total, pages, lastRows], [n.total, n.total, n.total], "the total differs between the plan, its pages and its tables");
   /* the five answers' numbers ARE the ledger's */
   assert.deepEqual([q.q3.n, T.regulator.rows[1].n], [n.requirement, n.requirement]);
-  assert.deepEqual([q.q4.n, T.university.rows[3].n], [n.uniWithFacts, n.uniWithFacts]);
+  const row = (k, re) => T[k].rows.find((x) => re.test(x.step)); // RR-322: the tables gained gate rows — a row by its words
+  assert.deepEqual([q.q4.n, row("university", /whose professions a regulator accepts/).n], [n.uniWithFacts, n.uniWithFacts]);
   assert.equal(q.q5.n, n.professions);
   assert.match(q.q3.answer, new RegExp(`requirement in ${n.requirement} countries`)); assert.match(q.q3.answer, new RegExp(`named body in ${n.accepted} countries`));
-  assert.match(q.q3.answer, new RegExp(`read while building: ${n.regulatorRead} of ${n.regulatorPages}`), "D4: Q3 says how many regulators' own pages were read — from the same ledger as the pages");
-  assert.match(q.q4.answer, new RegExp(n.uniHealth.toLocaleString("en-US"))); assert.match(q.q4.answer, new RegExp(`${n.uniPages.toLocaleString("en-US")} different answers`));
+  assert.match(q.q3.answer, new RegExp(`read while building: ${n.regulatorRead} of ${n.regulators}`), "D4: Q3 says how many regulators' own pages were read — from the same ledger as the pages");
+  assert.match(q.q4.answer, new RegExp(n.uniHealth.toLocaleString("en-US"))); assert.match(q.q4.answer, new RegExp(`${n.uniPages.toLocaleString("en-US")} university pages, one per university`)); /* RR-322 A1 */
   /* "why not more" is the ledger's */
   const w = whyNotMoreOf(n, "OET");
   assert.deepEqual(plan.whyNotMore, w);
   assert.ok(w.lines[0].includes(`${n.combos} country`) && w.lines[0].includes(`${n.pairs} where`) && w.lines[0].includes(`${n.regulatorPages} pages`));
-  assert.ok(w.lines[1].includes(`${n.uniPages.toLocaleString("en-US")} different answers`));
+  assert.ok(w.lines[2].includes(`${n.uniPages.toLocaleString("en-US")} pages, one per university`)); /* RR-322 A1 */
   /* the question count's numbers are the ledger's */
   const qc = plan.questionCount;
   assert.deepEqual([qc.found, qc.kept, qc.groups, qc.ownPage, qc.inside, qc.notAbout, qc.menu], [n.questionsFound, n.questionsKept, n.questionGroups, n.questionOwnPage, n.questionInside, n.questionsNotAbout, n.menuLines]);
   assert.equal(qc.ownPage + qc.inside, qc.groups);
   /* B6: every row with a whole list has as many items as its number */
-  for (const [k, i] of [["regulator", 0], ["regulator", 1], ["regulator", 3], ["regulator", 4], ["university", 4], ["taking", 0], ["topic", 0], ["topic", 1]]) assert.equal(T[k].rows[i].kept.length, T[k].rows[i].n, `${k} row ${i}: its number and its list differ`);
+  for (const [k, re] of [["regulator", /is accepted/], ["regulator", /health regulator accepts/], ["regulator", /where a regulator accepts/], ["regulator", /^One page per regulator/], ["regulator", /^Pages$/], ["university", /^Pages$/], ["subtest", /^Pages$/], ["taking", /can be taken/], ["topic", /^Groups/], ["topic", /^Pages$/]]) { const x = row(k, re); assert.equal(x.kept.length, x.n, `${k} "${x.step}": its number and its list differ`); }
   assert.equal(T.regulator.rows[0].n + 0, REC.accepted.length); assert.equal(T.regulator.rows[1].kept.length + T.regulator.rows[1].left.length, T.regulator.rows[0].n, "accepted = requirement + not a requirement");
 });
 
@@ -175,12 +176,14 @@ test("D7 + E1 + G1 · taking it in a country is a SECTION of the one \"Where to 
 });
 
 test("E2 + E3 + E4 · the first batch answers the most-searched first; a university page links its regulator pages, a regulator page links \"Where to take\" and the topics; every page knows when it was last checked", () => {
-  const { plan } = planOf();
+  /* RR-322 A2: a regulator page waits until its own page confirms a score — the NZ nursing page is confirmed here (its own page read) */
+  const nz = REC.regulators.find((x) => x.name === "Nursing Council of New Zealand");
+  const { plan } = planOf({ reads: { [nz.id]: { ok: true, on: ON, url: "https://nz.example/english", claims: [{ fact: "scores", claimId: "s-nz", text: "Nursing Council of New Zealand names OET on its own page among the English tests it accepts — Listening B · Reading B · Writing C+ · Speaking B.", link: "https://nz.example/english", readOn: ON, source: "its own page", official: true, body: "Nursing Council of New Zealand" }] } } });
   assert.equal(plan.rollout.first[0], "OET score for nurses in New Zealand (Nursing Council of New Zealand)", "searched from 5 countries — first");
   assert.match(plan.rollout.firstWhy[0].why, /searched from 5 countries/);
-  assert.ok(plan.rollout.size >= 50 && plan.rollout.size <= 100);
+  assert.equal(plan.rollout.size, 25, "RR-322 C3: the first batch is 25");
   const u = plan.kinds.university[0], r = plan.kinds.regulator[0], where = plan.kinds.taking[0].title;
-  assert.ok(u.links.length && u.links.every((t) => plan.kinds.regulator.some((p) => p.title === t)), "E3: a university page links ITS regulator pages");
+  assert.ok(u.links.some((t) => plan.kinds.regulator.some((p) => p.title === t)), "E3: a university page links ITS regulator pages");
   assert.ok(r.links.includes(where), "E3: a regulator page links Where to take");
   assert.ok(plan.kinds.regulator.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.lastChecked ?? "")), "E4: last checked");
   assert.match(MAIN, /recheckSources\(id\)/); assert.match(MAIN, /updates\.json/); assert.match(UI, /Check the sources again now/);
@@ -200,12 +203,11 @@ test("E3 + E4 + E5 · a PREVIEW of two pages whose planned links point outside t
   assert.match(r.drafts[0].html, /href="https:\/\/x\.test\/oet-for-example-university-graduates"/); assert.match(r.drafts[1].html, /data-last-checked="2026-05-09">Last checked 2026-05-09</);
 });
 
-test("B3 + B4 · universities counted from AlmiStudy's data only (no site read); one page per DIFFERENT answer (country + professions); the deep-read box is gone", () => {
+test("B3 + B4 · universities counted from AlmiStudy's data (no deep read while counting); RR-322 A1: ONE page per university (gate 3 merges only pages more than 75% alike); the deep-read box is gone", () => {
   const { plan } = planOf(), n = plan.numbers;
   assert.deepEqual([n.uniAll, n.uniHealth], [UNIS.length, plan.tables.university.rows[1].n]);
-  assert.ok(n.uniPages < n.uniWithFacts, "universities sharing one answer are sections of one page");
-  const keys = new Set(plan.kinds.university.map((p) => `${p.country}|${[...p.professions].sort().join(",")}`));
-  assert.equal(keys.size, plan.kinds.university.length, "two pages with one answer");
+  assert.equal(n.uniPages + plan.gates.university.merged.length + plan.gates.university.sections.length, n.uniWithFacts, "every university with a destination answer is a page, or named inside the page it is 75% alike");
+  assert.ok(plan.kinds.university.every((p) => p.uni?.name && (p.covers ? p.coverNames.length === p.covers.length : true)), "a page is one university, or names every one it covers");
   assert.ok(plan.kinds.university.every((p) => p.claims.every((c) => c.link && /^\d{4}-\d{2}-\d{2}$/.test(c.readOn))));
   assert.equal(universityTitle("OET", [{ name: "Example University of Health (EUH)" }], "Pakistan"), "OET for Example University of Health graduates");
   assert.ok(!UI.includes("How many universities to read now"), "B3: the deep-read default is removed");
@@ -221,7 +223,7 @@ test("B1 + D1 + G3 · no tick needed; the client's words always saved and shown 
   assert.match(UI, /function understoodHtml/); assert.match(UI, /Your words are saved/); assert.match(UI, /The lists — used on their own, no tick needed/);
   assert.match(UI, /countries where \$\{esc\(L\.subject\)\} is accepted/); assert.match(UI, /countries where \$\{esc\(L\.subject\)\} can be taken/); assert.match(UI, /Steps \(never page counts\)/);
   assert.match(UI, /The page count — <span id="pctotal">/); assert.match(UI, /data-rowlist=/); assert.match(UI, /The questions we found/);
-  assert.match(UI, /Preview one regulator page and one university page/); assert.match(MAIN, /r\[2\] === "count\/preview"/);
+  assert.match(UI, /Preview six full pages/); /* RR-322 PROOF */ assert.match(MAIN, /r\[2\] === "count\/preview"/);
   /* the proof found the preview "not found": its handler existed, its address was not in the route list — every count route must be REACHABLE */
   const routeList = new RegExp(/\/\^\\\/api\\\/products\\\/\(\[\^\/\]\+\)\\\/\((web\\\/write\|count[^)]*)\)\$\//.exec(MAIN)[1].replace(/\\\//g, "/"));
   for (const r of ["count", "count/make", "count/understand", "count/preview", "count/recheck"]) assert.ok(new RegExp(`^(${routeList.source})$`).test(r), `${r} is not in the route list`);
@@ -234,8 +236,10 @@ test("D5 · the fee in the reader's currency: RBA × that country's central bank
   const pk = feeInCurrency(FEE, "Pakistan", rates);
   assert.equal(pk.steps.length, 2); assert.deepEqual(pk.steps.map((s) => [s.from, s.to, s.said, s.short]), [["AUD", "USD", "0.7006", "RBA"], ["USD", "PKR", "280.5", "SBP"]]);
   assert.equal(pk.amount, Math.round(587 * 0.7006 * 280.5)); assert.match(pk.line, /^AUD 587 ≈ PKR [\d,]+ — an estimate from the RBA rate of 2026-10-23 \(1 AUD = 0\.7006 USD\) and the SBP rate of 2026-10-23 \(1 USD = 280\.5 PKR\), not an official price$/);
-  assert.match(feeInCurrency(FEE, "United Arab Emirates", rates).line, /answered 403.*so no AED figure is shown/);
-  assert.match(feeInCurrency(FEE, "Kenya", rates).line, /2024-01-03, more than 7 days old, so no KES figure is shown/);
+  /* RR-322 A3: AED is pegged to the US dollar by its central bank — the official peg, with its source; a stale KES rate: AUD and USD, the
+   * official page linked, never a guessed figure */
+  assert.match(feeInCurrency(FEE, "United Arab Emirates", rates).line, /≈ AED 1,510 — an estimate from the RBA rate of 2026-10-23 \(1 AUD = 0\.7006 USD\) and the CBUAE's official peg \(1 USD = 3\.6725 AED\)/);
+  assert.match(feeInCurrency(FEE, "Kenya", rates).line, /≈ USD 411 \(the RBA rate of 2026-10-23\) — the latest rate in Central Bank of Kenya is of 2024-01-03, more than 7 days old, so no KES figure is shown yet; the official rate: https:\/\/www\.centralbank\.go\.ke\/rates\/forex-exchange-rates\//);
   assert.match(feeInCurrency(FEE, "India", rates).line, /≈ INR 39,018 .*RBA rate of 2026-10-23/);
   assert.deepEqual(Object.keys(CENTRAL_BANKS).sort(), ["AED", "KES", "PKR", "QAR", "TZS"]);
   assert.deepEqual(CENTRAL_BANKS.TZS.row("40 USD 2624.6931 2650.94 2637.8165 24-Oct-26"), { rate: "2637.8165", date: "2026-10-24" });

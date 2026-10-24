@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-const SAB = sabMode();
+const SAB = sabMode(process.env, { exit: (c) => process.exit(c), write: (s) => process.stderr.write(s) }); // this process's own env and exit — the span reader (RR-248) evaluates a harness with a stand-in process
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const B = "bin/crawl.mjs", C = "src/tenancy/connectors.mjs", F = "src/crawl/fetcher.mjs", R = "src/crawl/robots.mjs", W = "src/crawl/crawler.mjs";

@@ -22,7 +22,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runSabotages, renderEvidence } from "./f08-sabotage.mjs";
-const SAB = sabMode();
+const SAB = sabMode(process.env, { exit: (c) => process.exit(c), write: (s) => process.stderr.write(s) }); // this process's own env and exit — the span reader (RR-248) evaluates a harness with a stand-in process
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const T = "test/f19-crawler-bounds.test.mjs";

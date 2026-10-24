@@ -23,6 +23,8 @@ const REGULATOR_KIND = /healthcare regulator|credentialing/i;
 /** a body whose acceptance is a REGISTRATION rule: a health regulator or credentialing body (by the list's own kind), or a health authority
  * of a government (never a visa or education office — official.mjs NOT_HEALTH) */
 export const isRegulator = (o) => !/home affairs|immigration|visa|border/i.test(o.name) && (REGULATOR_KIND.test(o.kind ?? "") || ((!o.kind || /^government$/i.test(o.kind)) && isHealthRegulator(o.name)));
+/** the names people search a body by: its short name ("NMBI"), its own first word before " - " ("CORU"), its name without brackets */
+export const callNames = (r) => [...new Set([r.short, /^([A-Z]{3,10})\s+-\s+/.exec(r.name ?? r.body ?? "")?.[1], String(r.name ?? r.body ?? "").replace(/\s*\([^)]*\)\s*$/, "").trim()].filter((x) => x && x.length >= 3))];
 export const SUBTESTS = Object.freeze(["listening", "reading", "writing", "speaking"]);
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 /** "Listening B · Reading B · Writing C+ · Speaking B" */

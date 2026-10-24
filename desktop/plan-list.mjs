@@ -14,7 +14,7 @@
  * Pure: everything is handed in.
  */
 import { destinationsIn, originsIn, countriesIn, neighboursOf, REGIONS_SOURCE } from "./world.mjs";
-import { regulatorPagesOf, PEOPLE_WORD, inCountry, gradeLine, countLine } from "./recognition.mjs";
+import { regulatorPagesOf, PEOPLE_WORD, inCountry, gradeLine, countLine, callNames } from "./recognition.mjs";
 import { teachesHealth, professionsOfFields } from "./universities.mjs";
 import { feeInCurrency } from "./rates.mjs";
 import { professionIn, TAKING, UNIVERSITY, TOPICS, searched } from "./page-plan.mjs";
@@ -82,7 +82,7 @@ export function planFromList({ subject, rec, professions, universities = [], ven
     const q = [g.question, ...(g.also ?? [])].join(" "), dest = destinationsIn(q).filter((c) => reqCountries.includes(c)), orig = [...new Set([...originsIn(q), ...countriesIn(q)])].filter((c) => !reqCountries.includes(c) || TAKING.test(q)), prof = professionIn(q);
     let page = null, sec = null;
     /* a question naming a regulator ("oet score for nmbi") is that regulator's page */
-    page = regulator.find((p) => (p.short && p.short.length >= 3 && names(q, p.short)) || names(q, p.body.replace(/\s*\([^)]*\)\s*$/, ""))) ?? null;
+    page = regulator.find((p) => callNames({ short: p.short, name: p.body }).some((n) => names(q, n))) ?? null;
     if (!page && UNIVERSITY.test(q)) page = university.find((p) => p.universities.some((u) => names(q, plainName(u.name)) || (shortOf(u.name) && names(q, shortOf(u.name))))) ?? null;
     /* taking it in a country (D7: "OET exam in Bangladesh"): a section of "Where to take", never a page of its own */
     if (!page && (TAKING.test(q) || (orig.length && !dest.length && !prof))) { const c = orig[0] ?? null; page = where; if (c) { sec = c; if (!vset.has(c) && !where.sections.some((s) => s.country === c)) where.sections.push(section(c, true)); } }

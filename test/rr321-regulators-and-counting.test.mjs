@@ -15,7 +15,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { builtInList } from "../desktop/lists.mjs";
-import { recognitionOf, regulatorPagesOf, regulatorTitle, isRegulator, gradeLine } from "../desktop/recognition.mjs";
+import { recognitionOf, regulatorPagesOf, regulatorTitle, isRegulator, gradeLine, callNames } from "../desktop/recognition.mjs";
 import { planFromList, rolloutOf, whyNotMoreOf, universityTitle } from "../desktop/plan-list.mjs";
 import { fiveFromList } from "../desktop/research5.mjs";
 import { sortQuestions, isMenuText, aboutProduct } from "../desktop/questions.mjs";
@@ -41,7 +41,7 @@ const ITEMS = [
   ["How long are OET results valid?", "official FAQ"], ["What do people in Kenya ask about OET for nursing?", "ai research"], ["oet singapore pharmacist", "observed"], ["oet for physiotherapists in australia", "tool"],
 ].map(([text, kind]) => ({ text, kind, source: `${kind} (fixture)`, ...(kind === "official FAQ" ? { link: "https://oet.example/faq", on: ON } : {}) }));
 const SC_ROWS = [{ query: "oet for nurses in new zealand", country: "India", impressions: 40 }, { query: "oet for nurses in new zealand", country: "Kenya", impressions: 9 }, { query: "oet for nurses in new zealand", country: "Nigeria", impressions: 7 }, { query: "oet for nurses in new zealand", country: "Philippines", impressions: 4 }, { query: "oet for nurses in new zealand", country: "Pakistan", impressions: 3 }, { query: "oet for doctors uk", country: "India", impressions: 30 }];
-const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET", { fullName: "Occupational English Test" }); const groups = groupQuestions(sorted.kept); return { sorted, plan: planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: UNIS, venues: VENUES, fee: FEE, rates: null, stats: { ok: true, line: "fixture stats", nationalities: ["Indian", "Pakistani"], sources: [] }, groups, sorted, byCountry: SC_ROWS, reads: {}, on: ON, ...extra }) }; };
+const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET", { fullName: "Occupational English Test", regulators: REC.regulators.map(callNames) }); const groups = groupQuestions(sorted.kept); return { sorted, plan: planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: UNIS, venues: VENUES, fee: FEE, rates: null, stats: { ok: true, line: "fixture stats", nationalities: ["Indian", "Pakistani"], sources: [] }, groups, sorted, byCountry: SC_ROWS, reads: {}, on: ON, ...extra }) }; };
 
 test("B5 · ONE SOURCE OF TRUTH: the five answers, the tables, \"why not more\", the question count and the plan show the SAME numbers — any two that differ fail", () => {
   const { plan } = planOf(), n = plan.numbers, T = plan.tables;
@@ -139,7 +139,11 @@ test("C + D2 + D3 · the question count: per source; junk is NOT about the produ
   for (const j of ["kate cowhig", "aguinaldo recruitment agency", "yale visiting student program", "bc care registry", "pgme mcmaster phone number"]) assert.ok(not.includes(j), `D2: "${j}" shown as a question`);
   assert.equal(sorted.menu.length, 1); assert.ok(isMenuText("Read our re-marking policy Everything you need to know FAQs"), "D3");
   assert.ok(!isMenuText("How long are OET results valid?")); assert.ok(aboutProduct({ text: "nmbi english language test score" }, "OET").about, "the English-test need it meets is about it");
-  const qc = plan.questionCount;
+  /* the proof: "ot ahpra" and "coru registration for optometrist" name a REGULATOR of OET's list — about the registration it is for; "kate
+   * cowhig" names a recruiter of that list — not about OET */
+  const regs = REC.regulators.map(callNames);
+  assert.ok(aboutProduct({ text: "ot ahpra" }, "OET", { regulators: regs }).about); assert.ok(aboutProduct({ text: "coru registration for optometrist" }, "OET", { regulators: regs }).about);
+  assert.equal(aboutProduct({ text: "kate cowhig international healthcare recruitment" }, "OET", { regulators: regs }).about, false);  const qc = plan.questionCount;
   assert.match(qc.line, /questions we found \(not all the questions in the world\)/); assert.doesNotMatch(qc.line, /all questions in the world[^)]/);
   const by = Object.fromEntries(qc.bySource.map((x) => [x.kind, x.found]));
   assert.deepEqual([by.search, by.observed, by["ai research"], by["official FAQ"], by.tool], [11, 1, 1, 1, 1]);
@@ -197,6 +201,9 @@ test("B1 + D1 + G3 · no tick needed; the client's words always saved and shown 
   assert.match(UI, /countries where \$\{esc\(L\.subject\)\} is accepted/); assert.match(UI, /countries where \$\{esc\(L\.subject\)\} can be taken/); assert.match(UI, /Steps \(never page counts\)/);
   assert.match(UI, /The page count — <span id="pctotal">/); assert.match(UI, /data-rowlist=/); assert.match(UI, /The questions we found/);
   assert.match(UI, /Preview one regulator page and one university page/); assert.match(MAIN, /r\[2\] === "count\/preview"/);
+  /* the proof found the preview "not found": its handler existed, its address was not in the route list — every count route must be REACHABLE */
+  const routeList = new RegExp(/\/\^\\\/api\\\/products\\\/\(\[\^\/\]\+\)\\\/\((web\\\/write\|count[^)]*)\)\$\//.exec(MAIN)[1].replace(/\\\//g, "/"));
+  for (const r of ["count", "count/make", "count/understand", "count/preview", "count/recheck"]) assert.ok(new RegExp(`^(${routeList.source})$`).test(r), `${r} is not in the route list`);
 });
 
 test("D5 · the fee in the reader's currency: RBA × that country's central bank (RR-257's chain), every rate as written on its source, its date; a bank that refuses or is stale shows NO figure and says why", async () => {

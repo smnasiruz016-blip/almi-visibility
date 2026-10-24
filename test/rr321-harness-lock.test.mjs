@@ -60,7 +60,7 @@ test("F2 · the 4 crawl harnesses take an explicit SAB_MODE — none is refused 
   for (const f of ["f19-sabotage", "f19-generic-crawl-sabotage", "rr227-sabotage", "rr229c-sabotage"]) {
     const t = readFileSync(new URL(`./helpers/${f}.mjs`, import.meta.url), "utf8");
     assert.match(t, /import "\.\/harness-gate\.mjs";[^\n]*\r?\nimport \{ sabMode, dryPreflight \} from "\.\/sab-mode\.mjs";/, `${f}: the mode right after the gate`);
-    assert.match(t, /const SAB = sabMode\(\);/); assert.match(t, /if \(SAB === "dry"\) dryPreflight\(/);
+    assert.match(t, /const SAB = sabMode\(process\.env, \{ exit: \(c\) => process\.exit\(c\)/, `${f}: its own process (RR-248 reads it in a sandbox)`); assert.match(t, /if \(SAB === "dry"\) dryPreflight\(/);
     assert.ok(t.indexOf('if (SAB === "dry") dryPreflight(') < Math.min(...["writeFileSync(join(REPO, file), text", "runSabotages(list)", "const baseOut"].map((a) => t.indexOf(a)).filter((i) => i >= 0)), `${f}: dry returns before anything is written or run`);
     const bare = spawnSync(process.execPath, [new URL(`./helpers/${f}.mjs`, import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "--deliberate"], { encoding: "utf8", env: { ...process.env, SAB_MODE: "" } });
     assert.equal(bare.status, 2, `${f}: no mode was not refused`); assert.match(bare.stderr, /REFUSED — set SAB_MODE=dry/);

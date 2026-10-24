@@ -41,7 +41,7 @@ import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
 import { realityFilter, advise, listFromFile, DIMENSIONS } from "./page-count.mjs"; // RR-318 C
 import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subjectProblem, formulaOf } from "./page-plan.mjs"; // RR-319
 import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, figureOf } from "./research5.mjs"; // RR-320 B
-import { recognitionOf } from "./recognition.mjs"; // RR-321 A
+import { recognitionOf, callNames } from "./recognition.mjs"; // RR-321 A
 import { planFromList } from "./plan-list.mjs"; // RR-321 B
 import { venueCountries, statisticsOf } from "./venues.mjs"; // RR-321 G1, B2
 import { readRates } from "./rates.mjs"; // RR-321 D5
@@ -286,8 +286,8 @@ const listOf = (s, subject) => (isAlmiWorld(s) && /^oet$/i.test(String(subject ?
 const professionsOf = () => (builtInList("professions")?.items ?? []).map((x) => x.name.toLowerCase());
 function listPlan(id, c) {
   const s = store.read(id), list = listOf(s, c.subject); if (!list) return null;
-  const items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test" }), groups = groupQuestions(sorted.kept);
-  const plan = planFromList({ subject: c.subject, rec: recognitionOf(list, { professions: professionsOf() }), professions: professionsOf(), universities: builtInList("universities")?.items ?? [], venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: c.rates ?? null, stats: c.stats ?? null, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins") });
+  const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: c.rates ?? null, stats: c.stats ?? null, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins") });
   const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
   return { plan, five, questions: groups };
 }
@@ -591,7 +591,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }

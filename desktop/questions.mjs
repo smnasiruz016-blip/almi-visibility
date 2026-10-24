@@ -28,10 +28,14 @@ export function isMenuText(text) {
 /* what the test is FOR: a question about meeting an English-language requirement is about it even when it does not name it */
 const NEED = /\b(english (language )?(test|tests|requirements?|proficiency|score|scores|exam)|language (test|requirements?)|ielts|pte|toefl|occupational english)\b/i;
 /** → { about: true, why } | { about: false, why } — the subject named, its full name, its own FAQ, or the English-test need it meets */
-export function aboutProduct(item, subject, { fullName = null } = {}) {
+export function aboutProduct(item, subject, { fullName = null, regulators = [] } = {}) {
   const t = String(item?.text ?? item ?? "");
   if (names(t, subject) || (fullName && names(t, fullName))) return { about: true, why: `names ${subject}` };
   if (item?.kind === "official FAQ") return { about: true, why: `on ${subject}'s own FAQ` };
+  /* a search naming a REGULATOR of the subject's own list ("ot ahpra", "coru registration") is about the registration it is for — never an
+   * employer or a recruiter of that list ("kate cowhig" names no regulator) */
+  const reg = regulators.find((names_) => names_.some((n) => names(t, n)));
+  if (reg) return { about: true, why: `names ${reg[0]}, a regulator in ${subject}'s own list` };
   if (NEED.test(t)) return { about: true, why: "about the English-test requirement it meets" };
   return { about: false, why: `does not name ${subject} or an English-test requirement` };
 }

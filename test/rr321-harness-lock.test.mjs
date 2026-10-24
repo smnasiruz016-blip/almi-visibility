@@ -41,11 +41,12 @@ test("F1 · no mark, or the mark of a process that no longer runs: nothing is re
   }
 });
 
-test("F1 · the guard is a PreToolUse hook of the user's tooling, for every tool", () => {
+/* CI found it: node:test takes its options as the SECOND argument — a third is ignored, and CI has no user tooling */
+test("F1 · the guard is a PreToolUse hook of the user's tooling, for every tool", { skip: !process.env.USERPROFILE || process.env.CI ? "the owner's machine only (CI has no user tooling)" : false }, () => {
   const s = JSON.parse(readFileSync(join(process.env.USERPROFILE ?? process.env.HOME ?? "", ".claude", "settings.json"), "utf8"));
   const hooks = (s.hooks?.PreToolUse ?? []).flatMap((h) => (h.hooks ?? []).map((x) => ({ matcher: h.matcher, command: x.command })));
   assert.ok(hooks.some((h) => h.matcher === "*" && /harness-lock-guard\.mjs/.test(h.command)), "the lock is not wired");
-}, { skip: !process.env.USERPROFILE || process.env.CI ? "the owner's machine only (CI has no user tooling)" : false });
+});
 
 test("F2 · the 4 crawl harnesses take an explicit SAB_MODE — none is refused with exit 2, dry is the pre-flight only", () => {
   assert.deepEqual(SAB_MODES, ["dry", "run"]);

@@ -40,7 +40,13 @@ import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS, 
 import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
 import { realityFilter, advise, listFromFile, DIMENSIONS } from "./page-count.mjs"; // RR-318 C
 import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subjectProblem, formulaOf } from "./page-plan.mjs"; // RR-319
-import { fiveAnswers, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, figureOf } from "./research5.mjs"; // RR-320 B
+import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, figureOf } from "./research5.mjs"; // RR-320 B
+import { recognitionOf, callNames } from "./recognition.mjs"; // RR-321 A
+import { planFromList } from "./plan-list.mjs"; // RR-321 B
+import { venueCountries, statisticsOf } from "./venues.mjs"; // RR-321 G1, B2
+import { readRates } from "./rates.mjs"; // RR-321 D5
+import { sortQuestions } from "./questions.mjs"; // RR-321 C
+import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
 import { builtInList, HOWTO as LIST_HOWTO, WORLD_LISTS, draftList } from "./lists.mjs"; // RR-319 B
 import { searchPower, mergeHistory } from "./search-power.mjs"; // RR-318 D
 import { siteNameOf } from "./web-text.mjs";
@@ -271,9 +277,34 @@ async function researchFor({ id, s, sc, subject, subjectSite, rd, res }) {
 /* RR-320 B · a phrase is kept once (same words, same source kind, same place) */
 const mergePhrases = (held, more) => { const key = (p) => `${p.kind}|${String(p.place ?? "")}|${String(p.text).toLowerCase().replace(/\s+/g, " ").trim()}`, seen = new Set(held.map(key)); return [...held, ...more.filter((p) => { const k = key(p); if (seen.has(k)) return false; seen.add(k); return true; })]; };
 const phraseItems = (id) => pread(id, "phrases.json", []).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 }));
+/*
+ * 🔴 RR-321 · THE COUNT FROM THE SUBJECT'S OWN LIST (AlmiWorld's OET: the built-in "who recognises OET" list, AlmiStudy's universities, OET's
+ * 12 professions) — fast, and the plan, the tables, the five answers and the total all from ONE ledger. The regulators' own pages are read
+ * while pages are BUILT (count/preview, count/make) and saved in regulator-reads.json; they add facts to the plan, never pages.
+ */
+const listOf = (s, subject) => (isAlmiWorld(s) && /^oet$/i.test(String(subject ?? "")) ? builtInList("recognising") : null);
+const professionsOf = () => (builtInList("professions")?.items ?? []).map((x) => x.name.toLowerCase());
+function listPlan(id, c) {
+  const s = store.read(id), list = listOf(s, c.subject); if (!list) return null;
+  const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: c.rates ?? null, stats: c.stats ?? null, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins") });
+  const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
+  return { plan, five, questions: groups };
+}
+/** read one regulator's own page (RFC 9309 robots) and keep what it states, by the list's id — a lead the client or his AI gave for the same
+ * site is read first */
+async function readRegulatorFor(id, page, rd) {
+  const leads = Object.values(pread(id, "official-sources.json", {})).flat(), host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
+  const lead = leads.find((l) => host(l.url) && [page.record?.officialUrl, page.website].some((u) => host(u) === host(l.url)));
+  const p = lead && !page.record?.officialUrl ? { ...page, record: { ...(page.record ?? {}), officialUrl: lead.url } } : page;
+  const r = await readRegulator({ page: p, subject: "OET", reader: rd }).catch((e) => ({ ok: false, url: page.website, on: rd.on, why: `could not be read (${String(e?.message ?? e).slice(0, 80)})`, claims: [] }));
+  const all = pread(id, "regulator-reads.json", {}); all[page.listId] = { ...r, body: page.body, title: page.title }; pwrite(id, "regulator-reads.json", all);
+  return r;
+}
 /** the plan and the five answers made again from what is saved — no page is read again (pages never wait for the browser search) */
 function replan(id) {
   const c = pread(id, "page-count.json"); if (!c?.result?.ok) return false;
+  if (c.list) { const x = listPlan(id, c); if (!x) return false; pwrite(id, "page-count.json", { ...c, ...x, replannedOn: new Date().toISOString() }); return true; }
   const items = [...(c.items ?? []), ...phraseItems(id)], questions = groupQuestions(items);
   const plan = planPages({ r: c.result, official: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), questions, formula: c.formula, subject: c.subject });
   const five = fiveAnswers({ subject: c.subject, res: c.result, plan, official: officialOf(id), byCountry: c.byCountry, sc: searchConsoleOf(id), items, figure: c.figure, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []), dims: c.dims });
@@ -323,6 +354,24 @@ async function submitAll(id) {
   didIt(id, `Submitted ${live.length} published page${live.length === 1 ? "" : "s"} — ${lines.join(" ")}`);
   return { ok: true, lines, pages: submissionLines(live, subs) };
 }
+/*
+ * 🔴 RR-321 E4 · FRESHNESS: Visibility rechecks the sources of the pages it made, on its own (with the weekly check, or when asked); when a
+ * number on a source changed, it PROPOSES the update (updates.json) — it never changes a page by itself. A source that cannot be read now is
+ * tried again next time.
+ */
+const numbersOfText = (t) => (String(t ?? "").replace(/\b\d{4}-\d{2}-\d{2}\b/g, " ").match(/\d+(?:\.\d+)?|\b[ABC]\+?(?=\s|\)|$)/g) ?? []).join(" ");
+async function recheckSources(id) {
+  const made = pread(id, "made-plan.json", []), reads = pread(id, "regulator-reads.json", {}), rd = reader(), proposals = [];
+  for (const p of made.filter((x) => x.kind === "regulator" && reads[x.listId])) {
+    const old = reads[p.listId]; if (old.on && (Date.now() - Date.parse(old.on)) / 864e5 < 7) continue;
+    const r = await readRegulatorFor(id, p, rd);
+    if (!r.ok) continue;
+    for (const c of r.claims) { const was = (old.claims ?? []).find((x) => x.fact === c.fact); if (was && numbersOfText(was.text) !== numbersOfText(c.text)) proposals.push({ page: p.title, fact: c.fact, before: was.text, after: c.text, source: c.link, on: r.on }); }
+  }
+  if (proposals.length) pwrite(id, "updates.json", [...pread(id, "updates.json", []), ...proposals].slice(-200));
+  if (made.length) replan(id);
+  return { proposals: proposals.length };
+}
 /* D4 · the weekly check: a product whose last check is a week old is checked again (its plan made again); a client who chose "publish
  * automatically" also gets the new drafts published and submitted — never for AlmiWorld's own products. Only while the app is open. */
 async function weeklyRound() {
@@ -331,6 +380,7 @@ async function weeklyRound() {
     const c = pread(id, "check.json"); if (!c?.on || Date.now() - Date.parse(c.on) < 7 * 864e5) continue;
     try {
       await checkProduct(id); didIt(id, "Weekly check: checked again and made the action plan again.");
+      await recheckSources(id).catch(() => null); // RR-321 E4
       const s = store.read(id);
       if (hasWebsite(s) && !isAlmiWorld(s) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) {
         const r = await createPages(id); const n = (r.auto ?? []).filter((x) => x.ok).length;
@@ -541,7 +591,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -565,16 +615,18 @@ const server = createServer((req, res) => {
             const aw = isAlmiWorld(s), bi = (k) => { const x = aw ? builtInList(k) : null; return x ? { n: x.items.length, source: x.source } : null; };
             /* RR-320 B: today's browser-search list for the client's own AI (Visibility never runs it), and the runs his AI handed in */
             const lastC = pread(id, "page-count.json"), runs = pread(id, "phrase-runs.json", []), today = new Date().toISOString().slice(0, 10);
-            const browser = aboutOf(s) ? browserSearchList({ subject: aboutOf(s), countries: (lastC?.result?.dims?.countries?.kept ?? []).map((k) => k.name), origins: (lastC?.byCountry ?? []).map((c) => c.country).filter((c) => !/^other/.test(c)), professions: lastC?.result?.dims?.roles?.professions ?? [], own: pread(id, "research-own.json", []) }) : null;
+            const fromList = lastC?.list && lastC.plan; // RR-321: the countries and professions of the list's count
+            const browser = aboutOf(s) ? browserSearchList({ subject: aboutOf(s), countries: fromList ? lastC.plan.tables.regulator.rows[1].kept.map((k) => k.name) : (lastC?.result?.dims?.countries?.kept ?? []).map((k) => k.name), origins: (lastC?.byCountry ?? []).map((c) => c.country).filter((c) => !/^other/.test(c)), professions: fromList ? professionsOf() : lastC?.result?.dims?.roles?.professions ?? [], own: pread(id, "research-own.json", []) }) : null;
             const usedToday = runs.filter((x) => x.date === today && x.verdict === "ACCEPTED").reduce((n, x) => n + (x.searchesUsed ?? 0), 0);
-            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions") } : null, aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: pread(id, "page-count.json"), almiworld: aw });
+            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions"), recognising: bi("recognising") } : null, listPath: Boolean(listOf(s, aboutOf(s) ?? "OET")), aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: lastC?.list && lastC.plan ? { ...lastC, plan: { ...lastC.plan, kinds: undefined } } /* RR-321 proof: the screen shows the tables; the pages' bodies (MBs) stay in the file */ : lastC, make: pread(id, "make.json"), preview: pread(id, "preview.json"), updates: pread(id, "updates.json", []).slice(-30), almiworld: aw });
           }
           /* RR-319 ADD · the client's own words → what Visibility understood (his AI when connected; else the plain reader); he confirms */
           if (r[2] === "count/understand" && req.method === "POST") {
             const v = json(); let f = v.guided ? fromGuided(v.guided) : parseFormula(v.text), byAI = false;
             const ai = aiOf(s);
             if (!v.guided && ai && String(v.text ?? "").trim() && LEDGER.allowed().ok) { const a = await understandFormulaAI({ ...ai, text: v.text, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }); if (a.usage) LEDGER.add(a.usage); if (a.ok) { f = formulaOf(a.parts); byAI = true; } /* RR-320 B: the AI's parts read with the same relations as the plain reader */ }
-            if (!f.ok) return send(400, { refused: "Visibility could not read which pages you mean. Use the three boxes: from what → to what → for what (for example: from 197 countries → to 9 countries → for 519 job roles)." });
+            /* RR-321 D1: the client's words are ALWAYS saved (they come back when he opens the screen again), understood or not */
+            if (!f.ok) { pwrite(id, "formula.json", { text: v.text ?? null, guided: v.guided ?? null, ok: false, line: null, parts: [], run: [], confirmed: false, on: new Date().toISOString() }); return send(400, { refused: "Your words are saved. Visibility could not read which pages you mean — use the three boxes: from what → to what → for what (for example: from 197 countries → to 9 countries → for 519 job roles).", saved: true }); }
             const saved = { text: v.text ?? null, guided: v.guided ?? null, ...f, byAI, confirmed: false, on: new Date().toISOString() };
             pwrite(id, "formula.json", saved);
             return send(200, { ok: true, ...saved });
@@ -583,7 +635,9 @@ const server = createServer((req, res) => {
           if (r[2] === "count" && req.method === "POST") {
             const v = json();
             const formula = v.useFormula ? pread(id, "formula.json") : null;
-            const dims = formula?.run?.length ? formula.run : (Array.isArray(v.dims) ? v.dims : []).filter((d) => DIMENSIONS.some((x) => x.id === d) || d === "origins");
+            /* RR-321 B1: for AlmiWorld's OET the five questions and the count ALWAYS run on the built-in lists — no tick is needed */
+            const list = listOf(s, String(v.subject ?? "").trim());
+            const dims = list ? ["countries", "origins", "roles", "universities"] : formula?.run?.length ? formula.run : (Array.isArray(v.dims) ? v.dims : []).filter((d) => DIMENSIONS.some((x) => x.id === d) || d === "origins");
             if (!dims.length) return send(400, { refused: "Tell Visibility which pages you have in mind (in your own words, or tick countries, universities, professions …)." });
             const subject = String(v.subject ?? "").trim(), offSite = webAddress(String(v.site ?? "").trim());
             /* RR-319 C1 (owner typed a long description here → 0 of 197 kept): the subject is a SHORT name */
@@ -596,7 +650,7 @@ const server = createServer((req, res) => {
             for (const k of ["roles", "universities", "subjects"]) if (aw && v.builtin?.[k] && dims.includes(k) && !lists[k]?.length) { const b = builtInList(k); if (b) lists[k] = b.items; }
             /* RR-320 A: "12 professions" are the subject's professions — for AlmiWorld, OET's own 12 (oet.com), never AlmiStudy's 12 subjects */
             if (aw && dims.includes("roles") && v.builtin?.professions !== false && (formula?.professions || v.builtin?.professions) &&!Object.keys(v.typed ?? {}).some((k) => k === "roles" && String(v.typed.roles).trim())) { const b = builtInList("professions"); if (b) lists.roles = b.items; }
-            const universityReads = Math.max(1, Math.min(300, Number.isInteger(v.universityReads) ? v.universityReads : 30));
+            const universityReads = Math.max(0, Math.min(300, Number.isInteger(v.universityReads) ? v.universityReads : 0)); // RR-321 B3: no deep reading of university sites while counting
             const st = store.read(id); st.setup.official = { subject, site: offSite, description: String(v.description ?? "").slice(0, 2000) || null }; store.write(id, st);
             if (formula) pwrite(id, "formula.json", { ...formula, confirmed: true });
             const run = (async () => {
@@ -606,6 +660,30 @@ const server = createServer((req, res) => {
               let scNow = sc;
               if (sc?.kind === "CONNECTED" && sc.site) { say("Reading your Search Console, by country"); const q = await GOOGLE.queries(sc.site).catch(() => null); if (q) { pwrite(id, "search-console.json", q); scNow = q; } }
               const byCountry = scNow?.byCountry ? questionsByCountry(scNow.byCountry) : null;
+              /* RR-321 · the fast count from the subject's own list: its venue pages, its fee, the central banks' rates, its statistics, the
+               * questions — no regulator's and no university's site is read here */
+              if (list) {
+                const before = pread(id, "page-count.json"), was = before?.list ? before.before : { accepted: before?.result?.dims?.countries?.kept?.map((k) => k.name) ?? null, taking: before?.result?.dims?.origins?.kept?.map((k) => k.name) ?? null, on: before?.on ?? null };
+                say(`Reading ${subject}'s own pages: where it can be taken, and its fee`);
+                const res = await realityFilter({ dims: ["origins"], lists: {}, subject, subjectName: subject, subjectSite: offSite, reader: rd, onProgress: say });
+                if (!res.ok) { pwrite(id, "page-count.json", { on: new Date().toISOString(), list: true, dims, subject, site: offSite, formula, result: res, plan: null }); return; }
+                const urls = (await rd.sitemapOf(offSite)).urls ?? [];
+                say(`Reading ${subject}'s pages about venues and taking it at home`);
+                /* RR-321 proof: the RR-319 per-country check kept a country on a "Book a test now" button of its recognition page — no
+                 * venue named there; only a sentence of the subject's own pages that names a venue in it counts */
+                const venues = await venueCountries({ urls, subject, reader: rd, already: [] });
+                say(`Reading ${subject}'s test statistics`);
+                const stats = await statisticsOf({ urls, subject, reader: rd });
+                say("Reading the central banks' official rates");
+                const rates = await readRates({ reader: rd, countries: venues.countries.map((x) => x.name) });
+                say("Gathering the questions people ask");
+                const research = await researchFor({ id, s, sc: scNow, subject, subjectSite: offSite, rd, res });
+                const c = { on: new Date().toISOString(), list: true, dims, subject, site: offSite, formula, before: was,
+                  result: { ok: true, subject, subjectName: subject, subjectSite: res.subjectSite, checkedOn: res.checkedOn, pagesListed: res.pagesListed, dims: {}, requests: rd.requests() },
+                  venues, fee: res.fee, rates, stats, byCountry, scRows: scNow?.byCountry ?? [], items: research.items.filter((x) => x.kind !== "observed" && x.kind !== "tool"), research: { sources: research.sources, aiCost: research.aiCost } };
+                pwrite(id, "page-count.json", { ...c, ...listPlan(id, c) });
+                return;
+              }
               const res = await realityFilter({ dims, lists, subject, subjectName: subject, subjectSite: offSite, reader: rd, onProgress: say, maxUniversityReads: universityReads, siteProfessions: Boolean(formula?.professions), queries: (scNow?.queries ?? []).map((q) => q.query), countryWeight: Object.fromEntries((byCountry ?? []).map((c) => [c.country, c.impressions])) });
               let plan = null, questions = [], research = null, offRead = null, five = null, figure = null;
               if (res.ok) {
@@ -658,6 +736,46 @@ const server = createServer((req, res) => {
           }
           /* C5 · "Make these pages (drafts)" — THE FIRST BATCH (RR-320: 50–100; the next only when Google shows them), answered from their official
            * pages; nothing is published for AlmiWorld */
+          /* RR-321 E5 · BEFORE a batch is made: one full regulator page and one full university page, so the client judges their quality first
+           * (the regulator's own page is read now — robots by RFC 9309 — and kept for the batch) */
+          if (r[2] === "count/preview" && req.method === "POST") {
+            const v = json(), c = pread(id, "page-count.json");
+            if (!c?.list || !c.plan) return send(400, { refused: "Count first — the preview shows two of the planned pages." });
+            if (!site) return send(400, { refused: "Check your website first — the pages are made in its look." });
+            const regs = c.plan.kinds.regulator, rp = regs.find((p) => p.title === v.regulator) ?? regs.find((p) => /\(NMBI\)/.test(p.title)) ?? regs[0];
+            const up = c.plan.kinds.university.find((p) => p.title === v.university) ?? c.plan.kinds.university.find((p) => p.universities.length === 1) ?? c.plan.kinds.university[0];
+            if (!rp) return send(400, { refused: "No regulator page is planned." });
+            const rd = reader(); await readRegulatorFor(id, rp, rd);
+            replan(id);
+            const c2 = pread(id, "page-count.json"), r2 = c2.plan.kinds.regulator.find((p) => p.title === rp.title), u2 = up ? c2.plan.kinds.university.find((p) => p.title === up.title) : null;
+            const two = [r2, u2].filter(Boolean), built = seoPages({ site, on: new Date().toISOString(), pagePlan: two, subject: c.subject, official: officialOf(id) });
+            const html = (p) => built.drafts.find((d) => d.title === p.title || d.url.endsWith(`/${p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`)) ?? null;
+            const out = two.map((p) => ({ kind: p.kind, title: p.title, read: p.read ?? null, lastChecked: p.lastChecked, claims: p.claims, draft: html(p) ? { html: html(p).html, readyAsDraft: html(p).readyAsDraft, gates: html(p).gates } : null }));
+            pwrite(id, "preview.json", { on: new Date().toISOString(), pages: out });
+            return send(200, { ok: true, pages: out, line: `${r2.read?.ok ? `${r2.body}'s own page was read (${r2.read.on})` : `${r2.body}'s own page could not be read (${r2.read?.why ?? "not read"}) — this page is built from ${c.subject}'s list, with "check here"`}.` });
+          }
+          if (r[2] === "count/recheck" && req.method === "POST") { const x = await recheckSources(id); return send(200, { ok: true, line: x.proposals ? `${x.proposals} number${x.proposals === 1 ? "" : "s"} changed on their sources — the updates are proposed below; nothing was changed by itself.` : "The sources were checked again — no number changed." }); }
+          if (r[2] === "count/make" && req.method === "POST" && pread(id, "page-count.json")?.list) {
+            /* RR-321 · the first batch: each regulator page of it read now (slow — a few minutes), then the drafts, in the background */
+            const c = pread(id, "page-count.json"); if (!c?.plan) return send(400, { refused: "Count first — then make the pages Visibility planned." });
+            if (!site) return send(400, { refused: "Check your website first — the pages are made in its look and linked to it." });
+            if (counting.has(id)) return send(409, { refused: "Visibility is still working on this product — wait for it to finish." });
+            const run = (async () => {
+              const say = (p) => countProgress.set(id, { stage: p, at: new Date().toISOString() }), rd = reader(), first = new Set(c.plan.rollout.first), reads = pread(id, "regulator-reads.json", {});
+              const regs = c.plan.kinds.regulator.filter((p) => first.has(p.title) && !(reads[p.listId] && (Date.now() - Date.parse(reads[p.listId].on ?? 0)) / 864e5 < 7));
+              for (const [i, p] of regs.entries()) { say(`Reading ${p.body}'s own page (${i + 1} of ${regs.length})`); await readRegulatorFor(id, p, rd); }
+              replan(id);
+              const c2 = pread(id, "page-count.json"), all = Object.values(c2.plan.kinds).flat(), pages = all.filter((p) => first.has(p.title));
+              pwrite(id, "planned.json", pages.map((p) => ({ text: p.title, source: `How many pages (${p.kind}${p.weak ? ", an opportunity page — no search yet" : `, answers ${p.questions.length} question${p.questions.length === 1 ? "" : "s"}`})` })));
+              pwrite(id, "made-plan.json", pages);
+              say("Making the drafts");
+              const x = await createPages(id); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
+              didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned; ${regs.length} regulator pages read).`);
+              pwrite(id, "make.json", { on: new Date().toISOString(), drafts: n, planned: pages.length, all: all.length, read: regs.length, line: `${n} of the first batch's ${pages.length} pages made as drafts (${all.length} planned in all); ${regs.length} regulators' own pages read for it. Read them under "Pages and articles".${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}` });
+            })().catch((e) => pwrite(id, "make.json", { on: new Date().toISOString(), line: `Making stopped: ${e.message}` })).finally(() => { counting.delete(id); countProgress.delete(id); });
+            counting.set(id, run);
+            return send(200, { ok: true, running: true, line: "Reading each regulator's own page of the first batch, then making the drafts — a few minutes. You can leave this screen." });
+          }
           if (r[2] === "count/make" && req.method === "POST") {
             const c = pread(id, "page-count.json"); const all = c?.plan ? Object.values(c.plan.kinds).flat() : [], first = new Set(c?.plan?.rollout?.first ?? all.map((p) => p.title)), pages = all.filter((p) => first.has(p.title));
             if (!pages.length) return send(400, { refused: "Count first — then make the pages Visibility planned." });

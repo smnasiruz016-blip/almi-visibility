@@ -13,12 +13,14 @@
  * Neither overwrites an earlier file. The engine of test/helpers/rr225-sabotage.mjs, with one change: each limb runs ITS OWN test file.
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { sabMode, dryPreflight } from "./sab-mode.mjs"; // RR-321 F2: SAB_MODE=dry (pre-flight only) or SAB_MODE=run — else refused
 import { badFindingsFirst } from "../../src/report/owner-workflows.mjs"; // RR-287 (F88 C5): bad findings and NOT DONE first
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+const SAB = sabMode(process.env, { exit: (c) => process.exit(c), write: (s) => process.stderr.write(s) }); // this process's own env and exit — the span reader (RR-248) evaluates a harness with a stand-in process
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SM = "src/crawl/sitemap-collect.mjs", BB = "src/crawl/batch-bodies.mjs", B = "bin/crawl.mjs", AT = "bin/audit-technical.mjs", PF = "src/crawl/preflight.mjs", EA = "src/evidence/evidence-state-adapters.mjs";
@@ -124,6 +126,7 @@ function failureClassOf(out, prefix) {
   const detail = at < 0 ? null : ls.slice(at + 1).find((l) => l.trim() !== "");
   return detail ? detail.trim().split(/[ :[]/)[0] : null;
 }
+if (SAB === "dry") dryPreflight(RUN.flatMap(([id, , spans]) => spans.map(([file, from]) => ({ id, file, from }))), REPO);
 /* BASELINE: every test file the limbs name, before any sabotage; each named test must be seen GREEN */
 const testFiles = [...new Set(RUN.map((s) => s[3]))];
 const baseOut = new Map(testFiles.map((t) => { const r = run(t); return [t, { ok: r.status === 0, out: `${r.stdout}${r.stderr}` }]; }));

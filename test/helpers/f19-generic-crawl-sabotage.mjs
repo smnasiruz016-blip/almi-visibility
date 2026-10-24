@@ -8,12 +8,14 @@
  * Evidence: runs/audit/f19-generic-crawl-sabotage-rr135-2026-10-02.txt (its own file).
  */
 import "./harness-gate.mjs"; // RR-247: first import — exits 2 unless invoked deliberately (node <this file> --deliberate)
+import { sabMode, dryPreflight } from "./sab-mode.mjs"; // RR-321 F2: SAB_MODE=dry (pre-flight only) or SAB_MODE=run — else refused
 import { writeEvidenceOnce } from "./evidence-once.mjs"; // RR-248: evidence to a new timestamped file, never over an earlier run's
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+const SAB = sabMode(process.env, { exit: (c) => process.exit(c), write: (s) => process.stderr.write(s) }); // this process's own env and exit — the span reader (RR-248) evaluates a harness with a stand-in process
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const B = "bin/crawl.mjs", C = "src/tenancy/connectors.mjs", F = "src/crawl/fetcher.mjs", R = "src/crawl/robots.mjs", W = "src/crawl/crawler.mjs";
@@ -43,6 +45,7 @@ for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { restoreAll(); p
 
 const occurrences = (text, s) => text.split(s).length - 1;
 const preflight = SABOTAGES.map(([id, , file, from]) => [id, occurrences(originals.get(file).toString("utf8"), from)]);
+if (SAB === "dry") dryPreflight(SABOTAGES.map(([id, , file, from]) => ({ id, file, from })), REPO);
 const trailBefore = sha(read(TRAIL));
 const lines = [
   `F19 generic-crawl sabotage run · ${new Date().toISOString()}`,

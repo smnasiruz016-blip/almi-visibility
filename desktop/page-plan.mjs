@@ -22,6 +22,7 @@ import { professionOf } from "./page-count.mjs";
 import { professionsOfBody, isHealthRegulator } from "./official.mjs";
 import { localFee } from "./page-count.mjs";
 import { RECOGNITION_DIRECTORIES } from "./universities.mjs";
+import { isMenuText } from "./questions.mjs"; // RR-321 D3
 
 /* RR-319 C1 (owner typed a long description into Subject → 0 of 197 kept): the subject is the short name people search, e.g. OET */
 export const SHORT_SUBJECT = "Write only the product's or test's short name here, e.g. OET. A longer description goes in the box below it.";
@@ -124,21 +125,25 @@ export function groupQuestions(items) {
   return groups.sort((a, b) => b.weight - a.weight).map(({ tokens: _t, ...g }) => g);
 }
 /** the official FAQ: the questions on the subject's own help or FAQ pages (each sentence that asks) */
-export const faqQuestions = (pages) => pages.flatMap((p) => [...new Set(String(p.text ?? "").split(/(?<=[?])\s+|(?<=[.!])\s+(?=[A-Z])/).map((s) => s.trim()).filter((s) => /\?$/.test(s) && s.length >= 12 && s.length <= 160 && !/cookie|newsletter|subscribe/i.test(s)))].map((q) => ({ text: q.replace(/^.*?(?=(How|What|Why|When|Where|Which|Who|Can|Do|Does|Is|Are|Will|Should)\b)/, ""), source: `${p.title ?? p.url} (official FAQ)`, link: p.url, on: p.checkedOn, kind: "official FAQ", weight: 2 })));
+/* RR-321 D3 (owner: "Read our re-marking policy Everything you need to know FAQs …" became a main search): a FAQ question is the words from
+ * its OWN question word to its question mark — the menu words before it are cut, and a line that does not start with a question word, or is
+ * still menu text, is no question */
+const QWORD = /(?:^|\s)((?:How|What|Why|When|Where|Which|Who|Can|Do|Does|Is|Are|Will|Should|Could|Would|Am|If)\b[^?]{6,150}\?)$/;
+export const faqQuestions = (pages) => pages.flatMap((p) => [...new Set(String(p.text ?? "").split(/(?<=[?])\s+|(?<=[.!])\s+(?=[A-Z])/).map((s) => s.trim()).filter((s) => /\?$/.test(s) && s.length >= 12 && !/cookie|newsletter|subscribe/i.test(s)).map((s) => QWORD.exec(s)?.[1] ?? null).filter((q) => q && !isMenuText(q)))].map((q) => ({ text: q, source: `${p.title ?? p.url} (official FAQ)`, link: p.url, on: p.checkedOn, kind: "official FAQ", weight: 2 })));
 
 /* ── 3 · THE PLAN ── */
-const PROFESSION_WORD = [[/\bnurs|midwi/i, "nursing"], [/\bdoctors?\b|physicians?|medic(al|ine)\b|\bgp\b|pgme|residen/i, "medicine"], [/\bdentist|dental/i, "dentistry"], [/\bpharmac/i, "pharmacy"], [/\bphysio|physical therap/i, "physiotherapy"], [/\boccupational therap|\bot\b/i, "occupational therapy"], [/\bradiograph/i, "radiography"], [/\bdietit|dietic/i, "dietetics"], [/\boptom/i, "optometry"], [/\bpodiat/i, "podiatry"], [/\bspeech/i, "speech pathology"], [/\bveterin|\bvets?\b|\bavbc\b/i, "veterinary science"]];
-const professionIn = (q) => PROFESSION_WORD.find(([re]) => re.test(q))?.[1] ?? null;
-const TAKING = /\b(fees?|costs?|price|how much|book|booking|venues?|centres?|centers?|test dates?|dates|where (to|can i) (take|sit)|exam cent\w*|at home|in pkr|in inr)\b/i; // RR-319 proof: "test centres" missed
-const UNIVERSITY = /\b(universit(y|ies)|college|course|degree|admission|masters?|pgme|postgraduate)\b/i;
-const TOPICS = [["fees", /\b(fee|fees|cost|costs|price|how much|cheap)/i, (s) => `${s} fees`], ["versus", /\b(vs|versus|or|compare|comparison|easier|harder|difference)\b.*\b(ielts|pte|toefl|cambridge)\b|\b(ielts|pte|toefl)\b.*\b(vs|versus|or|easier|harder)\b/i, (s) => `${s} vs IELTS and other tests`], ["scoring", /\b(score|scored|scoring|grade|grades|band|bands|marks?|result|results|pass)\b/i, (s) => `How ${s} is scored`], ["computer", /\b(computer|online|at home|@home|remote)\b/i, (s) => `${s} on computer and at home`], ["preparation", /\b(prepar|study|practi[cs]e|tips?|books?|material|course|sample)/i, (s) => `How to prepare for ${s}`], ["writing", /\bwriting\b/i, (s) => `${s} Writing`], ["speaking", /\bspeaking\b/i, (s) => `${s} Speaking`], ["listening", /\blistening\b/i, (s) => `${s} Listening`], ["reading", /\breading\b/i, (s) => `${s} Reading`], ["test day", /\b(test day|on the day|bring|arrive|identification)\b/i, (s) => `${s} test day: what to bring and expect`], ["validity", /\b(valid|validity|expire|how long)\b/i, (s) => `How long ${s} results are valid`]];
+export const PROFESSION_WORD = [[/\bnurs|midwi/i, "nursing"], [/\bdoctors?\b|physicians?|medic(al|ine)\b|\bgp\b|pgme|residen/i, "medicine"], [/\bdentist|dental/i, "dentistry"], [/\bpharmac/i, "pharmacy"], [/\bphysio|physical therap/i, "physiotherapy"], [/\boccupational therap|\bot\b/i, "occupational therapy"], [/\bradiograph/i, "radiography"], [/\bdietit|dietic/i, "dietetics"], [/\boptom/i, "optometry"], [/\bpodiat/i, "podiatry"], [/\bspeech/i, "speech pathology"], [/\bveterin|\bvets?\b|\bavbc\b/i, "veterinary science"]];
+export const professionIn = (q) => PROFESSION_WORD.find(([re]) => re.test(q))?.[1] ?? null;
+export const TAKING = /\b(fees?|costs?|price|how much|book|booking|venues?|centres?|centers?|test dates?|dates|where (to|can i) (take|sit)|exam cent\w*|at home|in pkr|in inr)\b/i; // RR-319 proof: "test centres" missed
+export const UNIVERSITY = /\b(universit(y|ies)|college|course|degree|admission|masters?|pgme|postgraduate)\b/i;
+export const TOPICS = [["fees", /\b(fee|fees|cost|costs|price|how much|cheap)/i, (s) => `${s} fees`], ["versus", /\b(vs|versus|or|compare|comparison|easier|harder|difference)\b.*\b(ielts|pte|toefl|cambridge)\b|\b(ielts|pte|toefl)\b.*\b(vs|versus|or|easier|harder)\b/i, (s) => `${s} vs IELTS and other tests`], ["scoring", /\b(score|scored|scoring|grade|grades|band|bands|marks?|result|results|pass)\b/i, (s) => `How ${s} is scored`], ["computer", /\b(computer|online|at home|@home|remote)\b/i, (s) => `${s} on computer and at home`], ["preparation", /\b(prepar|study|practi[cs]e|tips?|books?|material|course|sample)/i, (s) => `How to prepare for ${s}`], ["writing", /\bwriting\b/i, (s) => `${s} Writing`], ["speaking", /\bspeaking\b/i, (s) => `${s} Speaking`], ["listening", /\blistening\b/i, (s) => `${s} Listening`], ["reading", /\breading\b/i, (s) => `${s} Reading`], ["test day", /\b(test day|on the day|bring|arrive|identification)\b/i, (s) => `${s} test day: what to bring and expect`], ["validity", /\b(valid|validity|expire|how long)\b/i, (s) => `How long ${s} results are valid`]];
 /* search EVIDENCE: the client's own Search Console, what his AI saw in Google in his browser, or a search-data file that reports searches —
  * never an AI's research or a FAQ */
-const searched = (g) => (g.sources ?? []).some((x) => x.kind === "search" || x.kind === "observed" || (x.kind === "tool" && parseFloat(String(x.volume?.estimate ?? x.volume ?? 0).replace(/[^\d.]/g, "")) > 0));
+export const searched = (g) => (g.sources ?? []).some((x) => x.kind === "search" || x.kind === "observed" || (x.kind === "tool" && parseFloat(String(x.volume?.estimate ?? x.volume ?? 0).replace(/[^\d.]/g, "")) > 0));
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 /* RR-320 proof: 21 of 22 university drafts failed only the title check (over 70 characters) — the university's own name; its short name
  * (in brackets) when the whole name is long */
-const uniTitle = (subject, x) => { const name = String(x.name).replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim(), short = /\(([^)/]{2,20})/.exec(x.name)?.[1]?.trim(); const t = `${subject} for ${name} graduates`; return t.length <= 60 || !short ? t : `${subject} for ${short} graduates`; };
+export const uniTitle = (subject, x) => { const name = String(x.name).replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim(), short = /\(([^)/]{2,20})/.exec(x.name)?.[1]?.trim(); const t = `${subject} for ${name} graduates`; return t.length <= 60 || !short ? t : `${subject} for ${short} graduates`; };
 /* a body's rule is for a profession when its NAME names it (Nursing and Midwifery Board → nursing), or — for a body whose name names none
  * (Ahpra) — when its own page names the people of that profession */
 const accepts = (cl, prof) => (cl.professions?.length ? cl.professions.includes(prof) : (cl.named ?? []).includes(prof));

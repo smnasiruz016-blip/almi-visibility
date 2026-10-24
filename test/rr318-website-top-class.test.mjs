@@ -217,7 +217,8 @@ test("C · HOW MANY PAGES: the chosen dimensions filtered by REALITY on official
     const roles = listFromFile("roles.json", JSON.stringify([{ name: "Registered Nurse", aliases: ["RN"] }, { name: "Pharmacy Technician" }, { name: "Doctor" }, { name: "Software Engineer" }, { name: "Dietitian" }, { name: "Dental Assistant" }])).items;
     const unis = listFromFile("u.json", JSON.stringify([{ name: "Uni A", country: { name: "Ireland" }, subjectSlugs: ["medicine-health-sciences"], admissionsUrl: `${base}/uni/a` }, { name: "Uni B", country: { name: "Ireland" }, subjectSlugs: ["medicine-health-sciences"], admissionsUrl: `${base}/uni/b` }, { name: "Uni C", country: { name: "Brazil" }, subjectSlugs: ["medicine-health-sciences"], admissionsUrl: `${base}/uni/a` }, { name: "Uni D", country: { name: "Canada" }, subjectSlugs: ["law"], admissionsUrl: `${base}/uni/a` }])).items;
     const subjects = [{ name: "medicine-health-sciences" }, { name: "law" }];
-    const r = await realityFilter({ dims: ["countries", "roles", "subjects", "universities"], lists: { roles, subjects, universities: unis }, subject: "XTEST", subjectSite: `${base}/`, reader: rd });
+    /* RR-321 B3: counting reads no university site by default; the read path (kept for building) is asked for here */
+    const r = await realityFilter({ dims: ["countries", "roles", "subjects", "universities"], lists: { roles, subjects, universities: unis }, subject: "XTEST", subjectSite: `${base}/`, reader: rd, maxUniversityReads: 3 });
     assert.equal(r.ok, true);
     assert.deepEqual(r.dims.countries.kept.map((k) => k.name), ["Canada", "Ireland"]);
     assert.equal(r.dims.countries.candidates, 197);

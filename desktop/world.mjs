@@ -47,3 +47,34 @@ export const destinationsIn = (text) => { const o = new Set(originsIn(text)); re
 /** the ways a country is written, for finding it on a page */
 export const namesOf = (country) => [country, ...(ALIASES[country] ?? [])];
 export const slugOf = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+/* RR-321 D7 ("no venue there: say so and give the NEAREST venues"): the UN's M49 sub-regions (unstats.un.org/unsd/methodology/m49) — the
+ * nearest venues to a country are those in its own sub-region; Kosovo and Taiwan are placed with their neighbours, which M49 lists apart */
+export const REGIONS_SOURCE = "the UN's M49 sub-regions (unstats.un.org/unsd/methodology/m49)";
+const REGION_LIST = Object.freeze({
+  "Southern Asia": "Afghanistan|Bangladesh|Bhutan|India|Iran|Maldives|Nepal|Pakistan|Sri Lanka",
+  "South-eastern Asia": "Brunei Darussalam|Cambodia|Indonesia|Laos|Malaysia|Myanmar|Philippines|Singapore|Thailand|Timor-Leste|Vietnam",
+  "Eastern Asia": "China|Japan|Mongolia|North Korea|South Korea|Taiwan",
+  "Central Asia": "Kazakhstan|Kyrgyzstan|Tajikistan|Turkmenistan|Uzbekistan",
+  "Western Asia": "Armenia|Azerbaijan|Bahrain|Cyprus|Georgia|Iraq|Israel|Jordan|Kuwait|Lebanon|Oman|Palestine|Qatar|Saudi Arabia|Syria|Türkiye|United Arab Emirates|Yemen",
+  "Northern Africa": "Algeria|Egypt|Libya|Morocco|Sudan|Tunisia",
+  "Eastern Africa": "Burundi|Comoros|Djibouti|Eritrea|Ethiopia|Kenya|Madagascar|Malawi|Mauritius|Mozambique|Rwanda|Seychelles|Somalia|South Sudan|Tanzania|Uganda|Zambia|Zimbabwe",
+  "Middle Africa": "Angola|Cameroon|Central African Republic|Chad|Democratic Republic of the Congo|Equatorial Guinea|Gabon|Republic of the Congo|São Tomé and Príncipe",
+  "Southern Africa": "Botswana|Eswatini|Lesotho|Namibia|South Africa",
+  "Western Africa": "Benin|Burkina Faso|Cabo Verde|Côte d'Ivoire|Gambia|Ghana|Guinea|Guinea-Bissau|Liberia|Mali|Mauritania|Niger|Nigeria|Senegal|Sierra Leone|Togo",
+  "Northern Europe": "Denmark|Estonia|Finland|Iceland|Ireland|Latvia|Lithuania|Norway|Sweden|United Kingdom",
+  "Western Europe": "Austria|Belgium|France|Germany|Liechtenstein|Luxembourg|Monaco|Netherlands|Switzerland",
+  "Southern Europe": "Albania|Andorra|Bosnia and Herzegovina|Croatia|Greece|Italy|Kosovo|Malta|Montenegro|North Macedonia|Portugal|San Marino|Serbia|Slovenia|Spain|Vatican City (Holy See)",
+  "Eastern Europe": "Belarus|Bulgaria|Czech Republic|Hungary|Moldova|Poland|Romania|Russia|Slovakia|Ukraine",
+  "Northern America": "Canada|United States",
+  "Central America": "Belize|Costa Rica|El Salvador|Guatemala|Honduras|Mexico|Nicaragua|Panama",
+  "Caribbean": "Antigua and Barbuda|Bahamas|Barbados|Cuba|Dominica|Dominican Republic|Grenada|Haiti|Jamaica|Saint Kitts and Nevis|Saint Lucia|Saint Vincent and the Grenadines|Trinidad and Tobago",
+  "South America": "Argentina|Bolivia|Brazil|Chile|Colombia|Ecuador|Guyana|Paraguay|Peru|Suriname|Uruguay|Venezuela",
+  "Australia and New Zealand": "Australia|New Zealand",
+  "Melanesia": "Fiji|Papua New Guinea|Solomon Islands|Vanuatu",
+  "Micronesia": "Federated States of Micronesia|Kiribati|Marshall Islands|Nauru|Palau",
+  "Polynesia": "Samoa|Tonga|Tuvalu",
+});
+export const REGION_OF = Object.freeze(Object.fromEntries(Object.entries(REGION_LIST).flatMap(([r, cs]) => cs.split("|").map((c) => [c, r]))));
+/** the countries of a country's own sub-region (itself left out) */
+export const neighboursOf = (country) => Object.entries(REGION_OF).filter(([c, r]) => r === REGION_OF[country] && c !== country).map(([c]) => c);

@@ -186,6 +186,20 @@ test("E2 + E3 + E4 · the first batch answers the most-searched first; a univers
   assert.match(MAIN, /recheckSources\(id\)/); assert.match(MAIN, /updates\.json/); assert.match(UI, /Check the sources again now/);
 });
 
+test("E3 + E4 + E5 · a PREVIEW of two pages whose planned links point outside the two: each still links the other (the proof: \"links to no other page of the set\"), and shows \"last checked\"", async () => {
+  const { seoPages } = await import("../desktop/seo-pages.mjs");
+  const site = { ok: true, origin: "https://x.test", readOn: ON, robotsTxt: null, sitemapUrls: null, pages: [{ url: "https://x.test/", title: "X", h1: "X", h2: [], qa: [], facts: [] }] };
+  const C = (id, text) => ({ claimId: id, text, link: `https://${id}.test/`, readOn: ON, source: id, official: true, body: id });
+  const pagePlan = [
+    { kind: "regulator", title: "OET score for nurses in Ireland (NMBI)", claims: [C("nmbi", "Example board names OET on its own page among the English tests it accepts — Listening B (350).")], questions: [], links: ["Where to take OET: venues, test fees and taking it at home"], lastChecked: ON },
+    { kind: "university", title: "OET for Example University graduates", claims: [C("uni", "Example University teaches nursing (AlmiStudy's data).")], questions: [], links: ["OET score for nurses in the United Kingdom (NMC)"], lastChecked: "2026-05-09" },
+  ];
+  const r = seoPages({ site, on: `${ON}T10:00:00Z`, pagePlan, subject: "OET" });
+  assert.equal(r.drafts.length, 2);
+  for (const d of r.drafts) assert.ok(!d.gates.some((g) => g.failing.some((f) => /internal links out/.test(f))), `${d.title}: ${JSON.stringify(d.gates.flatMap((g) => g.failing))}`);
+  assert.match(r.drafts[0].html, /href="https:\/\/x\.test\/oet-for-example-university-graduates"/); assert.match(r.drafts[1].html, /data-last-checked="2026-05-09">Last checked 2026-05-09</);
+});
+
 test("B3 + B4 · universities counted from AlmiStudy's data only (no site read); one page per DIFFERENT answer (country + professions); the deep-read box is gone", () => {
   const { plan } = planOf(), n = plan.numbers;
   assert.deepEqual([n.uniAll, n.uniHealth], [UNIS.length, plan.tables.university.rows[1].n]);

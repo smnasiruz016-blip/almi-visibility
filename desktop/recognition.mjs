@@ -57,7 +57,8 @@ export function peopleOf(professions) {
 }
 /** a regulator page's title in the words people search — "OET score for nurses in Ireland (NMBI)"; at most 70 characters, never cut */
 export function regulatorTitle(subject, r) {
-  const name = r.name.replace(/\s*\([^)]*\)\s*$/, "").replace(/^(\S+)\s+-\s+.*$/, "$1").trim(), who = r.short ?? name, score = r.professions.length > 1 ? "scores" : "score";
+  /* the final proof: "&" is "&amp;" in a page's title — 4 characters more than it looks; a title says "and" */
+  const name = r.name.replace(/\s*\([^)]*\)\s*$/, "").replace(/^(\S+)\s+-\s+.*$/, "$1").replace(/\s*&\s*/g, " and ").trim(), who = r.short ?? name, score = r.professions.length > 1 ? "scores" : "score";
   const people = r.professions.length ? peopleOf(r.professions) : "health professionals", few = r.professions.length > 2 ? "health professionals" : people;
   /* "Medical Radiation Practice Board of Australia" in Australia: the board's name without its country, the country said once */
   const stem = name.replace(new RegExp(`\\s+(of|for)\\s+(the\\s+)?${r.country.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "");

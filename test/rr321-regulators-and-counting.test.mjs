@@ -89,7 +89,7 @@ test("A1 + G2 + D6 · the subject's own list: Singapore is a requirement country
   const nmbi = R.pages.find((p) => p.short === "NMBI"), ahpra = R.pages.filter((p) => /AHPRA/.test(p.title));
   assert.equal(nmbi.title, "OET score for nurses in Ireland (NMBI)");
   assert.equal(ahpra.length, 1, "Ahpra's one rule is ONE page"); assert.equal(ahpra[0].professions.length, 12, "its professions are sections of it");
-  for (const p of R.pages) { assert.ok(p.title.length <= 70, `too long (${p.title.length}): ${p.title}`); /* the second proof: 4 drafts failed only their title */ assert.ok(p.title.endsWith(")") || p.title.includes(": "), `cut: ${p.title}`); }
+  for (const p of R.pages) { assert.ok(p.title.replace(/&/g, "&amp;").length <= 70, `too long as written in the page (${p.title.length}): ${p.title}`); /* the second proof: 4 drafts failed only their title */ assert.ok(p.title.endsWith(")") || p.title.includes(": "), `cut: ${p.title}`); }
   assert.equal(new Set(R.pages.map((p) => `${p.country}|${p.body}`)).size, R.pages.length, "a regulator twice");
   assert.equal(regulatorTitle("OET", { name: "Medical Radiation Practice Board of Australia", short: null, country: "Australia", professions: ["radiography"] }), "OET for radiographers in Australia: Medical Radiation Practice Board");
   assert.equal(gradeLine({ listening: "B", reading: "B", writing: "C+", speaking: "B" }), "Listening B · Reading B · Writing C+ · Speaking B");

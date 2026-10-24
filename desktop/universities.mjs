@@ -63,6 +63,48 @@ export async function coursePagesOf({ u, reader, subject, maxCourses = 3 }) {
   return { state: "READ", checkedOn: home.checkedOn, courses, homeNamesSubject: has(home.text, subject), found: cands.length };
 }
 
+/*
+ * 🔴 RR-322 A1 · THE LIGHT CHECK (owner: "the other 2,197 say only 'medicine & health sciences' — read ONE page of the university's own site
+ * (its faculties or schools list), robots obeyed, no deep crawl, in the background, in batches"). The home page is read to find that list;
+ * its own menu often names the faculties already ("Faculty of Nursing"). When it does not, the ONE page its menu calls "Faculties",
+ * "Schools" or "Academics" is read — never more than two pages of a site. A profession counts only from a SHORT link or heading that names a
+ * faculty, school or programme of it (a news headline never counts).
+ */
+/* the profession's word in the languages universities write their faculty names in (English, Spanish, Portuguese, French, German, Italian,
+ * Indonesian/Malay, Turkish, Arabic) — dentistry before medicine ("Kedokteran Gigi" is dentistry, not medicine) */
+const PROF_WORD = [[/\bdent(al|istry)\b|\bstomatolog|odontolog|kedokteran gigi|diş hekimli|zahnmedizin|طب الأسنان/i, "dentistry"], [/\bveterinar|kedokteran hewan|veteriner|tierärzt|الطب البيطري/i, "veterinary science"], [/\bnurs(e|es|ing)\b|\bmidwi(fe|ves|fery)\b|enfermer|enfermagem|keperawatan|kebidanan|hemşirelik|infirmi|pflegewissenschaft|infermierist|تمريض/i, "nursing"], [/\bmedicine\b|\bmedical (school|faculty|college|sciences?)\b|\bmbbs\b|\bmedicina\b|kedokteran|\btıp\b|médecine|\bmedizin\b|كلية الطب/i, "medicine"], [/\bpharma(cy|ceutical)|\bfarmac|\bfarmasi|eczacılık|pharmazie|صيدلة/i, "pharmacy"], [/\bphysiotherap|\bphysical therap|fisioterap|fizyoterapi|kinésithérap|kinesiolog/i, "physiotherapy"], [/\boccupational therap|terapia ocupacional|ergoterap|ergotherap/i, "occupational therapy"], [/\bradiograph|\bmedical imaging\b|\bradiolog|imagenolog/i, "radiography"], [/\bdietetic|\bnutrition\b|\bdietitian|nutrición|nutrição|\bgizi\b|beslenme ve diyet/i, "dietetics"], [/\boptometr/i, "optometry"], [/\bpodiatr|podolog/i, "podiatry"], [/\bspeech (and language )?(therap|patholog)|fonoaudiolog|logopäd|logoped|orthophon/i, "speech pathology"]];
+/* a role that supports a profession is not it ("Veterinary Technology", "Pharmacy Technician", "Dental Assistant") */
+const SUPPORT_WORD = /\b(technolog(y|ist)|technician|assistant|aide|hygien|nursing home|news|event|story|award|students? (win|won))\b/i;
+const UNIT = /\b(facult(y|ies)|school|college|department|institute|programmes?|programs?|bachelor|degree|b\.?sc|course|division|centre|center)\b|facultad|faculdade|faculté|fakult|fakülte|escuela|escola|program studi|prodi|jurusan|كلية/i;
+const LIST_LINK = /^(our )?(facult(y|ies)|schools?( (and|&) (colleges|faculties))?|colleges|academics?|academic units|departments|study programmes|programs|facultades|faculdades|facultés|fakultas|fakultäten|fakülteler|escuelas|كليات|الكليات)$/i;
+/* the university's own name ("Kurdistan University of Medical Sciences", "Medical University of …") */
+const NAME_PROF = [[/\bmedical (university|sciences?|college)|university of medicine|\bmedical school|\bschool of medicine/i, "medicine"], [/\bnursing (college|school|university)|college of nursing/i, "nursing"], [/\bpharmac(y|eutical) (university|college)|college of pharmacy/i, "pharmacy"], [/\bdental (college|school|university)/i, "dentistry"]];
+export const professionsInName = (name) => [...new Set(NAME_PROF.filter(([re]) => re.test(String(name ?? ""))).map(([, p]) => p))];
+/** the professions a page's own menu or headings name as one of its faculties, schools or programmes (each with the words it used) */
+export function professionsOnPage(page) {
+  const lines = [...(page.links ?? []).map((l) => l.text), ...String(page.headings ?? "").split("\n")].map((t) => String(t ?? "").replace(/\s+/g, " ").trim()).filter((t) => t.length >= 4 && t.length <= 70);
+  const found = new Map();
+  /* every profession a line names ("School of Medicine, Dentistry and Health Sciences"); a word that matched is taken out first, so
+   * "Kedokteran Gigi" (dentistry) is never also "Kedokteran" (medicine) */
+  for (const t of lines) { if (SUPPORT_WORD.test(t) || !(UNIT.test(t) || t.split(" ").length <= 3)) continue; let s = t; for (const [re, p] of PROF_WORD) if (re.test(s)) { if (!found.has(p)) found.set(p, t); s = s.replace(new RegExp(re.source, "gi"), " "); } }
+  return [...found.entries()].map(([profession, words]) => ({ profession, words }));
+}
+export async function lightCheck({ u, reader }) {
+  const byName = professionsInName(u.name);
+  if (byName.length) return { state: "FOUND", professions: byName, words: [u.name], source: { url: u.page ?? null, title: "the university's own name (AlmiStudy's list)" }, checkedOn: u.verifiedOn ?? null, byName: true };
+  if (!u.page) return { state: "NO_SITE", why: "the list gives no website", professions: [] };
+  const home = await reader.read(u.page);
+  if (!home.ok) return { state: /robots/.test(home.why ?? "") ? "ROBOTS" : home.blocked || /answered 403/.test(home.why ?? "") ? "BLOCKED" : "UNREADABLE", why: home.why, checkedOn: home.checkedOn, professions: [] };
+  let page = home, ps = professionsOnPage(home);
+  if (!ps.length) {
+    let host = ""; try { host = new URL(home.url).hostname; } catch {}
+    const list = (home.links ?? []).find((l) => LIST_LINK.test(String(l.text ?? "").trim()) && (() => { try { return new URL(l.href).hostname === host; } catch { return false; } })());
+    if (list) { const r = await reader.read(list.href); if (r.ok) { page = r; ps = professionsOnPage(r); } }
+  }
+  return ps.length ? { state: "FOUND", professions: ps.map((x) => x.profession), words: ps.map((x) => x.words), source: { url: page.url, title: page.title }, checkedOn: page.checkedOn }
+    : { state: "NONE", why: `its own ${page === home ? "home page" : "faculties page"} (checked ${page.checkedOn}) names no faculty or school of a health profession`, professions: [], source: { url: page.url }, checkedOn: page.checkedOn };
+}
+
 /* RR-320 D: the official degree-recognition directories — no permission to reuse their data was found, so a page only links "check here" */
 export const RECOGNITION_DIRECTORIES = Object.freeze([
   Object.freeze({ professions: ["medicine"], name: "World Directory of Medical Schools (WFME and FAIMER)", url: "https://search.wdoms.org/", reuse: false, line: "Check here whether this medical school is listed. Visibility links to the directory and copies nothing from it: no permission to reuse its data was found." }),

@@ -122,7 +122,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
       const qs = (p.questions ?? []).map((q) => q.question ?? q), needId = `need-${slug(p.title)}`;
       /* RR-321 proof: a page planned from the list keeps ALL its own facts (a section per country) — never its first five */
       const claims = p.claims?.length > 5 ? p.claims.slice(0, 60) : [...(p.claims?.length ? p.claims : p.country ? official[p.country] ?? [] : []), ...answersFromSite([p.title, ...qs].join(" "), site)].slice(0, 5);
-      meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: claims, alsoAsked: qs, links: p.links ?? null, lastChecked: p.lastChecked ?? null });
+      meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: claims, alsoAsked: qs, links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, about: p.body ?? p.uni?.name ?? null });
       needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, question: p.title, claims });
     }
     return finish({ needs, meta });
@@ -183,6 +183,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const base = site.origin.replace(/\/$/, ""), built0 = new Map(news.map((x) => [x.need.question, x]));
   const relatedFor = pagePlan?.some((p) => p.links?.length) ? (np) => { const l = (meta.get(np.needId)?.links ?? []).filter((t) => built0.has(t) && t !== np.need.question).map((t) => ({ href: `${base}${built0.get(t).path}`, label: t })); return l.length ? l : news.filter((x) => x.needId !== np.needId).slice(0, 8).map((x) => ({ href: `${base}${x.path}`, label: x.need.question })); } : null;
   let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin, ...(relatedFor ? { relatedFor } : {}) }) : [];
+  built = built.map((b) => richPage(b, meta.get(b.needId), String(on).slice(0, 10)));
   built = built.map((b) => { const lc = meta.get(b.needId)?.lastChecked; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
   built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));
@@ -193,6 +194,30 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
   return { plan: rows, drafts, design: design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };
   }
+}
+
+/*
+ * 🔴 RR-322 B6 + B7 + C3 · A PLANNED PAGE'S RICH CONTENT, put into its draft: the 40–60-word answer with a number at the VERY top (right
+ * under its title — "44% of ChatGPT's citations come from a page's first 30%"), a real table of its key numbers, then steps, a checklist,
+ * one tip, "last updated", the client's own practice test as the call to action; a schema for its type (an Article, or a WebPage about
+ * the organisation — FAQPage stays for understanding only); a page in another language says so (lang, direction).
+ */
+const escH = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const RTL = new Set(["ar", "ur"]);
+export function richPage(b, m, on) {
+  const c = m?.content; if (!c) return b;
+  const table = c.table?.length > 1 ? `<table class="key" data-key-table><thead><tr>${c.table[0].map((h) => `<th>${escH(h)}</th>`).join("")}</tr></thead><tbody>${c.table.slice(1).map((r) => `<tr>${r.map((x) => `<td>${escH(x)}</td>`).join("")}</tr>`).join("")}</tbody></table>` : "";
+  /* the proof found 20 of 25 drafts "no direct answer near the top": the answer under the title carried no source, so the gate read past it.
+   * The answer now cites the page's first sourced, dated claim — its source and date shown beside it, as every claim on the page */
+  const src = (m.answers ?? []).find((x) => x.claimId && x.link && /^\d{4}-\d{2}-\d{2}$/.test(x.readOn ?? ""));
+  const top = `${c.answer ? `<p class="answer" data-answer${src ? ` data-claim-id="${escH(src.claimId)}"` : ""}>${escH(c.answer)}</p>${src ? `<p class="citation">Source: <a href="${escH(src.link)}" rel="nofollow noopener">${escH(src.source ?? src.body ?? "its official page")}</a> — read ${escH(src.readOn)}</p>` : ""}` : ""}${table}`;
+  const list = (h, xs, tag = "ul") => (xs?.length ? `<section data-${h.toLowerCase().replace(/\W+/g, "-")}><h2>${escH(h)}</h2><${tag}>${xs.map((x) => `<li>${escH(x)}</li>`).join("")}</${tag}></section>` : "");
+  const lower = [list("What to know", c.points), list("Steps", c.steps, "ol"), list("Checklist", c.checklist), c.tip ? `<section data-tip><h2>One useful tip</h2><p>${escH(c.tip)}</p></section>` : "", c.cta ? `<p class="cta" data-cta><a href="${escH(c.cta.href)}">${escH(c.cta.label)}</a></p>` : "", `<p class="updated" data-last-updated="${escH(c.lastUpdated ?? on)}">Last updated ${escH(c.lastUpdated ?? on)}</p>`].join("");
+  const type = { subtest: "Article", topic: "Article", language: "Article" }[m.kind] ?? "WebPage";
+  const ld = JSON.stringify({ "@context": "https://schema.org", "@type": type, headline: b.title, dateModified: c.lastUpdated ?? on, ...(m.about ? { about: { "@type": m.kind === "university" ? "CollegeOrUniversity" : "Organization", name: m.about } } : {}), ...(c.lang ? { inLanguage: c.lang } : {}) });
+  let html = b.html.replace(/<\/h1>/, `</h1>${top}`).replace(/<\/main>|<\/body>/, (x) => `${lower}${x}`).replace(/<\/head>/, `<script type="application/ld+json">${ld}</script></head>`);
+  if (c.lang) html = html.replace(/<html lang="[^"]*"/, `<html lang="${c.lang}"${RTL.has(c.lang) ? ' dir="rtl"' : ""}`);
+  return { ...b, html };
 }
 
 /** The day's ARTICLE: the best draft not made before (one a day). */

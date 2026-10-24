@@ -171,9 +171,41 @@ export async function researchQuestionsAI({ provider, key, subject, what = "", c
   if (provider !== "anthropic" || !key) return { ok: false, why: "Connect your AI to add its research." };
   const schema = { type: "object", additionalProperties: false, required: ["questions"], properties: { questions: { type: "array", items: { type: "string" } } } };
   const material = `SUBJECT: ${subject}\nWHAT THE PRODUCT IS: ${String(what).slice(0, 800)}\nCOUNTRIES: ${countries.join(", ")}\nPROFESSIONS: ${professions.join(", ")}`;
-  const out = await askJSON({ key, schema, fetchImpl, base, system: `List up to 40 real questions people ask about ${subject} before and while they prepare: requirements per country and profession, fees, scoring, comparisons with other tests, taking it on computer or at home, results, preparation. Short, as people type them. Only places and professions from the material.`, user: material });
+  const out = await askJSON({ key, schema, fetchImpl, base, system: `List up to 40 real questions people ask about ${subject} before and while they prepare: requirements per country and profession, fees, scoring, comparisons with other tests, taking it on computer or at home, results, preparation. Short, as people type them — in their own words and language where they would (RR-322 B4: e.g. Roman Urdu, Hindi, Arabic, local currencies and cities). Only places and professions from the material.`, user: material });
   if (!out.ok) return out;
   const allowed = new Set([...countries.map((c) => c.toLowerCase()), ...professions.map((p) => p.toLowerCase())]);
   const qs = (out.data?.questions ?? []).map((q) => String(q).trim()).filter((q) => q.length >= 8 && q.length <= 160).filter((q) => countriesIn(q).every((c) => allowed.has(c.toLowerCase())));
   return { ok: true, usage: out.usage, questions: qs.slice(0, 40) };
+}
+
+/*
+ * 🔴 RR-322 B3 · THE PROOF LAW FOR AI TEXT: the client's AI may write explanation, tips, steps and checklists; a SCORE, FEE, RULE or DATE
+ * only from a source with its date. So every sentence the AI writes that carries a number not among the page's own sourced facts is DROPPED
+ * — the explanation stays, an invented number never reaches a page.
+ */
+export function keepSourcedNumbers(text, facts = []) {
+  const allowed = new Set(facts.flatMap((f) => String(f).match(/\d+(?:[.,]\d+)?/g) ?? []).map((x) => x.replace(",", ".")));
+  return String(text ?? "").split(/(?<=[.!?])\s+/).filter((s) => (s.match(/\d+(?:[.,]\d+)?/g) ?? []).every((n) => allowed.has(n.replace(",", ".")))).join(" ").trim();
+}
+const EXPLAIN_SCHEMA = { type: "object", additionalProperties: false, required: ["pages"], properties: { pages: { type: "array", items: { type: "object", additionalProperties: false, required: ["title", "answer", "points", "steps", "checklist", "tip"], properties: { title: { type: "string" }, answer: { type: "string" }, points: { type: "array", items: { type: "string" } }, steps: { type: "array", items: { type: "string" } }, checklist: { type: "array", items: { type: "string" } }, tip: { type: "string" } } } } } };
+/** explanation for pages (topics, profession × sub-test): their own words, per page; numbers only those of the page's facts (kept by keepSourcedNumbers) */
+export async function explainPagesAI({ provider, key, subject, pages, fetchImpl = fetch, base = AI.origin }) {
+  if (provider !== "anthropic" || !key) return { ok: false, why: "Connect your AI to add explanations." };
+  const user = pages.map((p) => `PAGE: ${p.title}\nQUESTIONS: ${(p.questions ?? []).slice(0, 6).join(" | ")}\nFACTS (the only numbers you may use): ${(p.facts ?? []).join(" | ") || "none"}`).join("\n\n");
+  const out = await askJSON({ key, schema: EXPLAIN_SCHEMA, fetchImpl, base, maxTokens: 8000, system: `For each page, write for a healthcare professional preparing for ${subject}: "answer" — 30 to 50 words answering the page's question first; "points" — 6 to 8 short, useful explanation points (how it works, what to watch for, common mistakes; for a profession's sub-test: its own task, case types, vocabulary and common mistakes); "steps" — 3 to 5; "checklist" — 4 to 6; "tip" — one. Plain words, no filler. Use NO number that is not in that page's FACTS. Opinions are said as "candidates often say …", never as fact.`, user });
+  if (!out.ok) return out;
+  const byTitle = new Map(pages.map((p) => [p.title, p])), result = {};
+  for (const x of out.data?.pages ?? []) { const p = byTitle.get(x.title); if (!p) continue; const k = (s) => keepSourcedNumbers(s, p.facts ?? []); result[x.title] = { answer: k(x.answer), points: (x.points ?? []).map(k).filter(Boolean).slice(0, 8), steps: (x.steps ?? []).map(k).filter(Boolean).slice(0, 5), checklist: (x.checklist ?? []).map(k).filter(Boolean).slice(0, 6), tip: k(x.tip) || null, by: "your AI (explanation; facts from their sources)" }; }
+  return { ok: true, usage: out.usage, pages: result };
+}
+const TRANSLATE_SCHEMA = { type: "object", additionalProperties: false, required: ["pages"], properties: { pages: { type: "array", items: { type: "object", additionalProperties: false, required: ["base", "title", "answer", "steps", "checklist", "tip"], properties: { base: { type: "string" }, title: { type: "string" }, answer: { type: "string" }, steps: { type: "array", items: { type: "string" } }, checklist: { type: "array", items: { type: "string" } }, tip: { type: "string" } } } } } };
+/** the strongest pages in another language: the same answer, steps, checklist and tip — every number exactly as in the page */
+export async function translatePagesAI({ provider, key, lang, langName, pages, fetchImpl = fetch, base = AI.origin }) {
+  if (provider !== "anthropic" || !key) return { ok: false, why: "Connect your AI to make pages in other languages." };
+  const user = pages.map((p) => `BASE: ${p.title}\nANSWER: ${p.content.answer}\nSTEPS: ${(p.content.steps ?? []).join(" | ")}\nCHECKLIST: ${(p.content.checklist ?? []).join(" | ")}\nTIP: ${p.content.tip ?? ""}`).join("\n\n");
+  const out = await askJSON({ key, schema: TRANSLATE_SCHEMA, fetchImpl, base, maxTokens: 8000, system: `Write each page in ${langName}, as people in that language search and speak — natural, not word for word. Keep every number, grade, name and date exactly as it is. "title" is the page's title in ${langName}, in the words people search. Copy BASE unchanged.`, user });
+  if (!out.ok) return out;
+  const byTitle = new Map(pages.map((p) => [p.title, p])), result = {};
+  for (const x of out.data?.pages ?? []) { const p = byTitle.get(x.base); if (!p) continue; const facts = [p.content.answer, ...(p.content.steps ?? []), ...(p.content.checklist ?? []), p.content.tip ?? ""]; const k = (s) => keepSourcedNumbers(s, facts); result[`${lang}|${x.base}`] = { title: String(x.title).slice(0, 90), content: { answer: k(x.answer), steps: (x.steps ?? []).map(k).filter(Boolean), checklist: (x.checklist ?? []).map(k).filter(Boolean), tip: k(x.tip) || null, by: `your AI (in ${langName}; every number as in the English page)` } }; }
+  return { ok: true, usage: out.usage, pages: result };
 }

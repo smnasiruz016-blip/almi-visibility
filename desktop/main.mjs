@@ -47,6 +47,13 @@ import { venueCountries, statisticsOf } from "./venues.mjs"; // RR-321 G1, B2
 import { readRates } from "./rates.mjs"; // RR-321 D5
 import { sortQuestions } from "./questions.mjs"; // RR-321 C
 import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
+import { regulatorPagesOf } from "./recognition.mjs"; // RR-322 A2
+import { subtestFactsOf } from "./pseo.mjs"; // RR-322 B5
+import { lightCheck, teachesHealth, professionsOfFields, professionsInName } from "./universities.mjs"; // RR-322 A1
+import { explainPagesAI, translatePagesAI } from "./web-ai.mjs"; // RR-322 A5, B4
+import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
+import { CENTRAL_BANKS, PEGS } from "./rates.mjs"; // RR-322 A3
+import { mondayReport, nextBatch, beforeExpand, refreshDue } from "./indexing.mjs"; // RR-322 C3
 import { builtInList, HOWTO as LIST_HOWTO, WORLD_LISTS, draftList } from "./lists.mjs"; // RR-319 B
 import { searchPower, mergeHistory } from "./search-power.mjs"; // RR-318 D
 import { siteNameOf } from "./web-text.mjs";
@@ -282,14 +289,100 @@ const phraseItems = (id) => pread(id, "phrases.json", []).map((p) => ({ text: p.
  * 12 professions) — fast, and the plan, the tables, the five answers and the total all from ONE ledger. The regulators' own pages are read
  * while pages are BUILT (count/preview, count/make) and saved in regulator-reads.json; they add facts to the plan, never pages.
  */
-const listOf = (s, subject) => (isAlmiWorld(s) && /^oet$/i.test(String(subject ?? "")) ? builtInList("recognising") : null);
+/* RR-322 A4: the client's own AI's refresh of the list (written out in his browser) is used before AlmiOET's copy, with its date */
+const listOf = (s, subject, id = null) => (isAlmiWorld(s) && /^oet$/i.test(String(subject ?? "")) ? (id && pread(id, "oet-list.json")?.items?.length ? pread(id, "oet-list.json") : builtInList("recognising")) : null);
 const professionsOf = () => (builtInList("professions")?.items ?? []).map((x) => x.name.toLowerCase());
+/* RR-322 A3: a rate the client's AI read in his browser (or a peg it confirmed) joins the central banks' rates of the count */
+const ratesOf = (id, c) => { const b = pread(id, "browser-rates.json", {}); return c.rates ? { ...c.rates, banks: { ...(c.rates.banks ?? {}), ...b } } : c.rates; };
+const ctaOf = (s) => { const o0 = s.product?.site ?? null, o = o0 && !/^https?:\/\//.test(o0) ? `https://${o0}` : o0; try { return o ? { label: `Try a free ${aboutOf(s) ?? "practice"} test on ${new URL(o).hostname}`, href: new URL("/practice", o).href } : null; } catch { return null; } };
 function listPlan(id, c) {
-  const s = store.read(id), list = listOf(s, c.subject); if (!list) return null;
+  const s = store.read(id), list = listOf(s, c.subject, id); if (!list) return null;
   const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
-  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: c.rates ?? null, stats: c.stats ?? null, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins") });
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {} });
   const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
   return { plan, five, questions: groups };
+}
+/* ── RR-322 · the background work of the list path: the light check, the regulators' confirmation, the AI's explanation, the browser list ── */
+const busy = new Map(); // product id → { what, done, of } (a light check or a confirmation running)
+/** A1 · the light check of the next `n` universities the list names no profession for (robots obeyed, ≤ 2 pages each), saved as it goes */
+function lightRun(id, n = 60) {
+  if (busy.has(`${id}|light`)) return false;
+  const c = pread(id, "page-count.json"); if (!c?.list) return false;
+  const done = pread(id, "uni-light.json", {}), weight = Object.fromEntries((c.byCountry ?? []).map((x) => [x.country, x.impressions ?? 0]));
+  /* RR-322 proof: 37 of the first 59 had no website in the list (nothing to read) — a university with a site, or a profession in its own name, first */
+  const canCheck = (u) => (u.page || professionsInName(u.name).length ? 0 : 1);
+  const todo = (builtInList("universities")?.items ?? []).filter((u) => teachesHealth(u) && !professionsOfFields(u.fields ?? u.subjects ?? []).length && !done[u.name]).sort((a, b) => canCheck(a) - canCheck(b) || (weight[b.country] ?? 0) - (weight[a.country] ?? 0) || String(a.name).localeCompare(String(b.name))).slice(0, n);
+  if (!todo.length) return false;
+  const st = { what: "light", done: 0, of: todo.length }; busy.set(`${id}|light`, st);
+  (async () => { const rd = reader(); for (const u of todo) { const r = await lightCheck({ u, reader: rd }).catch((e) => ({ state: "UNREADABLE", why: String(e?.message ?? e).slice(0, 80), professions: [] })); const all = pread(id, "uni-light.json", {}); all[u.name] = { ...r, on: rd.on }; pwrite(id, "uni-light.json", all); st.done++; } replan(id); })().catch(() => null).finally(() => busy.delete(`${id}|light`));
+  return true;
+}
+/** A2 · read every regulator's own page not read in the last 7 days (the ones that confirm a score leave "waiting") */
+async function confirmRegulators(id, { say = () => {} } = {}) {
+  const c = pread(id, "page-count.json"); if (!c?.list) return { read: 0 };
+  const s = store.read(id), list = listOf(s, c.subject, id), rec = recognitionOf(list, { professions: professionsOf() }), pages = regulatorPagesOf(rec, { subject: c.subject, professions: professionsOf() }).pages;
+  const reads = pread(id, "regulator-reads.json", {}), todo = pages.filter((p) => !(reads[p.listId] && (Date.now() - Date.parse(reads[p.listId].on ?? 0)) / 864e5 < 7)), rd = reader();
+  for (const [i, p] of todo.entries()) { say(`Reading ${p.body}'s own page (${i + 1} of ${todo.length})`); await readRegulatorFor(id, p, rd); }
+  replan(id);
+  return { read: todo.length };
+}
+/** A5 + B4 · the client's AI explains the topic and sub-test pages (numbers only from their facts), and writes the strongest pages in the
+ * languages people ask in — saved; the plan made again */
+async function aiContentFor(id, { only = null } = {}) {
+  const s = store.read(id), ai = aiOf(s); if (!ai || !LEDGER.allowed().ok) return { ok: false };
+  const c = pread(id, "page-count.json"); if (!c?.plan) return { ok: false };
+  const all = pread(id, "ai-content.json", {}), base = CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {};
+  const facts = (p) => [...(p.claims ?? []).filter((x) => !x.pointer).map((x) => x.text), ...(p.dataPoints ?? []).map((d) => `${d.label} ${d.value}`)];
+  const topicPages = [...(c.plan.kinds.topic ?? []), ...(c.plan.gates?.topic?.sections ?? []).map((x) => ({ title: x.name, questions: [], claims: [] }))].filter((p) => !all.topics?.[p.title] && (!only || only.includes(p.title)));
+  const want = [...topicPages.map((p) => ({ title: p.title, questions: (p.questions ?? []).map((g) => g.question), facts: facts(p) })), ...(c.plan.kinds.subtest ?? []).filter((p) => !all.subtests?.[`${p.subtest}|${p.profession}`] && (!only || only.includes(p.title))).map((p) => ({ title: p.title, key: `${p.subtest}|${p.profession}`, questions: (p.questions ?? []).map((g) => g.question), facts: facts(p) }))];
+  for (let i = 0; i < want.length; i += 12) {
+    const part = want.slice(i, i + 12), out = await explainPagesAI({ ...ai, subject: c.subject, pages: part, ...base }); if (out.usage) LEDGER.add(out.usage); if (!out.ok) break;
+    for (const p of part) if (out.pages[p.title]) { if (p.key) (all.subtests ??= {})[p.key] = out.pages[p.title]; else (all.topics ??= {})[p.title] = out.pages[p.title]; }
+  }
+  pwrite(id, "ai-content.json", all); replan(id);
+  /* the languages: after the plan knows its strongest pages */
+  const c2 = pread(id, "page-count.json"), byLang = new Map(); for (const p of c2.plan.kinds.language ?? []) if (!all.translations?.[`${p.lang}|${p.base}`]) byLang.set(p.lang, [...(byLang.get(p.lang) ?? []), p.base]);
+  const fullKinds = c2.plan.kinds, kept = Object.values(fullKinds).flat();
+  for (const [lang, titles] of byLang) { const pages = titles.map((t) => kept.find((p) => p.title === t)).filter(Boolean); const out = await translatePagesAI({ ...ai, lang, langName: LANGUAGES.find((l) => l.code === lang)?.name ?? lang, pages, ...base }); if (out.usage) LEDGER.add(out.usage); if (out.ok) Object.assign((all.translations ??= {}), out.pages); }
+  pwrite(id, "ai-content.json", all); replan(id);
+  return { ok: true };
+}
+/** A2 + A3 + A4 + C2 · the day's browser list for the client's own AI */
+function browserListFor(id) {
+  const c = pread(id, "page-count.json"); if (!c?.list || !c.plan) return null;
+  const reads = pread(id, "regulator-reads.json", {}), list = listOf(store.read(id), c.subject, id);
+  const regs = Object.entries(reads).filter(([, r]) => r.browser).map(([listId, r]) => ({ listId, url: r.url, body: r.body, why: r.why }));
+  const rates = [...new Map((c.plan.kinds.taking?.[0]?.sections ?? []).filter((x) => x.browser).map((x) => [x.browser.url, x.browser])).values()];
+  for (const [cur, p] of Object.entries(PEGS)) if (!pread(id, "browser-rates.json", {})[cur]) rates.push({ kind: "rate", currency: cur, url: p.link, label: p.source, why: "to confirm the official peg on the central bank's own page" });
+  const formats = Object.entries(c.plan.kinds).filter(([k, xs]) => xs.length && !["hub", "language"].includes(k)).map(([k, xs]) => ({ family: k, query: (xs.find((p) => p.main)?.main) ?? xs[0].title }));
+  return browserList({ regulators: regs, rates, listPage: list?.page ?? null, listOn: list?.listOn ?? null, formats });
+}
+/** what the client's AI handed in → each page MEASURED (scores, a rate, the list's rows, Google's shape); the text itself is never kept */
+async function takeBrowser(id, hand) {
+  const bl = browserListFor(id); if (!bl) return { ok: false, line: "Count first." };
+  const t = takeBrowserReads(hand, bl.items); if (!t.ok) return { ok: false, line: `Refused — ${t.refusedFor.join(", ")}. Nothing from this file is kept.` };
+  const c = pread(id, "page-count.json"), lines = [];
+  for (const p of t.pages) {
+    if (p.kind === "regulator") { const page = (c.plan.kinds.regulator ?? []).find((x) => x.listId === p.listId) ?? regulatorPagesOf(recognitionOf(listOf(store.read(id), c.subject, id), { professions: professionsOf() }), { subject: c.subject, professions: professionsOf() }).pages.find((x) => x.listId === p.listId);
+      if (!page) continue; const r = await readRegulator({ page: { ...page, record: { ...(page.record ?? {}), officialUrl: p.url } }, subject: c.subject, reader: textReader(p.url, p.text, p.date) });
+      const all = pread(id, "regulator-reads.json", {}); all[p.listId] = { ...r, body: page.body, title: page.title, via: `read by your AI in your browser, ${p.date}`, browser: !r.ok }; pwrite(id, "regulator-reads.json", all); lines.push(`${page.body}: ${r.ok ? "its score confirmed" : r.why}`); }
+    if (p.kind === "rate") { const b = CENTRAL_BANKS[p.currency], v = b?.row ? b.row(p.text) : b?.rate ? { rate: b.rate(p.text), date: p.date } : null, peg = PEGS[p.currency];
+      const rate = v?.rate ?? (peg && p.text.includes(peg.rate) ? peg.rate : null);
+      if (rate && p.text.includes(rate)) { const all = pread(id, "browser-rates.json", {}); all[p.currency] = { rate, date: v?.date ?? p.date, link: p.url, source: `${b?.source ?? peg.source} (read by your AI in your browser)`, short: b?.short ?? peg.short }; pwrite(id, "browser-rates.json", all); lines.push(`${p.currency}: ${rate} (${p.date})`); } else lines.push(`${p.currency}: no rate stands on what your AI handed in`); }
+    if (p.kind === "oet-list" && p.rows.length) { const l = listFromRows(p.rows, { date: p.date, page: p.url }); if (l.items.length >= 100) { pwrite(id, "oet-list.json", l); lines.push(`OET's list: ${l.items.length} organisations (${p.date})`); } else lines.push(`OET's list: only ${l.items.length} rows — kept AlmiOET's copy (a refresh needs the whole list)`); }
+    if (p.kind === "format" && p.shape) { const all = pread(id, "formats.json", {}); all[p.family] = { shape: p.shape, query: p.label, on: p.date }; pwrite(id, "formats.json", all); lines.push(`${p.family}: Google shows a ${p.shape}`); }
+  }
+  replan(id);
+  return { ok: true, line: `${t.pages.length} page${t.pages.length === 1 ? "" : "s"} read by your AI: ${lines.join(" · ") || "nothing measured"}.${t.notOnList.length ? ` ${t.notOnList.length} not on today's list — not used.` : ""}` };
+}
+/** C3 · the index report (each Monday, or when asked): Google's own state of each live page, the next-batch rule, the work before a new batch */
+async function indexReport(id) {
+  const sc = searchConsoleOf(id), live = pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url), on = new Date().toISOString().slice(0, 10), results = [];
+  if (sc?.kind === "CONNECTED" && sc.site) for (const u of live.slice(0, 200)) results.push({ url: u, inspection: await GOOGLE.inspect(sc.site, u).catch(() => null) });
+  const rep = mondayReport(results, { on }), states = Object.fromEntries(rep.pages.map((p) => [p.url, p.state])); pwrite(id, "index-states.json", states);
+  const rows = sc?.kind === "CONNECTED" && sc.site ? await GOOGLE.pageRows(sc.site).catch(() => null) : null, batchesMade = pread(id, "batches.json", []);
+  const x = { on, report: rep, next: nextBatch(batchesMade.at(-1), states, { on }), before: beforeExpand(rows ?? [], batchesMade.flatMap((b) => b.urls ?? [])), refresh: refreshDue(pread(id, "made-plan.json", []), { on }), searchConsole: Boolean(rows) };
+  pwrite(id, "index-report.json", x); return x;
 }
 /** read one regulator's own page (RFC 9309 robots) and keep what it states, by the list's id — a lead the client or his AI gave for the same
  * site is read first */
@@ -377,6 +470,8 @@ async function recheckSources(id) {
 async function weeklyRound() {
   for (const p of store.list()) {
     const id = p.id; if (!weeklyOf(id).on || checking.has(id)) continue;
+    /* RR-322 C3: the Monday report — Google's own index state of the live pages, once each Monday (independent of the weekly check) */
+    if (new Date().getUTCDay() === 1 && pread(id, "batches.json", []).length && !(Date.now() - Date.parse(pread(id, "index-report.json")?.on ?? 0) < 6 * 864e5)) await indexReport(id).catch(() => null);
     const c = pread(id, "check.json"); if (!c?.on || Date.now() - Date.parse(c.on) < 7 * 864e5) continue;
     try {
       await checkProduct(id); didIt(id, "Weekly check: checked again and made the action plan again.");
@@ -591,7 +686,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -618,7 +713,9 @@ const server = createServer((req, res) => {
             const fromList = lastC?.list && lastC.plan; // RR-321: the countries and professions of the list's count
             const browser = aboutOf(s) ? browserSearchList({ subject: aboutOf(s), countries: fromList ? lastC.plan.tables.regulator.rows[1].kept.map((k) => k.name) : (lastC?.result?.dims?.countries?.kept ?? []).map((k) => k.name), origins: (lastC?.byCountry ?? []).map((c) => c.country).filter((c) => !/^other/.test(c)), professions: fromList ? professionsOf() : lastC?.result?.dims?.roles?.professions ?? [], own: pread(id, "research-own.json", []) }) : null;
             const usedToday = runs.filter((x) => x.date === today && x.verdict === "ACCEPTED").reduce((n, x) => n + (x.searchesUsed ?? 0), 0);
-            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions"), recognising: bi("recognising") } : null, listPath: Boolean(listOf(s, aboutOf(s) ?? "OET")), aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: lastC?.list && lastC.plan ? { ...lastC, plan: { ...lastC.plan, kinds: undefined } } /* RR-321 proof: the screen shows the tables; the pages' bodies (MBs) stay in the file */ : lastC, make: pread(id, "make.json"), preview: pread(id, "preview.json"), updates: pread(id, "updates.json", []).slice(-30), almiworld: aw });
+            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions"), recognising: bi("recognising") } : null, listPath: Boolean(listOf(s, aboutOf(s) ?? "OET")), aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: lastC?.list && lastC.plan ? { ...lastC, plan: { ...lastC.plan, kinds: undefined } } /* RR-321 proof: the screen shows the tables; the pages' bodies (MBs) stay in the file */ : lastC, make: pread(id, "make.json"), preview: pread(id, "preview.json"), updates: pread(id, "updates.json", []).slice(-30), almiworld: aw,
+              /* RR-322: the client's AI browser list, the light check and confirmation running, the index report */
+              browserRead: (() => { const b = browserListFor(id); return b ? { ...b, instruction: browserInstruction(b.items) } : null; })(), light: busy.get(`${id}|light`) ?? null, confirming: busy.get(`${id}|confirm`) ?? null, indexReport: pread(id, "index-report.json") });
           }
           /* RR-319 ADD · the client's own words → what Visibility understood (his AI when connected; else the plain reader); he confirms */
           if (r[2] === "count/understand" && req.method === "POST") {
@@ -636,7 +733,7 @@ const server = createServer((req, res) => {
             const v = json();
             const formula = v.useFormula ? pread(id, "formula.json") : null;
             /* RR-321 B1: for AlmiWorld's OET the five questions and the count ALWAYS run on the built-in lists — no tick is needed */
-            const list = listOf(s, String(v.subject ?? "").trim());
+            const list = listOf(s, String(v.subject ?? "").trim(), id);
             const dims = list ? ["countries", "origins", "roles", "universities"] : formula?.run?.length ? formula.run : (Array.isArray(v.dims) ? v.dims : []).filter((d) => DIMENSIONS.some((x) => x.id === d) || d === "origins");
             if (!dims.length) return send(400, { refused: "Tell Visibility which pages you have in mind (in your own words, or tick countries, universities, professions …)." });
             const subject = String(v.subject ?? "").trim(), offSite = webAddress(String(v.site ?? "").trim());
@@ -675,13 +772,20 @@ const server = createServer((req, res) => {
                 say(`Reading ${subject}'s test statistics`);
                 const stats = await statisticsOf({ urls, subject, reader: rd });
                 say("Reading the central banks' official rates");
-                const rates = await readRates({ reader: rd, countries: venues.countries.map((x) => x.name) });
+                const rates = await readRates({ reader: rd, countries: [...new Set([...venues.countries.map((x) => x.name), "Pakistan", "Kenya", "United Arab Emirates", "Qatar"])] });
+                /* RR-322 B5: each sub-test's own facts (OET's "at a glance" pages) — four pages, read once */
+                say(`Reading ${subject}'s pages about each sub-test`);
+                const subtestPages = []; for (const u of urls.filter((x) => /\/ready\/(listening|reading|writing|speaking)$/i.test(x))) subtestPages.push(await rd.read(u));
+                const subtests = subtestFactsOf(subtestPages);
                 say("Gathering the questions people ask");
                 const research = await researchFor({ id, s, sc: scNow, subject, subjectSite: offSite, rd, res });
                 const c = { on: new Date().toISOString(), list: true, dims, subject, site: offSite, formula, before: was,
                   result: { ok: true, subject, subjectName: subject, subjectSite: res.subjectSite, checkedOn: res.checkedOn, pagesListed: res.pagesListed, dims: {}, requests: rd.requests() },
-                  venues, fee: res.fee, rates, stats, byCountry, scRows: scNow?.byCountry ?? [], items: research.items.filter((x) => x.kind !== "observed" && x.kind !== "tool"), research: { sources: research.sources, aiCost: research.aiCost } };
+                  venues, fee: res.fee, rates, stats, subtests, subjectPages: { urls: urls.filter((u) => !/\/(post|blog)\//.test(u)), faq: urls.find((u) => /faq/i.test(u)) ?? null, on: res.checkedOn }, byCountry, scRows: scNow?.byCountry ?? [], items: research.items.filter((x) => x.kind !== "observed" && x.kind !== "tool"), research: { sources: research.sources, aiCost: research.aiCost } };
                 pwrite(id, "page-count.json", { ...c, ...listPlan(id, c) });
+                /* RR-322 A5 + B4: the client's AI explains the topic and sub-test pages, and writes the strongest pages in a language people ask in */
+                if (aiOf(s) && LEDGER.allowed().ok) { say("Your AI is explaining the topic and sub-test pages"); await aiContentFor(id).catch(() => null); }
+                lightRun(id, 60); // RR-322 A1: the light check of 60 more universities, in the background
                 return;
               }
               const res = await realityFilter({ dims, lists, subject, subjectName: subject, subjectSite: offSite, reader: rd, onProgress: say, maxUniversityReads: universityReads, siteProfessions: Boolean(formula?.professions), queries: (scNow?.queries ?? []).map((q) => q.query), countryWeight: Object.fromEntries((byCountry ?? []).map((c) => [c.country, c.impressions])) });
@@ -742,18 +846,36 @@ const server = createServer((req, res) => {
             const v = json(), c = pread(id, "page-count.json");
             if (!c?.list || !c.plan) return send(400, { refused: "Count first — the preview shows two of the planned pages." });
             if (!site) return send(400, { refused: "Check your website first — the pages are made in its look." });
-            const regs = c.plan.kinds.regulator, rp = regs.find((p) => p.title === v.regulator) ?? regs.find((p) => /\(NMBI\)/.test(p.title)) ?? regs[0];
-            const up = c.plan.kinds.university.find((p) => p.title === v.university) ?? c.plan.kinds.university.find((p) => p.universities.length === 1) ?? c.plan.kinds.university[0];
+            /* RR-322 PROOF: six full pages — a regulator (NMBI), "OET Writing for <profession>", a university, a topic, a page in another
+             * language and "Where to take" — each judged against B6–B7 (the answer first, its table, steps, checklist, tip, last updated,
+             * the call to action, at least 3 links) */
+            const K = c.plan.kinds, rp = K.regulator.find((p) => p.title === v.regulator) ?? K.regulator.find((p) => /\(NMBI\)/.test(p.title)) ?? K.regulator[0];
             if (!rp) return send(400, { refused: "No regulator page is planned." });
             const rd = reader(); await readRegulatorFor(id, rp, rd);
+            const sub = K.subtest.find((p) => p.title === v.subtest) ?? K.subtest.find((p) => p.subtest === "Writing" && p.profession === "pharmacy") ?? K.subtest[0];
+            if (aiOf(s) && LEDGER.allowed().ok) await aiContentFor(id, { only: [sub?.title, ...K.topic.slice(0, 1).map((p) => p.title)].filter(Boolean) }).catch(() => null);
             replan(id);
-            const c2 = pread(id, "page-count.json"), r2 = c2.plan.kinds.regulator.find((p) => p.title === rp.title), u2 = up ? c2.plan.kinds.university.find((p) => p.title === up.title) : null;
-            const two = [r2, u2].filter(Boolean), built = seoPages({ site, on: new Date().toISOString(), pagePlan: two, subject: c.subject, official: officialOf(id) });
-            const html = (p) => built.drafts.find((d) => d.title === p.title || d.url.endsWith(`/${p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`)) ?? null;
-            const out = two.map((p) => ({ kind: p.kind, title: p.title, read: p.read ?? null, lastChecked: p.lastChecked, claims: p.claims, draft: html(p) ? { html: html(p).html, readyAsDraft: html(p).readyAsDraft, gates: html(p).gates } : null }));
-            pwrite(id, "preview.json", { on: new Date().toISOString(), pages: out });
-            return send(200, { ok: true, pages: out, line: `${r2.read?.ok ? `${r2.body}'s own page was read (${r2.read.on})` : `${r2.body}'s own page could not be read (${r2.read?.why ?? "not read"}) — this page is built from ${c.subject}'s list, with "check here"`}.` });
+            const c2 = pread(id, "page-count.json"), K2 = c2.plan.kinds, pick = (k, t) => (t ? K2[k].find((p) => p.title === t) : null) ?? null;
+            const six = [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), pick("subtest", sub?.title), K2.university.find((p) => p.title === v.university) ?? K2.university[0], K2.topic[0] ?? null, K2.language[0] ?? null, K2.taking[0]].filter(Boolean);
+            const built = seoPages({ site, on: new Date().toISOString(), pagePlan: six, subject: c.subject, official: officialOf(id) });
+            const html = (p) => built.drafts.find((d) => d.title === p.title) ?? null;
+            const judge = (p) => { const x = p.content ?? {}; return { answerWords: x.answerWords, answerOk: x.answerWords >= 40 && x.answerWords <= 60 && x.answerHasNumber, table: (x.table?.length ?? 1) - 1, steps: x.steps?.length ?? 0, checklist: x.checklist?.length ?? 0, faq: x.faq?.length ?? 0, tip: Boolean(x.tip), cta: Boolean(x.cta), lastUpdated: x.lastUpdated, links: p.links?.length ?? 0, dataPoints: p.dataPoints?.length ?? 0, status: p.status }; };
+            const out = six.map((p) => ({ kind: p.kind, title: p.title, read: p.read ?? null, lastChecked: p.lastChecked, claims: p.claims, content: p.content, links: p.links, judge: judge(p), draft: html(p) ? { html: html(p).html, readyAsDraft: html(p).readyAsDraft, gates: html(p).gates } : null }));
+            const missing = [!K2.topic.length && "a topic page (no topic page yet — connect your AI so it can explain them)", !K2.language.length && "a page in another language (no language with demand among your chosen ones yet)"].filter(Boolean);
+            pwrite(id, "preview.json", { on: new Date().toISOString(), pages: out, missing });
+            const r2 = six[0];
+            return send(200, { ok: true, pages: out, missing, line: `${r2.read?.ok ? `${r2.body}'s own page was read (${r2.read.on})` : `${r2.body}'s own page could not be read (${r2.read?.why ?? "not read"}) — it waits for a confirmed score`}. ${out.length} pages previewed${missing.length ? `; not yet: ${missing.join("; ")}` : ""}.` });
           }
+          /* RR-322 A1 · the light check of the next universities, in the background (a batch at a time) */
+          if (r[2] === "count/light" && req.method === "POST") { const n = Math.max(10, Math.min(200, Number(json().n) || 60)); const ok = lightRun(id, n); return send(ok ? 200 : 409, ok ? { ok: true, line: `Checking ${n} more universities' own sites in the background (robots obeyed, at most two pages each).` } : { refused: busy.has(`${id}|light`) ? "A light check is already running." : "No university left to check, or count first." }); }
+          /* RR-322 A2 · every regulator's own page read now (in the background) */
+          if (r[2] === "count/confirm" && req.method === "POST") { if (busy.has(`${id}|confirm`)) return send(409, { refused: "Already reading the regulators' pages." }); const st = { what: "confirm", done: 0 }; busy.set(`${id}|confirm`, st); confirmRegulators(id, { say: (x) => { st.stage = x; } }).catch(() => null).finally(() => busy.delete(`${id}|confirm`)); return send(200, { ok: true, line: "Reading each regulator's own page in the background — a page whose score is confirmed leaves \"waiting\"." }); }
+          /* RR-322 A5 + B4 · the client's AI explains the topic and sub-test pages and writes the strongest pages in a language people ask in */
+          if (r[2] === "count/ai" && req.method === "POST") { if (!aiOf(s)) return send(400, { refused: "Connect your AI first (Settings → Your AI connection)." }); const x = await aiContentFor(id); return send(x.ok ? 200 : 400, x.ok ? { ok: true, line: `Your AI's explanations and translations are added — every number in them stands in the page's own facts. ${LEDGER.line()}` } : { refused: "Your AI could not be used now." }); }
+          /* RR-322 A2–A4 + C2 · what the client's own AI read in his own browser (a file) — measured, never kept as text */
+          if (r[2] === "research/browser" && req.method === "POST") { let hand; try { hand = JSON.parse(Buffer.from(String(json().base64 ?? ""), "base64").toString("utf8")); } catch { return send(400, { refused: "That is not the file your AI gave you after reading the pages." }); } const x = await takeBrowser(id, hand); return send(x.ok ? 200 : 400, x.ok ? x : { refused: x.line }); }
+          /* RR-322 C3 · the index report: Google's own state of each made, live page; the next batch rule; the work before a new batch */
+          if (r[2] === "count/index" && req.method === "POST") return send(200, { ok: true, ...(await indexReport(id)) });
           if (r[2] === "count/recheck" && req.method === "POST") { const x = await recheckSources(id); return send(200, { ok: true, line: x.proposals ? `${x.proposals} number${x.proposals === 1 ? "" : "s"} changed on their sources — the updates are proposed below; nothing was changed by itself.` : "The sources were checked again — no number changed." }); }
           if (r[2] === "count/make" && req.method === "POST" && pread(id, "page-count.json")?.list) {
             /* RR-321 · the first batch: each regulator page of it read now (slow — a few minutes), then the drafts, in the background */
@@ -761,15 +883,19 @@ const server = createServer((req, res) => {
             if (!site) return send(400, { refused: "Check your website first — the pages are made in its look and linked to it." });
             if (counting.has(id)) return send(409, { refused: "Visibility is still working on this product — wait for it to finish." });
             const run = (async () => {
-              const say = (p) => countProgress.set(id, { stage: p, at: new Date().toISOString() }), rd = reader(), first = new Set(c.plan.rollout.first), reads = pread(id, "regulator-reads.json", {});
-              const regs = c.plan.kinds.regulator.filter((p) => first.has(p.title) && !(reads[p.listId] && (Date.now() - Date.parse(reads[p.listId].on ?? 0)) / 864e5 < 7));
-              for (const [i, p] of regs.entries()) { say(`Reading ${p.body}'s own page (${i + 1} of ${regs.length})`); await readRegulatorFor(id, p, rd); }
-              replan(id);
-              const c2 = pread(id, "page-count.json"), all = Object.values(c2.plan.kinds).flat(), pages = all.filter((p) => first.has(p.title));
+              const say = (p) => countProgress.set(id, { stage: p, at: new Date().toISOString() });
+              /* RR-322 A2: every regulator's own page first — a page whose score is confirmed leaves "waiting"; then the batch (25 → 50 → …) */
+              const conf = await confirmRegulators(id, { say }), regs = { length: conf.read };
+              const batchesMade = pread(id, "batches.json", []), states = pread(id, "index-states.json", {}), rule = nextBatch(batchesMade.at(-1), states, { on: new Date().toISOString() });
+              if (!rule.allowed) { pwrite(id, "make.json", { on: new Date().toISOString(), line: `No new batch: ${rule.why}.` }); return; }
+              const c2 = pread(id, "page-count.json"), all = Object.values(c2.plan.kinds).flat(), made = new Set(batchesMade.flatMap((b) => b.titles ?? []));
+              const batchTitles = (c2.plan.rollout.batchTitles ?? [c2.plan.rollout.first]).find((b) => b.some((t) => !made.has(t))) ?? c2.plan.rollout.first, first = new Set(batchTitles.filter((t) => !made.has(t)));
+              const pages = all.filter((p) => first.has(p.title));
               pwrite(id, "planned.json", pages.map((p) => ({ text: p.title, source: `How many pages (${p.kind}${p.weak ? ", an opportunity page — no search yet" : `, answers ${p.questions.length} question${p.questions.length === 1 ? "" : "s"}`})` })));
               pwrite(id, "made-plan.json", pages);
               say("Making the drafts");
               const x = await createPages(id); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
+              pwrite(id, "batches.json", [...batchesMade, { made: new Date().toISOString(), titles: pages.map((p) => p.title), urls: x.pages.drafts.filter((d) => first.has(d.title)).map((d) => d.url) }]);
               didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned; ${regs.length} regulator pages read).`);
               pwrite(id, "make.json", { on: new Date().toISOString(), drafts: n, planned: pages.length, all: all.length, read: regs.length, line: `${n} of the first batch's ${pages.length} pages made as drafts (${all.length} planned in all); ${regs.length} regulators' own pages read for it. Read them under "Pages and articles".${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}` });
             })().catch((e) => pwrite(id, "make.json", { on: new Date().toISOString(), line: `Making stopped: ${e.message}` })).finally(() => { counting.delete(id); countProgress.delete(id); });

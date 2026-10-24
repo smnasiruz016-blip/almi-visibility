@@ -8,7 +8,7 @@
  *     not shown. AlmiOET's own records (validity years, the combining window) are LEADS: shown only when the regulator's page states them.
  * The lines are Visibility's own words about what the page shows — never the page's sentences copied.
  */
-import { bodyAnswer } from "./official.mjs";
+import { bodyAnswer, relatedLinks } from "./official.mjs";
 
 const WORD = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, eighteen: 18, twenty: 20, "twenty-four": 24 };
 const sentences = (t) => String(t ?? "").split(/(?<=[.!?;])\s+/);
@@ -53,13 +53,37 @@ const STEP_LINK = /\b(how to (apply|register)|apply(ing)? (for|to) (registration
  * Read one regulator page of the plan (desktop/plan-list.mjs) → { ok, url, on, why, claims: [{ fact, text, link, readOn, … }] }. `page` has
  * body, short, country, professions, grade (the list's), record (AlmiOET's leads: officialUrl, validityYears, combineWithinMonths), website.
  */
+/* RR-322 A2 · the RIGHT page of a regulator's site: AlmiOET's verified address first, then its home page and its sitemap (English-language
+ * requirement, overseas-trained registration), then its OWN search page for the subject — each robots-obeyed, the first that names it */
+const SEARCH_PATHS = (origin, q) => [`${origin}/?s=${encodeURIComponent(q)}`, `${origin}/search?q=${encodeURIComponent(q)}`];
+const WANT = /english|language|overseas|international|abroad|foreign|registration|\bOET\b/i;
+async function siteSearch({ url, subject, reader }) {
+  let origin; try { origin = new URL(url).origin; } catch { return null; }
+  for (const s of SEARCH_PATHS(origin, subject)) {
+    const r = await reader.read(s); if (!r.ok) continue;
+    const hits = (r.links ?? []).filter((l) => { try { return new URL(l.href).origin === origin && WANT.test(`${l.text} ${l.href}`) && !/[?&](s|q)=/.test(l.href); } catch { return false; } }).slice(0, 2);
+    for (const h of hits) { const p = await reader.read(h.href); if (p.ok && new RegExp(`\\b${subject}\\b`).test(p.text)) return h.href; }
+  }
+  return null;
+}
 export async function readRegulator({ page, subject, reader }) {
   const url = page.record?.officialUrl ?? page.website;
-  if (!url) return { ok: false, url: null, on: reader.on, why: "the list gives no address for it", claims: [] };
-  const got = await bodyAnswer({ url, body: page.body, subject, reader, sitemap: true }); // its own sitemap names its English-requirements page
+  if (!url) return { ok: false, url: null, on: reader.on, why: "the list gives no address for it", claims: [], browser: false };
+  let got = await bodyAnswer({ url, body: page.body, subject, reader, sitemap: true }); // its own sitemap names its English-requirements page
+  if (!got.claim && page.record?.officialUrl && page.website && page.website !== url) { const g2 = await bodyAnswer({ url: page.website, body: page.body, subject, reader, sitemap: true }); if (g2.claim) got = g2; }
+  /* a second level, at most 6 pages: the English-language links of the pages already read ("Registration standards" → "English language
+   * skills" → the accepted-tests page it links, perhaps on its family's site — the Ahpra boards) */
+  if (!got.claim) {
+    const seen = new Set((got.notSaid?.checked ?? []).map((c) => c.url)), next = [];
+    for (const c of (got.notSaid?.checked ?? []).filter((x) => x.ok)) { const p = await reader.read(c.url); for (const l of relatedLinks(p, [/accepted[^/]*(english|language)?[^/]*tests?|english[^/]*tests?/i, /english|language/i])) if (!seen.has(l.href) && next.length < 6) { seen.add(l.href); next.push(l.href); } }
+    for (const u of next) { const g = await bodyAnswer({ url: u, body: page.body, subject, reader }); if (g.claim) { got = g; break; } }
+  }
+  if (!got.claim && (got.notSaid?.checked ?? []).some((c) => c.ok)) { const found = await siteSearch({ url: page.website ?? url, subject, reader }); if (found) { const g3 = await bodyAnswer({ url: found, body: page.body, subject, reader }); if (g3.claim) got = g3; } }
   if (!got.claim) {
     const n = got.notSaid, failed = !(n.checked ?? []).some((c) => c.ok);
-    return { ok: false, url, on: n.checkedOn, why: failed ? (n.checked?.[0]?.why ?? "could not be read") : `its own page does not name ${subject}`, claims: [{ fact: "link", claimId: `check-${page.listId}`, text: `Check here: ${page.body}'s own page — ${failed ? `it could not be read on ${n.checkedOn} (${n.checked?.[0]?.why ?? "no answer"})` : `checked ${n.checkedOn}, it does not name ${subject}`}; this page is built from ${subject}'s list.`, link: url, readOn: n.checkedOn, source: `${page.body} — its own page`, official: true, body: page.body }] };
+    /* RR-322 A2: a site that refuses this reader (403, a security page) goes on the client's own AI browser list — never around its check */
+    const browser = failed && (n.checked ?? []).some((c) => /answered 40[13]|security service|refused/.test(c.why ?? ""));
+    return { ok: false, url, on: n.checkedOn, browser, why: failed ? (n.checked?.[0]?.why ?? "could not be read") : `its own page does not name ${subject}`, claims: [{ fact: "link", claimId: `check-${page.listId}`, text: `Check here: ${page.body}'s own page — ${failed ? `it could not be read on ${n.checkedOn} (${n.checked?.[0]?.why ?? "no answer"})` : `checked ${n.checkedOn}, it does not name ${subject}`}; this page is built from ${subject}'s list.`, link: url, readOn: n.checkedOn, source: `${page.body} — its own page`, official: true, body: page.body }] };
   }
   const c = got.claim, r = await reader.read(c.link), text = r.ok ? `${r.title ?? ""} ${r.text}` : "", on = c.readOn;
   const mk = (fact, line, extra = {}) => ({ fact, claimId: `${fact}-${page.listId}`, text: line, link: c.link, readOn: on, source: c.source, official: true, body: page.body, ...extra });

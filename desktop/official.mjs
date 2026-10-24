@@ -219,7 +219,7 @@ const RELATED = [/accepted[^/]*(english|language)?[^/]*tests?|english[^/]*tests?
 const sameFamily = (a, b) => { const base = (h) => h.replace(/^www\./, "").split(".").slice(-3).join("."); try { const x = new URL(a).hostname, y = new URL(b).hostname; return base(x) === base(y) || x.split(".").slice(-2).join(".") === y.split(".").slice(-2).join("."); } catch { return false; } };
 /* a university's own pages that state its entry rules */
 export const UNIVERSITY_RELATED = [/english[^/]*(language|requirement|proficien)|language requirement/i, /entry requirement|admission requirement|international (student|applicant)s?/i, /admission|international/i];
-function relatedLinks(page, ranks = RELATED) {
+export function relatedLinks(page, ranks = RELATED) {
   const seen = new Set([page.url]);
   return (page.links ?? []).filter((l) => sameFamily(l.href, page.url) || /\.gov\.|\.gov$|\.govt\./i.test(new URL(l.href).hostname))
     .map((l) => ({ ...l, rank: ranks.findIndex((re) => re.test(`${l.text} ${l.href}`)) })).filter((l) => l.rank >= 0 && !seen.has(l.href) && seen.add(l.href))
@@ -230,7 +230,7 @@ function relatedLinks(page, ranks = RELATED) {
  * up to 4 of its related official pages (accepted tests, English requirements, the registration standard, their PDFs). → { claim } or
  * { notSaid } with EVERY page checked.
  */
-const ENGLISH_PAGE = /english[-_]?language[-_]?(requirements?|proficiency|tests?|skills?|standards?)|english-requirements|language-requirements|english-proficiency|accepted[-_]english/i; // RR-321 proof: the Ahpra boards' "English-language-skills" standard
+const ENGLISH_PAGE = /english[-_]?language[-_]?(requirements?|proficiency|tests?|skills?|standards?)|english-requirements|language-requirements|english-proficiency|accepted[-_]english|overseas[-_]?(trained|qualified|educated|applicants?)|internationally[-_]?(qualified|educated|trained)|international[-_](applicants?|graduates?|nurses|doctors|pharmacists)|english[-_]?(test|language)/i; // RR-321 proof: the Ahpra boards' "English-language-skills" standard; RR-322 A2: the overseas-trained registration pages
 export async function bodyAnswer({ url, body: bodyName = null, subject, reader, related = RELATED, sitemap = false }) {
   const first = await reader.read(url);
   const body = bodyName || String(first.title ?? "").split(/\s+[|·—–-]\s+/).pop() || new URL(url).hostname;
@@ -238,7 +238,7 @@ export async function bodyAnswer({ url, body: bodyName = null, subject, reader, 
   if (first.ok && !(has(first.text, subject) && (subtestResults(first.text, subject).length || resultsNamedWith(first.text, subject).length))) for (const l of relatedLinks(first, related)) { const r = await reader.read(l.href); checked.push(r); pages.push(r); }
   /* RR-319 A2 (real run: 0 of 15 universities — their English page is deeper than a home page's links): a university's OWN sitemap names its
    * English-language-requirements page; read up to two of them (robots obeyed) */
-  if (sitemap && first.ok && !pages.some((p) => p.ok && has(p.text, subject)) && reader.sitemapOf) { const sm = await reader.sitemapOf(new URL(first.url ?? url).origin).catch(() => null); for (const u of (sm?.urls ?? []).filter((x) => ENGLISH_PAGE.test(x)).sort((a, b) => a.length - b.length).slice(0, 2)) { const r = await reader.read(u); checked.push(r); pages.push(r); } }
+  if (sitemap && first.ok && !pages.some((p) => p.ok && has(p.text, subject)) && reader.sitemapOf) { const sm = await reader.sitemapOf(new URL(first.url ?? url).origin).catch(() => null); for (const u of (sm?.urls ?? []).filter((x) => ENGLISH_PAGE.test(x)).sort((a, b) => a.length - b.length).slice(0, 3)) { const r = await reader.read(u); checked.push(r); pages.push(r); } }
   const good = pages.filter((p) => p.ok && has(p.text, subject)).sort((a, b) => subtestResults(b.text, subject).length - subtestResults(a.text, subject).length || resultsNamedWith(b.text, subject).length - resultsNamedWith(a.text, subject).length)[0];
   if (!good) {
     const read = checked.filter((p) => p.ok), failed = checked.filter((p) => !p.ok);

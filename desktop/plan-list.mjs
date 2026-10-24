@@ -69,8 +69,10 @@ export function planFromList({ subject, rec, professions, universities = [], ven
   const answers = new Map(); for (const x of withFacts) { const k = `${x.u.country}|${[...x.professions].sort().join(",")}`; answers.set(k, [...(answers.get(k) ?? []), x]); }
   const university = [...answers.entries()].map(([k, xs]) => {
     const [country] = k.split("|"), profs = xs[0].professions, dest = destFor(profs), home = section(country);
-    return { kind: "university", title: universityTitle(subject, xs.map((x) => x.u), country), country, professions: profs, universities: xs.map((x) => ({ name: x.u.name, city: x.u.city ?? null, page: x.u.page ?? null, accreditation: x.u.accreditation?.body ?? null, verifiedOn: x.u.verifiedOn ?? null })),
-      destinations: dest.map((d) => ({ country: d.country, regulators: d.regulators.map((p) => ({ title: p.title, body: p.body, grade: gradeLine(p.grade), professions: p.professions.filter((q) => profs.includes(q)) })) })), home,
+    return { kind: "university", title: universityTitle(subject, xs.map((x) => x.u), country), country, professions: profs, universities: xs.map((x) => ({ name: x.u.name, city: x.u.city ?? null, page: x.u.page ?? null, verifiedOn: x.u.verifiedOn ?? null })),
+      /* the proof: every regulator of 13 destinations on each of 365 pages made the saved count 5 MB (polled every few seconds) — a
+       * destination keeps its count and its first three; its page links the rest by its regulator pages */
+      destinations: dest.map((d) => ({ country: d.country, count: d.regulators.length, regulators: d.regulators.slice(0, 2).map((p) => ({ title: p.title, grade: gradeLine(p.grade) })) })), home: { country: home.country, venue: home.venue, fee: home.fee, council: home.council ? { council: home.council.council, url: home.council.verificationUrl ?? home.council.councilUrl } : null },
       links: dest.flatMap((d) => d.regulators.slice(0, 2).map((p) => p.title)),
       claims: [{ claimId: `uni-${k.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}`, text: `${xs.length === 1 ? plainName(xs[0].u.name) : `${xs.length} universities in ${country}`} teach${xs.length === 1 ? "es" : ""} ${profs.join(", ")} (AlmiStudy's data, checked ${xs[0].u.verifiedOn ?? "?"}).`, link: xs[0].u.source?.url ?? xs[0].u.page, readOn: xs[0].u.verifiedOn, source: "AlmiStudy's data", official: false, body: "AlmiStudy" },
         ...dest.slice(0, 2).map((d) => d.regulators[0].claims[0]).filter(Boolean), councilOf(country, profs)?.claim].filter((c) => c?.link && c.readOn),

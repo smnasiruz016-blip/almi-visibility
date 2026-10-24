@@ -22,7 +22,8 @@ export function sabMode(env = process.env, { exit = (c) => process.exit(c), writ
 }
 /** the dry run: `spans` = [{ id, file, from }] — each `from` counted in its file as it is now; → exits 0 when every one occurs once */
 export function dryPreflight(spans, repo, { log = console.log, exit = (c) => process.exit(c) } = {}) {
-  const count = (t, s) => (s ? t.split(s).length - 1 : 0);
+  /* both read with LF, as the harnesses apply them (rr227's inEol) and as RR-248's span reader counts — a CRLF file on disk is no stale span */
+  const lf = (s) => String(s).replace(/\r\n/g, "\n"), count = (t, s) => (s ? lf(t).split(lf(s)).length - 1 : 0);
   const rows = spans.map((s) => ({ ...s, n: count(readFileSync(join(repo, s.file), "utf8"), s.from) }));
   for (const r of rows) log(`DRY ${r.id} ${r.file}: span found ${r.n} time${r.n === 1 ? "" : "s"}${r.n === 1 ? "" : " — NOT EXACTLY ONCE"}`);
   const ok = rows.every((r) => r.n === 1);

@@ -56,6 +56,8 @@ test("F2 · the 4 crawl harnesses take an explicit SAB_MODE — none is refused 
   try {
     const log = []; let ex = null; dryPreflight([{ id: "S1", file: "a.mjs", from: "const x = 1;" }, { id: "S2", file: "a.mjs", from: "const z" }], dir, { log: (l) => log.push(l), exit: (c) => { ex = c; } });
     assert.equal(ex, 1); assert.match(log.join("\n"), /DRY S2 a\.mjs: span found 0 times — NOT EXACTLY ONCE/); assert.equal(readFileSync(join(dir, "a.mjs"), "utf8"), "const x = 1;\nconst y = 2;\n", "dry writes nothing");
+    /* the dry run found rr227's F19-S1 "0 times" in a CRLF file — a span is counted with LF, as the harness applies it */
+    writeFileSync(join(dir, "b.mjs"), "a();\r\nb();\r\n"); ex = null; dryPreflight([{ id: "S3", file: "b.mjs", from: "a();\nb();" }], dir, { log: () => {}, exit: (c) => { ex = c; } }); assert.equal(ex, 0);
   } finally { rmSync(dir, { recursive: true, force: true }); }
   for (const f of ["f19-sabotage", "f19-generic-crawl-sabotage", "rr227-sabotage", "rr229c-sabotage"]) {
     const t = readFileSync(new URL(`./helpers/${f}.mjs`, import.meta.url), "utf8");

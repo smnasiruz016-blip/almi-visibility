@@ -19,7 +19,7 @@ import { planFromList } from "../desktop/plan-list.mjs";
 import { groupQuestions } from "../desktop/page-plan.mjs";
 import { sortQuestions } from "../desktop/questions.mjs";
 import { fiveFromList } from "../desktop/research5.mjs";
-import { runGates, patternDemand, dataPointsOf, alike, contentOf, templateCheck, languageOf, languageDemand, subtestFactsOf, batchesOf, GATES, BATCH_SIZES } from "../desktop/pseo.mjs";
+import { runGates, patternDemand, dataPointsOf, alike, contentOf, linkPages, templateCheck, languageOf, languageDemand, subtestFactsOf, batchesOf, GATES, BATCH_SIZES } from "../desktop/pseo.mjs";
 import { professionsOnPage, professionsInName, lightCheck } from "../desktop/universities.mjs";
 import { readRegulator } from "../desktop/regulator-read.mjs";
 import { feeInCurrency, PEGS } from "../desktop/rates.mjs";
@@ -36,7 +36,7 @@ const VENUES = { countries: ["Pakistan", "India", "Kenya", "Nepal", "Qatar", "Un
 const SUBTESTS = { Writing: { subtest: "Writing", link: "https://oet.example/ready/writing", on: ON, minutes: "45", criteria: "six", assessors: "two" }, Listening: { subtest: "Listening", link: "https://oet.example/ready/listening", on: ON, minutes: "40", parts: "Three", questions: "42" }, Reading: { subtest: "Reading", link: "https://oet.example/ready/reading", on: ON, minutes: "60", parts: "Three", questions: "42" }, Speaking: { subtest: "Speaking", link: "https://oet.example/ready/speaking", on: ON, minutes: "20", roleplays: "Two", roleplayMinutes: "5", assessors: "two" } };
 const ITEMS = ["oet for nurses in new zealand", "oet writing for nurses", "oet fees", "oet vs ielts", "oet test day", "oet kitni fees hai pakistan mein", "اوئی ٹی کی فیس کتنی ہے", "how long are oet results valid"].map((text) => ({ text, kind: "search", source: "sc" }));
 const AI = { topics: { "OET test day: what to bring and expect": { answer: "The fee is set on OET's own page.", points: ["Book early", "Pay in your account", "Keep the receipt", "Check the venue", "Check the date", "Check the mode"], steps: ["Open the booking page"], checklist: ["ID"], tip: "Book early." } } };
-const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET"), groups = groupQuestions(sorted.kept); return planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: UNIS, venues: VENUES, fee: FEE, rates: null, subtests: SUBTESTS, groups, sorted, items: ITEMS, languages: ["en", "ur"], byCountry: [{ query: "oet for nurses in new zealand", country: "India", impressions: 30 }], reads: {}, on: ON, ai: AI, cta: { label: "Try a free OET practice test", href: "https://x.example/practice" }, subjectPages: { urls: ["https://oet.example/test/book-a-test", "https://oet.example/test/results-and-scoring"], on: ON }, ...extra }); };
+const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET"), groups = groupQuestions(sorted.kept); return planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: UNIS, venues: VENUES, fee: FEE, rates: null, subtests: SUBTESTS, groups, sorted, items: ITEMS, languages: ["en", "ur"], byCountry: [{ query: "oet for nurses in new zealand", country: "India", impressions: 30 }], reads: {}, on: ON, ai: AI, cta: { label: "Try a free OET practice test", href: "https://x.example/practice" }, subjectPages: { urls: ["https://oet.example/test/book-a-test", "https://oet.example/test/results-and-scoring", "https://oet.example/test/test-day-information"], on: ON }, ...extra }); };
 
 test("ONE SOURCE OF TRUTH (B5 kept): the total is every family's pages; the tables, the five answers and \"why not more\" read the same ledger", () => {
   const p = planOf(), n = p.numbers, T = p.tables;
@@ -57,6 +57,8 @@ test("A1 · ONE page per university; the light check reads its own site's facult
   assert.deepEqual(professionsInName("Kurdistan University of Medical Sciences"), ["medicine"]);
   /* at most two pages of a site: its home, then the ONE page its menu calls "Faculties" */
   const read = []; const reader = { read: async (u) => { read.push(u); return u === "https://u.example/" ? { ok: true, url: u, title: "Home", text: "", links: [{ href: "https://u.example/faculties", text: "Faculties" }, { href: "https://u.example/news", text: "News" }], checkedOn: ON } : { ok: true, url: u, title: "Faculties", text: "", links: [{ href: "https://u.example/f/nursing", text: "Faculty of Nursing" }, { href: "https://u.example/f/pharm", text: "School of Pharmacy" }], checkedOn: ON }; } };
+  const byName = await lightCheck({ u: { name: "Example University of Medical Sciences", page: "https://m.example/" }, reader: { read: async () => { throw new Error("read"); } } });
+  assert.deepEqual([byName.state, byName.professions, byName.byName], ["FOUND", ["medicine"], true], "its own name is read first — no request");
   const r = await lightCheck({ u: { name: "Example University", page: "https://u.example/" }, reader });
   assert.deepEqual([r.state, r.professions.sort(), read.length], ["FOUND", ["nursing", "pharmacy"], 2]);
   const p2 = planOf({ light: { [UNIS.find((u) => /Kurdistan University of Medical Sciences/.test(u.name))?.name ?? "x"]: { state: "FOUND", professions: ["medicine"], words: ["Kurdistan University of Medical Sciences"], source: { url: "https://k.example" }, checkedOn: ON } } });
@@ -102,6 +104,7 @@ test("A4 · the browser list: client-started, a notice first, ≤ 30 a day, ≥ 
 test("A5 + B3 · a topic page explained by the client's AI passes gate 2; its pointer to the subject's page is no data point; an AI sentence with a number not in the page's facts is DROPPED", () => {
   const p = planOf(), fees = p.kinds.topic.find((x) => x.title === "OET test day: what to bring and expect"); /* a fees question is a section of "Where to take" (RR-321) */
   assert.ok(fees, "the AI-explained topic is a page"); assert.ok(fees.dataPoints.length >= GATES.minData);
+  assert.ok(fees.claims.some((c) => c.pointer && /own page about this: \/test\/test-day-information/.test(c.text)), "the topic carries its pointer to the subject's own page");
   assert.ok(!fees.dataPoints.some((d) => /own page about this/.test(d.value)), "the pointer is no data point");
   assert.equal(keepSourcedNumbers("The fee is AUD 587. It rises to AUD 650 next year. Book early.", ["OET costs AUD 587"]), "The fee is AUD 587. Book early.");
 });
@@ -113,6 +116,8 @@ test("B1 + B2 + C1 · the universe, the three gates per family: demand in 20 sam
   assert.ok(p.numbers.opportunityPages > 0 && p.numbers.demandPages > 0, "opportunity pages are built too (the owner's 18 Oct rule)");
   const pd = patternDemand(Array.from({ length: 40 }, (_, i) => ({ title: `p${i}`, questions: i % 10 < 7 ? [{ sources: [{ kind: "search" }] }] : [] })));
   assert.deepEqual([pd.sample, pd.proven], [20, true]);
+  const half = patternDemand(Array.from({ length: 20 }, (_, i) => ({ title: `h${i}`, questions: i % 2 ? [{ sources: [{ kind: "search" }] }] : [] })));
+  assert.deepEqual([half.share, half.proven], [0.5, false], "50% is below the 60% line");
   const thin = { kind: "topic", title: "Thin", claims: [], questions: [{ question: "a" }] }, rich = { kind: "topic", title: "Rich", claims: [], questions: Array.from({ length: 9 }, (_, i) => ({ question: `q${i}` })) };
   const F = runGates({ topic: [thin, rich] }, { parentOf: () => "the index" });
   assert.deepEqual([thin.status, rich.status], ["section", "opportunity"]); assert.match(F.topic.sections[0].why, /a section of the index/);
@@ -145,6 +150,7 @@ test("B6 + B7 · every page's content: a 40–60-word answer with a number FIRST
     assert.ok(c.table.length > 1 && c.steps.length >= 3 && c.checklist.length >= 3 && c.tip && c.lastUpdated === ON && c.cta, `${x.title}: content`);
     assert.ok(x.title.length <= 70 || k === "university", `${x.title}: title`);
   }
+  assert.equal(contentOf({ kind: "topic", title: "Plain", claims: [], questions: [], ai: { answer: "A plain answer with no figure in it at all." } }, { subject: "OET", on: ON }).answerHasNumber, false, "an answer with no number is never counted as one");
   const b = { title: "OET Writing for nurses", html: '<!doctype html><html lang="en"><head><title>x</title></head><body><main><h1>OET Writing for nurses</h1><p>old</p></main></body></html>' };
   const out = richPage(b, { answers: [{ claimId: "w-min", text: "45 minutes", link: "https://oet.example/ready/writing", readOn: ON, source: "OET's own page" }], content: { answer: "An answer with 45 minutes.", table: [["A", "B"], ["1", "2"]], steps: ["s"], checklist: ["c"], tip: "t", lastUpdated: ON, cta: { label: "Try", href: "https://x/practice" }, lang: "ur", points: ["p"] }, kind: "subtest" }, ON);
   /* the proof: with the AI's 35-word answer the sub-test answer fell to 36 words — one part left out so it stays in 40–60 */
@@ -165,13 +171,16 @@ test("C2 · the template read aloud: five pages of a family, and how much of the
 
 test("C3 · links (≥ 3, ≤ 3 clicks from home), batches 25 → 50 → 100 → 200, the Monday report, the next-batch rule, improve before expand, heroes, the refresh", () => {
   const p = planOf();
+  { const pg = [{ kind: "topic", title: "A", status: "opportunity", links: [] }, { kind: "topic", title: "B", status: "opportunity", links: [] }], idx = { kind: "index", title: "I", status: "opportunity", links: [] };
+    const lc = linkPages([...pg, idx], [], pg, idx); assert.ok(lc.fewLinks.includes("A"), `a page with fewer than 3 links is reported: ${JSON.stringify(lc)}`); }
   assert.deepEqual([p.linkCheck.tooDeep.length, p.linkCheck.fewLinks.length], [0, 0], `${p.linkCheck.fewLinks.slice(0, 3)}`);
   assert.deepEqual(p.rollout.batches.slice(0, 4), [25, 50, 100, 200]); assert.deepEqual([...BATCH_SIZES], [25, 50, 100, 200]);
   /* the proof: 11 of the first 25 were the A–Z university guides (100 rows each) — a guide comes after every real answer page */
   const guide = { title: "guide", kind: "hub", status: "opportunity", fixedLinks: true, dataPoints: Array(100).fill({}) }, sub = { title: "sub", kind: "subtest", status: "opportunity", dataPoints: Array(20).fill({}) };
   assert.deepEqual(batchesOf([guide, sub])[0], ["sub", "guide"]);
-  const guides = p.kinds.hub.filter((h) => h.fixedLinks); assert.ok(guides.every((g) => g.links.length >= 20), "no tail guide of a few universities");
-  assert.match(MAIN, /const canCheck = \(u\) => \(u\.page \|\| professionsInName\(u\.name\)\.length \? 0 : 1\)/, "the light check takes a university it can check first");
+  const guides = planOf({ universities: UNIS.slice(0, 640) }).kinds.hub.filter((h) => h.fixedLinks).map((h) => h.links.length);
+  assert.ok(guides.length && guides.every((n) => n >= 20), `no tail guide of a few universities: ${guides}`);
+  assert.match(MAIN, /const canCheck = \(u\) => \(u\.page \|\| professionsInName\(u\.name\)\.length \? 0 : 1\);\n  const todo = [^\n]*\.sort\(\(a, b\) => canCheck\(a\) - canCheck\(b\) \|\|/, "the light check takes a university it can check first");
   assert.deepEqual(batchesOf(Array.from({ length: 30 }, (_, i) => ({ title: `p${i}`, kind: "topic", status: i ? "opportunity" : "demand", dataPoints: [] })))[0][0], "p0", "demand first");
   assert.equal(stateOf({ inspectionResult: { indexStatusResult: { coverageState: "Crawled - currently not indexed" } } }), "crawled-not-indexed");
   assert.equal(stateOf({ inspectionResult: { indexStatusResult: { coverageState: "Submitted and indexed" } } }), "indexed");

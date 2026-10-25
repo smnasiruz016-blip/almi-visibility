@@ -470,6 +470,24 @@ test("H · the owner's Google access check: Google's own reason kept; the accoun
   } finally { await s.close(); }
 });
 
+test("H · RR-327: an account not active yet (AUTH_ERROR_CUSTOMER_NOT_ACTIVE / CUSTOMER_NOT_ENABLED) is never \"Google's known fault\"; a successful call clears the old red line", async () => {
+  const notActive = authFail("ACTION_NOT_PERMITTED", "Authorization error: AUTH_ERROR_CUSTOMER_NOT_ACTIVE");
+  const a = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": {} }, ideas: notActive }));
+  assert.ok(a.r.verdict.some((v) => /The Google Ads account is not active yet: add billing/.test(v))); assert.ok(!a.r.verdict.some((v) => /Google's side/.test(v)), "never the known fault");
+  const b = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": {} }, ideas: authFail("CUSTOMER_NOT_ENABLED") }));
+  assert.ok(b.r.verdict.some((v) => /not active yet/.test(v)) && !b.r.verdict.some((v) => /Google's side/.test(v)));
+  /* the collector, refused that way, says it in the owner's words */
+  const clock = clockAt(), K = fakeKv(clock), G = fakeGoogle(clock, { fail: notActive });
+  const r = await runCollector({ store: memoryStore(), ads: siteAds({ env: FULL_ENV, kv: K.kv, fetchImpl: G.fetchImpl, now: clock.now, sleep: clock.sleep }), kv: K.kv, now: clock.now, budgetMs: 1e9 });
+  assert.equal(r.stoppedBy, "AUTHORIZATION_ERROR"); assert.match(r.why, /not active yet/); assert.doesNotMatch(r.why, /known fault for/);
+  assert.ok(K.m.get("av:ads:last"), "the refusal is remembered for the owner's page");
+  /* a later call that works clears it */
+  const ok = siteAds({ env: FULL_ENV, kv: K.kv, fetchImpl: fakeGoogle(clock).fetchImpl, now: clock.now, sleep: clock.sleep });
+  clock.t += 5000; assert.equal((await ok.ideas({ seeds: ["oet"], language: "languageConstants/1000", purpose: "owner" })).ok, true);
+  assert.equal(K.m.get("av:ads:last"), undefined, "the old red line is gone after a success");
+  const c = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": {} } })); assert.equal(c.K.m.get("av:ads:last"), undefined);
+});
+
 test("E · the app: switched on with Basic access, its line says \"Google Ads: Basic access — keyword data on\"", () => {
   assert.equal(adsStatus({ on: true, access: "basic", clientId: "c", customerId: "1234567890" }, { signedIn: true }).line, "Google Ads: Basic access — keyword data on");
   assert.equal(adsStatus({ on: true, access: "basic" }).line, "Google Ads: Basic access — keyword data on");

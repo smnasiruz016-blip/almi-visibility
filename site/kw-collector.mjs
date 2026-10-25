@@ -50,7 +50,7 @@ export async function runCollector({ store, ads, kv, now = () => Date.now(), bud
       const r = await ads.ideas({ seeds: u.seeds, geo: u.geo, language: LANGUAGES[u.language].constant, purpose: "collector", maxPages: 1, waitMs: 10000 });
       out.ops += r.ops ?? 0;
       if (!r.ok) {
-        if (STOP.has(r.code)) { out.stoppedBy = r.code; out.why = r.why; break; }
+        if (STOP.has(r.code)) { out.stoppedBy = r.code; out.why = r.ownerWhy ?? r.why; break; } // RR-327: the owner's words (an account not active yet is never "Google's known fault")
         out.skipped++; continue; // busy or no answer in time: the next run asks again
       }
       const s = await store.saveFetch({ unitId: u.id, kind: "collector", group: u.group, seedKey: u.seedKey, location: u.location, language: u.language, day: today, at: new Date(now()).toISOString(), period: r.period, ops: r.ops, rows: r.rows });

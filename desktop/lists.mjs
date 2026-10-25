@@ -19,7 +19,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const WORLD_LISTS = Object.freeze({ included: false, line: "General world lists (ILO's ISCO-08 job roles, UNESCO's ISCED-F fields of study) are not built in: an official statement that they may be reused could not be found (checked 23 Oct 2026). Add your own list instead." });
 /** AlmiWorld's own lists — offered only to AlmiWorld's own products */
 export function builtInList(kind) {
-  const f = join(HERE, "lists", { roles: "almiworld-job-roles.json", universities: "almiworld-universities.json", subjects: "almiworld-subjects.json", professions: "almiworld-oet-professions.json" /* RR-320 A: OET's 12, from oet.com */, recognising: "almiworld-oet-recognising.json" /* RR-321 A1: OET's "Who recognises OET" list, AlmiOET's own copy */, origins: "almiworld-oet-origins.json" /* RR-321 B3: the home councils, AlmiOET's records */ }[kind] ?? "none");
+  const f = join(HERE, "lists", { roles: "almiworld-job-roles.json", universities: "almiworld-universities.json", subjects: "almiworld-subjects.json", professions: "almiworld-oet-professions.json" /* RR-320 A: OET's 12, from oet.com */, recognising: "almiworld-oet-recognising.json" /* RR-321 A1: OET's "Who recognises OET" list, AlmiOET's own copy */, origins: "almiworld-oet-origins.json" /* RR-321 B3: the home councils, AlmiOET's records */, originFacts: "almiworld-oet-origin-facts.json" /* RR-327: home councils (nurses, doctors), good standing, attestation — AlmiOET's records, official sources only */ }[kind] ?? "none");
   if (!existsSync(f)) return null;
   const j = JSON.parse(readFileSync(f, "utf8"));
   return { ...j, source: j.source, items: j.items.map((x) => ({ ...x, name: x.name })) };

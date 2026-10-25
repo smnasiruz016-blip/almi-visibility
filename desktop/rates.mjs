@@ -40,6 +40,8 @@ export const CENTRAL_BANKS = Object.freeze({
 export const PEGS = Object.freeze({
   AED: Object.freeze({ rate: "3.6725", source: "Central Bank of the UAE — the dirham's official peg to the US dollar", short: "CBUAE", link: "https://www.centralbank.ae/en/forex-eibor/exchange-rates/" }),
   QAR: Object.freeze({ rate: "3.64", source: "Qatar Central Bank — the riyal's official peg to the US dollar", short: "QCB", link: "https://www.qcb.gov.qa/en/Pages/default.aspx" }),
+  /* RR-327 (owner: "the official peg for AED/QAR/SAR") */
+  SAR: Object.freeze({ rate: "3.75", source: "Saudi Central Bank (SAMA) — the riyal's official peg to the US dollar (its own statement)", short: "SAMA", link: "https://www.sama.gov.sa/en-US/News/Pages/news-557.aspx" }),
 });
 /* a country's currency (the five above, and the ones the RBA publishes) */
 export const CURRENCY_OF = Object.freeze({ Pakistan: "PKR", Kenya: "KES", Tanzania: "TZS", "United Arab Emirates": "AED", Qatar: "QAR", India: "INR", Philippines: "PHP", "New Zealand": "NZD", "United Kingdom": "GBP", "United States": "USD", Canada: "CAD", Singapore: "SGD", Malaysia: "MYR", Indonesia: "IDR", Thailand: "THB", Vietnam: "VND", China: "CNY", Japan: "JPY", "South Korea": "KRW", Taiwan: "TWD", Switzerland: "CHF", "Papua New Guinea": "PGK", Australia: "AUD",

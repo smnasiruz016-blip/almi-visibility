@@ -43,7 +43,7 @@ import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subj
 import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, searchFileText, figureOf } from "./research5.mjs"; // RR-320 B
 import { recognitionOf, callNames } from "./recognition.mjs"; // RR-321 A
 import { planFromList } from "./plan-list.mjs"; // RR-321 B
-import { venueCountries, statisticsOf } from "./venues.mjs"; // RR-321 G1, B2
+import { venueCountries, statisticsOf, gazetteerOf } from "./venues.mjs"; // RR-321 G1, B2; RR-327 the venue cities
 import { readRates } from "./rates.mjs"; // RR-321 D5
 import { sortQuestions } from "./questions.mjs"; // RR-321 C
 import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
@@ -52,9 +52,9 @@ import { subtestFactsOf } from "./pseo.mjs"; // RR-322 B5
 import { lightCheck, teachesHealth, professionsOfFields, professionsInName } from "./universities.mjs"; // RR-322 A1
 import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.mjs"; // RR-323
 import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
-import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES } from "./keyword-db.mjs"; // RR-324 A
+import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
-import { keywordService, usageLine, SERVICE_LOCATIONS } from "./keyword-service.mjs"; // RR-326 E
+import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
 import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
 import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
@@ -266,6 +266,10 @@ async function refreshOfficial(id, countries) {
  */
 async function researchFor({ id, s, sc, subject, subjectSite, rd, res }) {
   const items = [], sources = [];
+  /* RR-327 · AlmiWorld's keyword service FIRST (the plan's licence decides): the subject for all locations and per country, into the ONE keyword
+   * database (phraseItems below reads it) — unreachable: said plainly, and the plan goes on with the client's own data, never an invented number */
+  const svc = await serviceForPlan(id, subject).catch(() => ({ on: false, asked: 0, line: SERVICE_OFF_LINE }));
+  sources.push({ kind: "AlmiWorld keyword service", n: svc.asked ?? 0, on: Boolean(svc.on), line: svc.on ? `${svc.line} · ${svc.source} · ${svc.asked} searches now${svc.reused ? `, ${svc.reused} still fresh (asked within ${PLAN_REUSE_DAYS} days)` : ""}` : svc.line, ...(svc.why ? { why: svc.why } : {}) });
   const scq = (sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, on: sc.on ?? null, kind: "search", weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }));
   items.push(...scq); sources.push({ kind: "Search Console", n: scq.length, line: sc ? `${scq.length} searches from your Search Console (${sc.window})` : "Search Console is not connected" });
   const yt = s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, ytq = (yt?.state === "READY" ? yt.questions ?? [] : []).map((q) => ({ text: q.text, source: q.source, on: null, kind: "youtube", weight: 3 }));
@@ -298,6 +302,12 @@ const keywordStore = (id) => localKeywordStore({ read: (n, d) => pread(id, n, d)
 const phraseItems = (id) => { const db = keywordStore(id).load(), held = new Set(Object.keys(db.keywords));
   return [...pread(id, "phrases.json", []).filter((p) => !(p.kind === "tool" && held.has(keyOf(p.text)))).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 })),
     ...itemsOf(db).map((x) => ({ ...x, on: x.date }))]; };
+/**
+ * RR-327 · the plan's searches from AlmiWorld's keyword service: the subject for all locations, then for each country the service covers —
+ * a location asked within PLAN_REUSE_DAYS is not asked again (its figures are still in the database). Each answer goes into the ONE keyword
+ * database marked with its source and its country. → { on, asked, reused, line, source, why? }
+ */
+async function serviceForPlan(id, subject) { return collectForPlan({ service: currentLicence() ? kwService() : null, store: keywordStore(id), merge: mergeObservations, fileIdOf, source: KW_SOURCES.service, subject }); }
 /* RR-324 A: the folder the client named — its Keyword Planner files (keyword-planner-*.csv, "Keyword Stats …") read once each, by fingerprint */
 const keywordFolder = () => CONFIG.keywordFolder?.dir ? CONFIG.keywordFolder : null;
 function pickUpFolder(id) {
@@ -346,7 +356,7 @@ function translatableOf(id) {
 function listPlan(id, c) {
   const s = store.read(id), list = listOf(s, c.subject, id); if (!list) return null;
   const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
-  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, translatable: translatableOf(id), by: displayNameOf(s.product) });
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, /* RR-327 */ kwByCountry: byLocationOf(keywordStore(id).load()), originFacts: builtInList("originFacts"), service: (c.research?.sources ?? []).find((x) => x.kind === "AlmiWorld keyword service") ?? null, translatable: translatableOf(id), by: displayNameOf(s.product) });
   const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
   return { plan, five, questions: groups };
 }
@@ -752,7 +762,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|keywords\/service|keywords\/service\/usage|official|official\/suggest|official\/page|search|search\/read)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -834,11 +844,11 @@ const server = createServer((req, res) => {
                 say(`Reading ${subject}'s pages about venues and taking it at home`);
                 /* RR-321 proof: the RR-319 per-country check kept a country on a "Book a test now" button of its recognition page — no
                  * venue named there; only a sentence of the subject's own pages that names a venue in it counts */
-                const venues = await venueCountries({ urls, subject, reader: rd, already: [] });
+                const venues = await venueCountries({ urls, subject, reader: rd, already: [], gazetteer: gazetteerOf(builtInList("universities")?.items ?? []) }); // RR-327: and the cities it names
                 say(`Reading ${subject}'s test statistics`);
                 const stats = await statisticsOf({ urls, subject, reader: rd });
                 say("Reading the central banks' official rates");
-                const rates = await readRates({ reader: rd, countries: [...new Set([...venues.countries.map((x) => x.name), "Pakistan", "Kenya", "United Arab Emirates", "Qatar"])] });
+                const rates = await readRates({ reader: rd, countries: [...new Set([...venues.countries.map((x) => x.name), "Pakistan", "Kenya", "United Arab Emirates", "Qatar", "Saudi Arabia", ...(builtInList("originFacts")?.items ?? []).map((x) => x.country), ...SERVICE_LOCATIONS.map((l) => l.name).filter((n) => n !== "All locations")])] }); // RR-327: every country a country page can be for
                 /* RR-322 B5: each sub-test's own facts (OET's "at a glance" pages) — four pages, read once */
                 say(`Reading ${subject}'s pages about each sub-test`);
                 const subtestPages = []; for (const u of urls.filter((x) => /\/ready\/(listening|reading|writing|speaking)$/i.test(x))) subtestPages.push(await rd.read(u));
@@ -947,7 +957,7 @@ const server = createServer((req, res) => {
             if (!m.alreadyRead) { st.save(m.db); replan(id); }
             return send(200, { ok: true, line: [m.line, usageLine(out.usage)].filter(Boolean).join(" ") });
           }
-          if (r[2] === "keywords/service/usage" && req.method === "GET") { const u = await kwService().usage(); return send(200, { ok: u.ok, line: u.ok ? usageLine(u) : u.why }); }
+          if (r[2] === "keywords/service/usage" && req.method === "GET") { const u = await kwService().usage(); return send(200, { ok: u.ok, line: u.ok ? `${serviceOnLine(u)} (${usageLine(u)})` : `${SERVICE_OFF_LINE} (${u.why})` }); } // RR-327: "on — N searches left this month"
           /* RR-324 C: DataForSEO — OFF, "waiting for the provider's written permission", until the owner ticks it AND switches it on; caps first */
           if (r[2] === "keywords/dfs" && req.method === "POST") {
             const v = json(), d = { ...(CONFIG.dataForSeo ?? {}) };
@@ -993,16 +1003,21 @@ const server = createServer((req, res) => {
             replan(id);
             const c2 = pread(id, "page-count.json"), K2 = c2.plan.kinds, pick = (k, t) => (t ? K2[k].find((p) => p.title === t) : null) ?? null, by = (k, re) => (K2[k] ?? []).find((p) => re.test(p.title)) ?? null;
             const demandFirst = Boolean(c2.plan.numbers?.kpKeywords);
-            const six = (demandFirst ? [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), by("practice", /Writing sample for nurses/), by("topic", /exam fees$/), by("topic", /^How to book/), by("practice", /Listening practice test/), K2.taking[0]]
+            /* RR-327 PROOF: one page from each of seven families — a country (Pakistan), nurses from Pakistan, a city (Lahore), the regulator
+             * (NMBI), "OET Writing sample for nurses", "OET exam fees", a university — a family whose page is a SECTION is named with its gate */
+            const local = c2.plan.numbers?.countryPages !== undefined, G2 = c2.plan.gates ?? {};
+            const SEVEN = [["country", /^\S+ in Pakistan:/, "OET in Pakistan"], ["countryprof", /for nurses from Pakistan/, "OET for nurses from Pakistan"], ["city", /centre Lahore/, "OET centre Lahore"]];
+            const sevenLocal = SEVEN.map(([k, re]) => by(k, re) ?? (K2[k] ?? [])[0] ?? null);
+            const six = local ? [...sevenLocal, pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), by("practice", /Writing sample for nurses/), by("topic", /exam fees$/), K2.university.find((p) => p.title === v.university) ?? K2.university.find((p) => p.country === "Pakistan") ?? K2.university[0]].filter(Boolean) : (demandFirst ? [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), by("practice", /Writing sample for nurses/), by("topic", /exam fees$/), by("topic", /^How to book/), by("practice", /Listening practice test/), K2.taking[0]]
               : [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), pick("subtest", sub?.title), K2.university.find((p) => p.title === v.university) ?? K2.university[0], K2.topic[0] ?? null, K2.language[0] ?? null, K2.taking[0]]).filter(Boolean);
             const built = seoPages({ site, on: new Date().toISOString(), pagePlan: six, subject: c.subject, official: officialOf(id) });
             const html = (p) => built.drafts.find((d) => d.title === p.title) ?? null;
             const judge = (p) => { const x = p.content ?? {}; return { answerWords: x.answerWords, answerOk: x.answerWords >= 40 && x.answerWords <= 60 && x.answerHasNumber, table: (x.table?.length ?? 1) - 1, steps: x.steps?.length ?? 0, checklist: x.checklist?.length ?? 0, faq: x.faq?.length ?? 0, tip: Boolean(x.tip), cta: Boolean(x.cta), lastUpdated: x.lastUpdated, links: p.links?.length ?? 0, dataPoints: p.dataPoints?.length ?? 0, status: p.status, range: p.kp?.label ?? null, waitFor: p.waitFor ?? null, sample: p.sampleCheck ? { ok: p.sampleCheck.ok, why: p.sampleCheck.why, run: p.sampleCheck.run, labelled: p.sampleCheck.labelled, words: p.sampleCheck.words, against: p.sampleCheck.against ?? null } : null }; };
             const out = six.map((p) => ({ kind: p.kind, title: p.title, read: p.read ?? null, lastChecked: p.lastChecked, claims: p.claims, content: p.content, links: p.links, judge: judge(p), draft: html(p) ? { html: html(p).html, readyAsDraft: html(p).readyAsDraft, gates: html(p).gates } : null }));
-            const missing = demandFirst ? [[/Writing sample for nurses/, "practice", "OET Writing sample for nurses"], [/exam fees$/, "topic", "OET exam fees"], [/^How to book/, "topic", "How to book OET and the test dates"], [/Listening practice test/, "practice", "OET Listening practice test"]].map(([re, k, name]) => { const p = by(k, re); return !p ? `${name} (not a page: too thin or not searched)` : p.waitFor ? `${name} — ${p.waitFor}` : null; }).filter(Boolean)
+            const missing = local ? SEVEN.map(([k, re, name]) => (by(k, re) ? null : `${name}: ${(G2[k]?.sections ?? []).find((x) => re.test(x.name))?.why ?? (G2[k]?.merged ?? []).find((x) => re.test(x.name))?.why ?? "not in the universe (no data for it)"}${sevenLocal[SEVEN.findIndex((x) => x[0] === k)] ? ` — previewed instead: ${sevenLocal[SEVEN.findIndex((x) => x[0] === k)].title}` : ""}`)).filter(Boolean) : demandFirst ? [[/Writing sample for nurses/, "practice", "OET Writing sample for nurses"], [/exam fees$/, "topic", "OET exam fees"], [/^How to book/, "topic", "How to book OET and the test dates"], [/Listening practice test/, "practice", "OET Listening practice test"]].map(([re, k, name]) => { const p = by(k, re); return !p ? `${name} (not a page: too thin or not searched)` : p.waitFor ? `${name} — ${p.waitFor}` : null; }).filter(Boolean)
               : [!K2.topic.length && "a topic page (no topic page yet — connect your AI so it can explain them)", !K2.language.length && "a page in another language (no language with demand among your chosen ones yet)"].filter(Boolean);
             pwrite(id, "preview.json", { on: new Date().toISOString(), pages: out, missing });
-            const r2 = six[0];
+            const r2 = pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId) ?? rp; // RR-327: the regulator previewed (no longer always the first page)
             return send(200, { ok: true, pages: out, missing, line: `${r2.read?.ok ? `${r2.body}'s own page was read (${r2.read.on})` : `${r2.body}'s own page could not be read (${r2.read?.why ?? "not read"}) — it waits for a confirmed score`}. ${out.length} pages previewed${missing.length ? `; not yet: ${missing.join("; ")}` : ""}.` });
           }
           /* RR-322 A1 · the light check of the next universities, in the background (a batch at a time) */

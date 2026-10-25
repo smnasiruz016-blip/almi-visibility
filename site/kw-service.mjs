@@ -22,6 +22,13 @@ export const PUBLIC_KEY_ENV = "LICENCE_PUBLIC_KEY";
 export const MONTHLY_SEARCHES = Object.freeze({ visibility_1: 300, visibility_5: 1000, visibility_10: 2000, visibility_unlimited: 4000 });
 export const SERVICE_RULES = Object.freeze({ maxSeeds: 20, maxSeedLength: 80 });
 
+/** RR-327 · for the owner's page: is LICENCE_PUBLIC_KEY there, and is it a public key? — "set" | "missing" | "not a public key" (never the value) */
+export function publicKeyState(env = process.env) {
+  const pem = String(env[PUBLIC_KEY_ENV] ?? "").replace(/\\n/g, "\n").trim();
+  if (!pem) return "missing";
+  if (!/-----BEGIN PUBLIC KEY-----/.test(pem) || /PRIVATE KEY/.test(pem)) return "not a public key";
+  try { createPublicKey(pem); return "set"; } catch { return "not a public key"; }
+}
 /** the licence in the header: avo_<owner text> or avl_<base64url of the signed licence JSON> → the signed licence, or null */
 export function readLicenceHeader(v) {
   const t = String(v ?? "").trim();

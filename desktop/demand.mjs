@@ -10,16 +10,9 @@
 import { PROFESSION_WORD } from "./page-plan.mjs";
 import { countriesIn } from "./world.mjs";
 
-/* Google's ranges behind the rounded values of an account with no ads (Keyword Planner shows "10 – 100", "100 – 1K" …) */
-export const RANGES = Object.freeze([[0, 0, 10, "0–10"], [50, 10, 100, "10–100"], [500, 100, 1000, "100–1K"], [5000, 1000, 10000, "1K–10K"], [50000, 10000, 100000, "10K–100K"], [500000, 100000, 1000000, "100K–1M"]]);
-const k = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(n % 1e6 ? 1 : 0)}M` : n >= 1000 ? `${+(n / 1000).toFixed(n % 1000 ? 1 : 0)}K` : String(n));
-/** one keyword's value → Google's range (a value Keyword Planner did not round to a bucket is kept as said, its own range) */
-export function rangeOf(v) {
-  const n = Number(String(v ?? "").replace(/[^\d.]/g, ""));
-  if (v === null || v === undefined || v === "" || !Number.isFinite(n)) return null;
-  const r = RANGES.find(([said]) => said === n) ?? RANGES.find(([, lo, hi]) => n >= lo && n < hi) ?? [n, n, n, k(n)];
-  return { said: n, low: r[1], high: r[2], label: r[3] };
-}
+/* RR-326 I: Google's ranges moved to kp-file.mjs, unchanged */
+import { RANGES, rangeOf, rangeWord as k } from "./kp-file.mjs";
+export { RANGES, rangeOf };
 /** a cluster's demand: the sum of its keywords' ranges ("1.2K–12K a month") */
 export function sumRanges(rs) {
   const xs = rs.filter(Boolean); if (!xs.length) return null;

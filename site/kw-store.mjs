@@ -64,6 +64,22 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       const rows = await q("SELECT o.keyword, o.avg_monthly_searches::text AS volume, o.months FROM kw_fetch_keyword fk JOIN kw_observation o ON o.keyword = fk.keyword AND o.location = $2 AND o.language = $3 AND o.day = $4 WHERE fk.fetch_id = $1 ORDER BY o.avg_monthly_searches DESC NULLS LAST, o.keyword", [f.id, location, language, f.day]);
       return { day: f.day, period: f.period, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
     },
+    /* RR-326 I · the owner's Keyword Planner files (kw-import.mjs) */
+    /** was this file (its bytes' key) stored already — with any country or day? */
+    async fileSeen(seedKey) { await ensure(); return (await q("SELECT 1 FROM kw_fetch WHERE seed_key = $1 LIMIT 1", [seedKey])).length > 0; },
+    /** which of these keywords the database already holds at a location and language (any day) */
+    async knownKeywords(keywords, { location, language }) { await ensure(); if (!keywords.length) return new Set(); return new Set((await q("SELECT DISTINCT keyword FROM kw_observation WHERE location = $1 AND language = $2 AND keyword = ANY($3::text[])", [location, language, keywords])).map((r) => r.keyword)); },
+    /** keywords put under a product / category, per location (the last day kept) */
+    async addGroupKeywords(grp, keywords, location, day) { await ensure(); if (keywords.length) await q("INSERT INTO kw_group_keyword (grp, keyword, location, last_day) SELECT $1, unnest($2::text[]), $3, $4 ON CONFLICT (grp, keyword, location) DO UPDATE SET last_day = GREATEST(kw_group_keyword.last_day, EXCLUDED.last_day)", [grp, keywords, location, day]); },
+    /** the files' keywords holding one of these phrases (every word, whole words, any order) at a location — each keyword's newest file figure */
+    async fileKeywords({ phrases, location, language, limit = 2000 }) {
+      await ensure();
+      const res = phrases.map((p) => String(p).split(" ").filter(Boolean).map((w) => `(?=.*\\m${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\M)`).join("")).filter(Boolean);
+      if (!res.length) return null;
+      const rows = await q(`SELECT * FROM (SELECT DISTINCT ON (o.keyword) o.keyword, o.avg_monthly_searches::text AS volume, o.months, o.day::text AS day, o.period FROM kw_observation o JOIN kw_fetch_keyword fk ON fk.keyword = o.keyword JOIN kw_fetch f ON f.id = fk.fetch_id AND f.kind = 'file' AND f.location = o.location AND f.language = o.language AND f.day = o.day WHERE o.location = $1 AND o.language = $2 AND o.keyword ~ ANY($3::text[]) ORDER BY o.keyword, o.day DESC) x ORDER BY (volume IS NULL), volume::bigint DESC, keyword LIMIT $4`, [location, language, res, limit]);
+      if (!rows.length) return null;
+      return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
+    },
     /** the owner's page: totals, today, per group (keywords, countries, last refresh), per location */
     async counts(day) {
       await ensure();
@@ -104,6 +120,21 @@ export function memoryStore() {
       const rows = [...fk.values()].filter((x) => x.id === f.id).map((x) => obs.get(`${x.keyword}|${location}|${language}|${f.day}`)).filter(Boolean)
         .map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword));
       return { day: f.day, period: f.period, rows };
+    },
+    async fileSeen(seedKey) { return [...fetches.values()].some((f) => f.seedKey === seedKey); },
+    async knownKeywords(keywords, { location, language }) { const have = new Set([...obs.values()].filter((o) => o.location === location && o.language === language).map((o) => o.keyword)); return new Set(keywords.filter((k) => have.has(k))); },
+    async addGroupKeywords(grp, keywords, location, day) { for (const kw of keywords) { const k = `${grp}|${kw}|${location}`, o = gk.get(k); gk.set(k, { grp, keyword: kw, location, last: o && o.last > day ? o.last : day }); } },
+    async fileKeywords({ phrases, location, language, limit = 2000 }) {
+      const tests = phrases.map((p) => String(p).split(" ").filter(Boolean).map((w) => new RegExp(`(^|[^\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "u"))).filter((t) => t.length);
+      if (!tests.length) return null;
+      const files = [...fetches.values()].filter((f) => f.kind === "file" && f.location === location && f.language === language), best = new Map();
+      for (const f of files) for (const x of fk.values()) {
+        if (x.id !== f.id || !tests.some((t) => t.every((r) => r.test(x.keyword)))) continue;
+        const o = obs.get(`${x.keyword}|${location}|${language}|${f.day}`); if (o && (!best.has(o.keyword) || best.get(o.keyword).day < o.day)) best.set(o.keyword, o);
+      }
+      const rows = [...best.values()].sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword)).slice(0, limit);
+      if (!rows.length) return null;
+      return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })) };
     },
     async counts(day) {
       const o = [...obs.values()], d = (xs) => new Set(xs).size;

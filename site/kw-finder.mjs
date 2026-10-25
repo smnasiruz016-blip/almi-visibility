@@ -5,6 +5,8 @@
  * estimate — a keyword Google gives no figure for says so.
  */
 import { normSeed, locationOf, seedKeyOf, LANGUAGES } from "./kw-seeds.mjs";
+import { rangeOf } from "../desktop/kp-file.mjs";
+export { rangeOf };
 
 export const FINDER = Object.freeze({ reuseDays: 30, maxLength: 80, maxWords: 10, shownPerGroup: 50, perVisitorPerDay: 5, siteSearchesPerDay: 300, language: "en" });
 export const SOURCE_LINE = "Search volumes: Google Ads Keyword Planner data";
@@ -42,7 +44,13 @@ export async function lookupKeywords({ seeds, location = "ALL", store, ads, purp
   let found = await store.findFetch({ ...key, since: daysBefore(d, FINDER.reuseDays) }), fromDatabase = true;
   if (!found) {
     const r = await ads.ideas({ seeds, geo: loc.geo, language: LANGUAGES[lang].constant, purpose, maxPages: 1 });
-    if (!r.ok) return { ok: false, code: r.code, why: r.why };
+    if (!r.ok) {
+      /* RR-326 I: Google refused (or is not connected) — the owner's Keyword Planner files answer, when they hold these words. Not saved
+         as a fetch: once Google answers, the search is asked of Google */
+      const file = await store.fileKeywords({ phrases: seeds, location: loc.code, language: lang }).catch(() => null);
+      if (file) return { ok: true, location: loc.code, locationName: loc.name, language: LANGUAGES[lang].name, period: file.period, day: file.day, fromDatabase: true, source: "file", rows: file.rows };
+      return { ok: false, code: r.code, why: r.why };
+    }
     await store.saveFetch({ unitId: null, kind, group: null, ...key, day: d, at: new Date(now()).toISOString(), period: r.period, ops: r.ops, rows: r.rows });
     found = await store.findFetch({ ...key, since: d }); fromDatabase = false;
   }
@@ -61,7 +69,9 @@ export async function findKeywords({ q, location = "ALL", store, ads, purpose = 
 export function csvOf(result) {
   const cell = (v) => { let s = v === null || v === undefined ? "" : String(v); if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const head = ["keyword", "avg_monthly_searches", "group", "location", "language", "period", "source"];
-  const lines = result.rows.map((r) => [r.keyword, r.volume, GROUPS.find(([id]) => id === r.group)[1], result.locationName, result.language, result.period ?? "", "Google Ads Keyword Planner"].map(cell).join(","));
+  /* RR-326 I: from the owner's Keyword Planner files, Google's RANGE (an account with no ads sees rounded values), never the rounded number */
+  const file = result.source === "file", vol = (v) => (file ? rangeOf(v)?.label ?? null : v);
+  const lines = result.rows.map((r) => [r.keyword, vol(r.volume), GROUPS.find(([id]) => id === r.group)[1], result.locationName, result.language, result.period ?? "", file ? "Google Ads Keyword Planner (export file)" : "Google Ads Keyword Planner"].map(cell).join(","));
   return `${head.join(",")}\r\n${lines.join("\r\n")}${lines.length ? "\r\n" : ""}`;
 }
 

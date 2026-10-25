@@ -189,7 +189,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
 /**
  * 🔴 RR-325 · PUBLIC-LITE (the owner's GREEN for almivisibility.almiworld.com, this site only, until sales open). A handler of its own: it
  * serves the home page (the free score first, "coming soon"), the owner's Privacy Policy and Terms of Service (each only when it has no
- * [FILL]), the logo, the icon, robots.txt and the sitemap — and the free score. EVERYTHING ELSE IS "NOT FOUND": download, pricing, buy and
+ * [FILL]), the logo, the icon, robots.txt, the sitemap and the meter's script (/score.js) — and the free score. EVERYTHING ELSE IS "NOT FOUND": download, pricing, buy and
  * checkout, the licence check, updates, unsubscribe, admin and every /api route. No database, Stripe, Resend, licence or admin code runs:
  * none of their stores or keys is even opened here.
  *   THE FREE SCORE: only while the limit store is connected (limits.mjs — the owner adds it in Vercel); a one-use form ticket and a hidden
@@ -216,6 +216,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve }) {
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published()].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
       if (req.method === "POST" && u.pathname === "/score") {
@@ -227,7 +228,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve }) {
         const tk = await limits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
         const t = await testableUrl(f.url, dns); if (!t.ok) return again(400, t.why);
         const take = await limits.take(who(req)); if (!take.ok) return again(429, take.why);
-        const result = await freeTest({ url: t.url, fetchImpl: publicOnly(fetchImpl, dns), deadlineMs: LITE_LIMITS.checkDeadlineMs });
+        const result = await freeTest({ url: t.url, fetchImpl: publicOnly(fetchImpl, dns), deadlineMs: LITE_LIMITS.checkDeadlineMs, linksAndSecurity: true });
         return send(200, await home({ result, left: take.left, values }), undefined, { "cache-control": "no-store" });
       }
       send(404, P.notFound(u.pathname, { lite: true }));

@@ -21,9 +21,11 @@ export const NO_PROMISE = "This test measures what it can see today. It promises
 
 /** Is this address private, local or otherwise not the public internet? (IPv4 and IPv6) */
 export function privateAddress(ip) {
-  if (isIP(ip) === 4) { const [a, b] = ip.split(".").map(Number); return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224; }
+  if (isIP(ip) === 4) { const [a, b, c] = ip.split(".").map(Number); return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || (a === 192 && b === 0 && c === 0) || (a === 198 && (b === 18 || b === 19)) || a >= 224; }
   const x = ip.toLowerCase();
-  return x === "::1" || x === "::" || x.startsWith("fc") || x.startsWith("fd") || x.startsWith("fe80") || x.startsWith("::ffff:127.") || x.startsWith("::ffff:10.") || x.startsWith("::ffff:192.168.");
+  /* RR-325: an IPv4 address written as IPv6 (::ffff:a.b.c.d) is judged as the IPv4 address it is — every private range, not three */
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(x)?.[1]; if (mapped) return privateAddress(mapped);
+  return x === "::1" || x === "::" || x.startsWith("fc") || x.startsWith("fd") || x.startsWith("fe80") || x.startsWith("::ffff:") || x.startsWith("64:ff9b:") || x.startsWith("2001:db8");
 }
 
 /** The URL a visitor typed, made safe to test: http(s), no credentials, a public host. Returns { ok, url } or { ok: false, why }. */
@@ -36,7 +38,8 @@ export async function testableUrl(input, { resolve = (h) => lookup(h, { all: tru
   if (u.username || u.password) return { ok: false, why: "An address with a login in it is never tested." };
   if (u.port && !["80", "443"].includes(u.port)) return { ok: false, why: "Only the standard web ports are tested." };
   let addrs;
-  try { addrs = isIP(u.hostname) ? [{ address: u.hostname }] : await resolve(u.hostname); } catch { return { ok: false, why: "That site's name could not be found." }; }
+  const host = u.hostname.replace(/^\[(.*)\]$/, "$1"); // RR-325: an IPv6 address comes in brackets ([::ffff:7f00:1]) — judged as the address it is
+  try { addrs = isIP(host) ? [{ address: host }] : await resolve(host); } catch { return { ok: false, why: "That site's name could not be found." }; }
   if (!addrs.length || addrs.some((a) => privateAddress(a.address))) return { ok: false, why: "Only public websites can be tested." };
   u.hash = "";
   return { ok: true, url: u.href };
@@ -57,6 +60,9 @@ export function dailyLimiter({ limit = LIMITS.testsPerPersonPerDay, now = () => 
   });
 }
 
+/** RR-325 B: every request of a check — robots.txt and each page — goes to a PUBLIC address only, checked again just before it is sent */
+export const publicOnly = (fetchImpl, { resolve } = {}) => async (u, init) => { const t = await testableUrl(String(u), resolve ? { resolve } : {}); if (!t.ok) throw Object.assign(new Error(t.why), { name: "PrivateAddress" }); return fetchImpl(u, init); };
+
 const sameSite = (a, b) => { try { return new URL(a).origin === new URL(b).origin; } catch { return false; } };
 const linksOf = (html, base) => [...String(html).matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"'#]+)["']/gi)].map((m) => { try { return new URL(m[1], base).href.replace(/#.*$/, ""); } catch { return null; } }).filter(Boolean);
 const htmlish = (u) => !/\.(pdf|jpe?g|png|gif|webp|svg|zip|mp4|mp3|css|js|xml|json|ico)(\?|$)/i.test(u);
@@ -65,13 +71,16 @@ const htmlish = (u) => !/\.(pdf|jpe?g|png|gif|webp|svg|zip|mp4|mp3|css|js|xml|js
  * Run one test: the start page and up to 9 more pages of the same site, each allowed by robots.txt, one at a time, paced.
  * `fetchImpl` is injected (tests use a fixture server). Returns the result a visitor sees.
  */
-export async function runFreeTest({ url, fetchImpl = fetch, pages = LIMITS.pagesPerTest, paceMs = LIMITS.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), on = new Date().toISOString() }) {
+export async function runFreeTest({ url, fetchImpl = fetch, pages = LIMITS.pagesPerTest, paceMs = LIMITS.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), on = new Date().toISOString(), deadlineMs = null, now = () => Date.now() }) {
   const max = Math.min(pages, LIMITS.pagesPerTest);
+  /* RR-325 B: a time limit for the whole check — no new page is read after it; a page being read gets only the time left */
+  const end = deadlineMs ? now() + deadlineMs : Infinity, left = () => end - now();
   let last = 0;
   const pace = async () => { const wait = last + paceMs - Date.now(); if (wait > 0) await sleep(wait); last = Date.now(); };
   const robots = createRobotsCache({ fetchImpl, userAgent: USER_AGENT, beforeRequest: pace });
   const queue = [url], seen = new Set(), reads = [], skipped = [];
   while (queue.length && reads.length < max) {
+    if (left() <= 1000) { skipped.push(...queue.splice(0).filter((x) => !seen.has(x)).slice(0, 3).map((x) => ({ url: x, why: "not read — the check's time limit was reached" }))); break; }
     const u = queue.shift();
     if (seen.has(u)) continue;
     seen.add(u);
@@ -80,7 +89,7 @@ export async function runFreeTest({ url, fetchImpl = fetch, pages = LIMITS.pages
     if (!allowed.allowed) { skipped.push({ url: u, why: allowed.state === "UNKNOWN" ? `robots.txt could not be read (${allowed.reason}) — not tested` : "robots.txt asks us not to read it — not tested" }); continue; }
     await pace();
     let res;
-    try { res = await fetchImpl(u, { method: "GET", redirect: "manual", headers: { "User-Agent": USER_AGENT, Accept: "text/html" }, signal: AbortSignal.timeout(LIMITS.timeoutMs) }); }
+    try { res = await fetchImpl(u, { method: "GET", redirect: "manual", headers: { "User-Agent": USER_AGENT, Accept: "text/html" }, signal: AbortSignal.timeout(Math.max(1, Math.min(LIMITS.timeoutMs, left()))) }); }
     catch (e) { skipped.push({ url: u, why: `could not be read (${e.name === "TimeoutError" ? "timed out" : "no answer"})` }); continue; }
     if (res.status >= 300 && res.status < 400) { const to = res.headers.get("location"); if (to) { const next = new URL(to, u).href; if (sameSite(next, url) && reads.length === 0 && !seen.has(next)) queue.unshift(next); else skipped.push({ url: u, why: `redirects to ${next}` }); } continue; }
     const type = res.headers.get("content-type") ?? "";

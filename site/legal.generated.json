@@ -1,0 +1,802 @@
+{
+ "source": {
+  "file": "AlmiVisibility_Terms_and_Privacy_2026-10-25.docx",
+  "sha256": "43867173cb5b427b47d4a723c1595bd4705abd2dafa896f9214b875f25b30b3d",
+  "readOn": "2026-10-24"
+ },
+ "fills": {
+  "terms": [
+   "[FILL 3]",
+   "[FILL 1]",
+   "[FILL 2]"
+  ],
+  "privacy": [
+   "[FILL 1]",
+   "[FILL 2]"
+  ]
+ },
+ "terms": [
+  {
+   "kind": "heading",
+   "level": 1,
+   "runs": [
+    {
+     "text": "Terms of Service",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "Last updated: 25 October 2026",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "These terms apply to AlmiVisibility, a desktop application and website made by AlmiWorld (“we”, “us”). By installing or using AlmiVisibility you agree to them.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "1. What AlmiVisibility does",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "AlmiVisibility is a Windows application that helps you make your own websites, products and YouTube channels easier to find in search engines and AI answer engines. It checks your site, collects the questions people ask, plans and drafts pages and articles, suggests improvements, and reports results. It runs on your own computer.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "2. Your licence",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "AlmiVisibility is sold as a monthly subscription. The current plans are shown on our website. There is no free trial.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Your licence is for your own use and the number of products in your plan. You may not resell, share or copy the licence.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "You may cancel at any time. Your licence then ends at the end of the period you have paid for. Payments are handled by Stripe. Refunds follow our refund policy at almiworld.com/refund_returns/.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "If a payment fails or a subscription is cancelled, the licence stops working.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "3. Your own accounts and keys",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "AlmiVisibility works with services you connect yourself, for example Google (YouTube, Search Console, Google Ads keyword data) and an AI provider such as Anthropic. You sign in or add your own keys. Any costs those services charge you are yours. You must follow their terms.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "4. No ranking promise",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "Search engines and AI services decide their own results. AlmiVisibility gives advice, drafts and sources, but we do not promise any ranking, traffic, citation or sale.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "5. Your content and your responsibility",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "You decide what to publish. Check every draft before you publish it, especially facts, prices and rules.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "You must have the right to publish everything you put on your sites.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "You must not use AlmiVisibility for spam, for copying other people’s content, for misleading pages, or for anything illegal. AlmiVisibility obeys websites’ robots.txt rules, and you must not try to get around them.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "6. Our work",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "AlmiVisibility, its design and its code belong to AlmiWorld. Drafts AlmiVisibility makes for you are yours to use.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "7. Updates and availability",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "We update AlmiVisibility from time to time. We try to keep it working, but we cannot promise it will always be available or free of errors.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "8. Liability",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "AlmiVisibility is provided “as is”. As far as the law allows, AlmiWorld is not liable for indirect losses, lost profits, lost data, or changes in your search rankings. Our total liability is limited to what you paid us in the last three months.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "9. Ending use",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "You can stop at any time and uninstall the app. We may end a licence that is used against these terms.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "10. Changes to these terms",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "If we change these terms, we will show the new date at the top of this page. Using AlmiVisibility after a change means you accept the new terms.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "11. Law and contact",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "These terms are governed by the law of [FILL 3]. Questions: [FILL 1]. AlmiVisibility is a product of AlmiWorld, owned by [FILL 2].",
+     "bold": false,
+     "href": null
+    }
+   ]
+  }
+ ],
+ "privacy": [
+  {
+   "kind": "heading",
+   "level": 1,
+   "runs": [
+    {
+     "text": "Privacy Policy — AlmiVisibility",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "Last updated: 25 October 2026",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "This policy explains what AlmiVisibility (the desktop app and the website almivisibility.almiworld.com) does with data. AlmiWorld’s general privacy policy is at almiworld.com/privacy-policy/.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "1. The short version",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Your work stays on your computer. Your projects, reports, drafts and the data AlmiVisibility reads from Google are stored on your own computer, not on AlmiWorld’s servers.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Your keys stay on your computer. API keys and sign-in tokens are kept in Windows’ own secure store (Windows Credential Manager).",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "We never sell data.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "2. Data from Google",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "If you choose to connect your Google account, AlmiVisibility asks only for read access to what it needs:",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "table",
+   "rows": [
+    [
+     [
+      {
+       "text": "Google service",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "What AlmiVisibility reads",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "Why",
+       "bold": false,
+       "href": null
+      }
+     ]
+    ],
+    [
+     [
+      {
+       "text": "YouTube (Data and Analytics)",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "Your channel’s videos, their details, captions and performance reports",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "To advise you on titles, descriptions and topics",
+       "bold": false,
+       "href": null
+      }
+     ]
+    ],
+    [
+     [
+      {
+       "text": "Google Search Console",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "The searches, pages and positions for sites you own",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "To show which questions bring people to your site, and which pages to improve",
+       "bold": false,
+       "href": null
+      }
+     ]
+    ],
+    [
+     [
+      {
+       "text": "Google Ads (Keyword Planner)",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "Keyword ideas and search volume ranges",
+       "bold": false,
+       "href": null
+      }
+     ],
+     [
+      {
+       "text": "To find what people search for, so pages answer real questions",
+       "bold": false,
+       "href": null
+      }
+     ]
+    ]
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "This data is read on your computer and stored only on your computer.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "It is used only to give you AlmiVisibility’s features. It is not used for advertising, not sold, and not shared with anyone.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "AlmiVisibility does not create or change ads. It changes a YouTube video only when you press “Apply” yourself, and it offers Undo.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "You can disconnect Google at any time in the app, and revoke access at myaccount.google.com/permissions.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "AlmiVisibility’s use and transfer to any other app of information received from Google APIs will adhere to the ",
+     "bold": false,
+     "href": null
+    },
+    {
+     "text": "Google API Services User Data Policy",
+     "bold": false,
+     "href": "https://developers.google.com/terms/api-services-user-data-policy"
+    },
+    {
+     "text": ", including the Limited Use requirements.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "3. AI services",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "If you add your own AI key (for example Anthropic), AlmiVisibility sends the text it needs (such as facts about your product and the questions people ask) directly from your computer to that AI provider, under your own account. AlmiWorld does not see these requests.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "4. What reaches AlmiWorld",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Licence check: your licence key and a random device identifier, to confirm your subscription. No project data.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Payments: handled by Stripe. We receive your email address and subscription status, not your card details.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Website free check (when available): the site address you enter and, only if you give it, your email address, to send you the full report. Every email has an unsubscribe link. Emails are sent through Resend.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Updates: the app asks our server whether a newer version exists.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "5. Websites AlmiVisibility reads",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "When AlmiVisibility checks a website, it reads public pages only and always obeys that site’s robots.txt rules.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "6. How long we keep data",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Data on your computer stays until you delete the project or uninstall the app. Raw YouTube data is kept for at most 30 days.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Licence and payment records are kept as long as the law requires.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Free-check emails are kept until you unsubscribe or ask us to delete them.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "7. Your rights",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "You can ask us what data we hold about you, and ask us to correct or delete it: [FILL 1]. If you live in the EU or EEA, you have the rights given by the GDPR, including the right to complain to your data protection authority.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "8. Children",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "AlmiVisibility is a business tool and is not meant for children under 16.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "9. Changes",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "If we change this policy, we will update the date at the top of this page.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "runs": [
+    {
+     "text": "10. Contact",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "p",
+   "runs": [
+    {
+     "text": "[FILL 1] · AlmiVisibility is a product of AlmiWorld, owned by [FILL 2].",
+     "bold": false,
+     "href": null
+    }
+   ]
+  }
+ ]
+}

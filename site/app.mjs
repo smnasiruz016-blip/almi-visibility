@@ -16,6 +16,8 @@ import { createCheckout } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
 import { createHash, createPublicKey, createPrivateKey } from "node:crypto";
+import { storeOf, kvStore, liteLimits, LITE_LIMITS } from "./limits.mjs"; // RR-325 B
+import { publicOnly } from "./free-test.mjs"; // RR-325 B
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY" });
@@ -24,7 +26,11 @@ const PRIVATE = { "x-robots-tag": "noindex, nofollow", "cache-control": "no-stor
 const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 
 /** Build the handler. `dataDir` holds the LOCAL store (local runs only); `setupFile` is a local Setup the Download button serves. */
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest } = {}) {
+/** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
+export const modeOf = (env = process.env, mode = null) => (mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full")) === "full" ? "full" : "public-lite";
+
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null } = {}) {
+  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve });
   const store = siteStore({ env, localDir: dataDir });
   const limiter = dailyLimiter({ store });
   const admin = adminSessions({ env, store });
@@ -33,7 +39,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
   const localSetup = () => Boolean(setupFile && existsSync(setupFile));
   const setupAvailable = () => localSetup() || httpsUrl(env[SITE_KEY_NAMES.setupUrl]);
   const emailOn = () => sendingOn(env);
-  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": P.pricing, "/download": () => P.download({ setupAvailable: setupAvailable() }), "/privacy": P.privacy, "/terms": P.terms };
+  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": P.pricing, "/download": () => P.download({ setupAvailable: setupAvailable() }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
   const formOf = (body, type) => (/json/.test(type ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
   const cookie = (req, name) => (req.headers.cookie ?? "").split(/;\s*/).map((c) => c.split("=")).find(([k]) => k === name)?.[1] ?? null;
   const who = (req) => String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
@@ -67,7 +73,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
       }
       /* a form from another site is refused (the site's own forms only) */
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
-      if (req.method === "GET" && PAGES[u.pathname]) return send(200, PAGES[u.pathname](u));
+      if (req.method === "GET" && PAGES[u.pathname]) { const html = PAGES[u.pathname](u); return html === null ? send(404, P.notFound(u.pathname)) : send(200, html); } // RR-325: a legal page with a [FILL] is not published
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /buy/\nDisallow: /unsubscribe\nDisallow: /v1/\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
@@ -174,5 +180,57 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
       }
       send(404, P.frame({ path: u.pathname, title: "Not found — AlmiVisibility", description: "This page does not exist.", body: `<section class="page"><div class="wrap"><h1>Page not found</h1><p><a class="pill" href="/">Home</a></p></div></section>`, noindex: true }));
     } catch { send(500, "Something went wrong.", "text/plain"); }
+  };
+}
+
+/** RR-325 C: the owner's legal pages with each [FILL] marked — on this computer only, never on Vercel */
+const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCEL;
+
+/**
+ * 🔴 RR-325 · PUBLIC-LITE (the owner's GREEN for almivisibility.almiworld.com, this site only, until sales open). A handler of its own: it
+ * serves the home page (the free score first, "coming soon"), the owner's Privacy Policy and Terms of Service (each only when it has no
+ * [FILL]), the logo, the icon, robots.txt and the sitemap — and the free score. EVERYTHING ELSE IS "NOT FOUND": download, pricing, buy and
+ * checkout, the licence check, updates, unsubscribe, admin and every /api route. No database, Stripe, Resend, licence or admin code runs:
+ * none of their stores or keys is even opened here.
+ *   THE FREE SCORE: only while the limit store is connected (limits.mjs — the owner adds it in Vercel); a one-use form ticket and a hidden
+ *   field (bot protection); per visitor per day and one daily total for the site; only public http(s) sites — every request of a check
+ *   (robots.txt and each page) is checked again for a public address; robots.txt obeyed; at most 10 pages; a 30-second time limit. The
+ *   result is shown on screen only — nothing about the visitor or the result is stored.
+ */
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve }) {
+  const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
+  const st = storeOf(env), limits = st ? liteLimits({ kv: kvStore(st, { fetchImpl: kvFetch }), now, siteTotal: total }) : null;
+  const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
+  const preview = legalPreview(env), dns = resolve ? { resolve } : {};
+  const who = (req) => String(req.headers["x-real-ip"] ?? "").trim() || String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
+  const home = async (o = {}) => { let ticket = null; if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } } return P.liteHome({ scoreOn: Boolean(ticket), ticket, ...o }); };
+  const published = () => ["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null);
+  return async function handle(req, res) {
+    const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
+    let body = "";
+    for await (const c of req) { body += c; if (body.length > 20000) return send(413, "Too large", "text/plain"); }
+    try {
+      const u = new URL(req.url, "http://127.0.0.1");
+      if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
+      if (req.method === "GET" && u.pathname === "/") return send(200, await home(), undefined, { "cache-control": "no-store" });
+      if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
+      if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
+      if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published()].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
+      if (req.method === "POST" && u.pathname === "/score") {
+        const f = /json/.test(req.headers["content-type"] ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body));
+        const values = { url: typeof f.url === "string" ? f.url.slice(0, 300) : "" };
+        const again = async (code, error) => send(code, await home({ error, values }), undefined, { "cache-control": "no-store" });
+        if (!limits) return again(503, "The free score is being switched on. Please come back soon.");
+        if (f.homepage) return again(400, "Please use the form on this page.");
+        const tk = await limits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
+        const t = await testableUrl(f.url, dns); if (!t.ok) return again(400, t.why);
+        const take = await limits.take(who(req)); if (!take.ok) return again(429, take.why);
+        const result = await freeTest({ url: t.url, fetchImpl: publicOnly(fetchImpl, dns), deadlineMs: LITE_LIMITS.checkDeadlineMs });
+        return send(200, await home({ result, left: take.left, values }), undefined, { "cache-control": "no-store" });
+      }
+      send(404, P.notFound(u.pathname, { lite: true }));
+    } catch { send(503, "The free score is not available just now. Please try again later.", "text/plain"); }
   };
 }

@@ -12,7 +12,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const ASSETS = ["site/family.generated.json", "desktop/brand/almiworld-logo.png", "installer/almiworld.ico"];
+const ASSETS = ["site/family.generated.json", "site/legal.generated.json", "desktop/brand/almiworld-logo.png", "installer/almiworld.ico"];
 
 /** Every repository file site/app.mjs reaches through static and string imports, and the assets the site reads at runtime. */
 export function siteFiles() {
@@ -32,17 +32,25 @@ import { createApp } from "../site/app.mjs";
 const handle = createApp();
 export default function handler(req, res) { return handle(req, res); }
 `;
+/* RR-325 · PUBLIC-LITE (the owner's GREEN for this site only, until sales open): the mode is FIXED in the function — no setting on Vercel can
+ * turn on download, buy, the licence check or admin; with no limit store the free score stays off and the page still goes live */
+export const FUNCTION_LITE = `/* RR-325 · the Vercel function, PUBLIC-LITE: the home page with the free score, the owner's Privacy Policy and Terms of Service; everything else is "not found". */
+import { createApp } from "../site/app.mjs";
+const handle = createApp({ mode: "public-lite" });
+export default function handler(req, res) { return handle(req, res); }
+`;
 export const VERCEL_JSON = { $schema: "https://openapi.vercel.sh/vercel.json", functions: { "api/index.mjs": { includeFiles: "{site,src,services,desktop,installer,config}/**", maxDuration: 60 } }, rewrites: [{ source: "/(.*)", destination: "/api/index" }] };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const out = process.argv[2];
-  if (!out) { console.error("usage: node tools/bundle-site.mjs <an empty or new output folder>"); process.exit(2); }
+  const lite = process.argv.includes("--public-lite"), out = process.argv.slice(2).find((a) => !a.startsWith("--"));
+  if (!out) { console.error("usage: node tools/bundle-site.mjs [--public-lite] <an empty or new output folder>"); process.exit(2); }
   if (existsSync(out) && readdirSync(out).length) { console.error(`REFUSED — ${out} is not empty; the bundle never overwrites a file`); process.exit(2); }
   const files = siteFiles();
   for (const f of files) { mkdirSync(dirname(join(out, f)), { recursive: true }); copyFileSync(join(REPO, f), join(out, f)); }
   mkdirSync(join(out, "api"), { recursive: true });
-  writeFileSync(join(out, "api", "index.mjs"), FUNCTION);
+  writeFileSync(join(out, "api", "index.mjs"), lite ? FUNCTION_LITE : FUNCTION);
+  if (lite) { const L = JSON.parse(readFileSync(join(REPO, "site", "legal.generated.json"), "utf8")); for (const k of ["privacy", "terms"]) if (L.fills?.[k]?.length) console.log(`WARNING — /${k} is NOT published (it answers "not found") until the owner fills ${L.fills[k].join(", ")} in his Word file and it is read again (tools/legal-from-docx.mjs).`); }
   writeFileSync(join(out, "vercel.json"), JSON.stringify(VERCEL_JSON, null, 2) + "\n");
   writeFileSync(join(out, "package.json"), JSON.stringify({ name: "almivisibility-site", private: true, type: "module", engines: { node: "24.x" } }, null, 2) + "\n");
-  console.log(`bundle: ${files.length} file(s) + api/index.mjs + vercel.json + package.json → ${out} · NOT deployed`);
+  console.log(`bundle${lite ? " (PUBLIC-LITE)" : ""}: ${files.length} file(s) + api/index.mjs + vercel.json + package.json → ${out} · NOT deployed`);
 }

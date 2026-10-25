@@ -13,7 +13,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtempSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, readFileSync, existsSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -29,7 +29,7 @@ import { isOwner, ownerCookie, OWNER_RULES } from "../site/owner.mjs";
 import { kvStore } from "../site/limits.mjs";
 import { withAdditions, ADDITIONS, loadLegal } from "../site/legal.mjs";
 import { adsStatus } from "../desktop/google-ads.mjs";
-import { main as signIn } from "../site/owner-google-sign-in.mjs";
+import { main as signIn, clientFromFile, cleanPath } from "../site/owner-google-sign-in.mjs";
 import { CRONS, VERCEL_JSON_LITE, LITE_DEPENDENCIES } from "../tools/bundle-site.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -336,35 +336,52 @@ test("B · the cron: only with Vercel's own Authorization header carrying CRON_S
   assert.equal(dbUrlOf({ DATABASE_URL: "postgresql://u@h/db" }), "postgresql://u@h/db"); assert.equal(dbUrlOf({ POSTGRES_URL: "postgres://u@h/db" }), "postgres://u@h/db"); assert.equal(dbUrlOf({ DATABASE_URL: "mysql://x" }), null);
 });
 
-test("A · the owner's sign-in script: Google's own page in his browser; the sign-in goes into Vercel on standard input, sensitive, never printed; refused outside the deploy folder", async () => {
+test("A · the owner's sign-in script: the client ID and secret are read from Google's client FILE (a path, dragged in or given) — never typed, printed or copied; Google's own page through a local address; the sign-in goes into Vercel on standard input, sensitive; refused outside the deploy folder", async () => {
   const dir = mkdtempSync(join(tmpdir(), "rr326-signin-"));
   try {
     const out = []; const log = (s) => out.push(String(s));
-    assert.equal(await signIn({ log, cwd: dir, askFn: async () => "x" }), 2); assert.match(out.join("\n"), /Run this from your deploy folder/);
+    assert.equal(await signIn({ log, cwd: dir, argv: [], askFn: async () => "x", open: () => { throw new Error("a browser was opened"); }, waitMs: 50 }), 2); assert.match(out.join("\n"), /Run this from your deploy folder/);
     mkdirSync(join(dir, ".vercel"));
-    const saved = []; let opened = null;
-    const answers = [SECRETS.GOOGLE_ADS_CLIENT_ID, SECRETS.GOOGLE_ADS_CLIENT_SECRET];
+    /* a FAKE client file, in Google's shape — never the owner's real one */
+    const fake = join(dir, "client_secret_fake-for-tests.apps.googleusercontent.com.json");
+    writeFileSync(fake, JSON.stringify({ installed: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID, project_id: "fake-project", auth_uri: "https://accounts.google.com/o/oauth2/auth", token_uri: "https://oauth2.googleapis.com/token", client_secret: SECRETS.GOOGLE_ADS_CLIENT_SECRET, redirect_uris: ["http://localhost"] } }));
     const fetchImpl = async (url, init) => {
-      if (String(url) === "https://oauth2.googleapis.com/token") { const b = new URLSearchParams(init.body); assert.equal(b.get("client_secret"), SECRETS.GOOGLE_ADS_CLIENT_SECRET); assert.ok(b.get("code_verifier")); return new Response(JSON.stringify({ access_token: "a", refresh_token: SECRETS.GOOGLE_ADS_REFRESH_TOKEN, expires_in: 3599 }), { status: 200 }); }
+      if (String(url) === "https://oauth2.googleapis.com/token") { const b = new URLSearchParams(init.body); assert.equal(b.get("client_id"), SECRETS.GOOGLE_ADS_CLIENT_ID); assert.equal(b.get("client_secret"), SECRETS.GOOGLE_ADS_CLIENT_SECRET); assert.ok(b.get("code_verifier")); return new Response(JSON.stringify({ access_token: "a", refresh_token: SECRETS.GOOGLE_ADS_REFRESH_TOKEN, expires_in: 3599 }), { status: 200 }); }
       if (/listAccessibleCustomers/.test(String(url))) return new Response(JSON.stringify({ resourceNames: ["customers/1234567890"] }), { status: 200 });
       throw new Error(`unexpected ${url}`);
     };
-    const open = (u) => { opened = new URL(u); setTimeout(() => fetch(`${opened.searchParams.get("redirect_uri")}?code=the-code&state=${opened.searchParams.get("state")}`), 10); };
-    const code = await signIn({ log, cwd: dir, askFn: async (_q, o) => { assert.equal(Boolean(o?.hidden), answers.length === 1, "the secret is asked hidden"); return answers.shift(); }, open, fetchImpl, addEnv: async (name, value) => { saved.push([name, value]); return true; } });
-    assert.equal(code, 0);
-    assert.equal(opened.origin + opened.pathname, "https://accounts.google.com/o/oauth2/v2/auth"); assert.equal(opened.searchParams.get("scope"), "https://www.googleapis.com/auth/adwords"); assert.equal(opened.searchParams.get("access_type"), "offline"); assert.equal(opened.searchParams.get("code_challenge_method"), "S256"); assert.match(opened.searchParams.get("redirect_uri"), /^http:\/\/127\.0\.0\.1:\d+\/oauth\/google-ads$/);
-    assert.deepEqual(saved.map(([n]) => n), ["GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "CRON_SECRET"]);
-    assert.equal(saved[2][1], SECRETS.GOOGLE_ADS_REFRESH_TOKEN); assert.ok(saved[3][1].length >= 40);
+    /* the browser: the local address → Google's page (a 302) → Google answers on the loopback address */
+    let opened = null, google = null;
+    const browser = (forge = false) => (u) => { opened = u; setTimeout(async () => { const r = await fetch(u, { redirect: "manual" }); google = new URL(r.headers.get("location")); await fetch(`${google.searchParams.get("redirect_uri")}?code=the-code&state=${forge ? "forged" : google.searchParams.get("state")}`); }, 10); };
+    const run = async (o) => { const saved = []; const code = await signIn({ log, cwd: dir, open: browser(o.forge), fetchImpl, addEnv: async (name, value) => { saved.push([name, value]); return true; }, ...o }); return { code, saved }; };
+    /* dragged in: PowerShell types the path in quotes */
+    const asked = [];
+    const r1 = await run({ argv: [], askFn: async (q) => { asked.push(q); return `"${fake}"`; } });
+    assert.equal(r1.code, 0); assert.deepEqual(asked, ["Drag your Google client JSON file into this window, then press Enter: "], "only the file is asked — never an ID or a secret");
+    assert.match(opened, /^http:\/\/127\.0\.0\.1:\d+\/start$/, "the browser opens a LOCAL address — Google's address (with the client ID) never reaches a command line");
+    assert.equal(google.origin + google.pathname, "https://accounts.google.com/o/oauth2/v2/auth"); assert.equal(google.searchParams.get("client_id"), SECRETS.GOOGLE_ADS_CLIENT_ID); assert.equal(google.searchParams.get("scope"), "https://www.googleapis.com/auth/adwords"); assert.equal(google.searchParams.get("access_type"), "offline"); assert.equal(google.searchParams.get("code_challenge_method"), "S256"); assert.match(google.searchParams.get("redirect_uri"), /^http:\/\/127\.0\.0\.1:\d+\/oauth\/google-ads$/);
+    assert.deepEqual(r1.saved.map(([n]) => n), ["GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "CRON_SECRET"]);
+    assert.deepEqual(r1.saved.slice(0, 3).map(([, v]) => v), [SECRETS.GOOGLE_ADS_CLIENT_ID, SECRETS.GOOGLE_ADS_CLIENT_SECRET, SECRETS.GOOGLE_ADS_REFRESH_TOKEN], "the file's values, as they are"); assert.ok(r1.saved[3][1].length >= 40);
+    /* given as an argument: nothing asked */
+    const r2 = await run({ argv: [fake], askFn: async () => { throw new Error("asked although the file was given"); } }); assert.equal(r2.code, 0);
     const printed = out.join("\n");
-    for (const [, v] of saved.slice(1)) assert.ok(!printed.includes(v), "a secret was printed");
+    for (const v of [SECRETS.GOOGLE_ADS_CLIENT_ID, SECRETS.GOOGLE_ADS_CLIENT_SECRET, SECRETS.GOOGLE_ADS_REFRESH_TOKEN, r1.saved[3][1], r2.saved[3][1]]) assert.ok(!printed.includes(v), "a value was printed");
+    assert.ok(!printed.includes("accounts.google.com"), "Google's address (it carries the client ID) was printed");
     assert.match(printed, /accounts this sign-in reaches: 1234567890/); assert.match(printed, /Saved in Vercel \(Production, sensitive\): GOOGLE_ADS_REFRESH_TOKEN/);
+    assert.deepEqual(readdirSync(dir).sort(), [".vercel", "client_secret_fake-for-tests.apps.googleusercontent.com.json"], "the file was copied, or something was written");
     /* an answer that is not this sign-in's saves nothing */
-    const none = []; const answers2 = [SECRETS.GOOGLE_ADS_CLIENT_ID, SECRETS.GOOGLE_ADS_CLIENT_SECRET];
-    const wrong = await signIn({ log: () => {}, cwd: dir, askFn: async () => answers2.shift(), open: (u) => { const o = new URL(u); setTimeout(() => fetch(`${o.searchParams.get("redirect_uri")}?code=c&state=forged`), 10); }, fetchImpl, addEnv: async (n) => { none.push(n); return true; } });
-    assert.equal(wrong, 1); assert.deepEqual(none, []);
-    /* the CLI gets the value on standard input — never in its arguments */
+    const forged = await run({ argv: [fake], forge: true }); assert.equal(forged.code, 1); assert.deepEqual(forged.saved, []);
+    /* a wrong file: refused in plain words that never carry a value; nothing asked of Google */
+    const bad = (name, body) => { const f = join(dir, name); writeFileSync(f, body); return f; };
+    for (const [f, why] of [[bad("a.json", "not json"), /could not be read/], [bad("b.json", JSON.stringify({ other: {} })), /no client in it/], [bad("c.json", JSON.stringify({ installed: { client_id: "nope", client_secret: "secret-value-123" } })), /not a Google OAuth client ID/], [bad("d.json", JSON.stringify({ installed: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID } })), /no client secret/], [join(dir, "missing.json"), /not there/], [bad("e.txt", "x"), /not a \.json file/]]) {
+      const o = []; const c = await signIn({ log: (s) => o.push(s), cwd: dir, argv: [f], open: () => o.push("BROWSER OPENED"), waitMs: 50, fetchImpl: async () => { throw new Error("Google was asked"); }, addEnv: async () => { throw new Error("saved"); } }); // never a real browser, even if the refusal broke
+      assert.equal(c, 2); assert.match(o.join("\n"), why); assert.ok(!o.join("\n").includes("secret-value-123") && !o.join("\n").includes(SECRETS.GOOGLE_ADS_CLIENT_ID));
+    }
+    assert.equal(cleanPath(`& 'C:\\Users\\x\\My Files\\client.json'`), "C:\\Users\\x\\My Files\\client.json"); assert.equal(cleanPath(`  "C:\\a b\\c.json" `), "C:\\a b\\c.json");
+    const web = bad("w.json", JSON.stringify({ web: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID, client_secret: SECRETS.GOOGLE_ADS_CLIENT_SECRET } })); assert.equal(clientFromFile(web).kind, "Web application");
+    /* the CLI gets the value on standard input — never in its arguments; no hidden prompt (paste failed in it), no copy of the file */
     const src = readFileSync(join(REPO, "site", "owner-google-sign-in.mjs"), "utf8");
-    assert.match(src, /p\.stdin\.end\(value\)/); assert.match(src, /"env", "add", name, "--environment", "production", "--sensitive", "--force"\]/); assert.doesNotMatch(src, /--value/);
+    assert.match(src, /p\.stdin\.end\(value\)/); assert.match(src, /"env", "add", name, "--environment", "production", "--sensitive", "--force"\]/); assert.doesNotMatch(src, /--value|_writeToOutput|copyFile|writeFile/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

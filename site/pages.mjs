@@ -108,6 +108,12 @@ table.legal{width:100%;border-collapse:collapse;font-size:15px;background:var(--
 .soon{display:inline-block;border-radius:999px;background:var(--sunrise);color:#1A1A2E;padding:2px 12px;font-size:13px;font-weight:700;margin-left:8px;vertical-align:middle}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .made{margin-top:28px;text-align:center;font-weight:600;color:var(--ink)}
+/* RR-325 (owner, 25 Oct): the moving meter while a score is checked; the real score fills the gauge */
+.meter{margin-top:12px} .meter .bar{position:relative;height:8px;border-radius:999px;background:var(--peach);overflow:hidden} .meter .bar span{position:absolute;top:0;bottom:0;width:35%;border-radius:999px;background:linear-gradient(90deg,#DC2626,#EAB308,#16A34A);animation:run 1.4s ease-in-out infinite}
+@keyframes run{from{left:-35%}to{left:100%}} @keyframes sweep{from{stroke-dasharray:4 100}to{stroke-dasharray:100 100}} @keyframes fill{from{stroke-dasharray:0 100}}
+.live.real .gauge path.val{animation:fill 1.2s ease-out} .live.busy .gauge path.val{animation:sweep 1.1s ease-in-out infinite alternate} .live.busy .areas,.live.busy .gaugebox+.fine{opacity:.45}
+.testform button[disabled]{opacity:.7;cursor:progress}
+@media (prefers-reduced-motion:reduce){.live .gauge path.val,.meter .bar span{animation:none} .meter .bar span{left:0;width:100%;opacity:.6}}
 /* RR-325: dark mode — the same layout in the night colours; button words stay dark on the coral and sunrise buttons (WCAG 4.5:1) */
 @media (prefers-color-scheme:dark){:root{--cream:#14110D;--white:#1E1A15;--peach:#3A2F22;--ink:#FDF6EC;--text:#E9E1D3;--muted:#C9BDAA}
 .site-header{background:rgba(20,17,13,.95)} .hero{background:linear-gradient(135deg,#14110D 0%,#14110D 50%,#2A2119 100%)} section.peach{background:rgba(58,47,34,.35)}
@@ -119,7 +125,7 @@ export function gauge(score) {
   const v = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null;
   const arc = "M 16 104 A 88 88 0 0 1 192 104";
   return `<div class="gauge" role="img" aria-label="${v === null ? "Score not measured" : `Score ${v} out of 100, ${scoreWord(v)}`}"><svg viewBox="0 0 208 116" aria-hidden="true"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#DC2626"/><stop offset=".5" stop-color="#EAB308"/><stop offset="1" stop-color="#16A34A"/></linearGradient></defs>
-<path d="${arc}" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round" opacity=".22"/>${v === null ? "" : `<path d="${arc}" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="${v} 100"/>`}</svg>
+<path d="${arc}" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round" opacity=".22"/>${v === null ? "" : `<path class="val" d="${arc}" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="${v} 100"/>`}</svg>
 <div class="num">${v === null ? "<b>—</b>" : `<b>${v}</b><small> /100</small>`}<span>${scoreWord(v)}</span></div></div>`;
 }
 const areaList = (byCategory) => `<ul class="areas">${AREAS.map(([k, name]) => { const v = byCategory?.[k] ?? null; return `<li><span class="n">${name}</span>${v === null ? '<span class="v nm">Not measured</span>' : v >= 80 ? `<span class="v good">✓ ${v}</span>` : `<span class="v warn">⚠ ${v}</span>`}</li>`; }).join("")}</ul>`;
@@ -224,6 +230,8 @@ function resultDetail(r, left) {
 <h3>What to fix first</h3>${r.nextActions.length ? `<ol>${r.nextActions.map((a) => `<li><b>${esc(a.check)}</b> — ${esc(a.action)} <span class="note">(${a.pages} page${a.pages === 1 ? "" : "s"})</span></li>`).join("")}</ol>` : "<p>Nothing failed among the checks we measured.</p>"}
 <h3>Measured</h3><p>${r.measured.map(esc).join(", ") || "nothing"}</p>
 <h3>Not measured in this free test</h3><ul class="nmtext">${r.notMeasured.map((n) => `<li>${esc(n)}</li>`).join("") || "<li>none</li>"}</ul>
+${r.links ? `<h3>Links</h3><p>${r.links.judged} of ${r.links.of} internal link(s) checked${r.links.of > r.links.judged ? ` — the free score asks at most ${LIMITS.linkChecks} links besides the pages it reads; the rest are not judged` : ""}.</p>${r.brokenLinks.length ? `<ul>${r.brokenLinks.map((b) => `<li>${esc(b.to)} — ${b.status ? `answers ${b.status}` : "no answer"} <span class="note">(linked from ${esc(b.from)})</span></li>`).join("")}</ul>` : r.links.judged ? "<p>Every link checked opens.</p>" : ""}` : ""}
+${r.securityHeaders ? `<h3>Security headers of the start page <span class="note">(shown here, not in the score)</span></h3><ul>${r.securityHeaders.rules.map((h) => `<li>${h.state === "PASS" ? "✓" : h.state === "FAIL" ? "✗" : "–"} ${esc(HEADER_WORDS[h.name] ?? h.name)}${h.state === "FAIL" && h.why ? ` <span class="note">(${esc(h.why)})</span>` : ""}</li>`).join("")}<li>${r.securityHeaders.csp.enforced ? "✓ A Content Security Policy is sent" : r.securityHeaders.csp.reportOnly ? "– A Content Security Policy is sent in report-only form" : "– No Content Security Policy is sent"} <span class="note">(reported, not judged)</span></li></ul>` : ""}
 ${r.skipped.length ? `<h3>Pages not read</h3><ul class="nmtext">${r.skipped.slice(0, 10).map((s) => `<li>${esc(s.url)} — ${esc(s.why)}</li>`).join("")}</ul>` : ""}
 <p class="note">${esc(r.noPromise)}</p></div></section>`;
 }
@@ -266,18 +274,50 @@ export const notFound = (path, { lite = false } = {}) => frame({ path, lite, tit
 /* ── RR-325 A · THE PUBLIC-LITE HOME: the free score FIRST; the keyword finder and the app "coming soon"; no download, price or buy ── */
 export const KEYWORD_FINDER_LINE = "It will find what people search for about your product, with search volumes from Google Keyword Planner data.";
 export const APP_LINE = "AlmiVisibility is a Windows app that makes your website, products and YouTube channel easier to find on Google and in AI answers. It finds the questions your customers really ask, builds the pages that answer them in your own design — every fact with its source and the date it was checked — and keeps them up to date.";
+/* RR-325 (owner, 25 Oct) · the security headers in plain words (their rules: config/security/live-header-baseline.mjs) */
+const HEADER_WORDS = Object.freeze({ "strict-transport-security": "Browsers are told to use https only (Strict-Transport-Security, at least six months)", "x-content-type-options": "Files are not guessed as another type (X-Content-Type-Options: nosniff)", "clickjacking (an enforced CSP frame-ancestors, or X-Frame-Options DENY or SAMEORIGIN)": "Other sites cannot show this page inside theirs (frame-ancestors or X-Frame-Options)", "referrer-policy": "Other sites are not sent the full address the visitor came from (Referrer-Policy)" });
+/* RR-325 (owner, 25 Oct) · while a score is being checked: a moving meter (the gauge sweeps, a bar runs, the seconds count); the button is
+ * turned off so a second click cannot use a second score. The result then fills the gauge to the real score. Served as /score.js (the
+ * page's Content-Security-Policy allows scripts from the site itself only); without it the form works as before. */
+export const SCORE_JS = `(function () {
+  var f = document.querySelector('form.testform[action="/score"]'); if (!f) return;
+  var card = document.getElementById("score"), meter = document.getElementById("meter"), b = f.querySelector('button[type="submit"]'), timer = null;
+  var num = card && card.querySelector(".gauge .num"), was = num ? num.innerHTML : "", label = b ? b.textContent : "";
+  var top = card && card.querySelector(".top"), wasTop = top ? top.innerHTML : "";
+  f.addEventListener("submit", function () {
+    if (b) { b.disabled = true; b.textContent = "Checking your site…"; }
+    if (card) card.classList.add("busy");
+    if (top) top.innerHTML = '<p class="label">Checking your site</p>';
+    if (num) num.innerHTML = "<b>…</b><span>Checking</span>";
+    if (meter) { meter.hidden = false; var t0 = Date.now(), s = meter.querySelector("[data-secs]"); timer = setInterval(function () { if (s) s.textContent = String(Math.round((Date.now() - t0) / 1000)); }, 1000); }
+  });
+  /* back to this page from the browser's memory: its one-use ticket may be spent, so the home page is read again (a GET); a result page
+   * (POST /score, never re-sent) gets its form back as it was */
+  window.addEventListener("pageshow", function (e) { if (!e.persisted) return; if (location.pathname === "/") { location.reload(); return; } if (timer) clearInterval(timer); if (b) { b.disabled = false; b.textContent = label; } if (card) card.classList.remove("busy"); if (num) num.innerHTML = was; if (top) top.innerHTML = wasTop; if (meter) meter.hidden = true; });
+  var real = document.querySelector("#score.real .gauge .num b[data-score]");
+  if (real && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    var to = Number(real.getAttribute("data-score")), t1 = null;
+    var step = function (t) { if (t1 === null) t1 = t; var k = Math.min(1, (t - t1) / 1200); real.textContent = String(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+})();
+`;
 export function liteScoreCard({ result = null, error = null, values = {}, scoreOn = false, ticket = null } = {}) {
   const real = Boolean(result), s = real ? result : SAMPLE;
+  const meter = `<div id="meter" class="meter" role="status" aria-live="polite" hidden><div class="bar"><span></span></div><p class="fine">Checking your site — reading up to ${LIMITS.pagesPerTest} pages, following its robots.txt, then its links and https. This usually takes 10 to 30 seconds. <b data-secs>0</b> s</p></div>`;
   const form = `<form class="testform" method="post" action="/score"><input type="hidden" name="ticket" value="${esc(ticket)}">
 <div class="hp" aria-hidden="true"><label>Leave this empty <input name="homepage" tabindex="-1" autocomplete="off"></label></div>
 <div><label class="f" for="url">Your website address</label><input id="url" name="url" type="text" inputmode="url" autocomplete="url" placeholder="yourwebsite.com" required value="${esc(values.url ?? "")}"></div>
 ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}
 <button class="pill big" type="submit">Get my score</button>
+${meter}
 <p class="fine">Free: ${LITE.perVisitorPerDay} scores a day, up to ${LIMITS.pagesPerTest} pages each. No email needed — the result is shown here only. <a href="/privacy">Privacy</a></p></form>`;
   const off = `<div class="testform" data-score-off>${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}<p class="fine" role="status" style="font-size:14px;color:var(--ink)">The free score is being switched on. Please come back soon.</p></div>`;
-  return `<div class="scorecard" id="score"><div class="top"><p class="label">${real ? "Your website score" : "Sample estimate"}</p><span class="badge${real ? " real" : ""}">${real ? "Your result" : "Sample"}</span></div>
+  /* the real score's number carries data-score: /score.js counts it up while the gauge fills (CSS) */
+  const g = real && Number.isFinite(s.score) ? gauge(s.score).replace(`<b>${Math.max(0, Math.min(100, s.score))}</b>`, `<b data-score="${Math.max(0, Math.min(100, s.score))}">${Math.max(0, Math.min(100, s.score))}</b>`) : gauge(s.score);
+  return `<div class="scorecard live${real ? " real" : ""}" id="score"><div class="top"><p class="label">${real ? "Your website score" : "Sample estimate"}</p><span class="badge${real ? " real" : ""}">${real ? "Your result" : "Sample"}</span></div>
 ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.pagesRead} of up to ${result.pagesLimit} pages · ${esc(String(result.testedOn).slice(0, 10))}</p>` : ""}
-<div class="gaugebox">${gauge(s.score)}${areaList(s.byCategory)}</div>
+<div class="gaugebox">${g}${areaList(s.byCategory)}</div>
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 ${scoreOn && ticket ? form : off}</div>`;
 }
@@ -291,7 +331,8 @@ export const liteHome = ({ result = null, error = null, values = {}, scoreOn = f
 ${result ? resultDetail(result, left) : ""}
 ${section("paper", `<h2 id="keywords">Free keyword finder<span class="soon">Coming soon</span></h2><p class="sub">${esc(KEYWORD_FINDER_LINE)}</p>`)}
 ${section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
-${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}` });
+${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
+<script src="/score.js" defer></script>` });
 
 export const buyNotConnected = (plan, state = "DEFERRED") => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,
   body: `<section class="page"><div class="wrap prose"><h1>Checkout is not connected here</h1><p>${state === "REFUSED" ? "This plan cannot be bought here." : `This copy of the site has no payment connection${plan ? ` for the plan ${esc(plan)}` : ""}.`} Nothing was charged.</p><p><a class="pill" href="/pricing">Back to the plans</a></p></div></section>` });

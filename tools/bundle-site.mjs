@@ -39,7 +39,8 @@ import { createApp } from "../site/app.mjs";
 const handle = createApp({ mode: "public-lite" });
 export default function handler(req, res) { return handle(req, res); }
 `;
-export const VERCEL_JSON = { $schema: "https://openapi.vercel.sh/vercel.json", functions: { "api/index.mjs": { includeFiles: "{site,src,services,desktop,installer,config}/**", maxDuration: 60 } }, rewrites: [{ source: "/(.*)", destination: "/api/index" }] };
+export const VERCELIGNORE = ".env\n.env.*\n";
+export const VERCEL_JSON ={ $schema: "https://openapi.vercel.sh/vercel.json", functions: { "api/index.mjs": { includeFiles: "{site,src,services,desktop,installer,config}/**", maxDuration: 60 } }, rewrites: [{ source: "/(.*)", destination: "/api/index" }] };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const lite = process.argv.includes("--public-lite"), out = process.argv.slice(2).find((a) => !a.startsWith("--"));
@@ -51,6 +52,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   writeFileSync(join(out, "api", "index.mjs"), lite ? FUNCTION_LITE : FUNCTION);
   if (lite) { const L = JSON.parse(readFileSync(join(REPO, "site", "legal.generated.json"), "utf8")); for (const k of ["privacy", "terms"]) if (L.fills?.[k]?.length) console.log(`WARNING — /${k} is NOT published (it answers "not found") until the owner fills ${L.fills[k].join(", ")} in his Word file and it is read again (tools/legal-from-docx.mjs).`); }
   writeFileSync(join(out, "vercel.json"), JSON.stringify(VERCEL_JSON, null, 2) + "\n");
+  writeFileSync(join(out, ".vercelignore"), VERCELIGNORE); // RR-325: the Vercel CLI writes .env.local into this folder — never uploaded
   writeFileSync(join(out, "package.json"), JSON.stringify({ name: "almivisibility-site", private: true, type: "module", engines: { node: "24.x" } }, null, 2) + "\n");
   console.log(`bundle${lite ? " (PUBLIC-LITE)" : ""}: ${files.length} file(s) + api/index.mjs + vercel.json + package.json → ${out} · NOT deployed`);
 }

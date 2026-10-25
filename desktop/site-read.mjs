@@ -19,7 +19,8 @@ import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 const ANSWER_MAX = 1500;
 
 export const FULL = Object.freeze({ pages: 50, linkChecks: 60, paceMs: 1000, timeoutMs: 15000, maxBytes: 2_000_000, sitemaps: 3 });
-export const USER_AGENT = "AlmiVisibility/1.0 (+https://almivisibility.almiworld.com)";
+import { USER_AGENT } from "./user-agent.mjs"; // RR-328: one module of its own
+export { USER_AGENT };
 const htmlish = (u) => !/\.(pdf|jpe?g|png|gif|webp|svg|zip|mp4|mp3|css|js|xml|json|ico|txt|woff2?)(\?|$)/i.test(u);
 const decode = (s) => String(s ?? "").replace(/&#x([0-9a-f]{1,6});/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d{1,7});/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ");
 const strip = (s) => decode(String(s ?? "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();

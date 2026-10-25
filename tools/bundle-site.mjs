@@ -45,7 +45,9 @@ export const VERCEL_JSON = { $schema: "https://openapi.vercel.sh/vercel.json", f
  * Hobby project may run each cron once a day), a function long enough for one run (300 s), and the database driver Vercel installs
  * (`pg`, pinned; the engine itself installs nothing — site/kw-store.mjs loads it only when the database is used) */
 export const CRONS = Object.freeze(Array.from({ length: 8 }, (_, h) => Object.freeze({ path: "/cron/keywords", schedule: `7 ${h} * * *` })));
-export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: CRONS };
+/* RR-328 B · the country-facts collector: four short runs a day (each once a day — a Hobby project's rule), after the keyword collector */
+export const CF_CRONS = Object.freeze(Array.from({ length: 4 }, (_, h) => Object.freeze({ path: "/cron/country-facts", schedule: `37 ${9 + h} * * *` })));
+export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: [...CRONS, ...CF_CRONS] };
 export const LITE_DEPENDENCIES = Object.freeze({ pg: "8.23.1" });
 export const OWNER_SCRIPT = "site/owner-google-sign-in.mjs"; // the website's own deployment script — not engine code (F03 C2c's census is the engine's)
 

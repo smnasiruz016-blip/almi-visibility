@@ -26,6 +26,12 @@ import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEAD
 import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
 import { isOwner, ownerOn, ownerState, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
+import { cfPgStore, SHOWN } from "./cf-store.mjs"; // RR-328 B
+import { runCountryFacts, CF_ORDER, capsOf } from "./cf-collector.mjs";
+import { aiConfigured } from "./cf-ai.mjs";
+import { coverageOf, countryPacket } from "../desktop/country-facts.mjs";
+import { officialReader } from "../desktop/official.mjs";
+import { COUNTRIES } from "../desktop/world.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY" });
@@ -37,8 +43,8 @@ const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 /** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
 export const modeOf = (env = process.env, mode = null) => (mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full")) === "full" ? "full" : "public-lite";
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null } = {}) {
-  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep });
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null } = {}) {
+  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi });
   const store = siteStore({ env, localDir: dataDir });
   const limiter = dailyLimiter({ store });
   const admin = adminSessions({ env, store });
@@ -210,13 +216,22 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi }) {
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
   const finderLimits = kv ? liteLimits({ kv, now, perVisitor: FINDER.perVisitorPerDay, siteTotal: FINDER.siteSearchesPerDay, counts: FINDER_COUNTS }) : null;
   const ads = kv ? siteAds({ env, kv, fetchImpl: adsFetch, now, ...(sleep ? { sleep } : {}) }) : null;
   const db = kwStore ?? (dbUrlOf(env) ? pgStore({ url: dbUrlOf(env) }) : null);
   const finderOn = () => Boolean(kv && db && ads && ads.configured());
+  /* RR-328 B · the country facts: the same database; the official reader (robots obeyed, public addresses only, paced) */
+  const cf = cfStore ?? (dbUrlOf(env) ? cfPgStore({ url: dbUrlOf(env) }) : null);
+  const cfRun = (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, ...o });
+  const countriesPage = async (o = {}) => {
+    const d = new Date(now()).toISOString().slice(0, 10), facts = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
+    let last = null; if (kv) { try { const [l] = await kv.run([["GET", "av:cf:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
+    const history = {}; if (sel) for (const f of facts.filter((x) => x.country === sel)) history[f.key] = await cf.history(f.key);
+    return P.ownerCountries({ coverage: coverageOf(facts, { countries: CF_ORDER }), facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order: CF_ORDER, ...o, country: sel });
+  };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};
   const who = (req) => String(req.headers["x-real-ip"] ?? "").trim() || String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
@@ -334,6 +349,24 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           const r = await runCollector({ store: db, ads, kv, now, budgetMs: 50000 });
           return send(200, await ownerPage({ message: r.ok ? `This run: ${r.saved} requests saved (${r.keywords} keywords)${r.stoppedBy ? ` — ${r.why}` : ""}.` : r.why }), undefined, priv);
         }
+        /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
+        if (u.pathname.startsWith("/owner/countries")) {
+          if (!cf) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — country facts need it." }), undefined, priv);
+          if (req.method === "GET" && u.pathname === "/owner/countries") return send(200, await countriesPage({ country: u.searchParams.get("c") }), undefined, priv);
+          if (req.method === "POST" && u.pathname === "/owner/countries/run") {
+            const r = await cfRun({ budgetMs: 50000 });
+            return send(200, await countriesPage({ message: r.ok ? `This run: ${r.saved} facts saved (${r.unconfirmed} unconfirmed), ${r.reads} pages read, $${r.aiUsd.toFixed(2)} of AI${r.stoppedBy ? ` — ${r.why}` : ""}.` : r.why }), undefined, priv);
+          }
+          if (req.method === "POST" && u.pathname === "/owner/countries/fact") {
+            const f = form(), old = await cf.fact(String(f.key ?? ""));
+            if (!old || !["approve", "edit", "reject"].includes(f.action)) return send(400, await countriesPage({ message: "No such fact or action. Nothing was changed." }), undefined, priv);
+            const t = (k, n = 600) => String(f[k] ?? "").trim().slice(0, n);
+            const value = f.action !== "edit" ? null : old.part === "councils" ? { ...old.value, name: t("name", 200), website: t("website", 300), address: t("address", 400), addressWhy: undefined } : old.part === "questions" ? { ...old.value, question: t("question", 200), answer: t("answer", 1200), label: "written by the owner" } : old.part === "rules" ? { ...old.value, rule: t("rule", 600) } : old.part === "fee" ? { ...old.value, line: t("line", 400) } : { ...old.value, home: t("home", 400) };
+            if (value && old.part === "councils" && value.website && !/^https?:\/\//.test(value.website)) return send(400, await countriesPage({ country: old.country, message: "The website must start with https:// — nothing was changed." }), undefined, priv);
+            const r = await cf.decide(old.key, { action: f.action, value: value ? JSON.parse(JSON.stringify(value)) : null, at: new Date(now()).toISOString() });
+            return send(200, await countriesPage({ country: old.country, message: r.ok ? `Saved: ${r.status}.` : r.why }), undefined, priv);
+          }
+        }
         return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
       }
       /* RR-326 E · the app's keyword service — the licence decides; while sales are not open, the owner's licence only */
@@ -352,10 +385,28 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!r.ok) { await giveBack({ kv, lic, now: now() }); return json(r.code === "OUR_DAILY_LIMIT" ? 429 : 503, { ok: false, why: r.why }); }
         return json(200, { ok: true, seeds: s.seeds, ...r, source: "Google Ads Keyword Planner", usage: { month: new Date(now()).toISOString().slice(0, 7), used: t.used, limit: lic.limit } });
       }
+      /* RR-328 C · the app's country facts — the same licence as the keywords (while sales are not open: the owner's only); ONLY facts a page may
+       * show (confirmed, or approved/edited by the owner) — never an unconfirmed one */
+      if (u.pathname === "/v1/countries/facts") {
+        const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
+        if (!cf) return json(503, { ok: false, why: "The country facts are not connected yet." });
+        const lic = checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: false });
+        if (!lic.ok) return json(lic.status, { ok: false, why: lic.why });
+        if (req.method !== "GET") return json(405, { ok: false, why: "Not here." });
+        const asked = String(u.searchParams.get("countries") ?? "").split(",").map((s) => s.trim()).filter((c) => COUNTRIES.includes(c)).slice(0, 197), want = asked.length ? asked : COUNTRIES;
+        const facts = (await cf.facts()).filter((f) => SHOWN.includes(f.status) && want.includes(f.country));
+        return json(200, { ok: true, on: new Date(now()).toISOString().slice(0, 10), countries: Object.fromEntries(want.map((c) => [c, countryPacket(c, facts)])), source: "AlmiWorld's country facts — each fact read on its own official page" });
+      }
+      /* RR-328 B · the country-facts collector — Vercel Cron only (CRON_SECRET), several short runs a day within today's caps */
+      const cronAuth = () => { const secret = String(env.CRON_SECRET ?? ""), got = String(req.headers.authorization ?? ""); return secret.length >= 16 && got.length === secret.length + 7 && timingSafeEqual(Buffer.from(got), Buffer.from(`Bearer ${secret}`)); };
+      if (req.method === "GET" && u.pathname === "/cron/country-facts") {
+        if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!cf) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
+        return send(200, JSON.stringify(await cfRun()), "application/json", { "cache-control": "no-store" });
+      }
       /* RR-326 B · the daily collector — Vercel Cron only (its Authorization header carries CRON_SECRET) */
       if (req.method === "GET" && u.pathname === "/cron/keywords") {
-        const secret = String(env.CRON_SECRET ?? ""), got = String(req.headers.authorization ?? "");
-        const okAuth = secret.length >= 16 && got.length === secret.length + 7 && timingSafeEqual(Buffer.from(got), Buffer.from(`Bearer ${secret}`));
+        const okAuth = cronAuth();
         if (!okAuth) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!finderOn()) return send(200, JSON.stringify({ ok: false, why: "Google, the store or the database is not connected." }), "application/json", { "cache-control": "no-store" });
         const r = await runCollector({ store: db, ads, kv, now });

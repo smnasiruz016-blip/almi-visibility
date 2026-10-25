@@ -54,7 +54,7 @@ import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.m
 import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
-import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
+import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan, countryFactsForPlan } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
 import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
 import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
@@ -63,7 +63,7 @@ import { mondayReport, nextBatch, beforeExpand, refreshDue } from "./indexing.mj
 import { builtInList, HOWTO as LIST_HOWTO, WORLD_LISTS, draftList } from "./lists.mjs"; // RR-319 B
 import { searchPower, mergeHistory } from "./search-power.mjs"; // RR-318 D
 import { siteNameOf } from "./web-text.mjs";
-import { destinationsIn } from "./world.mjs";
+import { destinationsIn, COUNTRIES } from "./world.mjs";
 import { newIndexNowKey, checkKeyFile, keyFileHowTo, keyFileUrl, indexNow, inSitemap, submissionLines, INDEXNOW_ENDPOINT } from "./submit.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -270,6 +270,9 @@ async function researchFor({ id, s, sc, subject, subjectSite, rd, res }) {
    * database (phraseItems below reads it) — unreachable: said plainly, and the plan goes on with the client's own data, never an invented number */
   const svc = await serviceForPlan(id, subject).catch(() => ({ on: false, asked: 0, line: SERVICE_OFF_LINE }));
   sources.push({ kind: "AlmiWorld keyword service", n: svc.asked ?? 0, on: Boolean(svc.on), line: svc.on ? `${svc.line} · ${svc.source} · ${svc.asked} searches now${svc.reused ? `, ${svc.reused} still fresh (asked within ${PLAN_REUSE_DAYS} days)` : ""}` : svc.line, ...(svc.why ? { why: svc.why } : {}) });
+  /* RR-328 C · AlmiWorld's country facts (the same licence): the five parts of every country, read on their own official pages — once a day */
+  const cfx = await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: COUNTRIES }).catch(() => ({ on: false, countries: {}, line: "AlmiWorld country facts: not reachable just now" }));
+  sources.push({ kind: "AlmiWorld country facts", n: Object.values(cfx.countries ?? {}).filter((x) => x.complete).length, on: Boolean(cfx.on), line: cfx.line });
   const scq = (sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, on: sc.on ?? null, kind: "search", weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }));
   items.push(...scq); sources.push({ kind: "Search Console", n: scq.length, line: sc ? `${scq.length} searches from your Search Console (${sc.window})` : "Search Console is not connected" });
   const yt = s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, ytq = (yt?.state === "READY" ? yt.questions ?? [] : []).map((q) => ({ text: q.text, source: q.source, on: null, kind: "youtube", weight: 3 }));
@@ -356,7 +359,7 @@ function translatableOf(id) {
 function listPlan(id, c) {
   const s = store.read(id), list = listOf(s, c.subject, id); if (!list) return null;
   const rec = recognitionOf(list, { professions: professionsOf() }), items = [...(c.items ?? []), ...phraseItems(id)], sorted = sortQuestions(items, c.subject, { fullName: "Occupational English Test", regulators: rec.regulators.map(callNames) }), groups = groupQuestions(sorted.kept);
-  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, /* RR-327 */ kwByCountry: byLocationOf(keywordStore(id).load()), originFacts: builtInList("originFacts"), service: (c.research?.sources ?? []).find((x) => x.kind === "AlmiWorld keyword service") ?? null, translatable: translatableOf(id), by: displayNameOf(s.product) });
+  const plan = planFromList({ subject: c.subject, rec, professions: professionsOf(), universities: builtInList("universities")?.items ?? [], light: pread(id, "uni-light.json", {}), venues: c.venues ?? { countries: [] }, fee: c.fee ?? null, rates: ratesOf(id, c), stats: c.stats ?? null, subtests: c.subtests ?? {}, groups, sorted, byCountry: c.scRows ?? [], reads: pread(id, "regulator-reads.json", {}), on: c.on, councils: builtInList("origins"), ai: pread(id, "ai-content.json", {}), languages: s.setup?.languages?.codes ?? ["en"], items, cta: ctaOf(s), subjectPages: c.subjectPages ?? {}, facts: c.facts ?? {}, /* RR-327 */ kwByCountry: byLocationOf(keywordStore(id).load()), originFacts: builtInList("originFacts"), service: (c.research?.sources ?? []).find((x) => x.kind === "AlmiWorld keyword service") ?? null, /* RR-328 C */ countryFacts: pread(id, "country-facts.json", null)?.countries ?? {}, translatable: translatableOf(id), by: displayNameOf(s.product) });
   const five = fiveFromList({ subject: c.subject, plan, stats: c.stats, byCountry: c.byCountry, sc: searchConsoleOf(id), items, own: pread(id, "research-own.json", []), notApply: pread(id, "research-notapply.json", []) });
   return { plan, five, questions: groups };
 }

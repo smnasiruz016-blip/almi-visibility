@@ -48,6 +48,20 @@ export async function collectForPlan({ service, store, merge, fileIdOf, source, 
   return { on: true, asked: out.asked, reused: skip.length, line: `${serviceOnLine(usage?.ok === false ? null : usage)}${out.stopped ? ` (stopped after ${out.asked} searches: ${out.stopped})` : ""}`, source: sourceLine(period) };
 }
 
+/**
+ * RR-328 C · the plan's country facts: asked of the service once a day (`cache` = the product folder's country-facts.json: { on, countries });
+ * the service unreachable → the last answer it gave, said so. → { on, countries: { name: packet }, line, from }
+ */
+export const CF_REUSE_DAYS = 1;
+export async function countryFactsForPlan({ service, cache, countries, today = new Date().toISOString().slice(0, 10) }) {
+  const old = cache.load(), fresh = old?.on && (Date.parse(today) - Date.parse(old.on)) / 864e5 < CF_REUSE_DAYS && countries.every((c) => old.countries?.[c]);
+  if (fresh) return { on: true, countries: old.countries, line: `AlmiWorld country facts: from today's answer (${old.on})`, from: "cache" };
+  const r = service ? await service.countryFacts({ countries }) : { ok: false, why: "Add your plan (Your plan) to use AlmiWorld's country facts." };
+  if (r.ok) { cache.save({ on: today, countries: r.countries }); return { on: true, countries: r.countries, line: `AlmiWorld country facts: ${Object.values(r.countries).filter((x) => x.complete).length} of ${countries.length} countries have all five parts`, from: "service" }; }
+  if (old?.countries) return { on: false, countries: old.countries, line: `AlmiWorld country facts: not reachable just now (${r.why}) — the answer of ${old.on} is used`, from: "old" };
+  return { on: false, countries: {}, line: `AlmiWorld country facts: not reachable (${r.why}) — no country page can show all five parts without them`, from: "none" };
+}
+
 /** signed: the licence the app runs under (or null). fetchImpl handed in (tests: the service's own handler on 127.0.0.1) */
 export function keywordService({ siteUrl = SERVICE_URL, signed = null, fetchImpl = fetch } = {}) {
   const call = async (path, init = {}) => {
@@ -67,6 +81,8 @@ export function keywordService({ siteUrl = SERVICE_URL, signed = null, fetchImpl
   return Object.freeze({
     usage: () => call("v1/keywords/usage"),
     search,
+    /** RR-328 C · AlmiWorld's country facts for these countries (only facts read on their own official pages — never an unconfirmed one) */
+    countryFacts: ({ countries = [] } = {}) => call(`v1/countries/facts${countries.length ? `?countries=${encodeURIComponent(countries.join(","))}` : ""}`),
     /**
      * RR-327 · the plan's keyword data: the seeds once for ALL locations, then once per country (`skip` = locations whose service figures are
      * still fresh — never asked again within PLAN_REUSE_DAYS). Stops at the first refusal that is not about one country (no plan, unreachable,

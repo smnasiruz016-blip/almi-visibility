@@ -144,6 +144,8 @@ const CF_FACTS = [
   cfFact("Pakistan", "questions", "question|Pakistan|centres", { question: "oet centre lahore", keywords: ["oet centre lahore"], volume: 320, answer: "OET's own pages name a venue in Lahore." }, { aiWritten: true, proposedBy: "ai", sourceUrl: null }),
   cfFact("Pakistan", "questions", "question|Pakistan|unconfirmed", { question: "oet results pakistan", volume: 50, answer: "Results come in 9 days." }, { status: "unconfirmed" }),
   cfFact("Pakistan", "rules", "rule|Pakistan|good-standing|1", { rule: "The council issues a good-standing letter itself, on the applicant's request.", quote: "an invented quote of the page" }),
+  /* the collector's confirmed copy of one of AlmiOET's records (the RR-328 proof listed it twice) */
+  cfFact("Pakistan", "rules", "rule|Pakistan|attestation|2", { rule: ORIGIN.items.find((f) => f.country === "Pakistan" && f.fact === "attestation").text }),
   ...["nursing", "medicine"].map((p) => cfFact("India", "councils", `council|India|${p}`, { name: `Invented Indian Council of ${p}`, website: "https://in-council.example", address: "2 Invented Marg, New Delhi 110001" }, { profession: p })),
 ];
 const CF = Object.fromEntries(["Pakistan", "India"].map((c) => [c, countryPacket(c, CF_FACTS, { professions: PROFS })]));
@@ -159,7 +161,8 @@ test("L · RR-328: a destination country is its hub's section; an origin country
   assert.match(pk.feeLocal, /^AUD 587 ≈ PKR [\d,]+ — an estimate from the RBA rate of 2026-10-26 \(1 AUD = 0\.6600 USD\) and the SBP rate of 2026-10-26 \(1 USD = 280\.50 PKR\), not an official price$/);
   assert.equal(pk.councils.length, PROFS.length); assert.ok(pk.councils.every((c) => c.name && c.website && c.address && c.link));
   assert.deepEqual(pk.answered.map((q) => q.question).sort(), ["oet centre lahore", "oet fee in pakistan"], "an unconfirmed answer is never on a page");
-  assert.ok(pk.rules.length >= 1); assert.deepEqual(pk.cities.map((c) => c.city), ["Lahore"], "its cities are mentioned inside the page");
+  assert.ok(pk.rules.length >= 2); assert.deepEqual(pk.cities.map((c) => c.city), ["Lahore"], "its cities are mentioned inside the page");
+  assert.equal(new Set(pk.rules.map((r) => r.text)).size, pk.rules.length, "a rule is listed once, however many sources hold it");
   assert.ok(pk.claims.every((c) => c.link && c.readOn), "every fact with its link and date");
   assert.ok(pk.claims.some((c) => c.fact === "rate" && c.link === "https://sbp.example/m2m"));
   assert.deepEqual(pk.destinations.map((d) => d.country), ["United Kingdom"], "the destination people from Pakistan search for");
@@ -225,6 +228,9 @@ test("P · RR-328: the plan counts by the owner's rules — the country pages wi
   const u = p.kinds.university.find((x) => x.country === "India"); assert.ok(u, "an Indian university page");
   assert.ok(u.content.points.some((t) => /People in India search "oet india" 6,600 times a month/.test(t)));
   assert.ok(!u.dataPoints.some((d) => /search/i.test(d.label)), "searches are content, not data points");
+  /* the RR-328 proof: a university's home council is its graduates' profession's — never the nursing council for pharmacists */
+  for (const x of p.kinds.university.filter((y) => y.home.council)) assert.ok(x.professions.includes("nursing") || !/Nursing/.test(x.home.council.council), `${x.title}: ${x.home.council.council}`);
+  assert.ok(p.localStopped.countryprof.some((y) => y.country === "Nepal" && y.profession === "nursing" && y.missing.join() === "searches"), "the plan says what each stopped page misses");
   /* without the facts, the service and the records: no local page is invented */
   const bare = planOf({ kwByCountry: {}, originFacts: null, countryFacts: {}, venues: { countries: [], home: null } });
   assert.equal(bare.numbers.countryPages + bare.numbers.countryprofPages + bare.numbers.cityPages, 0);

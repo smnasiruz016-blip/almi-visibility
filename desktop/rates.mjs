@@ -60,7 +60,7 @@ export const CURRENCY_LIST = Object.freeze({ source: CURRENCIES.source, url: CUR
 
 /** a fee line that shows the local money — an official estimate ("AUD 587 ≈ PKR 108,671 — …") or the open rate ("AUD 587 — about 114,200
  * PKR …"); the RBA's US-dollar fallback (a bank refused, no open rate) is not one (moved here from local-pages.mjs in RR-328) */
-export const localShown = (line) => { const s = String(line ?? ""); return (/≈ [A-Z]{3} [\d,]+/.test(s) && !/≈ USD /.test(s)) || /— about [\d,]+ [A-Z]{3} /.test(s); };
+export const localShown = (line) => { const s = String(line ?? ""); return /≈ [A-Z]{3} [\d,]+ — an estimate from /.test(s) || /— about [\d,]+ [A-Z]{3} /.test(s) || /^[A-Z]{3} [\d.,]+$/.test(s) /* already its own currency (AUD in Kiribati) */; }; // RR-328 proof: a US-dollar country's own estimate ("≈ USD 411 — an estimate from …") counts; the fallback ("≈ USD 411 (the RBA rate …) — … no PKR figure") does not
 /** ExchangeRate-API's open answer → { date, rates: { CUR: units per AUD } } or null (its own update date, never ours) */
 export function openRates(json) {
   let j = json; try { if (typeof j === "string") j = JSON.parse(j); } catch { return null; }

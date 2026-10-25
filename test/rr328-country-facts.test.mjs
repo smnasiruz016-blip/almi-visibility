@@ -54,6 +54,9 @@ test("A · RR-328: PKR, INR, NGN, PHP and KES — the official rate where it wor
   const none = feeInCurrency(FEE, "Pakistan", { ...rates, open: null }); assert.match(none.line, /≈ USD \d+ .* so no PKR figure is shown yet/); assert.equal(localShown(none.line), false);
   assert.equal(localShown(feeInCurrency(FEE, "Nigeria", { ...rates, open: { date: "2026-10-10", rates: open.rates } }).line), false, "a rate older than 7 days is not used");
   assert.equal(openRates({ ...OPEN_JSON, base_code: "USD" }), null); assert.equal(openRates("not json"), null);
+  /* the proof's finding: a US-dollar country's own estimate IS its money; the RBA fallback is not; a country of the fee's own currency needs none */
+  assert.ok(localShown(feeInCurrency(FEE, "Ecuador", rates).line), feeInCurrency(FEE, "Ecuador", rates).line); assert.match(feeInCurrency(FEE, "Ecuador", rates).line, /^AUD 587 ≈ USD 387 — an estimate from the RBA rate/);
+  assert.ok(localShown(feeInCurrency(FEE, "Kiribati", rates).line)); assert.equal(feeInCurrency(FEE, "Kiribati", rates).line, "AUD 587");
   assert.equal(OPEN_RATES.url, "https://open.er-api.com/v6/latest/AUD");
 });
 
@@ -348,4 +351,19 @@ test("G · RR-328: a page's own sections (re-marking on the results page; the fi
   assert.deepEqual(c.sections.map((s) => s.heading), ["Re-marking"]); assert.ok(c.steps.some((s) => /re-mark within the time limit/.test(s)));
   const html = richPage({ title: p.title, html: "<html><head></head><body><main><h1>OET results</h1></main></body></html>" }, { content: c, kind: "topic", answers: [] }, ON).html;
   assert.match(html, /<section data-part="re-marking"><h2>Re-marking<\/h2><ul><li>a re-mark costs AU\$120 per sub-test\. <span class="citation">— <a href="https:\/\/oet\.example\/remarking-policy" rel="nofollow noopener">source<\/a>, read 2026-10-26<\/span><\/li>/);
+});
+
+test("G · RR-328 (owner): re-marking searches go to the results page, which carries a \"Re-marking\" section of the subject's own facts — never a page of its own; the app hands its country facts to the plan", async () => {
+  const { planFromList } = await import("../desktop/plan-list.mjs"), { recognitionOf } = await import("../desktop/recognition.mjs"), { builtInList } = await import("../desktop/lists.mjs"), { subjectFactsOf } = await import("../desktop/subject-facts.mjs");
+  const PROFS = builtInList("professions").items.map((x) => x.name.toLowerCase());
+  const facts = subjectFactsOf([{ ok: true, url: "https://oet.example/remarking-policy", checkedOn: ON, text: "An invented page. The fee is AU$120 (Global) per sub-test. Requests must be made within 72 hours from when your results are released." }], "OET");
+  const items = ["oet results release", "oet result check", "oet results online", "when do oet results come out", "oet results time", "oet result days", "oet results login", "oet results status"].map((text, i) => ({ text, kind: "tool", volume: { estimate: 5000 - i * 100 } })).concat([{ text: "oet remarking fee", kind: "tool", volume: { estimate: 500 } }]);
+  const p = planFromList({ subject: "OET", rec: recognitionOf(builtInList("recognising"), { professions: PROFS }), professions: PROFS, universities: [], venues: { countries: [], home: null }, fee: FEE, rates: null, groups: [], items, facts, on: ON, languages: ["en"], councils: builtInList("origins"), kwByCountry: {}, originFacts: null, countryFacts: {} });
+  const topics = p.kinds.topic.map((t) => t.title), rt = p.kinds.topic.find((t) => t.title === "OET results: when they come out");
+  assert.ok(rt, topics.join(" | ")); assert.ok(!topics.some((t) => /re-?marking/i.test(t)), "no page of its own");
+  assert.deepEqual(rt.sectionsIn.map((s) => s.heading), ["Re-marking"]); assert.deepEqual(rt.sectionsIn[0].lines.map((l) => l.text), ["a re-mark costs AU$120 per sub-test.", "a re-mark must be asked for within 72 hours of the results' release."]);
+  assert.ok(rt.content.sections.length === 1 && rt.content.steps.some((s) => /re-mark/.test(s)));
+  const MAIN = (await import("node:fs")).readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8");
+  assert.match(MAIN, /countryFacts: pread\(id, "country-facts\.json", null\)\?\.countries \?\? \{\}/, "the plan reads the country facts the app keeps");
+  assert.match(MAIN, /countryFactsForPlan\(\{ service: currentLicence\(\) \? kwService\(\) : null/, "asked with the plan's licence");
 });

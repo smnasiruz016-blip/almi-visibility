@@ -68,7 +68,8 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
     /* 4 · the council for each profession: name, official website, address */
     const councils = professions.map((p) => ({ profession: p, f: cf?.councils?.[p] ?? null })), whole = councils.filter((x) => x.f && councilWhole(x.f.value));
     /* 5 · a rule of its own: AlmiWorld's country facts, and AlmiOET's official records (good standing, attestation) */
-    const rules = [...(cf?.rules ?? []).map((r) => ({ text: r.value.rule, link: r.source, on: r.readOn, from: r.sourceTitle || hostOf(r.source) })), ...fs.filter((f) => ["goodStanding", "attestation"].includes(f.fact)).map((f) => ({ text: f.text, link: f.link, on: factsOn, from: `AlmiOET's record (${f.sourceName ?? "official page"})` }))].filter((r) => r.text && r.link);
+    const rules = [...(cf?.rules ?? []).map((r) => ({ text: r.value.rule, link: r.source, on: r.readOn, from: r.sourceTitle || hostOf(r.source) })), ...fs.filter((f) => ["goodStanding", "attestation"].includes(f.fact)).map((f) => ({ text: f.text, link: f.link, on: factsOn, from: `AlmiOET's record (${f.sourceName ?? "official page"})` }))].filter((r) => r.text && r.link)
+      .filter((r, i, xs) => xs.findIndex((y) => String(y.text).toLowerCase().replace(/\W+/g, " ").trim() === String(r.text).toLowerCase().replace(/\W+/g, " ").trim()) === i); // RR-328 proof: the collector's confirmed copy of a record and the record itself were listed twice
     const filled = { fee: Boolean(feeLine), questions: questions.length > 0, centres: Boolean(centres), councils: whole.length === professions.length && professions.length > 0, rules: rules.length > 0 };
     const missing = PARTS.filter((p) => !filled[p]);
     if (missing.length) {

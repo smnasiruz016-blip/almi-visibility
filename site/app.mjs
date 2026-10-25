@@ -23,7 +23,7 @@ import { runCollector, currentGroups } from "./kw-collector.mjs";
 import { findKeywords, lookupKeywords, finderQuery, csvOf, groupOf, FINDER } from "./kw-finder.mjs";
 import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER } from "./kw-service.mjs";
 import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
-import { isOwner, ownerOn, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
+import { isOwner, ownerOn, ownerState, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -291,8 +291,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       }
       /* RR-326 B + D · the owner's own page — only when he has set his key in Vercel */
       if (u.pathname.startsWith("/owner")) {
-        if (!ownerOn(env) || !kv) return send(404, P.notFound(u.pathname, { lite: true }));
         const priv = { ...PRIVATE };
+        /* RR-326 fix: the page says WHY it is off (the key missing, or too short to be accepted) instead of a bare "not found" — never a
+         * sign-in form while the key is not usable */
+        if (!ownerOn(env) || !kv) return u.pathname === "/owner" && req.method === "GET" ? send(503, P.ownerOff(!kv ? "store" : ownerState(env)), undefined, priv) : send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
         if (req.method === "GET" && u.pathname === "/owner") return send(200, owner(req) ? await ownerPage() : P.ownerSignIn(), undefined, priv);
         if (req.method === "POST" && u.pathname === "/owner/sign-in") {
           const r = await ownerSignIn({ typed: form().key, who: who(req), env, kv, now: now() });

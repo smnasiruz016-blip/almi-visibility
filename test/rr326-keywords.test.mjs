@@ -291,8 +291,14 @@ test("D · the owner: no limits on HIS browser — a key only he sets, typed onc
     const tampered = cookie.replace(/.$/, (c) => (c === "A" ? "B" : "A")); assert.equal((await a.req("/owner", { cookie: tampered })).text.includes("Owner — keywords"), false);
     for (const p of [page.text, (await a.req("/", { cookie })).text]) for (const v of secretValues) assert.ok(!p.includes(v), "a key's value in a page");
   } finally { await a.close(); }
-  const none = await site({ env: { ...FULL_ENV, OWNER_ACCESS_KEY: "" } }); try { assert.equal((await none.req("/owner")).status, 404); } finally { await none.close(); }
-  const short = await site({ env: { ...FULL_ENV, OWNER_ACCESS_KEY: "too-short" } }); try { assert.equal((await short.req("/owner")).status, 404, "a guessable key is no key"); } finally { await short.close(); }
+  /* RR-326 fix: an owner's page that is off SAYS WHY (the owner saw a bare "not found") — never a sign-in form, never the key */
+  const none = await site({ env: { ...FULL_ENV, OWNER_ACCESS_KEY: "" } });
+  try { const r = await none.req("/owner"); assert.equal(r.status, 503); assert.match(r.text, /OWNER_ACCESS_KEY is not set for Production in Vercel/); assert.doesNotMatch(r.text, /type="password"/); assert.equal((await none.req("/owner/sign-in", { method: "POST", form: { key: "x" } })).status, 404); } finally { await none.close(); }
+  const short = await site({ env: { ...FULL_ENV, OWNER_ACCESS_KEY: "too-short-key-for-tests" } });
+  try { const r = await short.req("/owner"); assert.equal(r.status, 503, "a guessable key is no key"); assert.match(r.text, /shorter than 32 characters, so it is not accepted/); assert.ok(!r.text.includes("too-short-key-for-tests")); assert.doesNotMatch(r.text, /type="password"/); assert.equal((await short.req("/owner/sign-in", { method: "POST", form: { key: "too-short-key-for-tests" } })).status, 404); } finally { await short.close(); }
+  /* spaces or a line end around the key in Vercel, or in the form, are not part of it */
+  const spaced = await site({ env: { ...FULL_ENV, OWNER_ACCESS_KEY: `  ${OWNER_KEY}\n` } });
+  try { assert.match((await spaced.req("/owner")).text, /type="password"/); assert.equal((await spaced.req("/owner/sign-in", { method: "POST", form: { key: ` ${OWNER_KEY} ` }, ip: "192.0.2.90" })).status, 303); } finally { await spaced.close(); }
   const t0 = Date.parse("2026-10-26T00:00:00Z"), c = ownerCookie({ OWNER_ACCESS_KEY: OWNER_KEY }, t0).split(";")[0];
   assert.equal(isOwner({ headers: { cookie: c } }, { OWNER_ACCESS_KEY: OWNER_KEY }, t0 + 1000), true);
   assert.equal(isOwner({ headers: { cookie: c } }, { OWNER_ACCESS_KEY: `${OWNER_KEY}-changed` }, t0 + 1000), false, "a new key signs every browser out");

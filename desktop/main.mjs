@@ -54,6 +54,7 @@ import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.m
 import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES } from "./keyword-db.mjs"; // RR-324 A
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
+import { keywordService, usageLine, SERVICE_LOCATIONS } from "./keyword-service.mjs"; // RR-326 E
 import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
 import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
@@ -94,6 +95,9 @@ async function licenceNow() {
   return st;
 }
 const limitLine = planLimitLine;
+/* RR-326 E: the licence the app runs under (the owner's, or the last good check's) — what AlmiWorld's keyword service checks */
+const currentLicence = () => CONFIG.owner ?? licenceLast()?.signed ?? null;
+const kwService = () => keywordService({ siteUrl: CONFIG.keywordServiceUrl ?? LICENCE_URL, signed: currentLicence() });
 
 const page = () => readFileSync(join(HERE, "ui.html"), "utf8").replace("/*SUNRISE*/", cssVariables());
 let updateFound = null;
@@ -319,6 +323,7 @@ function keywordView(id) {
     .map(({ k, c }) => { const t = trendOf(k); return { text: k.text, range: c?.label ?? null, period: c?.period ?? null, location: c?.location ?? null, source: c?.source ?? null, firstSeen: k.firstSeen, lastSeen: k.lastSeen, seen: t.points.length, direction: t.direction, change3m: t.change3m, yoy: t.yoy }; });
   const dfsSet = CONFIG.dataForSeo ?? {};
   return { summary: summaryOf(db, { today, plan }), folder: keywordFolder(), top, store: "this computer (the product's folder) — ready to move to AlmiWorld's own keyword service later",
+    service: { plan: Boolean(currentLicence()), locations: SERVICE_LOCATIONS.map(({ code, name }) => ({ code, name })) }, // RR-326 E
     ads: { ...ads().status(), settings: { access: CONFIG.googleAds?.access ?? "test", applied: CONFIG.googleAds?.applied ?? [], clientIdSet: Boolean(CONFIG.googleAds?.clientId), customerIdSet: Boolean(CONFIG.googleAds?.customerId), secret: KEYS.status(ADS_KEYS.secret).saved } },
     dfs: { ...dfsOf().status(), settings: { on: dfsSet.on === true, capDay: dfsSet.capDay ?? null, capMonth: dfsSet.capMonth ?? null, prices: DFS_PRICES }, keySaved: KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved } };
 }
@@ -932,6 +937,17 @@ const server = createServer((req, res) => {
             const st = keywordStore(id), m = mergeObservations(st.load(), { id: `ads-${fileIdOf(JSON.stringify(out.rows))}`, name: `Google Ads API ideas (${seeds.join(", ").slice(0, 60)})`, on: new Date().toISOString().slice(0, 10), source: KW_SOURCES.ads, period: out.period, location: v.location ?? null }, out.rows);
             if (!m.alreadyRead) { st.save(m.db); replan(id); } return send(200, { ok: true, line: m.line });
           }
+          /* RR-326 E: AlmiWorld's keyword service — the plan's licence decides; no Google account, no Google sign-in for the client */
+          if (r[2] === "keywords/service" && req.method === "POST") {
+            const v = json(), seeds = (Array.isArray(v.seeds) ? v.seeds : String(v.seeds ?? "").split(/[,\n]/)).map((x) => String(x).trim()).filter(Boolean).slice(0, 20);
+            if (!seeds.length) return send(400, { refused: "Type at least one word." });
+            const loc = SERVICE_LOCATIONS.find((l) => l.code === String(v.location ?? "ALL")) ?? SERVICE_LOCATIONS[0];
+            const out = await kwService().search({ seeds, location: loc.code }); if (!out.ok) return send(400, { refused: [out.why, usageLine(out.usage)].filter(Boolean).join(" ") });
+            const st = keywordStore(id), m = mergeObservations(st.load(), { id: `svc-${fileIdOf(JSON.stringify([loc.code, out.rows]))}`, name: `AlmiWorld keyword service (${seeds.join(", ").slice(0, 60)})`, on: new Date().toISOString().slice(0, 10), source: KW_SOURCES.service, period: out.period, location: loc.name }, out.rows);
+            if (!m.alreadyRead) { st.save(m.db); replan(id); }
+            return send(200, { ok: true, line: [m.line, usageLine(out.usage)].filter(Boolean).join(" ") });
+          }
+          if (r[2] === "keywords/service/usage" && req.method === "GET") { const u = await kwService().usage(); return send(200, { ok: u.ok, line: u.ok ? usageLine(u) : u.why }); }
           /* RR-324 C: DataForSEO — OFF, "waiting for the provider's written permission", until the owner ticks it AND switches it on; caps first */
           if (r[2] === "keywords/dfs" && req.method === "POST") {
             const v = json(), d = { ...(CONFIG.dataForSeo ?? {}) };

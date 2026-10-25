@@ -1,0 +1,118 @@
+/**
+ * 🔴 RR-326 B · THE KEYWORD DATABASE — Neon (Postgres) on Vercel, by the connection NAME the Neon integration gives the project
+ * (DATABASE_URL, else POSTGRES_URL); never printed or logged. The schema is made by the deployed code itself (CREATE … IF NOT EXISTS, on
+ * first use) — nothing is run against it from a developer's computer.
+ *   kw_fetch          one request's worth of keywords: what was asked (seed key), where (location), in which language, on which day —
+ *                     UNIQUE per (seed key, location, language, day): the same thing is never collected twice in a day
+ *   kw_observation    a keyword's Google figures for one location, language and DAY — a later day adds a row, the old ones stay (history)
+ *   kw_fetch_keyword  which keywords a fetch returned (the finder serves a search from it)
+ *   kw_group_keyword  which product / category / YouTube niche a keyword was collected for, per location, and its last day
+ *   kw_seed_list      the owner's editable seed list (site/kw-seeds.mjs)
+ * No personal data: no address, no visitor, no account — only words, places, numbers and dates.
+ * Two stores with ONE contract (test/rr326-*.test.mjs runs the same tests on both): pgStore (production; locally on a throwaway Postgres)
+ * and memoryStore (the tests in CI, which installs nothing). `pg` is loaded only when the database is used.
+ */
+export const DB_NAMES = Object.freeze(["DATABASE_URL", "POSTGRES_URL"]);
+export const dbUrlOf = (env = process.env) => { for (const n of DB_NAMES) if (/^postgres(ql)?:\/\//.test(env[n] ?? "")) return env[n]; return null; };
+
+export const SCHEMA = `
+CREATE TABLE IF NOT EXISTS kw_seed_list (id int PRIMARY KEY, text text NOT NULL, updated_at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS kw_fetch (id bigserial PRIMARY KEY, unit_id text, kind text NOT NULL, grp text, seed_key text NOT NULL, location text NOT NULL, language text NOT NULL, day date NOT NULL, at timestamptz NOT NULL, period text, ops int NOT NULL, keywords int NOT NULL, UNIQUE (seed_key, location, language, day));
+CREATE TABLE IF NOT EXISTS kw_observation (keyword text NOT NULL, location text NOT NULL, language text NOT NULL, day date NOT NULL, avg_monthly_searches bigint, months jsonb, period text, at timestamptz NOT NULL, PRIMARY KEY (keyword, location, language, day));
+CREATE TABLE IF NOT EXISTS kw_fetch_keyword (fetch_id bigint NOT NULL REFERENCES kw_fetch(id), keyword text NOT NULL, PRIMARY KEY (fetch_id, keyword));
+CREATE TABLE IF NOT EXISTS kw_group_keyword (grp text NOT NULL, keyword text NOT NULL, location text NOT NULL, last_day date NOT NULL, PRIMARY KEY (grp, keyword, location));
+CREATE INDEX IF NOT EXISTS kw_observation_day ON kw_observation (day);
+`;
+
+const clean = (rows) => { const m = new Map(); for (const r of rows) { const k = String(r.text ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " "); if (k && k.length <= 200 && !m.has(k)) m.set(k, { keyword: k, volume: Number.isFinite(r.said) ? r.said : null, months: r.months ?? null }); } return [...m.values()]; };
+
+/** the database on Postgres. `Pool` is pg's (handed in, or loaded from the `pg` package on first use) */
+export function pgStore({ url, Pool = null, max = 3 }) {
+  let pool = null, ready = null;
+  const db = async () => { if (!pool) { const P = Pool ?? (await import("pg")).default.Pool; pool = new P({ connectionString: url, max, idleTimeoutMillis: 10000, connectionTimeoutMillis: 8000 }); } return pool; };
+  const q = async (sql, params = []) => (await (await db()).query(sql, params)).rows;
+  const ensure = () => (ready ??= (async () => { await q(SCHEMA); })().catch((e) => { ready = null; throw e; }));
+  const tx = async (fn) => { await ensure(); const c = await (await db()).connect(); try { await c.query("BEGIN"); const out = await fn((s, p = []) => c.query(s, p).then((r) => r.rows)); await c.query("COMMIT"); return out; } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); } };
+  return Object.freeze({
+    kind: "postgres", ensure,
+    async seedList() { await ensure(); const [r] = await q("SELECT text, updated_at::text AS at FROM kw_seed_list WHERE id = 1"); return r ? { text: r.text, at: r.at } : null; },
+    async setSeedList(text, at) { await ensure(); await q("INSERT INTO kw_seed_list (id, text, updated_at) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at", [text, at]); },
+    /** which of these seed keys (at a location and language) were fetched on or after `since` — Map "seedKey|location|language" → last day */
+    async fetchedSince(since) { await ensure(); const rs = await q("SELECT seed_key, location, language, max(day)::text AS day FROM kw_fetch WHERE day >= $1 GROUP BY 1, 2, 3", [since]); return new Map(rs.map((r) => [`${r.seed_key}|${r.location}|${r.language}`, r.day])); },
+    /** one fetch and its keywords, in one transaction; the same (seed key, location, language, day) a second time stores NOTHING */
+    async saveFetch(f) {
+      const rows = clean(f.rows);
+      return tx(async (x) => {
+        const [ins] = await x("INSERT INTO kw_fetch (unit_id, kind, grp, seed_key, location, language, day, at, period, ops, keywords) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (seed_key, location, language, day) DO NOTHING RETURNING id",
+          [f.unitId ?? null, f.kind, f.group ?? null, f.seedKey, f.location, f.language, f.day, f.at, f.period ?? null, f.ops, rows.length]);
+        if (!ins) return { duplicate: true, stored: 0 };
+        if (rows.length) {
+          const k = rows.map((r) => r.keyword), v = rows.map((r) => r.volume), m = rows.map((r) => (r.months ? JSON.stringify(r.months) : null));
+          await x("INSERT INTO kw_observation (keyword, location, language, day, avg_monthly_searches, months, period, at) SELECT t.k, $4, $5, $6, t.v, t.m::jsonb, $7, $8 FROM unnest($1::text[], $2::bigint[], $3::text[]) AS t(k, v, m) ON CONFLICT (keyword, location, language, day) DO UPDATE SET avg_monthly_searches = EXCLUDED.avg_monthly_searches, months = EXCLUDED.months, period = EXCLUDED.period, at = EXCLUDED.at",
+            [k, v, m, f.location, f.language, f.day, f.period ?? null, f.at]);
+          await x("INSERT INTO kw_fetch_keyword (fetch_id, keyword) SELECT $1, unnest($2::text[]) ON CONFLICT DO NOTHING", [ins.id, k]);
+          if (f.group) await x("INSERT INTO kw_group_keyword (grp, keyword, location, last_day) SELECT $1, unnest($2::text[]), $3, $4 ON CONFLICT (grp, keyword, location) DO UPDATE SET last_day = GREATEST(kw_group_keyword.last_day, EXCLUDED.last_day)", [f.group, k, f.location, f.day]);
+        }
+        return { duplicate: false, stored: rows.length };
+      });
+    },
+    /** the newest fetch of a seed key at a location and language, on or after `since`, with its keywords' figures of that day */
+    async findFetch({ seedKey, location, language, since }) {
+      await ensure();
+      const [f] = await q("SELECT id, day::text AS day, period, at::text AS at FROM kw_fetch WHERE seed_key = $1 AND location = $2 AND language = $3 AND day >= $4 ORDER BY day DESC LIMIT 1", [seedKey, location, language, since]);
+      if (!f) return null;
+      const rows = await q("SELECT o.keyword, o.avg_monthly_searches::text AS volume, o.months FROM kw_fetch_keyword fk JOIN kw_observation o ON o.keyword = fk.keyword AND o.location = $2 AND o.language = $3 AND o.day = $4 WHERE fk.fetch_id = $1 ORDER BY o.avg_monthly_searches DESC NULLS LAST, o.keyword", [f.id, location, language, f.day]);
+      return { day: f.day, period: f.period, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
+    },
+    /** the owner's page: totals, today, per group (keywords, countries, last refresh), per location */
+    async counts(day) {
+      await ensure();
+      const [t] = await q("SELECT count(DISTINCT keyword)::int AS keywords, count(*)::int AS observations, count(DISTINCT keyword) FILTER (WHERE day = $1)::int AS today FROM kw_observation", [day]);
+      const groups = await q("SELECT grp, count(DISTINCT keyword)::int AS keywords, count(DISTINCT keyword) FILTER (WHERE last_day = $1)::int AS today, count(DISTINCT location)::int AS locations, max(last_day)::text AS last FROM kw_group_keyword GROUP BY grp ORDER BY grp", [day]);
+      const locs = await q("SELECT location, count(DISTINCT keyword)::int AS keywords, count(DISTINCT keyword) FILTER (WHERE day = $1)::int AS today FROM kw_observation GROUP BY location ORDER BY location", [day]);
+      const fetches = await q("SELECT kind, count(*)::int AS n, coalesce(sum(ops), 0)::int AS ops FROM kw_fetch WHERE day = $1 GROUP BY kind", [day]);
+      return { ...t, groups, locations: locs, fetchesToday: Object.fromEntries(fetches.map((r) => [r.kind, { fetches: r.n, ops: r.ops }])) };
+    },
+    async close() { if (pool) await pool.end(); pool = null; ready = null; },
+  });
+}
+
+/** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
+export function memoryStore() {
+  let list = null, nextId = 1;
+  const fetches = new Map(), obs = new Map(), fk = new Map(), gk = new Map();
+  const fkey = (f) => `${f.seedKey}|${f.location}|${f.language}|${f.day}`;
+  return Object.freeze({
+    kind: "memory", ensure: async () => {},
+    async seedList() { return list ? { ...list } : null; },
+    async setSeedList(text, at) { list = { text, at }; },
+    async fetchedSince(since) { const m = new Map(); for (const f of fetches.values()) if (f.day >= since) { const k = `${f.seedKey}|${f.location}|${f.language}`; if (!m.has(k) || m.get(k) < f.day) m.set(k, f.day); } return m; },
+    async saveFetch(f) {
+      if (fetches.has(fkey(f))) return { duplicate: true, stored: 0 };
+      const rows = clean(f.rows), id = nextId++;
+      fetches.set(fkey(f), { id, kind: f.kind, group: f.group ?? null, seedKey: f.seedKey, location: f.location, language: f.language, day: f.day, period: f.period ?? null, ops: f.ops });
+      for (const r of rows) {
+        obs.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, volume: r.volume, months: r.months, period: f.period ?? null });
+        fk.set(`${id}|${r.keyword}`, { id, keyword: r.keyword });
+        if (f.group) { const k = `${f.group}|${r.keyword}|${f.location}`, o = gk.get(k); gk.set(k, { grp: f.group, keyword: r.keyword, location: f.location, last: o && o.last > f.day ? o.last : f.day }); }
+      }
+      return { duplicate: false, stored: rows.length };
+    },
+    async findFetch({ seedKey, location, language, since }) {
+      const f = [...fetches.values()].filter((x) => x.seedKey === seedKey && x.location === location && x.language === language && x.day >= since).sort((a, b) => b.day.localeCompare(a.day))[0];
+      if (!f) return null;
+      const rows = [...fk.values()].filter((x) => x.id === f.id).map((x) => obs.get(`${x.keyword}|${location}|${language}|${f.day}`)).filter(Boolean)
+        .map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword));
+      return { day: f.day, period: f.period, rows };
+    },
+    async counts(day) {
+      const o = [...obs.values()], d = (xs) => new Set(xs).size;
+      const groups = [...new Set([...gk.values()].map((x) => x.grp))].sort().map((g) => { const xs = [...gk.values()].filter((x) => x.grp === g); return { grp: g, keywords: d(xs.map((x) => x.keyword)), today: d(xs.filter((x) => x.last === day).map((x) => x.keyword)), locations: d(xs.map((x) => x.location)), last: xs.map((x) => x.last).sort().at(-1) }; });
+      const locations = [...new Set(o.map((x) => x.location))].sort().map((l) => ({ location: l, keywords: d(o.filter((x) => x.location === l).map((x) => x.keyword)), today: d(o.filter((x) => x.location === l && x.day === day).map((x) => x.keyword)) }));
+      const fd = [...fetches.values()].filter((f) => f.day === day), kinds = [...new Set(fd.map((f) => f.kind))];
+      return { keywords: d(o.map((x) => x.keyword)), observations: o.length, today: d(o.filter((x) => x.day === day).map((x) => x.keyword)), groups, locations,
+        fetchesToday: Object.fromEntries(kinds.map((k) => [k, { fetches: fd.filter((f) => f.kind === k).length, ops: fd.filter((f) => f.kind === k).reduce((s, f) => s + f.ops, 0) }])) };
+    },
+    async close() {},
+  });
+}

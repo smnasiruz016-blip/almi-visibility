@@ -77,5 +77,25 @@ export function renderLegal(page, { preview = false } = {}) {
 
 /** the generated file (tools/legal-from-docx.mjs); missing → no page published */
 export function loadLegal(url = new URL("./legal.generated.json", import.meta.url)) {
-  try { return JSON.parse(readFileSync(url, "utf8")); } catch { return { source: null, terms: null, privacy: null }; }
+  try { return withAdditions(JSON.parse(readFileSync(url, "utf8"))); } catch { return { source: null, terms: null, privacy: null }; }
+}
+
+/**
+ * RR-326 F · the owner's own words added to his policy (his brief, exactly), placed before the heading he named — kept here, so reading
+ * his Word file again never drops them; once his Word file holds the same words, nothing is added twice.
+ */
+export const ADDITIONS = Object.freeze([
+  Object.freeze({ page: "privacy", before: /How long we keep data$/, text: "Free keyword finder: the words you search and the results are stored, without any personal data, so the finder gets faster and better for everyone. Search volumes come from Google Ads Keyword Planner." }),
+]);
+export function withAdditions(L) {
+  const out = { ...L };
+  for (const a of ADDITIONS) {
+    const page = out[a.page]; if (!Array.isArray(page)) continue;
+    const words = (b) => (b.runs ?? []).map((r) => r.text).join("");
+    if (page.some((b) => words(b).includes(a.text))) continue;
+    const at = page.findIndex((b) => b.kind === "heading" && a.before.test(words(b).trim()));
+    if (at < 0) throw new Error(`the heading the addition goes before is not in the ${a.page} page`);
+    out[a.page] = [...page.slice(0, at), { kind: "p", runs: [{ text: a.text }] }, ...page.slice(at)];
+  }
+  return out;
 }

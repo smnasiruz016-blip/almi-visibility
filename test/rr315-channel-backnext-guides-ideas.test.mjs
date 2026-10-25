@@ -176,6 +176,7 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
     /* what was typed and then SAVED is not "unsaved" any more: leaving does not ask */
     ui.api.typed(); await ui.api.post("/api/tour", {}); assert.equal(ui.api.nav().DIRTY, false, "a saved screen still asks before leaving");
     await new Promise((r) => setTimeout(r, 1500)); // the screens' own reads finish before the app is closed
+    assert.deepEqual(ui.uiErrors(), [], "a screen failed after it was drawn"); // RR-327 (PD-006): named here, never a file-level failure
   } finally { a.close(); }
 });
 

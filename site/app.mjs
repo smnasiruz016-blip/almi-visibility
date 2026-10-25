@@ -22,7 +22,7 @@ import { dbUrlOf, pgStore } from "./kw-store.mjs";
 import { runCollector, currentGroups } from "./kw-collector.mjs";
 import { importFiles, parseMultipart, IMPORT } from "./kw-import.mjs"; // RR-326 I
 import { findKeywords, lookupKeywords, finderQuery, csvOf, groupOf, FINDER } from "./kw-finder.mjs";
-import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER } from "./kw-service.mjs";
+import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER, publicKeyState } from "./kw-service.mjs";
 import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
 import { isOwner, ownerOn, ownerState, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
@@ -236,7 +236,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (db) { try { counts = await db.counts(d); list = await db.seedList(); } catch { dbError = "The keyword database could not be read just now."; } }
     if (ads) { try { usage = await ads.usage(); } catch { usage = null; } }
     if (kv) { try { const [l] = await kv.run([["GET", "av:collector:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
-    return P.ownerPage({ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, ...o });
+    return P.ownerPage({ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, ...o });
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };

@@ -55,7 +55,7 @@ test("ADD 3 · QUESTIONS: same meaning grouped once (its other wordings kept as 
   const g = groupQuestions([{ text: "oet score for nurses in ireland", source: "SC", weight: 10 }, { text: "oet score ireland nurses", source: "YT" }, { text: "how much does oet cost", source: "AI" }]);
   assert.equal(g.length, 2);
   assert.deepEqual(g[0].also, ["oet score ireland nurses"]);
-  const f = faqQuestions([{ url: "https://x.test/faq", title: "FAQ", checkedOn: ON, text: "Frequently asked. How long are my OET results valid? Results are valid for two years. Can I take OET on computer? Yes. Accept cookies?" }]);
+  const f = faqQuestions([{ url: "https://x.test/faq", title: "FAQ", checkedOn: ON, text: "Frequently asked. How long are my OET results valid? Results are valid for two years. Can I take OET on computer? Yes. What we offer every candidate. Accept cookies?" }]); // RR-327 (PD-007): a sentence that starts like a question but does not ask
   assert.deepEqual(f.map((q) => q.text), ["How long are my OET results valid?", "Can I take OET on computer?"]);
   assert.ok(f.every((q) => q.link === "https://x.test/faq" && q.on === ON && q.kind === "official FAQ"));
 });

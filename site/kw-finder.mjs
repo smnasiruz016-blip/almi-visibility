@@ -10,7 +10,10 @@ export { rangeOf };
 
 export const FINDER = Object.freeze({ reuseDays: 30, maxLength: 80, maxWords: 10, shownPerGroup: 50, perVisitorPerDay: 5, siteSearchesPerDay: 300, language: "en" });
 export const SOURCE_LINE = "Search volumes: Google Ads Keyword Planner data";
+/* RR-327 · a keyword naming a brand or a competitor (a tool, a school, a job board) is its own group — people looking for that brand */
+export const BRANDS = /\b(canva|zety|indeed|linkedin|glassdoor|monster|novoresume|resume ?genius|e2|e2 ?language|e2oet|benchmark|edu ?benchmark|kaplan|magoosh|british council|idp|pearson|duolingo|acumen|oet ?acumen)\b/;
 export const GROUPS = Object.freeze([
+  ["brands", "Brands and competitors", (k) => BRANDS.test(k)],
   ["howto", "How to …", (k) => /\bhow to\b/.test(k)],
   ["nearme", "Near me", (k) => /\bnear me\b|\bnearby\b|\bnear\b.*\bme\b/.test(k)],
   ["prices", "Prices and fees", (k) => /\b(price|prices|pricing|cost|costs|fee|fees|cheap|cheapest|how much|rates?|charges?|affordable|budget)\b/.test(k)],

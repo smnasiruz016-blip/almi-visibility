@@ -31,6 +31,9 @@ const RULES = [
   ["bookAhead", /at-home$|on-computer$/, /Book up to:?\s*(\d{1,2}) days before test day/i, (m, s) => `${s}'s own page: the test on computer and at home can be booked up to ${m[1]} days before test day.`],
   ["benchmarkIelts", /about\/backed-by-research$/, /\((\d{4}), updated [A-Za-z]+ (\d{4})\) The Occupational English Test and IELTS: A Benchmarking Report/i, (m, s) => `${s}'s own research page lists a study benchmarking ${s} against IELTS (${m[1]}, updated ${m[2]}).`],
   ["speakingOtherDay", /on-computer$|at-home$/, /Speaking sub-test will be completed on a different day, up to (\d) days before or after/i, (m, s) => `${s}'s own page: for the test on computer, Speaking is taken online on a different day, up to ${m[1]} days before or after the other sub-tests.`],
+  /* RR-327 · re-marking (its own topic): the fee per sub-test and the window to ask, from the subject's re-marking policy page */
+  ["remarkFee", /remarking-policy$/, /AU\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?[^.]{0,60}?per sub-?test/i, (m, s) => `${s}'s own page: a re-mark costs AU$${m[1]} per sub-test.`],
+  ["remarkHours", /remarking-policy$/, /within\s+(\d{2,3})\s+hours\s+(?:from|of|after)/i, (m, s) => `${s}'s own page: a re-mark must be asked for within ${m[1]} hours of the results' release.`],
 ];
 /** the subject's pages → { key: { claimId, fact, text, link, readOn, source, official, body, value } } — only what a page states */
 export function subjectFactsOf(pages, subject) {
@@ -46,11 +49,12 @@ export function subjectFactsOf(pages, subject) {
   return out;
 }
 /** the subject's own pages to read for them (from its sitemap) — never a blog or a news post */
-export const SUBJECT_FACT_PAGES = /\/(test\/(book-a-test(\/manage-your-booking)?|results-and-scoring|oet-test|oet-test-on-computer|oet-test-at-home|test-day-information)|ready\/(writing|speaking|listening|reading|sample-tests)|about\/(test-statistics|backed-by-research))$/;
+export const SUBJECT_FACT_PAGES = /\/(test\/(book-a-test(\/manage-your-booking)?|results-and-scoring|oet-test|oet-test-on-computer|oet-test-at-home|test-day-information)|ready\/(writing|speaking|listening|reading|sample-tests)|about\/(test-statistics|backed-by-research)|remarking-policy)$/; // RR-327: + the re-marking policy
 /* which facts each demand topic shows (its answer, its table) */
 export const FACTS_FOR = Object.freeze({
   booking: ["bookPaperCloses", "bookComputerCloses", "bookAhead", "changeFee", "resultsPaper", "resultsComputer"],
   results: ["resultsComputer", "results95", "resultsPaper", "resultsIndia", "resultsPhilippines", "scale"],
+  remark: ["remarkFee", "remarkHours", "resultsComputer", "resultsPaper", "scale"], // RR-327
   scores: ["scale", "gradeB", "writingGradeB", "speakingGradeB", "listeningB", "readingB"],
   computer: ["bookAhead", "resultsComputer", "results95", "speakingOtherDay", "bookComputerCloses"],
   format: ["listeningMarks", "readingMarks", "readingPartA", "writingWords", "writingMinutes", "speakingRoleplay", "scale"],

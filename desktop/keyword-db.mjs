@@ -84,8 +84,25 @@ export function trendOf(kw) {
 }
 
 /** the database → the plan's search-data items (one per keyword, its current range) — what demand.clusterKeywords reads */
+/* RR-327: a figure for ALL locations (or a file that names none) is the keyword's global one; a country's own figure never stands in for it */
+export const GLOBAL_LOCATIONS = Object.freeze(["All locations", "not stated in the file"]);
+const globalOf = (kw) => { const g = Object.values(kw.now).filter((o) => GLOBAL_LOCATIONS.includes(o.location)); return g.length ? currentOf({ now: Object.fromEntries(g.map((o, i) => [i, o])) }) : null; };
 export function itemsOf(db) {
-  return Object.values(db?.keywords ?? {}).map((kw) => { const c = currentOf(kw); return { text: kw.text, kind: "tool", place: c?.location ?? null, date: c?.on ?? kw.lastSeen, volume: c?.said ?? null, source: `${c?.source ?? SOURCES.file} (${c?.on ?? kw.lastSeen}) — Google's range`, weight: 4 }; });
+  return Object.values(db?.keywords ?? {}).map((kw) => { const c = globalOf(kw) ?? currentOf(kw); return { text: kw.text, kind: "tool", place: c?.location ?? null, date: c?.on ?? kw.lastSeen, volume: c?.said ?? null, source: `${c?.source ?? SOURCES.file} (${c?.on ?? kw.lastSeen}) — Google's range`, weight: 4 }; });
+}
+
+/**
+ * RR-327 · each COUNTRY's own searches (AlmiWorld's keyword service asked per country, or a file the client said is for one country): country
+ * name → [{ text, said, label, period, source, on }], the newest figure of each keyword in that country — what the country pages read
+ */
+export function byLocationOf(db) {
+  const out = {};
+  for (const kw of Object.values(db?.keywords ?? {})) {
+    const per = {}; for (const o of Object.values(kw.now)) if (!GLOBAL_LOCATIONS.includes(o.location) && (!per[o.location] || String(o.at ?? o.on) > String(per[o.location].at ?? per[o.location].on))) per[o.location] = o;
+    for (const [loc, o] of Object.entries(per)) (out[loc] ??= []).push({ text: kw.text, said: o.said, label: o.label, period: o.period, source: o.source, on: o.on });
+  }
+  for (const xs of Object.values(out)) xs.sort((a, b) => (b.said ?? -1) - (a.said ?? -1) || a.text.localeCompare(b.text));
+  return out;
 }
 
 /** what the screen shows: total keywords, new today, the files read, by source — the clusters and pages come from the plan */

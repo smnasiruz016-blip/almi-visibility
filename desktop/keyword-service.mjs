@@ -17,6 +17,37 @@ export const licenceHeaderOf = (signed) => `${isOwnerLicence(signed?.licence) ? 
 /** the plain line about this month's searches */
 export const usageLine = (u) => (u ? (u.limit === null || u.limit === undefined ? `Keyword searches this month: ${u.used.toLocaleString("en-US")} — no limit (owner).` : `Keyword searches this month: ${u.used.toLocaleString("en-US")} of ${u.limit.toLocaleString("en-US")}.`) : null);
 
+/* RR-327 · the lines the app shows: the service on (and what is left this month), the source of every number, and the plain fallback */
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const periodSay = (p) => { const m = /^(\d{4})-(\d{2})-\d{2}\.\.(\d{4})-(\d{2})-\d{2}$/.exec(String(p ?? "")); return m ? `${MON[Number(m[2]) - 1]} ${m[1]} – ${MON[Number(m[4]) - 1]} ${m[3]}` : null; };
+export const sourceLine = (period) => `Google Ads Keyword Planner, average monthly searches${periodSay(period) ? `, ${periodSay(period)}` : ""}`;
+export const serviceOnLine = (u) => `AlmiWorld keyword service: on — ${!u ? "searches left this month: not known yet" : u.limit === null || u.limit === undefined ? "no monthly limit (owner)" : `${Math.max(0, u.limit - u.used).toLocaleString("en-US")} searches left this month`}`;
+export const SERVICE_OFF_LINE = "AlmiWorld keyword service: not reachable just now — the plan uses your own data (your files and Search Console); no number is invented.";
+/** the per-country searches the plan asks for: all locations first, then each country — at most this many in one count */
+export const PLAN_REUSE_DAYS = 30;
+
+/**
+ * RR-327 · the plan's searches: `service` = keywordService(…) (null = no plan), `store` = the product's ONE keyword database
+ * (keyword-db.mjs localKeywordStore), `merge` = keyword-db's mergeObservations, `source` = its SOURCES.service. The subject for all locations,
+ * then per country; a location asked within PLAN_REUSE_DAYS is not asked again. → { on, asked, reused, line, source, why? }
+ */
+export async function collectForPlan({ service, store, merge, fileIdOf, source, subject, today = new Date().toISOString().slice(0, 10) }) {
+  if (!service) return { on: false, asked: 0, reused: 0, line: "AlmiWorld keyword service: add your plan (Your plan) to use it — until then the plan uses your own data; no number is invented." };
+  let db = store.load();
+  const isPlan = (f) => f.source === source && /^AlmiWorld keyword service — "/.test(f.name ?? "");
+  const fresh = Object.values(db.files ?? {}).filter((f) => isPlan(f) && (Date.parse(today) - Date.parse(f.on)) / 864e5 <= PLAN_REUSE_DAYS);
+  const skip = SERVICE_LOCATIONS.filter((l) => fresh.some((f) => f.location === l.name)).map((l) => l.code);
+  const out = await service.forPlan({ seeds: [String(subject).toLowerCase()], skip });
+  if (!out.ok) return { on: false, asked: 0, reused: skip.length, line: out.line, why: out.why };
+  for (const r of out.results) { const m = merge(db, { id: `svc-plan-${fileIdOf(JSON.stringify([r.location, r.period, r.rows]))}`, name: `AlmiWorld keyword service — "${subject}", ${r.locationName}`, on: today, source, period: r.period, location: r.locationName }, r.rows); if (!m.alreadyRead) db = m.db; }
+  if (out.results.length) store.save(db);
+  const usage = out.usage ?? (await service.usage().catch(() => null));
+  /* every location still fresh, and the service does not answer now: said so — the figures it gave within PLAN_REUSE_DAYS are what the plan uses */
+  if (!out.asked && usage?.ok === false) return { on: false, asked: 0, reused: skip.length, line: `AlmiWorld keyword service: not reachable just now — the plan uses the figures it gave within ${PLAN_REUSE_DAYS} days and your own data; no number is invented.`, why: usage.why, source: sourceLine(fresh.find((f) => f.period)?.period ?? null) };
+  const period = out.period ?? fresh.find((f) => f.period)?.period ?? null;
+  return { on: true, asked: out.asked, reused: skip.length, line: `${serviceOnLine(usage?.ok === false ? null : usage)}${out.stopped ? ` (stopped after ${out.asked} searches: ${out.stopped})` : ""}`, source: sourceLine(period) };
+}
+
 /** signed: the licence the app runs under (or null). fetchImpl handed in (tests: the service's own handler on 127.0.0.1) */
 export function keywordService({ siteUrl = SERVICE_URL, signed = null, fetchImpl = fetch } = {}) {
   const call = async (path, init = {}) => {
@@ -26,14 +57,29 @@ export function keywordService({ siteUrl = SERVICE_URL, signed = null, fetchImpl
     catch { return { ok: false, why: "The keyword service did not answer — check the internet connection and try again." }; }
     return r.ok && j.ok ? j : { ok: false, why: j.why ?? `The keyword service answered ${r.status}.`, usage: j.usage ?? null };
   };
+  /** → { ok, rows (the keyword database's shape), period, location, usage } */
+  const search = async ({ seeds, location = "ALL" }) => {
+    const j = await call("v1/keywords", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ seeds, location }) });
+    if (!j.ok) return j;
+    return { ok: true, location: j.location, locationName: j.locationName, period: j.period, fromDatabase: j.fromDatabase, usage: j.usage,
+      rows: (j.rows ?? []).map((x) => ({ text: x.keyword, said: x.volume, months: x.months ?? null, competition: null, change3m: null, yoy: null })) };
+  };
   return Object.freeze({
     usage: () => call("v1/keywords/usage"),
-    /** → { ok, rows (the keyword database's shape), period, location, usage } */
-    async search({ seeds, location = "ALL" }) {
-      const j = await call("v1/keywords", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ seeds, location }) });
-      if (!j.ok) return j;
-      return { ok: true, location: j.location, locationName: j.locationName, period: j.period, fromDatabase: j.fromDatabase, usage: j.usage,
-        rows: (j.rows ?? []).map((x) => ({ text: x.keyword, said: x.volume, months: x.months ?? null, competition: null, change3m: null, yoy: null })) };
+    search,
+    /**
+     * RR-327 · the plan's keyword data: the seeds once for ALL locations, then once per country (`skip` = locations whose service figures are
+     * still fresh — never asked again within PLAN_REUSE_DAYS). Stops at the first refusal that is not about one country (no plan, unreachable,
+     * the month used). → { ok, results: [{ location, locationName, period, rows }], usage, asked, line, source } | { ok: false, why, results }
+     */
+    async forPlan({ seeds, locations = SERVICE_LOCATIONS.map((l) => l.code), skip = [] }) {
+      const results = []; let usage = null, period = null, stopped = null;
+      for (const code of locations.filter((c) => !skip.includes(c))) {
+        const r = await search({ seeds, location: code });
+        if (!r.ok) { if (results.length) { stopped = r.why; usage = r.usage ?? usage; break; } return { ok: false, why: r.why, usage: r.usage ?? null, results, line: SERVICE_OFF_LINE }; }
+        results.push({ location: code, locationName: SERVICE_LOCATIONS.find((l) => l.code === code)?.name ?? r.locationName ?? code, /* our own name for the location asked: the reuse check reads it */ period: r.period, rows: r.rows }); usage = r.usage ?? usage; period ??= r.period;
+      }
+      return { ok: true, results, usage, asked: results.length, period, stopped, line: `${serviceOnLine(usage)}${stopped ? ` (stopped after ${results.length} searches: ${stopped})` : ""}`, source: sourceLine(period) };
     },
   });
 }

@@ -51,7 +51,7 @@ export function failureOf(body, status = 0) {
 /** what Google's reason means, and what the owner does — Google's AuthorizationError reasons (v26), the ones a keyword request can meet */
 export const REASONS = Object.freeze({
   USER_PERMISSION_DENIED: "The Google account you signed in with cannot reach this Google Ads account. Use a customer ID from the list below — or, if it is reached through a manager account, put that manager's ID in GOOGLE_ADS_LOGIN_CUSTOMER_ID.",
-  CUSTOMER_NOT_ENABLED: "This Google Ads account is not active yet: finish its setup in Google Ads (billing, or the first-campaign steps), or use another account.",
+  CUSTOMER_NOT_ENABLED: "This Google Ads account is not active yet: add billing and finish its setup in Google Ads (activation can take a few hours), or use another account.",
   ACTION_NOT_PERMITTED: "The Cloud project's access level does not allow this call. If the project was upgraded to Basic after 9 Sep 2026, this is Google's known fault (a fix is being rolled out).",
   CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION: "Google still treats the Cloud project as Test access — real accounts are refused. If Basic was granted after 9 Sep 2026, this is Google's known fault.",
   DEVELOPER_TOKEN_NOT_APPROVED: "Google still treats the access as a test-only token.",
@@ -62,6 +62,11 @@ export const REASONS = Object.freeze({
   ACCESS_DENIED_FOR_ACCOUNT_TYPE: "This kind of Google Ads account cannot use this call.",
   SERVICE_ACCESS_DENIED: "This Cloud project may not use this service.",
 });
+/* RR-327 · an account that is not active yet (Google says AUTH_ERROR_CUSTOMER_NOT_ACTIVE, or CUSTOMER_NOT_ENABLED) is NEVER "Google's known fault" */
+export const notActive = (f) => Boolean(f && (f.reason === "CUSTOMER_NOT_ENABLED" || /CUSTOMER_NOT_ACTIVE|CUSTOMER_NOT_ENABLED/.test(String(f.message ?? ""))));
+export const NOT_ACTIVE_LINE = "The Google Ads account is not active yet: add billing (Google Ads → Billing) and finish its setup; activation can take a few hours after that. This is not Google's known fault.";
+/** the owner's page: Google's last refusal in plain words (the not-active case first) */
+export const ownerRefusal = (last) => (notActive(last) ? NOT_ACTIVE_LINE : plainError(last?.code));
 export const reasonLine = (f) => (f?.reason ? `${f.reason}${REASONS[f.reason] ? ` — ${REASONS[f.reason]}` : ""}` : f?.code ?? "");
 
 /**
@@ -93,6 +98,7 @@ export function siteAds({ env = process.env, kv, fetchImpl = fetch, now = () => 
     const j = await r.json(); tokenError = null; access = { token: j.access_token, until: now() + (Number(j.expires_in) || 3600) * 1000 }; return access.token;
   };
   const remember = async (code, f = null) => { try { await kv.run([["SET", "av:ads:last", JSON.stringify({ code, ...(f ? { reason: f.reason, message: f.message, requestId: f.requestId } : {}), at: new Date(now()).toISOString() }), "EX", 14 * 86400]]); } catch { /* the owner's page only */ } };
+  const forget = async () => { try { await kv.run([["DEL", "av:ads:last"]]); } catch { /* the owner's page only */ } };
   const headersOf = (t, login) => ({ authorization: `Bearer ${t}`, "content-type": "application/json", ...(digits(login).length === 10 ? { "login-customer-id": digits(login) } : {}) });
   /** one owner request for the check: counted, paced, answered as { ok, j } | { ok: false, f } */
   const ask = async (t, url, { body = null, login = null } = {}) => {
@@ -146,7 +152,7 @@ export function siteAds({ env = process.env, kv, fetchImpl = fetch, now = () => 
       const q = ideasRequest({ customerId: want, seeds: ["oet"], geo: [], language: "languageConstants/1000", pageSize: 10 });
       const id = await ask(t, q.url, { body: q.body, login });
       out.steps.ideas = id.ok ? { ok: true, count: (id.j.results ?? []).length } : { ok: false, f: id.f };
-      if (!id.ok) await remember(id.f.code, id.f);
+      if (!id.ok) await remember(id.f.code, id.f); else await forget();
       /* the verdict, in order of what to fix first */
       const V = out.verdict;
       if (!ids.includes(want) && !viaManager) V.push(`GOOGLE_ADS_CUSTOMER_ID (${want}) is NOT an account this sign-in reaches. Reachable: ${ids.join(", ") || "none"}. Put one of those in GOOGLE_ADS_CUSTOMER_ID — or sign in again with the Google account that owns ${want}.`);
@@ -157,7 +163,8 @@ export function siteAds({ env = process.env, kv, fetchImpl = fetch, now = () => 
       if (mine && !mine.ok) V.push(`Google refused to read ${want}: ${reasonLine(mine.f)}`);
       if (id.ok) V.push(`The keyword request WORKS now (${out.steps.ideas.count} ideas for "oet").`);
       else V.push(`The keyword request is refused: ${reasonLine(id.f)}${id.f.message ? ` Google's message: "${id.f.message}"` : ""}`);
-      if (!id.ok && V.length === 1 && [null, "ACTION_NOT_PERMITTED", "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION", "DEVELOPER_TOKEN_NOT_APPROVED"].includes(id.f.reason)) V.push("The account, the sign-in and the id are all right — what is left is Google's side: the known fault for projects upgraded after 9 Sep 2026 (a fix is being rolled out).");
+      if (!id.ok && notActive(id.f)) V.push(NOT_ACTIVE_LINE);
+      if (!id.ok && V.length === 1 && !notActive(id.f) && [null, "ACTION_NOT_PERMITTED", "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION", "DEVELOPER_TOKEN_NOT_APPROVED"].includes(id.f.reason)) V.push("The account, the sign-in and the id are all right — what is left is Google's side: the known fault for projects upgraded after 9 Sep 2026 (a fix is being rolled out).");
       out.ok = id.ok; return out;
     },
     async ideas({ seeds, geo = null, language, purpose, maxPages = 1, waitMs = 15000 }) {
@@ -178,10 +185,11 @@ export function siteAds({ env = process.env, kv, fetchImpl = fetch, now = () => 
           /* Google's AUTHORIZATION_ERROR is a family (errorCode: { authorizationError: <reason> }) — every reason of it is that error; the
              reason and Google's message are kept for the owner's page (RR-326 H) */
           const f = failureOf(j, r.status);
-          await remember(f.code, f); return { ok: false, code: f.code, reason: f.reason, why: plainError(f.code), ops, rows };
+          await remember(f.code, f); return { ok: false, code: f.code, reason: f.reason, why: notActive(f) ? "The keyword finder is not connected to Google yet. Please try again later." : plainError(f.code), ownerWhy: ownerRefusal(f), ops, rows };
         }
         rows.push(...rowsOfIdeas(j)); pageToken = j.nextPageToken ?? null; if (!pageToken) break;
       }
+      await forget(); // RR-327: a success clears the old red line on the owner's page
       return { ok: true, rows, period: periodOfRows(rows), ops };
     },
   });

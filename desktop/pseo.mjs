@@ -14,6 +14,7 @@
  * Pure: everything is handed in.
  */
 import { PEOPLE_WORD, inCountry, gradeLine } from "./recognition.mjs";
+import { localDataPoints, localContent } from "./local-pages.mjs"; // RR-327
 
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -78,6 +79,8 @@ export function dataPointsOf(p) {
       break;
     }
     case "hub": for (const r of p.rows ?? []) add(r[0], r.slice(1).join(" · ")); break;
+    /* RR-327 · country, country × profession, city: their own facts only (desktop/local-pages.mjs) */
+    case "country": case "countryprof": case "city": localDataPoints(p, add); break;
     default: break;
   }
   return dp;
@@ -159,7 +162,7 @@ export function linkPages(pages, hubs, topics, index) {
 export function batchesOf(pages, reach = () => ({ countries: 0, impressions: 0 })) {
   /* RR-322 proof: 11 of the first 25 were the A–Z university guides (100 rows each) — data points capped, the kind weighs more, guides last.
    * RR-323 (owner decision 7): demand pages by the Keyword Planner range first (its top), then Search Console (countries, then impressions) */
-  const score = (p) => { const r = reach(p); return (p.status === "demand" ? 1e15 : 0) + Math.min(9e6, p.kp?.high ?? 0) * 1e7 + r.countries * 1e6 + r.impressions * 10 + (p.status === "waiting" ? -1e17 : 0) + Math.min(30, p.dataPoints?.length ?? 0) * 10 + ({ regulator: 40, taking: 35, subtest: 30, practice: 30, hub: 28, topic: 25, university: 10, language: 5 }[p.kind] ?? 0) * 1000 - (p.fixedLinks ? 1e5 : 0); };
+  const score = (p) => { const r = reach(p); return (p.status === "demand" ? 1e15 : 0) + Math.min(9e6, p.kp?.high ?? 0) * 1e7 + r.countries * 1e6 + r.impressions * 10 + (p.status === "waiting" ? -1e17 : 0) + Math.min(30, p.dataPoints?.length ?? 0) * 10 + ({ regulator: 40, country: 36, taking: 35, countryprof: 34, subtest: 30, practice: 30, hub: 28, topic: 25, city: 22, university: 10, language: 5 }[p.kind] ?? 0) * 1000 - (p.fixedLinks ? 1e5 : 0); };
   const ready = pages.filter((p) => p.status !== "waiting" && p.status !== "section" && p.status !== "merged" && p.kind !== "index").sort((a, b) => score(b) - score(a));
   const out = []; let i = 0, k = 0;
   while (i < ready.length) { const n = BATCH_SIZES[Math.min(k, BATCH_SIZES.length - 1)]; out.push(ready.slice(i, i + n).map((p) => p.title)); i += n; k++; }
@@ -235,7 +238,7 @@ export function contentOf(p, { subject, fee = null, where = null, cta = null, on
     const lead = p.lead ?? (p.intent === "fees" && feeLine ? `${feeLine}.` : null);
     answer = fitWords([lead, ...facts.slice(0, 3).map((t) => `${t.charAt(0).toUpperCase()}${t.slice(1)}`), p.ai?.answer ?? null, `Each figure is from ${subject}'s own page, read ${p.lastChecked ?? on}.`]);
     table = p.rows?.length ? [p.head ?? ["Item", "Detail"], ...p.rows] : (p.claims ?? []).filter((c) => !c.pointer).length ? [["Fact", "Source"], ...(p.claims ?? []).filter((c) => !c.pointer).slice(0, 8).map((c) => [c.text, `${c.source}, ${c.readOn}`])] : [];
-    const S = { booking: [`Choose on computer, at home or on paper.`, `Check the closing date on ${subject}'s own booking page.`, "Pay the fee and keep the receipt.", "Prepare your ID for test day."], results: [`Finish all four sub-tests.`, "Wait for the release (the table shows when).", `Open your ${subject} account and share the results with your regulator.`], fees: [`Find your country in the table.`, `Book and pay on ${subject}'s own site.`, "Keep the receipt."], computer: [`Check your computer against ${subject}'s requirements.`, "Book at least the days ahead the table shows.", "Book Speaking on its own day."], countries: ["Find the country you want to work in.", "Open its regulator's page here for the grade.", `Book ${subject}.`] }[p.intent];
+    const S = { booking: [`Choose on computer, at home or on paper.`, `Check the closing date on ${subject}'s own booking page.`, "Pay the fee and keep the receipt.", "Prepare your ID for test day."], results: [`Finish all four sub-tests.`, "Wait for the release (the table shows when).", `Open your ${subject} account and share the results with your regulator.`], remark: [`Wait for your results in your ${subject} account.`, "Decide within the time limit in the table (it counts from the results' release).", `Ask for the re-mark and pay the fee on ${subject}'s own site — it is not reviewed before payment.`, "Keep the receipt: the page says when the fee is refunded."], fees: [`Find your country in the table.`, `Book and pay on ${subject}'s own site.`, "Keep the receipt."], computer: [`Check your computer against ${subject}'s requirements.`, "Book at least the days ahead the table shows.", "Book Speaking on its own day."], countries: ["Find the country you want to work in.", "Open its regulator's page here for the grade.", `Book ${subject}.`] }[p.intent];
     steps = p.ai?.steps ?? S ?? ["Read the facts above.", `Check ${subject}'s own page on the day you act.`, "Take a practice test."];
     checklist = p.ai?.checklist ?? ["Your passport or ID", `Your ${subject} account`, "The date you read the official page"];
     tip = p.ai?.tip ?? `Rules and dates can change — open ${subject}'s own page (linked above) again on the day you act.`;
@@ -252,6 +255,8 @@ export function contentOf(p, { subject, fee = null, where = null, cta = null, on
     steps = p.ai?.steps ?? (p.intent === "sample" ? ["Set a timer to the test's time.", "Do the practice sample below without notes.", "Check it against the criteria above.", `Take a full practice test${cta ? ` on ${cta.label}` : ""}.`] : ["Read the criteria above.", "Pick one mistake to fix this week.", "Practise under time.", "Take a practice test."]);
     checklist = p.ai?.checklist ?? ["A timer", "The criteria from the official page", "A quiet room", "A way to record or write your answer"];
     tip = p.ai?.tip ?? (p.subtest ? `In ${p.subtest}, read the assessors' criteria before you practise — marks follow the criteria, not length.` : "Practise one sub-test a day, and a full test every few weeks.");
+  } else if (p.kind === "country" || p.kind === "countryprof" || p.kind === "city") {
+    ({ answer, table, steps, checklist, tip } = localContent(p, { subject, fit: fitWords, cta }));
   } else if (p.kind === "hub" || p.kind === "index") {
     answer = fitWords([p.intro]); table = [p.head ?? ["Item", "Detail"], ...(p.rows ?? [])];
   } else if (p.kind === "taking") {
@@ -260,7 +265,7 @@ export function contentOf(p, { subject, fee = null, where = null, cta = null, on
     steps = ["Find your country below.", "Check the venue or take it at home.", `Book on ${subject}'s own site.`]; checklist = ["Your ID", "A card for the fee", "Your profession"]; tip = "Book early in busy months — places at venues fill first.";
   }
   const n = words(answer).length;
-  return { answer, answerWords: n, answerHasNumber: /\d/.test(answer ?? ""), table: table.length > 1 ? table : [], points: p.ai?.points ?? [], steps, checklist, faq: (p.questions ?? []).slice(0, 8).map((q) => q.question), tip, lastUpdated: String(on).slice(0, 10), cta };
+  return { answer, answerWords: n, answerHasNumber: /\d/.test(answer ?? ""), table: table.length > 1 ? table : [], points: [...(p.ai?.points ?? []), ...(p.localPoints ?? [])] /* RR-327: a university page's country — its searches and its venue cities */, steps, checklist, faq: (p.questions ?? []).slice(0, 8).map((q) => q.question), tip, lastUpdated: String(on).slice(0, 10), cta };
 }
 
 /* ── C2 · the template "read aloud": five pages of a family — how much of their wording is the same once names and numbers are taken out ── */

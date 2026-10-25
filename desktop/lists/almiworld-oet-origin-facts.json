@@ -1,0 +1,473 @@
+{
+ "source": "AlmiOET's own origin records — the destination-neutral country facts (v4) and the doctors' medical councils (v1), compiled 2026-08-06; only facts whose source AlmiOET marks official",
+ "on": "2026-08-06",
+ "from": "almi-oet origin/oet-pseo-rebuild src/lib/oet-seo/origins-neutral.json + origins-doctors.json",
+ "leftOut": [
+  {
+   "country": "Pakistan",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Nigeria",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "India",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Philippines",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Ghana",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Kenya",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Zimbabwe",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Egypt",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  },
+  {
+   "country": "Nepal",
+   "profession": null,
+   "fact": "englishMedium",
+   "why": "no source AlmiOET marks official (secondary)"
+  }
+ ],
+ "items": [
+  {
+   "country": "Pakistan",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Pakistan Nursing & Midwifery Council (PNMC)",
+   "text": "Pakistan Nursing & Midwifery Council (PNMC)",
+   "link": "https://pnmc.gov.pk/",
+   "sourceName": "PNMC official site",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Pakistan",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "PNMC issues verification of registration / good standing directly: the applicant submits the verification application form, a processing fee of PKR 10,000, a request letter from the receiving regulator/board (with full contact details), and photocopies of the PNMC registration card plus all nursing/midwifery diplomas and degrees. Queries go to PNMC's Good Standing Cell (gsc@pnmc.gov.pk). It is a manual/email-based process, not a self-service outbound portal.",
+   "link": "https://pnmc.gov.pk/verification-registration-2/",
+   "sourceName": "PNMC — Verification Registration",
+   "verifyStatus": "corroborated"
+  },
+  {
+   "country": "Pakistan",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Pakistani educational documents are attested via the Higher Education Commission (HEC) — with school/intermediate certificates countersigned by the IBCC — then by the Ministry of Foreign Affairs (MOFA). Pakistan acceded to the Hague Apostille Convention (in force 9 March 2023), so MOFA now issues apostilles (apostille.mofa.gov.pk) after HEC/IBCC verification.",
+   "link": "https://www.hcch.net/en/news-archive/details/?varevent=865",
+   "sourceName": "HCCH — Pakistan accedes to Apostille Convention",
+   "verifyStatus": "corroborated",
+   "hague": true
+  },
+  {
+   "country": "Nigeria",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Nursing and Midwifery Council of Nigeria (NMCN)",
+   "text": "Nursing and Midwifery Council of Nigeria (NMCN). Main site nmcn.gov.ng",
+   "link": "https://nmcn.gov.ng/",
+   "sourceName": "NMCN official site",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Nigeria",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "NMCN runs a 'Verification of Certificate' service: apply online on the Council's portal, upload a scanned Certificate(s) of Registration and a passport photo, complete the verification form naming the receiving regulator/board, and pay via REMITA. Only Certificate(s) of Registration are accepted (not exam-result/notification documents), and NMCN sends the verification directly to the receiving regulator. Revised guidelines (reported effective 1 March 2024) typically require ~2 years' post-qualification experience and an active practising licence; NMCN contacts the training institution and workplace directly; allow ~6 months. Fees (via REMITA) are reported around ₦66,875 standard, plus authentication ≈₦8,750 and a Letter of Good Standing ≈₦8,750.",
+   "link": "https://www.nmcn.gov.ng/verify.html",
+   "sourceName": "NMCN — Verification of Certificate",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Nigeria",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Nigeria is not a party to the Hague Apostille Convention, so Nigerian public documents are authenticated by the relevant Nigerian authorities and the Ministry of Foreign Affairs (legalisation, not apostille). Confirm the exact chain for your document type.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Nigeria absent)",
+   "verifyStatus": "confirm-official",
+   "hague": false
+  },
+  {
+   "country": "India",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Indian Nursing Council (INC)",
+   "text": "The Indian Nursing Council (INC) sets national standards and runs the national live register (NRTS), but individual registration is held at the STATE Nursing Council level (under the Indian Nursing Council Act, 1947).",
+   "link": "https://www.indiannursingcouncil.org/",
+   "sourceName": "Indian Nursing Council (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "India",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "India-distinct federal wrinkle: verification of registration / good standing for going abroad is issued by the STATE Nursing Council of first registration (e.g. Tamil Nadu TNMC, Kerala KNMC, Karnataka KSNC, Delhi DNC, Maharashtra MNC) — NOT the INC. The state council completes its section of the receiving regulator's verification form and sends it directly to that regulator; the applicant supplies passport, registration certificate, experience proof and the receiving authority's address. Some councils (e.g. Karnataka) include a video verification appointment. The INC runs national standards/register but does not issue foreign verification.",
+   "link": "https://www.indiannursingcouncil.org/",
+   "sourceName": "INC (official) — registration held at state level",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "India",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Indian public documents are authenticated at the State level (Home Department / HRD / SDM) and then apostilled by the Ministry of External Affairs (MEA). India is a party to the Hague Apostille Convention, so an MEA apostille is the final in-country step. State nursing-council verification is a separate credential step.",
+   "link": "https://www.mea.gov.in/apostille-menu",
+   "sourceName": "MEA (official) — apostille",
+   "verifyStatus": "confirm-official",
+   "hague": true
+  },
+  {
+   "country": "Philippines",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Professional Regulation Commission (PRC)",
+   "text": "The Professional Regulation Commission (PRC), through the Professional Regulatory Board of Nursing, issues the Certificate of Registration (COR) and Professional Identification Card (PIC) and provides certification/authentication and stateboard verification services. Online system: LERIS.",
+   "link": "https://www.prc.gov.ph/certification-authentication",
+   "sourceName": "PRC — Certification / Authentication",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Philippines",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "A Filipino nurse obtains PRC-authenticated documents via LERIS (log in, book an appointment, pay, present the Action Sheet plus valid PIC/e-PIC and originals with a Documentary Stamp Tax per copy), and the PRC provides a 'Stateboard Verification / Validation of Registration/License' service used by professionals going abroad. The PRC page does not describe direct electronic transmission to a specific overseas board; third-party verifiers (e.g. CGFNS/TruMerit, DataFlow) are commonly used depending on the destination — confirm the exact handoff for the receiving regulator.",
+   "link": "https://www.prc.gov.ph/certification-authentication",
+   "sourceName": "PRC — Certification / Authentication",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Philippines",
+   "profession": null,
+   "fact": "attestation",
+   "text": "The Philippines abolished the DFA 'red ribbon' and acceded to the Hague Apostille Convention (in force 14 May 2019; embassies stopped red ribbons 15 June 2019). Documents are now apostilled by the DFA (regular PHP 100, ~5 working days; expedited PHP 200, ~2 working days) at appointment.apostille.gov.ph.",
+   "link": "https://dfa.gov.ph/dfa-news/dfa-releasesupdate/23009-ph-does-away-with-red-ribbons-on-authentication-certificates",
+   "sourceName": "Philippine DFA — red ribbons abolished",
+   "verifyStatus": "corroborated",
+   "hague": true
+  },
+  {
+   "country": "Ghana",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Nursing and Midwifery Council of Ghana",
+   "text": "The Nursing and Midwifery Council of Ghana (NMC Ghana) registers and licenses Nurse Assistants, Nurses and Midwives in Ghana (nmc.gov.gh). Note the name collision with the UK NMC",
+   "link": "https://www.nmc.gov.gh/web/",
+   "sourceName": "NMC Ghana — Home",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Ghana",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "NMC Ghana operates a Verification / Foreign Verification service (a good-standing / verification-of-registration route) for Ghana-registered practitioners applying to overseas boards; the practitioner's PIN must be current (annual renewal with CPD) before verification can be requested, and applications are handled through NMC Ghana regional offices with a 'Foreign Verification Steps' guide on the official site. Confirm the fee, timeline and transmission method with NMC Ghana (info@nmc.gov.gh).",
+   "link": "https://www.nmc.gov.gh/web/ourservices-mobile/verification-mobile",
+   "sourceName": "NMC Ghana — Verification service",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Ghana",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Ghana is not a party to the Hague Apostille Convention, so documents cannot be apostilled and require consular legalisation: Ghanaian public documents are authenticated by Ghana's Ministry of Foreign Affairs and Regional Integration (Accra) before onward legalisation.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Ghana absent)",
+   "verifyStatus": "corroborated",
+   "hague": false
+  },
+  {
+   "country": "Kenya",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Nursing Council of Kenya (NCK)",
+   "text": "The Nursing Council of Kenya (NCK), a statutory body under the Nurses Act (Cap 257). Public site nckenya.com",
+   "link": "https://nckenya.com/",
+   "sourceName": "Nursing Council of Kenya",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Kenya",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "NCK issues verification of registration / good standing to foreign regulators through an 'outmigration/emigration verification' service applied for via the NCK Online Services Portal (osp.nckenya.com); applicants submit national ID/passport, NCK professional certificate(s), a valid practising licence and the prescribed fee (destination-specific extras such as an employer reference, medical report, police clearance, CV and NEA proof may be required). The exact fee and timeline are not officially published — confirm with NCK.",
+   "link": "https://osp.nckenya.com/",
+   "sourceName": "NCK Online Services Portal",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Kenya",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Kenya is not a party to the Hague Apostille Convention, so Kenyan public documents require the full legalisation chain (not apostille): notarisation, authentication by the issuing body (e.g. NCK), then authentication by Kenya's Ministry of Foreign and Diaspora Affairs (MFDA) before onward legalisation.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Kenya absent)",
+   "verifyStatus": "corroborated",
+   "hague": false
+  },
+  {
+   "country": "Zimbabwe",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Nurses Council of Zimbabwe (NCZ)",
+   "text": "The Nurses Council of Zimbabwe (NCZ), a statutory body under the Health Professions Act (Chapter 27:19). Official site nursescouncil.co.zw",
+   "link": "https://nursescouncil.co.zw/",
+   "sourceName": "Nurses Council of Zimbabwe",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Zimbabwe",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "NCZ issues a Certificate of Good Standing (CGS) through its official 'Clearance form for Certificate of Good Standing Verification'. The applicant supplies personal and registration details, a 10-year employment history, criminal-record and disciplinary disclosures, intended destination and departure date, and two references from nurse managers in good standing; a Ministry of Health clearance is part of the process. The CGS is transmitted board-to-board — sent directly to the receiving Registrar — and NCZ may notify the receiving board of any matter arising after issue. The clearance process is stated to take about 1–2 weeks; an applicable fee is payable on submission (amount not published).",
+   "link": "https://nursescouncil.co.zw/wp-content/uploads/2022/02/Clearance-form-for-Certificate-of-Good-standing-Verification.pdf",
+   "sourceName": "NCZ — official Clearance form for CGS Verification (fetched)",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Zimbabwe",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Zimbabwe is not a party to the Hague Apostille Convention, so documents need full consular legalisation (not apostille): notarisation / High Court authentication, then authentication by the Zimbabwe Ministry of Foreign Affairs and International Trade before onward legalisation.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Zimbabwe absent)",
+   "verifyStatus": "corroborated",
+   "hague": false
+  },
+  {
+   "country": "Egypt",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Egyptian Nursing Syndicate",
+   "text": "Nursing in Egypt is regulated jointly by the Egyptian Nursing Syndicate (statutory body under Law 115 of 1976, maintaining the official register/membership card) and the Ministry of Health and Population (MoHP), which issues/renews the practising licence.",
+   "link": "https://egyptianursingsyndicate.org/",
+   "sourceName": "Egyptian Nursing Syndicate",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Egypt",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "There is no single automated regulator-to-regulator verification for Egypt. The applicant obtains registration/good-standing evidence from the Egyptian Nursing Syndicate and the Ministry of Health and Population, then has it legalised through the Egyptian Ministry of Foreign Affairs (see attestation), and submits it to the receiving regulator, which assesses comparability.",
+   "link": "https://egyptianursingsyndicate.org/",
+   "sourceName": "Egyptian Nursing Syndicate",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Egypt",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Egypt is not a party to the Hague Apostille Convention, so documents cannot be apostilled and must be legalised through the consular chain: Egyptian public documents are notarised/certified in Egypt then authenticated by the Egyptian Ministry of Foreign Affairs before onward legalisation.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Egypt absent)",
+   "verifyStatus": "corroborated",
+   "hague": false
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Sri Lanka Nursing Council (SLNC)",
+   "text": "The Sri Lanka Nursing Council (SLNC) registers and regulates nurses in Sri Lanka, operating under the Ministry of Health portfolio (Sri Lanka Nurses Council Act). Official site slnc.lk.",
+   "link": "https://www.slnc.lk/about",
+   "sourceName": "SLNC — About",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "The Sri Lanka-trained nurse obtains registration/good-standing proof from the SLNC as required by the receiving regulator, and applies to that regulator; documents are authenticated through the Ministry of Foreign Affairs Consular Affairs Division (see attestation). Confirm the exact good-standing document and process with the SLNC and the receiving regulator.",
+   "link": "https://www.slnc.lk/",
+   "sourceName": "SLNC",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Sri Lanka is not a party to the Hague Apostille Convention, so no apostille is issued; documents are authenticated/legalised by the Ministry of Foreign Affairs Consular Affairs Division (Authentication & Verification Section) via its e-DAS system before onward legalisation.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Sri Lanka absent)",
+   "verifyStatus": "corroborated",
+   "hague": false
+  },
+  {
+   "country": "Nepal",
+   "profession": "nursing",
+   "fact": "council",
+   "name": "Nepal Nursing Council (NNC)",
+   "text": "The Nepal Nursing Council (NNC), the statutory nursing regulator under the Nepal Nursing Council Act 2052 (1996), Bansbari, Kathmandu",
+   "link": "https://nnc.org.np/",
+   "sourceName": "Nepal Nursing Council",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Nepal",
+   "profession": "nursing",
+   "fact": "goodStanding",
+   "text": "The NNC 'Verification' service requires an application letter to the Registrar, the receiving regulator's verification form (colour copy), both sides of a current NNC licence certificate, academic transcript, character certificate and passport ID page, plus the payment voucher; the official fee is NRs 2,500. The certificate is generally issued as a hard copy to the applicant rather than posted directly, so confirm the receiving regulator's direct-verification arrangement.",
+   "link": "https://nnc.org.np/page/verification",
+   "sourceName": "NNC — Verification (official)",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Nepal",
+   "profession": null,
+   "fact": "attestation",
+   "text": "Nepal is not a party to the Hague Apostille Convention, so documents need consular legalisation (not apostille): academic documents verified by the issuing university and/or Ministry of Education, then attested by the Ministry of Foreign Affairs (MoFA) consular department (app.nepalconsular.gov.np) before onward legalisation.",
+   "link": "https://www.hcch.net/en/instruments/conventions/status-table/?cid=41",
+   "sourceName": "HCCH — status table (Nepal absent)",
+   "verifyStatus": "corroborated",
+   "hague": false
+  },
+  {
+   "country": "Pakistan",
+   "profession": "medicine",
+   "fact": "council",
+   "name": "Pakistan Medical & Dental Council (PMDC)",
+   "text": "Pakistan Medical & Dental Council (PMDC)",
+   "link": "https://pmdc.pk/",
+   "sourceName": "PMDC (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Pakistan",
+   "profession": "medicine",
+   "fact": "goodStanding",
+   "text": "A PMDC-registered doctor applies for a Certificate of Good Standing (CGS) via PMDC's online 'Other Services' portal (online.pmdc.pk): sign in, complete the CGS form, supply a current PMDC licence/registration, photo, biodata and the receiving regulator's details. PMDC can email the CGS directly to receiving regulators that accept it (e.g. GMC, Irish Medical Council) or post it, and the applicant receives a copy; processing ~2 weeks online. Fee reported ~PKR 4,000–5,000 (confirm on the portal). Note: receiving boards like the GMC accept a CGS issued within the previous 3 months.",
+   "link": "https://online.pmdc.pk/Account/Login",
+   "sourceName": "PMDC online services (CGS/verification)",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "India",
+   "profession": "medicine",
+   "fact": "council",
+   "name": "National Medical Commission (NMC)",
+   "text": "The National Medical Commission (NMC), established under the NMC Act 2019, replaced the Medical Council of India on 25 Sep 2020",
+   "link": "https://www.nmc.org.in/",
+   "sourceName": "National Medical Commission (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "India",
+   "profession": "medicine",
+   "fact": "goodStanding",
+   "text": "A Certificate of Good Standing for an India-registered doctor is obtained via the NMC and/or the State Medical Council of registration: the NMC provides an official application form, and the application is processed through the Registrar of the SMC (which verifies the disciplinary record); many SMCs (e.g. West Bengal, Punjab) also issue the CGS on their own forms. Reported fee ~₹3,100 (varies by council), validity ~6 months; typically forwarded to the receiving authority (applicant supplies the exact official address). Confirm with the relevant NMC/SMC page.",
+   "link": "https://www.nmc.org.in/AppForms_nmc/Good_Standing_Application_Form.pdf",
+   "sourceName": "NMC — Good Standing application form (official)",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Nigeria",
+   "profession": "medicine",
+   "fact": "council",
+   "name": "Medical and Dental Council of Nigeria (MDCN)",
+   "text": "Medical and Dental Council of Nigeria (MDCN), the statutory body for medical/dental registration and licensing",
+   "link": "https://www.mdcn.gov.ng/",
+   "sourceName": "MDCN (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Nigeria",
+   "profession": "medicine",
+   "fact": "goodStanding",
+   "text": "A Nigeria-registered doctor obtains a Certificate of Good Standing (CoGS) online via the MDCN portal: log in with folio number, select 'Certificate of Good Standing' under My Application, and supply the exact name and official address of the receiving organisation (not a home address — indicating named-recipient delivery). Requires continuous good standing since graduation; stated processing 10–14 working days. Fee reported ~₦350,000 (+~₦40,000 by destination), raised from ₦115,000 in 2024 — secondary/press-sourced; confirm with MDCN.",
+   "link": "https://www.mdcn.gov.ng/frequently-asked-questions",
+   "sourceName": "MDCN FAQ — CoGS process (official)",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Egypt",
+   "profession": "medicine",
+   "fact": "council",
+   "name": "Egyptian Medical Syndicate",
+   "text": "Doctors in Egypt register through the Egyptian Medical Syndicate (General Syndicate of Egyptian Doctors / النقابة العامة لأطباء مصر)",
+   "link": "https://www.ems.org.eg/ar",
+   "sourceName": "Egyptian Medical Syndicate (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Egypt",
+   "profession": "medicine",
+   "fact": "goodStanding",
+   "text": "The Certificate of Good Standing / good conduct (شهادة حسن سير وسلوك) is obtained from the Egyptian Medical Syndicate (Dar El-Hekma, 42 Kasr El Ainy St, Cairo). The syndicate member requests it and it is issued to the applicant, who submits it to the overseas body; for GMC it must be within 3 months and, if not in English, certified-translated. Exact current fee and in-person vs remote process: confirm with the Syndicate (official site not machine-readable).",
+   "link": "https://rp.baden-wuerttemberg.de/fileadmin/RP-Internet/Themenportal/Schule_und_Bildung/Berufliche_Ausbildung/_DocumentLibraries/Documents/LPA_Liste_Cogs_Drittstaaten.pdf",
+   "sourceName": "German official CoGS-issuer list (Egyptian Medical Syndicate, Cairo)",
+   "verifyStatus": "confirm-official"
+  },
+  {
+   "country": "Philippines",
+   "profession": "medicine",
+   "fact": "council",
+   "name": "Professional Regulation Commission (PRC)",
+   "text": "Doctors are registered by the Professional Regulation Commission (PRC) through its Professional Regulatory Board of Medicine, which issues the Certificate of Registration and PIC after the Physician Licensure Examination.",
+   "link": "https://www.prc.gov.ph/medicine",
+   "sourceName": "PRC — Medicine (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Philippines",
+   "profession": "medicine",
+   "fact": "goodStanding",
+   "text": "For an overseas medical regulator, the relevant route is PRC STATEBOARD VERIFICATION / Validation of Registration: complete the Stateboard Verification Slip (from prc.gov.ph), pay P75.00 per copy plus stamps, submit with a copy of the valid PIC and Transcript at Window-C; PRC sends the verification DIRECTLY office-to-office to the requesting overseas authority ('Mailing is strictly an Office-to-Office transaction'). Alternatively, Certification/Authentication is applied for via the LERIS portal (released to the applicant).",
+   "link": "https://www.prc.gov.ph/stateboard-verification-validation-registration-license",
+   "sourceName": "PRC — Stateboard Verification (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": "medicine",
+   "fact": "council",
+   "name": "Sri Lanka Medical Council (SLMC)",
+   "text": "Sri Lanka Medical Council (SLMC), the statutory regulator of medical, dental and allied professionals",
+   "link": "https://slmc.gov.lk/en/public/verifications",
+   "sourceName": "SLMC — Verifications (official)",
+   "verifyStatus": "verified"
+  },
+  {
+   "country": "Sri Lanka",
+   "profession": "medicine",
+   "fact": "goodStanding",
+   "text": "A SLMC-registered doctor obtains a Certificate of Good Standing by submitting the official CGS form + affidavit + bank payment slip. Fee LKR 8,000 (regular, 5 working days) or LKR 10,000 (urgent, 2 working days), paid to Bank of Ceylon Maradana. The form supports naming a verification agency/overseas regulator for DIRECT-to-receiver email forwarding; otherwise issued to the applicant. Contact applications@slmc.gov.lk.",
+   "link": "https://slmc.gov.lk/images/Applications/15URGENT_APPLICATION-FOR-CGS.pdf",
+   "sourceName": "SLMC — CGS application (official)",
+   "verifyStatus": "verified"
+  }
+ ]
+}

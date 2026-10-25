@@ -23,6 +23,7 @@ export function sumRanges(rs) {
 const SUBTEST = [["Writing", /\b(writing|writ\w*|letters?|case ?notes?|referral|discharge|transfer letter)\b/], ["Speaking", /\b(speaking|role ?plays?|roleplay)\b/], ["Listening", /\blisten\w*\b/], ["Reading", /\breading\b/]];
 /* the intents, in the order they are tried (the first that matches wins) */
 const INTENT = [
+  ["remark", /\b(re-?mark\w*|recheck\w*|re-?evaluat\w*|appeals?)\b/], // RR-327: re-marking is its own need (its own fee and window) — first: "remarking fee" is about re-marking
   ["vs", /\b(vs|versus|or ielts|ielts or|difference|compare\w*|easier|harder|better than|ielts (and|oet)|(and|to) ielts|ielts oet pte)\b/],
   ["countries", /\b(which countr\w*|countries|country list|accepted countr\w*|accepted in|countr\w* (list|accept\w*)|each country|different countries)\b/],
   ["tips", /\b(tips?|tricks?|mistakes?|strateg\w*|how to (pass|score|improve|crack|clear|get|write|answer|prepare for)|band 7|secrets?)\b/],

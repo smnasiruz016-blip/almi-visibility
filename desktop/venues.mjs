@@ -37,24 +37,48 @@ export function listedAfterColon(text) {
   return [...out];
 }
 
+/* RR-327 · THE CITIES its own pages name a venue in ("the new venue in Lahore will be managed by AEO Pakistan") — a city is a name from a
+ * gazetteer handed in (AlmiStudy's university cities, by country), never guessed from capital letters; a city that is also an everyday or a
+ * sub-test word ("Reading") is never taken; the venue's operator when the sentence names it ("managed by …") */
+const NOT_A_CITY = new Set(["reading", "listening", "writing", "speaking", "nice", "mobile", "sale", "bath", "march", "may", "victoria", "university", "college", "centre", "center", "city", "online", "home"]);
+const cityTest = (c) => new RegExp(`(?<![\\p{L}\\p{N}])${c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "u");
+export function venueCitiesIn(text, { countries = [], gazetteer = new Map() } = {}) {
+  const out = [];
+  for (const s of sentences(text)) {
+    if (!/\bvenues?\b|test cent(re|er)s?|exam cent(re|er)s?/i.test(s) || NOT_A_VENUE.test(s)) continue;
+    const here = [...new Set([...countriesIn(s), ...countries])];
+    for (const country of here) for (const city of gazetteer.get(country) ?? []) {
+      if (city.length < 4 || NOT_A_CITY.has(city.toLowerCase()) || !cityTest(city).test(s) || out.some((x) => x.city === city && x.country === country)) continue;
+      const op = (/\bmanaged by ([A-Z][\w&.'’-]*(?:\s+[A-Z][\w&.'’-]*){0,5})/.exec(s.slice(s.search(cityTest(city))))?.[1] ?? /^\s*([A-Z][\w&'’-]*(?:\s+[A-Z][\w&'’-]*){0,4})\s+(?:already\s+)?(?:manages|runs|operates)\b/.exec(s)?.[1] ?? null)?.replace(/[.,;:]+$/, "") ?? null;
+      out.push({ city, country, operator: op, said: s.trim().slice(0, 300) });
+    }
+  }
+  return out;
+}
+/** AlmiStudy's universities → country → its city names (the gazetteer venueCitiesIn reads) */
+export const gazetteerOf = (universities = []) => { const g = new Map(); for (const u of universities) { const c = String(u.city ?? "").trim(); if (!u.country || !c || /\d/.test(c)) continue; if (!g.has(u.country)) g.set(u.country, new Set()); g.get(u.country).add(c); } return new Map([...g].map(([k, v]) => [k, [...v]])); };
+
 /**
  * The countries where the subject can be taken, from its own pages. `urls` = its sitemap's pages; `already` = countries the per-country check
- * kept (page-count.mjs, its country pages). → { countries: [{ name, source:{url,title}, checkedOn, how }], home, pagesRead, checked }
+ * kept (page-count.mjs, its country pages); `gazetteer` (RR-327) = city names by country, for the cities a venue page names.
+ * → { countries: [{ name, source:{url,title}, checkedOn, how }], cities: [{ city, country, operator, source, checkedOn, said }], home, pagesRead, checked }
  */
-export async function venueCountries({ urls, subject, reader, already = [], maxPages = 24 }) {
+export async function venueCountries({ urls, subject, reader, already = [], maxPages = 24, gazetteer = null }) {
   /* its news of venues first (they name the countries), then its pages about taking it at home and booking, then its country pages */
   const rank = (u) => (/\/(post|posts|news|blog)\//.test(u) ? 0 : /recognising-organisations/.test(u) ? 2 : 1);
   const pages = urls.filter((u) => { try { return VENUE_PAGE.test(new URL(u).pathname); } catch { return false; } }).sort((a, b) => rank(a) - rank(b) || a.length - b.length).slice(0, maxPages);
-  const found = new Map(already.map((k) => [k.name, k])), checked = [];
+  const found = new Map(already.map((k) => [k.name, k])), checked = [], cities = [];
   let home = null;
   for (const u of pages) {
     const r = await reader.read(u); checked.push({ url: u, ok: r.ok, why: r.why ?? null, on: r.checkedOn });
     if (!r.ok) continue;
     for (const c of [...venueCountriesIn(r.text), ...listedAfterColon(r.text)]) if (!found.has(c)) found.set(c, { name: c, source: { url: r.url, title: r.title }, checkedOn: r.checkedOn, how: `${subject}'s own page names a venue there` });
+    /* RR-327: the cities this page names a venue in (its own venue countries as the context) */
+    if (gazetteer) { const cs = [...venueCountriesIn(r.text), ...listedAfterColon(r.text)]; for (const x of venueCitiesIn(r.text, { countries: cs, gazetteer })) if (!cities.some((y) => y.city === x.city && y.country === x.country)) cities.push({ ...x, source: { url: r.url, title: r.title }, checkedOn: r.checkedOn }); }
     /* at home: the page's own words about where it is offered — kept as what the page says, never as a list it does not give */
     if (!home && /at-home|@home/i.test(u)) { const s = sentences(r.text).find((x) => /offered|available/i.test(x) && /venue|countr/i.test(x)); if (s) home = { url: r.url, title: r.title, checkedOn: r.checkedOn, says: /not yet available|where (taking|a) .*venue .*not/i.test(s) ? `${subject}'s own page says taking it at home is offered in countries where a venue is not yet available, and that not every regulator accepts it — it names no list of those countries` : `${subject}'s own page about taking it at home names no list of countries` }; }
   }
-  return { countries: [...found.values()].sort((a, b) => a.name.localeCompare(b.name)), home, pagesRead: checked.filter((c) => c.ok).length, checked };
+  return { countries: [...found.values()].sort((a, b) => a.name.localeCompare(b.name)), cities: cities.sort((a, b) => a.country.localeCompare(b.country) || a.city.localeCompare(b.city)), home, pagesRead: checked.filter((c) => c.ok).length, checked };
 }
 
 /* ── Q1 · how many take it: the subject's own statistics page and its files ── */

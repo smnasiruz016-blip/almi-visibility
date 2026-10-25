@@ -443,6 +443,8 @@ test("H · the owner's Google access check: Google's own reason kept; the accoun
   /* everything right on our side: Google's known fault named */
   const e = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": {} }, ideas: authFail("ACTION_NOT_PERMITTED") }));
   assert.equal(e.r.verdict.length, 2); assert.match(e.r.verdict[1], /what is left is Google's side: the known fault for projects upgraded after 9 Sep 2026/);
+  const e2 = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": {} }, ideas: authFail("USER_PERMISSION_DENIED") }));
+  assert.equal(e2.r.verdict.length, 1, "a permission refusal on a reachable account is not blamed on Google's known fault"); assert.match(e2.r.verdict[0], /^The keyword request is refused: USER_PERMISSION_DENIED/);
   /* the sign-in refused: Google's error NAME only */
   const f = await checkWith(fakeAccounts({ token: { error: "invalid_grant", error_description: "Token has been expired or revoked." } }));
   assert.equal(f.r.ok, false); assert.equal(f.r.steps.signIn.reason, "invalid_grant"); assert.match(f.r.verdict[0], /The Google sign-in is refused \(invalid_grant\) — run owner-google-sign-in\.mjs again/);

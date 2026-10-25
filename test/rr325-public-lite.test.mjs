@@ -232,6 +232,8 @@ test("D · the Vercel bundle in PUBLIC-LITE: the mode fixed in its function; the
     const r = spawnSync(process.execPath, [join(REPO, "tools", "bundle-site.mjs"), "--public-lite", out], { encoding: "utf8" });
     assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /bundle \(PUBLIC-LITE\)/);
     assert.match(readFileSync(join(out, "api", "index.mjs"), "utf8"), /mode: "public-lite"/); assert.ok(existsSync(join(out, "site", "legal.generated.json")));
+    assert.equal(readFileSync(join(out, ".vercelignore"), "utf8"), ".env\n.env.*\n", "the CLI's .env.local is never uploaded");
+    assert.ok(existsSync(join(out, "config", "security", "live-header-baseline.mjs")), "the header rules the free score judges by");
     if (LEGAL.fills.privacy.length) assert.match(r.stdout, /WARNING — \/privacy is NOT published/);
   } finally { rmSync(out, { recursive: true, force: true }); }
 });

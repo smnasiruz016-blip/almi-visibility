@@ -352,8 +352,9 @@ test("A · the owner's sign-in script: the client ID and secret are read from Go
     };
     /* the browser: the local address → Google's page (a 302) → Google answers on the loopback address */
     let opened = null, google = null;
-    const browser = (forge = false) => (u) => { opened = u; setTimeout(async () => { const r = await fetch(u, { redirect: "manual" }); google = new URL(r.headers.get("location")); await fetch(`${google.searchParams.get("redirect_uri")}?code=the-code&state=${forge ? "forged" : google.searchParams.get("state")}`); }, 10); };
-    const run = async (o) => { const saved = []; const code = await signIn({ log, cwd: dir, open: browser(o.forge), fetchImpl, addEnv: async (name, value) => { saved.push([name, value]); return true; }, ...o }); return { code, saved }; };
+    /* the stand-in browser visits this computer only — an address elsewhere is never fetched (the run then ends at its short wait, RED) */
+    const browser = (forge = false) => (u) => { opened = u; if (!/^http:\/\/127\.0\.0\.1:\d+\//.test(u)) return; setTimeout(async () => { const r = await fetch(u, { redirect: "manual" }); google = new URL(r.headers.get("location")); await fetch(`${google.searchParams.get("redirect_uri")}?code=the-code&state=${forge ? "forged" : google.searchParams.get("state")}`); }, 10); };
+    const run = async (o) => { const saved = []; const code = await signIn({ log, cwd: dir, open: browser(o.forge), waitMs: 8000, fetchImpl, addEnv: async (name, value) => { saved.push([name, value]); return true; }, ...o }); return { code, saved }; };
     /* dragged in: PowerShell types the path in quotes */
     const asked = [];
     const r1 = await run({ argv: [], askFn: async (q) => { asked.push(q); return `"${fake}"`; } });

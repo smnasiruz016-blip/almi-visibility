@@ -30,7 +30,8 @@ import { kvStore } from "../site/limits.mjs";
 import { loadLegal } from "../site/legal.mjs";
 import { adsStatus } from "../desktop/google-ads.mjs";
 import { main as signIn, clientFromFile, cleanPath } from "../site/owner-google-sign-in.mjs";
-import { CRONS, VERCEL_JSON_LITE, LITE_DEPENDENCIES } from "../tools/bundle-site.mjs";
+import { CRONS, VERCEL_JSON_LITE, LITE_DEPENDENCIES, siteFiles } from "../tools/bundle-site.mjs";
+import { importFiles, phraseTest } from "../site/kw-import.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const SECRETS = { GOOGLE_ADS_CLIENT_ID: "client-for-tests.apps.googleusercontent.com", GOOGLE_ADS_CLIENT_SECRET: "client-secret-for-tests-XYZ", GOOGLE_ADS_REFRESH_TOKEN: "refresh-token-for-tests-QRS", GOOGLE_ADS_CUSTOMER_ID: "123-456-7890" };
@@ -485,6 +486,90 @@ test("F · the privacy page is the owner's 26 Oct Word file exactly — his keyw
   assert.match(words(kw[0]), /Search volumes come from Google Ads Keyword Planner, through AlmiWorld’s own Google Ads account\.$/);
   assert.equal(L.privacy.filter((b) => words(b).startsWith("Free keyword finder: ")).length, 0, "the old added paragraph is gone");
   assert.doesNotMatch(P.privacy({ lite: true }) ?? "", /Free keyword finder: the words you search/);
+});
+
+/* RR-326 I · Keyword Planner exports as Google writes them: two title lines, a tab (or comma) header, UTF-16 with its byte-order mark
+   (or UTF-8). Made-up words and figures — never the owner's files */
+const KP_HEAD = ["Keyword", "Currency", "Avg. monthly searches", "Three month change", "YoY change", "Competition"];
+function kpFile(rows, { at = "2026-10-24 at 06_03_20", utf16 = true, sep = "\t" } = {}) {
+  const q = (s) => (sep === "," && /[",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  const text = [`Keyword Stats ${at}`, `"October 1, 2025 - September 30, 2026"`, KP_HEAD.join(sep), ...rows.map(([k, v]) => [k, "USD", v ?? "", "0%", "0%", "Low"].map(q).join(sep))].join("\r\n") + "\r\n";
+  return utf16 ? Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]) : Buffer.from(text, "utf8");
+}
+const FILE_A = kpFile([["oet", "50000"], ["oet nursing", "500"], ["oet writing tips", "500"], ["sample nurse letter", "50"], ["oet dietetics", null]]);
+const FILE_B = kpFile([["oet nursing", "5000"], ["oet fees", "500"], ["ielts or oet", "500"]], { at: "2026-10-24 at 22_00_17", utf16: false, sep: "," });
+
+for (const [name, make] of STORES) {
+  test(`I · the owner's Keyword Planner files (${name}): read on the server, merged — no duplicates, history kept, source "Keyword Planner file", OET keywords under AlmiOET; the same file twice adds nothing`, async () => {
+    const store = await make(), clock = clockAt("2026-10-26T09:00:00Z"), groups = parseSeeds(DEFAULT_SEEDS).groups;
+    try {
+      const a = await importFiles({ uploads: [{ filename: "keyword-planner-1.csv.csv", bytes: FILE_A }], store, groups, now: clock.now });
+      assert.deepEqual([a.read, a.new, a.merged, a.duplicates], [5, 5, 0, 0]);
+      assert.deepEqual({ day: a.files[0].day, location: a.files[0].location, period: a.files[0].period }, { day: "2026-10-24", location: "All locations", period: "2025-10-01..2026-09-30" }, "the export day from the file's own title line; no country = all locations");
+      assert.equal(a.files[0].products.AlmiOET, 4, "the four keywords holding \"oet\" — not \"sample nurse letter\"");
+      /* the SAME bytes again, renamed, with a country and a date: nothing */
+      const again = await importFiles({ uploads: [{ filename: "copy.csv", bytes: FILE_A, country: "PK", date: "2026-10-25" }], store, groups, now: clock.now });
+      assert.deepEqual([again.read, again.new, again.duplicates, again.files[0].duplicate], [0, 0, 1, true]);
+      const c1 = await store.counts("2026-10-24"); assert.equal(c1.keywords, 5); assert.equal(c1.observations, 5);
+      /* a second file of the same day (UTF-8, comma): a known keyword is MERGED (its figure updated), the others new */
+      const b = await importFiles({ uploads: [{ filename: "keyword-planner-2.csv", bytes: FILE_B }], store, groups, now: clock.now });
+      assert.deepEqual([b.read, b.new, b.merged], [3, 2, 1]);
+      const c2 = await store.counts("2026-10-24"); assert.equal(c2.keywords, 7); assert.equal(c2.observations, 7, "the same keyword, location and day: one row");
+      assert.ok(c2.groups.some((g) => g.grp === "product:oet" && g.keywords === 6));
+      /* a later export (history): a new row, the old one stays */
+      const later = kpFile([["oet nursing", "50000"]], { at: "2026-11-24 at 08_00_00" });
+      const l = await importFiles({ uploads: [{ filename: "keyword-planner-7.csv", bytes: later }], store, groups, now: () => Date.parse("2026-11-25T00:00:00Z") });
+      assert.deepEqual([l.read, l.new, l.merged], [1, 0, 1]);
+      assert.equal((await store.counts("2026-11-24")).observations, 8, "history kept");
+      /* what the finder reads: the newest file figure of each keyword holding the words, highest first */
+      const f = await store.fileKeywords({ phrases: ["oet"], location: "ALL", language: "en" });
+      assert.deepEqual(f.rows.map((r) => [r.keyword, r.volume]), [["oet", 50000], ["oet nursing", 50000], ["ielts or oet", 500], ["oet fees", 500], ["oet writing tips", 500], ["oet dietetics", null]]);
+      assert.equal(await store.fileKeywords({ phrases: ["oet"], location: "PK", language: "en" }), null, "another country: none");
+      assert.equal((await store.fileKeywords({ phrases: ["nurse letter"], location: "ALL", language: "en" })).rows.length, 1);
+      /* refusals, nothing stored */
+      const bad = await importFiles({ uploads: [{ filename: "notes.csv", bytes: Buffer.from("a,b\n1,2\n") }, { filename: "x.csv", bytes: kpFile([["oet mock", "50"]]), date: "2026-12-31" }, { filename: "y.csv", bytes: kpFile([["oet mock", "50"]], { at: "2026-10-20 at 01_00_00" }), country: "XX" }], store, groups, now: clock.now });
+      assert.deepEqual(bad.files.map((x) => x.ok), [false, false, false]); assert.match(bad.files[0].why, /not a Keyword Planner file/); assert.match(bad.files[1].why, /not in the future/); assert.match(bad.files[2].why, /Choose a country/);
+      assert.equal((await store.counts("2026-10-24")).keywords, 7);
+    } finally { await store.close(); }
+  });
+}
+
+test("I · the upload on /owner: owner only, the files' result (read · new · merged); the public finder then answers \"oet\" from the files' Google RANGES while Google refuses — and asks Google again next time", async () => {
+  const clock = clockAt("2026-10-26T10:00:00Z"), G = fakeGoogle(clock, { fail: authFail("ACTION_NOT_PERMITTED") });
+  const s = await site({ clock, google: G });
+  const upload = (parts, cookie) => { const fd = new FormData(); for (const [k, v, n] of parts) { if (typeof v === "string") fd.append(k, v); else fd.append(k, new Blob([v]), n); } return fetch(`${s.base}/owner/import`, { method: "POST", body: fd, headers: { "x-real-ip": "203.0.113.9", ...(cookie ? { cookie } : {}) } }).then(async (r) => ({ status: r.status, text: await r.text() })); };
+  try {
+    assert.equal((await upload([["file1", FILE_A, "a.csv"]])).status, 403, "only the owner");
+    const cookie = (await s.req("/owner/sign-in", { method: "POST", form: { key: OWNER_KEY } })).headers.get("set-cookie").split(";")[0];
+    const page = (await s.req("/owner", { cookie })).text;
+    assert.match(page, /<form method="post" action="\/owner\/import" enctype="multipart\/form-data">/); assert.match(page, /name="file6"/); assert.match(page, /<select name="country1"><option value="ALL">All locations<\/option>/);
+    const r = await upload([["file1", FILE_A, "keyword-planner-1.csv.csv"], ["country1", "ALL"], ["date1", ""], ["file2", FILE_B, "keyword-planner-2.csv"], ["country2", "ALL"], ["date2", ""], ["file3", FILE_A, "keyword-planner-1-copy.csv"]], cookie);
+    assert.equal(r.status, 200);
+    assert.match(r.text, /Upload: 8 keywords read · 7 new · 1 merged · 1 file already uploaded \(nothing added\)/);
+    assert.match(r.text, /<td>keyword-planner-1\.csv\.csv<\/td><td>5 read · 5 new · 0 merged · All locations · 2026-10-24 · AlmiOET 4/);
+    assert.match(r.text, /<td>keyword-planner-1-copy\.csv<\/td><td>Already uploaded — nothing added/);
+    assert.match(r.text, /<td>All locations<\/td><td>7<\/td>/, "the totals per country");
+    assert.equal((await upload([["country1", "ALL"]], cookie)).status, 400);
+    /* the public finder, Google refusing: the files answer, as Google's ranges */
+    const f = await s.search("oet", "ALL", { ip: "192.0.2.150" });
+    assert.equal(f.status, 200); assert.equal(G.ideas().length, 1, "Google was asked first");
+    assert.match(f.text, /Google's ranges, from a Keyword Planner export of 2026-10-24/);
+    assert.match(f.text, /<td>oet<\/td><td>10K–100K<\/td>/); assert.match(f.text, /<td>oet nursing<\/td><td>1K–10K<\/td>/, "the newer figure of the same day (the second file)");
+    assert.match(f.text, /<td>oet dietetics<\/td><td>no figure<\/td>/); assert.doesNotMatch(f.text, /sample nurse letter/);
+    const csv = await s.req("/keywords.csv?q=oet&location=ALL", { ip: "192.0.2.150" });
+    assert.match(csv.text, /^oet,10K–100K,Other ideas,All locations,English,2025-10-01\.\.2026-09-30,Google Ads Keyword Planner \(export file\)\r$/m);
+    await s.search("oet", "ALL", { ip: "192.0.2.151" }); assert.equal(G.ideas().length, 2, "a file answer is not kept as Google's: the next search asks Google again");
+    /* a word no file holds: Google's refusal, as before */
+    const none = await s.search("dentistry", "ALL", { ip: "192.0.2.152" }); assert.equal(none.status, 503); assert.match(none.text, /AUTHORIZATION_ERROR/);
+    /* a big body is refused for anyone but the owner */
+    assert.equal((await upload([["file1", Buffer.alloc(100000, 65), "big.csv"]])).status, 413);
+  } finally { await s.close(); }
+});
+
+test("I · the website bundle reads the files with the app's own reader (desktop/kp-file.mjs) — not the app's keyword database", () => {
+  const files = siteFiles(); assert.ok(files.includes("desktop/kp-file.mjs")); assert.ok(files.includes("site/kw-import.mjs"));
+  for (const f of ["desktop/keyword-db.mjs", "desktop/demand.mjs", "desktop/research5.mjs"]) assert.ok(!files.includes(f), `${f} stays out of the site`);
+  assert.equal(phraseTest("oet")("ieltsoet prep"), false, "whole words only"); assert.equal(phraseTest("oet exam")("exam for oet"), true, "any order");
 });
 
 test("D · the bundle: the database driver pinned, eight daily crons, 300 s, the owner's script, .vercelignore", () => {

@@ -20,6 +20,7 @@ import { storeOf, kvStore, liteLimits, LITE_LIMITS, FINDER_COUNTS } from "./limi
 import { siteAds } from "./kw-google.mjs"; // RR-326
 import { dbUrlOf, pgStore } from "./kw-store.mjs";
 import { runCollector, currentGroups } from "./kw-collector.mjs";
+import { importFiles, parseMultipart, IMPORT } from "./kw-import.mjs"; // RR-326 I
 import { findKeywords, lookupKeywords, finderQuery, csvOf, groupOf, FINDER } from "./kw-finder.mjs";
 import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER } from "./kw-service.mjs";
 import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
@@ -239,8 +240,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
-    let body = "";
-    for await (const c of req) { body += c; if (body.length > 64000) return send(413, "Too large", "text/plain"); }
+    /* RR-326 I: the body as BYTES (a UTF-16 upload must not be decoded as text); the owner's file upload alone may be larger */
+    const big = req.method === "POST" && String(req.url ?? "").split("?")[0] === "/owner/import" && owner(req), max = big ? IMPORT.maxBodyBytes : 64000;
+    const chunks = []; let size = 0;
+    for await (const c of req) { const b = Buffer.isBuffer(c) ? c : Buffer.from(c); size += b.length; if (size > max) return send(413, "Too large", "text/plain"); chunks.push(b); }
+    const raw = Buffer.concat(chunks), body = raw.toString("utf8");
     try {
       const u = new URL(req.url, "http://127.0.0.1");
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
@@ -284,9 +288,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const qq = finderQuery(u.searchParams.get("q")), loc = locationOf(u.searchParams.get("location") ?? "ALL");
         if (!qq.ok || !loc) return send(404, P.notFound(u.pathname, { lite: true }));
         const d = new Date(now()).toISOString().slice(0, 10), since = new Date(Date.parse(`${d}T00:00:00Z`) - FINDER.reuseDays * 86400000).toISOString().slice(0, 10);
-        const found = await db.findFetch({ seedKey: `q:${qq.q}`, location: loc.code, language: FINDER.language, since });
+        let found = await db.findFetch({ seedKey: `q:${qq.q}`, location: loc.code, language: FINDER.language, since }), source = null;
+        if (!found) { found = await db.fileKeywords({ phrases: [qq.q], location: loc.code, language: FINDER.language }).catch(() => null); source = found ? "file" : null; } // RR-326 I: the owner's files
         if (!found) return send(404, P.notFound(u.pathname, { lite: true }));
-        const result = { rows: found.rows.map((r) => ({ ...r, group: groupOf(r.keyword) })), locationName: loc.name, language: LANGUAGES[FINDER.language].name, period: found.period };
+        const result = { rows: found.rows.map((r) => ({ ...r, group: groupOf(r.keyword) })), locationName: loc.name, language: LANGUAGES[FINDER.language].name, period: found.period, source };
         return send(200, csvOf(result), "text/csv; charset=utf-8", { "content-disposition": `attachment; filename="keywords-${qq.q.replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "search"}-${loc.code.toLowerCase()}.csv"`, "cache-control": "no-store", "x-robots-tag": "noindex" });
       }
       /* RR-326 B + D · the owner's own page — only when he has set his key in Vercel */
@@ -309,6 +314,15 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           if (!p.ok) return send(400, await ownerPage({ message: `Not saved — ${p.why}.`, seedDraft: text }), undefined, priv);
           await db.setSeedList(text, new Date(now()).toISOString());
           return send(200, await ownerPage({ message: `Saved: ${p.groups.length} groups.` }), undefined, priv);
+        }
+        /* RR-326 I · the owner's Keyword Planner files → the live keyword database (kw-import.mjs) */
+        if (req.method === "POST" && u.pathname === "/owner/import") {
+          if (!db) return send(503, await ownerPage({ message: "The keyword database is not connected." }), undefined, priv);
+          const mp = parseMultipart(raw, req.headers["content-type"]);
+          const uploads = mp ? Object.keys(mp.files).filter((k) => /^file\d+$/.test(k)).sort((a, b) => Number(a.slice(4)) - Number(b.slice(4))).map((k) => ({ ...mp.files[k], country: mp.fields[`country${k.slice(4)}`] ?? "", date: mp.fields[`date${k.slice(4)}`] ?? "" })) : [];
+          if (!uploads.length) return send(400, await ownerPage({ message: "Choose at least one Keyword Planner file." }), undefined, priv);
+          const r = await importFiles({ uploads, store: db, groups: await groupNames(), now });
+          return send(200, await ownerPage({ imported: r }), undefined, priv);
         }
         /* RR-326 H · the owner's Google access check: Google's own reason, the accounts this sign-in reaches (ids only) */
         if (req.method === "POST" && u.pathname === "/owner/check-google") {

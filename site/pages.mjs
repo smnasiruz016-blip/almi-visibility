@@ -16,7 +16,7 @@ import { familyStrip, footerColumns } from "./family.mjs";
 import { loadLegal, fillsIn, renderLegal } from "./legal.mjs"; // RR-325 C
 import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
 import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
-import { FINDER, SOURCE_LINE, periodWords } from "./kw-finder.mjs";
+import { FINDER, SOURCE_LINE, periodWords, rangeOf } from "./kw-finder.mjs";
 import { ACCESS_LINE, plainError, reasonLine } from "./kw-google.mjs";
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
@@ -366,10 +366,12 @@ ${f.error ? `<p class="err" role="alert">${esc(f.error)}</p>` : ""}
 }
 function finderResult(r, left) {
   const csv = `/keywords.csv?q=${encodeURIComponent(r.q)}&amp;location=${encodeURIComponent(r.location)}`, pw = periodWords(r.period);
+  /* RR-326 I: from the owner's Keyword Planner export — Google's ranges, said so */
+  const file = r.source === "file", vol = (v) => (file ? esc(rangeOf(v)?.label ?? "no figure") : n(v));
   return `<div class="kwresult" id="kwresult"><h3>Keyword ideas for “${esc(r.q)}” — ${esc(r.locationName)}</h3>
-<p class="source"><b>${esc(SOURCE_LINE)}</b> · average monthly searches${pw ? `, ${esc(pw)}` : ""} · ${esc(r.language)} · read from Google on ${esc(r.day)}</p>
+<p class="source"><b>${esc(SOURCE_LINE)}</b> · average monthly searches${pw ? `, ${esc(pw)}` : ""} · ${esc(r.language)} · ${file ? `Google's ranges, from a Keyword Planner export of ${esc(r.day)}` : `read from Google on ${esc(r.day)}`}</p>
 <p>${r.rows.length.toLocaleString("en-US")} keyword idea${r.rows.length === 1 ? "" : "s"}${r.rows.length ? ` · <a href="${csv}">Download all as CSV</a>` : ""}${left !== null && left !== undefined ? ` · ${left} free search${left === 1 ? "" : "es"} left today` : ""}</p>
-${r.rows.length ? r.groups.map((g) => `<h4>${esc(g.name)} <span class="note">(${g.rows.length.toLocaleString("en-US")})</span></h4><div class="tablewrap"><table class="t"><tr><th>Keyword</th><th>Monthly searches</th></tr>${g.rows.slice(0, FINDER.shownPerGroup).map((x) => `<tr><td>${esc(x.keyword)}</td><td>${n(x.volume)}</td></tr>`).join("")}</table></div>${g.rows.length > FINDER.shownPerGroup ? `<p class="note">The first ${FINDER.shownPerGroup} are shown — all ${g.rows.length.toLocaleString("en-US")} are in the CSV.</p>` : ""}`).join("") : "<p>Google gave no keyword ideas for this search.</p>"}
+${r.rows.length ? r.groups.map((g) => `<h4>${esc(g.name)} <span class="note">(${g.rows.length.toLocaleString("en-US")})</span></h4><div class="tablewrap"><table class="t"><tr><th>Keyword</th><th>Monthly searches</th></tr>${g.rows.slice(0, FINDER.shownPerGroup).map((x) => `<tr><td>${esc(x.keyword)}</td><td>${vol(x.volume)}</td></tr>`).join("")}</table></div>${g.rows.length > FINDER.shownPerGroup ? `<p class="note">The first ${FINDER.shownPerGroup} are shown — all ${g.rows.length.toLocaleString("en-US")} are in the CSV.</p>` : ""}`).join("") : "<p>Google gave no keyword ideas for this search.</p>"}
 <p class="kwnext"><a class="pill" href="/#score">Get the score of your site</a> <a class="pill ghost" href="#app">AlmiVisibility app: coming soon</a></p></div>`;
 }
 
@@ -383,6 +385,14 @@ const OWNER_OFF = Object.freeze({
 });
 export const ownerOff = (why) => ownerFrame("Owner", `<h1>The owner's page is off</h1><p>${esc(OWNER_OFF[why] ?? OWNER_OFF.missing)}</p><p class="fine">After you change a setting in Vercel, run <code>npx vercel@latest --prod</code> again — a setting reaches the site only with a new deployment.</p>`);
 export const ownerSignIn = (why = null) => ownerFrame("Owner", `<h1>Owner</h1><form class="testform" method="post" action="/owner/sign-in" style="max-width:520px"><label class="f" for="key">Your owner key</label><input id="key" name="key" type="password" autocomplete="current-password" required>${why ? `<p class="err" role="alert">${esc(why)}</p>` : ""}<button class="pill" type="submit">Sign in</button><p class="fine">Once on this browser — it then stays signed in for 180 days.</p></form>`);
+/** RR-326 I · the owner's Keyword Planner files: the upload (one row per file, a country and a date of its own) and what the last upload did */
+const IMPORT_ROWS = 6;
+const importBox = (r) => {
+  const opts = LOCATIONS.map((l) => `<option value="${esc(l.code)}">${esc(l.name)}</option>`).join("");
+  const res = r ? `<div class="card" role="status"><p><b>Upload: ${r.read.toLocaleString("en-US")} keywords read · ${r.new.toLocaleString("en-US")} new · ${r.merged.toLocaleString("en-US")} merged${r.duplicates ? ` · ${r.duplicates} file${r.duplicates === 1 ? "" : "s"} already uploaded (nothing added)` : ""}</b></p><div class="tablewrap"><table class="t"><tr><th>File</th><th>Result</th></tr>${r.files.map((f) => `<tr><td>${esc(f.name)}</td><td>${!f.ok ? `Not read — ${esc(f.why)}` : f.duplicate ? "Already uploaded — nothing added" : `${f.read.toLocaleString("en-US")} read · ${f.new.toLocaleString("en-US")} new · ${f.merged.toLocaleString("en-US")} merged · ${esc(f.location)} · ${esc(f.day)}${Object.keys(f.products).length ? ` · ${Object.entries(f.products).map(([p, k]) => `${esc(p)} ${k.toLocaleString("en-US")}`).join(", ")}` : ""}`}</td></tr>`).join("")}</table></div></div>` : "";
+  return `<h2>Keyword Planner files</h2>${res}<p class="fine">Your own exports from Google Keyword Planner (the file Google gives: UTF-16 or UTF-8, tab or comma). Merged into the same database the collector and the finder use, marked "Keyword Planner file"; a file uploaded again adds nothing. Country: Google's export does not say — choose it if the file was made for one country. Date: empty = the export day written inside the file.</p>
+<form method="post" action="/owner/import" enctype="multipart/form-data"><div class="tablewrap"><table class="t"><tr><th>File</th><th>Country</th><th>Date (optional)</th></tr>${Array.from({ length: IMPORT_ROWS }, (_, i) => `<tr><td><input type="file" name="file${i + 1}" accept=".csv,text/csv,text/plain"></td><td><select name="country${i + 1}">${opts}</select></td><td><input type="date" name="date${i + 1}"></td></tr>`).join("")}</table></div><p><button class="pill" type="submit">Upload and merge</button></p></form>`;
+};
 /** RR-326 H · the owner's access check, in plain lines (ids and Google's names only) */
 const checkBox = (c) => {
   if (!c) return "";
@@ -393,7 +403,7 @@ const checkBox = (c) => {
   if (s.configured) facts.push(`GOOGLE_ADS_CUSTOMER_ID ${esc(c.want)}: reached ${esc(s.configured.reachable)}${c.login ? ` (login customer id ${esc(c.login)})` : ""}`);
   return `<div class="card" role="status"><p><b>Google access check</b></p><ul>${c.verdict.map((v) => `<li>${esc(v)}</li>`).join("")}</ul>${facts.length ? `<p class="fine">${facts.join("<br>")}</p>` : ""}</div>`;
 };
-export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null } = {}) {
+export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
   const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · daily" : k === "youtube" ? "YouTube niche · weekly · Google Search volumes, not YouTube's numbers" : "category · weekly"; };
   /* RR-326 H: Google's own reason and message for the last refusal */
@@ -413,6 +423,7 @@ export function ownerPage({ connected = false, missing = [], dbOn = false, dbErr
 <p class="fine"><b>No daily limit on this browser</b> for the free score and the keyword finder.</p>
 <h2>Google</h2>${google}${checkBox(check)}${connected ? `<form method="post" action="/owner/check-google"><button class="pill ghost" type="submit">Check Google access (about 10 operations)</button></form>` : ""}${ops}
 <h2>The daily collector</h2>${run}${db}
+${dbOn ? importBox(imported) : ""}
 <h2>The seed list</h2><p class="fine">One group per line: <code>product:key | Name | seed, seed</code> (every day, one request per country with all its seeds), <code>category:key | Name | seed, …</code> or <code>youtube:key | Name | seed, …</code> (each seed, every week). A line starting with # is a note.${seedAt ? ` Saved ${esc(seedAt.slice(0, 16).replace("T", " "))} UTC.` : " This is the first list — not yet saved by you."}</p>
 <form method="post" action="/owner/seeds"><textarea name="seeds" rows="24" style="width:100%;font-family:Consolas,monospace;font-size:13px">${esc(seedDraft ?? seedText)}</textarea><p><button class="pill" type="submit">Save the list</button></p></form>
 <form method="post" action="/owner/collect" style="display:inline"><button class="pill ghost" type="submit">Collect now (one short run)</button></form>

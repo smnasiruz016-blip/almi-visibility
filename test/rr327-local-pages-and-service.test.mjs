@@ -21,7 +21,7 @@ import { groupQuestions } from "../desktop/page-plan.mjs";
 import { sortQuestions } from "../desktop/questions.mjs";
 import { venueCitiesIn, venueCountries, gazetteerOf } from "../desktop/venues.mjs";
 import { localPages, PROFESSION_WORDS } from "../desktop/local-pages.mjs";
-import { dataPointsOf, contentOf, GATES } from "../desktop/pseo.mjs";
+import { dataPointsOf, contentOf, GATES, batchesOf } from "../desktop/pseo.mjs";
 import { mergeObservations, itemsOf, byLocationOf, localKeywordStore, emptyDb, fileIdOf, SOURCES } from "../desktop/keyword-db.mjs";
 import { keywordService, collectForPlan, serviceOnLine, sourceLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS } from "../desktop/keyword-service.mjs";
 import { classify } from "../desktop/demand.mjs";
@@ -237,4 +237,13 @@ test("O · an account not active yet is never \"Google's known fault\"; LICENCE_
   assert.match(page("missing"), /The app's keyword service is OFF: LICENCE_PUBLIC_KEY is missing in Vercel \(Production\)/); assert.match(page("set"), /LICENCE_PUBLIC_KEY is set/);
   assert.match(page("set"), /The Google Ads account is not active yet/); assert.doesNotMatch(page("set"), /Google names a known fault/);
   assert.deepEqual(["canva resume", "zety cv", "indeed jobs", "e2 oet", "benchmark oet", "kaplan oet", "oet fees"].map(groupOf), ["brands", "brands", "brands", "brands", "brands", "brands", "prices"]);
+});
+
+/* ── D · proof debt: two rules no earlier fixture reached alone (sabpd re-aimed limbs sab321 E2 and D5 were NOT RED) ─────────── */
+test("D · with the same Keyword Planner range, the page searched from more countries comes first (not the one seen more); a refusing bank is named, never 'a rate of undefined'", () => {
+  const pg = (title) => ({ title, kind: "topic", status: "demand", kp: { low: 50, high: 500 }, dataPoints: Array(10).fill({}) });
+  const reach = (p) => (p.title === "A" ? { countries: 5, impressions: 10 } : { countries: 1, impressions: 1000 });
+  assert.deepEqual(batchesOf([pg("B"), pg("A")], reach)[0], ["A", "B"], "countries first, then impressions");
+  const line = feeInCurrency(FEE, "Pakistan", { ...RATES, banks: { PKR: { refused: "SBP: the page answered 403", source: "SBP", short: "SBP", link: "https://sbp.example" } } }).line;
+  assert.match(line, /SBP: the page answered 403/); assert.doesNotMatch(line, /undefined/);
 });

@@ -22,12 +22,12 @@ import { createApp } from "../site/app.mjs";
 import * as P from "../site/pages.mjs";
 import { DEFAULT_SEEDS, parseSeeds, unitsOf, LOCATIONS } from "../site/kw-seeds.mjs";
 import { memoryStore, pgStore, dbUrlOf } from "../site/kw-store.mjs";
-import { siteAds, QUOTA, ACCESS_LINE, adsConfigOf } from "../site/kw-google.mjs";
+import { siteAds, QUOTA, ACCESS_LINE, adsConfigOf, CHECK, failureOf } from "../site/kw-google.mjs";
 import { runCollector, plan, COLLECTOR } from "../site/kw-collector.mjs";
 import { findKeywords, finderQuery, groupOf, csvOf, SOURCE_LINE, FINDER } from "../site/kw-finder.mjs";
 import { isOwner, ownerCookie, OWNER_RULES } from "../site/owner.mjs";
 import { kvStore } from "../site/limits.mjs";
-import { withAdditions, ADDITIONS, loadLegal } from "../site/legal.mjs";
+import { loadLegal } from "../site/legal.mjs";
 import { adsStatus } from "../desktop/google-ads.mjs";
 import { main as signIn, clientFromFile, cleanPath } from "../site/owner-google-sign-in.mjs";
 import { CRONS, VERCEL_JSON_LITE, LITE_DEPENDENCIES } from "../tools/bundle-site.mjs";
@@ -392,6 +392,81 @@ test("A · the owner's sign-in script: the client ID and secret are read from Go
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+/* RR-326 H · Google's documented shapes for the access check: customers:listAccessibleCustomers, googleAds:search (customer and
+   customer_client rows, camelCase, int64 as strings) and generateKeywordIdeas refused with an AuthorizationError reason */
+const authFail = (reason, message = "The caller does not have permission") => ({ error: { code: 403, status: "PERMISSION_DENIED", message: "The caller does not have permission", details: [{ "@type": "type.googleapis.com/google.ads.googleads.v26.errors.GoogleAdsFailure", errors: [{ errorCode: { authorizationError: reason }, message }], requestId: "req-for-tests-1" }] } });
+function fakeAccounts({ accessible = [], accounts = {}, clients = {}, ideas = null, token = null } = {}) {
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    const u = String(url), h = init.headers ?? {}; calls.push({ url: u, login: h["login-customer-id"] ?? null, body: init.body ?? null });
+    if (u === "https://oauth2.googleapis.com/token") return token ? new Response(JSON.stringify(token), { status: 400 }) : new Response(JSON.stringify({ access_token: "access-for-tests", expires_in: 3599 }), { status: 200 });
+    if (u === "https://googleads.googleapis.com/v26/customers:listAccessibleCustomers") return new Response(JSON.stringify({ resourceNames: accessible.map((x) => `customers/${x}`) }), { status: 200 });
+    let m = /\/v26\/customers\/(\d{10})\/googleAds:search$/.exec(u);
+    if (m) {
+      const q = JSON.parse(init.body).query;
+      if (/FROM customer_client/.test(q)) return new Response(JSON.stringify({ results: (clients[m[1]] ?? []).map((c) => ({ customerClient: { id: c.id, manager: c.manager ?? false, testAccount: false, status: c.status ?? "ENABLED", level: "1" } })) }), { status: 200 });
+      const a = accounts[m[1]]; if (!a) return new Response(JSON.stringify(authFail("USER_PERMISSION_DENIED")), { status: 403 });
+      return new Response(JSON.stringify({ results: [{ customer: { resourceName: `customers/${m[1]}`, id: m[1], manager: a.manager ?? false, testAccount: a.test ?? false, status: a.status ?? "ENABLED" } }] }), { status: 200 });
+    }
+    m = /\/v26\/customers\/(\d{10}):generateKeywordIdeas$/.exec(u);
+    if (m) return ideas ? new Response(JSON.stringify(ideas), { status: 403 }) : new Response(JSON.stringify({ results: [{ text: "oet", keywordIdeaMetrics: {} }, { text: "oet exam", keywordIdeaMetrics: {} }] }), { status: 200 });
+    return new Response("{}", { status: 404 });
+  };
+  return { calls, fetchImpl };
+}
+const checkWith = async (g, env = FULL_ENV) => { const clock = clockAt(), K = fakeKv(clock); const ads = siteAds({ env, kv: K.kv, fetchImpl: g.fetchImpl, now: clock.now, sleep: clock.sleep }); return { r: await ads.check(), K, ads }; };
+
+test("H · the owner's Google access check: Google's own reason kept; the accounts this sign-in reaches (ids only); manager or normal; the id not reachable; reached only through a manager; Google's side; never a key", async () => {
+  /* the configured id is not one this sign-in reaches */
+  const a = await checkWith(fakeAccounts({ accessible: ["9998887776"], accounts: { "9998887776": {} }, ideas: authFail("USER_PERMISSION_DENIED", "User doesn't have permission to access customer. Note: If you're accessing a client customer, the manager's customer id must be set in the 'login-customer-id' header.") }));
+  assert.equal(a.r.ok, false); assert.deepEqual(a.r.steps.accessible.ids, ["9998887776"]); assert.equal(a.r.steps.configured.reachable, "no");
+  assert.match(a.r.verdict[0], /GOOGLE_ADS_CUSTOMER_ID \(1234567890\) is NOT an account this sign-in reaches\. Reachable: 9998887776\./);
+  assert.match(a.r.verdict.at(-1), /The keyword request is refused: USER_PERMISSION_DENIED — .*Google's message: "User doesn't have permission to access customer\./);
+  const last = JSON.parse(a.K.m.get("av:ads:last").v); assert.equal(last.reason, "USER_PERMISSION_DENIED"); assert.equal(last.requestId, "req-for-tests-1");
+  /* the configured id IS a manager account, reached directly — its clients listed */
+  const b = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": { manager: true } }, clients: { "1234567890": [{ id: "1112223334" }] }, ideas: authFail("ACTION_NOT_PERMITTED") }));
+  assert.equal(b.r.steps.configured.reachable, "directly"); assert.equal(b.r.steps.configured.info.manager, true);
+  assert.deepEqual(b.r.steps.managers[0].clients.map((x) => x.id), ["1112223334"]);
+  assert.ok(b.r.verdict.some((v) => /1234567890 is a MANAGER account\. Keyword ideas are asked in a normal \(client\) account/.test(v)));
+  assert.ok(!b.r.verdict.some((v) => /Google's side/.test(v)), "a manager id is not blamed on Google");
+  /* reached only through a manager, no login customer id set */
+  const c = await checkWith(fakeAccounts({ accessible: ["5556667778"], accounts: { "5556667778": { manager: true } }, clients: { "5556667778": [{ id: "1234567890" }] }, ideas: authFail("USER_PERMISSION_DENIED") }));
+  assert.equal(c.r.steps.configured.reachable, "through manager 5556667778");
+  assert.match(c.r.verdict[0], /1234567890 is reached only through manager account 5556667778: add GOOGLE_ADS_LOGIN_CUSTOMER_ID = 5556667778/);
+  const c2 = fakeAccounts({ accessible: ["5556667778"], accounts: { "5556667778": { manager: true } }, clients: { "5556667778": [{ id: "1234567890" }] } });
+  const c2r = (await checkWith(c2, { ...FULL_ENV, GOOGLE_ADS_LOGIN_CUSTOMER_ID: "555-666-7778" })).r;
+  assert.equal(c2r.ok, true); assert.match(c2r.verdict.at(-1), /The keyword request WORKS now \(2 ideas for "oet"\)/);
+  assert.equal(c2.calls.find((x) => /generateKeywordIdeas/.test(x.url)).login, "5556667778", "the login customer id is sent");
+  /* not active / test account */
+  const d = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": { status: "CANCELED" } }, ideas: authFail("CUSTOMER_NOT_ENABLED") }));
+  assert.ok(d.r.verdict.some((v) => /has status CANCELED — Google serves only an ENABLED account/.test(v)));
+  /* everything right on our side: Google's known fault named */
+  const e = await checkWith(fakeAccounts({ accessible: ["1234567890"], accounts: { "1234567890": {} }, ideas: authFail("ACTION_NOT_PERMITTED") }));
+  assert.equal(e.r.verdict.length, 2); assert.match(e.r.verdict[1], /what is left is Google's side: the known fault for projects upgraded after 9 Sep 2026/);
+  /* the sign-in refused: Google's error NAME only */
+  const f = await checkWith(fakeAccounts({ token: { error: "invalid_grant", error_description: "Token has been expired or revoked." } }));
+  assert.equal(f.r.ok, false); assert.equal(f.r.steps.signIn.reason, "invalid_grant"); assert.match(f.r.verdict[0], /The Google sign-in is refused \(invalid_grant\) — run owner-google-sign-in\.mjs again/);
+  /* bounded: at most 1 + CHECK.accounts + 1 + CHECK.managers + 1 Google operations, all counted as the owner's */
+  const many = fakeAccounts({ accessible: Array.from({ length: 9 }, (_, i) => `100000000${i}`), accounts: Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`100000000${i}`, { manager: true }])) });
+  const m = await checkWith(many); const googleCalls = many.calls.filter((x) => x.url.startsWith("https://googleads.")).length;
+  assert.ok(googleCalls <= 1 + CHECK.accounts + 1 + CHECK.managers + 1, `${googleCalls} calls`); assert.equal(Number(m.K.m.get("av:ads:ops:2026-10-26:owner").v), googleCalls);
+  /* Google's message is scrubbed of anything key-like */
+  assert.equal(failureOf(authFail("X", `bad ${"a".repeat(50)} here`)).message, "bad [cut] here");
+  /* the owner's page: the button, the check, Google's reason for the last refusal — and no secret anywhere */
+  const clock = clockAt("2026-10-26T10:00:00Z"), G = fakeAccounts({ accessible: ["9998887776"], accounts: { "9998887776": {} }, ideas: authFail("USER_PERMISSION_DENIED", "User doesn't have permission to access customer.") });
+  const s = await site({ clock, google: G });
+  try {
+    assert.equal((await s.req("/owner/check-google", { method: "POST", form: {} })).status, 403, "only the owner");
+    const cookie = (await s.req("/owner/sign-in", { method: "POST", form: { key: OWNER_KEY } })).headers.get("set-cookie").split(";")[0];
+    assert.match((await s.req("/owner", { cookie })).text, /action="\/owner\/check-google"/);
+    const page = (await s.req("/owner/check-google", { method: "POST", form: {}, cookie })).text;
+    assert.match(page, /Google access check/); assert.match(page, /Accounts this sign-in reaches: 9998887776 — normal account, ENABLED/);
+    assert.match(page, /GOOGLE_ADS_CUSTOMER_ID 1234567890: reached no/);
+    assert.match(page, /Google&#39;s last answer today \(10:00 UTC\)|Google's last answer today \(10:00 UTC\)/); assert.match(page, /Google's reason: <b>USER_PERMISSION_DENIED<\/b> — “User doesn(&#39;|')t have permission to access customer\.”/);
+    for (const v of secretValues) assert.ok(!page.includes(v), "no secret in the page");
+  } finally { await s.close(); }
+});
+
 test("E · the app: switched on with Basic access, its line says \"Google Ads: Basic access — keyword data on\"", () => {
   assert.equal(adsStatus({ on: true, access: "basic", clientId: "c", customerId: "1234567890" }, { signedIn: true }).line, "Google Ads: Basic access — keyword data on");
   assert.equal(adsStatus({ on: true, access: "basic" }).line, "Google Ads: Basic access — keyword data on");
@@ -399,15 +474,15 @@ test("E · the app: switched on with Basic access, its line says \"Google Ads: B
   assert.match(adsStatus({ on: true, access: "explorer" }).line, /Basic access needed for keyword data/);
 });
 
-test("F · the privacy addition: the owner's words exactly, before \"How long we keep data\", once — never twice, never dropped by reading his Word file again", () => {
-  const L = loadLegal(), words = (b) => (b.runs ?? []).map((r) => r.text).join("");
-  const at = L.privacy.findIndex((b) => words(b) === ADDITIONS[0].text);
-  assert.equal(ADDITIONS[0].text, "Free keyword finder: the words you search and the results are stored, without any personal data, so the finder gets faster and better for everyone. Search volumes come from Google Ads Keyword Planner.");
-  assert.ok(at > 0); assert.equal(L.privacy[at].kind, "p"); assert.match(words(L.privacy[at + 1]), /How long we keep data$/);
-  assert.equal(L.privacy.filter((b) => words(b) === ADDITIONS[0].text).length, 1);
-  assert.equal(withAdditions(L).privacy.length, L.privacy.length, "added twice");
-  assert.throws(() => withAdditions({ privacy: [{ kind: "heading", runs: [{ text: "Other" }] }] }), /not in the privacy page/);
-  assert.match(P.privacy({ lite: true }) ?? "", /<p>Free keyword finder: the words you search and the results are stored, without any personal data, so the finder gets faster and better for everyone\. Search volumes come from Google Ads Keyword Planner\.<\/p><h2>6\. How long we keep data<\/h2>/);
+test("F · the privacy page is the owner's 26 Oct Word file exactly — his keyword-search words from his file, nothing added by the site", () => {
+  const L = loadLegal(), words = (b) => (b.runs ?? []).map((r) => r.text).join(""), file = JSON.parse(readFileSync(join(REPO, "site/legal.generated.json"), "utf8"));
+  assert.deepEqual(L, file, "the page is the generated file, with nothing added");
+  assert.ok(L.privacy.some((b) => words(b) === "Last updated: 26 October 2026"));
+  const kw = L.privacy.filter((b) => words(b).startsWith("Keyword searches: "));
+  assert.equal(kw.length, 1); assert.equal(kw[0].kind, "li");
+  assert.match(words(kw[0]), /Search volumes come from Google Ads Keyword Planner, through AlmiWorld’s own Google Ads account\.$/);
+  assert.equal(L.privacy.filter((b) => words(b).startsWith("Free keyword finder: ")).length, 0, "the old added paragraph is gone");
+  assert.doesNotMatch(P.privacy({ lite: true }) ?? "", /Free keyword finder: the words you search/);
 });
 
 test("D · the bundle: the database driver pinned, eight daily crons, 300 s, the owner's script, .vercelignore", () => {

@@ -150,6 +150,8 @@ test("L · a destination country is its hub's section, never a second page; an o
   const refused = localPages({ subject: "OET", reqCountries: [], venues: VENUES, section: (c) => { const f = feeInCurrency(FEE, c, { ...RATES, banks: { PKR: { refused: "SBP: answered 403", source: "SBP", short: "SBP", link: "https://sbp.example" } } }); return { country: c, fee: f.line, steps: f.steps ?? [], nearest: [] }; }, originFacts: ORIGIN, kwByCountry, regulator: regs, professions: PROFS, whereTitle: "Where to take OET", on: ON });
   assert.equal(refused.country.find((p) => p.country === "Pakistan").title, "OET in Pakistan: test centres, the fee and the steps");
   assert.equal(refused.city.find((p) => p.city === "Lahore").title, "OET centre Lahore: the venue, the fee and how to book");
+  assert.equal(refused.country.find((p) => p.country === "Pakistan").feeLocal, null, "a US-dollar fallback is no fee in local money");
+  for (const p of [refused.city.find((x) => x.city === "Lahore"), refused.countryprof.find((x) => x.country === "Pakistan")]) assert.ok(!dataPointsOf(p).some((d) => d.label === "The fee in local money"), `${p.title}: the fallback counted as a local fee`);
   const np = x.country.find((p) => p.country === "Nepal"); assert.equal(np.venue, false); assert.equal(np.feeLocal, null); assert.match(np.title, /taking it at home/);
   assert.ok(dataPointsOf(np).length < GATES.minData);
   const c = contentOf(pk, { subject: "OET", on: ON });

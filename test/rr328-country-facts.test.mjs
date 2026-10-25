@@ -98,10 +98,11 @@ test("B · RR-328: the collector's own checks — the name and the address stand
   assert.ok(addressOnPage("Plot 21, Mauve Area, G-10/4, Islamabad 44000", page)); assert.equal(addressOnPage("Plot 99, Blue Area, Islamabad 44000", page), false, "its numbers must stand on the page");
   assert.ok(quoteOnPage("The applicant must submit a request for verification of registration to the council", "Rules. The applicant must submit a request for verification of registration to the council directly."));
   assert.equal(quoteOnPage("The applicant may email any office", "The applicant must submit a request for verification."), false);
+  assert.equal(quoteOnPage("The applicant must submit a request for a refund to any regional office by post", "Rules. The applicant must submit a request for verification of registration to the council directly."), false, "a quote that only starts like the page");
   assert.ok(governmentHost("pnc.gov.pk") && governmentHost("moh.go.ke") && governmentHost("salud.gob.mx") && governmentHost("health.govt.nz") && governmentHost("nhs.gov"));
   assert.equal(governmentHost("pnmc-info.com"), false);
   assert.deepEqual(numbersOf("It costs AUD 587 (about 114,200 PKR) in 2026."), ["587", "114200", "2026"]);
-  const g = questionGroups([{ keyword: "oet fee in pakistan", volume: 880 }, { keyword: "oet exam fees pakistan", volume: 320 }, { keyword: "oet centre lahore", volume: 320 }, { keyword: "e2 oet", volume: 9000 }, { keyword: "ielts fee", volume: 5000 }, { keyword: "how long is oet valid", volume: 70 }, { keyword: "oet re-marking", volume: 30 }], { subject: "OET", skip: BRANDS });
+  const g = questionGroups([{ keyword: "oet fee in pakistan", volume: 880 }, { keyword: "oet exam fees pakistan", volume: 320 }, { keyword: "oet centre lahore", volume: 320 }, { keyword: "e2 oet", volume: 9000 }, { keyword: "benchmark oet fees", volume: 4000 }, { keyword: "ielts fee", volume: 5000 }, { keyword: "how long is oet valid", volume: 70 }, { keyword: "oet re-marking", volume: 30 }], { subject: "OET", skip: BRANDS });
   assert.deepEqual(g.map((x) => [x.group, x.volume]), [["fees", 1200], ["centres", 320], ["validity", 70], ["remark", 30]]);
   assert.deepEqual([professionKey("Doctors"), professionKey("speech pathology"), professionKey("vets"), professionKey("plumbers")], ["medicine", "speech pathology", "veterinary science", null]);
 });
@@ -361,6 +362,8 @@ test("G · RR-328 (owner): re-marking searches go to the results page, which car
   const p = planFromList({ subject: "OET", rec: recognitionOf(builtInList("recognising"), { professions: PROFS }), professions: PROFS, universities: [], venues: { countries: [], home: null }, fee: FEE, rates: null, groups: [], items, facts, on: ON, languages: ["en"], councils: builtInList("origins"), kwByCountry: {}, originFacts: null, countryFacts: {} });
   const topics = p.kinds.topic.map((t) => t.title), rt = p.kinds.topic.find((t) => t.title === "OET results: when they come out");
   assert.ok(rt, topics.join(" | ")); assert.ok(!topics.some((t) => /re-?marking/i.test(t)), "no page of its own");
+  assert.equal(p.tables.demand.rows.find((r) => /^Clusters/.test(r.step)).kept.find((x) => /oet remarking fee/.test(x.name))?.why, "100–1K a month → OET results: when they come out", "the re-marking search answered on the results page");
+  assert.ok(!(p.gates.topic.sections ?? []).some((x) => /re-?marking/i.test(x.name)), "never a section of its own either");
   assert.deepEqual(rt.sectionsIn.map((s) => s.heading), ["Re-marking"]); assert.deepEqual(rt.sectionsIn[0].lines.map((l) => l.text), ["a re-mark costs AU$120 per sub-test.", "a re-mark must be asked for within 72 hours of the results' release."]);
   assert.ok(rt.content.sections.length === 1 && rt.content.steps.some((s) => /re-mark/.test(s)));
   const MAIN = (await import("node:fs")).readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8");

@@ -1,7 +1,7 @@
 {
  "source": {
-  "file": "AlmiVisibility_Terms_and_Privacy_2026-10-25.docx",
-  "sha256": "4a571c99fc9fb3c412ecac9c91ef8e69bc793d214bb055c7490e0f048e831b48",
+  "file": "AlmiVisibility_Terms_and_Privacy_2026-10-25,1.docx",
+  "sha256": "c3c3097b23be243468f0d8c4cf787af57a7c9fec10df374ec2aa8b730cfec022",
   "readOn": "2026-10-25"
  },
  "fills": {
@@ -338,7 +338,7 @@
    "kind": "p",
    "runs": [
     {
-     "text": "Last updated: 25 October 2026",
+     "text": "Last updated: 26 October 2026",
      "bold": false,
      "href": null
     }
@@ -369,7 +369,7 @@
    "kind": "li",
    "runs": [
     {
-     "text": "Your work stays on your computer. Your projects, reports, drafts and the data AlmiVisibility reads from Google are stored on your own computer, not on AlmiWorld’s servers.",
+     "text": "Your work stays on your computer. Your projects, reports, drafts and the data AlmiVisibility reads from your own Google account are stored on your own computer, not on AlmiWorld’s servers.",
      "bold": false,
      "href": null
     }
@@ -517,7 +517,7 @@
    "kind": "li",
    "runs": [
     {
-     "text": "This data is read on your computer and stored only on your computer.",
+     "text": "Data from your own Google account is read on your computer and stored only on your computer.",
      "bold": false,
      "href": null
     }
@@ -640,6 +640,16 @@
    "runs": [
     {
      "text": "Updates: the app asks our server whether a newer version exists.",
+     "bold": false,
+     "href": null
+    }
+   ]
+  },
+  {
+   "kind": "li",
+   "runs": [
+    {
+     "text": "Keyword searches: when you use the free keyword finder on our website, or AlmiWorld’s keyword service in the app, the words you search are sent to AlmiWorld. We store the searched words and the keyword results, never together with personal data, so the service gets faster and better for everyone. Search volumes come from Google Ads Keyword Planner, through AlmiWorld’s own Google Ads account.",
      "bold": false,
      "href": null
     }

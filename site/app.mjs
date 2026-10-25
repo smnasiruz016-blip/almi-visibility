@@ -310,6 +310,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           await db.setSeedList(text, new Date(now()).toISOString());
           return send(200, await ownerPage({ message: `Saved: ${p.groups.length} groups.` }), undefined, priv);
         }
+        /* RR-326 H · the owner's Google access check: Google's own reason, the accounts this sign-in reaches (ids only) */
+        if (req.method === "POST" && u.pathname === "/owner/check-google") {
+          if (!ads?.configured()) return send(503, await ownerPage({ message: "Google is not connected yet." }), undefined, priv);
+          return send(200, await ownerPage({ check: await ads.check() }), undefined, priv);
+        }
         if (req.method === "POST" && u.pathname === "/owner/collect") {
           if (!finderOn()) return send(503, await ownerPage({ message: "Google, the store and the database must all be connected first." }), undefined, priv);
           const r = await runCollector({ store: db, ads, kv, now, budgetMs: 50000 });

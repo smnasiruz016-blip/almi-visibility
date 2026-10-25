@@ -17,7 +17,7 @@ import { loadLegal, fillsIn, renderLegal } from "./legal.mjs"; // RR-325 C
 import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
 import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
 import { FINDER, SOURCE_LINE, periodWords } from "./kw-finder.mjs";
-import { ACCESS_LINE, plainError } from "./kw-google.mjs";
+import { ACCESS_LINE, plainError, reasonLine } from "./kw-google.mjs";
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -383,10 +383,22 @@ const OWNER_OFF = Object.freeze({
 });
 export const ownerOff = (why) => ownerFrame("Owner", `<h1>The owner's page is off</h1><p>${esc(OWNER_OFF[why] ?? OWNER_OFF.missing)}</p><p class="fine">After you change a setting in Vercel, run <code>npx vercel@latest --prod</code> again — a setting reaches the site only with a new deployment.</p>`);
 export const ownerSignIn = (why = null) => ownerFrame("Owner", `<h1>Owner</h1><form class="testform" method="post" action="/owner/sign-in" style="max-width:520px"><label class="f" for="key">Your owner key</label><input id="key" name="key" type="password" autocomplete="current-password" required>${why ? `<p class="err" role="alert">${esc(why)}</p>` : ""}<button class="pill" type="submit">Sign in</button><p class="fine">Once on this browser — it then stays signed in for 180 days.</p></form>`);
-export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null } = {}) {
+/** RR-326 H · the owner's access check, in plain lines (ids and Google's names only) */
+const checkBox = (c) => {
+  if (!c) return "";
+  const s = c.steps ?? {}, row = (a) => `${esc(a.id)} — ${a.ok === false ? esc(reasonLine(a.f)) : `${a.manager ? "manager account" : "normal account"}${a.test ? ", TEST" : ""}, ${esc(a.status)}`}`;
+  const facts = [];
+  if (s.accessible?.ok) facts.push(`Accounts this sign-in reaches: ${s.accessible.ids.length ? [...(s.direct ?? []).map(row), ...s.accessible.ids.slice((s.direct ?? []).length).map(esc)].join("; ") : "none"}`);
+  for (const m of s.managers ?? []) facts.push(`Under manager ${esc(m.id)}: ${m.ok ? m.clients.map(row).join("; ") || "no accounts" : esc(reasonLine(m.f))}`);
+  if (s.configured) facts.push(`GOOGLE_ADS_CUSTOMER_ID ${esc(c.want)}: reached ${esc(s.configured.reachable)}${c.login ? ` (login customer id ${esc(c.login)})` : ""}`);
+  return `<div class="card" role="status"><p><b>Google access check</b></p><ul>${c.verdict.map((v) => `<li>${esc(v)}</li>`).join("")}</ul>${facts.length ? `<p class="fine">${facts.join("<br>")}</p>` : ""}</div>`;
+};
+export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
   const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · daily" : k === "youtube" ? "YouTube niche · weekly · Google Search volumes, not YouTube's numbers" : "category · weekly"; };
-  const google = connected ? (usage?.last && usage.last.at?.slice(0, 10) === usage.day ? `<p class="err">${esc(ACCESS_LINE)} — but Google's last answer today (${esc(usage.last.at.slice(11, 16))} UTC): ${esc(plainError(usage.last.code))}</p>` : `<p><b>${esc(ACCESS_LINE)}</b></p>`) : `<p class="err">Google is not connected — missing in Vercel: ${esc(missing.join(", "))}.</p>`;
+  /* RR-326 H: Google's own reason and message for the last refusal */
+  const why = (l) => (l.reason ? ` Google's reason: <b>${esc(l.reason)}</b>${l.message ? ` — “${esc(l.message)}”` : ""}` : "");
+  const google = connected ? (usage?.last && usage.last.at?.slice(0, 10) === usage.day ? `<p class="err">${esc(ACCESS_LINE)} — but Google's last answer today (${esc(usage.last.at.slice(11, 16))} UTC): ${esc(plainError(usage.last.code))}${why(usage.last)}</p>` : `<p><b>${esc(ACCESS_LINE)}</b></p>`) : `<p class="err">Google is not connected — missing in Vercel: ${esc(missing.join(", "))}.</p>`;
   const ops = usage ? `<div class="tablewrap"><table class="t"><tr><th>Google operations today (${esc(usage.day)}, counted by this site before sending)</th><th>Used</th><th>Our cap</th></tr>
 <tr><td>All together</td><td>${usage.all.toLocaleString("en-US")}</td><td>${usage.caps.ceiling.toLocaleString("en-US")} (Google's Basic limit: ${usage.caps.googleDaily.toLocaleString("en-US")} a day)</td></tr>
 <tr><td>Daily collector</td><td>${usage.collector.toLocaleString("en-US")}</td><td>${usage.caps.collector.toLocaleString("en-US")} (one third of Google's)</td></tr>
@@ -399,7 +411,7 @@ export function ownerPage({ connected = false, missing = [], dbOn = false, dbErr
 <h2>By country</h2><div class="tablewrap"><table class="t"><tr><th>Country</th><th>Keywords</th><th>Today</th></tr>${[...counts.locations].sort((x, y) => (x.location === "ALL" ? -1 : y.location === "ALL" ? 1 : String(lname[x.location] ?? x.location).localeCompare(String(lname[y.location] ?? y.location)))).map((l) => `<tr><td>${esc(lname[l.location] ?? l.location)}</td><td>${l.keywords.toLocaleString("en-US")}</td><td>${l.today.toLocaleString("en-US")}</td></tr>`).join("") || '<tr><td colspan="3">Nothing collected yet.</td></tr>'}</table></div>` : "";
   return ownerFrame("Owner", `<h1>Owner — keywords</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
 <p class="fine"><b>No daily limit on this browser</b> for the free score and the keyword finder.</p>
-<h2>Google</h2>${google}${ops}
+<h2>Google</h2>${google}${checkBox(check)}${connected ? `<form method="post" action="/owner/check-google"><button class="pill ghost" type="submit">Check Google access (about 10 operations)</button></form>` : ""}${ops}
 <h2>The daily collector</h2>${run}${db}
 <h2>The seed list</h2><p class="fine">One group per line: <code>product:key | Name | seed, seed</code> (every day, one request per country with all its seeds), <code>category:key | Name | seed, …</code> or <code>youtube:key | Name | seed, …</code> (each seed, every week). A line starting with # is a note.${seedAt ? ` Saved ${esc(seedAt.slice(0, 16).replace("T", " "))} UTC.` : " This is the first list — not yet saved by you."}</p>
 <form method="post" action="/owner/seeds"><textarea name="seeds" rows="24" style="width:100%;font-family:Consolas,monospace;font-size:13px">${esc(seedDraft ?? seedText)}</textarea><p><button class="pill" type="submit">Save the list</button></p></form>

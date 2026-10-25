@@ -130,6 +130,15 @@ test("B · the free score: a normal site scored on screen; a site whose robots.t
     assert.ok([...a.kv.m.keys()].every((k) => !k.includes("203.0.113.9") && !k.includes("shop.example")));
     assert.ok(a.kv.calls.every((c) => c.url === "https://kv.example/pipeline" && c.auth === "Bearer token-for-tests"));
   } finally { await a.close(); }
+  /* IN THE APP (sabotage: unpinned): a name public when the form is sent and private when the pages are read — nothing is read */
+  let asked = 0; const flipping = async (h) => (h === "flip.example" ? (++asked === 1 ? [{ address: "93.184.216.36" }] : [{ address: "10.9.8.7" }]) : resolve(h));
+  const reads = []; const app = createApp({ mode: "public-lite", env: KV_ENV, kvFetch: fakeKv().fetchImpl, resolve: flipping, fetchImpl: async (u) => { reads.push(String(u)); return new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } }); }, freeTest: (o) => runFreeTest({ ...o, paceMs: 0 }) });
+  const srv = createServer(app); await new Promise((r) => srv.listen(0, "127.0.0.1", r)); const base = `http://127.0.0.1:${srv.address().port}`;
+  try {
+    const t = /name="ticket" value="([^"]+)"/.exec(await (await fetch(base + "/")).text())[1]; await new Promise((r) => setTimeout(r, 2100));
+    const h = await (await fetch(base + "/score", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ url: "flip.example", ticket: t }) })).text();
+    assert.match(h, /0 of up to 10 pages read/); assert.deepEqual(reads, [], "not even robots.txt was asked of the private address");
+  } finally { srv.close(); }
 });
 
 test("B · every REQUEST of a check is checked for a public address (robots.txt and each page) — a name that turns private between the form and the read is refused", async () => {
@@ -138,7 +147,7 @@ test("B · every REQUEST of a check is checked for a public address (robots.txt 
   const guarded = publicOnly(f, { resolve: res });
   assert.equal((await guarded("https://shop.example/robots.txt")).status, 200);
   flip = true; await assert.rejects(guarded("https://shop.example/"), /Only public websites/); assert.deepEqual(sent, ["https://shop.example/robots.txt"]);
-  for (const [ip, priv] of [["10.0.0.1", true], ["172.16.0.1", true], ["172.31.255.255", true], ["172.32.0.1", false], ["192.168.1.1", true], ["169.254.169.254", true], ["100.64.0.1", true], ["0.0.0.0", true], ["127.0.0.1", true], ["::1", true], ["fd00:ec2::254", true], ["fe80::1", true], ["::ffff:172.16.0.1", true], ["::ffff:169.254.169.254", true], ["::ffff:a9fe:a9fe", true], ["93.184.216.34", false], ["2606:4700::1111", false]])
+  for (const [ip, priv] of [["10.0.0.1", true], ["172.16.0.1", true], ["172.31.255.255", true], ["172.32.0.1", false], ["192.168.1.1", true], ["169.254.169.254", true], ["100.64.0.1", true], ["0.0.0.0", true], ["127.0.0.1", true], ["::1", true], ["fd00:ec2::254", true], ["fe80::1", true], ["::ffff:172.16.0.1", true], ["::ffff:169.254.169.254", true], ["::ffff:a9fe:a9fe", true], ["93.184.216.34", false], ["2606:4700::1111", false], ["::ffff:93.184.216.34", false] /* judged as the IPv4 address it is (sabotage: unpinned) */])
     assert.equal(privateAddress(ip), priv, ip);
   /* the time limit: no new page after it — the rest said so */
   let t = 0; const slow = async (u) => { t += 20000; return siteFetch(u); };
@@ -154,6 +163,7 @@ test("B · the limits work ACROSS instances: per visitor per day, a daily total 
     for (const [i, app] of [one, two, one].entries()) { const r = await app.post("/score", { url: "shop.example", ticket: await app.ticket() }); assert.equal(r.status, 200, `score ${i + 1}`); }
     const fourth = await two.post("/score", { url: "shop.example", ticket: await two.ticket() });
     assert.equal(fourth.status, 429); assert.match(fourth.text, /The free score can be run 3 times a day\. Please come back tomorrow\./);
+    assert.equal(kv.m.get("av:total:2026-10-25"), "3", "the refused 4th was given back to the site's total (sabotage found it unpinned)");
     assert.equal((await one.post("/score", { url: "shop.example", ticket: await one.ticket() }, { ip: "198.51.100.7" })).status, 200, "another visitor still can");
     /* the ticket: used once; too fast; missing; a filled hidden field */
     const tk = await one.ticket();

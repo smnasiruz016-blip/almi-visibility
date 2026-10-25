@@ -47,7 +47,7 @@ export const VERCEL_JSON = { $schema: "https://openapi.vercel.sh/vercel.json", f
 export const CRONS = Object.freeze(Array.from({ length: 8 }, (_, h) => Object.freeze({ path: "/cron/keywords", schedule: `7 ${h} * * *` })));
 export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: CRONS };
 export const LITE_DEPENDENCIES = Object.freeze({ pg: "8.23.1" });
-export const OWNER_SCRIPT = "tools/owner-google-sign-in.mjs";
+export const OWNER_SCRIPT = "site/owner-google-sign-in.mjs"; // the website's own deployment script — not engine code (F03 C2c's census is the engine's)
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const lite = process.argv.includes("--public-lite"), out = process.argv.slice(2).find((a) => !a.startsWith("--"));

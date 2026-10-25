@@ -9,7 +9,7 @@
  *   · Our own ceilings, well inside Google's: the collector at most one third of the day (5,000), the public finder 2,000, the app's keyword
  *     service 3,000, and everything together at most two thirds (10,000). The owner has no cap of his own — only the total. A refused
  *     request is never sent.
- * Keys by NAME only (the owner puts them in Vercel himself — tools/owner-google-sign-in.mjs puts the sign-in there without showing it):
+ * Keys by NAME only (the owner puts them in Vercel himself — site/owner-google-sign-in.mjs puts the sign-in there without showing it):
  * GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, GOOGLE_ADS_REFRESH_TOKEN, GOOGLE_ADS_CUSTOMER_ID (+ GOOGLE_ADS_LOGIN_CUSTOMER_ID for a
  * manager account). Never printed, logged or stored anywhere else.
  */

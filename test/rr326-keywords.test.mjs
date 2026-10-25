@@ -1,7 +1,7 @@
 /**
  * RR-326 · the free keyword finder on almivisibility.almiworld.com and the daily keyword collector (AlmiWorld's products first, then the
  * general database of categories and YouTube niches), on Google's own KeywordPlanIdeaService with the owner's Basic access.
- *   A the owner's one-time sign-in (tools/owner-google-sign-in.mjs) puts the sign-in into Vercel without showing it
+ *   A the owner's one-time sign-in (site/owner-google-sign-in.mjs) puts the sign-in into Vercel without showing it
  *   B the collector: every product and country, within our caps, never twice in a day, history kept; the owner's page; the cron's secret
  *   C the finder: from the database first, from Google once, grouped, a CSV, Google named as the source; limits, ticket, hidden field
  *   D the owner without limits — a key only he sets, a cookie that proves it without holding it
@@ -29,7 +29,7 @@ import { isOwner, ownerCookie, OWNER_RULES } from "../site/owner.mjs";
 import { kvStore } from "../site/limits.mjs";
 import { withAdditions, ADDITIONS, loadLegal } from "../site/legal.mjs";
 import { adsStatus } from "../desktop/google-ads.mjs";
-import { main as signIn } from "../tools/owner-google-sign-in.mjs";
+import { main as signIn } from "../site/owner-google-sign-in.mjs";
 import { CRONS, VERCEL_JSON_LITE, LITE_DEPENDENCIES } from "../tools/bundle-site.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -363,7 +363,7 @@ test("A · the owner's sign-in script: Google's own page in his browser; the sig
     const wrong = await signIn({ log: () => {}, cwd: dir, askFn: async () => answers2.shift(), open: (u) => { const o = new URL(u); setTimeout(() => fetch(`${o.searchParams.get("redirect_uri")}?code=c&state=forged`), 10); }, fetchImpl, addEnv: async (n) => { none.push(n); return true; } });
     assert.equal(wrong, 1); assert.deepEqual(none, []);
     /* the CLI gets the value on standard input — never in its arguments */
-    const src = readFileSync(join(REPO, "tools", "owner-google-sign-in.mjs"), "utf8");
+    const src = readFileSync(join(REPO, "site", "owner-google-sign-in.mjs"), "utf8");
     assert.match(src, /p\.stdin\.end\(value\)/); assert.match(src, /"env", "add", name, "--environment", "production", "--sensitive", "--force"\]/); assert.doesNotMatch(src, /--value/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

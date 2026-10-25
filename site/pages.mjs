@@ -375,6 +375,13 @@ ${r.rows.length ? r.groups.map((g) => `<h4>${esc(g.name)} <span class="note">(${
 
 /* ── RR-326 B + D · THE OWNER'S PAGE (owner only; noindex) ── */
 const ownerFrame = (title, inner) => frame({ path: "/owner", lite: true, noindex: true, title: `${title} — AlmiVisibility`, description: "Private.", body: `<section class="page"><div class="wrap prose owner">${inner}</div></section>` });
+/* RR-326 fix: why the owner's page is off — names the setting, never a value */
+const OWNER_OFF = Object.freeze({
+  missing: "OWNER_ACCESS_KEY is not set for Production in Vercel (Settings → Environment Variables), or the site was not deployed again after it was added.",
+  short: "OWNER_ACCESS_KEY in Vercel is shorter than 32 characters, so it is not accepted (a short key could be guessed). Make it at least 32 characters, then deploy again.",
+  store: "The limit store (Upstash) is not connected, so the owner's page cannot count sign-in tries.",
+});
+export const ownerOff = (why) => ownerFrame("Owner", `<h1>The owner's page is off</h1><p>${esc(OWNER_OFF[why] ?? OWNER_OFF.missing)}</p><p class="fine">After you change a setting in Vercel, run <code>npx vercel@latest --prod</code> again — a setting reaches the site only with a new deployment.</p>`);
 export const ownerSignIn = (why = null) => ownerFrame("Owner", `<h1>Owner</h1><form class="testform" method="post" action="/owner/sign-in" style="max-width:520px"><label class="f" for="key">Your owner key</label><input id="key" name="key" type="password" autocomplete="current-password" required>${why ? `<p class="err" role="alert">${esc(why)}</p>` : ""}<button class="pill" type="submit">Sign in</button><p class="fine">Once on this browser — it then stays signed in for 180 days.</p></form>`);
 export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));

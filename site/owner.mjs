@@ -12,8 +12,11 @@ export const OWNER_ENV = "OWNER_ACCESS_KEY";
 export const OWNER_COOKIE = "av_owner";
 export const OWNER_RULES = Object.freeze({ minKeyLength: 32, days: 180, triesPerAddressPerHour: 5, triesPerHour: 30 });
 
-const keyOf = (env) => { const k = String(env[OWNER_ENV] ?? ""); return k.length >= OWNER_RULES.minKeyLength ? k : null; };
+/* spaces or a line end around the key (as a paste into Vercel can leave) are not part of it */
+const keyOf = (env) => { const k = String(env[OWNER_ENV] ?? "").trim(); return k.length >= OWNER_RULES.minKeyLength ? k : null; };
 export const ownerOn = (env = process.env) => keyOf(env) !== null;
+/** why the owner's page is on or off — "on" | "missing" | "short" (says nothing of the key but whether it is there and long enough) */
+export const ownerState = (env = process.env) => { const k = String(env[OWNER_ENV] ?? "").trim(); return !k ? "missing" : k.length < OWNER_RULES.minKeyLength ? "short" : "on"; };
 const sign = (key, exp) => createHmac("sha256", key).update(`av-owner-v1|${exp}`).digest("base64url");
 const same = (a, b) => { const x = createHash("sha256").update(String(a)).digest(), y = createHash("sha256").update(String(b)).digest(); return timingSafeEqual(x, y); };
 
@@ -41,7 +44,7 @@ export async function ownerSignIn({ typed, who, env = process.env, kv, now = Dat
   const me = `av:ownerfail:${hour}:${createHash("sha256").update(String(salt)).update(String(who)).digest("hex").slice(0, 24)}`, all = `av:ownerfail:${hour}`;
   const [m, a] = await kv.run([["GET", me], ["GET", all]]);
   if (Number(m ?? 0) >= OWNER_RULES.triesPerAddressPerHour || Number(a ?? 0) >= OWNER_RULES.triesPerHour) return { ok: false, why: "Too many tries. Please wait an hour." };
-  if (same(String(typed ?? ""), key)) return { ok: true };
+  if (same(String(typed ?? "").trim(), key)) return { ok: true };
   await kv.run([["INCR", me], ["EXPIRE", me, 3600], ["INCR", all], ["EXPIRE", all, 3600]]);
   return { ok: false, why: "That is not the key." };
 }

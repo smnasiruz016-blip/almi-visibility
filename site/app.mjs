@@ -15,8 +15,15 @@ import { reportEmail, sendEmail, sendingOn } from "./email.mjs";
 import { createCheckout } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
-import { createHash, createPublicKey, createPrivateKey } from "node:crypto";
-import { storeOf, kvStore, liteLimits, LITE_LIMITS } from "./limits.mjs"; // RR-325 B
+import { createHash, createPublicKey, createPrivateKey, timingSafeEqual } from "node:crypto";
+import { storeOf, kvStore, liteLimits, LITE_LIMITS, FINDER_COUNTS } from "./limits.mjs"; // RR-325 B
+import { siteAds } from "./kw-google.mjs"; // RR-326
+import { dbUrlOf, pgStore } from "./kw-store.mjs";
+import { runCollector, currentGroups } from "./kw-collector.mjs";
+import { findKeywords, lookupKeywords, finderQuery, csvOf, groupOf, FINDER } from "./kw-finder.mjs";
+import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER } from "./kw-service.mjs";
+import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
+import { isOwner, ownerOn, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -29,8 +36,8 @@ const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 /** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
 export const modeOf = (env = process.env, mode = null) => (mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full")) === "full" ? "full" : "public-lite";
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null } = {}) {
-  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve });
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null } = {}) {
+  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep });
   const store = siteStore({ env, localDir: dataDir });
   const limiter = dailyLimiter({ store });
   const admin = adminSessions({ env, store });
@@ -188,48 +195,150 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
 
 /**
  * 🔴 RR-325 · PUBLIC-LITE (the owner's GREEN for almivisibility.almiworld.com, this site only, until sales open). A handler of its own: it
- * serves the home page (the free score first, "coming soon"), the owner's Privacy Policy and Terms of Service (each only when it has no
- * [FILL]), the logo, the icon, robots.txt, the sitemap and the meter's script (/score.js) — and the free score. EVERYTHING ELSE IS "NOT FOUND": download, pricing, buy and
- * checkout, the licence check, updates, unsubscribe, admin and every /api route. No database, Stripe, Resend, licence or admin code runs:
- * none of their stores or keys is even opened here.
+ * serves the home page (the free score first), the owner's Privacy Policy and Terms of Service (each only when it has no [FILL]), the
+ * logo, the icon, robots.txt, the sitemap and the page script (/score.js) — the free score, and (RR-326) the free keyword finder, the
+ * owner's own page and the collector's cron. EVERYTHING ELSE IS "NOT FOUND": download, pricing, buy and checkout, the licence check,
+ * updates, unsubscribe, admin and every /api route. No Stripe, Resend, licence or admin code runs: none of their keys is even opened here.
  *   THE FREE SCORE: only while the limit store is connected (limits.mjs — the owner adds it in Vercel); a one-use form ticket and a hidden
  *   field (bot protection); per visitor per day and one daily total for the site; only public http(s) sites — every request of a check
  *   (robots.txt and each page) is checked again for a public address; robots.txt obeyed; at most 10 pages; a 30-second time limit. The
  *   result is shown on screen only — nothing about the visitor or the result is stored.
+ *   RR-326 THE KEYWORD FINDER: only while Google (kw-google.mjs), the store and the database (kw-store.mjs) are all connected — else the
+ *   page says "coming soon"; the same ticket and hidden field; per visitor per day and a daily total of searches, and Google's own
+ *   operations capped (kw-google.mjs QUOTA); the words searched and Google's figures are stored — no visitor, no address.
+ *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
+ *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep }) {
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
-  const st = storeOf(env), limits = st ? liteLimits({ kv: kvStore(st, { fetchImpl: kvFetch }), now, siteTotal: total }) : null;
+  const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
+  const finderLimits = kv ? liteLimits({ kv, now, perVisitor: FINDER.perVisitorPerDay, siteTotal: FINDER.siteSearchesPerDay, counts: FINDER_COUNTS }) : null;
+  const ads = kv ? siteAds({ env, kv, fetchImpl: adsFetch, now, ...(sleep ? { sleep } : {}) }) : null;
+  const db = kwStore ?? (dbUrlOf(env) ? pgStore({ url: dbUrlOf(env) }) : null);
+  const finderOn = () => Boolean(kv && db && ads && ads.configured());
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};
   const who = (req) => String(req.headers["x-real-ip"] ?? "").trim() || String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
-  const home = async (o = {}) => { let ticket = null; if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } } return P.liteHome({ scoreOn: Boolean(ticket), ticket, ...o }); };
+  const owner = (req) => isOwner(req, env, now());
+  /* each form gets its own one-use ticket */
+  const home = async (req, o = {}) => {
+    let ticket = null, finderTicket = null;
+    if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } }
+    if (finderOn()) { try { finderTicket = await limits.ticket(); } catch { finderTicket = null; } }
+    return P.liteHome({ scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) } });
+  };
   const published = () => ["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null);
+  const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
+  const ownerPage = async (o = {}) => {
+    const d = new Date(now()).toISOString().slice(0, 10);
+    let counts = null, usage = null, last = null, list = null, dbError = null;
+    if (db) { try { counts = await db.counts(d); list = await db.seedList(); } catch { dbError = "The keyword database could not be read just now."; } }
+    if (ads) { try { usage = await ads.usage(); } catch { usage = null; } }
+    if (kv) { try { const [l] = await kv.run([["GET", "av:collector:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
+    return P.ownerPage({ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, ...o });
+  };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
     let body = "";
-    for await (const c of req) { body += c; if (body.length > 20000) return send(413, "Too large", "text/plain"); }
+    for await (const c of req) { body += c; if (body.length > 64000) return send(413, "Too large", "text/plain"); }
     try {
       const u = new URL(req.url, "http://127.0.0.1");
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
-      if (req.method === "GET" && u.pathname === "/") return send(200, await home(), undefined, { "cache-control": "no-store" });
+      const form = () => (/json/.test(req.headers["content-type"] ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
+      if (req.method === "GET" && u.pathname === "/") return send(200, await home(req), undefined, { "cache-control": "no-store" });
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
-      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
+      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published()].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
       if (req.method === "POST" && u.pathname === "/score") {
-        const f = /json/.test(req.headers["content-type"] ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body));
+        const f = form();
         const values = { url: typeof f.url === "string" ? f.url.slice(0, 300) : "" };
-        const again = async (code, error) => send(code, await home({ error, values }), undefined, { "cache-control": "no-store" });
+        const again = async (code, error) => send(code, await home(req, { error, values }), undefined, { "cache-control": "no-store" });
         if (!limits) return again(503, "The free score is being switched on. Please come back soon.");
         if (f.homepage) return again(400, "Please use the form on this page.");
         const tk = await limits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
         const t = await testableUrl(f.url, dns); if (!t.ok) return again(400, t.why);
-        const take = await limits.take(who(req)); if (!take.ok) return again(429, take.why);
+        const take = owner(req) ? { ok: true, left: null } : await limits.take(who(req)); if (!take.ok) return again(429, take.why); // RR-326 D: the owner has no limit
         const result = await freeTest({ url: t.url, fetchImpl: publicOnly(fetchImpl, dns), deadlineMs: LITE_LIMITS.checkDeadlineMs, linksAndSecurity: true });
-        return send(200, await home({ result, left: take.left, values }), undefined, { "cache-control": "no-store" });
+        return send(200, await home(req, { result, left: take.left, values }), undefined, { "cache-control": "no-store" });
+      }
+      /* RR-326 C · the keyword finder */
+      if (req.method === "POST" && u.pathname === "/keywords") {
+        const f = form(), me = owner(req);
+        const values = { q: typeof f.q === "string" ? f.q.slice(0, 120) : "", location: typeof f.location === "string" ? f.location.slice(0, 3).toUpperCase() : "ALL" };
+        const again = async (code, error) => send(code, await home(req, { finder: { error, values } }), undefined, { "cache-control": "no-store" });
+        if (!finderOn()) return again(503, "The keyword finder is being switched on. Please come back soon.");
+        if (f.homepage) return again(400, "Please use the form on this page.");
+        const tk = await limits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
+        const qq = finderQuery(values.q); if (!qq.ok) return again(400, qq.why);
+        const take = me ? { ok: true, left: null } : await finderLimits.take(who(req)); if (!take.ok) return again(429, take.why);
+        const result = await findKeywords({ q: qq.q, location: values.location, store: db, ads, purpose: me ? "owner" : "finder", now });
+        if (!result.ok) return again(result.code === "OUR_DAILY_LIMIT" ? 429 : 503, result.why);
+        return send(200, await home(req, { finder: { result, left: take.left, values } }), undefined, { "cache-control": "no-store" });
+      }
+      if (req.method === "GET" && u.pathname === "/keywords.csv") {
+        /* from the database only — a download never asks Google */
+        if (!db) return send(404, P.notFound(u.pathname, { lite: true }));
+        const qq = finderQuery(u.searchParams.get("q")), loc = locationOf(u.searchParams.get("location") ?? "ALL");
+        if (!qq.ok || !loc) return send(404, P.notFound(u.pathname, { lite: true }));
+        const d = new Date(now()).toISOString().slice(0, 10), since = new Date(Date.parse(`${d}T00:00:00Z`) - FINDER.reuseDays * 86400000).toISOString().slice(0, 10);
+        const found = await db.findFetch({ seedKey: `q:${qq.q}`, location: loc.code, language: FINDER.language, since });
+        if (!found) return send(404, P.notFound(u.pathname, { lite: true }));
+        const result = { rows: found.rows.map((r) => ({ ...r, group: groupOf(r.keyword) })), locationName: loc.name, language: LANGUAGES[FINDER.language].name, period: found.period };
+        return send(200, csvOf(result), "text/csv; charset=utf-8", { "content-disposition": `attachment; filename="keywords-${qq.q.replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "search"}-${loc.code.toLowerCase()}.csv"`, "cache-control": "no-store", "x-robots-tag": "noindex" });
+      }
+      /* RR-326 B + D · the owner's own page — only when he has set his key in Vercel */
+      if (u.pathname.startsWith("/owner")) {
+        if (!ownerOn(env) || !kv) return send(404, P.notFound(u.pathname, { lite: true }));
+        const priv = { ...PRIVATE };
+        if (req.method === "GET" && u.pathname === "/owner") return send(200, owner(req) ? await ownerPage() : P.ownerSignIn(), undefined, priv);
+        if (req.method === "POST" && u.pathname === "/owner/sign-in") {
+          const r = await ownerSignIn({ typed: form().key, who: who(req), env, kv, now: now() });
+          if (!r.ok) return send(r.why.startsWith("Too many") ? 429 : 403, P.ownerSignIn(r.why), undefined, priv);
+          return send(303, "", "text/plain", { ...priv, location: "/owner", "set-cookie": ownerCookie(env, now()) });
+        }
+        if (req.method === "POST" && u.pathname === "/owner/sign-out") return send(303, "", "text/plain", { ...priv, location: "/", "set-cookie": ownerSignOut() });
+        if (!owner(req)) return send(403, P.ownerSignIn(), undefined, priv);
+        if (req.method === "POST" && u.pathname === "/owner/seeds") {
+          if (!db) return send(503, await ownerPage({ message: "The keyword database is not connected." }), undefined, priv);
+          const text = String(form().seeds ?? ""), p = parseSeeds(text);
+          if (!p.ok) return send(400, await ownerPage({ message: `Not saved — ${p.why}.`, seedDraft: text }), undefined, priv);
+          await db.setSeedList(text, new Date(now()).toISOString());
+          return send(200, await ownerPage({ message: `Saved: ${p.groups.length} groups.` }), undefined, priv);
+        }
+        if (req.method === "POST" && u.pathname === "/owner/collect") {
+          if (!finderOn()) return send(503, await ownerPage({ message: "Google, the store and the database must all be connected first." }), undefined, priv);
+          const r = await runCollector({ store: db, ads, kv, now, budgetMs: 50000 });
+          return send(200, await ownerPage({ message: r.ok ? `This run: ${r.saved} requests saved (${r.keywords} keywords)${r.stoppedBy ? ` — ${r.why}` : ""}.` : r.why }), undefined, priv);
+        }
+        return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
+      }
+      /* RR-326 E · the app's keyword service — the licence decides; while sales are not open, the owner's licence only */
+      if (u.pathname === "/v1/keywords" || u.pathname === "/v1/keywords/usage") {
+        const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
+        if (!kv || !db || !ads) return json(503, { ok: false, why: "The keyword service is not connected yet." });
+        const lic = checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: false });
+        if (!lic.ok) return json(lic.status, { ok: false, why: lic.why });
+        if (req.method === "GET" && u.pathname === "/v1/keywords/usage") return json(200, { ok: true, owner: lic.owner, ...(await usageOf({ kv, lic, now: now() })) });
+        if (req.method !== "POST" || u.pathname !== "/v1/keywords") return json(405, { ok: false, why: "Not here." });
+        if (!ads.configured()) return json(503, { ok: false, why: "The keyword service is not connected to Google yet." });
+        const v = form(), s = serviceSeeds(v.seeds); if (!s.ok) return json(400, { ok: false, why: s.why });
+        if (!locationOf(v.location ?? "ALL")) return json(400, { ok: false, why: "Choose a country from the list." });
+        const t = await takeSearch({ kv, lic, now: now() }); if (!t.ok) return json(429, { ok: false, why: t.why, usage: { used: t.used, limit: lic.limit } });
+        const r = await lookupKeywords({ seeds: s.seeds, location: v.location ?? "ALL", store: db, ads, purpose: lic.owner ? "owner" : "app", kind: "app", now });
+        if (!r.ok) { await giveBack({ kv, lic, now: now() }); return json(r.code === "OUR_DAILY_LIMIT" ? 429 : 503, { ok: false, why: r.why }); }
+        return json(200, { ok: true, seeds: s.seeds, ...r, source: "Google Ads Keyword Planner", usage: { month: new Date(now()).toISOString().slice(0, 7), used: t.used, limit: lic.limit } });
+      }
+      /* RR-326 B · the daily collector — Vercel Cron only (its Authorization header carries CRON_SECRET) */
+      if (req.method === "GET" && u.pathname === "/cron/keywords") {
+        const secret = String(env.CRON_SECRET ?? ""), got = String(req.headers.authorization ?? "");
+        const okAuth = secret.length >= 16 && got.length === secret.length + 7 && timingSafeEqual(Buffer.from(got), Buffer.from(`Bearer ${secret}`));
+        if (!okAuth) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!finderOn()) return send(200, JSON.stringify({ ok: false, why: "Google, the store or the database is not connected." }), "application/json", { "cache-control": "no-store" });
+        const r = await runCollector({ store: db, ads, kv, now });
+        return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       send(404, P.notFound(u.pathname, { lite: true }));
     } catch { send(503, "The free score is not available just now. Please try again later.", "text/plain"); }

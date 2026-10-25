@@ -39,16 +39,19 @@ const TWO_DAYS = 2 * 86400;
  * The public-lite limits on a shared store. who: the visitor's address (never kept). → { ok, left, why }
  * The site total is counted FIRST and given back if the visitor's own limit refuses, so a refused visitor never uses the site's total.
  */
-export function liteLimits({ kv, now = () => Date.now(), perVisitor = LITE_LIMITS.perVisitorPerDay, siteTotal = LITE_LIMITS.siteTotalPerDay } = {}) {
+/* RR-326 C: the keyword finder counts with the same rules under its own names and words */
+export const SCORE_COUNTS = Object.freeze({ visitor: "av:visitor", total: "av:total", full: "Today's free scores are all used. Please try again tomorrow.", mine: (n) => `The free score can be run ${n} times a day. Please come back tomorrow.` });
+export const FINDER_COUNTS = Object.freeze({ visitor: "av:kwvisitor", total: "av:kwtotal", full: "Today's free keyword searches are all used. Please try again tomorrow.", mine: (n) => `The free keyword finder can be used ${n} times a day. Please come back tomorrow.` });
+export function liteLimits({ kv, now = () => Date.now(), perVisitor = LITE_LIMITS.perVisitorPerDay, siteTotal = LITE_LIMITS.siteTotalPerDay, counts = SCORE_COUNTS } = {}) {
   return Object.freeze({
     async take(who) {
       const d = day(now()), saltKey = `av:salt:${d}`;
       const [, salt] = await kv.run([["SET", saltKey, randomBytes(16).toString("hex"), "NX", "EX", TWO_DAYS], ["GET", saltKey]]);
-      const me = `av:visitor:${d}:${createHash("sha256").update(String(salt)).update(String(who)).digest("hex").slice(0, 32)}`, all = `av:total:${d}`;
+      const me = `${counts.visitor}:${d}:${createHash("sha256").update(String(salt)).update(String(who)).digest("hex").slice(0, 32)}`, all = `${counts.total}:${d}`;
       const [total] = await kv.run([["INCR", all], ["EXPIRE", all, TWO_DAYS]]);
-      if (total > siteTotal) { await kv.run([["DECR", all]]); return { ok: false, left: 0, why: "Today's free scores are all used. Please try again tomorrow." }; }
+      if (total > siteTotal) { await kv.run([["DECR", all]]); return { ok: false, left: 0, why: counts.full }; }
       const [mine] = await kv.run([["INCR", me], ["EXPIRE", me, TWO_DAYS]]);
-      if (mine > perVisitor) { await kv.run([["DECR", all]]); return { ok: false, left: 0, why: `The free score can be run ${perVisitor} times a day. Please come back tomorrow.` }; }
+      if (mine > perVisitor) { await kv.run([["DECR", all]]); return { ok: false, left: 0, why: counts.mine(perVisitor) }; }
       return { ok: true, left: perVisitor - mine };
     },
     /** a one-use form ticket, written when the page is shown */

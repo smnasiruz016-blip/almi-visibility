@@ -15,6 +15,9 @@ import { LIMITS, NO_PROMISE } from "./free-test.mjs";
 import { familyStrip, footerColumns } from "./family.mjs";
 import { loadLegal, fillsIn, renderLegal } from "./legal.mjs"; // RR-325 C
 import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
+import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
+import { FINDER, SOURCE_LINE, periodWords } from "./kw-finder.mjs";
+import { ACCESS_LINE, plainError } from "./kw-google.mjs";
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -113,6 +116,13 @@ table.legal{width:100%;border-collapse:collapse;font-size:15px;background:var(--
 @keyframes run{from{left:-35%}to{left:100%}} @keyframes sweep{from{stroke-dasharray:4 100}to{stroke-dasharray:100 100}} @keyframes fill{from{stroke-dasharray:0 100}}
 .live.real .gauge path.val{animation:fill 1.2s ease-out} .live.busy .gauge path.val{animation:sweep 1.1s ease-in-out infinite alternate} .live.busy .areas,.live.busy .gaugebox+.fine{opacity:.45}
 .testform button[disabled]{opacity:.7;cursor:progress}
+/* RR-326: the keyword finder and the owner's page */
+.kwcard{max-width:760px;margin:24px auto 0;background:var(--white);border:1px solid var(--peach);border-radius:18px;padding:22px} .kwcard .testform{border-top:0;margin-top:0;padding-top:0}
+.kwresult table.t{table-layout:fixed} .kwresult table.t th:first-child{width:68%} .kwresult table.t td{overflow-wrap:anywhere}
+.kwrow{display:grid;grid-template-columns:2fr 1fr;gap:12px} .kwform select{width:100%;padding:12px;border:1px solid var(--peach);border-radius:12px;background:var(--cream);color:var(--text);font:inherit}
+.kwresult{max-width:900px;margin:28px auto 0} .kwresult h4{margin:22px 0 8px;color:var(--ink)} .kwresult .source{font-size:14px;color:var(--muted)} .kwnext{margin-top:24px;display:flex;gap:10px;flex-wrap:wrap}
+.owner h2{text-align:left;margin-top:28px} .owner textarea{background:var(--white);color:var(--text);border:1px solid var(--peach);border-radius:12px;padding:10px}
+@media (max-width:600px){.kwrow{grid-template-columns:1fr} .kwcard{padding:16px}}
 @media (prefers-reduced-motion:reduce){.live .gauge path.val,.meter .bar span{animation:none} .meter .bar span{left:0;width:100%;opacity:.6}}
 /* RR-325: dark mode — the same layout in the night colours; button words stay dark on the coral and sunrise buttons (WCAG 4.5:1) */
 @media (prefers-color-scheme:dark){:root{--cream:#14110D;--white:#1E1A15;--peach:#3A2F22;--ink:#FDF6EC;--text:#E9E1D3;--muted:#C9BDAA}
@@ -280,6 +290,9 @@ const HEADER_WORDS = Object.freeze({ "strict-transport-security": "Browsers are 
  * turned off so a second click cannot use a second score. The result then fills the gauge to the real score. Served as /score.js (the
  * page's Content-Security-Policy allows scripts from the site itself only); without it the form works as before. */
 export const SCORE_JS = `(function () {
+  /* RR-326: the keyword finder's button, once */
+  var k = document.querySelector("form.kwform");
+  if (k) k.addEventListener("submit", function () { var kb = k.querySelector('button[type="submit"]'); if (kb) { kb.disabled = true; kb.textContent = "Finding keywords…"; } });
   var f = document.querySelector('form.testform[action="/score"]'); if (!f) return;
   var card = document.getElementById("score"), meter = document.getElementById("meter"), b = f.querySelector('button[type="submit"]'), timer = null;
   var num = card && card.querySelector(".gauge .num"), was = num ? num.innerHTML : "", label = b ? b.textContent : "";
@@ -321,7 +334,7 @@ ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 ${scoreOn && ticket ? form : off}</div>`;
 }
-export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null } = {}) => frame({ path: "/", lite: true, title: "AlmiVisibility — get the score of your site", description: "Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {} } = {}) => frame({ path: "/", lite: true, title: "AlmiVisibility — get the score of your site", description: "Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   body: `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
 <h1>Get the score of your site</h1>
@@ -329,10 +342,63 @@ export const liteHome = ({ result = null, error = null, values = {}, scoreOn = f
 <p class="small">${esc(NO_PROMISE)}</p></div>
 <div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
 ${result ? resultDetail(result, left) : ""}
-${section("paper", `<h2 id="keywords">Free keyword finder<span class="soon">Coming soon</span></h2><p class="sub">${esc(KEYWORD_FINDER_LINE)}</p>`)}
+${section("paper", finderSection(finder, owner))}
 ${section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
 <script src="/score.js" defer></script>` });
+
+/* ── RR-326 C · THE FREE KEYWORD FINDER on the public-lite home: "coming soon" until Google, the store and the database are connected ── */
+const n = (v) => (v === null || v === undefined ? '<span class="nmtext">no figure from Google</span>' : Number(v).toLocaleString("en-US"));
+const locOptions = (sel) => LOCATIONS.map((l) => `<option value="${l.code}"${l.code === sel ? " selected" : ""}>${esc(l.name)}</option>`).join("");
+export function finderSection(f = {}, owner = false) {
+  if (!f.on && !f.result && !f.error) return `<h2 id="keywords">Free keyword finder<span class="soon">Coming soon</span></h2><p class="sub">${esc(KEYWORD_FINDER_LINE)}</p>`;
+  const v = f.values ?? {}, r = f.result;
+  const formHtml = f.on ? `<form class="testform kwform" method="post" action="/keywords#keywords"><input type="hidden" name="ticket" value="${esc(f.ticket)}">
+<div class="hp" aria-hidden="true"><label>Leave this empty <input name="homepage" tabindex="-1" autocomplete="off"></label></div>
+<div class="kwrow"><div><label class="f" for="kwq">A word or a topic</label><input id="kwq" name="q" type="text" maxlength="${FINDER.maxLength}" placeholder="e.g. oet, wedding photographer" required value="${esc(v.q ?? "")}"></div>
+<div><label class="f" for="kwloc">Country</label><select id="kwloc" name="location">${locOptions(v.location ?? "ALL")}</select></div></div>
+${f.error ? `<p class="err" role="alert">${esc(f.error)}</p>` : ""}
+<button class="pill big" type="submit">Find keywords</button>
+<p class="fine">${owner ? "<b>Owner: no daily limit on this browser.</b> " : `Free: ${FINDER.perVisitorPerDay} searches a day. `}${esc(SOURCE_LINE)}. The words you search are stored without personal data — <a href="/privacy">Privacy</a></p></form>`
+    : `<div class="testform">${f.error ? `<p class="err" role="alert">${esc(f.error)}</p>` : ""}<p class="fine" role="status">The keyword finder is being switched on. Please come back soon.</p></div>`;
+  return `<h2 id="keywords">Free keyword finder</h2><p class="sub">Type a word or a topic and choose a country: the keyword ideas people search for on Google, with Google's own average monthly searches.</p>
+<div class="kwcard">${formHtml}</div>${r ? finderResult(r, f.left) : ""}`;
+}
+function finderResult(r, left) {
+  const csv = `/keywords.csv?q=${encodeURIComponent(r.q)}&amp;location=${encodeURIComponent(r.location)}`, pw = periodWords(r.period);
+  return `<div class="kwresult" id="kwresult"><h3>Keyword ideas for “${esc(r.q)}” — ${esc(r.locationName)}</h3>
+<p class="source"><b>${esc(SOURCE_LINE)}</b> · average monthly searches${pw ? `, ${esc(pw)}` : ""} · ${esc(r.language)} · read from Google on ${esc(r.day)}</p>
+<p>${r.rows.length.toLocaleString("en-US")} keyword idea${r.rows.length === 1 ? "" : "s"}${r.rows.length ? ` · <a href="${csv}">Download all as CSV</a>` : ""}${left !== null && left !== undefined ? ` · ${left} free search${left === 1 ? "" : "es"} left today` : ""}</p>
+${r.rows.length ? r.groups.map((g) => `<h4>${esc(g.name)} <span class="note">(${g.rows.length.toLocaleString("en-US")})</span></h4><div class="tablewrap"><table class="t"><tr><th>Keyword</th><th>Monthly searches</th></tr>${g.rows.slice(0, FINDER.shownPerGroup).map((x) => `<tr><td>${esc(x.keyword)}</td><td>${n(x.volume)}</td></tr>`).join("")}</table></div>${g.rows.length > FINDER.shownPerGroup ? `<p class="note">The first ${FINDER.shownPerGroup} are shown — all ${g.rows.length.toLocaleString("en-US")} are in the CSV.</p>` : ""}`).join("") : "<p>Google gave no keyword ideas for this search.</p>"}
+<p class="kwnext"><a class="pill" href="/#score">Get the score of your site</a> <a class="pill ghost" href="#app">AlmiVisibility app: coming soon</a></p></div>`;
+}
+
+/* ── RR-326 B + D · THE OWNER'S PAGE (owner only; noindex) ── */
+const ownerFrame = (title, inner) => frame({ path: "/owner", lite: true, noindex: true, title: `${title} — AlmiVisibility`, description: "Private.", body: `<section class="page"><div class="wrap prose owner">${inner}</div></section>` });
+export const ownerSignIn = (why = null) => ownerFrame("Owner", `<h1>Owner</h1><form class="testform" method="post" action="/owner/sign-in" style="max-width:520px"><label class="f" for="key">Your owner key</label><input id="key" name="key" type="password" autocomplete="current-password" required>${why ? `<p class="err" role="alert">${esc(why)}</p>` : ""}<button class="pill" type="submit">Sign in</button><p class="fine">Once on this browser — it then stays signed in for 180 days.</p></form>`);
+export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null } = {}) {
+  const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
+  const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · daily" : k === "youtube" ? "YouTube niche · weekly · Google Search volumes, not YouTube's numbers" : "category · weekly"; };
+  const google = connected ? (usage?.last && usage.last.at?.slice(0, 10) === usage.day ? `<p class="err">${esc(ACCESS_LINE)} — but Google's last answer today (${esc(usage.last.at.slice(11, 16))} UTC): ${esc(plainError(usage.last.code))}</p>` : `<p><b>${esc(ACCESS_LINE)}</b></p>`) : `<p class="err">Google is not connected — missing in Vercel: ${esc(missing.join(", "))}.</p>`;
+  const ops = usage ? `<div class="tablewrap"><table class="t"><tr><th>Google operations today (${esc(usage.day)}, counted by this site before sending)</th><th>Used</th><th>Our cap</th></tr>
+<tr><td>All together</td><td>${usage.all.toLocaleString("en-US")}</td><td>${usage.caps.ceiling.toLocaleString("en-US")} (Google's Basic limit: ${usage.caps.googleDaily.toLocaleString("en-US")} a day)</td></tr>
+<tr><td>Daily collector</td><td>${usage.collector.toLocaleString("en-US")}</td><td>${usage.caps.collector.toLocaleString("en-US")} (one third of Google's)</td></tr>
+<tr><td>Public keyword finder</td><td>${usage.finder.toLocaleString("en-US")}</td><td>${usage.caps.finder.toLocaleString("en-US")}</td></tr>
+<tr><td>The app's keyword service (clients)</td><td>${(usage.app ?? 0).toLocaleString("en-US")}</td><td>${(usage.caps.app ?? 0).toLocaleString("en-US")}</td></tr>
+<tr><td>You (no limit — inside the total)</td><td>${usage.owner.toLocaleString("en-US")}</td><td>—</td></tr></table></div>` : "";
+  const run = last ? `<p>Last collector run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} requests saved (${(last.keywords ?? 0).toLocaleString("en-US")} keywords), ${last.duplicates ?? 0} already collected today, ${last.skipped ?? 0} to ask again${last.left ? `; still to do today: ${last.left.daily} product requests, ${last.left.weekly} weekly requests` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
+  const db = !dbOn ? `<p class="err">The keyword database is not connected (DATABASE_URL in Vercel — the Neon database).</p>` : dbError ? `<p class="err">${esc(dbError)}</p>` : counts ? `<p><b>${counts.keywords.toLocaleString("en-US")}</b> keywords in all · ${counts.observations.toLocaleString("en-US")} figures kept (with history) · <b>${counts.today.toLocaleString("en-US")}</b> collected today</p>
+<h2>By product, category and YouTube niche</h2><div class="tablewrap"><table class="t"><tr><th>Group</th><th>What</th><th>Keywords</th><th>Today</th><th>Countries</th><th>Last refresh</th></tr>${counts.groups.map((g) => `<tr><td>${esc(gname[g.grp]?.name ?? g.grp)}</td><td>${esc(kindWord(g.grp))}</td><td>${g.keywords.toLocaleString("en-US")}</td><td>${g.today.toLocaleString("en-US")}</td><td>${g.locations}</td><td>${esc(g.last ?? "")}</td></tr>`).join("") || '<tr><td colspan="6">Nothing collected yet.</td></tr>'}</table></div>
+<h2>By country</h2><div class="tablewrap"><table class="t"><tr><th>Country</th><th>Keywords</th><th>Today</th></tr>${[...counts.locations].sort((x, y) => (x.location === "ALL" ? -1 : y.location === "ALL" ? 1 : String(lname[x.location] ?? x.location).localeCompare(String(lname[y.location] ?? y.location)))).map((l) => `<tr><td>${esc(lname[l.location] ?? l.location)}</td><td>${l.keywords.toLocaleString("en-US")}</td><td>${l.today.toLocaleString("en-US")}</td></tr>`).join("") || '<tr><td colspan="3">Nothing collected yet.</td></tr>'}</table></div>` : "";
+  return ownerFrame("Owner", `<h1>Owner — keywords</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+<p class="fine"><b>No daily limit on this browser</b> for the free score and the keyword finder.</p>
+<h2>Google</h2>${google}${ops}
+<h2>The daily collector</h2>${run}${db}
+<h2>The seed list</h2><p class="fine">One group per line: <code>product:key | Name | seed, seed</code> (every day, one request per country with all its seeds), <code>category:key | Name | seed, …</code> or <code>youtube:key | Name | seed, …</code> (each seed, every week). A line starting with # is a note.${seedAt ? ` Saved ${esc(seedAt.slice(0, 16).replace("T", " "))} UTC.` : " This is the first list — not yet saved by you."}</p>
+<form method="post" action="/owner/seeds"><textarea name="seeds" rows="24" style="width:100%;font-family:Consolas,monospace;font-size:13px">${esc(seedDraft ?? seedText)}</textarea><p><button class="pill" type="submit">Save the list</button></p></form>
+<form method="post" action="/owner/collect" style="display:inline"><button class="pill ghost" type="submit">Collect now (one short run)</button></form>
+<form method="post" action="/owner/sign-out" style="display:inline"><button class="pill ghost" type="submit">Sign out</button></form>`);
+}
 
 export const buyNotConnected = (plan, state = "DEFERRED") => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,
   body: `<section class="page"><div class="wrap prose"><h1>Checkout is not connected here</h1><p>${state === "REFUSED" ? "This plan cannot be bought here." : `This copy of the site has no payment connection${plan ? ` for the plan ${esc(plan)}` : ""}.`} Nothing was charged.</p><p><a class="pill" href="/pricing">Back to the plans</a></p></div></section>` });

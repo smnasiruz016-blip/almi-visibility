@@ -40,7 +40,14 @@ const handle = createApp({ mode: "public-lite" });
 export default function handler(req, res) { return handle(req, res); }
 `;
 export const VERCELIGNORE = ".env\n.env.*\n";
-export const VERCEL_JSON ={ $schema: "https://openapi.vercel.sh/vercel.json", functions: { "api/index.mjs": { includeFiles: "{site,src,services,desktop,installer,config}/**", maxDuration: 60 } }, rewrites: [{ source: "/(.*)", destination: "/api/index" }] };
+export const VERCEL_JSON = { $schema: "https://openapi.vercel.sh/vercel.json", functions: { "api/index.mjs": { includeFiles: "{site,src,services,desktop,installer,config}/**", maxDuration: 60 } }, rewrites: [{ source: "/(.*)", destination: "/api/index" }] };
+/* RR-326 · PUBLIC-LITE also runs the daily keyword collector: eight daily Vercel Cron runs (each continues where the last stopped — a
+ * Hobby project may run each cron once a day), a function long enough for one run (300 s), and the database driver Vercel installs
+ * (`pg`, pinned; the engine itself installs nothing — site/kw-store.mjs loads it only when the database is used) */
+export const CRONS = Object.freeze(Array.from({ length: 8 }, (_, h) => Object.freeze({ path: "/cron/keywords", schedule: `7 ${h} * * *` })));
+export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: CRONS };
+export const LITE_DEPENDENCIES = Object.freeze({ pg: "8.23.1" });
+export const OWNER_SCRIPT = "site/owner-google-sign-in.mjs"; // the website's own deployment script — not engine code (F03 C2c's census is the engine's)
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const lite = process.argv.includes("--public-lite"), out = process.argv.slice(2).find((a) => !a.startsWith("--"));
@@ -51,8 +58,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(join(out, "api"), { recursive: true });
   writeFileSync(join(out, "api", "index.mjs"), lite ? FUNCTION_LITE : FUNCTION);
   if (lite) { const L = JSON.parse(readFileSync(join(REPO, "site", "legal.generated.json"), "utf8")); for (const k of ["privacy", "terms"]) if (L.fills?.[k]?.length) console.log(`WARNING — /${k} is NOT published (it answers "not found") until the owner fills ${L.fills[k].join(", ")} in his Word file and it is read again (tools/legal-from-docx.mjs).`); }
-  writeFileSync(join(out, "vercel.json"), JSON.stringify(VERCEL_JSON, null, 2) + "\n");
+  writeFileSync(join(out, "vercel.json"), JSON.stringify(lite ? VERCEL_JSON_LITE : VERCEL_JSON, null, 2) + "\n");
   writeFileSync(join(out, ".vercelignore"), VERCELIGNORE); // RR-325: the Vercel CLI writes .env.local into this folder — never uploaded
-  writeFileSync(join(out, "package.json"), JSON.stringify({ name: "almivisibility-site", private: true, type: "module", engines: { node: "24.x" } }, null, 2) + "\n");
+  writeFileSync(join(out, "package.json"), JSON.stringify({ name: "almivisibility-site", private: true, type: "module", engines: { node: "24.x" }, ...(lite ? { dependencies: { ...LITE_DEPENDENCIES } } : {}) }, null, 2) + "\n");
+  if (lite) copyFileSync(join(REPO, OWNER_SCRIPT), join(out, "owner-google-sign-in.mjs")); // RR-326 A: the owner runs it from this folder
   console.log(`bundle${lite ? " (PUBLIC-LITE)" : ""}: ${files.length} file(s) + api/index.mjs + vercel.json + package.json → ${out} · NOT deployed`);
 }

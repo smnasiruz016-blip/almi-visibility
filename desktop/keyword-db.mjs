@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { rangeOf } from "./demand.mjs";
 
 export const DB_VERSION = 1;
-export const SOURCES = Object.freeze({ file: "Keyword Planner file", ads: "Google Ads API", dataforseo: "DataForSEO" });
+export const SOURCES = Object.freeze({ file: "Keyword Planner file", ads: "Google Ads API", dataforseo: "DataForSEO", /* RR-326 E */ service: "AlmiWorld keyword service (Google Ads Keyword Planner data)" });
 /** the names of the files the folder pick-up takes (the brief's own name, and the name Google gives an export) */
 export const FILE_NAME = /^(keyword-planner-.*|keyword stats .*)\.csv$/i;
 

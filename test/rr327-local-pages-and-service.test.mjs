@@ -122,6 +122,10 @@ test("K · a keyword's global figure is never one country's; each country keeps 
   db = mergeObservations(db, { id: "f-pk2", name: "pk2", on: "2026-10-25", source: SOURCES.service, period: "p", location: "Pakistan" }, [{ text: "oet", said: 2900 }]).db;
   assert.equal(itemsOf(db)[0].volume, 50000, "the newer Pakistan figure does not replace the global one");
   assert.equal(byLocationOf(db).Pakistan[0].said, 2900); assert.equal(byLocationOf(db)["All locations"], undefined);
+  /* two periods for one country: the newest figure wins, whichever was merged first */
+  let two = mergeObservations(emptyDb(), { id: "f-new", name: "new", on: "2026-10-25", source: SOURCES.service, period: "p2", location: "Pakistan" }, [{ text: "oet", said: 3100 }]).db;
+  two = mergeObservations(two, { id: "f-old", name: "old", on: "2026-09-10", source: SOURCES.service, period: "p1", location: "Pakistan" }, [{ text: "oet", said: 1900 }]).db;
+  assert.equal(byLocationOf(two).Pakistan[0].said, 3100, "a country keeps its newest figure, never its oldest");
   const only = mergeObservations(emptyDb(), { id: "f", name: "f", on: ON, source: SOURCES.file, period: "p", location: null }, [{ text: "oet", said: 500 }]).db;
   assert.equal(itemsOf(only)[0].volume, 500, "a file that names no location is global");
 });

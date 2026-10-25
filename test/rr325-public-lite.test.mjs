@@ -208,8 +208,10 @@ test("C · the owner's Word text → his pages exactly: headings, lists, the tab
   /* while the owner's file holds a [FILL], neither page is published — and when filled, it is */
   if (LEGAL.fills.terms.length) assert.equal(P.terms(), null); if (LEGAL.fills.privacy.length) assert.equal(P.privacy(), null);
   const filled = JSON.parse(JSON.stringify(LEGAL).replace(/\[FILL 1\]/g, "help@example.com").replace(/\[FILL 2\]/g, "An Owner").replace(/\[FILL 3\]/g, "Somewhere"));
-  const pp = P.privacy({ legal: filled, lite: true }); assert.match(pp, /<h1>Privacy Policy — AlmiVisibility<\/h1>/); assert.doesNotMatch(pp, /\[FILL|PREVIEW|DRAFT/); assert.match(pp, /help@example\.com/);
-  assert.match(P.terms({ legal: filled }), /governed by the law of Somewhere/);
+  const pp = P.privacy({ legal: filled, lite: true }); assert.match(pp, /<h1>Privacy Policy — AlmiVisibility<\/h1>/); assert.doesNotMatch(pp, /\[FILL|PREVIEW|DRAFT/);
+  const [mail, law] = LEGAL.fills.privacy.length || LEGAL.fills.terms.length ? ["help@example.com", "Somewhere"] : ["almiworld@almiworld.com", "Denmark"]; // the owner filled his file on 25 Oct
+  assert.ok(pp.includes(mail)); assert.ok(P.terms({ legal: filled }).includes(`governed by the law of ${law}.`));
+  if (!LEGAL.fills.privacy.length && !LEGAL.fills.terms.length) for (const html of [P.privacy({ lite: true }), P.terms({ lite: true })]) { assert.ok(html, "published"); assert.doesNotMatch(html, /\[FILL|PREVIEW|DRAFT/); assert.ok(html.includes("S.M. Nasir Uz Zaman")); }
 });
 
 test("C · in the app: /privacy and /terms answer 'not found' while a [FILL] is in them; the local preview marks each one (never on Vercel)", async () => {

@@ -1,19 +1,12 @@
 {
  "source": {
   "file": "AlmiVisibility_Terms_and_Privacy_2026-10-25.docx",
-  "sha256": "43867173cb5b427b47d4a723c1595bd4705abd2dafa896f9214b875f25b30b3d",
-  "readOn": "2026-10-24"
+  "sha256": "4a571c99fc9fb3c412ecac9c91ef8e69bc793d214bb055c7490e0f048e831b48",
+  "readOn": "2026-10-25"
  },
  "fills": {
-  "terms": [
-   "[FILL 3]",
-   "[FILL 1]",
-   "[FILL 2]"
-  ],
-  "privacy": [
-   "[FILL 1]",
-   "[FILL 2]"
-  ]
+  "terms": [],
+  "privacy": []
  },
  "terms": [
   {
@@ -322,7 +315,7 @@
    "kind": "p",
    "runs": [
     {
-     "text": "These terms are governed by the law of [FILL 3]. Questions: [FILL 1]. AlmiVisibility is a product of AlmiWorld, owned by [FILL 2].",
+     "text": "These terms are governed by the law of Denmark. Questions: almiworld@almiworld.com. AlmiVisibility is a product of AlmiWorld, owned by S.M. Nasir Uz Zaman.",
      "bold": false,
      "href": null
     }
@@ -729,7 +722,7 @@
    "kind": "p",
    "runs": [
     {
-     "text": "You can ask us what data we hold about you, and ask us to correct or delete it: [FILL 1]. If you live in the EU or EEA, you have the rights given by the GDPR, including the right to complain to your data protection authority.",
+     "text": "You can ask us what data we hold about you, and ask us to correct or delete it: almiworld@almiworld.com. If you live in the EU or EEA, you have the rights given by the GDPR, including the right to complain to your data protection authority.",
      "bold": false,
      "href": null
     }
@@ -792,7 +785,7 @@
    "kind": "p",
    "runs": [
     {
-     "text": "[FILL 1] · AlmiVisibility is a product of AlmiWorld, owned by [FILL 2].",
+     "text": "almiworld@almiworld.com · AlmiVisibility is a product of AlmiWorld, owned by S.M. Nasir Uz Zaman.",
      "bold": false,
      "href": null
     }

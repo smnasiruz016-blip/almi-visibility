@@ -289,8 +289,8 @@ test("E + D · RR-329: /owner/countries on a phone — one product at a time, th
   const a = await site();
   try {
     const list = (await a.req("/owner/countries")).text;
-    assert.match(list, /<details open><summary>The first 30 countries of the queue<\/summary><ul class="plain"><li><a href="\/owner\/countries\?c=India">India<\/a>/);
-    assert.match(list, /<details><summary>All 197 countries \(the grid\)<\/summary>/); assert.match(list, /<span class="chip"><b>AlmiOET<\/b><\/span>/); assert.match(list, /href="\/owner\/countries\?p=cv">AlmiCV<\/a>/);
+    /* RR-331: ONE table, open, every country in the queue's order — REPLACES the "first 30" list and the closed grid */
+    assert.match(list, /<details open><summary>All 197 countries, in the queue's order \(tap a country\)<\/summary><div class="tablewrap"><table class="t"><tr><th>Country<\/th>.*?<\/tr><tr><td><a href="\/owner\/countries\?c=India">India<\/a>/s); assert.match(list, /<span class="chip"><b>AlmiOET<\/b><\/span>/); assert.match(list, /href="\/owner\/countries\?p=cv">AlmiCV<\/a>/);
     const cv = (await a.req("/owner/countries?p=cv&c=Pakistan")).text;
     assert.match(cv, /of 197 countries have all 4 parts/); assert.match(cv, /the CV norms there/);
     assert.match(cv, /<summary>Add what I know<\/summary><form method="post" action="\/owner\/countries\/know" enctype="multipart\/form-data">/); assert.match(cv, /capture="environment"/);

@@ -427,6 +427,36 @@ function queueHtml(q, names, moved) {
   return `<p class="fine">Both collectors follow this order from their next run: a product's first 30 countries are finished before the next product starts; its other countries continue in the background.</p><h3>Products</h3>${q.products.map((p, i) => up("product", p, `${i + 1}. ${names[p] ?? p}`)).join("")}
 <h3>Countries (the first 40)</h3>${q.countries.slice(0, 40).map((c, i) => up("country", c, `${i + 1}. ${c}${i === 29 ? " — the first 30 end here" : ""}`)).join("")}<p class="fine">Then the other ${q.countries.length - 40} countries, A–Z.</p>`;
 }
+/* RR-331 · the owner's two pages, one menu; each shows the other collectors in one line */
+export function ownerMenu(here, s = null) {
+  const item = (k, href, name) => (k === here ? `<b>${name}</b>` : `<a href="${href}">${name}</a>`);
+  const line = s ? `<p class="fine">Keywords today ${Number(s.keywordsToday ?? 0).toLocaleString("en-US")} · first 15 countries ${s.first15 ?? "—"}% done · question groups ${s.questionGroups ?? 0} · test dates found for ${s.datesFound ?? 0} test × country${s.gsc ? ` · Search Console: ${esc(s.gsc)}` : ""}</p>` : "";
+  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")}</nav>${line}`;
+}
+/* RR-331 · ONE table of every country (the queue's order), open: each cell its value or count and the day it was found or checked */
+const shortDay = (d) => (d ? String(d).slice(0, 10) : "");
+const cellOf = (v, day, searching = false) => (v === null || v === undefined ? (searching ? "searching" : "—") : `${v}${day ? ` <span class="fine">${esc(shortDay(day))}</span>` : ""}${searching ? " · searching" : ""}`);
+export function countriesTable({ order, byC, facts, tasks = {}, product = "oet", parts = [], names = {}, today, dated = false }) {
+  const oet = product === "oet", link = (n) => `<a href="/owner/countries?c=${encodeURIComponent(n)}${oet ? "" : `&amp;p=${encodeURIComponent(product)}`}">${esc(n)}</a>`;
+  const mine = new Map(); for (const f of facts) if ((f.product ?? "oet") === product) (mine.get(f.country) ?? mine.set(f.country, []).get(f.country)).push(f);
+  const last = (fs) => fs.map((f) => f.readOn ?? f.at).filter(Boolean).sort().at(-1) ?? null;
+  const state = (c, t) => tasks[`${c}|${t}`]?.state ?? null;
+  const datesCell = (c, fs) => { const d = fs.find((f) => f.part === "dates"), t = tasks[`${c}|${product}:dates`];
+    if (d) { const n = upcomingIn(d.value?.dates, today).length; return cellOf(n ? `${n} date${n === 1 ? "" : "s"}` : d.value?.none ? "no public dates" : "0", d.readOn); }
+    return t ? cellOf("none found", t.day) : "—"; };
+  const head = oet ? ["Fee", "Questions (groups / answered)", "Centres", "Councils (of 12)", "Rules"] : parts.map((p) => p.name);
+  const rows = order.map((c) => { const r = byC[c]; if (!r) return ""; const fs = mine.get(c) ?? [], of = (p) => fs.filter((f) => f.part === p);
+    const cells = oet ? [
+      cellOf(r.parts.fee.filled ? r.parts.fee.facts[0].value?.local ?? "✓" : null, last(of("fee"))),
+      cellOf(of("questions").length ? `${of("questions").length} / ${r.parts.questions.facts.length}` : null, last(of("questions")), state(c, "questions") === "searching"),
+      cellOf(r.parts.centres.filled ? (r.parts.centres.facts[0].value?.venue ? "a venue" : "at home") : null, last(of("centres"))),
+      cellOf(of("councils").length || state(c, "councils") ? `${Object.values(r.councils).filter(Boolean).length}/12` : null, last(of("councils")), state(c, "councils") === "searching"),
+      cellOf(r.parts.rules.facts.length ? String(r.parts.rules.facts.length) : null, last(of("rules"))),
+    ] : parts.map((p) => cellOf(r.parts[p.key]?.filled ? String(r.parts[p.key].facts.length) : null, last(of(p.key)), state(c, `${product}:facts`) === "searching" && !r.parts[p.key]?.filled));
+    return `<tr><td>${link(c)}</td>${cells.map((x) => `<td>${x}</td>`).join("")}${dated ? `<td>${datesCell(c, fs)}</td>` : ""}<td>${esc(shortDay(last(fs))) || "—"}</td></tr>`; }).join("");
+  return `<div class="tablewrap"><table class="t"><tr><th>Country</th>${head.map((h) => `<th>${esc(h)}</th>`).join("")}${dated ? "<th>Test dates</th>" : ""}<th>Last updated</th></tr>${rows}</table></div>`;
+}
+const upcomingIn = (dates = [], today) => (dates ?? []).filter((d) => !today || d.date >= today);
 export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
   const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · every 30 days" : k === "youtube" ? "YouTube niche · every 60 days · Google Search volumes, not YouTube's numbers" : "category · every 60 days"; };
@@ -444,7 +474,7 @@ export function ownerPage({ connected = false, missing = [], dbOn = false, dbErr
 <h2>By product, category and YouTube niche</h2><div class="tablewrap"><table class="t"><tr><th>Group</th><th>What</th><th>Keywords</th><th>Today</th><th>Countries</th><th>Last refresh</th></tr>${counts.groups.map((g) => `<tr><td>${esc(gname[g.grp]?.name ?? g.grp)}</td><td>${esc(kindWord(g.grp))}</td><td>${g.keywords.toLocaleString("en-US")}</td><td>${g.today.toLocaleString("en-US")}</td><td>${g.locations}</td><td>${esc(g.last ?? "")}</td></tr>`).join("") || '<tr><td colspan="6">Nothing collected yet.</td></tr>'}</table></div>
 <h2>By country</h2><div class="tablewrap"><table class="t"><tr><th>Country</th><th>Keywords</th><th>Today</th></tr>${[...counts.locations].sort((x, y) => (x.location === "ALL" ? -1 : y.location === "ALL" ? 1 : String(lname[x.location] ?? x.location).localeCompare(String(lname[y.location] ?? y.location)))).map((l) => `<tr><td>${esc(lname[l.location] ?? l.location)}</td><td>${l.keywords.toLocaleString("en-US")}</td><td>${l.today.toLocaleString("en-US")}</td></tr>`).join("") || '<tr><td colspan="3">Nothing collected yet.</td></tr>'}</table></div>` : "";
   /* RR-329 E: the numbers first; every heavy table is closed until tapped (a phone on weak internet) */
-  return ownerFrame("Owner", `${PHONE_CSS}<h1>Owner</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+  return ownerFrame("Owner", `${PHONE_CSS}${ownerMenu("keywords", arguments[0]?.summary ?? null)}<h1>Owner</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
 ${statusHtml(status)}
 <p class="row"><a class="pill" href="/owner/countries">Country facts</a> <a class="pill ghost" href="#queue">The queue</a></p>
 <details${check ? " open" : ""}><summary>Google and the keyword collector</summary>
@@ -521,11 +551,8 @@ ${f.status === "owner" ? "" : `<form method="post" action="/owner/countries/fact
   const groups = (mine) => { const own = mine.filter((f) => f.status === "owner"), rest = mine.filter((f) => f.status !== "owner"), by = new Map();
     for (const f of rest) (by.get(f.part) ?? by.set(f.part, []).get(f.part)).push(f);
     return `${own.length ? `<details open><summary>Yours (${own.length})</summary>${own.map(card).join("")}</details>` : ""}${[...by].map(([k, fs]) => `<details><summary>${esc(NAMES[k] ?? k)} (${fs.length}${fs.some((f) => f.status === "unconfirmed") ? `, ${fs.filter((f) => f.status === "unconfirmed").length} unconfirmed` : ""})</summary>${fs.map(card).join("")}</details>`).join("")}`; };
-  const cells = (name, r) => (oet ? `<td>${mark(r.parts.fee.filled)}</td><td>${mark(r.parts.questions.filled)}</td><td>${mark(r.parts.centres.filled)}</td><td>${Object.values(r.councils).filter(Boolean).length} / ${Object.keys(r.councils).length}</td><td>${mark(r.parts.rules.filled)}</td>` : parts.map((p) => `<td>${mark(r.parts[p.key]?.filled)}</td>`).join(""));
-  const grid = `<div class="tablewrap"><table class="t"><tr><th>Country</th>${Object.values(NAMES).map((p) => `<th>${esc(p)}</th>`).join("")}<th>Missing</th></tr>${order.map((name) => { const r = byC[name]; if (!r) return "";
-    return `<tr><td>${link(name)}</td>${cells(name, r)}<td>${r.complete ? "<b>a page</b>" : esc(missingOf(name, r))}</td></tr>`; }).join("")}</table></div>`;
-  /* the first 30 of the queue — a light list (the whole grid opens on a tap) */
-  const first = `<ul class="plain">${order.slice(0, 30).map((name) => { const r = byC[name]; return r ? `<li>${link(name)} — ${r.complete ? "<b>a page</b>" : `missing: ${esc(missingOf(name, r))}`}</li>` : ""; }).join("")}</ul>`;
+  /* RR-331: the "first 30" list and the grid are REPLACED by one table (countriesTable) */
+  void mark; void link; void missingOf;
   let detail = "";
   if (country && byC[country]) {
     const r = byC[country], mine = facts.filter((f) => f.country === country).sort((a, b) => (b.status === "owner") - (a.status === "owner"));
@@ -541,13 +568,13 @@ ${knowBox(country)}
     : `<p><b>${c.complete}</b> of ${c.countries} countries have all ${parts.length} parts (a country page) · ${parts.map((p) => `${esc(p.name)} ${c.byPart[p.key]}`).join(" · ")}</p><p>${c.unconfirmed} facts unconfirmed (never shown on a page) · ${c.rejected} rejected by you</p>`;
   const nav = products.length ? `<p class="row">${products.map((p) => (p.key === product ? `<span class="chip"><b>${esc(p.name)}</b></span>` : `<a class="chip" href="/owner/countries${p.key === "oet" ? "" : `?p=${encodeURIComponent(p.key)}`}">${esc(p.name)}</a>`)).join(" ")}</p>` : "";
   const pick = `<form method="get" action="/owner/countries" class="row">${oet ? "" : `<input type="hidden" name="p" value="${esc(product)}">`}<select name="c" aria-label="A country">${order.map((n) => `<option${n === country ? " selected" : ""}>${esc(n)}</option>`).join("")}</select> <button class="pill ghost" type="submit">Open</button></form>`;
-  return ownerFrame("Country facts", `${PHONE_CSS}<h1>Owner — country facts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
-<p><a href="/owner">← Owner</a></p>${nav}
+  const A = arguments[0] ?? {}, table = countriesTable({ order, byC, facts, tasks: A.tasks ?? {}, product, parts, names: NAMES, today: A.today ?? null, dated: Boolean(A.dated) });
+  return ownerFrame("Country facts", `${PHONE_CSS}${ownerMenu("countries", A.summary ?? null)}<h1>Owner — country facts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+${nav}
 ${head}
 <p class="fine">AI research: ANTHROPIC_API_KEY ${aiOn ? "set" : "missing — the collector reads official pages and AlmiOET's records only"}${caps ? ` · today's caps: $${caps.aiUsd.toFixed(2)} of AI, ${caps.reads} page reads` : ""}${spend ? ` · used today: $${spend.aiUsd.toFixed(2)}, ${spend.reads} reads, ${spend.searches} web searches` : ""}.</p>
 ${detail}${pick}
-<details${country ? "" : " open"}><summary>The first 30 countries of the queue</summary>${first}</details>
-<details><summary>All ${c.countries} countries (the grid)</summary>${grid}</details>
+<details open><summary>All ${c.countries} countries, in the queue's order (tap a country)</summary>${table}</details>
 <details><summary>The last run</summary>${runLine}<form method="post" action="/owner/countries/run"><button class="pill" type="submit">Collect now (one short run)</button></form></details>`);
 }
 

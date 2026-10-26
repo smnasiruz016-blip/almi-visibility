@@ -35,6 +35,10 @@ import { aiConfigured } from "./cf-ai.mjs";
 import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS } from "../desktop/country-facts.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { chainFetch } from "./chain-fetch.mjs"; // RR-330
+import { runTestDates, datesTask } from "./cf-dates.mjs"; // RR-331
+import { runSearchConsole } from "./gsc.mjs"; // RR-331
+import { DATE_TESTS, NO_DATES, upcoming } from "../desktop/test-dates.mjs"; // RR-331
+import { daysOf } from "./health.mjs"; // RR-331
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 
@@ -48,8 +52,8 @@ const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 /** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
 export const modeOf = (env = process.env, mode = null) => (mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full")) === "full" ? "full" : "public-lite";
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null } = {}) {
-  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi });
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null } = {}) {
+  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch });
   const store = siteStore({ env, localDir: dataDir });
   const limiter = dailyLimiter({ store });
   const admin = adminSessions({ env, store });
@@ -221,7 +225,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null }) {
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
   const finderLimits = kv ? liteLimits({ kv, now, perVisitor: FINDER.perVisitorPerDay, siteTotal: FINDER.siteSearchesPerDay, counts: FINDER_COUNTS }) : null;
@@ -258,7 +262,8 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       first15 = { countries: cs.length, percent: Math.round((100 * filled) / Math.max(1, cs.length * 5)), byPart: Object.fromEntries(["fee", "questions", "centres", "councils", "rules"].map((p) => [p, rows.filter((r) => r.parts[p].filled).length])),
         councils: rows.reduce((a, r) => a + Object.values(r.councils).filter(Boolean).length, 0), councilPairs: rows.length * CF_PROFESSIONS.length, left, eta: left ? new Date(Date.parse(`${d}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10) : null, measured: Boolean(cost && cost.n >= 3) };
     }
-    return P.ownerCountries({ coverage, facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, ...o, country: sel, product });
+    const taskObj = Object.fromEntries(tasks.entries()), summary = await summaryOf({ all, first15 });
+    return P.ownerCountries({ coverage, facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, tasks: taskObj, today: d, dated: Boolean(DATE_TESTS[product] || NO_DATES[product]), summary, ...o, country: sel, product });
   };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};
@@ -273,6 +278,15 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   };
   const published = () => ["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null);
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
+  /* RR-331 · the one-line summary of the other collectors on each owner page (keywords today, first 15, questions, test dates, Search Console) */
+  const summaryOf = async ({ all = null, first15 = null } = {}) => {
+    const d = new Date(now()).toISOString().slice(0, 10), s = { keywordsToday: 0, first15: first15?.percent ?? null, questionGroups: 0, datesFound: 0, gsc: null };
+    try { const [k] = kv ? await daysOf(kv, "keywords", d, 1) : [null]; s.keywordsToday = k?.progress ?? 0; } catch { /* 0 */ }
+    try { const facts = all ?? (cf ? await cf.facts() : []); s.questionGroups = facts.filter((f) => f.part === "questions").length; s.datesFound = facts.filter((f) => f.part === "dates" && (f.value?.dates ?? []).some((x) => x.date >= d)).length;
+      if (s.first15 === null && cf) { const order = (await queueNow(kv)).countries.slice(0, 15), cov = coverageOf(facts.filter((f) => (f.product ?? "oet") === "oet"), { countries: order }); s.first15 = Math.round((100 * cov.rows.reduce((a, r) => a + Object.values(r.parts).filter((p) => p.filled).length, 0)) / Math.max(1, order.length * 5)); } } catch { /* the counts stay 0 */ }
+    try { const [g] = kv ? await kv.run([["GET", "av:gsc:last"]]) : [null]; const x = g ? JSON.parse(g) : null; s.gsc = x ? (x.ok ? `read ${x.at.slice(0, 10)} — ${x.sites} sites, ${x.questions} questions, ${x.keywords} keywords` : x.why) : "not read yet"; } catch { s.gsc = null; }
+    return s;
+  };
   const ownerPage = async (o = {}) => {
     const d = new Date(now()).toISOString().slice(0, 10);
     let counts = null, usage = null, last = null, list = null, dbError = null;
@@ -281,7 +295,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (kv) { try { const [l] = await kv.run([["GET", "av:collector:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
     /* RR-329: what matters first on his phone — red lines, this week, progress, ETA, spend, the database */
     let status = null; try { status = await ownerStatus({ kv, db, cf, env, now }); } catch { status = null; }
-    return P.ownerPage({ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, ...o });
+    return P.ownerPage({ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
@@ -476,6 +490,14 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!cf) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
         return send(200, JSON.stringify(await cfRun()), "application/json", { "cache-control": "no-store" });
+      }
+      /* RR-331 · the test-dates collector (inside the same daily caps) and our own Search Console (weekly) — Vercel Cron only */
+      if (req.method === "GET" && (u.pathname === "/cron/test-dates" || u.pathname === "/cron/search-console")) {
+        if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!cf) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
+        const r = u.pathname === "/cron/test-dates" ? await runTestDates({ store: cf, kv, env, reader: cfReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv) })
+          : await runSearchConsole({ env, kv, kwStore: db, cfStore: cf, fetchImpl: gscFetch ?? fetchImpl, now });
+        return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       /* RR-326 B · the daily collector — Vercel Cron only (its Authorization header carries CRON_SECRET) */
       if (req.method === "GET" && u.pathname === "/cron/keywords") {

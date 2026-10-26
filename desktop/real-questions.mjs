@@ -17,7 +17,8 @@ import { namesOf } from "./world.mjs";
 
 /* RR-330 (owner, 27 Oct 2026): Reddit only through its official API, and only if its terms allow our use — they do not, so it stays OFF */
 export const REDDIT = Object.freeze({ on: false, why: "OFF — Reddit's Data API Terms require Reddit's own written approval for any commercial use of its data, and AlmiVisibility is a commercial product; no approval has been asked for. Turned on only with that approval." });
-export const QUESTION_SOURCES = Object.freeze(["keywords", "youtube", "owner"]);
+/* RR-331: "gsc" — the searches that reached our own sites (Search Console), their impressions as their weight */
+export const QUESTION_SOURCES = Object.freeze(["keywords", "youtube", "owner", "gsc"]);
 export const QUESTIONS = Object.freeze({ minChars: 12, maxChars: 200, joinShare: 0.5, maxGroups: 30, pageVolume: 50, pageAskers: 3 });
 
 /* the owner's list (27 Oct): how / what / can / is / when / where / which / why / fee / near me … */
@@ -88,9 +89,9 @@ export function groupQuestions(items, { subject, country = null, known = [], ski
   return groups.filter((g) => g.members.length).map((g) => {
     const by = (s) => g.members.filter((m) => m.source === s);
     /* the group's question as people put it: the owner's line, else a search's words (YouTube's own words are never the shown question) */
-    const shown = by("owner")[0] ?? by("keywords")[0] ?? null;
+    const shown = by("owner")[0] ?? by("keywords")[0] ?? by("gsc")[0] ?? null;
     return { id: g.id, need: g.need, sig: g.sig, question: shown ? String(shown.text).trim() : null, asked: g.members.slice(0, 10).map((m) => ({ text: String(m.text).trim(), source: m.source })),
-      count: g.members.length, volume: by("keywords").reduce((a, m) => a + Number(m.volume ?? 0), 0), period: by("keywords")[0]?.period ?? null,
+      count: g.members.length, volume: by("keywords").reduce((a, m) => a + Number(m.volume ?? 0), 0), impressions: by("gsc").reduce((a, m) => a + Number(m.volume ?? 0), 0), period: by("keywords")[0]?.period ?? null,
       sources: Object.fromEntries(QUESTION_SOURCES.map((s) => [s, by(s).length])) };
   }).sort((a, b) => b.volume + 10 * b.count - (a.volume + 10 * a.count) || a.id.localeCompare(b.id)).slice(0, max);
 }

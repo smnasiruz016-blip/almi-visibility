@@ -50,7 +50,7 @@ test("A · RR-330: same meaning → ONE group (the need first, then most content
   const by = Object.fromEntries(g.map((x) => [x.id, x]));
   assert.deepEqual(Object.keys(by).sort(), ["fees", "home", "other questions", "other questions~council-good-letter"].sort(), JSON.stringify(Object.keys(by)));
   assert.equal(by.fees.count, 2, "two ways of asking the fee are one question"); assert.equal(by.fees.volume, 1180);
-  assert.deepEqual(by.home.sources, { keywords: 1, youtube: 1, owner: 0 }); assert.equal(by.home.question, "can i take oet at home", "the search's words, never the comment's");
+  assert.deepEqual(by.home.sources, { keywords: 1, youtube: 1, owner: 0, gsc: 0 }); assert.equal(by.home.question, "can i take oet at home", "the search's words, never the comment's");
   assert.equal(by["other questions"].question, "Can I give OET from Lahore?", "the owner's line needs no subject word");
   assert.ok(!g.some((x) => /ielts|e2/.test(JSON.stringify(x))), "another test's search, a brand's name: not a question about OET");
   assert.deepEqual(signatureOf("how much is oet exam fee in pakistan", { subject: "OET", country: "Pakistan" }), ["fee", "test"]);
@@ -110,7 +110,7 @@ test("B · RR-330: one country — keywords, YouTube and the owner's questions g
   const store = cfMemoryStore(), kw = await kwDb(), yt = standInYouTube(), A = answersAi();
   const r = await oneCountry({ store, kw, yt, A });
   assert.equal(r.state, "done", r.note);
-  assert.deepEqual(r.stats.sources, { keywords: 7, youtube: 1, owner: 2 }); assert.equal(r.stats.asked, 10); assert.equal(r.stats.groups, 8);
+  assert.deepEqual(r.stats.sources, { keywords: 7, youtube: 1, owner: 2, gsc: 0 }); assert.equal(r.stats.asked, 10); assert.equal(r.stats.groups, 8);
   assert.equal(A.calls.length, 1, "ONE AI question for the country"); assert.equal(A.calls[0].search, true, "it searches for the official page");
   const f = async (id) => store.fact(`question|Pakistan|${id.replace(/ /g, "-")}`);
   const fee = await f("fees"); assert.equal(fee.status, "confirmed"); assert.equal(fee.aiWritten, false); assert.match(fee.value.answer, /^OET costs AUD 587 in Pakistan \(OET's own page/); assert.equal(fee.value.pageable, true);
@@ -227,7 +227,7 @@ test("D · RR-330: /owner/countries — the first 15 countries' progress and ETA
     const top = (await req("/owner/countries")).text;
     assert.match(top, /<b>First 15 countries: \d+% done<\/b> · fee 0\/15 · questions 1\/15 · centres 0\/15 · councils 0\/15 \(a council for 0 of 180 professions\) · rules 0\/15/);
     assert.match(top, /15 still to try in full — every part tried once by about 2026-\d\d-\d\d at today's caps \(an estimate until 3 countries are measured\)/);
-    assert.ok(top.indexOf("First 15 countries") < top.indexOf("The first 30 countries of the queue"), "the first 15 first");
+    assert.ok(top.indexOf("First 15 countries") < top.indexOf("All 197 countries, in the queue's order"), "the first 15 first");
     const pk = (await req("/owner/countries?c=Pakistan")).text;
     assert.match(pk, /<summary>Questions people ask \(1 groups\)<\/summary><p><b>9<\/b> questions asked \(keywords 6 · YouTube 1 · yours 2\) · <b>7<\/b> groups · <b>3<\/b> a page may carry<\/p>/);
     assert.match(pk, /<li><b>can i take oet at home<\/b> — 2 asked, 120 searches a month · official answer · <b>a page may carry it<\/b><\/li>/);

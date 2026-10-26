@@ -29,11 +29,14 @@ ALTER TABLE cf_fact ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'oet'
 CREATE INDEX IF NOT EXISTS cf_fact_product ON cf_fact (product, country);
 CREATE TABLE IF NOT EXISTS cf_photo (id text PRIMARY KEY, country text NOT NULL, type text NOT NULL, bytes bytea NOT NULL, at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS cf_question (product text NOT NULL, country text NOT NULL, source text NOT NULL, id text NOT NULL, text text NOT NULL, ref text, at timestamptz NOT NULL, PRIMARY KEY (product, country, source, id));
+ALTER TABLE cf_question ADD COLUMN IF NOT EXISTS clicks int, ADD COLUMN IF NOT EXISTS impressions int;
 `;
 /* RR-330 · the questions people asked that are not keywords: "youtube" (a comment's question, its words kept 30 days at most — YouTube's
  * rule for API data — then deleted by the collector) and "owner" (pasted on /owner, kept). A question's id is its words' fingerprint, so the
  * same question saved twice is one row. */
-export const QUESTION_STORE = Object.freeze({ sources: Object.freeze(["youtube", "owner"]), maxPerCountry: 400 });
+/* RR-331: "gsc" — the searches that ask something on our own sites (Search Console), with their clicks and impressions */
+export const QUESTION_STORE = Object.freeze({ sources: Object.freeze(["youtube", "owner", "gsc"]), maxPerCountry: 400 });
+const num = (v) => (Number.isFinite(Number(v)) && v !== null && v !== undefined ? Math.round(Number(v)) : null);
 const qid = (text) => createHash("sha256").update(normText(text)).digest("hex").slice(0, 20);
 /* RR-329 D (rule R9): "owner" — a fact the owner supplied himself, dated; shown first, never changed by the collector */
 export const STATUS = Object.freeze({ confirmed: "confirmed", unconfirmed: "unconfirmed", approved: "approved", edited: "edited", rejected: "rejected", owner: "owner" });
@@ -102,10 +105,10 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
     async putQuestions({ product = "oet", country, source, items, at }) {
       if (!QUESTION_STORE.sources.includes(source)) throw new Error(`no such question source: ${source}`);
       await ensure(); let n = 0;
-      for (const x of items.slice(0, QUESTION_STORE.maxPerCountry)) { const r = await q("INSERT INTO cf_question (product, country, source, id, text, ref, at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (product, country, source, id) DO UPDATE SET at = EXCLUDED.at, ref = EXCLUDED.ref RETURNING (xmax = 0) AS fresh", [product, country, source, qid(x.text), String(x.text), x.ref ?? null, at]); if (r[0]?.fresh) n++; }
+      for (const x of items.slice(0, QUESTION_STORE.maxPerCountry)) { const r = await q("INSERT INTO cf_question (product, country, source, id, text, ref, at, clicks, impressions) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (product, country, source, id) DO UPDATE SET at = EXCLUDED.at, ref = EXCLUDED.ref, clicks = EXCLUDED.clicks, impressions = EXCLUDED.impressions RETURNING (xmax = 0) AS fresh", [product, country, source, qid(x.text), String(x.text), x.ref ?? null, at, num(x.clicks), num(x.impressions)]); if (r[0]?.fresh) n++; }
       return { added: n };
     },
-    async questions({ product = "oet", country, source = null }) { await ensure(); return (await q(`SELECT source, text, ref, at FROM cf_question WHERE product = $1 AND country = $2${source ? " AND source = $3" : ""} ORDER BY at DESC, id`, source ? [product, country, source] : [product, country])).map((r) => ({ source: r.source, text: r.text, ref: r.ref, at: new Date(r.at).toISOString() })); },
+    async questions({ product = "oet", country, source = null }) { await ensure(); return (await q(`SELECT source, text, ref, at, clicks, impressions FROM cf_question WHERE product = $1 AND country = $2${source ? " AND source = $3" : ""} ORDER BY at DESC, id`, source ? [product, country, source] : [product, country])).map((r) => ({ source: r.source, text: r.text, ref: r.ref, at: new Date(r.at).toISOString(), clicks: r.clicks ?? null, impressions: r.impressions ?? null })); },
     /** YouTube's rule: a comment's words older than `before` are deleted → how many */
     async dropQuestions({ source, before }) { await ensure(); return (await q("DELETE FROM cf_question WHERE source = $1 AND at < $2 RETURNING id", [source, before])).length; },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
@@ -150,10 +153,10 @@ export function cfMemoryStore() {
     async putQuestions({ product = "oet", country, source, items, at }) {
       if (!QUESTION_STORE.sources.includes(source)) throw new Error(`no such question source: ${source}`);
       let n = 0;
-      for (const x of items.slice(0, QUESTION_STORE.maxPerCountry)) { const k = `${product}|${country}|${source}|${qid(x.text)}`, old = asked.get(k); if (!old) n++; asked.set(k, { product, country, source, text: old?.text ?? String(x.text), ref: x.ref ?? null, at: new Date(at).toISOString() }); }
+      for (const x of items.slice(0, QUESTION_STORE.maxPerCountry)) { const k = `${product}|${country}|${source}|${qid(x.text)}`, old = asked.get(k); if (!old) n++; asked.set(k, { product, country, source, text: old?.text ?? String(x.text), ref: x.ref ?? null, at: new Date(at).toISOString(), clicks: num(x.clicks), impressions: num(x.impressions) }); }
       return { added: n };
     },
-    async questions({ product = "oet", country, source = null }) { return [...asked.entries()].filter(([, v]) => v.product === product && v.country === country && (!source || v.source === source)).sort((a, b) => b[1].at.localeCompare(a[1].at) || a[0].localeCompare(b[0])).map(([, v]) => ({ source: v.source, text: v.text, ref: v.ref, at: v.at })); },
+    async questions({ product = "oet", country, source = null }) { return [...asked.entries()].filter(([, v]) => v.product === product && v.country === country && (!source || v.source === source)).sort((a, b) => b[1].at.localeCompare(a[1].at) || a[0].localeCompare(b[0])).map(([, v]) => ({ source: v.source, text: v.text, ref: v.ref, at: v.at, clicks: v.clicks ?? null, impressions: v.impressions ?? null })); },
     async dropQuestions({ source, before }) { let n = 0; for (const [k, v] of asked) if (v.source === source && v.at < new Date(before).toISOString()) { asked.delete(k); n++; } return n; },
     async close() {},
   });

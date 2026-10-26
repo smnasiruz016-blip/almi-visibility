@@ -144,7 +144,9 @@ for (const [name, make] of STORES) {
   });
 }
 
-const KW_STORES = [["memory", async () => memoryStore()], ...(pgOk ? [["postgres", async () => { const { Pool } = (await import(pathToFileURL(PG_MODULE).href)).default; const p = new Pool({ connectionString: PG_URL }); await p.query("DROP TABLE IF EXISTS kw_fetch_keyword, kw_group_keyword, kw_observation, kw_fetch, kw_seed_list CASCADE"); await p.end(); return pgStore({ url: PG_URL, Pool }); }]] : [])];
+/* its own schema: test/rr326-keywords.test.mjs drops and makes the same kw_* tables, and node --test runs the two files at once */
+const KW_URL = PG_URL ? `${PG_URL}${PG_URL.includes("?") ? "&" : "?"}options=-c%20search_path%3Drr328kw` : null;
+const KW_STORES = [["memory", async () => memoryStore()], ...(pgOk ? [["postgres", async () => { const { Pool } = (await import(pathToFileURL(PG_MODULE).href)).default; const p = new Pool({ connectionString: PG_URL }); await p.query("CREATE SCHEMA IF NOT EXISTS rr328kw"); await p.end(); const k = new Pool({ connectionString: KW_URL }); await k.query("DROP TABLE IF EXISTS kw_fetch_keyword, kw_group_keyword, kw_observation, kw_fetch, kw_seed_list CASCADE"); const [{ s }] = (await k.query("SELECT current_schema() AS s")).rows; await k.end(); assert.equal(s, "rr328kw", "the keyword tables in their own schema"); return pgStore({ url: KW_URL, Pool }); }]] : [])];
 for (const [name, make] of KW_STORES) {
   test(`C · RR-328 the keyword database (${name}): keywordsAt — every keyword at a location, each with its NEWEST figure, biggest first (the country's own searches the collector groups into questions)`, async () => {
     const s = await make();

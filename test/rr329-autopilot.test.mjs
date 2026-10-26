@@ -115,6 +115,8 @@ const PAGES = {
   "https://www.pakistan.gov.pk/work/cv": { title: "Applying for a job", text: "A CV in Pakistan is usually two pages long and lists the applicant's education first, then experience." },
   "https://employment.example/about": { title: "About", text: "Invented National Employment Bureau lists vacancies across the country." },
   "https://www.pakistan.gov.pk/work/permits": { title: "Work permits", text: "Something else entirely." },
+  /* a blog that names the body — readable, but not official: only the official-page rule can refuse it */
+  "https://someones-blog.example/boards": { title: "Boards", text: "Invented Equivalence Board recognises degrees." },
 };
 function productAi({ recognition = false } = {}) {
   const calls = [];

@@ -9,11 +9,15 @@
  *   cf_task     the collector's work per (country, task): finished on which day, tries — finished work is not done again until it is due;
  *               for the councils, the names already tried per profession while it is still "searching" (RR-328 addition, rule R1)
  *   cf_day      today's spend: the AI's dollars, the page reads, the web searches (the daily caps)
+ *   cf_question RR-330: questions people asked that are not keywords — YouTube comments' questions (30 days at most) and the owner's own
  * THE OWNER'S WORD WINS: a fact he approved, edited or rejected is never changed by the collector again (its new proposal is kept in the
  * history only). No personal data: countries, organisations, official addresses and pages.
  * Two stores with ONE contract (test/rr328-*.test.mjs runs the same tests on both): pgStore (production; locally on a throwaway Postgres)
  * and memoryStore (the tests in CI).
  */
+import { createHash } from "node:crypto";
+import { normText } from "../desktop/country-facts.mjs";
+
 export const CF_SCHEMA = `
 CREATE TABLE IF NOT EXISTS cf_fact (key text PRIMARY KEY, country text NOT NULL, profession text, part text NOT NULL, kind text NOT NULL, value jsonb NOT NULL, source_url text, source_title text, read_on date, status text NOT NULL, by_who text NOT NULL, ai_written boolean NOT NULL DEFAULT false, proposed_by text NOT NULL, why text, at timestamptz NOT NULL);
 CREATE INDEX IF NOT EXISTS cf_fact_country ON cf_fact (country);
@@ -24,7 +28,13 @@ CREATE TABLE IF NOT EXISTS cf_day (day date PRIMARY KEY, ai_usd numeric NOT NULL
 ALTER TABLE cf_fact ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'oet';
 CREATE INDEX IF NOT EXISTS cf_fact_product ON cf_fact (product, country);
 CREATE TABLE IF NOT EXISTS cf_photo (id text PRIMARY KEY, country text NOT NULL, type text NOT NULL, bytes bytea NOT NULL, at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS cf_question (product text NOT NULL, country text NOT NULL, source text NOT NULL, id text NOT NULL, text text NOT NULL, ref text, at timestamptz NOT NULL, PRIMARY KEY (product, country, source, id));
 `;
+/* RR-330 · the questions people asked that are not keywords: "youtube" (a comment's question, its words kept 30 days at most — YouTube's
+ * rule for API data — then deleted by the collector) and "owner" (pasted on /owner, kept). A question's id is its words' fingerprint, so the
+ * same question saved twice is one row. */
+export const QUESTION_STORE = Object.freeze({ sources: Object.freeze(["youtube", "owner"]), maxPerCountry: 400 });
+const qid = (text) => createHash("sha256").update(normText(text)).digest("hex").slice(0, 20);
 /* RR-329 D (rule R9): "owner" — a fact the owner supplied himself, dated; shown first, never changed by the collector */
 export const STATUS = Object.freeze({ confirmed: "confirmed", unconfirmed: "unconfirmed", approved: "approved", edited: "edited", rejected: "rejected", owner: "owner" });
 /* what a page may show — never an unconfirmed or rejected fact */
@@ -88,13 +98,23 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
     /** RR-329 C · the spend of every day since `since` (the owner's day and month) */
     async spendSince(since) { await ensure(); return (await q("SELECT day::text AS day, ai_usd::float8 AS ai, reads, searches FROM cf_day WHERE day >= $1 ORDER BY day", [since])).map((r) => ({ day: r.day, aiUsd: Number(r.ai), reads: r.reads, searches: r.searches })); },
     async addSpend(day, { aiUsd = 0, reads = 0, searches = 0 }) { await ensure(); await q("INSERT INTO cf_day (day, ai_usd, reads, searches) VALUES ($1,$2,$3,$4) ON CONFLICT (day) DO UPDATE SET ai_usd = cf_day.ai_usd + EXCLUDED.ai_usd, reads = cf_day.reads + EXCLUDED.reads, searches = cf_day.searches + EXCLUDED.searches", [day, aiUsd, reads, searches]); },
+    /** RR-330 · questions asked (YouTube, the owner) — the same question twice is one row; → how many are new */
+    async putQuestions({ product = "oet", country, source, items, at }) {
+      if (!QUESTION_STORE.sources.includes(source)) throw new Error(`no such question source: ${source}`);
+      await ensure(); let n = 0;
+      for (const x of items.slice(0, QUESTION_STORE.maxPerCountry)) { const r = await q("INSERT INTO cf_question (product, country, source, id, text, ref, at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (product, country, source, id) DO UPDATE SET at = EXCLUDED.at, ref = EXCLUDED.ref RETURNING (xmax = 0) AS fresh", [product, country, source, qid(x.text), String(x.text), x.ref ?? null, at]); if (r[0]?.fresh) n++; }
+      return { added: n };
+    },
+    async questions({ product = "oet", country, source = null }) { await ensure(); return (await q(`SELECT source, text, ref, at FROM cf_question WHERE product = $1 AND country = $2${source ? " AND source = $3" : ""} ORDER BY at DESC, id`, source ? [product, country, source] : [product, country])).map((r) => ({ source: r.source, text: r.text, ref: r.ref, at: new Date(r.at).toISOString() })); },
+    /** YouTube's rule: a comment's words older than `before` are deleted → how many */
+    async dropQuestions({ source, before }) { await ensure(); return (await q("DELETE FROM cf_question WHERE source = $1 AND at < $2 RETURNING id", [source, before])).length; },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }
 
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
 export function cfMemoryStore() {
-  const facts = new Map(), hist = [], tasks = new Map(), days = new Map(), photos = new Map();
+  const facts = new Map(), hist = [], tasks = new Map(), days = new Map(), photos = new Map(), asked = new Map();
   const copy = (o) => JSON.parse(JSON.stringify(o));
   return Object.freeze({
     kind: "memory", ensure: async () => {},
@@ -127,6 +147,14 @@ export function cfMemoryStore() {
     async spend(day) { const d = days.get(day); return d ? { ...d } : { aiUsd: 0, reads: 0, searches: 0 }; },
     async spendSince(since) { return [...days.entries()].filter(([d]) => d >= since).sort(([a], [b]) => a.localeCompare(b)).map(([day, d]) => ({ day, ...d })); },
     async addSpend(day, { aiUsd = 0, reads = 0, searches = 0 }) { const d = days.get(day) ?? { aiUsd: 0, reads: 0, searches: 0 }; days.set(day, { aiUsd: d.aiUsd + aiUsd, reads: d.reads + reads, searches: d.searches + searches }); },
+    async putQuestions({ product = "oet", country, source, items, at }) {
+      if (!QUESTION_STORE.sources.includes(source)) throw new Error(`no such question source: ${source}`);
+      let n = 0;
+      for (const x of items.slice(0, QUESTION_STORE.maxPerCountry)) { const k = `${product}|${country}|${source}|${qid(x.text)}`, old = asked.get(k); if (!old) n++; asked.set(k, { product, country, source, text: old?.text ?? String(x.text), ref: x.ref ?? null, at: new Date(at).toISOString() }); }
+      return { added: n };
+    },
+    async questions({ product = "oet", country, source = null }) { return [...asked.entries()].filter(([, v]) => v.product === product && v.country === country && (!source || v.source === source)).sort((a, b) => b[1].at.localeCompare(a[1].at) || a[0].localeCompare(b[0])).map(([, v]) => ({ source: v.source, text: v.text, ref: v.ref, at: v.at })); },
+    async dropQuestions({ source, before }) { let n = 0; for (const [k, v] of asked) if (v.source === source && v.at < new Date(before).toISOString()) { asked.delete(k); n++; } return n; },
     async close() {},
   });
 }

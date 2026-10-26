@@ -30,10 +30,12 @@ import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs
 import { isOwner, ownerOn, ownerState, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
 import { cfPgStore, SHOWN, PHOTO } from "./cf-store.mjs"; // RR-328 B
-import { runCountryFacts, CF_ORDER, capsOf } from "./cf-collector.mjs";
+import { runCountryFacts, CF_ORDER, capsOf, finishedIn, costKey, CF_COLLECTOR } from "./cf-collector.mjs";
 import { aiConfigured } from "./cf-ai.mjs";
 import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS } from "../desktop/country-facts.mjs";
 import { officialReader } from "../desktop/official.mjs";
+import { chainFetch } from "./chain-fetch.mjs"; // RR-330
+import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -229,7 +231,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   /* RR-328 B · the country facts: the same database; the official reader (robots obeyed, public addresses only, paced) */
   const cf = cfStore ?? (dbUrlOf(env) ? cfPgStore({ url: dbUrlOf(env) }) : null);
   /* RR-329 A: both collectors follow the owner's queue (his order from /owner, else the default) */
-  const cfRun = async (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv), ...o });
+  /* RR-330: an official site that leaves out a certificate of its chain is read as a browser reads it (chain-fetch.mjs) — verification kept */
+  const cfFetch = chainFetch(fetchImpl, { allowed: async (url) => (await testableUrl(url, resolve ? { resolve } : {})).ok });
+  const cfRun = async (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv), youtubeFetch: fetchImpl, ...o });
   const kwRun = async (o = {}) => runCollector({ store: db, ads, kv, now, queue: await queueNow(kv), limitMb: storageLimitOf(env), ...o });
   /* RR-329 B/E: one product's grid at a time (light on a phone); AlmiOET keeps its five-part grid */
   const countriesPage = async (o = {}) => {
@@ -241,7 +245,20 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const task = product === "oet" ? "councils" : `${product}:facts`;
     const search = Object.fromEntries([...(await cf.tasks()).entries()].filter(([k]) => k.endsWith(`|${task}`)).map(([k, t]) => [k.slice(0, -(task.length + 1)), { state: t.state, day: t.day, note: t.note, tried: t.tried ?? {} }]));
     const template = PRODUCT_FACTS[product], coverage = product === "oet" ? coverageOf(facts, { countries: order }) : productCoverageOf(product, all, { countries: order, template });
-    return P.ownerCountries({ coverage, facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, ...o, country: sel, product });
+    /* RR-330: each country's questions (asked, groups, a page may carry — from its last questions run), the first 15's progress and ETA */
+    const tasks = await cf.tasks(), qstats = product === "oet" ? Object.fromEntries([...tasks.entries()].filter(([k]) => k.endsWith("|questions")).map(([k, t]) => [k.slice(0, -10), t.tried?.stats ?? null]).filter(([, s]) => s)) : {};
+    const asked = sel && product === "oet" ? (await cf.questions({ product: "oet", country: sel })).slice(0, 12) : [];
+    let first15 = null;
+    if (product === "oet") {
+      const cs = order.slice(0, 15), rows = coverage.rows.filter((r) => cs.includes(r.country)), filled = rows.reduce((a, r) => a + Object.values(r.parts).filter((p) => p.filled).length, 0);
+      const done = finishedIn(tasks), left = cs.filter((c) => !done("oet", c)).length, caps = capsOf(env);
+      let cost = null; try { const [v] = kv ? await kv.run([["GET", costKey("oet")]]) : [null]; cost = v ? JSON.parse(v) : null; } catch { cost = null; }
+      const usd = cost && cost.n >= 3 ? cost.usd : CF_COLLECTOR.defaultCost.oet, reads = cost && cost.n >= 3 && cost.reads !== undefined ? cost.reads : CF_COLLECTOR.defaultReads.oet;
+      const days = left ? Math.max(Math.ceil((left * usd) / Math.max(0.01, caps.aiUsd * 0.75)), Math.ceil((left * reads) / Math.max(1, caps.reads * 0.75))) : 0;
+      first15 = { countries: cs.length, percent: Math.round((100 * filled) / Math.max(1, cs.length * 5)), byPart: Object.fromEntries(["fee", "questions", "centres", "councils", "rules"].map((p) => [p, rows.filter((r) => r.parts[p].filled).length])),
+        councils: rows.reduce((a, r) => a + Object.values(r.councils).filter(Boolean).length, 0), councilPairs: rows.length * CF_PROFESSIONS.length, left, eta: left ? new Date(Date.parse(`${d}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10) : null, measured: Boolean(cost && cost.n >= 3) };
+    }
+    return P.ownerCountries({ coverage, facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, ...o, country: sel, product });
   };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};
@@ -393,6 +410,17 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
             const id = randomBytes(6).toString("hex"), key = product === "oet" ? `own|${country}|${part}|${id}` : `${product}:own|${country}|${part}|${id}`;
             await cf.supply({ key, product, country, profession, part, kind: "owner", value: { text, ...(link ? { link } : {}), ...(photo ? { photo } : {}), on: at.slice(0, 10), label: "AlmiWorld's own checked information" }, sourceUrl: link || null, sourceTitle: link ? "the owner's link" : null, readOn: at.slice(0, 10) }, { at });
             return back(200, `Saved as your own information (${at.slice(0, 10)}) — it is shown first, before anything the collector finds.`);
+          }
+          /* RR-330 · the owner's own questions (what nurses and doctors asked him): one a line, kept as asked, grouped with the rest */
+          if (req.method === "POST" && u.pathname === "/owner/countries/questions") {
+            const f = form(), country = String(f.country ?? ""), lines = ownerLines(String(f.text ?? "").slice(0, 20000));
+            const back = (code, message) => countriesPage({ country: COUNTRIES.includes(country) ? country : null, message }).then((h) => send(code, h, undefined, priv));
+            if (!COUNTRIES.includes(country)) return back(400, "Choose a country. Nothing was saved.");
+            if (!lines.length) return back(400, "Paste at least one question (one a line). Nothing was saved.");
+            const r = await cf.putQuestions({ product: "oet", country, source: "owner", items: lines.map((text) => ({ text })), at: new Date(now()).toISOString() });
+            /* his questions are due at once — the collector's next run groups and answers them */
+            await cf.setTask(country, "questions", { day: new Date(now()).toISOString().slice(0, 10), state: "retry", note: "the owner added questions — answered on the next run" });
+            return back(200, `Saved ${lines.length} question${lines.length === 1 ? "" : "s"} (${r.added} new) for ${country} — grouped and answered on the collector's next run.`);
           }
           if (req.method === "GET" && u.pathname === "/owner/countries/photo") {
             const ph = /^[0-9a-f]{24}$/.test(u.searchParams.get("id") ?? "") ? await cf.photo(u.searchParams.get("id")) : null;

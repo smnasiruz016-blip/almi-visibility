@@ -155,6 +155,9 @@ test("L · RR-328: a destination country is its hub's section; an origin country
   const x = L();
   assert.ok(x.sectionsOut.some((s) => s.name === "OET in United Kingdom" && /destination/.test(s.why)));
   assert.ok(!x.country.some((p) => p.country === "United Kingdom"));
+  assert.ok(!x.stopped.country.some((y) => y.country === "United Kingdom" || y.country === "Australia"), "a destination is never checked as a country page");
+  const destSections = x.sectionsOut.filter((s) => /is a destination/.test(s.why)).length;
+  assert.ok(destSections >= 1); assert.equal(x.universe.destinations, destSections, "each destination is counted apart from the origin countries");
   assert.deepEqual(x.country.map((p) => p.country), ["Pakistan"], "only Pakistan has all five parts");
   const pk = x.country.find((p) => p.country === "Pakistan");
   assert.equal(pk.title, "OET in Pakistan: test centres, the fee in PKR and the steps");
@@ -215,6 +218,9 @@ test("P · RR-328: the plan counts by the owner's rules — the country pages wi
   const miss4 = p.tables.country.rows.find((r) => /^…missing part 4 · the council for each profession/.test(r.step));
   assert.ok(miss4.n >= 2 && miss4.left.some((x) => x.name === "Nepal" && /missing:/.test(x.why)) && miss4.left.some((x) => x.name === "India"), "the stopped countries, each with what it misses");
   assert.ok(!p.tables.country.rows.some((r) => /^Gate 2/.test(r.step)), "the five-part rule replaces gate 2 for country pages");
+  /* gate 2 still holds outside the five-part rule: a page with fewer than GATES.minData data points is a section, never a thin page */
+  assert.ok(Object.values(p.gates).some((g) => g.sections.some((s) => /data points \(fewer than/.test(s.why))), "the fixture reaches gate 2 (a thin page it stops)");
+  assert.deepEqual(Object.values(p.kinds).flat().filter((x) => !x.keepWhole && (x.dataPoints?.length ?? 0) < GATES.minData).map((x) => x.title), [], "no kept page is thin");
   assert.equal(p.tables.city.rows.at(-1).n, 0);
   assert.equal(p.tables.searches.rows[0].why, "AlmiWorld keyword service: on — 281 searches left this month");
   assert.ok(p.whyNotMore.lines.some((l) => /^Countries: 197 → \d+ destinations \(their hubs\) → \d+ checked part by part → 1 country pages with all five parts/.test(l)));

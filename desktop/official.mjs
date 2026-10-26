@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { testableUrl } from "../site/free-test.mjs";
 import { createRobotsCache } from "../src/crawl/robots.mjs";
 import { parseSitemap } from "../src/crawl/seeds.mjs";
-import { USER_AGENT } from "./site-read.mjs";
+import { USER_AGENT } from "./user-agent.mjs"; // RR-328: not the whole site reader (the website uses this reader)
 import { namesOf, slugOf, originsIn } from "./world.mjs";
 import { pdfText, isPdf, PDF_TEXT } from "../src/facts/pdf-text.mjs";
 

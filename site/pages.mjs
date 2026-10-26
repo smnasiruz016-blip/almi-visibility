@@ -423,6 +423,7 @@ export function ownerPage({ connected = false, missing = [], dbOn = false, dbErr
 <h2>By country</h2><div class="tablewrap"><table class="t"><tr><th>Country</th><th>Keywords</th><th>Today</th></tr>${[...counts.locations].sort((x, y) => (x.location === "ALL" ? -1 : y.location === "ALL" ? 1 : String(lname[x.location] ?? x.location).localeCompare(String(lname[y.location] ?? y.location)))).map((l) => `<tr><td>${esc(lname[l.location] ?? l.location)}</td><td>${l.keywords.toLocaleString("en-US")}</td><td>${l.today.toLocaleString("en-US")}</td></tr>`).join("") || '<tr><td colspan="3">Nothing collected yet.</td></tr>'}</table></div>` : "";
   return ownerFrame("Owner", `<h1>Owner — keywords</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
 <p class="fine"><b>No daily limit on this browser</b> for the free score and the keyword finder.</p>
+<p><a class="pill ghost" href="/owner/countries">Country facts — the five parts per country</a></p>
 <h2>Google</h2>${google}${licenceLine(licenceKey)}${checkBox(check)}${connected ? `<form method="post" action="/owner/check-google"><button class="pill ghost" type="submit">Check Google access (about 10 operations)</button></form>` : ""}${ops}
 <h2>The daily collector</h2>${run}${db}
 ${dbOn ? importBox(imported) : ""}
@@ -430,6 +431,52 @@ ${dbOn ? importBox(imported) : ""}
 <form method="post" action="/owner/seeds"><textarea name="seeds" rows="24" style="width:100%;font-family:Consolas,monospace;font-size:13px">${esc(seedDraft ?? seedText)}</textarea><p><button class="pill" type="submit">Save the list</button></p></form>
 <form method="post" action="/owner/collect" style="display:inline"><button class="pill ghost" type="submit">Collect now (one short run)</button></form>
 <form method="post" action="/owner/sign-out" style="display:inline"><button class="pill ghost" type="submit">Sign out</button></form>`);
+}
+
+/* ── RR-328 B · the owner's Country Facts: the coverage grid (five parts per country, a council per profession), each fact with its source,
+ * and his word on it (approve, edit, reject — his edit wins). An unconfirmed fact is listed here for him, never shown on a page. ── */
+const PART_SHORT = { fee: "Fee", questions: "Questions", centres: "Centres", councils: "Councils", rules: "Rule" };
+const factLine = (f) => {
+  const v = f.value ?? {};
+  if (f.part === "fee") return `${v.line ?? ""}`;
+  if (f.part === "centres") return v.venue ? "a venue named on OET's own pages" : `no venue — ${v.home ?? "at home not stated"}${v.nearest?.length ? `; nearest venues: ${v.nearest.join(", ")}` : "; no nearest venue"}`;
+  if (f.part === "councils") return `${f.profession}: ${v.name ?? "?"}${v.nameType ? ` (${v.nameType})` : ""} · ${v.website ?? "no website"} · ${v.address ?? `address missing${v.addressWhy ? ` (${v.addressWhy})` : ""}`}`;
+  if (f.part === "questions") return `“${v.question ?? ""}” (${Number(v.volume ?? 0).toLocaleString("en-US")} a month) → ${v.answer ?? "no answer yet"}`;
+  if (f.part === "rules") return `${v.rule ?? ""}${v.quote ? ` — the page says: “${v.quote}”` : ""}`;
+  return JSON.stringify(v);
+};
+const editFields = (f) => {
+  const v = f.value ?? {}, inp = (n, label, val) => `<label>${label} <input name="${n}" value="${esc(val ?? "")}" style="width:100%"></label>`;
+  if (f.part === "councils") return `${inp("name", "Name", v.name)}${inp("website", "Official website", v.website)}${inp("address", "Address", v.address)}`;
+  if (f.part === "questions") return `${inp("question", "Question", v.question)}<label>Answer <textarea name="answer" rows="3" style="width:100%">${esc(v.answer ?? "")}</textarea></label>`;
+  if (f.part === "rules") return `<label>Rule <textarea name="rule" rows="2" style="width:100%">${esc(v.rule ?? "")}</textarea></label>`;
+  if (f.part === "fee") return inp("line", "The fee line", v.line);
+  return inp("home", "At home / centres", v.home ?? "");
+};
+export function ownerCountries({ coverage, facts = [], country = null, history = {}, last = null, aiOn = false, caps = null, spend = null, message = null, order = [], search = {} } = {}) {
+  const c = coverage.counts, byC = Object.fromEntries(coverage.rows.map((r) => [r.country, r])), mark = (ok) => (ok ? "✓" : "—");
+  /* RR-328 addition (rule R1): a council not found yet is "searching" (every day), never a stop at "missing" */
+  const missingOf = (name, r) => r.missing.map((p) => (p === "councils" && search[name]?.state === "searching" ? "councils (searching)" : p)).join(", ");
+  const searchList = (name) => { const s = search[name]; if (!s || s.state !== "searching") return ""; const rows = Object.entries(s.tried ?? {});
+    return `<h3>Councils — searching every day</h3><p class="fine">${esc(s.note ?? "")} (last search ${esc(s.day)}). Shown on a page only after the collector reads its official page itself.</p><ul>${rows.map(([p, t]) => `<li>${esc(p)}: searching since ${esc(t.since ?? s.day)} — ${t.names?.length ? `tried: ${esc(t.names.join("; "))}${t.types?.length ? ` (name types: ${esc(t.types.join(", "))})` : ""}` : "no name found yet"}</li>`).join("")}</ul>`; };
+  const runLine = last ? `<p>Last run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} facts saved (${last.unconfirmed} unconfirmed), ${last.kept} kept as you decided, ${last.reads} pages read, $${Number(last.aiUsd ?? 0).toFixed(2)} of AI${last.done?.length ? `; finished: ${esc(last.done.slice(0, 8).join(", "))}${last.done.length > 8 ? " …" : ""}` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
+  const grid = `<div class="tablewrap"><table class="t"><tr><th>Country</th>${Object.values(PART_SHORT).map((p) => `<th>${p}</th>`).join("")}<th>Missing</th></tr>${order.map((name) => { const r = byC[name]; if (!r) return ""; const n = Object.values(r.councils).filter(Boolean).length;
+    return `<tr><td><a href="/owner/countries?c=${encodeURIComponent(name)}">${esc(name)}</a></td><td>${mark(r.parts.fee.filled)}</td><td>${mark(r.parts.questions.filled)}</td><td>${mark(r.parts.centres.filled)}</td><td>${n} / ${Object.keys(r.councils).length}</td><td>${mark(r.parts.rules.filled)}</td><td>${r.complete ? "<b>a page</b>" : esc(missingOf(name, r))}</td></tr>`; }).join("")}</table></div>`;
+  let detail = "";
+  if (country && byC[country]) {
+    const r = byC[country], mine = facts.filter((f) => f.country === country);
+    detail = `<h2 id="facts">${esc(country)} — ${r.complete ? "all five parts filled: a country page" : `missing: ${esc(r.missing.map((p) => PART_SHORT[p]).join(", "))}`}</h2><ul>${Object.entries(r.parts).filter(([, p]) => !p.filled).map(([k, p]) => `<li>${PART_SHORT[k]}: ${esc(p.missing.join("; "))}</li>`).join("")}</ul>${searchList(country)}
+<div class="tablewrap"><table class="t"><tr><th>Part</th><th>The fact</th><th>Status</th><th>Source</th><th>Your word</th></tr>${mine.map((f) => `<tr><td>${PART_SHORT[f.part] ?? esc(f.part)}</td><td>${esc(factLine(f))}${f.aiWritten ? ' <span class="fine">(AI-written)</span>' : ""}${f.why ? `<br><span class="fine">${esc(f.why)}</span>` : ""}${history[f.key]?.length > 1 ? `<br><span class="fine">${history[f.key].length} changes kept</span>` : ""}</td><td>${esc(f.status)}${f.status === "unconfirmed" ? '<br><span class="fine">never shown on a page</span>' : ""}</td><td>${f.sourceUrl ? `<a href="${esc(f.sourceUrl)}" rel="nofollow noopener">${esc(f.sourceTitle || f.sourceUrl)}</a>` : "—"}${f.readOn ? `<br><span class="fine">read ${esc(f.readOn)}</span>` : ""}</td>
+<td><form method="post" action="/owner/countries/fact" style="display:inline"><input type="hidden" name="key" value="${esc(f.key)}"><button class="ghost" name="action" value="approve" type="submit">Approve</button> <button class="ghost" name="action" value="reject" type="submit">Reject</button></form>
+<details><summary>Edit</summary><form method="post" action="/owner/countries/fact"><input type="hidden" name="key" value="${esc(f.key)}"><input type="hidden" name="action" value="edit">${editFields(f)}<button class="pill" type="submit">Save my version</button></form></details></td></tr>`).join("") || '<tr><td colspan="5">No fact collected yet for this country.</td></tr>'}</table></div>`;
+  }
+  return ownerFrame("Country facts", `<h1>Owner — country facts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+<p><a href="/owner">← Keywords</a></p>
+<p><b>${c.complete}</b> of ${c.countries} countries have all five parts (a country page) · fee ${c.byPart.fee} · questions ${c.byPart.questions} · centres ${c.byPart.centres} · councils ${c.byPart.councils} · rule ${c.byPart.rules}</p>
+<p>Country × profession: a council found for <b>${c.councilsFound.toLocaleString("en-US")}</b> of ${c.pairs.toLocaleString("en-US")} · ${c.unconfirmed} facts unconfirmed (never shown on a page) · ${c.rejected} rejected by you</p>
+<p class="fine">AI research: ANTHROPIC_API_KEY ${aiOn ? "set" : "missing — the collector reads official pages and AlmiOET's records only"}${caps ? ` · today's caps: $${caps.aiUsd.toFixed(2)} of AI, ${caps.reads} page reads` : ""}${spend ? ` · used today: $${spend.aiUsd.toFixed(2)}, ${spend.reads} reads, ${spend.searches} web searches` : ""}.</p>
+${runLine}<form method="post" action="/owner/countries/run"><button class="pill" type="submit">Collect now (one short run)</button></form>
+${detail}<h2>Coverage</h2>${grid}`);
 }
 
 export const buyNotConnected = (plan, state = "DEFERRED") => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,

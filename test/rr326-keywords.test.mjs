@@ -595,7 +595,7 @@ test("D · the bundle: the database driver pinned, eight daily crons, 300 s, the
   try {
     const r = spawnSync(process.execPath, [join(REPO, "tools", "bundle-site.mjs"), "--public-lite", out], { encoding: "utf8" }); assert.equal(r.status, 0, r.stderr);
     const vj = JSON.parse(readFileSync(join(out, "vercel.json"), "utf8")), pj = JSON.parse(readFileSync(join(out, "package.json"), "utf8"));
-    assert.equal(vj.crons.length, 8); assert.ok(vj.crons.every((c) => c.path === "/cron/keywords")); assert.equal(vj.functions["api/index.mjs"].maxDuration, 300);
+    assert.equal(vj.crons.filter((c) => c.path === "/cron/keywords").length, 8); assert.equal(vj.crons.length, 12, "RR-328 B: + four country-facts runs"); assert.ok(vj.crons.every((c) => ["/cron/keywords", "/cron/country-facts"].includes(c.path) && /^\d+ \d+ \* \* \*$/.test(c.schedule))); assert.equal(vj.functions["api/index.mjs"].maxDuration, 300);
     assert.deepEqual(pj.dependencies, { pg: "8.23.1" }); assert.ok(existsSync(join(out, "owner-google-sign-in.mjs"))); assert.ok(existsSync(join(out, "desktop", "ads-wire.mjs")));
     assert.ok(!existsSync(join(out, "desktop", "keyword-db.mjs")), "the app's keyword database is not the site's");
     const engine = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")); assert.equal(engine.dependencies, undefined, "the engine itself installs nothing");

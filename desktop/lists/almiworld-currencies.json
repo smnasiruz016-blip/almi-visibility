@@ -1,0 +1,1016 @@
+{
+ "source": "ISO 4217 — the maintenance agency's own list (SIX, list one)",
+ "url": "https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml",
+ "published": "2026-09-17",
+ "readOn": "2026-10-25",
+ "countries": {
+  "Afghanistan": {
+   "code": "AFN",
+   "name": "Afghani",
+   "inOpen": true
+  },
+  "Albania": {
+   "code": "ALL",
+   "name": "Lek",
+   "inOpen": true
+  },
+  "Algeria": {
+   "code": "DZD",
+   "name": "Algerian Dinar",
+   "inOpen": true
+  },
+  "Andorra": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Angola": {
+   "code": "AOA",
+   "name": "Kwanza",
+   "inOpen": true
+  },
+  "Antigua and Barbuda": {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "inOpen": true
+  },
+  "Argentina": {
+   "code": "ARS",
+   "name": "Argentine Peso",
+   "inOpen": true
+  },
+  "Armenia": {
+   "code": "AMD",
+   "name": "Armenian Dram",
+   "inOpen": true
+  },
+  "Australia": {
+   "code": "AUD",
+   "name": "Australian Dollar",
+   "inOpen": true
+  },
+  "Austria": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Azerbaijan": {
+   "code": "AZN",
+   "name": "Azerbaijan Manat",
+   "inOpen": true
+  },
+  "Bahamas": {
+   "code": "BSD",
+   "name": "Bahamian Dollar",
+   "inOpen": true
+  },
+  "Bahrain": {
+   "code": "BHD",
+   "name": "Bahraini Dinar",
+   "inOpen": true
+  },
+  "Bangladesh": {
+   "code": "BDT",
+   "name": "Taka",
+   "inOpen": true
+  },
+  "Barbados": {
+   "code": "BBD",
+   "name": "Barbados Dollar",
+   "inOpen": true
+  },
+  "Belarus": {
+   "code": "BYN",
+   "name": "Belarusian Ruble",
+   "inOpen": true
+  },
+  "Belgium": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Belize": {
+   "code": "BZD",
+   "name": "Belize Dollar",
+   "inOpen": true
+  },
+  "Benin": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Bhutan": {
+   "code": "BTN",
+   "name": "Ngultrum",
+   "also": [
+    "INR"
+   ],
+   "inOpen": true
+  },
+  "Bolivia": {
+   "code": "BOB",
+   "name": "Boliviano",
+   "inOpen": true
+  },
+  "Bosnia and Herzegovina": {
+   "code": "BAM",
+   "name": "Convertible Mark",
+   "inOpen": true
+  },
+  "Botswana": {
+   "code": "BWP",
+   "name": "Pula",
+   "inOpen": true
+  },
+  "Brazil": {
+   "code": "BRL",
+   "name": "Brazilian Real",
+   "inOpen": true
+  },
+  "Brunei Darussalam": {
+   "code": "BND",
+   "name": "Brunei Dollar",
+   "inOpen": true
+  },
+  "Bulgaria": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Burkina Faso": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Burundi": {
+   "code": "BIF",
+   "name": "Burundi Franc",
+   "inOpen": true
+  },
+  "Cabo Verde": {
+   "code": "CVE",
+   "name": "Cabo Verde Escudo",
+   "inOpen": true
+  },
+  "Cambodia": {
+   "code": "KHR",
+   "name": "Riel",
+   "inOpen": true
+  },
+  "Cameroon": {
+   "code": "XAF",
+   "name": "CFA Franc BEAC",
+   "inOpen": true
+  },
+  "Canada": {
+   "code": "CAD",
+   "name": "Canadian Dollar",
+   "inOpen": true
+  },
+  "Central African Republic": {
+   "code": "XAF",
+   "name": "CFA Franc BEAC",
+   "inOpen": true
+  },
+  "Chad": {
+   "code": "XAF",
+   "name": "CFA Franc BEAC",
+   "inOpen": true
+  },
+  "Chile": {
+   "code": "CLP",
+   "name": "Chilean Peso",
+   "inOpen": true
+  },
+  "China": {
+   "code": "CNY",
+   "name": "Yuan Renminbi",
+   "inOpen": true
+  },
+  "Colombia": {
+   "code": "COP",
+   "name": "Colombian Peso",
+   "inOpen": true
+  },
+  "Comoros": {
+   "code": "KMF",
+   "name": "Comorian Franc ",
+   "inOpen": true
+  },
+  "Costa Rica": {
+   "code": "CRC",
+   "name": "Costa Rican Colon",
+   "inOpen": true
+  },
+  "Côte d'Ivoire": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Croatia": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Cuba": {
+   "code": "CUP",
+   "name": "Cuban Peso",
+   "inOpen": true
+  },
+  "Cyprus": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Czech Republic": {
+   "code": "CZK",
+   "name": "Czech Koruna",
+   "inOpen": true
+  },
+  "Democratic Republic of the Congo": {
+   "code": "CDF",
+   "name": "Congolese Franc",
+   "inOpen": true
+  },
+  "Denmark": {
+   "code": "DKK",
+   "name": "Danish Krone",
+   "inOpen": true
+  },
+  "Djibouti": {
+   "code": "DJF",
+   "name": "Djibouti Franc",
+   "inOpen": true
+  },
+  "Dominica": {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "inOpen": true
+  },
+  "Dominican Republic": {
+   "code": "DOP",
+   "name": "Dominican Peso",
+   "inOpen": true
+  },
+  "Ecuador": {
+   "code": "USD",
+   "name": "US Dollar",
+   "inOpen": true
+  },
+  "Egypt": {
+   "code": "EGP",
+   "name": "Egyptian Pound",
+   "inOpen": true
+  },
+  "El Salvador": {
+   "code": "USD",
+   "name": "US Dollar",
+   "also": [
+    "SVC"
+   ],
+   "inOpen": true
+  },
+  "Equatorial Guinea": {
+   "code": "XAF",
+   "name": "CFA Franc BEAC",
+   "inOpen": true
+  },
+  "Eritrea": {
+   "code": "ERN",
+   "name": "Nakfa",
+   "inOpen": true
+  },
+  "Estonia": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Eswatini": {
+   "code": "SZL",
+   "name": "Lilangeni",
+   "inOpen": true
+  },
+  "Ethiopia": {
+   "code": "ETB",
+   "name": "Ethiopian Birr",
+   "inOpen": true
+  },
+  "Federated States of Micronesia": {
+   "code": "USD",
+   "name": "US Dollar",
+   "inOpen": true
+  },
+  "Fiji": {
+   "code": "FJD",
+   "name": "Fiji Dollar",
+   "inOpen": true
+  },
+  "Finland": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "France": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Gabon": {
+   "code": "XAF",
+   "name": "CFA Franc BEAC",
+   "inOpen": true
+  },
+  "Gambia": {
+   "code": "GMD",
+   "name": "Dalasi",
+   "inOpen": true
+  },
+  "Georgia": {
+   "code": "GEL",
+   "name": "Lari",
+   "inOpen": true
+  },
+  "Germany": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Ghana": {
+   "code": "GHS",
+   "name": "Ghana Cedi",
+   "inOpen": true
+  },
+  "Greece": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Grenada": {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "inOpen": true
+  },
+  "Guatemala": {
+   "code": "GTQ",
+   "name": "Quetzal",
+   "inOpen": true
+  },
+  "Guinea": {
+   "code": "GNF",
+   "name": "Guinean Franc",
+   "inOpen": true
+  },
+  "Guinea-Bissau": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Guyana": {
+   "code": "GYD",
+   "name": "Guyana Dollar",
+   "inOpen": true
+  },
+  "Haiti": {
+   "code": "HTG",
+   "name": "Gourde",
+   "also": [
+    "USD"
+   ],
+   "inOpen": true
+  },
+  "Honduras": {
+   "code": "HNL",
+   "name": "Lempira",
+   "inOpen": true
+  },
+  "Hungary": {
+   "code": "HUF",
+   "name": "Forint",
+   "inOpen": true
+  },
+  "Iceland": {
+   "code": "ISK",
+   "name": "Iceland Krona",
+   "inOpen": true
+  },
+  "India": {
+   "code": "INR",
+   "name": "Indian Rupee",
+   "inOpen": true
+  },
+  "Indonesia": {
+   "code": "IDR",
+   "name": "Rupiah",
+   "inOpen": true
+  },
+  "Iran": {
+   "code": "IRR",
+   "name": "Iranian Rial",
+   "inOpen": true
+  },
+  "Iraq": {
+   "code": "IQD",
+   "name": "Iraqi Dinar",
+   "inOpen": true
+  },
+  "Ireland": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Israel": {
+   "code": "ILS",
+   "name": "New Israeli Sheqel",
+   "inOpen": true
+  },
+  "Italy": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Jamaica": {
+   "code": "JMD",
+   "name": "Jamaican Dollar",
+   "inOpen": true
+  },
+  "Japan": {
+   "code": "JPY",
+   "name": "Yen",
+   "inOpen": true
+  },
+  "Jordan": {
+   "code": "JOD",
+   "name": "Jordanian Dinar",
+   "inOpen": true
+  },
+  "Kazakhstan": {
+   "code": "KZT",
+   "name": "Tenge",
+   "inOpen": true
+  },
+  "Kenya": {
+   "code": "KES",
+   "name": "Kenyan Shilling",
+   "inOpen": true
+  },
+  "Kiribati": {
+   "code": "AUD",
+   "name": "Australian Dollar",
+   "inOpen": true
+  },
+  "Kosovo": {
+   "code": "EUR",
+   "name": "Euro",
+   "note": "Kosovo is not in ISO 4217's country list; it uses the euro (Central Bank of the Republic of Kosovo)",
+   "inOpen": true
+  },
+  "Kuwait": {
+   "code": "KWD",
+   "name": "Kuwaiti Dinar",
+   "inOpen": true
+  },
+  "Kyrgyzstan": {
+   "code": "KGS",
+   "name": "Som",
+   "inOpen": true
+  },
+  "Laos": {
+   "code": "LAK",
+   "name": "Lao Kip",
+   "inOpen": true
+  },
+  "Latvia": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Lebanon": {
+   "code": "LBP",
+   "name": "Lebanese Pound",
+   "inOpen": true
+  },
+  "Lesotho": {
+   "code": "LSL",
+   "name": "Loti",
+   "also": [
+    "ZAR"
+   ],
+   "inOpen": true
+  },
+  "Liberia": {
+   "code": "LRD",
+   "name": "Liberian Dollar",
+   "inOpen": true
+  },
+  "Libya": {
+   "code": "LYD",
+   "name": "Libyan Dinar",
+   "inOpen": true
+  },
+  "Liechtenstein": {
+   "code": "CHF",
+   "name": "Swiss Franc",
+   "inOpen": true
+  },
+  "Lithuania": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Luxembourg": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Madagascar": {
+   "code": "MGA",
+   "name": "Malagasy Ariary",
+   "inOpen": true
+  },
+  "Malawi": {
+   "code": "MWK",
+   "name": "Malawi Kwacha",
+   "inOpen": true
+  },
+  "Malaysia": {
+   "code": "MYR",
+   "name": "Malaysian Ringgit",
+   "inOpen": true
+  },
+  "Maldives": {
+   "code": "MVR",
+   "name": "Rufiyaa",
+   "inOpen": true
+  },
+  "Mali": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Malta": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Marshall Islands": {
+   "code": "USD",
+   "name": "US Dollar",
+   "inOpen": true
+  },
+  "Mauritania": {
+   "code": "MRU",
+   "name": "Ouguiya",
+   "inOpen": true
+  },
+  "Mauritius": {
+   "code": "MUR",
+   "name": "Mauritius Rupee",
+   "inOpen": true
+  },
+  "Mexico": {
+   "code": "MXN",
+   "name": "Mexican Peso",
+   "inOpen": true
+  },
+  "Moldova": {
+   "code": "MDL",
+   "name": "Moldovan Leu",
+   "inOpen": true
+  },
+  "Monaco": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Mongolia": {
+   "code": "MNT",
+   "name": "Tugrik",
+   "inOpen": true
+  },
+  "Montenegro": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Morocco": {
+   "code": "MAD",
+   "name": "Moroccan Dirham",
+   "inOpen": true
+  },
+  "Mozambique": {
+   "code": "MZN",
+   "name": "Mozambique Metical",
+   "inOpen": true
+  },
+  "Myanmar": {
+   "code": "MMK",
+   "name": "Kyat",
+   "inOpen": true
+  },
+  "Namibia": {
+   "code": "NAD",
+   "name": "Namibia Dollar",
+   "also": [
+    "ZAR"
+   ],
+   "inOpen": true
+  },
+  "Nauru": {
+   "code": "AUD",
+   "name": "Australian Dollar",
+   "inOpen": true
+  },
+  "Nepal": {
+   "code": "NPR",
+   "name": "Nepalese Rupee",
+   "inOpen": true
+  },
+  "Netherlands": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "New Zealand": {
+   "code": "NZD",
+   "name": "New Zealand Dollar",
+   "inOpen": true
+  },
+  "Nicaragua": {
+   "code": "NIO",
+   "name": "Cordoba Oro",
+   "inOpen": true
+  },
+  "Niger": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Nigeria": {
+   "code": "NGN",
+   "name": "Naira",
+   "inOpen": true
+  },
+  "North Korea": {
+   "code": "KPW",
+   "name": "North Korean Won",
+   "inOpen": false
+  },
+  "North Macedonia": {
+   "code": "MKD",
+   "name": "Denar",
+   "inOpen": true
+  },
+  "Norway": {
+   "code": "NOK",
+   "name": "Norwegian Krone",
+   "inOpen": true
+  },
+  "Oman": {
+   "code": "OMR",
+   "name": "Rial Omani",
+   "inOpen": true
+  },
+  "Pakistan": {
+   "code": "PKR",
+   "name": "Pakistan Rupee",
+   "inOpen": true
+  },
+  "Palau": {
+   "code": "USD",
+   "name": "US Dollar",
+   "inOpen": true
+  },
+  "Palestine": {
+   "code": null,
+   "name": null,
+   "note": "ISO 4217 lists no universal currency for Palestine — the fee is shown in its own currency",
+   "inOpen": false
+  },
+  "Panama": {
+   "code": "PAB",
+   "name": "Balboa",
+   "also": [
+    "USD"
+   ],
+   "inOpen": true
+  },
+  "Papua New Guinea": {
+   "code": "PGK",
+   "name": "Kina",
+   "inOpen": true
+  },
+  "Paraguay": {
+   "code": "PYG",
+   "name": "Guarani",
+   "inOpen": true
+  },
+  "Peru": {
+   "code": "PEN",
+   "name": "Sol",
+   "inOpen": true
+  },
+  "Philippines": {
+   "code": "PHP",
+   "name": "Philippine Peso",
+   "inOpen": true
+  },
+  "Poland": {
+   "code": "PLN",
+   "name": "Zloty",
+   "inOpen": true
+  },
+  "Portugal": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Qatar": {
+   "code": "QAR",
+   "name": "Qatari Rial",
+   "inOpen": true
+  },
+  "Republic of the Congo": {
+   "code": "XAF",
+   "name": "CFA Franc BEAC",
+   "inOpen": true
+  },
+  "Romania": {
+   "code": "RON",
+   "name": "Romanian Leu",
+   "inOpen": true
+  },
+  "Russia": {
+   "code": "RUB",
+   "name": "Russian Ruble",
+   "inOpen": true
+  },
+  "Rwanda": {
+   "code": "RWF",
+   "name": "Rwanda Franc",
+   "inOpen": true
+  },
+  "Saint Kitts and Nevis": {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "inOpen": true
+  },
+  "Saint Lucia": {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "inOpen": true
+  },
+  "Saint Vincent and the Grenadines": {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "inOpen": true
+  },
+  "Samoa": {
+   "code": "WST",
+   "name": "Tala",
+   "inOpen": true
+  },
+  "San Marino": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "São Tomé and Príncipe": {
+   "code": "STN",
+   "name": "Dobra",
+   "inOpen": true
+  },
+  "Saudi Arabia": {
+   "code": "SAR",
+   "name": "Saudi Riyal",
+   "inOpen": true
+  },
+  "Senegal": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Serbia": {
+   "code": "RSD",
+   "name": "Serbian Dinar",
+   "inOpen": true
+  },
+  "Seychelles": {
+   "code": "SCR",
+   "name": "Seychelles Rupee",
+   "inOpen": true
+  },
+  "Sierra Leone": {
+   "code": "SLE",
+   "name": "Leone",
+   "inOpen": true
+  },
+  "Singapore": {
+   "code": "SGD",
+   "name": "Singapore Dollar",
+   "inOpen": true
+  },
+  "Slovakia": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Slovenia": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Solomon Islands": {
+   "code": "SBD",
+   "name": "Solomon Islands Dollar",
+   "inOpen": true
+  },
+  "Somalia": {
+   "code": "SOS",
+   "name": "Somali Shilling",
+   "inOpen": true
+  },
+  "South Africa": {
+   "code": "ZAR",
+   "name": "Rand",
+   "inOpen": true
+  },
+  "South Korea": {
+   "code": "KRW",
+   "name": "Won",
+   "inOpen": true
+  },
+  "South Sudan": {
+   "code": "SSP",
+   "name": "South Sudanese Pound",
+   "inOpen": true
+  },
+  "Spain": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Sri Lanka": {
+   "code": "LKR",
+   "name": "Sri Lanka Rupee",
+   "inOpen": true
+  },
+  "Sudan": {
+   "code": "SDG",
+   "name": "Sudanese Pound",
+   "inOpen": true
+  },
+  "Suriname": {
+   "code": "SRD",
+   "name": "Surinam Dollar",
+   "inOpen": true
+  },
+  "Sweden": {
+   "code": "SEK",
+   "name": "Swedish Krona",
+   "inOpen": true
+  },
+  "Switzerland": {
+   "code": "CHF",
+   "name": "Swiss Franc",
+   "inOpen": true
+  },
+  "Syria": {
+   "code": "SYP",
+   "name": "Syrian Pound",
+   "inOpen": true
+  },
+  "Taiwan": {
+   "code": "TWD",
+   "name": "New Taiwan Dollar",
+   "inOpen": true
+  },
+  "Tajikistan": {
+   "code": "TJS",
+   "name": "Somoni",
+   "inOpen": true
+  },
+  "Tanzania": {
+   "code": "TZS",
+   "name": "Tanzanian Shilling",
+   "inOpen": true
+  },
+  "Thailand": {
+   "code": "THB",
+   "name": "Baht",
+   "inOpen": true
+  },
+  "Timor-Leste": {
+   "code": "USD",
+   "name": "US Dollar",
+   "inOpen": true
+  },
+  "Togo": {
+   "code": "XOF",
+   "name": "CFA Franc BCEAO",
+   "inOpen": true
+  },
+  "Tonga": {
+   "code": "TOP",
+   "name": "Pa’anga",
+   "inOpen": true
+  },
+  "Trinidad and Tobago": {
+   "code": "TTD",
+   "name": "Trinidad and Tobago Dollar",
+   "inOpen": true
+  },
+  "Tunisia": {
+   "code": "TND",
+   "name": "Tunisian Dinar",
+   "inOpen": true
+  },
+  "Türkiye": {
+   "code": "TRY",
+   "name": "Turkish Lira",
+   "inOpen": true
+  },
+  "Turkmenistan": {
+   "code": "TMT",
+   "name": "Turkmenistan New Manat",
+   "inOpen": true
+  },
+  "Tuvalu": {
+   "code": "AUD",
+   "name": "Australian Dollar",
+   "inOpen": true
+  },
+  "Uganda": {
+   "code": "UGX",
+   "name": "Uganda Shilling",
+   "inOpen": true
+  },
+  "Ukraine": {
+   "code": "UAH",
+   "name": "Hryvnia",
+   "inOpen": true
+  },
+  "United Arab Emirates": {
+   "code": "AED",
+   "name": "UAE Dirham",
+   "inOpen": true
+  },
+  "United Kingdom": {
+   "code": "GBP",
+   "name": "Pound Sterling",
+   "inOpen": true
+  },
+  "United States": {
+   "code": "USD",
+   "name": "US Dollar",
+   "inOpen": true
+  },
+  "Uruguay": {
+   "code": "UYU",
+   "name": "Peso Uruguayo",
+   "inOpen": true
+  },
+  "Uzbekistan": {
+   "code": "UZS",
+   "name": "Uzbekistan Sum",
+   "inOpen": true
+  },
+  "Vanuatu": {
+   "code": "VUV",
+   "name": "Vatu",
+   "inOpen": true
+  },
+  "Vatican City (Holy See)": {
+   "code": "EUR",
+   "name": "Euro",
+   "inOpen": true
+  },
+  "Venezuela": {
+   "code": "VES",
+   "name": "Bolívar Soberano",
+   "also": [
+    "VED"
+   ],
+   "inOpen": true
+  },
+  "Vietnam": {
+   "code": "VND",
+   "name": "Dong",
+   "inOpen": true
+  },
+  "Yemen": {
+   "code": "YER",
+   "name": "Yemeni Rial",
+   "inOpen": true
+  },
+  "Zambia": {
+   "code": "ZMW",
+   "name": "Zambian Kwacha",
+   "inOpen": true
+  },
+  "Zimbabwe": {
+   "code": "ZWG",
+   "name": "Zimbabwe Gold",
+   "inOpen": true
+  }
+ }
+}

@@ -21,6 +21,7 @@ import { groupQuestions } from "../desktop/page-plan.mjs";
 import { sortQuestions } from "../desktop/questions.mjs";
 import { venueCitiesIn, venueCountries, gazetteerOf } from "../desktop/venues.mjs";
 import { localPages, PROFESSION_WORDS } from "../desktop/local-pages.mjs";
+import { countryPacket } from "../desktop/country-facts.mjs"; // RR-328
 import { dataPointsOf, contentOf, GATES, batchesOf } from "../desktop/pseo.mjs";
 import { mergeObservations, itemsOf, byLocationOf, localKeywordStore, emptyDb, fileIdOf, SOURCES } from "../desktop/keyword-db.mjs";
 import { keywordService, collectForPlan, serviceOnLine, sourceLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS } from "../desktop/keyword-service.mjs";
@@ -42,7 +43,7 @@ const VENUES = {
   home: { url: "https://oet.example/test/at-home", title: "at home", checkedOn: ON, says: "OET's own page says taking it at home is offered in countries where a venue is not yet available" }, checked: [{ on: ON }] };
 const ORIGIN = builtInList("originFacts");
 /* each country's own searches — invented keywords and figures (the service's shape: Google's exact averages) */
-const KW = { Pakistan: [["oet in pakistan", 2400], ["oet fee in pakistan", 880], ["oet for nurses in pakistan", 590], ["oet centre lahore", 320], ["oet lahore", 210], ["pnmc oet", 90], ["oet doctors pakistan", 70]], India: [["oet india", 6600], ["oet exam fees in india", 1900], ["oet for nurses india", 720], ["oet chennai", 480], ["oet kochi", 390], ["oet kochi centre", 140], ["oet coaching kochi", 110], ["oet kochi date", 90]], Nepal: [["oet nepal", 260]] };
+const KW = { Pakistan: [["oet in pakistan", 2400], ["oet fee in pakistan", 880], ["oet for nurses in pakistan", 590], ["oet centre lahore", 320], ["oet lahore", 210], ["oet uk from pakistan", 150], ["pnmc oet", 90], ["oet doctors pakistan", 70]], India: [["oet india", 6600], ["oet exam fees in india", 1900], ["oet for nurses india", 720], ["oet chennai", 480], ["oet kochi", 390], ["oet kochi centre", 140], ["oet coaching kochi", 110], ["oet kochi date", 90]], Nepal: [["oet nepal", 260]] };
 const kwByCountry = Object.fromEntries(Object.entries(KW).map(([c, ks]) => [c, ks.map(([text, said]) => ({ text, said, label: String(said), period: "2025-10-01..2026-09-30", source: SOURCES.service, on: ON }))]));
 
 /* ── S · the service ─────────────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -134,84 +135,110 @@ test("K · a keyword's global figure is never one country's; each country keeps 
 const sectionOf = (c) => { const f = feeInCurrency(FEE, c, RATES); return { country: c, fee: f.line, steps: f.steps ?? [], nearest: c === "Nepal" ? ["India"] : [] }; };
 const regs = [{ title: "NMC page", body: "Invented Nursing Regulator (UK)", short: "INR", country: "United Kingdom", professions: ["nursing"], grade: { listening: "B", reading: "B", writing: "C+", speaking: "B" }, confirmed: true, claims: [{ claimId: "r1", fact: "scores", text: "Invented: B, B, C+, B.", link: "https://reg.example/uk", readOn: ON }] },
   { title: "AU page", body: "Invented Board (Australia)", country: "Australia", professions: ["nursing", "medicine"], grade: { listening: "B", reading: "B", writing: "B", speaking: "B" }, confirmed: false, claims: [{ claimId: "r2", fromList: true, text: "list", link: "https://list.example", readOn: ON }] }];
-const L = () => localPages({ subject: "OET", reqCountries: ["United Kingdom", "Australia"], venues: VENUES, section: sectionOf, originFacts: ORIGIN, kwByCountry, regulator: regs, professions: PROFS, universities: builtInList("universities").items.filter((u) => (u.fields ?? []).some((f) => /nurs|medic/i.test(f))), whereTitle: "Where to take OET", feeClaim: { claimId: "fee", fact: "fee", text: "fee", link: FEE.source.url, readOn: ON }, on: ON });
+/* RR-328 · AlmiWorld's country facts (desktop/country-facts.mjs countryPacket — invented names, sites and addresses): Pakistan has every part
+ * (its fee comes from the app's own rates); India only its councils for two professions and no question or rule */
+const cfFact = (country, part, key, value, extra = {}) => ({ key, country, part, kind: part, value, sourceUrl: `https://${part}.example/${country.toLowerCase()}`, sourceTitle: `Invented ${part} page`, readOn: ON, status: "confirmed", by: "collector", aiWritten: false, proposedBy: "official", ...extra });
+const CF_FACTS = [
+  ...PROFS.map((p) => cfFact("Pakistan", "councils", `council|Pakistan|${p}`, { name: `Invented Council of ${p} (IC${p.slice(0, 2).toUpperCase()})`, website: `https://ic-${p.replace(/\W+/g, "")}.example`, address: "1 Invented Road, Islamabad 44000" }, { profession: p, sourceUrl: `https://ic-${p.replace(/\W+/g, "")}.example/contact` })),
+  cfFact("Pakistan", "questions", "question|Pakistan|fees", { question: "oet fee in pakistan", keywords: ["oet fee in pakistan"], volume: 880, answer: "OET costs AUD 587 in Pakistan (OET's own page)." }),
+  cfFact("Pakistan", "questions", "question|Pakistan|centres", { question: "oet centre lahore", keywords: ["oet centre lahore"], volume: 320, answer: "OET's own pages name a venue in Lahore." }, { aiWritten: true, proposedBy: "ai", sourceUrl: null }),
+  cfFact("Pakistan", "questions", "question|Pakistan|unconfirmed", { question: "oet results pakistan", volume: 50, answer: "Results come in 9 days." }, { status: "unconfirmed" }),
+  cfFact("Pakistan", "rules", "rule|Pakistan|good-standing|1", { rule: "The council issues a good-standing letter itself, on the applicant's request.", quote: "an invented quote of the page" }),
+  /* the collector's confirmed copy of one of AlmiOET's records (the RR-328 proof listed it twice) */
+  cfFact("Pakistan", "rules", "rule|Pakistan|attestation|2", { rule: ORIGIN.items.find((f) => f.country === "Pakistan" && f.fact === "attestation").text }),
+  ...["nursing", "medicine"].map((p) => cfFact("India", "councils", `council|India|${p}`, { name: `Invented Indian Council of ${p}`, website: "https://in-council.example", address: "2 Invented Marg, New Delhi 110001" }, { profession: p })),
+];
+const CF = Object.fromEntries(["Pakistan", "India"].map((c) => [c, countryPacket(c, CF_FACTS, { professions: PROFS })]));
+const L = (extra = {}) => localPages({ subject: "OET", reqCountries: ["United Kingdom", "Australia"], venues: VENUES, section: sectionOf, originFacts: ORIGIN, kwByCountry, regulator: regs, professions: PROFS, whereTitle: "Where to take OET", feeClaim: { claimId: "fee", fact: "fee", text: "fee", link: FEE.source.url, readOn: ON }, countryFacts: CF, profHubTitle: (p) => `OET for ${p === "nursing" ? "nurses" : p}: every country, its regulator and grades`, on: ON, ...extra });
 
-test("L · a destination country is its hub's section, never a second page; an origin country's page holds ITS venue, cities, fee in its money (with the bank and date), home councils, attestation and searches", () => {
+test("L · RR-328: a destination country is its hub's section; an origin country is a page ONLY with all five parts — its fee in its money (with the bank and date), its questions answered, its centres, a council for every profession (name, website, address) and a rule of its own; a country partly filled is stopped with what it misses", () => {
   const x = L();
   assert.ok(x.sectionsOut.some((s) => s.name === "OET in United Kingdom" && /destination/.test(s.why)));
   assert.ok(!x.country.some((p) => p.country === "United Kingdom"));
+  assert.ok(!x.stopped.country.some((y) => y.country === "United Kingdom" || y.country === "Australia"), "a destination is never checked as a country page");
+  const destSections = x.sectionsOut.filter((s) => /is a destination/.test(s.why)).length;
+  assert.ok(destSections >= 1); assert.equal(x.universe.destinations, destSections, "each destination is counted apart from the origin countries");
+  assert.deepEqual(x.country.map((p) => p.country), ["Pakistan"], "only Pakistan has all five parts");
   const pk = x.country.find((p) => p.country === "Pakistan");
   assert.equal(pk.title, "OET in Pakistan: test centres, the fee in PKR and the steps");
   assert.match(pk.feeLocal, /^AUD 587 ≈ PKR [\d,]+ — an estimate from the RBA rate of 2026-10-26 \(1 AUD = 0\.6600 USD\) and the SBP rate of 2026-10-26 \(1 USD = 280\.50 PKR\), not an official price$/);
-  assert.deepEqual(pk.councils.map((c) => [c.profession, c.short]), [["nursing", "PNMC"], ["medicine", "PMDC"]]);
+  assert.equal(pk.councils.length, PROFS.length); assert.ok(pk.councils.every((c) => c.name && c.website && c.address && c.link));
+  assert.deepEqual(pk.answered.map((q) => q.question).sort(), ["oet centre lahore", "oet fee in pakistan"], "an unconfirmed answer is never on a page");
+  assert.ok(pk.rules.length >= 2); assert.deepEqual(pk.cities.map((c) => c.city), ["Lahore"], "its cities are mentioned inside the page");
+  assert.equal(new Set(pk.rules.map((r) => r.text)).size, pk.rules.length, "a rule is listed once, however many sources hold it");
   assert.ok(pk.claims.every((c) => c.link && c.readOn), "every fact with its link and date");
   assert.ok(pk.claims.some((c) => c.fact === "rate" && c.link === "https://sbp.example/m2m"));
-  assert.equal(pk.searches[0].text, "oet in pakistan"); assert.equal(pk.questions[0].sources[0].kind, "tool");
-  const dp = dataPointsOf(pk); assert.ok(dp.length >= GATES.minData, `${dp.length} data points`);
-  assert.ok(dp.some((d) => d.label === "Venue city" && /Lahore \(An Invented Operator\)/.test(d.value)));
-  /* Nepal: no venue, no rate for its money read, three record facts → fewer than 8: a section, said by the gates (P) */
-  /* the proof: the State Bank of Pakistan refused (403) — no PKR figure, so the title does not promise one */
-  const refused = localPages({ subject: "OET", reqCountries: [], venues: VENUES, section: (c) => { const f = feeInCurrency(FEE, c, { ...RATES, banks: { PKR: { refused: "SBP: answered 403", source: "SBP", short: "SBP", link: "https://sbp.example" } } }); return { country: c, fee: f.line, steps: f.steps ?? [], nearest: [] }; }, originFacts: ORIGIN, kwByCountry, regulator: regs, professions: PROFS, whereTitle: "Where to take OET", on: ON });
-  assert.equal(refused.country.find((p) => p.country === "Pakistan").title, "OET in Pakistan: test centres, the fee and the steps");
-  assert.equal(refused.city.find((p) => p.city === "Lahore").title, "OET centre Lahore: the venue, the fee and how to book");
-  assert.equal(refused.country.find((p) => p.country === "Pakistan").feeLocal, null, "a US-dollar fallback is no fee in local money");
-  for (const p of [refused.city.find((x) => x.city === "Lahore"), refused.countryprof.find((x) => x.country === "Pakistan")]) assert.ok(!dataPointsOf(p).some((d) => d.label === "The fee in local money"), `${p.title}: the fallback counted as a local fee`);
-  const np = x.country.find((p) => p.country === "Nepal"); assert.equal(np.venue, false); assert.equal(np.feeLocal, null); assert.match(np.title, /taking it at home/);
-  assert.ok(dataPointsOf(np).length < GATES.minData);
+  assert.deepEqual(pk.destinations.map((d) => d.country), ["United Kingdom"], "the destination people from Pakistan search for");
+  const stop = (c) => x.stopped.country.find((y) => y.country === c);
+  assert.deepEqual(stop("Nepal").missing, ["fee", "questions", "councils"], "Nepal: at home with the nearest venue, and its rule from AlmiOET's record — the rest missing, never padded");
+  assert.deepEqual(stop("India").missing, ["questions", "councils"], "India: its venue, its fee (the RBA), its rule from AlmiOET's record"); assert.match(stop("India").why, /2 of 12 whole/);
+  /* the proof: the State Bank of Pakistan refused (403) and no other rate — no PKR figure, so Pakistan misses part 1 */
+  const refused = L({ section: (c) => { const f = feeInCurrency(FEE, c, { ...RATES, banks: { PKR: { refused: "SBP: answered 403", source: "SBP", short: "SBP", link: "https://sbp.example" } } }); return { country: c, fee: f.line, steps: f.steps ?? [], nearest: [] }; } });
+  assert.ok(!refused.country.some((p) => p.country === "Pakistan")); assert.ok(refused.stopped.country.find((y) => y.country === "Pakistan").missing.includes("fee"), "a US-dollar fallback is no fee in local money");
   const c = contentOf(pk, { subject: "OET", on: ON });
   assert.ok(c.answerWords >= 40 && c.answerWords <= 60, `${c.answerWords} words: ${c.answer}`); assert.ok(c.answerHasNumber);
   assert.match(c.answer, /Lahore/); assert.ok(c.table.length > 4 && c.steps.length >= 4 && c.checklist.length >= 3 && c.tip);
+  assert.deepEqual(c.sections.map((s) => s.heading), ["What people in Pakistan ask", "Test centres", "The councils in Pakistan", "Rules of Pakistan's own"]);
+  assert.ok(c.sections.find((s) => /councils/.test(s.heading)).lines.every((l) => l.link && l.on), "each council with its source and date");
+  assert.ok(c.sections[0].lines.some((l) => /AI-written/.test(l.note ?? "")), "an AI-written answer says so");
 });
 
-test("L · country × profession only where the profession has its OWN home council in AlmiOET's records (nurses, doctors) — its council, good standing, and each destination's grade for it", () => {
+test("L · RR-328: country × profession only where that profession's OWN council in that country is found AND its searches come from there; the grade table shows the destinations people there search for most, and links the full table", () => {
   const x = L();
-  assert.deepEqual(x.countryprof.filter((p) => p.country === "Pakistan").map((p) => p.profession).sort(), ["medicine", "nursing"]);
-  assert.ok(!x.countryprof.some((p) => p.profession === "pharmacy"), "no council record, no page");
+  assert.deepEqual(x.countryprof.map((p) => `${p.profession} ${p.country}`).sort(), ["medicine Pakistan", "nursing India", "nursing Pakistan"]);
+  assert.ok(x.stopped.countryprof.some((y) => y.country === "Pakistan" && y.profession === "pharmacy" && y.missing.join() === "searches"), "a council but no search: stopped, and why");
+  assert.ok(x.stopped.countryprof.some((y) => y.country === "Nepal" && y.profession === "nursing" && y.missing.join() === "searches"), "its council record (NNC), but no search names nurses");
+  assert.ok(x.stopped.countryprof.some((y) => y.country === "Nepal" && y.profession === "pharmacy" && y.missing.join() === "council,searches"));
   const n = x.countryprof.find((p) => p.country === "Pakistan" && p.profession === "nursing");
-  assert.equal(n.title, "OET for nurses from Pakistan: PNMC, the grades abroad and the steps");
-  assert.deepEqual(n.destinations.map((d) => [d.country, d.grade]), [["United Kingdom", "Listening B · Reading B · Writing C+ · Speaking B"], ["Australia", "B in each sub-test"]].map(([c, g]) => [c, n.destinations.find((d) => d.country === c).grade]));
+  assert.match(n.title, /^OET for nurses from Pakistan: ICNU, the grades abroad and the steps$/, "AlmiWorld's country facts first (the council read on its own page)");
+  assert.deepEqual(n.destinations.map((d) => d.country), ["United Kingdom"], "only the destination searched from Pakistan — not Australia");
+  assert.equal(n.fullTable, "OET for nurses: every country, its regulator and grades"); assert.ok(n.links.includes(n.fullTable));
   assert.deepEqual(n.searches.map((k) => k.text), ["oet for nurses in pakistan"], "only that profession's searches from that country");
-  assert.ok(n.links.includes("OET in Pakistan: test centres, the fee in PKR and the steps"));
-  assert.ok(dataPointsOf(n).length >= GATES.minData);
   const c = contentOf(n, { subject: "OET", on: ON }); assert.ok(c.answerWords >= 40 && c.answerWords <= 60, c.answer); assert.equal(c.table[0][2], "Grade for nurses");
-  assert.deepEqual(PROFESSION_WORDS.nursing.slice(0, 2), ["nurse", "nurses"]);
+  assert.deepEqual(c.table.at(-1), ["Every destination", "2 in all", 'see "OET for nurses: every country, its regulator and grades"']);
+  assert.deepEqual(PROFESSION_WORDS.nursing.slice(0, 2), ["nurse", "nurses"]); assert.equal(Object.keys(PROFESSION_WORDS).length, 12);
 });
 
-test("L · a city only where the subject's own page names a venue; a city with too little of its own stays a section of its country's page (P)", () => {
+test("L · RR-328: NO city pages — a city the subject's own page names is mentioned inside its country page", () => {
   const x = L();
-  assert.deepEqual(x.city.map((p) => p.city).sort(), ["Chennai", "Kochi", "Lahore"], "Bristol: a destination's venue is its hub's line");
-  const ko = x.city.find((p) => p.city === "Kochi");
-  assert.equal(ko.title, "OET centre Kochi: the venue, the fee in INR and how to book"); assert.deepEqual(ko.others, ["Chennai"]);
-  assert.deepEqual(ko.searches.map((k) => k.text).sort(), ["oet coaching kochi", "oet kochi", "oet kochi centre", "oet kochi date"]);
-  const c = contentOf(ko, { subject: "OET", on: ON }); assert.match(c.answer, /Another Operator/); assert.ok(c.answerHasNumber);
+  assert.deepEqual(x.city, []); assert.equal(x.universe.city, 4);
+  assert.deepEqual(x.country.find((p) => p.country === "Pakistan").cities.map((c) => c.city), ["Lahore"]);
 });
 
 /* ── P · the plan ────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 const ITEMS = [{ text: "where to take oet in pakistan", kind: "search", source: "invented", weight: 10 }, { text: "oet score for nurses uk", kind: "search", source: "invented", weight: 10 }];
-const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET", { fullName: "Occupational English Test", regulators: REC.regulators.map(callNames) }); return planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: builtInList("universities").items, venues: VENUES, fee: FEE, rates: RATES, groups: groupQuestions(sorted.kept), sorted, items: ITEMS, reads: {}, on: ON, languages: ["en"], councils: builtInList("origins"), kwByCountry, originFacts: ORIGIN, service: { on: true, line: "AlmiWorld keyword service: on — 281 searches left this month" }, cta: { label: "Try a free OET practice test", href: "https://x.example/practice" }, ...extra }); };
+const planOf = (extra = {}) => { const sorted = sortQuestions(ITEMS, "OET", { fullName: "Occupational English Test", regulators: REC.regulators.map(callNames) }); return planFromList({ subject: "OET", rec: REC, professions: PROFS, universities: builtInList("universities").items, venues: VENUES, fee: FEE, rates: RATES, groups: groupQuestions(sorted.kept), sorted, items: ITEMS, reads: {}, on: ON, languages: ["en"], councils: builtInList("origins"), kwByCountry, originFacts: ORIGIN, countryFacts: CF, service: { on: true, line: "AlmiWorld keyword service: on — 281 searches left this month" }, cta: { label: "Try a free OET practice test", href: "https://x.example/practice" }, ...extra }); };
 
-test("P · the plan: the local families through the gates, in the ledger, the total, their tables and \"why not more\"; a question about taking it in a country goes to that country's page; every local page within 3 clicks with 3+ links", () => {
+test("P · RR-328: the plan counts by the owner's rules — the country pages with all five parts, country × profession by council and searches, no city pages; the tables say WHICH part each stopped country misses; a question about taking it in a country goes to that country's page; every local page within 3 clicks with 3+ links", () => {
   const p = planOf(), n = p.numbers;
-  assert.ok(n.countryPages >= 2 && n.countryprofPages >= 2, JSON.stringify({ c: n.countryPages, cp: n.countryprofPages, city: n.cityPages }));
+  assert.equal(n.countryPages, 1); assert.ok(n.countryprofPages >= 2); assert.equal(n.cityPages, 0);
+  assert.equal(n.countryUniverse + n.countryDestinations, 197, "every country is checked");
   assert.equal(n.total, n.regulatorPages + n.subtestPages + n.practicePages + n.uniPages + n.takingPages + n.topicPages + n.hubPages + n.languagePages + n.countryPages + n.countryprofPages + n.cityPages);
-  const g = p.gates;
-  assert.ok(g.country.sections.some((s) => /^OET in Nepal/.test(s.name) && /fewer than 8/.test(s.why) && /Where to take OET/.test(s.why)), "Nepal: a section of Where to take");
-  assert.ok(g.city.sections.some((s) => /^OET centre Lahore/.test(s.name) && /a section of OET in Pakistan/.test(s.why)), "Lahore: a section of Pakistan's page");
   for (const k of ["country", "countryprof", "city", "searches"]) assert.ok(p.tables[k]?.rows?.length, `the ${k} table`);
+  const miss4 = p.tables.country.rows.find((r) => /^…missing part 4 · the council for each profession/.test(r.step));
+  assert.ok(miss4.n >= 2 && miss4.left.some((x) => x.name === "Nepal" && /missing:/.test(x.why)) && miss4.left.some((x) => x.name === "India"), "the stopped countries, each with what it misses");
+  assert.ok(!p.tables.country.rows.some((r) => /^Gate 2/.test(r.step)), "the five-part rule replaces gate 2 for country pages");
+  /* gate 2 still holds outside the five-part rule: a page with fewer than GATES.minData data points is a section, never a thin page */
+  assert.ok(Object.values(p.gates).some((g) => g.sections.some((s) => /data points \(fewer than/.test(s.why))), "the fixture reaches gate 2 (a thin page it stops)");
+  assert.deepEqual(Object.values(p.kinds).flat().filter((x) => !x.keepWhole && (x.dataPoints?.length ?? 0) < GATES.minData).map((x) => x.title), [], "no kept page is thin");
+  assert.equal(p.tables.city.rows.at(-1).n, 0);
   assert.equal(p.tables.searches.rows[0].why, "AlmiWorld keyword service: on — 281 searches left this month");
-  assert.ok(p.whyNotMore.lines.some((l) => /^Countries: \d+ with a venue, a city, a home council or searches from them → \d+ country pages/.test(l)));
+  assert.ok(p.whyNotMore.lines.some((l) => /^Countries: 197 → \d+ destinations \(their hubs\) → \d+ checked part by part → 1 country pages with all five parts/.test(l)));
+  assert.ok(p.whyNotMore.lines.some((l) => /^Cities: 4 named by OET's own venue pages → no pages/.test(l)));
   const pk = p.kinds.country.find((x) => x.country === "Pakistan");
   assert.ok(pk.questions.some((q) => q.question === "where to take oet in pakistan"), "the question lands on Pakistan's page, not on Where to take");
-  const local = [...p.kinds.country, ...p.kinds.countryprof, ...p.kinds.city];
+  const local = [...p.kinds.country, ...p.kinds.countryprof];
   assert.deepEqual(local.filter((x) => !x.depth || x.depth > 3).map((x) => x.title), []); assert.deepEqual(local.filter((x) => (x.links?.length ?? 0) < 3).map((x) => x.title), []);
   assert.ok(p.kinds.hub.some((h) => h.title === "OET by country: test centres, fees and the steps from home" && h.links.includes(pk.title)));
   /* a university page shows its country's searches and venue cities — as content, never as more "alike" data points */
   const u = p.kinds.university.find((x) => x.country === "India"); assert.ok(u, "an Indian university page");
-  assert.ok(u.content.points.some((t) => /OET's own pages name a venue in Chennai, Kochi \(India\)/.test(t)));
   assert.ok(u.content.points.some((t) => /People in India search "oet india" 6,600 times a month/.test(t)));
   assert.ok(!u.dataPoints.some((d) => /search/i.test(d.label)), "searches are content, not data points");
-  /* without the service and the records: no local page is invented */
-  const bare = planOf({ kwByCountry: {}, originFacts: null, venues: { countries: [], home: null } });
+  /* the RR-328 proof: a university's home council is its graduates' profession's — never the nursing council for pharmacists */
+  for (const x of p.kinds.university.filter((y) => y.home.council)) assert.ok(x.professions.includes("nursing") || !/Nursing/.test(x.home.council.council), `${x.title}: ${x.home.council.council}`);
+  assert.ok(p.localStopped.countryprof.some((y) => y.country === "Nepal" && y.profession === "nursing" && y.missing.join() === "searches"), "the plan says what each stopped page misses");
+  /* without the facts, the service and the records: no local page is invented */
+  const bare = planOf({ kwByCountry: {}, originFacts: null, countryFacts: {}, venues: { countries: [], home: null } });
   assert.equal(bare.numbers.countryPages + bare.numbers.countryprofPages + bare.numbers.cityPages, 0);
 });
 

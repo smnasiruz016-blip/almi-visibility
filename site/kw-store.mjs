@@ -80,6 +80,12 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       if (!rows.length) return null;
       return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
     },
+    /** RR-328 B · every keyword the database holds at a location (any source), each with its newest figure — the country's own searches */
+    async keywordsAt({ location, language, limit = 3000 }) {
+      await ensure();
+      const rows = await q("SELECT * FROM (SELECT DISTINCT ON (keyword) keyword, avg_monthly_searches::text AS volume, day::text AS day, period FROM kw_observation WHERE location = $1 AND language = $2 ORDER BY keyword, day DESC) x ORDER BY (volume IS NULL), volume::bigint DESC, keyword LIMIT $3", [location, language, limit]);
+      return rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), day: r.day, period: r.period }));
+    },
     /** the owner's page: totals, today, per group (keywords, countries, last refresh), per location */
     async counts(day) {
       await ensure();
@@ -135,6 +141,10 @@ export function memoryStore() {
       const rows = [...best.values()].sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword)).slice(0, limit);
       if (!rows.length) return null;
       return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })) };
+    },
+    async keywordsAt({ location, language, limit = 3000 }) {
+      const best = new Map(); for (const o of obs.values()) if (o.location === location && o.language === language && (!best.has(o.keyword) || best.get(o.keyword).day < o.day)) best.set(o.keyword, o);
+      return [...best.values()].sort((a, b) => (a.volume === null) - (b.volume === null) || (b.volume ?? 0) - (a.volume ?? 0) || a.keyword.localeCompare(b.keyword)).slice(0, limit).map((o) => ({ keyword: o.keyword, volume: o.volume, day: o.day, period: o.period }));
     },
     async counts(day) {
       const o = [...obs.values()], d = (xs) => new Set(xs).size;

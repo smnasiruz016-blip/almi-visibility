@@ -84,7 +84,7 @@ test("E · the SAME database as the collector: a product's seeds the collector f
   const ads = siteAds({ env: ENV, kv: K.kv, fetchImpl: G.fetchImpl, now: clock.now, sleep: clock.sleep });
   await store.setSeedList("product:oet | AlmiOET | oet, oet exam, oet practice test", "2026-10-26T00:00:00.000Z");
   await runCollector({ store, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 });
-  const before = G.calls.length; assert.equal(before, 19);
+  const before = G.calls.length; assert.equal(before, 193, "RR-329 (rule R5): every location Google can target (it was 19)");
   const a = await site({ clock, G, store, K });
   try {
     const j = JSON.parse((await a.call("v1/keywords", { lic: licenceHeaderOf(ownerL()), body: { seeds: "oet, oet exam, oet practice test", location: "IN" } })).text);

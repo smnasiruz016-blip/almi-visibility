@@ -20,7 +20,8 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createApp } from "../site/app.mjs";
 import * as P from "../site/pages.mjs";
-import { DEFAULT_SEEDS, parseSeeds, unitsOf, LOCATIONS } from "../site/kw-seeds.mjs";
+import { DEFAULT_SEEDS, parseSeeds, unitsOf, LOCATIONS, NOT_IN_GOOGLE } from "../site/kw-seeds.mjs";
+import { QUEUE_COUNTRIES } from "../site/queue.mjs"; // RR-329
 import { memoryStore, pgStore, dbUrlOf } from "../site/kw-store.mjs";
 import { siteAds, QUOTA, ACCESS_LINE, adsConfigOf, CHECK, failureOf } from "../site/kw-google.mjs";
 import { runCollector, plan, COLLECTOR } from "../site/kw-collector.mjs";
@@ -118,23 +119,27 @@ for (const [name, make] of STORES) {
     } finally { await s.close(); }
   });
 
-  test(`B + G · a simulated day (${name}): every product × every location first, then the week's share of categories and YouTube niches; a second run the same day asks Google NOTHING`, async () => {
+  /* RR-329 (rules R4 + R5 replace RR-326's "every product in 19 locations every day, categories weekly"): every location Google can target, in
+   * the owner's queue; a product asked again after 30 days, a category or niche after 60 */
+  test(`B + G · RR-329 a simulated day (${name}): EVERY location Google can target, in the owner's queue — AlmiOET's first 30 countries (and all locations) first, then AlmiCV's with AlmiOET's other countries in the background (one in four), the categories last; the same day again asks Google NOTHING; a product again after 30 days, a category not before 60`, async () => {
     const s = await make(), clock = clockAt(), K = fakeKv(clock), G = fakeGoogle(clock);
     try {
+      await s.setSeedList("product:oet | AlmiOET | oet, oet exam\nproduct:cv | AlmiCV | cv maker\ncategory:food | Food | recipes", "2026-10-26T00:00:00.000Z");
       const ads = siteAds({ env: FULL_ENV, kv: K.kv, fetchImpl: G.fetchImpl, now: clock.now, sleep: clock.sleep });
-      const groups = parseSeeds(DEFAULT_SEEDS).groups, units = unitsOf(groups);
-      const products = groups.filter((g) => g.kind === "product"), weekly = units.filter((u) => u.cadence === "weekly");
-      assert.equal(products.length, 24); assert.equal(LOCATIONS.length, 19);
-      const share = Math.ceil(weekly.length / COLLECTOR.weeklyDays);
-      let total = { saved: 0, ops: 0 };
-      for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); total.saved += r.saved; total.ops += r.ops; if (!r.left.daily && !r.left.weekly) break; }
-      const ideas = G.ideas();
-      assert.equal(total.saved, 24 * 19 + share, "every product in every location, and today's weekly share");
-      assert.equal(ideas.length, total.saved); assert.equal(total.ops, ideas.length);
+      assert.equal(LOCATIONS.length, 193, "all locations and 192 countries (Google's own country criteria)"); assert.deepEqual([...NOT_IN_GOOGLE].sort(), ["Cuba", "Iran", "Kosovo", "North Korea", "Palestine"]);
+      assert.equal(parseSeeds(DEFAULT_SEEDS).groups.filter((g) => g.kind === "product").length, 24);
+      let saved = 0, ops = 0;
+      for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); saved += r.saved; ops += r.ops; if (!r.left.due) break; }
+      const ideas = G.ideas(), prod = (c) => ({ "oet,oet exam": "oet", "cv maker": "cv", recipes: "food" })[c.body.keywordSeed.keywords.join()], where = (c) => LOCATIONS.find((l) => (l.geo ?? "ALL") === (c.body.geoTargetConstants[0] ?? "ALL")).name;
+      assert.equal(saved, 3 * 193, "every product and the category in every location"); assert.equal(ideas.length, saved); assert.equal(ops, ideas.length);
       assert.ok(ideas.length <= QUOTA.collector, "inside the collector's cap — one third of Google's day");
-      /* products first */
-      const firstWeekly = ideas.findIndex((c) => c.body.keywordSeed.keywords.length === 1 && weekly.some((u) => u.seeds[0] === c.body.keywordSeed.keywords[0] && products.every((p) => !p.seeds.includes(u.seeds[0]))));
-      assert.ok(firstWeekly >= 24 * 19, "a category was asked before every product was done");
+      const seq = ideas.map((c) => `${prod(c)}|${where(c)}`), first = QUEUE_COUNTRIES.slice(0, 30).filter((c) => !NOT_IN_GOOGLE.includes(c)); // Iran (30th) has no Google location
+      assert.deepEqual(seq.slice(0, 30), ["oet|All locations", ...first.map((c) => `oet|${c}`)], "AlmiOET's first 30 (and all locations) first, in the owner's order");
+      assert.deepEqual(seq.filter((x) => x.startsWith("cv|")).slice(0, 30), ["cv|All locations", ...first.map((c) => `cv|${c}`)], "then AlmiCV's first 30");
+      const lastCvFirst = seq.indexOf(`cv|${first.at(-1)}`), background = seq.slice(30, lastCvFirst + 1).filter((x) => x.startsWith("oet|"));
+      assert.ok(background.length >= 9 && background.length <= 12, `AlmiOET's other countries go on in the background, one in four (${background.length})`);
+      assert.deepEqual(background.slice(0, 2), [`oet|${QUEUE_COUNTRIES[30]}`, `oet|${QUEUE_COUNTRIES[31]}`], "the background in the queue's order too");
+      assert.ok(seq.findIndex((x) => x.startsWith("food|")) > seq.lastIndexOf(seq.filter((x) => !x.startsWith("food|")).at(-1)), "the category after every product");
       /* one request a second, every one counted before it was sent */
       for (let i = 1; i < ideas.length; i++) assert.ok(ideas[i].at - ideas[i - 1].at >= QUOTA.paceMs, `two requests ${ideas[i].at - ideas[i - 1].at} ms apart`);
       assert.equal(Number(K.m.get("av:ads:ops:2026-10-26:collector").v), ideas.length);
@@ -142,37 +147,29 @@ for (const [name, make] of STORES) {
       const c0 = ideas[0];
       assert.equal(c0.customer, "1234567890"); assert.equal(c0.headers.authorization, "Bearer access-for-tests"); assert.equal(c0.headers["developer-token"], undefined); assert.equal(c0.headers["login-customer-id"], undefined);
       assert.equal(c0.body.language, "languageConstants/1000"); assert.equal(c0.body.keywordPlanNetwork, "GOOGLE_SEARCH"); assert.equal(c0.body.includeAdultKeywords, false);
-      assert.deepEqual(new Set(ideas.filter((c) => c.body.keywordSeed.keywords.join() === products[0].seeds.join()).map((c) => c.body.geoTargetConstants[0] ?? "ALL")), new Set(LOCATIONS.map((l) => l.geo ?? "ALL")));
+      assert.ok(ideas.some((c) => c.body.geoTargetConstants[0] === "geoTargetConstants/2586"), "Pakistan by Google's own id");
       const c = await s.counts("2026-10-26");
-      assert.equal(c.groups.filter((g) => g.grp.startsWith("product:")).length, 24); assert.ok(c.groups.filter((g) => g.grp.startsWith("product:")).every((g) => g.locations === 19));
-      assert.equal(c.locations.length, 19); assert.ok(c.keywords > 0); assert.equal(c.fetchesToday.collector.fetches, total.saved);
+      assert.ok(c.groups.every((g) => g.locations === 193)); assert.equal(c.locations.length, 193); assert.equal(c.fetchesToday.collector.fetches, saved);
       /* the same day again: nothing */
       const before = G.ideas().length, again = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 });
       assert.equal(G.ideas().length, before, "Google was asked again on the same day"); assert.equal(again.saved, 0);
-      assert.equal((await s.counts("2026-10-26")).observations, c.observations);
-      /* G · over a week every category seed and YouTube niche is refreshed; the eighth day asks the first day's again */
-      const seen = new Set(ideas.filter((x) => x.body.keywordSeed.keywords.length === 1).map((x) => `${x.body.keywordSeed.keywords[0]}|${x.body.geoTargetConstants[0] ?? "ALL"}`));
-      const day1 = Date.parse("2026-10-26T01:00:00Z");
-      for (let d = 1; d <= 6; d++) {
-        clock.t = day1 + d * 86400000;
-        for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); if (!r.left.daily && !r.left.weekly) break; }
-      }
-      for (const x of G.ideas()) if (x.body.keywordSeed.keywords.length === 1) seen.add(`${x.body.keywordSeed.keywords[0]}|${x.body.geoTargetConstants[0] ?? "ALL"}`);
-      for (const u of weekly) assert.ok(seen.has(`${u.seeds[0]}|${u.geo ?? "ALL"}`), `${u.id} was not refreshed in the week`);
-      const w = await s.counts("2026-11-01");
-      for (const g of groups.filter((x) => x.kind !== "product")) assert.ok(w.groups.some((x) => x.grp === g.id && x.locations === 19), `${g.id} not in every location`);
+      /* 31 days later: the products again (in every location), the category not yet (60 days) */
+      clock.t += 31 * 86400000;
+      for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); if (!r.left.due) break; }
+      const later = G.ideas().slice(before).map(prod);
+      assert.equal(later.length, 2 * 193); assert.equal(later.filter((p) => p === "food").length, 0, "a category is not asked again before 60 days");
     } finally { await s.close(); }
   });
 }
 
-test("B · plan(): products not fetched today, then weekly units 7+ days old, OLDEST first, at most today's share", () => {
-  const units = unitsOf(parseSeeds("product:a | A | a\ncategory:c | C | x, y").groups);
+test("B · RR-329 plan(): due = never asked, or older than its refresh days (a product 30, a category 60) — in the queue's order", () => {
+  const units = unitsOf(parseSeeds("product:oet | A | a\ncategory:c | C | x").groups);
   const key = (u) => `${u.seedKey}|${u.location}|${u.language}`;
-  const fetched = new Map(units.map((u, i) => [key(u), u.cadence === "daily" ? "2026-10-26" : i % 2 ? "2026-10-18" : "2026-10-10"]));
+  const fetched = new Map(units.map((u) => [key(u), u.kind === "product" ? (["India", "Pakistan"].includes(u.country) ? "2026-09-20" : "2026-10-20") : u.country === "Kenya" ? "2026-08-20" : "2026-09-01"]));
   const p = plan(units, fetched, "2026-10-26");
-  assert.equal(p.daily.length, 0, "a product fetched today is not asked again");
-  assert.equal(p.weekly.length, Math.ceil(38 / 6)); assert.ok(p.weekly.every((u) => fetched.get(key(u)) === "2026-10-10"), "the oldest first");
-  const fresh = new Map(units.map((u) => [key(u), "2026-10-22"])); assert.equal(plan(units, fresh, "2026-10-26").weekly.length, 0, "refreshed within the week — not due");
+  assert.deepEqual(p.due.map((u) => `${u.kind}|${u.country}`), ["product|India", "product|Pakistan", "category|Kenya"], "36 days old for a product, 67 for a category; India before Pakistan (the owner's order)");
+  assert.equal(p.total, 2 * 193); assert.equal(p.fresh, 2 * 193 - 3);
+  assert.equal(plan(units, new Map(), "2026-10-26").due[0].country, "All locations", "never asked: all locations first, then the queue");
 });
 
 test("B · the collector STOPS in plain words: our daily cap (given back, never sent), Google's AUTHORIZATION_ERROR, a sign-in that ended; one run at a time", async () => {
@@ -289,7 +286,7 @@ test("D · the owner: no limits on HIS browser — a key only he sets, typed onc
     assert.equal(Number(a.K.m.get("av:ads:ops:2026-10-26:owner").v), 9, "the owner's searches are counted apart — inside the total");
     const page = await a.req("/owner", { cookie }); assert.equal(page.status, 200); assert.match(page.headers.get("x-robots-tag"), /noindex/);
     assert.match(page.text, new RegExp(ACCESS_LINE)); assert.match(page.text, /You \(no limit — inside the total\)<\/td><td>9<\/td>/);
-    const tampered = cookie.replace(/.$/, (c) => (c === "A" ? "B" : "A")); assert.equal((await a.req("/owner", { cookie: tampered })).text.includes("Owner — keywords"), false);
+    const tampered = cookie.replace(/.$/, (c) => (c === "A" ? "B" : "A")); assert.equal((await a.req("/owner", { cookie: tampered })).text.includes("The seed list"), false); // RR-329: the owner's page is "Owner" now (its keyword parts open on a tap)
     for (const p of [page.text, (await a.req("/", { cookie })).text]) for (const v of secretValues) assert.ok(!p.includes(v), "a key's value in a page");
   } finally { await a.close(); }
   /* RR-326 fix: an owner's page that is off SAYS WHY (the owner saw a bare "not found") — never a sign-in form, never the key */
@@ -313,8 +310,8 @@ test("B + G · the owner's page: per product, category and YouTube niche (keywor
     const cookie = (await a.req("/owner/sign-in", { method: "POST", form: { key: OWNER_KEY } })).headers.get("set-cookie").split(";")[0];
     const ran = await a.req("/owner/collect", { method: "POST", form: {}, cookie }); assert.match(ran.text, /This run: \d+ requests saved/);
     const page = (await a.req("/owner", { cookie })).text;
-    /* one short run (50 s) reaches the first products — AlmiJob comes first */
-    assert.match(page, /<td>AlmiJob<\/td><td>AlmiWorld product · daily<\/td><td>\d+<\/td><td>\d+<\/td><td>19<\/td><td>2026-10-26<\/td>/);
+    /* one short run (50 s) reaches the first product of the owner's queue — AlmiOET (RR-329, rule R4; it was AlmiJob, the list's first) */
+    assert.match(page, /<td>AlmiOET<\/td><td>AlmiWorld product · every 30 days<\/td><td>\d+<\/td><td>\d+<\/td><td>\d+<\/td><td>2026-10-26<\/td>/);
     assert.match(page, /<td>Pakistan<\/td><td>\d+<\/td><td>\d+<\/td>/); assert.match(page, /Google's Basic limit: 15,000 a day/); assert.match(page, /Daily collector<\/td><td>\d+<\/td><td>5,000 \(one third of Google's\)/);
     const bad = await a.req("/owner/seeds", { method: "POST", form: { seeds: "product:x | X" }, cookie }); assert.equal(bad.status, 400); assert.match(bad.text, /Not saved — line 1: write it as/);
     assert.equal(await store.seedList(), null);
@@ -322,7 +319,7 @@ test("B + G · the owner's page: per product, category and YouTube niche (keywor
     clock.t += 86400000; await runCollector({ store, ads: siteAds({ env: FULL_ENV, kv: K.kv, fetchImpl: G.fetchImpl, now: clock.now, sleep: clock.sleep }), kv: K.kv, now: clock.now, budgetMs: 1e9 });
     const day2 = G.ideas().filter((x) => x.at >= clock.t - 1000 * 3600);
     assert.ok(day2.every((x) => ["oet,oet exam", "daily vlog"].includes(x.body.keywordSeed.keywords.join())), "the owner's list is the one collected");
-    const yt = (await a.req("/owner", { cookie })).text; assert.match(yt, /YouTube niche · weekly · Google Search volumes, not YouTube's numbers/);
+    const yt = (await a.req("/owner", { cookie })).text; assert.match(yt, /YouTube niche · every 60 days · Google Search volumes, not YouTube's numbers/);
     assert.equal((await a.req("/owner/seeds", { method: "POST", form: { seeds: "x" } })).status, 403, "only the owner");
   } finally { await a.close(); }
   assert.match(parseSeeds(`product:a | A | ${Array.from({ length: 21 }, (_, i) => `s${i}`).join(", ")}`).why, /at most 20 seed words for a product/);

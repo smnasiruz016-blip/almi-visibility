@@ -21,14 +21,20 @@ CREATE TABLE IF NOT EXISTS cf_history (id bigserial PRIMARY KEY, key text NOT NU
 CREATE TABLE IF NOT EXISTS cf_task (country text NOT NULL, task text NOT NULL, day date NOT NULL, state text NOT NULL, tries int NOT NULL, note text, tried jsonb, PRIMARY KEY (country, task));
 ALTER TABLE cf_task ADD COLUMN IF NOT EXISTS tried jsonb;
 CREATE TABLE IF NOT EXISTS cf_day (day date PRIMARY KEY, ai_usd numeric NOT NULL DEFAULT 0, reads int NOT NULL DEFAULT 0, searches int NOT NULL DEFAULT 0);
+ALTER TABLE cf_fact ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'oet';
+CREATE INDEX IF NOT EXISTS cf_fact_product ON cf_fact (product, country);
+CREATE TABLE IF NOT EXISTS cf_photo (id text PRIMARY KEY, country text NOT NULL, type text NOT NULL, bytes bytea NOT NULL, at timestamptz NOT NULL);
 `;
-export const STATUS = Object.freeze({ confirmed: "confirmed", unconfirmed: "unconfirmed", approved: "approved", edited: "edited", rejected: "rejected" });
+/* RR-329 D (rule R9): "owner" — a fact the owner supplied himself, dated; shown first, never changed by the collector */
+export const STATUS = Object.freeze({ confirmed: "confirmed", unconfirmed: "unconfirmed", approved: "approved", edited: "edited", rejected: "rejected", owner: "owner" });
 /* what a page may show — never an unconfirmed or rejected fact */
-export const SHOWN = Object.freeze(["confirmed", "approved", "edited"]);
-export const OWNER_DECIDED = Object.freeze(["approved", "edited", "rejected"]);
+export const SHOWN = Object.freeze(["confirmed", "approved", "edited", "owner"]);
+export const OWNER_DECIDED = Object.freeze(["approved", "edited", "rejected", "owner"]);
+/* RR-329 D: a photo the owner adds (a test centre's notice, a fee board …) — small, so two months fit the free database */
+export const PHOTO = Object.freeze({ maxBytes: 1_500_000, types: Object.freeze(["image/jpeg", "image/png", "image/webp"]) });
 const ACTIONS = { approve: "approved", edit: "edited", reject: "rejected" };
 
-const row = (r) => ({ key: r.key, country: r.country, profession: r.profession ?? null, part: r.part, kind: r.kind, value: r.value, sourceUrl: r.source_url ?? r.sourceUrl ?? null, sourceTitle: r.source_title ?? r.sourceTitle ?? null, readOn: r.read_on ? String(r.read_on).slice(0, 10) : r.readOn ?? null, status: r.status, by: r.by_who ?? r.by, aiWritten: Boolean(r.ai_written ?? r.aiWritten), proposedBy: r.proposed_by ?? r.proposedBy, why: r.why ?? null, at: r.at ? new Date(r.at).toISOString() : null });
+const row = (r) => ({ key: r.key, product: r.product ?? "oet", country: r.country, profession: r.profession ?? null, part: r.part, kind: r.kind, value: r.value, sourceUrl: r.source_url ?? r.sourceUrl ?? null, sourceTitle: r.source_title ?? r.sourceTitle ?? null, readOn: r.read_on ? String(r.read_on).slice(0, 10) : r.readOn ?? null, status: r.status, by: r.by_who ?? r.by, aiWritten: Boolean(r.ai_written ?? r.aiWritten), proposedBy: r.proposed_by ?? r.proposedBy, why: r.why ?? null, at: r.at ? new Date(r.at).toISOString() : null });
 /* the same value, whatever order its keys come back in (Postgres jsonb keeps its own order) */
 const canon = (v) => (Array.isArray(v) ? `[${v.map(canon).join(",")}]` : v && typeof v === "object" ? `{${Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(",")}}` : JSON.stringify(v ?? null));
 const checkFact = (f) => { for (const k of ["key", "country", "part", "kind", "status", "proposedBy"]) if (!f[k]) throw new Error(`a country fact needs its ${k}`); if (!STATUS[f.status]) throw new Error(`no such status: ${f.status}`); };
@@ -40,7 +46,7 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
   const q = async (sql, params = []) => (await (await db()).query(sql, params)).rows;
   const ensure = () => (ready ??= (async () => { await q(CF_SCHEMA); })().catch((e) => { ready = null; throw e; }));
   const tx = async (fn) => { await ensure(); const c = await (await db()).connect(); try { await c.query("BEGIN"); const out = await fn((s, p = []) => c.query(s, p).then((r) => r.rows)); await c.query("COMMIT"); return out; } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); } };
-  const SEL = "SELECT key, country, profession, part, kind, value, source_url, source_title, read_on::text AS read_on, status, by_who, ai_written, proposed_by, why, at FROM cf_fact";
+  const SEL = "SELECT key, product, country, profession, part, kind, value, source_url, source_title, read_on::text AS read_on, status, by_who, ai_written, proposed_by, why, at FROM cf_fact";
   return Object.freeze({
     kind: "postgres", ensure,
     async facts({ country = null } = {}) { await ensure(); return (country ? await q(`${SEL} WHERE country = $1 ORDER BY key`, [country]) : await q(`${SEL} ORDER BY country, key`)).map(row); },
@@ -49,16 +55,21 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
     async putFact(f, { at }) {
       checkFact(f);
       return tx(async (x) => {
-        const [old] = await x("SELECT status, by_who, value, source_url FROM cf_fact WHERE key = $1 FOR UPDATE", [f.key]);
+        const [old] = await x("SELECT status, by_who, value, source_url, why FROM cf_fact WHERE key = $1 FOR UPDATE", [f.key]);
         if (old && OWNER_DECIDED.includes(old.status)) { await x("INSERT INTO cf_history (key, at, status, value, by_who, note) VALUES ($1,$2,$3,$4,$5,$6)", [f.key, at, f.status, JSON.stringify(f.value), "collector", `not applied — the owner ${old.status} this fact`]); return { saved: false, why: `the owner ${old.status} it` }; }
-        if (old && old.status === f.status && canon(old.value) === canon(f.value) && old.source_url === (f.sourceUrl ?? null)) return { saved: false, why: "unchanged" };
-        await x(`INSERT INTO cf_fact (key, country, profession, part, kind, value, source_url, source_title, read_on, status, by_who, ai_written, proposed_by, why, at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'collector',$11,$12,$13,$14)
-          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, source_url = EXCLUDED.source_url, source_title = EXCLUDED.source_title, read_on = EXCLUDED.read_on, status = EXCLUDED.status, by_who = 'collector', ai_written = EXCLUDED.ai_written, proposed_by = EXCLUDED.proposed_by, why = EXCLUDED.why, at = EXCLUDED.at`,
-          [f.key, f.country, f.profession ?? null, f.part, f.kind, JSON.stringify(f.value), f.sourceUrl ?? null, f.sourceTitle ?? null, f.readOn ?? null, f.status, Boolean(f.aiWritten), f.proposedBy, f.why ?? null, at]);
-        await x("INSERT INTO cf_history (key, at, status, value, by_who, note) VALUES ($1,$2,$3,$4,'collector',$5)", [f.key, at, f.status, JSON.stringify(f.value), f.why ?? null]);
+        /* RR-329: a new reason is a change (a page gone, then read again, must not stay "gone") */
+        if (old && old.status === f.status && canon(old.value) === canon(f.value) && old.source_url === (f.sourceUrl ?? null) && (old.why ?? null) === (f.why ?? null)) return { saved: false, why: "unchanged" };
+        await x(`INSERT INTO cf_fact (key, country, profession, part, kind, value, source_url, source_title, read_on, status, by_who, ai_written, proposed_by, why, at, product) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$15,$11,$12,$13,$14,$16)
+          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, source_url = EXCLUDED.source_url, source_title = EXCLUDED.source_title, read_on = EXCLUDED.read_on, status = EXCLUDED.status, by_who = EXCLUDED.by_who, ai_written = EXCLUDED.ai_written, proposed_by = EXCLUDED.proposed_by, why = EXCLUDED.why, at = EXCLUDED.at, product = EXCLUDED.product`,
+          [f.key, f.country, f.profession ?? null, f.part, f.kind, JSON.stringify(f.value), f.sourceUrl ?? null, f.sourceTitle ?? null, f.readOn ?? null, f.status, Boolean(f.aiWritten), f.proposedBy, f.why ?? null, at, f.status === "owner" ? "owner" : "collector", f.product ?? "oet"]);
+        await x("INSERT INTO cf_history (key, at, status, value, by_who, note) VALUES ($1,$2,$3,$4,$5,$6)", [f.key, at, f.status, JSON.stringify(f.value), f.status === "owner" ? "owner" : "collector", f.why ?? null]);
         return { saved: true };
       });
     },
+    /** RR-329 D · the owner's own fact ("Add what I know") — a new key every time, never refused, never changed by the collector */
+    async supply(f, { at }) { checkFact({ ...f, status: "owner", proposedBy: "owner" }); return this.putFact({ ...f, status: "owner", proposedBy: "owner", aiWritten: false }, { at }); },
+    async putPhoto({ id, country, type, bytes, at }) { await ensure(); await q("INSERT INTO cf_photo (id, country, type, bytes, at) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING", [id, country, type, bytes, at]); },
+    async photo(id) { await ensure(); const [r] = await q("SELECT type, bytes FROM cf_photo WHERE id = $1", [id]); return r ? { type: r.type, bytes: Buffer.from(r.bytes) } : null; },
     /** the owner's word: approve | edit (his value) | reject — it wins over the collector from then on */
     async decide(key, { action, value = null, at }) {
       const status = ACTIONS[action]; if (!status) throw new Error(`no such action: ${action}`);
@@ -74,6 +85,8 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
     async tasks() { await ensure(); return new Map((await q("SELECT country, task, day::text AS day, state, tries, note, tried FROM cf_task")).map((r) => [`${r.country}|${r.task}`, { day: r.day, state: r.state, tries: r.tries, note: r.note, tried: r.tried ?? null }])); },
     async setTask(country, task, { day, state, note = null, tried = null }) { await ensure(); await q("INSERT INTO cf_task (country, task, day, state, tries, note, tried) VALUES ($1,$2,$3,$4,1,$5,$6) ON CONFLICT (country, task) DO UPDATE SET day = EXCLUDED.day, state = EXCLUDED.state, tries = cf_task.tries + 1, note = EXCLUDED.note, tried = EXCLUDED.tried", [country, task, day, state, note, tried ? JSON.stringify(tried) : null]); },
     async spend(day) { await ensure(); const [r] = await q("SELECT ai_usd::float8 AS ai, reads, searches FROM cf_day WHERE day = $1", [day]); return { aiUsd: r ? Number(r.ai) : 0, reads: r?.reads ?? 0, searches: r?.searches ?? 0 }; },
+    /** RR-329 C · the spend of every day since `since` (the owner's day and month) */
+    async spendSince(since) { await ensure(); return (await q("SELECT day::text AS day, ai_usd::float8 AS ai, reads, searches FROM cf_day WHERE day >= $1 ORDER BY day", [since])).map((r) => ({ day: r.day, aiUsd: Number(r.ai), reads: r.reads, searches: r.searches })); },
     async addSpend(day, { aiUsd = 0, reads = 0, searches = 0 }) { await ensure(); await q("INSERT INTO cf_day (day, ai_usd, reads, searches) VALUES ($1,$2,$3,$4) ON CONFLICT (day) DO UPDATE SET ai_usd = cf_day.ai_usd + EXCLUDED.ai_usd, reads = cf_day.reads + EXCLUDED.reads, searches = cf_day.searches + EXCLUDED.searches", [day, aiUsd, reads, searches]); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
@@ -81,7 +94,7 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
 
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
 export function cfMemoryStore() {
-  const facts = new Map(), hist = [], tasks = new Map(), days = new Map();
+  const facts = new Map(), hist = [], tasks = new Map(), days = new Map(), photos = new Map();
   const copy = (o) => JSON.parse(JSON.stringify(o));
   return Object.freeze({
     kind: "memory", ensure: async () => {},
@@ -91,11 +104,15 @@ export function cfMemoryStore() {
       checkFact(f);
       const old = facts.get(f.key);
       if (old && OWNER_DECIDED.includes(old.status)) { hist.push({ key: f.key, at, status: f.status, value: copy(f.value), by: "collector", note: `not applied — the owner ${old.status} this fact` }); return { saved: false, why: `the owner ${old.status} it` }; }
-      if (old && old.status === f.status && canon(old.value) === canon(f.value) && old.sourceUrl === (f.sourceUrl ?? null)) return { saved: false, why: "unchanged" };
-      facts.set(f.key, row({ ...copy(f), sourceUrl: f.sourceUrl ?? null, by: "collector", at }));
-      hist.push({ key: f.key, at, status: f.status, value: copy(f.value), by: "collector", note: f.why ?? null });
+      if (old && old.status === f.status && canon(old.value) === canon(f.value) && old.sourceUrl === (f.sourceUrl ?? null) && (old.why ?? null) === (f.why ?? null)) return { saved: false, why: "unchanged" };
+      const by = f.status === "owner" ? "owner" : "collector";
+      facts.set(f.key, row({ ...copy(f), product: f.product ?? "oet", sourceUrl: f.sourceUrl ?? null, by, at }));
+      hist.push({ key: f.key, at, status: f.status, value: copy(f.value), by, note: f.why ?? null });
       return { saved: true };
     },
+    async supply(f, { at }) { checkFact({ ...f, status: "owner", proposedBy: "owner" }); return this.putFact({ ...f, status: "owner", proposedBy: "owner", aiWritten: false }, { at }); },
+    async putPhoto({ id, country, type, bytes, at }) { if (!photos.has(id)) photos.set(id, { country, type, bytes: Buffer.from(bytes), at }); },
+    async photo(id) { const p = photos.get(id); return p ? { type: p.type, bytes: Buffer.from(p.bytes) } : null; },
     async decide(key, { action, value = null, at }) {
       const status = ACTIONS[action]; if (!status) throw new Error(`no such action: ${action}`);
       const old = facts.get(key); if (!old) return { ok: false, why: "No such fact." };
@@ -108,6 +125,7 @@ export function cfMemoryStore() {
     async tasks() { return new Map([...tasks.entries()].map(([k, v]) => [k, copy(v)])); },
     async setTask(country, task, { day, state, note = null, tried = null }) { const k = `${country}|${task}`, o = tasks.get(k); tasks.set(k, { day, state, tries: (o?.tries ?? 0) + 1, note, tried: tried ? copy(tried) : null }); },
     async spend(day) { const d = days.get(day); return d ? { ...d } : { aiUsd: 0, reads: 0, searches: 0 }; },
+    async spendSince(since) { return [...days.entries()].filter(([d]) => d >= since).sort(([a], [b]) => a.localeCompare(b)).map(([day, d]) => ({ day, ...d })); },
     async addSpend(day, { aiUsd = 0, reads = 0, searches = 0 }) { const d = days.get(day) ?? { aiUsd: 0, reads: 0, searches: 0 }; days.set(day, { aiUsd: d.aiUsd + aiUsd, reads: d.reads + reads, searches: d.searches + searches }); },
     async close() {},
   });

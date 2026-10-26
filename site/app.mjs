@@ -15,21 +15,24 @@ import { reportEmail, sendEmail, sendingOn } from "./email.mjs";
 import { createCheckout } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
-import { createHash, createPublicKey, createPrivateKey, timingSafeEqual } from "node:crypto";
+import { createHash, createPublicKey, createPrivateKey, timingSafeEqual, randomBytes } from "node:crypto";
 import { storeOf, kvStore, liteLimits, LITE_LIMITS, FINDER_COUNTS } from "./limits.mjs"; // RR-325 B
 import { siteAds } from "./kw-google.mjs"; // RR-326
 import { dbUrlOf, pgStore } from "./kw-store.mjs";
-import { runCollector, currentGroups } from "./kw-collector.mjs";
+import { runCollector, currentGroups, storageLimitOf } from "./kw-collector.mjs";
+import { queueNow, saveQueue, ownerStatus, productName, PRODUCT_NAMES } from "./owner-status.mjs"; // RR-329
+import { moveUp } from "./queue.mjs";
+import { PRODUCT_FACTS, FACT_PRODUCTS, PART_INFO } from "../desktop/product-facts.mjs";
 import { importFiles, parseMultipart, IMPORT } from "./kw-import.mjs"; // RR-326 I
 import { findKeywords, lookupKeywords, finderQuery, csvOf, groupOf, FINDER } from "./kw-finder.mjs";
 import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER, publicKeyState } from "./kw-service.mjs";
 import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
 import { isOwner, ownerOn, ownerState, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
-import { cfPgStore, SHOWN } from "./cf-store.mjs"; // RR-328 B
+import { cfPgStore, SHOWN, PHOTO } from "./cf-store.mjs"; // RR-328 B
 import { runCountryFacts, CF_ORDER, capsOf } from "./cf-collector.mjs";
 import { aiConfigured } from "./cf-ai.mjs";
-import { coverageOf, countryPacket } from "../desktop/country-facts.mjs";
+import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS } from "../desktop/country-facts.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
 
@@ -225,14 +228,20 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   const finderOn = () => Boolean(kv && db && ads && ads.configured());
   /* RR-328 B · the country facts: the same database; the official reader (robots obeyed, public addresses only, paced) */
   const cf = cfStore ?? (dbUrlOf(env) ? cfPgStore({ url: dbUrlOf(env) }) : null);
-  const cfRun = (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, ...o });
+  /* RR-329 A: both collectors follow the owner's queue (his order from /owner, else the default) */
+  const cfRun = async (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv), ...o });
+  const kwRun = async (o = {}) => runCollector({ store: db, ads, kv, now, queue: await queueNow(kv), limitMb: storageLimitOf(env), ...o });
+  /* RR-329 B/E: one product's grid at a time (light on a phone); AlmiOET keeps its five-part grid */
   const countriesPage = async (o = {}) => {
-    const d = new Date(now()).toISOString().slice(0, 10), facts = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
+    const d = new Date(now()).toISOString().slice(0, 10), product = FACT_PRODUCTS.includes(o.product) ? o.product : "oet", all = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
+    const facts = all.filter((f) => (f.product ?? "oet") === product), order = (await queueNow(kv)).countries;
     let last = null; if (kv) { try { const [l] = await kv.run([["GET", "av:cf:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
     const history = {}; if (sel) for (const f of facts.filter((x) => x.country === sel)) history[f.key] = await cf.history(f.key);
-    /* RR-328 addition (rule R1): each country's council search — "searching" with the names already tried */
-    const search = Object.fromEntries([...(await cf.tasks()).entries()].filter(([k]) => k.endsWith("|councils")).map(([k, t]) => [k.slice(0, -"|councils".length), { state: t.state, day: t.day, note: t.note, tried: t.tried ?? {} }]));
-    return P.ownerCountries({ coverage: coverageOf(facts, { countries: CF_ORDER }), facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order: CF_ORDER, search, ...o, country: sel });
+    /* RR-328 addition (rule R1): each country's body search — "searching" with the names already tried */
+    const task = product === "oet" ? "councils" : `${product}:facts`;
+    const search = Object.fromEntries([...(await cf.tasks()).entries()].filter(([k]) => k.endsWith(`|${task}`)).map(([k, t]) => [k.slice(0, -(task.length + 1)), { state: t.state, day: t.day, note: t.note, tried: t.tried ?? {} }]));
+    const template = PRODUCT_FACTS[product], coverage = product === "oet" ? coverageOf(facts, { countries: order }) : productCoverageOf(product, all, { countries: order, template });
+    return P.ownerCountries({ coverage, facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, ...o, country: sel, product });
   };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};
@@ -253,12 +262,15 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (db) { try { counts = await db.counts(d); list = await db.seedList(); } catch { dbError = "The keyword database could not be read just now."; } }
     if (ads) { try { usage = await ads.usage(); } catch { usage = null; } }
     if (kv) { try { const [l] = await kv.run([["GET", "av:collector:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
-    return P.ownerPage({ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, ...o });
+    /* RR-329: what matters first on his phone — red lines, this week, progress, ETA, spend, the database */
+    let status = null; try { status = await ownerStatus({ kv, db, cf, env, now }); } catch { status = null; }
+    return P.ownerPage({ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, ...o });
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
     /* RR-326 I: the body as BYTES (a UTF-16 upload must not be decoded as text); the owner's file upload alone may be larger */
-    const big = req.method === "POST" && String(req.url ?? "").split("?")[0] === "/owner/import" && owner(req), max = big ? IMPORT.maxBodyBytes : 64000;
+    /* RR-329 D: the owner's "Add what I know" may carry one photo (PHOTO.maxBytes) */
+    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : 64000;
     const chunks = []; let size = 0;
     for await (const c of req) { const b = Buffer.isBuffer(c) ? c : Buffer.from(c); size += b.length; if (size > max) return send(413, "Too large", "text/plain"); chunks.push(b); }
     const raw = Buffer.concat(chunks), body = raw.toString("utf8");
@@ -317,7 +329,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         /* RR-326 fix: the page says WHY it is off (the key missing, or too short to be accepted) instead of a bare "not found" — never a
          * sign-in form while the key is not usable */
         if (!ownerOn(env) || !kv) return u.pathname === "/owner" && req.method === "GET" ? send(503, P.ownerOff(!kv ? "store" : ownerState(env)), undefined, priv) : send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
-        if (req.method === "GET" && u.pathname === "/owner") return send(200, owner(req) ? await ownerPage() : P.ownerSignIn(), undefined, priv);
+        if (req.method === "GET" && u.pathname === "/owner") return send(200, owner(req) ? await ownerPage({ moved: u.searchParams.get("moved") }) : P.ownerSignIn(), undefined, priv);
         if (req.method === "POST" && u.pathname === "/owner/sign-in") {
           const r = await ownerSignIn({ typed: form().key, who: who(req), env, kv, now: now() });
           if (!r.ok) return send(r.why.startsWith("Too many") ? 429 : 403, P.ownerSignIn(r.why), undefined, priv);
@@ -348,13 +360,44 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         }
         if (req.method === "POST" && u.pathname === "/owner/collect") {
           if (!finderOn()) return send(503, await ownerPage({ message: "Google, the store and the database must all be connected first." }), undefined, priv);
-          const r = await runCollector({ store: db, ads, kv, now, budgetMs: 50000 });
+          const r = await kwRun({ budgetMs: 50000 });
           return send(200, await ownerPage({ message: r.ok ? `This run: ${r.saved} requests saved (${r.keywords} keywords)${r.stoppedBy ? ` — ${r.why}` : ""}.` : r.why }), undefined, priv);
+        }
+        /* RR-329 A · the queue: one product or country one place up (one tap) — both collectors follow it from their next run */
+        if (req.method === "POST" && u.pathname === "/owner/queue") {
+          const f = form(), q = await queueNow(kv), kind = f.kind === "country" ? "countries" : "products", item = String(f.item ?? "");
+          if (!q[kind].includes(item)) return send(400, await ownerPage({ message: "Not in the queue. Nothing was changed." }), undefined, priv);
+          await saveQueue(kv, { ...q, [kind]: moveUp(q[kind], item) });
+          return send(303, "", "text/plain", { ...priv, location: `/owner?moved=${encodeURIComponent(item)}#queue` });
         }
         /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
         if (u.pathname.startsWith("/owner/countries")) {
           if (!cf) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — country facts need it." }), undefined, priv);
-          if (req.method === "GET" && u.pathname === "/owner/countries") return send(200, await countriesPage({ country: u.searchParams.get("c") }), undefined, priv);
+          if (req.method === "GET" && u.pathname === "/owner/countries") return send(200, await countriesPage({ country: u.searchParams.get("c"), product: u.searchParams.get("p") }), undefined, priv);
+          /* RR-329 D · "Add what I know": the owner's own fact (text, an optional link, an optional photo) — stored "owner", dated, shown first */
+          if (req.method === "POST" && u.pathname === "/owner/countries/know") {
+            const mp = /multipart\/form-data/.test(req.headers["content-type"] ?? "") ? parseMultipart(raw, req.headers["content-type"]) : null, f = mp ? mp.fields : form();
+            const country = String(f.country ?? ""), product = FACT_PRODUCTS.includes(f.product) ? f.product : "oet", part = String(f.part ?? ""), text = String(f.text ?? "").trim().slice(0, 2000), link = String(f.link ?? "").trim().slice(0, 400);
+            const back = (code, message) => countriesPage({ country: COUNTRIES.includes(country) ? country : null, product, message }).then((h) => send(code, h, undefined, priv));
+            if (!COUNTRIES.includes(country) || !(PRODUCT_FACTS[product].parts.includes(part) || part === "other")) return back(400, "Choose a country and what it is about. Nothing was saved.");
+            if (text.length < 3) return back(400, "Write what you know (a few words at least). Nothing was saved.");
+            if (link && !/^https?:\/\/[^\s]+$/.test(link)) return back(400, "The link must start with https:// — nothing was saved.");
+            const profession = product === "oet" && part === "councils" && CF_PROFESSIONS.includes(f.profession) ? f.profession : null;
+            const file = mp?.files?.photo, at = new Date(now()).toISOString(); let photo = null;
+            if (file && file.bytes?.length) {
+              /* the photo's kind from its own first bytes (never from the browser's word) */
+              const b = file.bytes; file.type = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? "image/jpeg" : b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? "image/png" : b.subarray(0, 4).toString("latin1") === "RIFF" && b.subarray(8, 12).toString("latin1") === "WEBP" ? "image/webp" : null;
+              if (file.bytes.length > PHOTO.maxBytes || !PHOTO.types.includes(file.type)) return back(400, `The photo must be a JPEG, PNG or WebP of at most ${Math.round(PHOTO.maxBytes / 1e6 * 10) / 10} MB. Nothing was saved.`);
+              photo = randomBytes(12).toString("hex"); await cf.putPhoto({ id: photo, country, type: file.type, bytes: file.bytes, at });
+            }
+            const id = randomBytes(6).toString("hex"), key = product === "oet" ? `own|${country}|${part}|${id}` : `${product}:own|${country}|${part}|${id}`;
+            await cf.supply({ key, product, country, profession, part, kind: "owner", value: { text, ...(link ? { link } : {}), ...(photo ? { photo } : {}), on: at.slice(0, 10), label: "AlmiWorld's own checked information" }, sourceUrl: link || null, sourceTitle: link ? "the owner's link" : null, readOn: at.slice(0, 10) }, { at });
+            return back(200, `Saved as your own information (${at.slice(0, 10)}) — it is shown first, before anything the collector finds.`);
+          }
+          if (req.method === "GET" && u.pathname === "/owner/countries/photo") {
+            const ph = /^[0-9a-f]{24}$/.test(u.searchParams.get("id") ?? "") ? await cf.photo(u.searchParams.get("id")) : null;
+            return ph ? send(200, ph.bytes, ph.type, { ...priv, "cache-control": "private, max-age=86400" }) : send(404, "Not found", "text/plain", priv);
+          }
           if (req.method === "POST" && u.pathname === "/owner/countries/run") {
             const r = await cfRun({ budgetMs: 50000 });
             return send(200, await countriesPage({ message: r.ok ? `This run: ${r.saved} facts saved (${r.unconfirmed} unconfirmed), ${r.reads} pages read, $${r.aiUsd.toFixed(2)} of AI${r.stoppedBy ? ` — ${r.why}` : ""}.` : r.why }), undefined, priv);
@@ -363,7 +406,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
             const f = form(), old = await cf.fact(String(f.key ?? ""));
             if (!old || !["approve", "edit", "reject"].includes(f.action)) return send(400, await countriesPage({ message: "No such fact or action. Nothing was changed." }), undefined, priv);
             const t = (k, n = 600) => String(f[k] ?? "").trim().slice(0, n);
-            const value = f.action !== "edit" ? null : old.part === "councils" ? { ...old.value, name: t("name", 200), website: t("website", 300), address: t("address", 400), addressWhy: undefined } : old.part === "questions" ? { ...old.value, question: t("question", 200), answer: t("answer", 1200), label: "written by the owner" } : old.part === "rules" ? { ...old.value, rule: t("rule", 600) } : old.part === "fee" ? { ...old.value, line: t("line", 400) } : { ...old.value, home: t("home", 400) };
+            const value = f.action !== "edit" ? null : (old.product ?? "oet") !== "oet" && old.part !== "questions" ? { ...old.value, ...(old.value?.name !== undefined ? { name: t("name", 200), website: t("website", 300) } : {}), text: t("text", 1200) } : old.part === "councils" ? { ...old.value, name: t("name", 200), website: t("website", 300), address: t("address", 400), addressWhy: undefined } : old.part === "questions" ? { ...old.value, question: t("question", 200), answer: t("answer", 1200), label: "written by the owner" } : old.part === "rules" ? { ...old.value, rule: t("rule", 600) } : old.part === "fee" ? { ...old.value, line: t("line", 400) } : { ...old.value, home: t("home", 400) };
             if (value && old.part === "councils" && value.website && !/^https?:\/\//.test(value.website)) return send(400, await countriesPage({ country: old.country, message: "The website must start with https:// — nothing was changed." }), undefined, priv);
             const r = await cf.decide(old.key, { action: f.action, value: value ? JSON.parse(JSON.stringify(value)) : null, at: new Date(now()).toISOString() });
             return send(200, await countriesPage({ country: old.country, message: r.ok ? `Saved: ${r.status}.` : r.why }), undefined, priv);
@@ -411,7 +454,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const okAuth = cronAuth();
         if (!okAuth) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!finderOn()) return send(200, JSON.stringify({ ok: false, why: "Google, the store or the database is not connected." }), "application/json", { "cache-control": "no-store" });
-        const r = await runCollector({ store: db, ads, kv, now });
+        const r = await kwRun();
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       send(404, P.notFound(u.pathname, { lite: true }));

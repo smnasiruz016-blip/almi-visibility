@@ -14,7 +14,10 @@
  */
 export const PARTS = Object.freeze(["fee", "questions", "centres", "councils", "rules"]);
 export const PART_NAMES = Object.freeze({ fee: "the fee in its currency", questions: "the questions people there ask, with answers", centres: "test centres (or the nearest and at home)", councils: "the council for each profession", rules: "a rule of its own" });
-export const SHOWN_STATUS = Object.freeze(["confirmed", "approved", "edited"]);
+/* RR-329 D (rule R9): "owner" — a fact the owner supplied himself ("Add what I know"), dated; shown as AlmiWorld's own checked information */
+export const SHOWN_STATUS = Object.freeze(["confirmed", "approved", "edited", "owner"]);
+/* RR-329 C (rule R8): an AlmiOET record whose page is gone is hidden until the collector reads it again and confirms it */
+export const GONE = /^the page is gone/;
 /* the subject's professions (AlmiOET's list, desktop/lists/almiworld-oet-professions.json), by the keys the page plan uses */
 export const CF_PROFESSIONS = Object.freeze(["medicine", "nursing", "dentistry", "pharmacy", "physiotherapy", "occupational therapy", "radiography", "dietetics", "optometry", "podiatry", "speech pathology", "veterinary science"]);
 /* RR-328 addition (owner, 26 Oct, rule R1): the body that does a council's job, under ANY same-meaning name — the collector records which
@@ -43,13 +46,15 @@ export const feeLocal = (v) => Boolean(v?.local && v?.line);
  *     councils: { profession: fact|null } }
  */
 export function partsOf(country, facts, { professions = CF_PROFESSIONS } = {}) {
-  const mine = facts.filter((f) => f.country === country && shown(f)), of = (part) => mine.filter((f) => f.part === part);
-  const fee = of("fee").find((f) => feeLocal(f.value)) ?? null, feeAny = of("fee")[0] ?? null;
-  const questions = of("questions").filter((f) => f.value?.question && f.value?.answer);
-  const centres = of("centres").find((f) => f.value?.venue || (f.value?.home && (f.value?.nearest ?? []).length)) ?? null;
-  const councils = Object.fromEntries(professions.map((p) => [p, of("councils").find((f) => f.profession === p && councilWhole(f.value)) ?? null]));
+  const mine = facts.filter((f) => f.country === country && shown(f) && (f.product ?? "oet") === "oet"), of = (part) => mine.filter((f) => f.part === part);
+  /* RR-329 D: the owner's own fact for a part fills it, first */
+  const own = (part, p = null) => of(part).filter((f) => f.status === "owner" && (p === null || f.profession === p) && f.value?.text);
+  const fee = own("fee")[0] ?? of("fee").find((f) => feeLocal(f.value)) ?? null, feeAny = of("fee")[0] ?? null;
+  const questions = [...own("questions"), ...of("questions").filter((f) => f.value?.question && f.value?.answer)];
+  const centres = own("centres")[0] ?? of("centres").find((f) => f.value?.venue || (f.value?.home && (f.value?.nearest ?? []).length)) ?? null;
+  const councils = Object.fromEntries(professions.map((p) => [p, own("councils", p)[0] ?? of("councils").find((f) => f.profession === p && councilWhole(f.value)) ?? null]));
   const noCouncil = professions.filter((p) => !councils[p]), partial = professions.filter((p) => !councils[p] && of("councils").some((f) => f.profession === p));
-  const rules = of("rules").filter((f) => f.value?.rule);
+  const rules = [...own("rules"), ...of("rules").filter((f) => f.value?.rule)];
   const parts = {
     fee: { filled: Boolean(fee), facts: fee ? [fee] : feeAny ? [feeAny] : [], missing: fee ? [] : [feeAny ? "no figure in its own currency yet" : "no fee read yet"] },
     questions: { filled: questions.length > 0, facts: questions, missing: questions.length ? [] : ["no question from this country with its answer yet"] },
@@ -69,10 +74,36 @@ export function coverageOf(facts, { countries, professions = CF_PROFESSIONS } = 
     unconfirmed: facts.filter((f) => f.status === "unconfirmed").length, rejected: facts.filter((f) => f.status === "rejected").length } };
 }
 
+/**
+ * RR-329 B · one country of ANOTHER product (desktop/product-facts.mjs — its own template): each part filled by its shown facts (the
+ * owner's own first). → { product, country, parts: { part: { filled, facts, missing } }, missing, complete }
+ */
+export function productPartsOf(product, country, facts, { template }) {
+  const mine = facts.filter((f) => f.product === product && f.country === country && shown(f));
+  const parts = Object.fromEntries(template.parts.map((k) => {
+    const own = mine.filter((f) => f.part === k && f.status === "owner" && f.value?.text);
+    const got = k === "questions" ? mine.filter((f) => f.part === k && f.value?.question && f.value?.answer) : mine.filter((f) => f.part === k && (f.value?.text || f.value?.name) && f.status !== "owner");
+    const all = [...own, ...got];
+    return [k, { filled: all.length > 0, facts: all, missing: all.length ? [] : [`no ${PART_LABEL[k] ?? k} from an official page yet`] }];
+  }));
+  const missing = template.parts.filter((k) => !parts[k].filled);
+  return { product, country, parts, missing, complete: missing.length === 0 };
+}
+const PART_LABEL = { questions: "question with its answer", offices: "office that asks for it", employment: "public employment service", universities: "official university list", tax: "tax authority", recognition: "recognition body", studentVisa: "student-visa office" };
+/** the owner's grid for another product: every country → its parts, with counts */
+export function productCoverageOf(product, facts, { countries, template }) {
+  const rows = countries.map((c) => productPartsOf(product, c, facts, { template }));
+  return { rows, counts: { countries: rows.length, complete: rows.filter((r) => r.complete).length, byPart: Object.fromEntries(template.parts.map((k) => [k, rows.filter((r) => r.parts[k].filled).length])),
+    unconfirmed: facts.filter((f) => f.product === product && f.status === "unconfirmed").length, rejected: facts.filter((f) => f.product === product && f.status === "rejected").length } };
+}
+
 /** what the app receives for a country (the service answers only SHOWN facts — never an unconfirmed one) */
 export function countryPacket(country, facts, { professions = CF_PROFESSIONS } = {}) {
   const p = partsOf(country, facts, { professions }), pick = (f) => ({ key: f.key, value: f.value, source: f.sourceUrl, sourceTitle: f.sourceTitle, readOn: f.readOn, status: f.status, aiWritten: f.aiWritten, profession: f.profession ?? null });
   return { country, complete: p.complete, missing: p.missing, why: Object.fromEntries(PARTS.map((k) => [k, p.parts[k].missing])),
+    /* RR-329: the AlmiOET records whose page the collector found gone (hidden until confirmed again), and the owner's own facts */
+    gone: [...new Set(facts.filter((f) => f.country === country && f.proposedBy === "almioet-record" && GONE.test(f.why ?? "") && !shown(f)).map((f) => f.sourceUrl).filter(Boolean))],
+    owner: facts.filter((f) => f.country === country && f.status === "owner" && (f.product ?? "oet") === "oet").map(pick),
     fee: p.parts.fee.facts.filter(shown).map(pick)[0] ?? null, questions: p.parts.questions.facts.map(pick), centres: p.parts.centres.facts.filter(shown).map(pick)[0] ?? null,
     /* every profession's council the page may show — whole (name, website, address: part 4) or found by its name only (enough for a country × profession page) */
     councils: Object.fromEntries(professions.map((k) => { const f = p.councils[k] ?? facts.find((x) => x.country === country && x.part === "councils" && x.profession === k && shown(x) && x.value?.name); return [k, f ? { ...pick(f), whole: councilWhole(f.value) } : null]; })), rules: p.parts.rules.facts.map(pick) };
@@ -87,9 +118,12 @@ export const QUESTION_GROUPS = Object.freeze([
   ["practice", /\b(sample|samples|practice|mock|papers?|materials?|questions?)\b/], ["preparation", /\b(prepar\w*|course|courses|class|classes|coaching|academy|tips|study|preparation)\b/],
 ]);
 const ASKS = /^(what|how|when|where|which|who|why|can|is|are|does|do|should|will)\b/;
-/** rows [{ keyword, volume, period }] → groups [{ group, keywords, volume, period }], biggest first */
+/** RR-329: a search that ASKS something (a question word first, or the words of a question group) — the keyword collector keeps these */
+export const isQuestion = (text) => { const t = String(text ?? "").toLowerCase(); return ASKS.test(t) || QUESTION_GROUPS.some(([, re]) => re.test(t)); };
+/** rows [{ keyword, volume, period }] → groups [{ group, keywords, volume, period }], biggest first. `subject`: a word or (RR-329) a list of words */
 export function questionGroups(rows, { subject, skip = null, max = 8 } = {}) {
-  const sub = new RegExp(`(?<![\\p{L}\\p{N}])${String(subject).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "u"), groups = new Map();
+  const esc = (s) => String(s).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const sub = new RegExp(`(?<![\\p{L}\\p{N}])(?:${[subject].flat().map(esc).join("|")})(?![\\p{L}\\p{N}])`, "u"), groups = new Map();
   for (const r of rows) {
     const t = String(r.keyword ?? "").toLowerCase(); if (!sub.test(t) || (skip && skip.test(t))) continue;
     const g = QUESTION_GROUPS.find(([, re]) => re.test(t))?.[0] ?? (ASKS.test(t) ? "other questions" : null); if (!g) continue;

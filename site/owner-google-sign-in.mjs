@@ -20,7 +20,8 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
-export const AUTH = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", scope: "https://www.googleapis.com/auth/adwords", accounts: "https://googleads.googleapis.com/v26/customers:listAccessibleCustomers" });
+/* RR-331: the same sign-in also allows Search Console, READ ONLY (webmasters.readonly) — the queries people use to reach our own sites */
+export const AUTH = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", scope: "https://www.googleapis.com/auth/adwords https://www.googleapis.com/auth/webmasters.readonly", accounts: "https://googleads.googleapis.com/v26/customers:listAccessibleCustomers", sites: "https://www.googleapis.com/webmasters/v3/sites" });
 export const VERCEL_CLI = "vercel@65.2.0";
 const b64url = (b) => Buffer.from(b).toString("base64url");
 
@@ -97,6 +98,9 @@ export async function main({ argv = process.argv.slice(2), log = (s) => console.
       if (r.ok) log(`Google Ads accounts this sign-in reaches: ${(x.resourceNames ?? []).map((n) => n.replace("customers/", "")).join(", ") || "none"}`);
       else log(`Google answered the account check with: ${x?.error?.status ?? r.status}${JSON.stringify(x).includes("AUTHORIZATION_ERROR") ? " (AUTHORIZATION_ERROR — Google names a known fault for projects upgraded after 9 Sep 2026 and is rolling out a fix)" : ""}. The sign-in itself is saved below.`);
     } catch { log("The account check did not answer — the sign-in itself is saved below."); }
+    /* RR-331: did he allow Search Console (read only) too, and how many of our sites does it reach — a count only */
+    if (!String(j.scope ?? "").split(" ").includes("https://www.googleapis.com/auth/webmasters.readonly")) log("Search Console was NOT allowed in this sign-in (the box was not ticked) — run this again and tick it, or Search Console stays off.");
+    else try { const r = await fetchImpl(AUTH.sites, { headers: { authorization: `Bearer ${j.access_token}` } }); const x = await r.json().catch(() => ({})); log(r.ok ? `Search Console sites this sign-in reaches: ${(x.siteEntry ?? []).filter((e) => /almiworld\.com/.test(e.siteUrl)).length} almiworld.com site(s)` : `Search Console answered ${r.status}${r.status === 403 ? " — switch on \"Google Search Console API\" in the same Google Cloud project" : ""}.`); } catch { log("The Search Console check did not answer — the sign-in itself is saved below."); }
     const values = [["GOOGLE_ADS_CLIENT_ID", clientId], ["GOOGLE_ADS_CLIENT_SECRET", secret], ["GOOGLE_ADS_REFRESH_TOKEN", j.refresh_token], ["CRON_SECRET", b64url(randomBytes(32))]];
     for (const [name, value] of values) { const ok = await addEnv(name, value, { cwd }); log(ok ? `Saved in Vercel (Production, sensitive): ${name}` : `NOT saved: ${name} — run this again`); if (!ok) return 1; }
     log("Next, in Vercel → Settings → Environment Variables (Production): add GOOGLE_ADS_CUSTOMER_ID (your 10-digit Google Ads id) and OWNER_ACCESS_KEY (a long random key of your own, at least 32 characters). Then run: npx vercel@latest --prod");

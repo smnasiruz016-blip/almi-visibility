@@ -34,12 +34,12 @@ export async function collectQuestions({ country, location, subject, subjectSite
   const items = [];
   if (location && kwStore) for (const r of await kwStore.keywordsAt({ location: location.code, language: "en" })) if (isQuestionForm(r.keyword)) items.push({ text: r.keyword, source: "keywords", volume: r.volume, period: r.period });
   const yt = await youtubeOf({ country, location, subject, product }, ctx);
-  for (const q of await store.questions({ product, country })) items.push({ text: q.text, source: q.source });
+  for (const q of await store.questions({ product, country })) items.push({ text: q.text, source: q.source, ...(q.source === "gsc" ? { volume: q.impressions ?? 0 } : {}) });
   /* 2 · grouped — last run's groups first, so a group keeps its key */
   const old = (await store.facts({ country })).filter((f) => (f.product ?? "oet") === product && f.part === "questions");
   const known = old.map((f) => ({ id: f.value?.group ?? f.key.split("|").pop(), need: f.value?.intent ?? f.value?.group, sig: f.value?.sig ?? [] })).filter((k) => k.id && k.need);
   const groups = groupQuestions(items, { subject, country, known, skip });
-  const stats = { asked: items.length, groups: groups.length, pageable: 0, sources: { keywords: items.filter((x) => x.source === "keywords").length, youtube: items.filter((x) => x.source === "youtube").length, owner: items.filter((x) => x.source === "owner").length }, youtube: yt.note, reddit: REDDIT.why };
+  const stats = { asked: items.length, groups: groups.length, pageable: 0, sources: { keywords: items.filter((x) => x.source === "keywords").length, youtube: items.filter((x) => x.source === "youtube").length, owner: items.filter((x) => x.source === "owner").length, gsc: items.filter((x) => x.source === "gsc").length }, youtube: yt.note, reddit: REDDIT.why };
   if (!groups.length) return { state: "done", note: `no question asked about ${subject} from ${country} yet (keywords ${stats.sources.keywords}, YouTube ${yt.note}, yours ${stats.sources.owner})`, stats };
   const value = (g, extra) => ({ group: g.id, intent: g.need, sig: g.sig, question: g.question, asked: g.asked.filter((a) => a.source !== "youtube"), keywords: g.asked.filter((a) => a.source === "keywords").map((a) => a.text), count: g.count, volume: g.volume, period: g.period, sources: g.sources, ...extra });
   const prev = new Map(old.map((f) => [f.key, f]));

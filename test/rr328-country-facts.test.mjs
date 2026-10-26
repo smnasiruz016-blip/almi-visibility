@@ -340,7 +340,7 @@ test("E · RR-328: /owner/countries — the grid (five parts per country, counci
     assert.match(grid.text, /ANTHROPIC_API_KEY set/); assert.doesNotMatch(grid.text, /sk-ant-test/, "a key is never shown");
     assert.match(grid.text, /<a href="\/owner\/countries\?c=India">India<\/a>/);
     /* rule R1: a council not found yet is "searching", with the names already tried — never a stop at "missing" */
-    assert.match(grid.text, /councils \(searching\)/);
+    assert.match(grid.text, /<td>\d+\/12 <span class="fine">[\d-]+<\/span> · searching<\/td>/, "RR-331: the table's councils cell says searching");
     const india = await a.req("/owner/countries?c=India"); assert.match(india.text, /<h3>Councils — searching every day<\/h3>/);
     assert.match(india.text, /medicine: searching since 2026-10-26 — tried: Invented Medical Commission \(name types: regulatory authority\)/); assert.match(india.text, /Invented Indian Nursing Council \(medical, nursing, pharmacy or dental council\)/);
     await a.store.putFact(fact("Pakistan", "rules", "rule|Pakistan|other|9", { rule: "An unconfirmed rule." }, { status: "unconfirmed", why: "the quoted words are not on its source page" }), { at: `${ON}T10:00:00Z` });

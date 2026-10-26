@@ -7,9 +7,9 @@
  *   · FEE (all countries, daily): the subject's fee from its own page (fee.mjs feeOf) in each country's currency (rates.mjs);
  *   · CENTRES (all countries, weekly): the venues the subject's own pages name (venues.mjs), and — where none — taking it at home (its own
  *     page's words) with the nearest venues (the UN's sub-regions);
- *   · QUESTIONS (per country, weekly): the question-type searches FROM that country in the keyword database (kw-store.mjs), grouped by
- *     need (country-facts.mjs questionGroups; a brand's name is no question); each group gets a short answer — the fee from its fact, the rest written by the AI from the country's
- *     confirmed facts and labelled "AI-written"; an answer stating a number that is in none of the facts is stored "unconfirmed";
+ *   · QUESTIONS (per country, weekly; RR-330 — REPLACES RR-328's keyword groups answered from the facts): the questions people really ask
+ *     (question-form searches FROM that country, YouTube comments' questions through the official API, the owner's own), grouped by
+ *     meaning, each answered from an OFFICIAL page and checked here — else "general guidance" with no number (cf-questions.mjs);
  *   · COUNCILS (per country × the 12 professions; RR-328 addition, rule R1: searched EVERY DAY until each profession has its body, under
  *     any same-meaning name — its name type recorded, the names tried kept — "searching" on /owner until then) and RULES (per country, monthly): AlmiOET's official records first, then the AI's
  *     candidates (cf-ai.mjs) — EACH one confirmed by reading its source page here (robots obeyed, public addresses only, paced: the official
@@ -36,6 +36,7 @@ import { LOCATIONS } from "./kw-seeds.mjs";
 import { DEFAULT_QUEUE, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { askAi, aiConfigured, councilQuestion, ruleQuestion, answerQuestion, productQuestion } from "./cf-ai.mjs";
+import { collectQuestions } from "./cf-questions.mjs";
 
 export const CF_SUBJECT = Object.freeze({ name: "OET", site: "https://oet.com" });
 export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
@@ -61,7 +62,7 @@ export const finishedIn = (tasks) => (product, country) => tasksOf(product).ever
 export const costKey = (p) => `av:cf:cost:${p}`;
 
 /** one run. → { ok, day, saved, unconfirmed, kept, done: ["Pakistan · councils", …], searching, finished, stoppedBy, why, aiUsd, reads, searches } */
-export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS }) {
+export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS, youtube = null, youtubeFetch = fetch }) {
   const start = now(), today = dayOf(start), at = () => new Date(now()).toISOString(), id = randomBytes(8).toString("hex");
   if (kv) { const [locked] = await kv.run([["SET", "av:cf:lock", id, "NX", "EX", CF_COLLECTOR.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another country-facts run is working — this one did nothing." }; }
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
@@ -129,29 +130,18 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         if (out.stoppedBy) break;
         if (u.tasks.includes("rules") && room(true)) await rulesOf(c);
 
+        /* RR-330 (owner, 27 Oct 2026): the QUESTIONS people really ask (keywords in a question's form, YouTube comments' questions, the
+         * owner's own), grouped by meaning, each answered from an official page and checked here (cf-questions.mjs) — REPLACES RR-328's
+         * "question-type keywords answered from the country's facts" */
         async function questionsOf(country) {
-          const loc = LOCATIONS.find((l) => l.name === country);
-          if (!loc || !kwStore) return finish(country, "questions", "done", "no keyword data for this country yet — the keyword service does not ask it");
-          const rows = await kwStore.keywordsAt({ location: loc.code, language: "en" });
-          const top = questionGroups(rows, { subject: subject.name, skip: BRANDS, max: CF_COLLECTOR.maxGroups }).map((g) => ({ ...g, intent: g.group }));
-          if (!top.length) return finish(country, "questions", "done", `no question-type searches from ${country} in the keyword database yet`);
+          const loc = LOCATIONS.find((l) => l.name === country) ?? null;
           const known = await facts(), fee = known.find((f) => (f.product ?? "oet") === "oet" && f.part === "fee" && localFee(f.value?.line));
           const lines = known.filter((f) => (f.product ?? "oet") === "oet").map((f) => f.part === "fee" ? (f.value?.line ? `the ${subject.name} fee: ${String(f.value.line).split(" — ")[0]}` : null) : f.part === "centres" ? (f.value.venue ? `${subject.name}'s own pages name a test venue in ${country}` : f.value.home ? `no venue in ${country}; ${f.value.home}${f.value.nearest?.length ? `; nearest venues: ${f.value.nearest.join(", ")}` : ""}` : null) : f.part === "councils" ? `${f.profession}: ${f.value.name}` : f.part === "rules" ? f.value.rule : null).filter(Boolean);
-          const byFact = top.filter((g) => g.intent === "fees" && fee), byAi = top.filter((g) => !byFact.includes(g));
-          for (const g of byFact) await put({ key: `question|${country}|${slug(g.group)}`, country, part: "questions", kind: "question", value: { question: g.keywords[0], keywords: g.keywords.slice(0, 10), volume: g.volume, period: g.period, intent: g.intent, answer: `${subject.name} costs ${String(fee.value.line).split(" — ")[0]} in ${country} (${subject.name}'s own page, read ${fee.readOn}${fee.value.rate ? `; the rate: ${fee.value.rate.source}, ${fee.value.rate.date}` : ""}).` }, sourceUrl: fee.sourceUrl, sourceTitle: fee.sourceTitle, readOn: today, status: "confirmed" });
-          if (!byAi.length) return finish(country, "questions");
-          if (!aiConfigured(env)) return finish(country, "questions", "waiting", "the AI is not connected yet (ANTHROPIC_API_KEY) — only the fee questions are answered");
-          if (!room(true)) return;
-          const r = await askOne(answerQuestion({ country, subject: subject.name, groups: byAi, facts: lines }));
-          if (!r.ok) return finish(country, "questions", "retry", r.why);
-          const allowed = new Set([...numbersOf(lines.join(" ")), ...byAi.flatMap((g) => numbersOf(g.keywords.join(" ")))]);
-          for (const g of byAi) {
-            const a = (r.data.answers ?? []).find((x) => x.group === g.group); if (!a?.answer) continue;
-            const extra = numbersOf(a.answer).filter((n) => !allowed.has(n));
-            await put({ key: `question|${country}|${slug(g.group)}`, country, part: "questions", kind: "question", value: { question: g.keywords[0], keywords: g.keywords.slice(0, 10), volume: g.volume, period: g.period, intent: g.intent, answer: a.answer.trim(), label: "AI-written from the country's confirmed facts" }, readOn: today, aiWritten: true, proposedBy: "ai",
-              status: extra.length ? "unconfirmed" : "confirmed", why: extra.length ? `the answer states ${extra.join(", ")}, which no confirmed fact says` : null });
-          }
-          return finish(country, "questions");
+          const bodies = [...new Map(known.filter((f) => f.part === "councils" && f.value?.name).map((f) => [f.value.name, { name: f.value.name, website: f.value.website }])).values()];
+          const r = await collectQuestions({ country, location: loc, subject: subject.name, subjectSite: subject.site, skip: BRANDS, fee, lines, bodies },
+            { store, kwStore, env, reader, room, askOne, put, today, at, fetchImpl: youtubeFetch, youtube, aiOn: aiConfigured(env) });
+          if (r.state === null) return;
+          return finish(country, "questions", r.state, r.note, { stats: r.stats });
         }
 
         /* RR-328 addition (rule R1): only the professions still without a whole council are searched; the body may have any same-meaning
@@ -160,11 +150,13 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
           const shownC = (await facts()).filter((f) => (f.product ?? "oet") === "oet" && f.part === "councils"), whole = new Set(shownC.filter((f) => councilWhole(f.value) || f.status === "owner").map((f) => f.profession)), named = new Set(shownC.map((f) => f.profession));
           const needed = CF_PROFESSIONS.filter((p) => !whole.has(p));
           if (!needed.length) return finish(country, "councils");
-          const prev = tasks.get(`${country}|councils`)?.tried ?? {}, tried = Object.fromEntries(Object.entries(prev).filter(([p]) => needed.includes(p)).map(([p, t]) => [p, { names: [...t.names], types: [...t.types], since: t.since }]));
+          const prev = tasks.get(`${country}|councils`)?.tried ?? {}, tried = Object.fromEntries(Object.entries(prev).filter(([p]) => needed.includes(p)).map(([p, t]) => [p, { names: [...t.names], types: [...t.types], since: t.since, unread: [...(t.unread ?? [])] }]));
+          /* RR-330: the official pages that could not be read last time are named, so the AI gives another official page (cause of most "0") */
+          const unread = [...new Set(Object.values(tried).flatMap((t) => t.unread ?? []))];
           const known = (ORIGIN.items ?? []).filter((f) => f.country === country && f.fact === "council" && needed.includes(f.profession)).map((f) => ({ profession: f.profession, name: f.name ?? f.text, link: f.link }));
           let cands = known.map((k) => ({ profession: k.profession, name: k.name, nameType: nameTypeOf(k.name), website: k.link, address: "", sourceUrl: k.link, proposedBy: "almioet-record" }));
           if (aiConfigured(env)) {
-            const r = await askOne(councilQuestion({ country, subject: subject.name, professions: needed, known, tried }));
+            const r = await askOne(councilQuestion({ country, subject: subject.name, professions: needed, known, tried, unread }));
             if (!r.ok) return finish(country, "councils", "retry", r.why, tried);
             const ai = (r.data.councils ?? []).map((x) => ({ ...x, profession: professionKey(x.profession), nameType: NAME_TYPES.includes(x.nameType) ? x.nameType : nameTypeOf(x.name), proposedBy: "ai" })).filter((x) => x.profession && needed.includes(x.profession) && x.name && x.sourceUrl);
             cands = [...ai, ...cands.filter((k) => !ai.some((x) => x.profession === k.profession))];
@@ -177,7 +169,8 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
             const why = !page.ok && goneOf(page) && x.proposedBy === "almioet-record" ? goneOf(page) : !own ? "its source page is not on the body's own website or its government's" : !page.ok ? `its source page could not be read (${page.why})` : !nameOk ? "the name is not on its source page" : null;
             const value = { name: x.name, nameType: x.nameType ?? null, website: x.website, address: addrOk ? x.address : null, ...(nameOk && !addrOk ? { addressWhy: x.address ? "the address given is not on the source page" : "no address found yet" } : {}) };
             if (own && nameOk && councilWhole(value)) { whole.add(x.profession); delete tried[x.profession]; }
-            else { const t = (tried[x.profession] ??= { names: [], types: [], since: today }); if (!t.names.includes(x.name)) t.names.push(x.name); if (x.nameType && !t.types.includes(x.nameType)) t.types.push(x.nameType); }
+            else { const t = (tried[x.profession] ??= { names: [], types: [], since: today }); if (!t.names.includes(x.name)) t.names.push(x.name); if (x.nameType && !t.types.includes(x.nameType)) t.types.push(x.nameType);
+              if (!page.ok && !goneOf(page)) { t.unread ??= []; if (!t.unread.includes(x.sourceUrl)) t.unread = [...t.unread, x.sourceUrl].slice(-5); } }
             /* a council a page may already show (found by its name) is never replaced by an unconfirmed one — the new name is kept as tried */
             if (!(own && nameOk) && named.has(x.profession)) continue;
             await put({ key: `council|${country}|${slug(x.profession)}`, country, profession: x.profession, part: "councils", kind: "council", value,
@@ -195,7 +188,9 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
           const hosts = new Set(councils.map((f) => hostOf(f.value?.website)).filter(Boolean));
           let cands = (ORIGIN.items ?? []).filter((f) => f.country === country && ["goodStanding", "attestation"].includes(f.fact)).map((f) => ({ kind: f.fact === "goodStanding" ? "good standing" : "attestation", rule: f.text, quote: null, sourceUrl: f.link, proposedBy: "almioet-record", profession: f.profession ?? null }));
           if (aiConfigured(env)) {
-            const r = await askOne(ruleQuestion({ country, subject: subject.name, councils: councils.map((f) => f.value.name) }));
+            /* RR-330: the rules' pages that could not be read last time are named, so another official page is given */
+            const unread = [...new Set((await store.facts({ country })).filter((f) => (f.product ?? "oet") === "oet" && f.part === "rules" && f.status === "unconfirmed" && /could not be read|answered 40[13]/.test(f.why ?? "")).map((f) => f.sourceUrl).filter(Boolean))];
+            const r = await askOne(ruleQuestion({ country, subject: subject.name, councils: councils.map((f) => f.value.name), unread }));
             if (!r.ok) return finish(country, "rules", "retry", r.why);
             cands = [...(r.data.rules ?? []).filter((x) => x.rule && x.quote && x.sourceUrl).slice(0, 3).map((x) => ({ ...x, proposedBy: "ai" })), ...cands];
           }

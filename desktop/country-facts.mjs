@@ -17,6 +17,17 @@ export const PART_NAMES = Object.freeze({ fee: "the fee in its currency", questi
 export const SHOWN_STATUS = Object.freeze(["confirmed", "approved", "edited"]);
 /* the subject's professions (AlmiOET's list, desktop/lists/almiworld-oet-professions.json), by the keys the page plan uses */
 export const CF_PROFESSIONS = Object.freeze(["medicine", "nursing", "dentistry", "pharmacy", "physiotherapy", "occupational therapy", "radiography", "dietetics", "optometry", "podiatry", "speech pathology", "veterinary science"]);
+/* RR-328 addition (owner, 26 Oct, rule R1): the body that does a council's job, under ANY same-meaning name — the collector records which
+ * type it is, and keeps searching every day until each profession has one */
+export const NAME_TYPES = Object.freeze(["council", "board", "registration authority", "licensing body", "regulatory authority", "ministry or department of health", "health professions council", "medical, nursing, pharmacy or dental council", "embassy or consulate", "national test office or venue", "named by the profession's association"]);
+/** a body's name type from its name alone (for AlmiOET's records, which do not say it) */
+export function nameTypeOf(name) {
+  const n = String(name ?? "").toLowerCase();
+  return /embassy|consulate|high commission/.test(n) ? "embassy or consulate" : /ministry|department of health|directorate/.test(n) ? "ministry or department of health"
+    : /health professions? council/.test(n) ? "health professions council" : /(medical|nursing|midwifery|pharmacy|dental|pharmac\w+) (and \w+ )?council/.test(n) ? "medical, nursing, pharmacy or dental council"
+    : /licens/.test(n) ? "licensing body" : /registration/.test(n) ? "registration authority" : /regulat|commission|authority/.test(n) ? "regulatory authority"
+    : /board/.test(n) ? "board" : /test (office|centre|center|venue)/.test(n) ? "national test office or venue" : /council/.test(n) ? "council" : null;
+}
 /* the countries people come to it from most (owner, RR-328 B) — the collector's order; then the rest of the 197 */
 export const CF_PRIORITY = Object.freeze(["India", "Philippines", "Pakistan", "Nigeria", "Kenya", "Egypt", "Bangladesh", "Nepal", "Ghana", "Zimbabwe", "Sri Lanka", "United Arab Emirates", "Saudi Arabia"]);
 

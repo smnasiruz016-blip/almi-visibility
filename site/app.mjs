@@ -230,7 +230,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const d = new Date(now()).toISOString().slice(0, 10), facts = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
     let last = null; if (kv) { try { const [l] = await kv.run([["GET", "av:cf:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
     const history = {}; if (sel) for (const f of facts.filter((x) => x.country === sel)) history[f.key] = await cf.history(f.key);
-    return P.ownerCountries({ coverage: coverageOf(facts, { countries: CF_ORDER }), facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order: CF_ORDER, ...o, country: sel });
+    /* RR-328 addition (rule R1): each country's council search — "searching" with the names already tried */
+    const search = Object.fromEntries([...(await cf.tasks()).entries()].filter(([k]) => k.endsWith("|councils")).map(([k, t]) => [k.slice(0, -"|councils".length), { state: t.state, day: t.day, note: t.note, tried: t.tried ?? {} }]));
+    return P.ownerCountries({ coverage: coverageOf(facts, { countries: CF_ORDER }), facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order: CF_ORDER, search, ...o, country: sel });
   };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};

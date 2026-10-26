@@ -8,7 +8,8 @@
  *   · QUESTIONS (per country, weekly): the question-type searches FROM that country in the keyword database (kw-store.mjs), grouped by
  *     need (country-facts.mjs questionGroups; a brand's name is no question); each group gets a short answer — the fee from its fact, the rest written by the AI from the country's
  *     confirmed facts and labelled "AI-written"; an answer stating a number that is in none of the facts is stored "unconfirmed";
- *   · COUNCILS (per country × the 12 professions, monthly) and RULES (per country, monthly): AlmiOET's official records first, then the AI's
+ *   · COUNCILS (per country × the 12 professions; RR-328 addition, rule R1: searched EVERY DAY until each profession has its body, under
+ *     any same-meaning name — its name type recorded, the names tried kept — "searching" on /owner until then) and RULES (per country, monthly): AlmiOET's official records first, then the AI's
  *     candidates (cf-ai.mjs) — EACH one confirmed by reading its source page here (robots obeyed, public addresses only, paced: the official
  *     reader of desktop/official.mjs): the page must be the body's own website or its government's, and must show the name (and the
  *     address, or the quoted rule). Not found there → stored "unconfirmed", never shown on a page.
@@ -17,7 +18,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { COUNTRIES, neighboursOf } from "../desktop/world.mjs";
-import { CF_PRIORITY, CF_PROFESSIONS, questionGroups, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS } from "../desktop/country-facts.mjs";
+import { CF_PRIORITY, CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilWhole, questionGroups, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS } from "../desktop/country-facts.mjs";
 import { feeOf } from "../desktop/fee.mjs";
 import { readRates, feeInCurrency, CURRENCY_OF, localShown as localFee } from "../desktop/rates.mjs";
 import { venueCountries } from "../desktop/venues.mjs";
@@ -42,8 +43,9 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
   const start = now(), today = dayOf(start), at = () => new Date(now()).toISOString(), id = randomBytes(8).toString("hex");
   if (kv) { const [locked] = await kv.run([["SET", "av:cf:lock", id, "NX", "EX", CF_COLLECTOR.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another country-facts run is working — this one did nothing." }; }
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
-  const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0 };
-  const due = (c, t) => { const x = tasks.get(`${c}|${t}`); return !x || x.state !== "done" || daysBetween(x.day, today) >= CF_COLLECTOR.refreshDays[t]; };
+  const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0 };
+  /* RR-328 addition (rule R1): a council still "searching" is searched again every day — once a day, never stopped at "missing" */
+  const due = (c, t) => { const x = tasks.get(`${c}|${t}`); return !x || (x.state === "searching" ? x.day !== today : x.state !== "done" || daysBetween(x.day, today) >= CF_COLLECTOR.refreshDays[t]); };
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; return false; };
   const room = (needAi = false) => {
     if (now() - start > budgetMs) return stop("TIME", "This run's time is used — the next run continues.");
@@ -52,7 +54,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     return true;
   };
   const put = async (f) => { const r = await store.putFact({ proposedBy: "official", aiWritten: false, ...f }, { at: at() }); if (r.saved) { out.saved++; if (f.status === "unconfirmed") out.unconfirmed++; } else if (/owner/.test(r.why ?? "")) out.kept++; return r; };
-  const finish = async (c, t, state = "done", note = null) => { await store.setTask(c, t, { day: today, state, note }); tasks.set(`${c}|${t}`, { day: today, state }); if (state === "done") out.done.push(`${c === ALL ? "all countries" : c} · ${t}`); };
+  const finish = async (c, t, state = "done", note = null, tried = null) => { await store.setTask(c, t, { day: today, state, note, tried }); tasks.set(`${c}|${t}`, { day: today, state, tried }); if (state === "done") out.done.push(`${c === ALL ? "all countries" : c} · ${t}`); if (state === "searching") out.searching.push(`${c} · ${t}`); };
   const askOne = async (q) => { const r = await ai({ env, ...q }); out.aiUsd += r.usd ?? 0; out.searches += r.searches ?? 0; return r; };
   const list = countries ?? CF_ORDER;
   try {
@@ -119,13 +121,19 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         return finish(country, "questions");
       }
 
+      /* RR-328 addition (rule R1): only the professions still without a whole council are searched; the body may have any same-meaning
+       * name (its name type is recorded); each name tried and not confirmed is kept, so the next day's search looks further */
       async function councilsOf(country) {
-        const known = (ORIGIN.items ?? []).filter((f) => f.country === country && f.fact === "council" && f.profession).map((f) => ({ profession: f.profession, name: f.name ?? f.text, link: f.link }));
-        let cands = known.map((k) => ({ profession: k.profession, name: k.name, website: k.link, address: "", sourceUrl: k.link, proposedBy: "almioet-record" }));
+        const shownC = (await facts()).filter((f) => f.part === "councils"), whole = new Set(shownC.filter((f) => councilWhole(f.value)).map((f) => f.profession)), named = new Set(shownC.map((f) => f.profession));
+        const needed = CF_PROFESSIONS.filter((p) => !whole.has(p));
+        if (!needed.length) return finish(country, "councils");
+        const prev = tasks.get(`${country}|councils`)?.tried ?? {}, tried = Object.fromEntries(Object.entries(prev).filter(([p]) => needed.includes(p)).map(([p, t]) => [p, { names: [...t.names], types: [...t.types], since: t.since }]));
+        const known = (ORIGIN.items ?? []).filter((f) => f.country === country && f.fact === "council" && needed.includes(f.profession)).map((f) => ({ profession: f.profession, name: f.name ?? f.text, link: f.link }));
+        let cands = known.map((k) => ({ profession: k.profession, name: k.name, nameType: nameTypeOf(k.name), website: k.link, address: "", sourceUrl: k.link, proposedBy: "almioet-record" }));
         if (aiConfigured(env)) {
-          const r = await askOne(councilQuestion({ country, subject: subject.name, professions: CF_PROFESSIONS, known }));
-          if (!r.ok) return finish(country, "councils", "retry", r.why);
-          const ai = (r.data.councils ?? []).map((x) => ({ ...x, profession: professionKey(x.profession), proposedBy: "ai" })).filter((x) => x.profession && x.name && x.sourceUrl);
+          const r = await askOne(councilQuestion({ country, subject: subject.name, professions: needed, known, tried }));
+          if (!r.ok) return finish(country, "councils", "retry", r.why, tried);
+          const ai = (r.data.councils ?? []).map((x) => ({ ...x, profession: professionKey(x.profession), nameType: NAME_TYPES.includes(x.nameType) ? x.nameType : nameTypeOf(x.name), proposedBy: "ai" })).filter((x) => x.profession && needed.includes(x.profession) && x.name && x.sourceUrl);
           cands = [...ai, ...cands.filter((k) => !ai.some((x) => x.profession === k.profession))];
         }
         for (const x of cands) {
@@ -134,10 +142,19 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
           const text = page.ok ? `${page.title ?? ""} ${page.h1 ?? ""} ${page.text}` : "";
           const nameOk = page.ok && nameOnPage(x.name, text), addrOk = nameOk && x.address && addressOnPage(x.address, text);
           const why = !own ? "its source page is not on the body's own website or its government's" : !page.ok ? `its source page could not be read (${page.why})` : !nameOk ? "the name is not on its source page" : null;
-          await put({ key: `council|${country}|${slug(x.profession)}`, country, profession: x.profession, part: "councils", kind: "council", value: { name: x.name, website: x.website, address: addrOk ? x.address : null, ...(nameOk && !addrOk ? { addressWhy: x.address ? "the address given is not on the source page" : "no address found yet" } : {}) },
+          const value = { name: x.name, nameType: x.nameType ?? null, website: x.website, address: addrOk ? x.address : null, ...(nameOk && !addrOk ? { addressWhy: x.address ? "the address given is not on the source page" : "no address found yet" } : {}) };
+          if (own && nameOk && councilWhole(value)) { whole.add(x.profession); delete tried[x.profession]; }
+          else { const t = (tried[x.profession] ??= { names: [], types: [], since: today }); if (!t.names.includes(x.name)) t.names.push(x.name); if (x.nameType && !t.types.includes(x.nameType)) t.types.push(x.nameType); }
+          /* a council a page may already show (found by its name) is never replaced by an unconfirmed one — the new name is kept as tried */
+          if (!(own && nameOk) && named.has(x.profession)) continue;
+          await put({ key: `council|${country}|${slug(x.profession)}`, country, profession: x.profession, part: "councils", kind: "council", value,
             sourceUrl: page.ok ? page.url : x.sourceUrl, sourceTitle: page.title ?? null, readOn: page.checkedOn ?? today, proposedBy: x.proposedBy, status: own && nameOk ? "confirmed" : "unconfirmed", why });
         }
-        return finish(country, "councils", aiConfigured(env) ? "done" : "waiting", aiConfigured(env) ? null : "the AI is not connected yet (ANTHROPIC_API_KEY) — AlmiOET's records only");
+        const still = CF_PROFESSIONS.filter((p) => !whole.has(p));
+        for (const p of still) tried[p] ??= { names: [], types: [], since: today };
+        if (!still.length) return finish(country, "councils");
+        if (!aiConfigured(env)) return finish(country, "councils", "waiting", "the AI is not connected yet (ANTHROPIC_API_KEY) — AlmiOET's records only", tried);
+        return finish(country, "councils", "searching", `still searching for ${still.length} of ${CF_PROFESSIONS.length}: ${still.join(", ")} — again tomorrow`, tried);
       }
 
       async function rulesOf(country) {

@@ -6,7 +6,8 @@
  *               its status — "confirmed" (the collector read the source page itself and found it there), "unconfirmed" (proposed, not
  *               found on its page — NEVER shown on a page), and the owner's own: "approved", "edited" (his value wins), "rejected"
  *   cf_history  every change of every fact, never deleted (who, when, the status and the value then)
- *   cf_task     the collector's work per (country, task): finished on which day, tries — finished work is not done again until it is due
+ *   cf_task     the collector's work per (country, task): finished on which day, tries — finished work is not done again until it is due;
+ *               for the councils, the names already tried per profession while it is still "searching" (RR-328 addition, rule R1)
  *   cf_day      today's spend: the AI's dollars, the page reads, the web searches (the daily caps)
  * THE OWNER'S WORD WINS: a fact he approved, edited or rejected is never changed by the collector again (its new proposal is kept in the
  * history only). No personal data: countries, organisations, official addresses and pages.
@@ -17,7 +18,8 @@ export const CF_SCHEMA = `
 CREATE TABLE IF NOT EXISTS cf_fact (key text PRIMARY KEY, country text NOT NULL, profession text, part text NOT NULL, kind text NOT NULL, value jsonb NOT NULL, source_url text, source_title text, read_on date, status text NOT NULL, by_who text NOT NULL, ai_written boolean NOT NULL DEFAULT false, proposed_by text NOT NULL, why text, at timestamptz NOT NULL);
 CREATE INDEX IF NOT EXISTS cf_fact_country ON cf_fact (country);
 CREATE TABLE IF NOT EXISTS cf_history (id bigserial PRIMARY KEY, key text NOT NULL, at timestamptz NOT NULL, status text NOT NULL, value jsonb, by_who text NOT NULL, note text);
-CREATE TABLE IF NOT EXISTS cf_task (country text NOT NULL, task text NOT NULL, day date NOT NULL, state text NOT NULL, tries int NOT NULL, note text, PRIMARY KEY (country, task));
+CREATE TABLE IF NOT EXISTS cf_task (country text NOT NULL, task text NOT NULL, day date NOT NULL, state text NOT NULL, tries int NOT NULL, note text, tried jsonb, PRIMARY KEY (country, task));
+ALTER TABLE cf_task ADD COLUMN IF NOT EXISTS tried jsonb;
 CREATE TABLE IF NOT EXISTS cf_day (day date PRIMARY KEY, ai_usd numeric NOT NULL DEFAULT 0, reads int NOT NULL DEFAULT 0, searches int NOT NULL DEFAULT 0);
 `;
 export const STATUS = Object.freeze({ confirmed: "confirmed", unconfirmed: "unconfirmed", approved: "approved", edited: "edited", rejected: "rejected" });
@@ -69,8 +71,8 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
       });
     },
     async history(key) { await ensure(); return (await q("SELECT at, status, value, by_who, note FROM cf_history WHERE key = $1 ORDER BY id", [key])).map((r) => ({ at: new Date(r.at).toISOString(), status: r.status, value: r.value, by: r.by_who, note: r.note })); },
-    async tasks() { await ensure(); return new Map((await q("SELECT country, task, day::text AS day, state, tries, note FROM cf_task")).map((r) => [`${r.country}|${r.task}`, { day: r.day, state: r.state, tries: r.tries, note: r.note }])); },
-    async setTask(country, task, { day, state, note = null }) { await ensure(); await q("INSERT INTO cf_task (country, task, day, state, tries, note) VALUES ($1,$2,$3,$4,1,$5) ON CONFLICT (country, task) DO UPDATE SET day = EXCLUDED.day, state = EXCLUDED.state, tries = cf_task.tries + 1, note = EXCLUDED.note", [country, task, day, state, note]); },
+    async tasks() { await ensure(); return new Map((await q("SELECT country, task, day::text AS day, state, tries, note, tried FROM cf_task")).map((r) => [`${r.country}|${r.task}`, { day: r.day, state: r.state, tries: r.tries, note: r.note, tried: r.tried ?? null }])); },
+    async setTask(country, task, { day, state, note = null, tried = null }) { await ensure(); await q("INSERT INTO cf_task (country, task, day, state, tries, note, tried) VALUES ($1,$2,$3,$4,1,$5,$6) ON CONFLICT (country, task) DO UPDATE SET day = EXCLUDED.day, state = EXCLUDED.state, tries = cf_task.tries + 1, note = EXCLUDED.note, tried = EXCLUDED.tried", [country, task, day, state, note, tried ? JSON.stringify(tried) : null]); },
     async spend(day) { await ensure(); const [r] = await q("SELECT ai_usd::float8 AS ai, reads, searches FROM cf_day WHERE day = $1", [day]); return { aiUsd: r ? Number(r.ai) : 0, reads: r?.reads ?? 0, searches: r?.searches ?? 0 }; },
     async addSpend(day, { aiUsd = 0, reads = 0, searches = 0 }) { await ensure(); await q("INSERT INTO cf_day (day, ai_usd, reads, searches) VALUES ($1,$2,$3,$4) ON CONFLICT (day) DO UPDATE SET ai_usd = cf_day.ai_usd + EXCLUDED.ai_usd, reads = cf_day.reads + EXCLUDED.reads, searches = cf_day.searches + EXCLUDED.searches", [day, aiUsd, reads, searches]); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
@@ -103,8 +105,8 @@ export function cfMemoryStore() {
       return { ok: true, status };
     },
     async history(key) { return hist.filter((h) => h.key === key).map((h) => ({ ...copy(h), at: new Date(h.at).toISOString() })).map(({ key: _k, ...h }) => h); },
-    async tasks() { return new Map([...tasks.entries()].map(([k, v]) => [k, { ...v }])); },
-    async setTask(country, task, { day, state, note = null }) { const k = `${country}|${task}`, o = tasks.get(k); tasks.set(k, { day, state, tries: (o?.tries ?? 0) + 1, note }); },
+    async tasks() { return new Map([...tasks.entries()].map(([k, v]) => [k, copy(v)])); },
+    async setTask(country, task, { day, state, note = null, tried = null }) { const k = `${country}|${task}`, o = tasks.get(k); tasks.set(k, { day, state, tries: (o?.tries ?? 0) + 1, note, tried: tried ? copy(tried) : null }); },
     async spend(day) { const d = days.get(day); return d ? { ...d } : { aiUsd: 0, reads: 0, searches: 0 }; },
     async addSpend(day, { aiUsd = 0, reads = 0, searches = 0 }) { const d = days.get(day) ?? { aiUsd: 0, reads: 0, searches: 0 }; days.set(day, { aiUsd: d.aiUsd + aiUsd, reads: d.reads + reads, searches: d.searches + searches }); },
     async close() {},

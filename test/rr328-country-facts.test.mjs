@@ -19,10 +19,10 @@ import { generateKeyPairSync, sign } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { feeInCurrency, openRates, localShown, CURRENCY_OF, CURRENCY_LIST, OPEN_RATES } from "../desktop/rates.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
-import { PARTS, CF_PROFESSIONS, partsOf, coverageOf, countryPacket, councilWhole, nameOnPage, addressOnPage, quoteOnPage, questionGroups, governmentHost, numbersOf } from "../desktop/country-facts.mjs";
+import { PARTS, CF_PROFESSIONS, NAME_TYPES, nameTypeOf, partsOf, coverageOf, countryPacket, councilWhole, nameOnPage, addressOnPage, quoteOnPage, questionGroups, governmentHost, numbersOf } from "../desktop/country-facts.mjs";
 import { cfMemoryStore, cfPgStore, SHOWN } from "../site/cf-store.mjs";
 import { runCountryFacts, CF_ORDER, CF_COLLECTOR, professionKey } from "../site/cf-collector.mjs";
-import { costOf, CF_AI, aiConfigured, askAi } from "../site/cf-ai.mjs";
+import { costOf, CF_AI, aiConfigured, askAi, councilQuestion } from "../site/cf-ai.mjs";
 import { memoryStore, pgStore } from "../site/kw-store.mjs";
 import { kvStore } from "../site/limits.mjs";
 import { createApp } from "../site/app.mjs";
@@ -133,7 +133,11 @@ for (const [name, make] of STORES) {
       assert.deepEqual(await s.decide("nope", { action: "approve", at: ON }), { ok: false, why: "No such fact." });
       await assert.rejects(s.putFact({ ...f, key: "x", status: "maybe" }, { at: ON }), /no such status/);
       await s.setTask("Pakistan", "councils", { day: ON, state: "done" }); await s.setTask("Pakistan", "councils", { day: ON, state: "done", note: "again" });
-      assert.deepEqual((await s.tasks()).get("Pakistan|councils"), { day: ON, state: "done", tries: 2, note: "again" });
+      assert.deepEqual((await s.tasks()).get("Pakistan|councils"), { day: ON, state: "done", tries: 2, note: "again", tried: null });
+      /* RR-328 addition (rule R1): the names already tried are kept with the search */
+      const tried = { medicine: { names: ["Invented Medical Commission"], types: ["regulatory authority"], since: ON } };
+      await s.setTask("India", "councils", { day: ON, state: "searching", note: "1 left", tried });
+      assert.deepEqual((await s.tasks()).get("India|councils"), { day: ON, state: "searching", tries: 1, note: "1 left", tried });
       await s.addSpend(ON, { aiUsd: 0.25, reads: 3, searches: 2 }); await s.addSpend(ON, { aiUsd: 0.5, reads: 1 });
       assert.deepEqual(await s.spend(ON), { aiUsd: 0.75, reads: 4, searches: 2 }); assert.deepEqual(await s.spend("2026-10-27"), { aiUsd: 0, reads: 0, searches: 0 });
     } finally { await s.close(); }
@@ -201,7 +205,8 @@ test("D · RR-328: one run for Pakistan, India and the Philippines — the fee i
   const W = oetWorld(), A = standInAi(), store = cfMemoryStore(), kw = await keywordDb(), clock = clockAt();
   const r = await runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["Pakistan", "India", "Philippines"], subject: SUBJECT });
   assert.equal(r.ok, true); assert.equal(r.stoppedBy, null, r.why);
-  assert.ok(["all countries · fee", "all countries · centres", "Pakistan · questions", "Pakistan · councils", "Pakistan · rules", "India · councils", "Philippines · questions"].every((d) => r.done.includes(d)), r.done.join(", "));
+  assert.ok(["all countries · fee", "all countries · centres", "Pakistan · questions", "Pakistan · councils", "Pakistan · rules", "Philippines · questions"].every((d) => r.done.includes(d)), r.done.join(", "));
+  assert.deepEqual(r.searching, ["India · councils", "Philippines · councils"], "a council not found is searched again, never finished as missing (rule R1)");
   const facts = await store.facts();
   assert.equal(facts.filter((f) => f.part === "fee").length, 197, "the fee in every one of the 197 countries' money");
   assert.equal((await store.fact("fee|Pakistan")).value.line, "AUD 587 — about 114,200 PKR (ExchangeRate-API's open rate of 2026-10-26: 1 AUD = 194.548107 PKR; Rates By Exchange Rate API), not an official price");
@@ -236,8 +241,10 @@ test("D · RR-328: the owner's edit is kept when the collector comes back a mont
   const run = (o = {}) => runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI, now: clock.now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, ...o });
   await run();
   await store.decide("council|Pakistan|nursing", { action: "edit", value: { name: "The owner's council name", website: "https://owner.example", address: "5 Owner Road, Islamabad 44000" }, at: `${ON}T11:00:00Z` });
+  /* rule R1: a council he rejected is searched for again — the collector's new proposal for it is refused, his word kept */
+  await store.decide("council|Pakistan|medicine", { action: "reject", at: `${ON}T11:00:00Z` });
   clock.t += 31 * 864e5; const later = await run();
-  assert.ok(later.kept >= 1); assert.equal((await store.fact("council|Pakistan|nursing")).value.name, "The owner's council name");
+  assert.ok(later.kept >= 1); assert.equal((await store.fact("council|Pakistan|nursing")).value.name, "The owner's council name"); assert.equal((await store.fact("council|Pakistan|medicine")).status, "rejected");
   /* caps: today's AI dollars, today's page reads */
   const s2 = cfMemoryStore(), capAi = await runCountryFacts({ store: s2, kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_AI_USD_PER_DAY: "0.5" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT });
   assert.equal(capAi.stoppedBy, "AI_BUDGET"); assert.match(capAi.why, /Today's AI budget \(\$0\.50\) is used/);
@@ -251,6 +258,35 @@ test("D · RR-328: the owner's edit is kept when the collector comes back a mont
   const kv = { run: async (cmds) => cmds.map(([c]) => (c === "SET" ? null : null)) };
   assert.match((await runCountryFacts({ store: cfMemoryStore(), kv, reader: oetWorld().reader, ai: A.ai, env: ENV_AI, countries: ["Pakistan"], subject: SUBJECT })).why, /Another country-facts run is working/);
   assert.equal(CF_ORDER.length, 197); assert.deepEqual(CF_ORDER.slice(0, 3), ["India", "Philippines", "Pakistan"]);
+});
+
+test("D · RR-328 addition (owner, 26 Oct, rule R1): a council not found is searched EVERY DAY under any same-meaning name — only the professions still without one, the names already tried told to the AI; its name type recorded; a council a page may show is never replaced by an unconfirmed one", async () => {
+  const W = oetWorld(), store = cfMemoryStore(), kw = await keywordDb(), clock = clockAt(), asked = [], S = standInAi(); let day = 1;
+  W.pages["https://invented-health.gov.zz/contact"] = { title: "Contact", text: "Invented Ministry of Health, Medical Registration Office, 9 Invented Road, New Delhi 110003." };
+  const ai = async (q) => { if (!q.schema.properties.councils || !/^Country: India\./.test(q.prompt)) return S.ai(q); asked.push(q.prompt); if (day === 1) return S.ai(q);
+    return { ok: true, usd: 0.4, searches: 3, data: { councils: [{ profession: "medicine", name: "Invented Ministry of Health", nameType: "ministry or department of health", website: "https://invented-health.gov.zz", address: "9 Invented Road, New Delhi 110003", sourceUrl: "https://invented-health.gov.zz/contact" },
+      { profession: "dentistry", name: "A Blog's Dentistry Body", nameType: "board", website: "https://blog.example", address: "1 Blog St, Delhi 110000", sourceUrl: "https://blog.example/x" }] } }; };
+  const run = () => runCountryFacts({ store, kwStore: kw, reader: W.reader, ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["India"], subject: SUBJECT });
+  const r1 = await run(), t1 = (await store.tasks()).get("India|councils");
+  assert.deepEqual(r1.searching, ["India · councils"]); assert.equal(t1.state, "searching"); assert.match(t1.note, /^still searching for 11 of 12: medicine, dentistry/);
+  assert.deepEqual(t1.tried.medicine, { names: ["Invented Medical Commission"], types: ["regulatory authority"], since: ON }, "the name tried and its name type (from its name)");
+  assert.equal(Object.keys(t1.tried).length, 11); assert.ok(!t1.tried.nursing, "nursing's council was found");
+  assert.match(asked[0], /ANY name with this meaning: council; board; registration authority; licensing body; regulatory authority; ministry or department of health; health professions council/); assert.doesNotMatch(asked[0], /Already tried/);
+  assert.equal((await store.fact("council|India|nursing")).value.nameType, "medical, nursing, pharmacy or dental council");
+  await run(); assert.equal(asked.length, 1, "once a day — the same day is not searched again");
+  /* a council found by its name only (no address yet): a page may show it — an unconfirmed proposal never replaces it */
+  await store.putFact(fact("India", "councils", "council|India|dentistry", { name: "Invented Dental Council", website: "https://in-dental.example", address: null }, { profession: "dentistry" }), { at: `${ON}T10:30:00Z` });
+  clock.t += 864e5; day = 2; const r2 = await run(), t2 = (await store.tasks()).get("India|councils");
+  assert.equal(asked.length, 2, "the next day, searched again");
+  assert.match(asked[1], /for people of that profession — registers or licenses them to practise, or checks their credentials: medicine, dentistry, pharmacy/, "only the professions still without a whole council (not nursing)"); assert.doesNotMatch(asked[1], /: medicine, nursing/);
+  assert.match(asked[1], /Already tried and NOT confirmed on an official page \(look for another body or another official page\): medicine: Invented Medical Commission/);
+  const med = await store.fact("council|India|medicine"); assert.equal(med.status, "confirmed"); assert.equal(med.value.nameType, "ministry or department of health"); assert.ok(councilWhole(med.value));
+  assert.ok(!t2.tried.medicine, "found — no longer searched"); assert.deepEqual(t2.tried.dentistry.names, ["A Blog's Dentistry Body"]); assert.deepEqual(t2.tried.dentistry.types, ["board"]);
+  assert.equal((await store.fact("council|India|dentistry")).value.name, "Invented Dental Council", "the shown council stays"); assert.deepEqual(r2.searching, ["India · councils"]);
+  /* the name types: the AI must name one; AlmiOET's records get theirs from the name */
+  assert.equal(NAME_TYPES.length, 11); assert.deepEqual(councilQuestion({ country: "X", subject: "OET", professions: ["nursing"] }).schema.properties.councils.items.properties.nameType.enum, [...NAME_TYPES]);
+  assert.deepEqual(["Embassy of Invented", "Invented Ministry of Health", "Health Professions Council of Invented", "Invented Nursing Council", "Invented Medical Board", "Invented Licensing Agency", "Invented Registration Office", "Invented Medical Commission", "Invented Council", "Invented Society"].map(nameTypeOf),
+    ["embassy or consulate", "ministry or department of health", "health professions council", "medical, nursing, pharmacy or dental council", "board", "licensing body", "registration authority", "regulatory authority", "council", null]);
 });
 
 test("D · RR-328: the AI's price is counted from its own usage (Claude Opus 5.5 and web search, Anthropic's prices); the request carries the key by its name only, structured output and the web search tool; a paused search goes on", async () => {
@@ -301,6 +337,10 @@ test("E · RR-328: /owner/countries — the grid (five parts per country, counci
     assert.match(grid.text, /<h1>Owner — country facts<\/h1>/); assert.match(grid.text, /of 197 countries have all five parts/); assert.match(grid.text, /Country × profession: a council found for <b>\d+<\/b> of 2,364/);
     assert.match(grid.text, /ANTHROPIC_API_KEY set/); assert.doesNotMatch(grid.text, /sk-ant-test/, "a key is never shown");
     assert.match(grid.text, /<a href="\/owner\/countries\?c=India">India<\/a>/);
+    /* rule R1: a council not found yet is "searching", with the names already tried — never a stop at "missing" */
+    assert.match(grid.text, /councils \(searching\)/);
+    const india = await a.req("/owner/countries?c=India"); assert.match(india.text, /<h3>Councils — searching every day<\/h3>/);
+    assert.match(india.text, /medicine: searching since 2026-10-26 — tried: Invented Medical Commission \(name types: regulatory authority\)/); assert.match(india.text, /Invented Indian Nursing Council \(medical, nursing, pharmacy or dental council\)/);
     await a.store.putFact(fact("Pakistan", "rules", "rule|Pakistan|other|9", { rule: "An unconfirmed rule." }, { status: "unconfirmed", why: "the quoted words are not on its source page" }), { at: `${ON}T10:00:00Z` });
     const pk = await a.req("/owner/countries?c=Pakistan"); assert.match(pk.text, /An unconfirmed rule\./); assert.match(pk.text, /unconfirmed<br><span class="fine">never shown on a page<\/span>/); assert.match(pk.text, /the quoted words are not on its source page/);
     const edit = await a.req("/owner/countries/fact", { method: "POST", form: { key: "council|Pakistan|nursing", action: "edit", name: "Owner Council", website: "https://owner.example", address: "7 Owner Road, Islamabad 44000" } });

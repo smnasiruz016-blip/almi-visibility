@@ -54,9 +54,14 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
   for (const c of all.filter(isDest)) sectionsOut.push({ name: `${subject} in ${c}`, why: `${c} is a destination — a regulator there asks for ${subject}; its venue and fee are a section of its hub, never a second page` });
   const country = [];
   for (const c of origins) {
-    const s = section(c), v = venueSet.get(c), mine = cities.filter((x) => x.country === c), fs = facts.filter((f) => f.country === c), kw = searchesOf(c), cf = countryFacts[c] ?? null;
-    /* 1 · the fee in its own currency — the app's own rates first, then AlmiWorld's (each with its rate's source and date) */
-    const feeLine = localShown(s.fee) ? s.fee : cf?.fee?.value?.local ? cf.fee.value.line : null;
+    const s = section(c), v = venueSet.get(c), mine = cities.filter((x) => x.country === c), kw = searchesOf(c), cf = countryFacts[c] ?? null;
+    /* RR-329 (rule R8): an AlmiOET record whose page the collector found gone is hidden until it is read again and confirmed */
+    const fs = facts.filter((f) => f.country === c && !(cf?.gone ?? []).includes(f.link));
+    /* RR-329 (rule R9): the owner's own facts — AlmiWorld's own checked information, shown first */
+    const own = (cf?.owner ?? []).filter((o) => o.value?.text).map((o) => ({ part: o.key.split("|")[2] ?? null, text: o.value.text, link: o.value.link ?? null, on: o.value.on ?? o.readOn ?? null }));
+    /* 1 · the fee in its own currency — the app's own rates first, then AlmiWorld's (each with its rate's source and date); the owner's own word first */
+    const ownFee = own.find((o) => o.part === "fee")?.text ?? null;
+    const feeLine = ownFee ?? (localShown(s.fee) ? s.fee : cf?.fee?.value?.local ? cf.fee.value.line : null);
     const feeClaims = localShown(s.fee) ? [feeClaim, ...(s.steps ?? []).map((st) => ({ claimId: `rate-${slug(c)}-${slug(st.short)}-${st.to.toLowerCase()}`, fact: "rate", text: `${st.source}: 1 ${st.from} = ${st.said} ${st.to} on ${st.rateDate}${st.peg ? " (the official peg)" : ""}.`, link: st.link, readOn: st.rateDate, source: st.source, official: true, body: st.short }))]
       : feeLine ? [cfClaim(cf.fee, `${subject}'s own page states the fee: ${cf.fee.value.official}.`, "fee"), cf.fee.value.rate?.link ? { claimId: `rate-${slug(c)}-${slug(cf.fee.value.rate.source)}`, fact: "rate", text: `${cf.fee.value.rate.source}: 1 AUD = ${cf.fee.value.rate.said} ${cf.fee.value.currency} on ${cf.fee.value.rate.date}.`, link: cf.fee.value.rate.link, readOn: cf.fee.value.rate.date, source: cf.fee.value.rate.source, official: !cf.fee.value.rate.open, body: cf.fee.value.rate.source } : null] : [];
     /* 2 · the questions people there ask, each with its answer (AlmiWorld's country facts: their searches, answered from official facts; an AI-written answer says so) */
@@ -68,7 +73,7 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
     /* 4 · the council for each profession: name, official website, address */
     const councils = professions.map((p) => ({ profession: p, f: cf?.councils?.[p] ?? null })), whole = councils.filter((x) => x.f && councilWhole(x.f.value));
     /* 5 · a rule of its own: AlmiWorld's country facts, and AlmiOET's official records (good standing, attestation) */
-    const rules = [...(cf?.rules ?? []).map((r) => ({ text: r.value.rule, link: r.source, on: r.readOn, from: r.sourceTitle || hostOf(r.source) })), ...fs.filter((f) => ["goodStanding", "attestation"].includes(f.fact)).map((f) => ({ text: f.text, link: f.link, on: factsOn, from: `AlmiOET's record (${f.sourceName ?? "official page"})` }))].filter((r) => r.text && r.link)
+    const rules = [...own.filter((o) => o.part === "rules").map((o) => ({ text: o.text, link: o.link, on: o.on, from: "AlmiWorld's own check" })), ...(cf?.rules ?? []).filter((r) => r.value?.rule).map((r) => ({ text: r.value.rule, link: r.source, on: r.readOn, from: r.sourceTitle || hostOf(r.source) })), ...fs.filter((f) => ["goodStanding", "attestation"].includes(f.fact)).map((f) => ({ text: f.text, link: f.link, on: factsOn, from: `AlmiOET's record (${f.sourceName ?? "official page"})` }))].filter((r) => r.text && (r.link || r.from === "AlmiWorld's own check")) // RR-329: the owner's own fact needs no web page
       .filter((r, i, xs) => xs.findIndex((y) => String(y.text).toLowerCase().replace(/\W+/g, " ").trim() === String(r.text).toLowerCase().replace(/\W+/g, " ").trim()) === i); // RR-328 proof: the collector's confirmed copy of a record and the record itself were listed twice
     const filled = { fee: Boolean(feeLine), questions: questions.length > 0, centres: Boolean(centres), councils: whole.length === professions.length && professions.length > 0, rules: rules.length > 0 };
     const missing = PARTS.filter((p) => !filled[p]);
@@ -83,7 +88,7 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
       ...questions.filter((q) => q.link && q.on && !q.aiWritten).map((q, i) => ({ claimId: `answer-${slug(c)}-${i + 1}`, fact: "answer", text: q.answer, link: q.link, readOn: q.on, source: `${subject} — its own page`, official: true, body: subject }))].filter((x) => x?.link && x.readOn);
     country.push({ kind: "country", key: `country|${c}`, country: c, keepWhole: true /* RR-328: the five-part rule replaces gate 2 */, title: `${subject} in ${c}: ${centres.venue ? "test centres" : "taking it at home"}, the fee${cur ? ` in ${cur}` : ""} and the steps`,
       venue: centres.venue, cities: mine.map((x) => ({ city: x.city, operator: x.operator, link: x.source?.url, on: x.checkedOn })), centres, fee: feeLine, currency: cur, feeLocal: feeLine, home: centres.venue ? null : centres.home, nearest: centres.nearest ?? [],
-      councils: whole.map((x) => ({ profession: x.profession, name: x.f.value.name, short: shortName(x.f.value.name), website: x.f.value.website, address: x.f.value.address, link: x.f.source, on: x.f.readOn })), rules, answered: questions,
+      councils: whole.map((x) => ({ profession: x.profession, name: x.f.value.name, short: shortName(x.f.value.name), website: x.f.value.website, address: x.f.value.address, link: x.f.source, on: x.f.readOn })), rules, answered: questions, own,
       goodStanding: fs.filter((f) => f.fact === "goodStanding").map((f) => ({ profession: f.profession, text: f.text, link: f.link })), attestation: fs.find((f) => f.fact === "attestation") ?? null,
       destinations: dests, searches: kw.slice(0, 12), searchPeriod: kw.find((k) => k.period)?.period ?? null, whereTitle, claims, questions: kw.map((k) => tool(k, c)),
       why: `${c}: all five parts — the fee in ${cur ?? "its money"}, ${questions.length} question${questions.length === 1 ? "" : "s"} answered, ${centres.venue ? "a venue" : "at home with the nearest venues"}, ${whole.length} councils, ${rules.length} rule${rules.length === 1 ? "" : "s"} of its own` });
@@ -155,6 +160,8 @@ export function localContent(p, { subject, fit, cta }) {
     const table = [["What", `In ${p.country}`], ["The fee", p.fee], ["Test centres", p.venue ? (p.cities?.length ? p.cities.map((x) => x.city).join(", ") : "named on its own page") : `none — at home; nearest: ${(p.nearest ?? []).join(", ")}`], ["Councils", `${(p.councils ?? []).length} professions, each its own (below)`], ["Rules of its own", `${(p.rules ?? []).length} (below)`],
       ...(p.destinations ?? []).map((d) => [`People in ${p.country} search for`, `${d.country} (${Number(d.volume).toLocaleString("en-US")} a month)`])];
     const sections = [
+      /* RR-329 (rule R9): the owner's own facts first, as AlmiWorld's own checked information */
+      ...((p.own ?? []).length ? [{ heading: "AlmiWorld's own checks", lines: p.own.map((o) => line(o.text, o.link, o.on, "AlmiWorld's own checked information")) }] : []),
       { heading: `What people in ${p.country} ask`, lines: (p.answered ?? []).map((q) => line(`${q.question} — ${q.answer}`, q.link, q.on, q.aiWritten ? "AI-written from the official facts on this page" : null)) },
       { heading: "Test centres", lines: [p.venue ? line(`${subject}'s own pages name a venue in ${p.country}${p.cities?.length ? `: ${p.cities.map((x) => x.city).join(", ")}` : ""}.`, p.centres?.link, p.centres?.on) : line(`${p.home}. The nearest venues: ${(p.nearest ?? []).join(", ")}.`, p.centres?.link, p.centres?.on)] },
       { heading: `The councils in ${p.country}`, lines: (p.councils ?? []).map((c) => line(`${PEOPLE_WORD[c.profession] ?? c.profession}: ${c.name} — ${c.address} — ${c.website}`, c.link, c.on)) },

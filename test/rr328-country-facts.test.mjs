@@ -205,7 +205,7 @@ const clockAt = (iso = `${ON}T10:00:00Z`) => { const c = { t: Date.parse(iso) };
 
 test("D · RR-328: one run for Pakistan, India and the Philippines — the fee in every country's money and the centres from OET's own pages; questions answered (the fee from its fact, the rest AI-written and labelled); councils and rules CONFIRMED only when found on their own official page; the rest unconfirmed with why, never shown", async () => {
   const W = oetWorld(), A = standInAi(), store = cfMemoryStore(), kw = await keywordDb(), clock = clockAt();
-  const r = await runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["Pakistan", "India", "Philippines"], subject: SUBJECT });
+  const r = await runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["Pakistan", "India", "Philippines"], subject: SUBJECT, products: ["oet"] });
   assert.equal(r.ok, true); assert.equal(r.stoppedBy, null, r.why);
   assert.ok(["all countries · fee", "all countries · centres", "Pakistan · questions", "Pakistan · councils", "Pakistan · rules", "Philippines · questions"].every((d) => r.done.includes(d)), r.done.join(", "));
   assert.deepEqual(r.searching, ["India · councils", "Philippines · councils"], "a council not found is searched again, never finished as missing (rule R1)");
@@ -234,13 +234,13 @@ test("D · RR-328: one run for Pakistan, India and the Philippines — the fee i
   /* the app receives Pakistan whole — and no unconfirmed fact */
   const pk = countryPacket("Pakistan", facts); assert.equal(pk.complete, true); assert.ok(!pk.questions.some((q) => /9 years/.test(q.value.answer)));
   /* the same day again: nothing finished is done again (the AI is not asked) */
-  const before = A.calls.length, again = await runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["Pakistan", "India", "Philippines"], subject: SUBJECT });
+  const before = A.calls.length, again = await runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["Pakistan", "India", "Philippines"], subject: SUBJECT, products: ["oet"] });
   assert.equal(A.calls.length, before); assert.deepEqual(again.done, []);
 });
 
 test("D · RR-328: the owner's edit is kept when the collector comes back a month later; the daily caps stop a run in plain words; no AI key → official pages and AlmiOET's records only; one run at a time", async () => {
   const W = oetWorld(), A = standInAi(), store = cfMemoryStore(), kw = await keywordDb(), clock = clockAt();
-  const run = (o = {}) => runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI, now: clock.now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, ...o });
+  const run = (o = {}) => runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI, now: clock.now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"], ...o });
   await run();
   await store.decide("council|Pakistan|nursing", { action: "edit", value: { name: "The owner's council name", website: "https://owner.example", address: "5 Owner Road, Islamabad 44000" }, at: `${ON}T11:00:00Z` });
   /* rule R1: a council he rejected is searched for again — the collector's new proposal for it is refused, his word kept */
@@ -248,17 +248,17 @@ test("D · RR-328: the owner's edit is kept when the collector comes back a mont
   clock.t += 31 * 864e5; const later = await run();
   assert.ok(later.kept >= 1); assert.equal((await store.fact("council|Pakistan|nursing")).value.name, "The owner's council name"); assert.equal((await store.fact("council|Pakistan|medicine")).status, "rejected");
   /* caps: today's AI dollars, today's page reads */
-  const s2 = cfMemoryStore(), capAi = await runCountryFacts({ store: s2, kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_AI_USD_PER_DAY: "0.5" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT });
+  const s2 = cfMemoryStore(), capAi = await runCountryFacts({ store: s2, kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_AI_USD_PER_DAY: "0.5" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] });
   assert.equal(capAi.stoppedBy, "AI_BUDGET"); assert.match(capAi.why, /Today's AI budget \(\$0\.50\) is used/);
-  const capReads = await runCountryFacts({ store: cfMemoryStore(), kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_READS_PER_DAY: "3" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT });
+  const capReads = await runCountryFacts({ store: cfMemoryStore(), kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_READS_PER_DAY: "3" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] });
   assert.equal(capReads.stoppedBy, "READS"); assert.match(capReads.why, /Today's 3 page reads are used/);
   /* no AI key: the AI is never asked; tasks wait for it */
-  const B = standInAi(), s3 = cfMemoryStore(), noAi = await runCountryFacts({ store: s3, kwStore: kw, reader: oetWorld().reader, ai: B.ai, env: {}, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT });
+  const B = standInAi(), s3 = cfMemoryStore(), noAi = await runCountryFacts({ store: s3, kwStore: kw, reader: oetWorld().reader, ai: B.ai, env: {}, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] });
   assert.equal(B.calls.length, 0); assert.equal(noAi.ok, true); assert.equal((await s3.tasks()).get("Pakistan|councils").state, "waiting");
   assert.equal(aiConfigured({}), false); assert.deepEqual(await askAi({ env: {}, system: "", prompt: "", schema: {} }), { ok: false, why: "ANTHROPIC_API_KEY is not set in Vercel yet.", usd: 0, searches: 0 });
   /* one run at a time */
   const kv = { run: async (cmds) => cmds.map(([c]) => (c === "SET" ? null : null)) };
-  assert.match((await runCountryFacts({ store: cfMemoryStore(), kv, reader: oetWorld().reader, ai: A.ai, env: ENV_AI, countries: ["Pakistan"], subject: SUBJECT })).why, /Another country-facts run is working/);
+  assert.match((await runCountryFacts({ store: cfMemoryStore(), kv, reader: oetWorld().reader, ai: A.ai, env: ENV_AI, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] })).why, /Another country-facts run is working/);
   assert.equal(CF_ORDER.length, 197); assert.deepEqual(CF_ORDER.slice(0, 3), ["India", "Philippines", "Pakistan"]);
 });
 
@@ -268,7 +268,7 @@ test("D · RR-328 addition (owner, 26 Oct, rule R1): a council not found is sear
   const ai = async (q) => { if (!q.schema.properties.councils || !/^Country: India\./.test(q.prompt)) return S.ai(q); asked.push(q.prompt); if (day === 1) return S.ai(q);
     return { ok: true, usd: 0.4, searches: 3, data: { councils: [{ profession: "medicine", name: "Invented Ministry of Health", nameType: "ministry or department of health", website: "https://invented-health.gov.zz", address: "9 Invented Road, New Delhi 110003", sourceUrl: "https://invented-health.gov.zz/contact" },
       { profession: "dentistry", name: "A Blog's Dentistry Body", nameType: "board", website: "https://blog.example", address: "1 Blog St, Delhi 110000", sourceUrl: "https://blog.example/x" }] } }; };
-  const run = () => runCountryFacts({ store, kwStore: kw, reader: W.reader, ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["India"], subject: SUBJECT });
+  const run = () => runCountryFacts({ store, kwStore: kw, reader: W.reader, ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["India"], subject: SUBJECT, products: ["oet"] });
   const r1 = await run(), t1 = (await store.tasks()).get("India|councils");
   assert.deepEqual(r1.searching, ["India · councils"]); assert.equal(t1.state, "searching"); assert.match(t1.note, /^still searching for 11 of 12: medicine, dentistry/);
   assert.deepEqual(t1.tried.medicine, { names: ["Invented Medical Commission"], types: ["regulatory authority"], since: ON }, "the name tried and its name type (from its name)");
@@ -291,16 +291,16 @@ test("D · RR-328 addition (owner, 26 Oct, rule R1): a council not found is sear
     ["embassy or consulate", "ministry or department of health", "health professions council", "medical, nursing, pharmacy or dental council", "board", "licensing body", "registration authority", "regulatory authority", "council", null]);
 });
 
-test("D · RR-328: the AI's price is counted from its own usage (Claude Opus 5.5 and web search, Anthropic's prices); the request carries the key by its name only, structured output and the web search tool; a paused search goes on", async () => {
-  assert.equal(costOf({ input_tokens: 1e6, output_tokens: 1e5, server_tool_use: { web_search_requests: 10 } }), 4 + 2 + 0.1);
-  assert.equal(CF_AI.model, "claude-opus-5-5");
+test("D · RR-329 (rule R7, replaces RR-328's Opus): the cheapest capable model — Claude Haiku 5.5, its price counted from its own usage (and web search); no server-side fallback (Haiku has none); the key by its name only, structured output and the basic web search tool; a paused search goes on", async () => {
+  assert.ok(Math.abs(costOf({ input_tokens: 1e6, output_tokens: 1e5, server_tool_use: { web_search_requests: 10 } }) - (0.1 + 0.05 + 0.1)) < 1e-9);
+  assert.equal(CF_AI.model, "claude-haiku-5-5");
   const seen = []; let turn = 0;
-  const fetchImpl = async (url, init) => { const b = JSON.parse(init.body); seen.push({ url, key: init.headers["x-api-key"] === ENV_AI.ANTHROPIC_API_KEY, version: init.headers["anthropic-version"], tools: b.tools, format: b.output_config.format.type, n: b.messages.length });
+  const fetchImpl = async (url, init) => { const b = JSON.parse(init.body); seen.push({ url, key: init.headers["x-api-key"] === ENV_AI.ANTHROPIC_API_KEY, version: init.headers["anthropic-version"], tools: b.tools, format: b.output_config.format.type, n: b.messages.length, model: b.model, fallbacks: b.fallbacks, beta: init.headers["anthropic-beta"] });
     return new Response(JSON.stringify(turn++ === 0 ? { stop_reason: "pause_turn", content: [{ type: "server_tool_use", id: "s1", name: "web_search", input: { query: "x" } }], usage: { input_tokens: 1000, output_tokens: 100, server_tool_use: { web_search_requests: 1 } } } : { stop_reason: "end_turn", content: [{ type: "text", text: '{"councils":[]}' }], usage: { input_tokens: 2000, output_tokens: 50 } }), { status: 200 }); };
   const r = await askAi({ env: ENV_AI, fetchImpl, system: "s", prompt: "p", schema: { type: "object" }, search: true });
-  assert.deepEqual(r.data, { councils: [] }); assert.equal(r.searches, 1); assert.ok(Math.abs(r.usd - (3000 * 4 / 1e6 + 150 * 20 / 1e6 + 0.01)) < 1e-9);
-  assert.equal(seen[0].url, "https://api.anthropic.com/v1/messages"); assert.ok(seen.every((x) => x.key && x.version === "2023-06-01" && x.format === "json_schema"));
-  assert.deepEqual(seen[0].tools, [{ type: "web_search_20260209", name: "web_search", max_uses: 6 }]); assert.equal(seen[1].n, 2, "the paused turn sent back");
+  assert.deepEqual(r.data, { councils: [] }); assert.equal(r.searches, 1); assert.ok(Math.abs(r.usd - (3000 * 0.1 / 1e6 + 150 * 0.5 / 1e6 + 0.01)) < 1e-9);
+  assert.equal(seen[0].url, "https://api.anthropic.com/v1/messages"); assert.ok(seen.every((x) => x.key && x.version === "2023-06-01" && x.format === "json_schema" && x.model === "claude-haiku-5-5" && x.fallbacks === undefined && x.beta === undefined));
+  assert.deepEqual(seen[0].tools, [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }]); assert.equal(seen[1].n, 2, "the paused turn sent back");
   const refused = await askAi({ env: ENV_AI, fetchImpl: async () => new Response(JSON.stringify({ stop_reason: "refusal", content: [] }), { status: 200 }), system: "", prompt: "", schema: {} });
   assert.equal(refused.why, "the AI declined this question");
 });

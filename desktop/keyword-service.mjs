@@ -5,12 +5,12 @@
  * keyword database — asking Google once for a search it does not hold yet. The client's own Google Ads sign-in (google-ads.mjs) stays an
  * OPTIONAL extra, off by default. Nothing secret is sent: a licence is a signed statement of a plan, not a key.
  */
-import { LOCATIONS } from "../site/kw-seeds.mjs";
+import { PLAN_LOCATIONS } from "../site/kw-seeds.mjs";
 import { isOwnerLicence } from "./licence.mjs";
 
 export const SERVICE_URL = "https://almivisibility.almiworld.com/";
 export const LICENCE_HEADER = "x-almivisibility-licence";
-export const SERVICE_LOCATIONS = LOCATIONS;
+export const SERVICE_LOCATIONS = PLAN_LOCATIONS; // RR-329: the collector covers every country; a page plan still asks these 19
 /** the licence as the service reads it: the owner's avo_ text, or avl_ + the signed licence */
 export const licenceHeaderOf = (signed) => `${isOwnerLicence(signed?.licence) ? "avo" : "avl"}_${Buffer.from(JSON.stringify(signed)).toString("base64url")}`;
 

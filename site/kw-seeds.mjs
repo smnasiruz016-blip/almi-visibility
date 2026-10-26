@@ -2,31 +2,38 @@
  * 🔴 RR-326 B + G · THE COLLECTOR'S SEED LIST — ONE editable list the owner changes on his own page (/owner), kept in the database; this
  * file holds only the FIRST list (the default) and the rules a list must keep.
  *   · one group per line:  kind:key | Name | seed, seed, seed
- *       product:<key>   an AlmiWorld product (almi-data's family list) — its seeds go to Google in ONE request per location, EVERY DAY
- *       category:<key>  a category of products, services or websites — one request per seed per location, refreshed at least WEEKLY
- *       youtube:<key>   YouTube niches — Google SEARCH volumes only (never YouTube's own numbers), weekly like a category
+ *       product:<key>   an AlmiWorld product (almi-data's family list) — its seeds go to Google in ONE request per location, every 30 days
+ *       category:<key>  a category of products, services or websites — one request per seed per location, every 60 days
+ *       youtube:<key>   YouTube niches — Google SEARCH volumes only (never YouTube's own numbers), every 60 days like a category
  *     a line starting with # is a note.
- *   · the locations: "all locations" and the owner's 18 countries — Google's own criterion ids, read from Google's geotargets file of
- *     2026-10-06 (developers.google.com/google-ads/api/data/geotargets);
+ *   · the locations (RR-329, rule R5): "all locations" and EVERY country Google can target, in the owner's queue order (site/queue.mjs) —
+ *     Google's own criterion ids, read from Google's geotargets file of 2026-10-06 (developers.google.com/google-ads/api/data/geotargets);
+ *     the order of work is the queue's (site/kw-collector.mjs);
  *   · the language: English (Google's languageConstants/1000). Urdu, Hindi and Arabic seeds come later, when the owner says.
  * Pure: no store, no network.
  */
 import { createHash } from "node:crypto";
+import GC from "./google-countries.json" with { type: "json" };
+import { QUEUE_COUNTRIES } from "./queue.mjs";
 
 export const LANGUAGES = Object.freeze({ en: Object.freeze({ name: "English", constant: "languageConstants/1000" }) });
-export const LOCATIONS = Object.freeze([
-  ["ALL", "All locations", null], ["PK", "Pakistan", 2586], ["IN", "India", 2356], ["PH", "Philippines", 2608], ["NG", "Nigeria", 2566],
-  ["KE", "Kenya", 2404], ["EG", "Egypt", 2818], ["BD", "Bangladesh", 2050], ["NP", "Nepal", 2524], ["GB", "United Kingdom", 2826],
-  ["IE", "Ireland", 2372], ["AU", "Australia", 2036], ["NZ", "New Zealand", 2554], ["US", "United States", 2840], ["CA", "Canada", 2124],
-  ["AE", "United Arab Emirates", 2784], ["SA", "Saudi Arabia", 2682], ["QA", "Qatar", 2634], ["SG", "Singapore", 2702],
-].map(([code, name, id]) => Object.freeze({ code, name, geo: id === null ? null : `geoTargetConstants/${id}` })));
+/* RR-329 (rule R5): EVERY country Google can target — Google's own criterion ids from its geotargets file of 2026-10-06 (site/google-countries.json:
+ * 192 of AlmiWorld's 197; Cuba, Iran, Kosovo, North Korea and Palestine are not in it), in the owner's queue order, "All locations" first */
+export const LOCATIONS = Object.freeze([{ code: "ALL", name: "All locations", geo: null },
+  ...QUEUE_COUNTRIES.filter((c) => GC.countries[c]).map((c) => ({ code: GC.countries[c].code, name: c, geo: `geoTargetConstants/${GC.countries[c].geo}` }))].map((l) => Object.freeze(l)));
+export const NOT_IN_GOOGLE = Object.freeze(QUEUE_COUNTRIES.filter((c) => !GC.countries[c]));
 export const locationOf = (code) => LOCATIONS.find((l) => l.code === String(code ?? "").toUpperCase()) ?? null;
+/* the app's keyword service asks THESE for a page plan (RR-326 E, unchanged): all locations and the owner's first 18 — the collector fills the rest */
+export const PLAN_LOCATIONS = Object.freeze(["ALL", "PK", "IN", "PH", "NG", "KE", "EG", "BD", "NP", "GB", "IE", "AU", "NZ", "US", "CA", "AE", "SA", "QA", "SG"].map(locationOf));
 
-export const KINDS = Object.freeze({ product: "daily", category: "weekly", youtube: "weekly" });
+/* RR-329 (rule R5): how often a unit is asked again, in days — Google's figures are 12-month averages it updates once a month, so a product
+ * is asked again after 30 days and a category or YouTube niche after 60 (all 193 locations stay under a third of Google's daily limit) */
+export const KINDS = Object.freeze({ product: "monthly", category: "every two months", youtube: "every two months" });
+export const REFRESH_DAYS = Object.freeze({ product: 30, category: 60, youtube: 60 });
 export const SEED_RULES = Object.freeze({ productSeeds: 20, groupSeeds: 60, groups: 80, seedLength: 80 });
 
 /* the FIRST list (RR-326 B: the 24 products of almi-data's family list; G: the owner's categories and YouTube niches, his words) */
-export const DEFAULT_SEEDS = `# AlmiWorld's own products — collected first, every day (one request per location with all the product's seeds)
+export const DEFAULT_SEEDS = `# AlmiWorld's own products — collected first, in the owner's queue order, every 30 days (one request per location with all the product's seeds)
 product:jobs | AlmiJob | jobs abroad, job search, visa sponsorship jobs, overseas jobs
 product:salary | Salary Checker | salary checker, salary calculator, average salary
 product:cv | AlmiCV | cv maker, resume builder, cv template, cv format
@@ -51,7 +58,7 @@ product:norwegian | AlmiNorwegian | learn norwegian, norwegian course, norskprov
 product:swedish | AlmiSwedish | learn swedish, swedish course, sfi swedish
 product:swiss | AlmiSwiss | swiss citizenship test, c permit switzerland, learn swiss german
 product:visibility | AlmiVisibility | seo tool, keyword research tool, ai visibility
-# The general keyword database — refreshed at least once a week (one request per seed per location)
+# The general keyword database — after the products, every 60 days (one request per seed per location)
 category:shopping | Shopping | shoes, clothes, mobile phones, laptops, furniture, jewellery, cosmetics, perfume, watches, baby products
 category:food | Food | restaurants, recipes, catering, bakery, food delivery, halal food
 category:travel | Travel | hotels, flights, visa, tours, umrah packages, car rental
@@ -108,7 +115,7 @@ export function unitsOf(groups, { language = "en" } = {}) {
     const seedSets = g.kind === "product" ? [g.seeds] : g.seeds.map((s) => [s]);
     for (const seeds of seedSets) {
       const what = g.kind === "product" ? g.id : `${g.id}:${seeds[0]}`;
-      out.push(Object.freeze({ id: `${what}|${loc.code}|${language}`, group: g.id, kind: g.kind, cadence: KINDS[g.kind], seeds: Object.freeze([...seeds]), location: loc.code, geo: loc.geo, language,
+      out.push(Object.freeze({ id: `${what}|${loc.code}|${language}`, group: g.id, kind: g.kind, cadence: KINDS[g.kind], refreshDays: REFRESH_DAYS[g.kind], product: g.kind === "product" ? g.key : g.id, country: loc.name, seeds: Object.freeze([...seeds]), location: loc.code, geo: loc.geo, language,
         seedKey: seedKeyOf(seeds) }));
     }
   }

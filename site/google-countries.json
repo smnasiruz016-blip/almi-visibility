@@ -1,0 +1,1159 @@
+{
+ "source": "Google Ads API geotargets (developers.google.com/google-ads/api/data/geotargets), file geotargets-2026-10-06.csv, Target Type Country",
+ "readOn": "2026-10-25",
+ "countries": {
+  "Afghanistan": {
+   "code": "AF",
+   "geo": 2004,
+   "google": "Afghanistan",
+   "status": "Active"
+  },
+  "Albania": {
+   "code": "AL",
+   "geo": 2008,
+   "google": "Albania",
+   "status": "Active"
+  },
+  "Algeria": {
+   "code": "DZ",
+   "geo": 2012,
+   "google": "Algeria",
+   "status": "Active"
+  },
+  "Andorra": {
+   "code": "AD",
+   "geo": 2020,
+   "google": "Andorra",
+   "status": "Active"
+  },
+  "Angola": {
+   "code": "AO",
+   "geo": 2024,
+   "google": "Angola",
+   "status": "Active"
+  },
+  "Antigua and Barbuda": {
+   "code": "AG",
+   "geo": 2028,
+   "google": "Antigua and Barbuda",
+   "status": "Active"
+  },
+  "Argentina": {
+   "code": "AR",
+   "geo": 2032,
+   "google": "Argentina",
+   "status": "Active"
+  },
+  "Armenia": {
+   "code": "AM",
+   "geo": 2051,
+   "google": "Armenia",
+   "status": "Active"
+  },
+  "Australia": {
+   "code": "AU",
+   "geo": 2036,
+   "google": "Australia",
+   "status": "Active"
+  },
+  "Austria": {
+   "code": "AT",
+   "geo": 2040,
+   "google": "Austria",
+   "status": "Active"
+  },
+  "Azerbaijan": {
+   "code": "AZ",
+   "geo": 2031,
+   "google": "Azerbaijan",
+   "status": "Active"
+  },
+  "Bahamas": {
+   "code": "BS",
+   "geo": 2044,
+   "google": "The Bahamas",
+   "status": "Active"
+  },
+  "Bahrain": {
+   "code": "BH",
+   "geo": 2048,
+   "google": "Bahrain",
+   "status": "Active"
+  },
+  "Bangladesh": {
+   "code": "BD",
+   "geo": 2050,
+   "google": "Bangladesh",
+   "status": "Active"
+  },
+  "Barbados": {
+   "code": "BB",
+   "geo": 2052,
+   "google": "Barbados",
+   "status": "Active"
+  },
+  "Belarus": {
+   "code": "BY",
+   "geo": 2112,
+   "google": "Belarus",
+   "status": "Active"
+  },
+  "Belgium": {
+   "code": "BE",
+   "geo": 2056,
+   "google": "Belgium",
+   "status": "Active"
+  },
+  "Belize": {
+   "code": "BZ",
+   "geo": 2084,
+   "google": "Belize",
+   "status": "Active"
+  },
+  "Benin": {
+   "code": "BJ",
+   "geo": 2204,
+   "google": "Benin",
+   "status": "Active"
+  },
+  "Bhutan": {
+   "code": "BT",
+   "geo": 2064,
+   "google": "Bhutan",
+   "status": "Active"
+  },
+  "Bolivia": {
+   "code": "BO",
+   "geo": 2068,
+   "google": "Bolivia",
+   "status": "Active"
+  },
+  "Bosnia and Herzegovina": {
+   "code": "BA",
+   "geo": 2070,
+   "google": "Bosnia and Herzegovina",
+   "status": "Active"
+  },
+  "Botswana": {
+   "code": "BW",
+   "geo": 2072,
+   "google": "Botswana",
+   "status": "Active"
+  },
+  "Brazil": {
+   "code": "BR",
+   "geo": 2076,
+   "google": "Brazil",
+   "status": "Active"
+  },
+  "Brunei Darussalam": {
+   "code": "BN",
+   "geo": 2096,
+   "google": "Brunei",
+   "status": "Active"
+  },
+  "Bulgaria": {
+   "code": "BG",
+   "geo": 2100,
+   "google": "Bulgaria",
+   "status": "Active"
+  },
+  "Burkina Faso": {
+   "code": "BF",
+   "geo": 2854,
+   "google": "Burkina Faso",
+   "status": "Active"
+  },
+  "Burundi": {
+   "code": "BI",
+   "geo": 2108,
+   "google": "Burundi",
+   "status": "Active"
+  },
+  "Cabo Verde": {
+   "code": "CV",
+   "geo": 2132,
+   "google": "Cabo Verde",
+   "status": "Active"
+  },
+  "Cambodia": {
+   "code": "KH",
+   "geo": 2116,
+   "google": "Cambodia",
+   "status": "Active"
+  },
+  "Cameroon": {
+   "code": "CM",
+   "geo": 2120,
+   "google": "Cameroon",
+   "status": "Active"
+  },
+  "Canada": {
+   "code": "CA",
+   "geo": 2124,
+   "google": "Canada",
+   "status": "Active"
+  },
+  "Central African Republic": {
+   "code": "CF",
+   "geo": 2140,
+   "google": "Central African Republic",
+   "status": "Active"
+  },
+  "Chad": {
+   "code": "TD",
+   "geo": 2148,
+   "google": "Chad",
+   "status": "Active"
+  },
+  "Chile": {
+   "code": "CL",
+   "geo": 2152,
+   "google": "Chile",
+   "status": "Active"
+  },
+  "China": {
+   "code": "CN",
+   "geo": 2156,
+   "google": "China",
+   "status": "Active"
+  },
+  "Colombia": {
+   "code": "CO",
+   "geo": 2170,
+   "google": "Colombia",
+   "status": "Active"
+  },
+  "Comoros": {
+   "code": "KM",
+   "geo": 2174,
+   "google": "Comoros",
+   "status": "Active"
+  },
+  "Costa Rica": {
+   "code": "CR",
+   "geo": 2188,
+   "google": "Costa Rica",
+   "status": "Active"
+  },
+  "Côte d'Ivoire": {
+   "code": "CI",
+   "geo": 2384,
+   "google": "Cote d'Ivoire",
+   "status": "Active"
+  },
+  "Croatia": {
+   "code": "HR",
+   "geo": 2191,
+   "google": "Croatia",
+   "status": "Active"
+  },
+  "Cyprus": {
+   "code": "CY",
+   "geo": 2196,
+   "google": "Cyprus",
+   "status": "Active"
+  },
+  "Czech Republic": {
+   "code": "CZ",
+   "geo": 2203,
+   "google": "Czechia",
+   "status": "Active"
+  },
+  "Democratic Republic of the Congo": {
+   "code": "CD",
+   "geo": 2180,
+   "google": "Democratic Republic of the Congo",
+   "status": "Active"
+  },
+  "Denmark": {
+   "code": "DK",
+   "geo": 2208,
+   "google": "Denmark",
+   "status": "Active"
+  },
+  "Djibouti": {
+   "code": "DJ",
+   "geo": 2262,
+   "google": "Djibouti",
+   "status": "Active"
+  },
+  "Dominica": {
+   "code": "DM",
+   "geo": 2212,
+   "google": "Dominica",
+   "status": "Active"
+  },
+  "Dominican Republic": {
+   "code": "DO",
+   "geo": 2214,
+   "google": "Dominican Republic",
+   "status": "Active"
+  },
+  "Ecuador": {
+   "code": "EC",
+   "geo": 2218,
+   "google": "Ecuador",
+   "status": "Active"
+  },
+  "Egypt": {
+   "code": "EG",
+   "geo": 2818,
+   "google": "Egypt",
+   "status": "Active"
+  },
+  "El Salvador": {
+   "code": "SV",
+   "geo": 2222,
+   "google": "El Salvador",
+   "status": "Active"
+  },
+  "Equatorial Guinea": {
+   "code": "GQ",
+   "geo": 2226,
+   "google": "Equatorial Guinea",
+   "status": "Active"
+  },
+  "Eritrea": {
+   "code": "ER",
+   "geo": 2232,
+   "google": "Eritrea",
+   "status": "Active"
+  },
+  "Estonia": {
+   "code": "EE",
+   "geo": 2233,
+   "google": "Estonia",
+   "status": "Active"
+  },
+  "Eswatini": {
+   "code": "SZ",
+   "geo": 2748,
+   "google": "Eswatini",
+   "status": "Active"
+  },
+  "Ethiopia": {
+   "code": "ET",
+   "geo": 2231,
+   "google": "Ethiopia",
+   "status": "Active"
+  },
+  "Federated States of Micronesia": {
+   "code": "FM",
+   "geo": 2583,
+   "google": "Micronesia",
+   "status": "Active"
+  },
+  "Fiji": {
+   "code": "FJ",
+   "geo": 2242,
+   "google": "Fiji",
+   "status": "Active"
+  },
+  "Finland": {
+   "code": "FI",
+   "geo": 2246,
+   "google": "Finland",
+   "status": "Active"
+  },
+  "France": {
+   "code": "FR",
+   "geo": 2250,
+   "google": "France",
+   "status": "Active"
+  },
+  "Gabon": {
+   "code": "GA",
+   "geo": 2266,
+   "google": "Gabon",
+   "status": "Active"
+  },
+  "Gambia": {
+   "code": "GM",
+   "geo": 2270,
+   "google": "The Gambia",
+   "status": "Active"
+  },
+  "Georgia": {
+   "code": "GE",
+   "geo": 2268,
+   "google": "Georgia",
+   "status": "Active"
+  },
+  "Germany": {
+   "code": "DE",
+   "geo": 2276,
+   "google": "Germany",
+   "status": "Active"
+  },
+  "Ghana": {
+   "code": "GH",
+   "geo": 2288,
+   "google": "Ghana",
+   "status": "Active"
+  },
+  "Greece": {
+   "code": "GR",
+   "geo": 2300,
+   "google": "Greece",
+   "status": "Active"
+  },
+  "Grenada": {
+   "code": "GD",
+   "geo": 2308,
+   "google": "Grenada",
+   "status": "Active"
+  },
+  "Guatemala": {
+   "code": "GT",
+   "geo": 2320,
+   "google": "Guatemala",
+   "status": "Active"
+  },
+  "Guinea": {
+   "code": "GN",
+   "geo": 2324,
+   "google": "Guinea",
+   "status": "Active"
+  },
+  "Guinea-Bissau": {
+   "code": "GW",
+   "geo": 2624,
+   "google": "Guinea-Bissau",
+   "status": "Active"
+  },
+  "Guyana": {
+   "code": "GY",
+   "geo": 2328,
+   "google": "Guyana",
+   "status": "Active"
+  },
+  "Haiti": {
+   "code": "HT",
+   "geo": 2332,
+   "google": "Haiti",
+   "status": "Active"
+  },
+  "Honduras": {
+   "code": "HN",
+   "geo": 2340,
+   "google": "Honduras",
+   "status": "Active"
+  },
+  "Hungary": {
+   "code": "HU",
+   "geo": 2348,
+   "google": "Hungary",
+   "status": "Active"
+  },
+  "Iceland": {
+   "code": "IS",
+   "geo": 2352,
+   "google": "Iceland",
+   "status": "Active"
+  },
+  "India": {
+   "code": "IN",
+   "geo": 2356,
+   "google": "India",
+   "status": "Active"
+  },
+  "Indonesia": {
+   "code": "ID",
+   "geo": 2360,
+   "google": "Indonesia",
+   "status": "Active"
+  },
+  "Iraq": {
+   "code": "IQ",
+   "geo": 2368,
+   "google": "Iraq",
+   "status": "Active"
+  },
+  "Ireland": {
+   "code": "IE",
+   "geo": 2372,
+   "google": "Ireland",
+   "status": "Active"
+  },
+  "Israel": {
+   "code": "IL",
+   "geo": 2376,
+   "google": "Israel",
+   "status": "Active"
+  },
+  "Italy": {
+   "code": "IT",
+   "geo": 2380,
+   "google": "Italy",
+   "status": "Active"
+  },
+  "Jamaica": {
+   "code": "JM",
+   "geo": 2388,
+   "google": "Jamaica",
+   "status": "Active"
+  },
+  "Japan": {
+   "code": "JP",
+   "geo": 2392,
+   "google": "Japan",
+   "status": "Active"
+  },
+  "Jordan": {
+   "code": "JO",
+   "geo": 2400,
+   "google": "Jordan",
+   "status": "Active"
+  },
+  "Kazakhstan": {
+   "code": "KZ",
+   "geo": 2398,
+   "google": "Kazakhstan",
+   "status": "Active"
+  },
+  "Kenya": {
+   "code": "KE",
+   "geo": 2404,
+   "google": "Kenya",
+   "status": "Active"
+  },
+  "Kiribati": {
+   "code": "KI",
+   "geo": 2296,
+   "google": "Kiribati",
+   "status": "Active"
+  },
+  "Kuwait": {
+   "code": "KW",
+   "geo": 2414,
+   "google": "Kuwait",
+   "status": "Active"
+  },
+  "Kyrgyzstan": {
+   "code": "KG",
+   "geo": 2417,
+   "google": "Kyrgyzstan",
+   "status": "Active"
+  },
+  "Laos": {
+   "code": "LA",
+   "geo": 2418,
+   "google": "Laos",
+   "status": "Active"
+  },
+  "Latvia": {
+   "code": "LV",
+   "geo": 2428,
+   "google": "Latvia",
+   "status": "Active"
+  },
+  "Lebanon": {
+   "code": "LB",
+   "geo": 2422,
+   "google": "Lebanon",
+   "status": "Active"
+  },
+  "Lesotho": {
+   "code": "LS",
+   "geo": 2426,
+   "google": "Lesotho",
+   "status": "Active"
+  },
+  "Liberia": {
+   "code": "LR",
+   "geo": 2430,
+   "google": "Liberia",
+   "status": "Active"
+  },
+  "Libya": {
+   "code": "LY",
+   "geo": 2434,
+   "google": "Libya",
+   "status": "Active"
+  },
+  "Liechtenstein": {
+   "code": "LI",
+   "geo": 2438,
+   "google": "Liechtenstein",
+   "status": "Active"
+  },
+  "Lithuania": {
+   "code": "LT",
+   "geo": 2440,
+   "google": "Lithuania",
+   "status": "Active"
+  },
+  "Luxembourg": {
+   "code": "LU",
+   "geo": 2442,
+   "google": "Luxembourg",
+   "status": "Active"
+  },
+  "Madagascar": {
+   "code": "MG",
+   "geo": 2450,
+   "google": "Madagascar",
+   "status": "Active"
+  },
+  "Malawi": {
+   "code": "MW",
+   "geo": 2454,
+   "google": "Malawi",
+   "status": "Active"
+  },
+  "Malaysia": {
+   "code": "MY",
+   "geo": 2458,
+   "google": "Malaysia",
+   "status": "Active"
+  },
+  "Maldives": {
+   "code": "MV",
+   "geo": 2462,
+   "google": "Maldives",
+   "status": "Active"
+  },
+  "Mali": {
+   "code": "ML",
+   "geo": 2466,
+   "google": "Mali",
+   "status": "Active"
+  },
+  "Malta": {
+   "code": "MT",
+   "geo": 2470,
+   "google": "Malta",
+   "status": "Active"
+  },
+  "Marshall Islands": {
+   "code": "MH",
+   "geo": 2584,
+   "google": "Marshall Islands",
+   "status": "Active"
+  },
+  "Mauritania": {
+   "code": "MR",
+   "geo": 2478,
+   "google": "Mauritania",
+   "status": "Active"
+  },
+  "Mauritius": {
+   "code": "MU",
+   "geo": 2480,
+   "google": "Mauritius",
+   "status": "Active"
+  },
+  "Mexico": {
+   "code": "MX",
+   "geo": 2484,
+   "google": "Mexico",
+   "status": "Active"
+  },
+  "Moldova": {
+   "code": "MD",
+   "geo": 2498,
+   "google": "Moldova",
+   "status": "Active"
+  },
+  "Monaco": {
+   "code": "MC",
+   "geo": 2492,
+   "google": "Monaco",
+   "status": "Active"
+  },
+  "Mongolia": {
+   "code": "MN",
+   "geo": 2496,
+   "google": "Mongolia",
+   "status": "Active"
+  },
+  "Montenegro": {
+   "code": "ME",
+   "geo": 2499,
+   "google": "Montenegro",
+   "status": "Active"
+  },
+  "Morocco": {
+   "code": "MA",
+   "geo": 2504,
+   "google": "Morocco",
+   "status": "Active"
+  },
+  "Mozambique": {
+   "code": "MZ",
+   "geo": 2508,
+   "google": "Mozambique",
+   "status": "Active"
+  },
+  "Myanmar": {
+   "code": "MM",
+   "geo": 2104,
+   "google": "Myanmar (Burma)",
+   "status": "Active"
+  },
+  "Namibia": {
+   "code": "NA",
+   "geo": 2516,
+   "google": "Namibia",
+   "status": "Active"
+  },
+  "Nauru": {
+   "code": "NR",
+   "geo": 2520,
+   "google": "Nauru",
+   "status": "Active"
+  },
+  "Nepal": {
+   "code": "NP",
+   "geo": 2524,
+   "google": "Nepal",
+   "status": "Active"
+  },
+  "Netherlands": {
+   "code": "NL",
+   "geo": 2528,
+   "google": "Netherlands",
+   "status": "Active"
+  },
+  "New Zealand": {
+   "code": "NZ",
+   "geo": 2554,
+   "google": "New Zealand",
+   "status": "Active"
+  },
+  "Nicaragua": {
+   "code": "NI",
+   "geo": 2558,
+   "google": "Nicaragua",
+   "status": "Active"
+  },
+  "Niger": {
+   "code": "NE",
+   "geo": 2562,
+   "google": "Niger",
+   "status": "Active"
+  },
+  "Nigeria": {
+   "code": "NG",
+   "geo": 2566,
+   "google": "Nigeria",
+   "status": "Active"
+  },
+  "North Macedonia": {
+   "code": "MK",
+   "geo": 2807,
+   "google": "North Macedonia",
+   "status": "Active"
+  },
+  "Norway": {
+   "code": "NO",
+   "geo": 2578,
+   "google": "Norway",
+   "status": "Active"
+  },
+  "Oman": {
+   "code": "OM",
+   "geo": 2512,
+   "google": "Oman",
+   "status": "Active"
+  },
+  "Pakistan": {
+   "code": "PK",
+   "geo": 2586,
+   "google": "Pakistan",
+   "status": "Active"
+  },
+  "Palau": {
+   "code": "PW",
+   "geo": 2585,
+   "google": "Palau",
+   "status": "Active"
+  },
+  "Panama": {
+   "code": "PA",
+   "geo": 2591,
+   "google": "Panama",
+   "status": "Active"
+  },
+  "Papua New Guinea": {
+   "code": "PG",
+   "geo": 2598,
+   "google": "Papua New Guinea",
+   "status": "Active"
+  },
+  "Paraguay": {
+   "code": "PY",
+   "geo": 2600,
+   "google": "Paraguay",
+   "status": "Active"
+  },
+  "Peru": {
+   "code": "PE",
+   "geo": 2604,
+   "google": "Peru",
+   "status": "Active"
+  },
+  "Philippines": {
+   "code": "PH",
+   "geo": 2608,
+   "google": "Philippines",
+   "status": "Active"
+  },
+  "Poland": {
+   "code": "PL",
+   "geo": 2616,
+   "google": "Poland",
+   "status": "Active"
+  },
+  "Portugal": {
+   "code": "PT",
+   "geo": 2620,
+   "google": "Portugal",
+   "status": "Active"
+  },
+  "Qatar": {
+   "code": "QA",
+   "geo": 2634,
+   "google": "Qatar",
+   "status": "Active"
+  },
+  "Republic of the Congo": {
+   "code": "CG",
+   "geo": 2178,
+   "google": "Republic of the Congo",
+   "status": "Active"
+  },
+  "Romania": {
+   "code": "RO",
+   "geo": 2642,
+   "google": "Romania",
+   "status": "Active"
+  },
+  "Russia": {
+   "code": "RU",
+   "geo": 2643,
+   "google": "Russia",
+   "status": "Active"
+  },
+  "Rwanda": {
+   "code": "RW",
+   "geo": 2646,
+   "google": "Rwanda",
+   "status": "Active"
+  },
+  "Saint Kitts and Nevis": {
+   "code": "KN",
+   "geo": 2659,
+   "google": "Saint Kitts and Nevis",
+   "status": "Active"
+  },
+  "Saint Lucia": {
+   "code": "LC",
+   "geo": 2662,
+   "google": "Saint Lucia",
+   "status": "Active"
+  },
+  "Saint Vincent and the Grenadines": {
+   "code": "VC",
+   "geo": 2670,
+   "google": "Saint Vincent and the Grenadines",
+   "status": "Active"
+  },
+  "Samoa": {
+   "code": "WS",
+   "geo": 2882,
+   "google": "Samoa",
+   "status": "Active"
+  },
+  "San Marino": {
+   "code": "SM",
+   "geo": 2674,
+   "google": "San Marino",
+   "status": "Active"
+  },
+  "São Tomé and Príncipe": {
+   "code": "ST",
+   "geo": 2678,
+   "google": "Sao Tome and Principe",
+   "status": "Active"
+  },
+  "Saudi Arabia": {
+   "code": "SA",
+   "geo": 2682,
+   "google": "Saudi Arabia",
+   "status": "Active"
+  },
+  "Senegal": {
+   "code": "SN",
+   "geo": 2686,
+   "google": "Senegal",
+   "status": "Active"
+  },
+  "Serbia": {
+   "code": "RS",
+   "geo": 2688,
+   "google": "Serbia",
+   "status": "Active"
+  },
+  "Seychelles": {
+   "code": "SC",
+   "geo": 2690,
+   "google": "Seychelles",
+   "status": "Active"
+  },
+  "Sierra Leone": {
+   "code": "SL",
+   "geo": 2694,
+   "google": "Sierra Leone",
+   "status": "Active"
+  },
+  "Singapore": {
+   "code": "SG",
+   "geo": 2702,
+   "google": "Singapore",
+   "status": "Active"
+  },
+  "Slovakia": {
+   "code": "SK",
+   "geo": 2703,
+   "google": "Slovakia",
+   "status": "Active"
+  },
+  "Slovenia": {
+   "code": "SI",
+   "geo": 2705,
+   "google": "Slovenia",
+   "status": "Active"
+  },
+  "Solomon Islands": {
+   "code": "SB",
+   "geo": 2090,
+   "google": "Solomon Islands",
+   "status": "Active"
+  },
+  "Somalia": {
+   "code": "SO",
+   "geo": 2706,
+   "google": "Somalia",
+   "status": "Active"
+  },
+  "South Africa": {
+   "code": "ZA",
+   "geo": 2710,
+   "google": "South Africa",
+   "status": "Active"
+  },
+  "South Korea": {
+   "code": "KR",
+   "geo": 2410,
+   "google": "South Korea",
+   "status": "Active"
+  },
+  "South Sudan": {
+   "code": "SS",
+   "geo": 2728,
+   "google": "South Sudan",
+   "status": "Active"
+  },
+  "Spain": {
+   "code": "ES",
+   "geo": 2724,
+   "google": "Spain",
+   "status": "Active"
+  },
+  "Sri Lanka": {
+   "code": "LK",
+   "geo": 2144,
+   "google": "Sri Lanka",
+   "status": "Active"
+  },
+  "Sudan": {
+   "code": "SD",
+   "geo": 2736,
+   "google": "Sudan",
+   "status": "Active"
+  },
+  "Suriname": {
+   "code": "SR",
+   "geo": 2740,
+   "google": "Suriname",
+   "status": "Active"
+  },
+  "Sweden": {
+   "code": "SE",
+   "geo": 2752,
+   "google": "Sweden",
+   "status": "Active"
+  },
+  "Switzerland": {
+   "code": "CH",
+   "geo": 2756,
+   "google": "Switzerland",
+   "status": "Active"
+  },
+  "Syria": {
+   "code": "SY",
+   "geo": 2760,
+   "google": "Syria",
+   "status": "Active"
+  },
+  "Tajikistan": {
+   "code": "TJ",
+   "geo": 2762,
+   "google": "Tajikistan",
+   "status": "Active"
+  },
+  "Tanzania": {
+   "code": "TZ",
+   "geo": 2834,
+   "google": "Tanzania",
+   "status": "Active"
+  },
+  "Thailand": {
+   "code": "TH",
+   "geo": 2764,
+   "google": "Thailand",
+   "status": "Active"
+  },
+  "Timor-Leste": {
+   "code": "TL",
+   "geo": 2626,
+   "google": "Timor-Leste",
+   "status": "Active"
+  },
+  "Togo": {
+   "code": "TG",
+   "geo": 2768,
+   "google": "Togo",
+   "status": "Active"
+  },
+  "Tonga": {
+   "code": "TO",
+   "geo": 2776,
+   "google": "Tonga",
+   "status": "Active"
+  },
+  "Trinidad and Tobago": {
+   "code": "TT",
+   "geo": 2780,
+   "google": "Trinidad and Tobago",
+   "status": "Active"
+  },
+  "Tunisia": {
+   "code": "TN",
+   "geo": 2788,
+   "google": "Tunisia",
+   "status": "Active"
+  },
+  "Türkiye": {
+   "code": "TR",
+   "geo": 2792,
+   "google": "Turkiye",
+   "status": "Active"
+  },
+  "Turkmenistan": {
+   "code": "TM",
+   "geo": 2795,
+   "google": "Turkmenistan",
+   "status": "Active"
+  },
+  "Tuvalu": {
+   "code": "TV",
+   "geo": 2798,
+   "google": "Tuvalu",
+   "status": "Active"
+  },
+  "Uganda": {
+   "code": "UG",
+   "geo": 2800,
+   "google": "Uganda",
+   "status": "Active"
+  },
+  "Ukraine": {
+   "code": "UA",
+   "geo": 2804,
+   "google": "Ukraine",
+   "status": "Active"
+  },
+  "United Arab Emirates": {
+   "code": "AE",
+   "geo": 2784,
+   "google": "United Arab Emirates",
+   "status": "Active"
+  },
+  "United Kingdom": {
+   "code": "GB",
+   "geo": 2826,
+   "google": "United Kingdom",
+   "status": "Active"
+  },
+  "United States": {
+   "code": "US",
+   "geo": 2840,
+   "google": "United States",
+   "status": "Active"
+  },
+  "Uruguay": {
+   "code": "UY",
+   "geo": 2858,
+   "google": "Uruguay",
+   "status": "Active"
+  },
+  "Uzbekistan": {
+   "code": "UZ",
+   "geo": 2860,
+   "google": "Uzbekistan",
+   "status": "Active"
+  },
+  "Vanuatu": {
+   "code": "VU",
+   "geo": 2548,
+   "google": "Vanuatu",
+   "status": "Active"
+  },
+  "Vatican City (Holy See)": {
+   "code": "VA",
+   "geo": 2336,
+   "google": "Vatican City",
+   "status": "Active"
+  },
+  "Venezuela": {
+   "code": "VE",
+   "geo": 2862,
+   "google": "Venezuela",
+   "status": "Active"
+  },
+  "Vietnam": {
+   "code": "VN",
+   "geo": 2704,
+   "google": "Vietnam",
+   "status": "Active"
+  },
+  "Yemen": {
+   "code": "YE",
+   "geo": 2887,
+   "google": "Yemen",
+   "status": "Active"
+  },
+  "Zambia": {
+   "code": "ZM",
+   "geo": 2894,
+   "google": "Zambia",
+   "status": "Active"
+  },
+  "Zimbabwe": {
+   "code": "ZW",
+   "geo": 2716,
+   "google": "Zimbabwe",
+   "status": "Active"
+  },
+  "Taiwan": {
+   "code": "TW",
+   "geo": 2158,
+   "google": "Taiwan",
+   "status": "Active",
+   "type": "Region"
+  }
+ }
+}

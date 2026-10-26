@@ -86,6 +86,8 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       const rows = await q("SELECT * FROM (SELECT DISTINCT ON (keyword) keyword, avg_monthly_searches::text AS volume, day::text AS day, period FROM kw_observation WHERE location = $1 AND language = $2 ORDER BY keyword, day DESC) x ORDER BY (volume IS NULL), volume::bigint DESC, keyword LIMIT $3", [location, language, limit]);
       return rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), day: r.day, period: r.period }));
     },
+    /** RR-329 F · the whole database's size in MB (Postgres' own count) — the collector stops before the plan's limit */
+    async sizeMb() { await ensure(); const [r] = await q("SELECT pg_database_size(current_database())::float8 / 1048576 AS mb"); return Math.round(Number(r.mb) * 10) / 10; },
     /** the owner's page: totals, today, per group (keywords, countries, last refresh), per location */
     async counts(day) {
       await ensure();
@@ -100,7 +102,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
 }
 
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
-export function memoryStore() {
+export function memoryStore({ sizeMb = null } = {}) {
   let list = null, nextId = 1;
   const fetches = new Map(), obs = new Map(), fk = new Map(), gk = new Map();
   const fkey = (f) => `${f.seedKey}|${f.location}|${f.language}|${f.day}`;
@@ -146,6 +148,8 @@ export function memoryStore() {
       const best = new Map(); for (const o of obs.values()) if (o.location === location && o.language === language && (!best.has(o.keyword) || best.get(o.keyword).day < o.day)) best.set(o.keyword, o);
       return [...best.values()].sort((a, b) => (a.volume === null) - (b.volume === null) || (b.volume ?? 0) - (a.volume ?? 0) || a.keyword.localeCompare(b.keyword)).slice(0, limit).map((o) => ({ keyword: o.keyword, volume: o.volume, day: o.day, period: o.period }));
     },
+    /* the tests hand a size in (a number, or a function of what is held) */
+    async sizeMb() { return typeof sizeMb === "function" ? sizeMb({ observations: obs.size, fetches: fetches.size }) : sizeMb; },
     async counts(day) {
       const o = [...obs.values()], d = (xs) => new Set(xs).size;
       const groups = [...new Set([...gk.values()].map((x) => x.grp))].sort().map((g) => { const xs = [...gk.values()].filter((x) => x.grp === g); return { grp: g, keywords: d(xs.map((x) => x.keyword)), today: d(xs.filter((x) => x.last === day).map((x) => x.keyword)), locations: d(xs.map((x) => x.location)), last: xs.map((x) => x.last).sort().at(-1) }; });

@@ -28,7 +28,8 @@ import { kvStore } from "../site/limits.mjs";
 import { createApp } from "../site/app.mjs";
 import { ownerCookie } from "../site/owner.mjs";
 import { siteAds } from "../site/kw-google.mjs";
-import { localPages } from "../desktop/local-pages.mjs";
+import { localPages, localContent } from "../desktop/local-pages.mjs";
+import * as P from "../site/pages.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
 
 const ON = "2026-10-26";
@@ -132,7 +133,7 @@ function productAi({ recognition = false } = {}) {
   return { ai, calls };
 }
 const reader = (pages = PAGES) => { let n = 0; return { read: async (u) => { n++; const p = pages[u]; return p ? { ok: true, url: u, title: p.title, h1: null, text: p.text, checkedOn: ON } : { ok: false, url: u, why: "the page answered 404", checkedOn: ON }; }, raw: async () => null, sitemapOf: async () => ({ ok: true, urls: [] }), requests: () => n }; };
-async function kwDb() { const s = memoryStore(); await s.saveFetch({ kind: "collector", seedKey: "seed:PK", location: "PK", language: "en", day: ON, at: `${ON}T01:00:00Z`, period: "2025-10-01..2026-09-30", ops: 1, rows: [["cv format for job", 900], ["how to write cv", 400], ["oet fee pakistan", 300]].map(([text, said]) => ({ text, said })) }); return s; }
+async function kwDb() { const s = memoryStore(); await s.saveFetch({ kind: "collector", seedKey: "seed:PK", location: "PK", language: "en", day: ON, at: `${ON}T01:00:00Z`, period: "2025-10-01..2026-09-30", ops: 1, rows: [["cv format for job", 900], ["how to write cv", 400], ["oet fee pakistan", 300], ["duolingo english test fee", 200]].map(([text, said]) => ({ text, said })) }); return s; }
 
 test("B · RR-329: one (product, country) of another product — its questions from the keyword database in its own words, ONE AI question for its other parts; each fact confirmed on its official page (a body by its name, a statement by its quoted words); a body not found is searched again EVERY DAY (background), the names tried kept", async () => {
   const store = cfMemoryStore(), clock = clockAt(), A = productAi(), kw = await kwDb();
@@ -160,6 +161,9 @@ test("B · RR-329: one (product, country) of another product — its questions f
   await runCountryFacts({ store, kwStore: kw, reader: reader(), ai: A.ai, env: {}, now: clock.now, budgetMs: 1e9, countries: ["Pakistan"], products: ["salary"] });
   assert.equal((await store.fact("salary:currency|Pakistan|1")).value.code, "PKR");
   const cov = productCoverageOf("cv", await store.facts(), { countries: ["Pakistan", "India"], template: PRODUCT_FACTS.cv }); assert.deepEqual([cov.counts.byPart.cvNorms, cov.counts.byPart.workRules], [1, 0]);
+  /* AlmiDET: "duolingo" is a competitor for the others — for AlmiDET it is its own name, and its searches are its questions */
+  await runCountryFacts({ store, kwStore: kw, reader: reader(), ai: A.ai, env: ENV_AI, now: clock.now, budgetMs: 1e9, countries: ["Pakistan"], products: ["det"] });
+  assert.equal((await store.fact("det:question|Pakistan|fees")).value.question, "duolingo english test fee");
 });
 
 test("B · RR-329: the collector follows the queue across products — AlmiOET's countries before AlmiCV's; the measured cost of a country is kept for the ETA", async () => {
@@ -180,9 +184,9 @@ test("C · RR-329 (rule R8): an AlmiOET record whose page is GONE (404) is store
   assert.match(gone[0].why, /^the page is gone \(it answered 404\) — hidden until it is read again and confirmed$/);
   const pk = countryPacket("Pakistan", await store.facts()); assert.ok(pk.gone.includes(gone[0].sourceUrl));
   /* the app: a record whose link is gone is not a rule of the page */
-  const rec = { on: ON, items: [{ country: "Pakistan", fact: "goodStanding", text: "A gone rule.", link: gone[0].sourceUrl }, { country: "Pakistan", fact: "attestation", text: "A live rule.", link: "https://live.example/rule" }] };
-  const L = localPages({ subject: "OET", reqCountries: [], venues: { countries: [], cities: [], home: null }, section: (c) => ({ country: c, fee: null, steps: [], nearest: [] }), originFacts: rec, countryFacts: { Pakistan: pk }, professions: [], countries: ["Pakistan"], on: ON });
-  const why = L.stopped.country.find((s) => s.country === "Pakistan"); assert.ok(why, "Pakistan stopped (not all parts) — its rules are read");
+  const local = (items) => localPages({ subject: "OET", reqCountries: [], venues: { countries: [], cities: [], home: null }, section: (c) => ({ country: c, fee: null, steps: [], nearest: [] }), originFacts: { on: ON, items }, countryFacts: { Pakistan: pk }, professions: [], countries: ["Pakistan"], on: ON }).stopped.country.find((s) => s.country === "Pakistan");
+  assert.ok(local([{ country: "Pakistan", fact: "goodStanding", text: "A gone rule.", link: gone[0].sourceUrl }]).missing.includes("rules"), "the gone record is no rule of the page");
+  assert.ok(!local([{ country: "Pakistan", fact: "attestation", text: "A live rule.", link: "https://live.example/rule" }]).missing.includes("rules"), "control: a live record is a rule");
   /* read again, found → confirmed, no longer gone */
   const back = { [gone[0].sourceUrl]: { title: "Good standing", text: "Good standing certificate." } };
   clock.t += 31 * 86400000; await runCountryFacts({ store, reader: reader(back), ai: async () => ({ ok: false, why: "no", usd: 0, searches: 0 }), env: {}, now: clock.now, budgetMs: 1e9, countries: ["Pakistan"], products: ["oet"] });
@@ -199,6 +203,9 @@ test("D · RR-329 (rule R9): the owner's own fact fills its part first, is shown
   const pk = countryPacket("Pakistan", await store.facts()); assert.equal(pk.owner.length, 1); assert.equal(pk.fee.status, "owner");
   const L = localPages({ subject: "OET", reqCountries: [], venues: { countries: [], cities: [], home: null }, section: (c) => ({ country: c, fee: null, steps: [], nearest: [] }), originFacts: null, countryFacts: { Pakistan: pk }, professions: [], countries: ["Pakistan"], on: ON });
   assert.ok(!(L.stopped.country.find((s) => s.country === "Pakistan")?.missing ?? []).includes("fee"), "the owner's fee is the page's fee");
+  /* on the page: a section of AlmiWorld's own checks, first */
+  const c = localContent({ kind: "country", country: "Pakistan", venue: false, cities: [], centres: { on: ON }, fee: "PKR 115,000", councils: [], rules: [], answered: [], destinations: [], nearest: ["India"], home: "At home", whereTitle: "Where to take OET", own: [{ part: "fee", text: "The fee is PKR 115,000 at the counter.", link: null, on: "2026-11-20" }] }, { subject: "OET", fit: (xs) => xs.filter(Boolean).join(" "), cta: null });
+  assert.equal(c.sections[0].heading, "AlmiWorld's own checks"); assert.deepEqual(c.sections[0].lines[0], { text: "The fee is PKR 115,000 at the counter.", link: null, on: "2026-11-20", note: "AlmiWorld's own checked information" });
 });
 
 /* ── F · health ────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -227,6 +234,14 @@ test("F · RR-329: the keyword collector keeps each fetch's 300 most-searched an
   assert.equal(r.stoppedBy, "DB_FULL"); assert.match(r.why, /^The database holds 990 MB of its 1024 MB — the collector stopped before it is full\.$/);
   const [today] = await daysOf(K.kv, "keywords", ON, 1); assert.equal(today.lastCode, "DB_FULL"); assert.equal(today.sizeMb, 990);
   assert.equal(COLLECTOR.storageLimitMb, 1024, "Neon's free plan: 1 GB per project");
+  /* a day on which Google answered nothing (every request skipped) is a failed day — never a silent one */
+  const K2 = fakeKv(clock), s2 = memoryStore(); await s2.setSeedList("product:oet | AlmiOET | oet", `${ON}T00:00:00Z`);
+  const busy = await runCollector({ store: s2, ads: { ideas: async () => ({ ok: false, code: "BUSY", why: "busy", ops: 1 }) }, kv: K2.kv, now: clock.now, budgetMs: 1e9 });
+  assert.equal(busy.saved, 0); assert.ok(busy.skipped > 0);
+  const [b] = await daysOf(K2.kv, "keywords", ON, 1); assert.equal(b.lastCode, "BUSY"); assert.match(b.lastWhy, /^Google did not answer any of \d+ requests/); assert.ok(FIX.BUSY);
+  /* the AI key missing is recorded for the health check (the collector can then only wait) */
+  const K3 = fakeKv(clock); await runCountryFacts({ store: cfMemoryStore(), kv: K3.kv, reader: reader({}), env: {}, now: clock.now, budgetMs: 1e9, countries: ["Chad"], products: ["cv"] });
+  const [c] = await daysOf(K3.kv, "facts", ON, 1); assert.equal(c.lastCode, "AI_KEY"); assert.match(c.lastWhy, /ANTHROPIC_API_KEY is not set in Vercel/);
 });
 
 /* ── E · the owner's phone ─────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -262,6 +277,9 @@ test("E + D · RR-329: /owner on a phone — the numbers first (This week, the q
     assert.equal((await a.req("/owner/queue", { method: "POST", form: { kind: "country", item: "Atlantis" } })).status, 400);
     assert.equal((await a.req("/owner/queue", { method: "POST", form: { kind: "product", item: "cv" }, owner: false })).status, 403);
     assert.match(PRODUCT_NAMES.prep, /IELTS/);
+    /* the "$3" line stands on the page, in red, where he sees it first */
+    const adv = P.ownerPage({ status: { red: [], queue: null, facts: [{ name: "AlmiOET", first: 30, firstDone: 0, left: 30, days: 40, date: "2026-12-05" }], advice: "Raise to $3 — a test line.", spend: { cap: 0.25, today: 0, month: 0 }, week: null, keywords: null, storage: null } });
+    assert.match(adv, /<p class="red"><b>Raise to \$3 — a test line\.<\/b><\/p>/);
   } finally { await a.close(); }
 });
 

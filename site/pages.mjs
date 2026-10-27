@@ -9,6 +9,7 @@
  * column is a card marked "Sample"; sections of rounded cards; the dark three-column footer (AlmiWorld · Products · Legal & Contact). The
  * colours are the AlmiWorld sunrise tokens (desktop/theme.mjs, the same values as almi-oet's globals.css) and the AlmiWorld logo.
  */
+import { feeShown } from "../desktop/rates.mjs"; // RR-333
 import { cssVariables } from "../desktop/theme.mjs";
 import { PRIVACY_LINE, MARKETING_LINE } from "./leads.mjs";
 import { LIMITS, NO_PROMISE } from "./free-test.mjs";
@@ -419,11 +420,14 @@ function statusHtml(s) {
   /* RR-332 · the page counter, from collected data only (never an estimate) */
   const why = (o) => Object.entries(o ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${esc(k)} ${n}`).join(", ");
   const pages = s.pages ? `<h2>Pages — ready by the rules</h2><details><summary>${s.pages.filter((p) => p.country.ready || p.questions.ready || p.countryProfession?.ready).map((p) => `${esc(p.name)} ${p.country.ready + p.questions.ready + (p.countryProfession?.ready ?? 0)}`).join(" · ") || "none ready yet"}</summary><div class="tablewrap"><table class="t"><tr><th>Product</th><th>Country pages</th><th>Country × profession</th><th>Question pages</th><th>City</th></tr>${s.pages.map((p) => `<tr><td>${esc(p.name)}</td><td><b>${p.country.ready}</b> ready · ${p.country.waiting} waiting${p.country.waiting ? ` <span class="fine">(${why(p.country.why)})</span>` : ""}</td><td>${p.countryProfession ? `<b>${p.countryProfession.ready}</b> ready (council found)` : "—"}</td><td><b>${p.questions.ready}</b> ready · ${p.questions.waiting} waiting${p.questions.waiting ? ` <span class="fine">(${why(p.questions.why)})</span>` : ""}</td><td>0</td></tr>`).join("")}</table></div><p class="fine">Test dates are part of the country page. City pages: none (the rule).</p></details>` : "";
+  /* RR-333 D · AlmiVisibility's own pages: features, use-cases, how-to, free tools, comparisons — ready / waiting / why */
+  const v = s.visibility, fam = (n, x) => `<tr><td>${n}</td><td><b>${x.ready}</b></td><td>${x.waiting}</td><td class="fine">${esc(x.why ?? "—")}</td></tr>`;
+  const vis = v ? `<h2>AlmiVisibility — its own pages</h2><div class="tablewrap"><table class="t"><tr><th>Family</th><th>Ready</th><th>Waiting</th><th>Why</th></tr>${fam("Features", v.features)}${fam("Use-cases by business", v.useCases)}${fam("How-to guides", v.howTo)}${fam("Free tools", v.freeTools)}${fam("Comparisons", v.comparisons)}</table></div><p class="fine">Locations with demand: ${v.locations.length ? esc(v.locations.slice(0, 8).map((l) => `${l.location} ${l.volume.toLocaleString("en-US")}`).join(" · ")) : "none recorded yet"} — never all 197 by default. No country five-part rule (software).</p><form method="post" action="/owner/visibility/questions"><label class="f">Questions people ask you about AlmiVisibility (one a line) <textarea name="text" rows="3" style="width:100%"></textarea></label><p><button class="pill ghost" type="submit">Save these questions</button></p></form>` : "";
   const gsc = `<form method="post" action="/owner/search-console" class="row"><button class="pill ghost" type="submit">Read Search Console now</button></form>`;
   const sp = s.spend ? `<p>AI spend: today <b>${usd(s.spend.today)}</b> of ${usd(s.spend.cap)} · this month <b>${usd(s.spend.month)}</b></p>` : "";
   const k = s.keywords, kw = k ? `<h2>Keywords — the queue</h2><p>${k.products.slice(0, 3).map((x) => `${esc(x.name)}: <b>${x.firstDone}/${x.first}</b>`).join(" · ")} (first 30 countries and all locations)</p><p>${k.due.toLocaleString("en-US")} of ${k.total.toLocaleString("en-US")} requests still to do · about ${k.days} days at ${k.perDay.toLocaleString("en-US")} a day${k.measured ? "" : " (an estimate until 2 days are measured)"}</p>` : "";
-  const st = s.storage, db = st && st.mb !== null ? `<p>Database: <b>${Math.round(st.mb)} MB</b> of ${st.limit.toLocaleString("en-US")} MB${st.growth !== null ? ` · growing about ${st.growth} MB a day${st.fullOn ? ` → full about <b>${esc(st.fullOn)}</b>${st.fullIn <= 30 ? " — upgrade the Neon project to the Launch plan before then" : ""}` : ""}` : " · its growth is measured from the next runs"}</p>` : "";
-  return `${red}${wk}${facts}${pages}${sp}${kw}${db}${gsc}`;
+  const st = s.storage, db = st && st.mb !== null ? `<p>Database: <b>${Math.round(st.mb)} MB</b> of ${st.limit.toLocaleString("en-US")} MB${st.growth !== null ? ` · growing about ${st.growth} MB a day${st.fullOn ? ` → full about <b>${esc(st.fullOn)}</b>${st.fullIn <= 30 ? " — upgrade the Neon project to the Launch plan before then" : ""}` : ""}` : " · its growth is measured from the next runs"}${st.tables?.length ? `<br><span class="fine">Biggest: ${st.tables.slice(0, 5).map((t) => `${esc(t.name)} ${t.mb} MB (${Number(t.rows).toLocaleString("en-US")} rows)`).join(" · ")}</span>` : ""}</p>` : "";
+  return `${red}${wk}${facts}${pages}${vis}${sp}${kw}${db}${gsc}`;
 }
 /** the queue on /owner: one tap moves a product or a country one place up */
 function queueHtml(q, names, moved) {
@@ -463,7 +467,7 @@ export function countriesTable({ order, byC, facts, tasks = {}, product = "oet",
   return `<div class="tablewrap"><table class="t"><tr><th>Country</th>${head.map((h) => `<th>${esc(h)}</th>`).join("")}${dated ? "<th>Test dates</th>" : ""}<th>Last updated</th></tr>${rows}</table></div>`;
 }
 /* "AUD 587 — about 114,260 PKR" from the fee line (its source and rate stay in the country's detail) */
-const feeShort = (v) => { const line = String(v?.line ?? v?.text ?? "").trim(); if (!line) return "✓"; const m = /^(.*?)\s*\((?:ExchangeRate-API|the open rate|[^)]*rate)/.exec(line); return (m ? m[1] : line.split(/ — an estimate| \(/)[0]).replace(/[,;]\s*$/, "").trim(); };
+const feeShort = (v) => feeShown(v) ?? "✓";
 const upcomingIn = (dates = [], today) => (dates ?? []).filter((d) => !today || d.date >= today);
 export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
@@ -503,7 +507,7 @@ const PART_SHORT = { fee: "Fee", questions: "Questions", centres: "Centres", cou
 const factLine = (f) => {
   const v = f.value ?? {};
   if (f.status === "owner") return `${v.text ?? ""}${v.link ? ` · ${v.link}` : ""}`; // RR-329: the owner's own words first, whatever part
-  if (f.part === "fee") return `${v.line ?? ""}`;
+  if (f.part === "fee") return `${feeShown(v) ?? v.line ?? ""}${v.rate?.source ? ` · rate: ${v.rate.source}` : ""}`;
   if (f.part === "centres") return v.venue ? "a venue named on OET's own pages" : `no venue — ${v.home ?? "at home not stated"}${v.nearest?.length ? `; nearest venues: ${v.nearest.join(", ")}` : "; no nearest venue"}`;
   if (f.part === "councils") return `${f.profession}: ${v.name ?? "?"}${v.nameType ? ` (${v.nameType})` : ""} · ${v.website ?? "no website"} · ${v.address ?? `address missing${v.addressWhy ? ` (${v.addressWhy})` : ""}`}`;
   if (f.part === "questions") return `“${v.question ?? ""}” (${Number(v.volume ?? 0).toLocaleString("en-US")} a month) → ${v.answer ?? "no answer yet"}`;

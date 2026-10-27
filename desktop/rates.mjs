@@ -137,3 +137,17 @@ export function feeInCurrency(fee, country, rates) {
   const amount = Math.round(steps.reduce((a, s) => a * s.rate, fee.amount));
   return { line: `${said} ≈ ${cur} ${amount.toLocaleString("en-US")} — an estimate from the ${steps.map((s) => (s.peg ? `${s.short}'s official peg (1 ${s.from} = ${s.said} ${s.to})` : `${s.short} rate of ${s.rateDate} (1 ${s.from} = ${s.said} ${s.to})`)).join(" and the ")}, not an official price`, currency: cur, amount, steps };
 }
+
+/**
+ * RR-333 · ONE style for the fee everywhere (owner, 27 Oct): "AUD 587 — about 39,229 INR (2026-10-26)" — the official fee, "about" the
+ * amount in the country's own money, and the rate's date; the official fee alone where the money is the fee's own (or no rate yet).
+ * `v` is a fee fact's value { official, amount, currency, rate: { date } } (site/cf-collector.mjs).
+ */
+export function feeShown(v, { date = true } = {}) {
+  if (!v) return null;
+  if (v.text && !v.official) return String(v.text);
+  const official = String(v.official ?? "").trim(), cur = v.currency, amount = Number(v.amount);
+  if (!official) return String(v.line ?? "").split(" (")[0] || null;
+  if (!cur || !Number.isFinite(amount) || amount <= 0 || official.startsWith(`${cur} `)) return official;
+  return `${official} — about ${Math.round(amount).toLocaleString("en-US")} ${cur}${date && v.rate?.date ? ` (${v.rate.date})` : ""}`;
+}

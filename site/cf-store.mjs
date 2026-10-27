@@ -109,6 +109,8 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
       return { added: n };
     },
     async questions({ product = "oet", country, source = null }) { await ensure(); return (await q(`SELECT source, text, ref, at, clicks, impressions FROM cf_question WHERE product = $1 AND country = $2${source ? " AND source = $3" : ""} ORDER BY at DESC, id`, source ? [product, country, source] : [product, country])).map((r) => ({ source: r.source, text: r.text, ref: r.ref, at: new Date(r.at).toISOString(), clicks: r.clicks ?? null, impressions: r.impressions ?? null })); },
+    /** RR-333 D · every question asked about a product, any country (AlmiVisibility has no country pages) */
+    async productQuestions(product) { await ensure(); return (await q("SELECT country, source, text, impressions FROM cf_question WHERE product = $1", [product])).map((r) => ({ country: r.country, source: r.source, text: r.text, impressions: r.impressions ?? null })); },
     /** YouTube's rule: a comment's words older than `before` are deleted → how many */
     async dropQuestions({ source, before }) { await ensure(); return (await q("DELETE FROM cf_question WHERE source = $1 AND at < $2 RETURNING id", [source, before])).length; },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
@@ -157,6 +159,7 @@ export function cfMemoryStore() {
       return { added: n };
     },
     async questions({ product = "oet", country, source = null }) { return [...asked.entries()].filter(([, v]) => v.product === product && v.country === country && (!source || v.source === source)).sort((a, b) => b[1].at.localeCompare(a[1].at) || a[0].localeCompare(b[0])).map(([, v]) => ({ source: v.source, text: v.text, ref: v.ref, at: v.at, clicks: v.clicks ?? null, impressions: v.impressions ?? null })); },
+    async productQuestions(product) { return [...asked.values()].filter((v) => v.product === product).map((v) => ({ country: v.country, source: v.source, text: v.text, impressions: v.impressions ?? null })); },
     async dropQuestions({ source, before }) { let n = 0; for (const [k, v] of asked) if (v.source === source && v.at < new Date(before).toISOString()) { asked.delete(k); n++; } return n; },
     async close() {},
   });

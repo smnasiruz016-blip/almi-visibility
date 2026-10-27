@@ -17,7 +17,7 @@ import { ownerCookie } from "../site/owner.mjs";
 const ON = "2026-10-27", T0 = Date.parse(`${ON}T10:00:00Z`);
 const F = (country, part, key, value, extra = {}) => ({ key, country, profession: null, part, kind: part, value, sourceUrl: `https://${part}.example/${country.toLowerCase()}`, sourceTitle: part, readOn: ON, status: "confirmed", by: "collector", aiWritten: false, proposedBy: "official", why: null, product: "oet", ...extra });
 const council = (c, p, whole = true) => F(c, "councils", `council|${c}|${p}`, { name: `Invented ${p} council`, website: "https://ic.example", address: whole ? "1 Invented Road, City 44000" : null }, { profession: p });
-const DONE = (c) => [F(c, "fee", `fee|${c}`, { official: "AUD 587", line: "AUD 587 — about 114,260 PKR (ExchangeRate-API's open rate of 2026-10-26: 1 AUD = 194.65 PKR; Rates By Exchange Rate API), not an official price", local: true }),
+const DONE = (c) => [F(c, "fee", `fee|${c}`, { official: "AUD 587", amount: 114260, currency: "PKR", rate: { date: "2026-10-26", source: "ExchangeRate-API" }, line: "AUD 587 — about 114,260 PKR (ExchangeRate-API's open rate of 2026-10-26: 1 AUD = 194.65 PKR; Rates By Exchange Rate API), not an official price", local: true }),
   F(c, "questions", `question|${c}|home`, { question: "can i take oet at home", answer: "Yes …", answerKind: "official", pageable: true }), F(c, "questions", `question|${c}|fees~x`, { question: "fee in rupees", answer: "General …", answerKind: "guidance", pageable: false }),
   F(c, "centres", `centres|${c}`, { venue: true }), council(c, "nursing"), council(c, "medicine"), F(c, "rules", `rule|${c}|x|1`, { rule: "A rule." })];
 
@@ -47,7 +47,7 @@ test("B · RR-332: /owner and /owner/countries agree — the fee itself in the t
   const req = async (p, { method = "GET", owner = true } = {}) => { const r = await fetch(base + p, { method, headers: owner ? { cookie } : {}, redirect: "manual" }); return { status: r.status, text: await r.text() }; };
   try {
     const c = (await req("/owner/countries")).text;
-    assert.match(c, /<tr><td><a href="\/owner\/countries\?c=India">India<\/a><\/td><td>AUD 587 — about 114,260 PKR <span class="fine">2026-10-27<\/span><\/td><td>2 \/ 2 <span class="fine">2026-10-27<\/span><\/td><td>a venue <span class="fine">2026-10-27<\/span><\/td><td>2\/12 <span class="fine">2026-10-27<\/span><\/td><td>1 <span class="fine">2026-10-27<\/span><\/td>/);
+    assert.match(c, /<tr><td><a href="\/owner\/countries\?c=India">India<\/a><\/td><td>AUD 587 — about 114,260 PKR \(2026-10-26\) <span class="fine">2026-10-27<\/span><\/td><td>2 \/ 2 <span class="fine">2026-10-27<\/span><\/td><td>a venue <span class="fine">2026-10-27<\/span><\/td><td>2\/12 <span class="fine">2026-10-27<\/span><\/td><td>1 <span class="fine">2026-10-27<\/span><\/td>/);
     assert.doesNotMatch(c, /<td>true|<td>false|\[object/, "never a yes/no or a raw object in a cell");
     assert.match(c, /First 15 countries: \d+% done<\/b> · fee 2\/15 · questions 2\/15 · centres 2\/15 · councils 2\/15/);
     assert.match(c, /13 still to try in full/, "13 of the first 15 not done — the same count as /owner");

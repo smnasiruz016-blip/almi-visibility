@@ -20,9 +20,9 @@ export const BACKGROUND_EVERY = 4;
 export const QUEUE_COUNTRIES = Object.freeze([...FIRST_15, ...NEXT_15, ...COUNTRIES.filter((c) => !FIRST_15.includes(c) && !NEXT_15.includes(c))]);
 /* the products by the keys of the keyword seed list (site/kw-seeds.mjs product:<key>); tier = the owner's numbering */
 export const QUEUE_PRODUCTS = Object.freeze([
-  ["oet", 1], ["cv", 2], ["jobs", 3], ["study", 3], ["salary", 3], ["prep", 4], ["pte", 4], ["toefl", 4], ["det", 4], ["celpip", 4],
+  /* RR-333 D (owner, 27 Oct): AlmiVisibility SECOND, right after AlmiOET — it needs its own pages at launch */
+  ["oet", 1], ["visibility", 1], ["cv", 2], ["jobs", 3], ["study", 3], ["salary", 3], ["prep", 4], ["pte", 4], ["toefl", 4], ["det", 4], ["celpip", 4],
   ["french", 5], ["goethe", 5], ["spanish", 5], ["italian", 5], ["portuguese", 5], ["dutch", 5], ["japanese", 5], ["korean", 5], ["danish", 5], ["norwegian", 5], ["swedish", 5], ["icelandic", 5], ["swiss", 5],
-  ["visibility", 6],
 ].map(([key, tier]) => Object.freeze({ key, tier })));
 export const DEFAULT_QUEUE = Object.freeze({ products: Object.freeze(QUEUE_PRODUCTS.map((p) => p.key)), countries: QUEUE_COUNTRIES });
 

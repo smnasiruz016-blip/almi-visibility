@@ -52,11 +52,11 @@ test("A · RR-329 (rule R4): the owner's product order and country order — his
   assert.deepEqual(FIRST_15.slice(0, 3), ["India", "Philippines", "Pakistan"]); assert.equal(NEXT_15.at(-1), "Iran");
   assert.equal(QUEUE_COUNTRIES.length, 197); assert.deepEqual([...QUEUE_COUNTRIES].sort(), [...COUNTRIES].sort(), "every country once");
   assert.deepEqual(QUEUE_COUNTRIES.slice(30, 33), ["Afghanistan", "Albania", "Algeria"], "then the rest, A–Z");
-  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 10), ["oet", "cv", "jobs", "study", "salary", "prep", "pte", "toefl", "det", "celpip"]);
+  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 11), ["oet", "visibility", "cv", "jobs", "study", "salary", "prep", "pte", "toefl", "det", "celpip"], "RR-333 D: AlmiVisibility second");
   assert.deepEqual(QUEUE_PRODUCTS.filter((p) => p.tier === 5).map((p) => p.key), ["french", "goethe", "spanish", "italian", "portuguese", "dutch", "japanese", "korean", "danish", "norwegian", "swedish", "icelandic", "swiss"]);
   /* editable: his order first, a new product or country always there, an unknown one dropped */
   const q = queueOf({ products: ["cv", "nope", "oet", "cv"], countries: ["Kenya"] });
-  assert.deepEqual(q.products.slice(0, 3), ["cv", "oet", "jobs"]); assert.equal(q.products.length, DEFAULT_QUEUE.products.length); assert.equal(q.countries[0], "Kenya"); assert.equal(q.countries.length, 197);
+  assert.deepEqual(q.products.slice(0, 3), ["cv", "oet", "visibility"], "his order first, then the default (RR-333 D: AlmiVisibility second)"); assert.equal(q.products.length, DEFAULT_QUEUE.products.length); assert.equal(q.countries[0], "Kenya"); assert.equal(q.countries.length, 197);
   assert.deepEqual(moveUp(["a", "b", "c"], "c"), ["a", "c", "b"]); assert.deepEqual(moveUp(["a", "b"], "a"), ["a", "b"], "the first stays first");
 });
 
@@ -274,7 +274,7 @@ test("E + D · RR-329: /owner on a phone — the numbers first (This week, the q
     assert.doesNotMatch(page, /sk-ant-test/, "a key is never shown");
     /* the queue: one tap moves AlmiCV above AlmiOET; both collectors read it */
     const moved = await a.req("/owner/queue", { method: "POST", form: { kind: "product", item: "cv" } }); assert.equal(moved.status, 303); assert.match(moved.headers.get("location"), /moved=cv#queue/);
-    assert.deepEqual((await queueNow(a.K.kv)).products.slice(0, 2), ["cv", "oet"]);
+    assert.deepEqual((await queueNow(a.K.kv)).products.slice(0, 3), ["oet", "cv", "visibility"], "one tap: one place up (RR-333 D: AlmiVisibility is second by default)");
     assert.match((await a.req("/owner?moved=cv")).text, /<details id="queue" open>/);
     assert.equal((await a.req("/owner/queue", { method: "POST", form: { kind: "country", item: "Atlantis" } })).status, 400);
     assert.equal((await a.req("/owner/queue", { method: "POST", form: { kind: "product", item: "cv" }, owner: false })).status, 403);

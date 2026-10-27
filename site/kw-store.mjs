@@ -4,7 +4,10 @@
  * first use) — nothing is run against it from a developer's computer.
  *   kw_fetch          one request's worth of keywords: what was asked (seed key), where (location), in which language, on which day —
  *                     UNIQUE per (seed key, location, language, day): the same thing is never collected twice in a day
- *   kw_observation    a keyword's Google figures for one location, language and DAY — a later day adds a row, the old ones stay (history)
+ *   kw_observation    a keyword's Google figures for one location, language and DAY — a later day adds a row ONLY when a figure CHANGED
+ *                     (RR-333: Google's figures are 12-month averages it updates monthly; an unchanged re-fetch stored the same row
+ *                     again every day — the database's main growth); the old ones stay (history). A reader takes the newest figure
+ *                     on or before the day it asks for; "today" counts the keywords FETCHED today (kw_fetch_keyword).
  *   kw_fetch_keyword  which keywords a fetch returned (the finder serves a search from it)
  *   kw_group_keyword  which product / category / YouTube niche a keyword was collected for, per location, and its last day
  *   kw_seed_list      the owner's editable seed list (site/kw-seeds.mjs)
@@ -48,7 +51,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
         if (!ins) return { duplicate: true, stored: 0 };
         if (rows.length) {
           const k = rows.map((r) => r.keyword), v = rows.map((r) => r.volume), m = rows.map((r) => (r.months ? JSON.stringify(r.months) : null));
-          await x("INSERT INTO kw_observation (keyword, location, language, day, avg_monthly_searches, months, period, at) SELECT t.k, $4, $5, $6, t.v, t.m::jsonb, $7, $8 FROM unnest($1::text[], $2::bigint[], $3::text[]) AS t(k, v, m) ON CONFLICT (keyword, location, language, day) DO UPDATE SET avg_monthly_searches = EXCLUDED.avg_monthly_searches, months = EXCLUDED.months, period = EXCLUDED.period, at = EXCLUDED.at",
+          await x("INSERT INTO kw_observation (keyword, location, language, day, avg_monthly_searches, months, period, at) SELECT t.k, $4, $5, $6, t.v, t.m::jsonb, $7, $8 FROM unnest($1::text[], $2::bigint[], $3::text[]) AS t(k, v, m) WHERE NOT EXISTS (SELECT 1 FROM (SELECT p.avg_monthly_searches, p.months FROM kw_observation p WHERE p.keyword = t.k AND p.location = $4 AND p.language = $5 AND p.day < $6 ORDER BY p.day DESC LIMIT 1) l WHERE l.avg_monthly_searches IS NOT DISTINCT FROM t.v AND l.months IS NOT DISTINCT FROM t.m::jsonb) ON CONFLICT (keyword, location, language, day) DO UPDATE SET avg_monthly_searches = EXCLUDED.avg_monthly_searches, months = EXCLUDED.months, period = EXCLUDED.period, at = EXCLUDED.at",
             [k, v, m, f.location, f.language, f.day, f.period ?? null, f.at]);
           await x("INSERT INTO kw_fetch_keyword (fetch_id, keyword) SELECT $1, unnest($2::text[]) ON CONFLICT DO NOTHING", [ins.id, k]);
           if (f.group) await x("INSERT INTO kw_group_keyword (grp, keyword, location, last_day) SELECT $1, unnest($2::text[]), $3, $4 ON CONFLICT (grp, keyword, location) DO UPDATE SET last_day = GREATEST(kw_group_keyword.last_day, EXCLUDED.last_day)", [f.group, k, f.location, f.day]);
@@ -61,7 +64,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       await ensure();
       const [f] = await q("SELECT id, day::text AS day, period, at::text AS at FROM kw_fetch WHERE seed_key = $1 AND location = $2 AND language = $3 AND day >= $4 ORDER BY day DESC LIMIT 1", [seedKey, location, language, since]);
       if (!f) return null;
-      const rows = await q("SELECT o.keyword, o.avg_monthly_searches::text AS volume, o.months FROM kw_fetch_keyword fk JOIN kw_observation o ON o.keyword = fk.keyword AND o.location = $2 AND o.language = $3 AND o.day = $4 WHERE fk.fetch_id = $1 ORDER BY o.avg_monthly_searches DESC NULLS LAST, o.keyword", [f.id, location, language, f.day]);
+      const rows = await q("SELECT o.keyword, o.avg_monthly_searches::text AS volume, o.months FROM kw_fetch_keyword fk JOIN LATERAL (SELECT * FROM kw_observation x WHERE x.keyword = fk.keyword AND x.location = $2 AND x.language = $3 AND x.day <= $4 ORDER BY x.day DESC LIMIT 1) o ON true WHERE fk.fetch_id = $1 ORDER BY o.avg_monthly_searches DESC NULLS LAST, o.keyword", [f.id, location, language, f.day]);
       return { day: f.day, period: f.period, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
     },
     /* RR-326 I · the owner's Keyword Planner files (kw-import.mjs) */
@@ -76,7 +79,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       await ensure();
       const res = phrases.map((p) => String(p).split(" ").filter(Boolean).map((w) => `(?=.*\\m${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\M)`).join("")).filter(Boolean);
       if (!res.length) return null;
-      const rows = await q(`SELECT * FROM (SELECT DISTINCT ON (o.keyword) o.keyword, o.avg_monthly_searches::text AS volume, o.months, o.day::text AS day, o.period FROM kw_observation o JOIN kw_fetch_keyword fk ON fk.keyword = o.keyword JOIN kw_fetch f ON f.id = fk.fetch_id AND f.kind = 'file' AND f.location = o.location AND f.language = o.language AND f.day = o.day WHERE o.location = $1 AND o.language = $2 AND o.keyword ~ ANY($3::text[]) ORDER BY o.keyword, o.day DESC) x ORDER BY (volume IS NULL), volume::bigint DESC, keyword LIMIT $4`, [location, language, res, limit]);
+      const rows = await q(`SELECT * FROM (SELECT DISTINCT ON (o.keyword) o.keyword, o.avg_monthly_searches::text AS volume, o.months, o.day::text AS day, o.period FROM kw_observation o JOIN kw_fetch_keyword fk ON fk.keyword = o.keyword JOIN kw_fetch f ON f.id = fk.fetch_id AND f.kind = 'file' AND f.location = o.location AND f.language = o.language AND o.day <= f.day WHERE o.location = $1 AND o.language = $2 AND o.keyword ~ ANY($3::text[]) ORDER BY o.keyword, o.day DESC) x ORDER BY (volume IS NULL), volume::bigint DESC, keyword LIMIT $4`, [location, language, res, limit]);
       if (!rows.length) return null;
       return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
     },
@@ -91,12 +94,16 @@ export function pgStore({ url, Pool = null, max = 3 }) {
     /** the owner's page: totals, today, per group (keywords, countries, last refresh), per location */
     async counts(day) {
       await ensure();
-      const [t] = await q("SELECT count(DISTINCT keyword)::int AS keywords, count(*)::int AS observations, count(DISTINCT keyword) FILTER (WHERE day = $1)::int AS today FROM kw_observation", [day]);
+      const [t] = await q("SELECT count(DISTINCT keyword)::int AS keywords, count(*)::int AS observations, 0 AS today FROM kw_observation"); t.today = (await q("SELECT count(DISTINCT fk.keyword)::int AS n FROM kw_fetch_keyword fk JOIN kw_fetch f ON f.id = fk.fetch_id WHERE f.day = $1", [day]))[0]?.n ?? 0;
       const groups = await q("SELECT grp, count(DISTINCT keyword)::int AS keywords, count(DISTINCT keyword) FILTER (WHERE last_day = $1)::int AS today, count(DISTINCT location)::int AS locations, max(last_day)::text AS last FROM kw_group_keyword GROUP BY grp ORDER BY grp", [day]);
-      const locs = await q("SELECT location, count(DISTINCT keyword)::int AS keywords, count(DISTINCT keyword) FILTER (WHERE day = $1)::int AS today FROM kw_observation GROUP BY location ORDER BY location", [day]);
+      const locs = await q("SELECT o.location, count(DISTINCT o.keyword)::int AS keywords, (SELECT count(DISTINCT fk.keyword)::int FROM kw_fetch_keyword fk JOIN kw_fetch f ON f.id = fk.fetch_id WHERE f.day = $1 AND f.location = o.location) AS today FROM kw_observation o GROUP BY o.location ORDER BY o.location", [day]);
       const fetches = await q("SELECT kind, count(*)::int AS n, coalesce(sum(ops), 0)::int AS ops FROM kw_fetch WHERE day = $1 GROUP BY kind", [day]);
       return { ...t, groups, locations: locs, fetchesToday: Object.fromEntries(fetches.map((r) => [r.kind, { fetches: r.n, ops: r.ops }])) };
     },
+    /** RR-333 D · the keywords collected for some groups (a product, our Search Console), each with its newest figure per location */
+    async groupKeywords(groups) { await ensure(); return (await q("SELECT gk.keyword, gk.location, o.avg_monthly_searches::text AS volume, gk.grp FROM kw_group_keyword gk LEFT JOIN LATERAL (SELECT avg_monthly_searches FROM kw_observation x WHERE x.keyword = gk.keyword AND x.location = gk.location ORDER BY x.day DESC LIMIT 1) o ON true WHERE gk.grp = ANY($1::text[])", [groups])).map((r) => ({ keyword: r.keyword, location: r.location, volume: r.volume === null ? null : Number(r.volume), group: r.grp })); },
+    /** RR-333 · what takes the room: the biggest tables (their own size with indexes), in MB — for /owner */
+    async tableSizes() { await ensure(); return (await q("SELECT relname AS name, round(pg_total_relation_size(relid) / 1048576.0, 1)::float8 AS mb, n_live_tup::bigint AS rows FROM pg_catalog.pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 8")).map((r) => ({ name: r.name, mb: Number(r.mb), rows: Number(r.rows) })); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }
@@ -106,8 +113,11 @@ export function memoryStore({ sizeMb = null } = {}) {
   let list = null, nextId = 1;
   const fetches = new Map(), obs = new Map(), fk = new Map(), gk = new Map();
   const fkey = (f) => `${f.seedKey}|${f.location}|${f.language}|${f.day}`;
+  const newestAt = (keyword, location, language, day, before = false) => { let best = null; for (const o of obs.values()) if (o.keyword === keyword && o.location === location && o.language === language && (before ? o.day < day : o.day <= day) && (!best || o.day > best.day)) best = o; return best; };
+  const fetchedOn = (day) => { const ids = new Map([...fetches.values()].filter((f) => f.day === day).map((f) => [f.id, f])); return [...fk.values()].filter((x) => ids.has(x.id)).map((x) => ({ keyword: x.keyword, location: ids.get(x.id).location })); };
   return Object.freeze({
     kind: "memory", ensure: async () => {},
+    /* RR-333: the newest figure on or before a day (an unchanged figure is not stored again); the keywords fetched on a day */
     async seedList() { return list ? { ...list } : null; },
     async setSeedList(text, at) { list = { text, at }; },
     async fetchedSince(since) { const m = new Map(); for (const f of fetches.values()) if (f.day >= since) { const k = `${f.seedKey}|${f.location}|${f.language}`; if (!m.has(k) || m.get(k) < f.day) m.set(k, f.day); } return m; },
@@ -116,7 +126,8 @@ export function memoryStore({ sizeMb = null } = {}) {
       const rows = clean(f.rows), id = nextId++;
       fetches.set(fkey(f), { id, kind: f.kind, group: f.group ?? null, seedKey: f.seedKey, location: f.location, language: f.language, day: f.day, period: f.period ?? null, ops: f.ops });
       for (const r of rows) {
-        obs.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, volume: r.volume, months: r.months, period: f.period ?? null });
+        const prev = newestAt(r.keyword, f.location, f.language, f.day, true);
+        if (!prev || prev.volume !== r.volume || JSON.stringify(prev.months ?? null) !== JSON.stringify(r.months ?? null)) obs.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, volume: r.volume, months: r.months, period: f.period ?? null });
         fk.set(`${id}|${r.keyword}`, { id, keyword: r.keyword });
         if (f.group) { const k = `${f.group}|${r.keyword}|${f.location}`, o = gk.get(k); gk.set(k, { grp: f.group, keyword: r.keyword, location: f.location, last: o && o.last > f.day ? o.last : f.day }); }
       }
@@ -125,7 +136,7 @@ export function memoryStore({ sizeMb = null } = {}) {
     async findFetch({ seedKey, location, language, since }) {
       const f = [...fetches.values()].filter((x) => x.seedKey === seedKey && x.location === location && x.language === language && x.day >= since).sort((a, b) => b.day.localeCompare(a.day))[0];
       if (!f) return null;
-      const rows = [...fk.values()].filter((x) => x.id === f.id).map((x) => obs.get(`${x.keyword}|${location}|${language}|${f.day}`)).filter(Boolean)
+      const rows = [...fk.values()].filter((x) => x.id === f.id).map((x) => newestAt(x.keyword, location, language, f.day)).filter(Boolean)
         .map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword));
       return { day: f.day, period: f.period, rows };
     },
@@ -138,7 +149,7 @@ export function memoryStore({ sizeMb = null } = {}) {
       const files = [...fetches.values()].filter((f) => f.kind === "file" && f.location === location && f.language === language), best = new Map();
       for (const f of files) for (const x of fk.values()) {
         if (x.id !== f.id || !tests.some((t) => t.every((r) => r.test(x.keyword)))) continue;
-        const o = obs.get(`${x.keyword}|${location}|${language}|${f.day}`); if (o && (!best.has(o.keyword) || best.get(o.keyword).day < o.day)) best.set(o.keyword, o);
+        const o = newestAt(x.keyword, location, language, f.day); if (o && (!best.has(o.keyword) || best.get(o.keyword).day < o.day)) best.set(o.keyword, o);
       }
       const rows = [...best.values()].sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword)).slice(0, limit);
       if (!rows.length) return null;
@@ -149,13 +160,14 @@ export function memoryStore({ sizeMb = null } = {}) {
       return [...best.values()].sort((a, b) => (a.volume === null) - (b.volume === null) || (b.volume ?? 0) - (a.volume ?? 0) || a.keyword.localeCompare(b.keyword)).slice(0, limit).map((o) => ({ keyword: o.keyword, volume: o.volume, day: o.day, period: o.period }));
     },
     /* the tests hand a size in (a number, or a function of what is held) */
+    async groupKeywords(groups) { return [...gk.values()].filter((x) => groups.includes(x.grp)).map((x) => { let best = null; for (const o of obs.values()) if (o.keyword === x.keyword && o.location === x.location && (!best || o.day > best.day)) best = o; return { keyword: x.keyword, location: x.location, volume: best?.volume ?? null, group: x.grp }; }); },
     async sizeMb() { return typeof sizeMb === "function" ? sizeMb({ observations: obs.size, fetches: fetches.size }) : sizeMb; },
     async counts(day) {
       const o = [...obs.values()], d = (xs) => new Set(xs).size;
       const groups = [...new Set([...gk.values()].map((x) => x.grp))].sort().map((g) => { const xs = [...gk.values()].filter((x) => x.grp === g); return { grp: g, keywords: d(xs.map((x) => x.keyword)), today: d(xs.filter((x) => x.last === day).map((x) => x.keyword)), locations: d(xs.map((x) => x.location)), last: xs.map((x) => x.last).sort().at(-1) }; });
-      const locations = [...new Set(o.map((x) => x.location))].sort().map((l) => ({ location: l, keywords: d(o.filter((x) => x.location === l).map((x) => x.keyword)), today: d(o.filter((x) => x.location === l && x.day === day).map((x) => x.keyword)) }));
+      const locations = [...new Set(o.map((x) => x.location))].sort().map((l) => ({ location: l, keywords: d(o.filter((x) => x.location === l).map((x) => x.keyword)), today: d(fetchedOn(day).filter((x) => x.location === l).map((x) => x.keyword)) }));
       const fd = [...fetches.values()].filter((f) => f.day === day), kinds = [...new Set(fd.map((f) => f.kind))];
-      return { keywords: d(o.map((x) => x.keyword)), observations: o.length, today: d(o.filter((x) => x.day === day).map((x) => x.keyword)), groups, locations,
+      return { keywords: d(o.map((x) => x.keyword)), observations: o.length, today: d(fetchedOn(day).map((x) => x.keyword)), groups, locations,
         fetchesToday: Object.fromEntries(kinds.map((k) => [k, { fetches: fd.filter((f) => f.kind === k).length, ops: fd.filter((f) => f.kind === k).reduce((s, f) => s + f.ops, 0) }])) };
     },
     async close() {},

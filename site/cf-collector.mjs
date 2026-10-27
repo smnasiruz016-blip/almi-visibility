@@ -28,7 +28,7 @@ import { COUNTRIES, neighboursOf } from "../desktop/world.mjs";
 import { CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilWhole, questionGroups, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS } from "../desktop/country-facts.mjs";
 import { PRODUCT_FACTS, PART_INFO, FACT_PRODUCTS, searchedParts, bodyParts, ownerSite } from "../desktop/product-facts.mjs";
 import { feeOf } from "../desktop/fee.mjs";
-import { readRates, feeInCurrency, CURRENCY_OF, localShown as localFee } from "../desktop/rates.mjs";
+import { readRates, feeInCurrency, CURRENCY_OF, localShown as localFee, feeShown } from "../desktop/rates.mjs";
 import { venueCountries } from "../desktop/venues.mjs";
 import { BRANDS } from "./kw-finder.mjs";
 import ORIGIN from "../desktop/lists/almiworld-oet-origin-facts.json" with { type: "json" };
@@ -37,6 +37,10 @@ import { DEFAULT_QUEUE, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { askAi, aiConfigured, councilQuestion, ruleQuestion, answerQuestion, productQuestion } from "./cf-ai.mjs";
 import { collectQuestions } from "./cf-questions.mjs";
+import { youtubeApi } from "../src/video/youtube.mjs";
+import { questionsInComment } from "../desktop/real-questions.mjs";
+/* RR-333 D: what people ask under videos about what AlmiVisibility does (3 searches a week of YouTube's 100 a day) */
+export const VIS_YOUTUBE = Object.freeze(["AI search visibility", "keyword research tool", "website SEO audit"]);
 
 export const CF_SUBJECT = Object.freeze({ name: "OET", site: "https://oet.com" });
 export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
@@ -68,7 +72,8 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
   const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], finished: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null };
   /* RR-328 addition (rule R1): a council still "searching" is searched again every day — once a day, never stopped at "missing" */
-  const due = (c, t) => { const x = tasks.get(`${c}|${t}`); return !x || (x.state === "searching" ? x.day !== today : x.state !== "done" || daysBetween(x.day, today) >= refreshOf(t)); };
+  /* RR-333: a questions task finished by the RR-328 code (no stats: keywords only) is due at once — the cause of India's "—" */
+  const due = (c, t) => { const x = tasks.get(`${c}|${t}`); if (x && t === "questions" && x.state === "done" && !x.tried?.stats) return true; return !x || (x.state === "searching" ? x.day !== today : x.state !== "done" || daysBetween(x.day, today) >= refreshOf(t)); };
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; return false; };
   const room = (needAi = false) => {
     if (now() - start > budgetMs) return stop("TIME", "This run's time is used — the next run continues.");
@@ -84,12 +89,27 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
   const finished = finishedIn(tasks), costs = {};
   try {
     let sitemap = null; const urls = async () => (sitemap ??= await reader.sitemapOf(subject.site)).urls ?? [];
+    /* RR-333 (owner, 27 Oct: a short run spent its whole time on exchange rates): the fee and the centres are a DAILY step of their own,
+     * taken only AFTER the first 15 countries' missing parts (below); the day's rates are read once and kept for the day (KV) */
+    let dailyDone = false;
+    const visibilityYouTube = async () => {
+      const last = (await store.questions({ product: "visibility", country: "*", source: "youtube" }))[0];
+      if (last && Date.parse(today) - Date.parse(last.at.slice(0, 10)) < 7 * 864e5) return;
+      const api = youtube ?? youtubeApi({ env, fetchImpl: youtubeFetch }); if (api.state !== "READY") return;
+      const found = [];
+      for (const q of VIS_YOUTUBE) for (const v of (await api.searchTopic(q, { max: 2, order: "relevance", relevanceLanguage: "en" })).slice(0, 2)) for (const c of await api.comments(v.videoId, { max: 50 })) for (const x of questionsInComment(c.text)) found.push({ text: x, ref: v.videoId });
+      await store.putQuestions({ product: "visibility", country: "*", source: "youtube", items: found, at: at() });
+    };
+    const dailySteps = async () => {
+    dailyDone = true;
+    /* ── 0 · RR-333 D: AlmiVisibility's questions on YouTube (official API, weekly; no country) ── */
+    try { await visibilityYouTube(); } catch { /* never stops the run */ }
     /* ── 1 · AlmiOET: the fee in every country's money (daily) ── */
     if (products.includes("oet") && due(ALL, "fee") && room()) {
       const fee = await feeOf({ urls: await urls(), subject: subject.name, subjectName: subject.name, reader });
       if (!fee.ok) await finish(ALL, "fee", "retry", fee.why);
       else {
-        const rates = await readRates({ reader, countries: COUNTRIES, on: at() });
+        const rates = await ratesOfToday({ kv, today, read: () => readRates({ reader, countries: COUNTRIES, on: at() }) });
         for (const c of COUNTRIES) {
           const f = feeInCurrency(fee, c, rates), last = f.steps?.at(-1) ?? null;
           await put({ key: `fee|${c}`, country: c, part: "fee", kind: "fee", value: { official: `${fee.currency} ${fee.amount}`, line: f.line, local: localFee(f.line), currency: f.currency ?? CURRENCY_OF[c] ?? null, amount: f.amount ?? null, rate: last ? { source: last.source, link: last.link, date: last.rateDate, said: last.said, open: Boolean(last.open) } : null }, sourceUrl: fee.source.url, sourceTitle: fee.source.title, readOn: fee.checkedOn, status: "confirmed" });
@@ -111,6 +131,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         await finish(ALL, "centres");
       }
     }
+    };
     /* ── 3 · per (product, country), in the queue's order: the front first, a background task (another country, a daily re-search) every 4th ── */
     const units = [];
     for (const p of products) for (const c of list) {
@@ -118,8 +139,12 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
       const background = finished(p, c) && ts.every((t) => tasks.get(`${c}|${t}`)?.state === "searching");
       units.push({ id: `${p}|${c}`, product: p, country: c, tasks: ts, background });
     }
+    const FIRST15 = new Set(queue.countries.slice(0, 15));
+    /* the very first run (no fee read yet) takes the daily step first: the fee questions are answered from it */
+    if (!tasks.has(`${ALL}|fee`)) { await dailySteps(); }
     for (const u of orderWork(units, { queue })) {
       if (out.stoppedBy) break;
+      if (!dailyDone && !(u.product === "oet" && FIRST15.has(u.country))) { await dailySteps(); if (out.stoppedBy) break; }
       const before = out.aiUsd, readsBefore = reader.requests(), wasFinished = finished(u.product, u.country);
       const facts = async () => (await store.facts({ country: u.country })).filter((f) => SHOWN_STATUS.includes(f.status));
       if (u.product === "oet") {
@@ -136,7 +161,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         async function questionsOf(country) {
           const loc = LOCATIONS.find((l) => l.name === country) ?? null;
           const known = await facts(), fee = known.find((f) => (f.product ?? "oet") === "oet" && f.part === "fee" && localFee(f.value?.line));
-          const lines = known.filter((f) => (f.product ?? "oet") === "oet").map((f) => f.part === "fee" ? (f.value?.line ? `the ${subject.name} fee: ${String(f.value.line).split(" — ")[0]}` : null) : f.part === "centres" ? (f.value.venue ? `${subject.name}'s own pages name a test venue in ${country}` : f.value.home ? `no venue in ${country}; ${f.value.home}${f.value.nearest?.length ? `; nearest venues: ${f.value.nearest.join(", ")}` : ""}` : null) : f.part === "councils" ? `${f.profession}: ${f.value.name}` : f.part === "rules" ? f.value.rule : null).filter(Boolean);
+          const lines = known.filter((f) => (f.product ?? "oet") === "oet").map((f) => f.part === "fee" ? (f.value?.line ? `the ${subject.name} fee: ${feeShown(f.value)}` : null) : f.part === "centres" ? (f.value.venue ? `${subject.name}'s own pages name a test venue in ${country}` : f.value.home ? `no venue in ${country}; ${f.value.home}${f.value.nearest?.length ? `; nearest venues: ${f.value.nearest.join(", ")}` : ""}` : null) : f.part === "councils" ? `${f.profession}: ${f.value.name}` : f.part === "rules" ? f.value.rule : null).filter(Boolean);
           const bodies = [...new Map(known.filter((f) => f.part === "councils" && f.value?.name).map((f) => [f.value.name, { name: f.value.name, website: f.value.website }])).values()];
           const r = await collectQuestions({ country, location: loc, subject: subject.name, subjectSite: subject.site, skip: BRANDS, fee, lines, bodies },
             { store, kwStore, env, reader, room, askOne, put, today, at, fetchImpl: youtubeFetch, youtube, aiOn: aiConfigured(env) });
@@ -269,6 +294,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
       return stillBodies.length ? finish(c, `${p}:facts`, "searching", `still searching for ${stillBodies.map((b) => PART_INFO[b].name).join(", ")} — again tomorrow`, tried) : finish(c, `${p}:facts`);
     }
 
+    if (!dailyDone && !out.stoppedBy) await dailySteps();
     out.reads = reader.requests() - r0;
     await store.addSpend(today, { aiUsd: out.aiUsd, reads: out.reads, searches: out.searches });
     /* the measured AI cost and page reads of a country per product: running averages the owner's ETA reads */
@@ -284,6 +310,14 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     await recordRun(kv, "facts", today, { progress: out.saved + out.done.length, code, why: out.why ?? (noKey ? "ANTHROPIC_API_KEY is not set in Vercel — the collector can only read official pages and AlmiOET's records." : out.aiError), aiUsd: out.aiUsd, facts: out.saved, finished: out.finished });
     return out;
   } finally { if (kv) try { const [held] = await kv.run([["GET", "av:cf:lock"]]); if (held === id) await kv.run([["DEL", "av:cf:lock"]]); } catch { /* it expires by itself */ } }
+}
+/* RR-333 · the day's exchange rates, read once a day (KV, 2 days) — every later run that day reuses them */
+export async function ratesOfToday({ kv, today, read }) {
+  const key = `av:cf:rates:${today}`;
+  if (kv) { try { const [r] = await kv.run([["GET", key]]); if (r) return JSON.parse(r); } catch { /* read them */ } }
+  const rates = await read();
+  if (kv) try { await kv.run([["SET", key, JSON.stringify(rates), "EX", 2 * 86400]]); } catch { /* read again next run */ }
+  return rates;
 }
 /* RR-329 C (rule R8): a page that answered 404 or 410 is GONE — its record is hidden until a later read confirms it */
 const goneOf = (page) => (/answered (404|410)\b/.test(page?.why ?? "") ? `the page is gone (it ${String(page.why).replace(/^the page /, "")}) — hidden until it is read again and confirmed` : null);

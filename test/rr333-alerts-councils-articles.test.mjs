@@ -15,6 +15,7 @@ import { runSearchConsole } from "../site/gsc.mjs";
 import { FIX } from "../site/health.mjs";
 import { refuseBlocked, blockedSource, BLOCKED_SOURCES } from "../desktop/country-facts.mjs";
 import { OWNER_COUNCILS } from "../desktop/owner-councils.mjs";
+import { questionsInComment } from "../desktop/real-questions.mjs";
 import { answersFromSite, answerKindOf, casingOf, seoPages } from "../desktop/seo-pages.mjs";
 import { readPage } from "../desktop/site-read.mjs";
 import { councilQuestion, ruleQuestion, testDatesQuestion, officialAnswerQuestion, productQuestion } from "../site/cf-ai.mjs";
@@ -96,4 +97,13 @@ test("Articles · RR-333 (the buyer walk): an answer of the question's KIND; no 
   assert.equal(out.drafts.length, 1, JSON.stringify(out.plan.map((p) => [p.kind, p.question, p.why])));
   assert.equal(out.drafts[0].readyAsDraft, true, JSON.stringify(out.drafts[0].gates.filter((g) => g.failing.length)));
   assert.equal((out.drafts[0].html.match(/class="v">60 minutes</g) ?? []).length, 1, "the same card twice");
+});
+
+/* RR-333 (owner: "think like the person"): a comment talking to the video's maker or its viewers is never a question people search */
+test("RR-333 · a comment to the video's maker or its viewers is not a searched question; a real one stays", () => {
+  for (const c of ["How can I register for your class?", "Will you apply for this year's match?", "Is anyone else here preparing for OET like me?", "Why did the student in this video seem like the interviewer?", "Has anyone recently passed OET on computer-based?", "Sir can I get your number?"])
+    assert.deepEqual(questionsInComment(c), [], c);
+  for (const c of ["Can an MDS graduate apply for the OET exam?", "Do you have to write your name during the writing session?", "Is OET computer-based better than paper-based?"])
+    assert.deepEqual(questionsInComment(c), [c], c);
+  assert.deepEqual(questionsInComment("Hi sir, can I take OET at home from Lahore?"), ["can I take OET at home from Lahore?"], "a greeting is cut, the question kept");
 });

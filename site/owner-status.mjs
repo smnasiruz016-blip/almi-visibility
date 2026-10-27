@@ -75,7 +75,8 @@ export async function ownerStatus({ kv, db = null, cf = null, env = process.env,
     let mb = sized[0]?.sizeMb ?? null; if (mb === null) { try { mb = (await db.sizeMb?.()) ?? null; } catch { mb = null; } }
     const growth = sized.length >= 2 ? (sized[0].sizeMb - sized.at(-1).sizeMb) / Math.max(1, kwDays.indexOf(sized.at(-1)) - kwDays.indexOf(sized[0])) : null;
     const left = mb === null ? null : limit * COLLECTOR.stopAtShare - mb, fullIn = growth && growth > 0 && left !== null ? Math.max(0, Math.floor(left / growth)) : null;
-    out.storage = { mb, limit, growth: growth === null ? null : Math.round(growth * 10) / 10, fullOn: fullIn === null ? null : addDays(today, fullIn), fullIn };
+    let tables = null; try { tables = (await db.tableSizes?.()) ?? null; } catch { tables = null; }
+    out.storage = { tables, mb, limit, growth: growth === null ? null : Math.round(growth * 10) / 10, fullOn: fullIn === null ? null : addDays(today, fullIn), fullIn };
   }
   out.week = weekOf({ keywords: kwDays.slice(0, 7), facts: cfDays.slice(0, 7), waiting, unconfirmed, problems: out.red.map((r) => r.line) });
   return out;

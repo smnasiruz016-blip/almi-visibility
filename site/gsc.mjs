@@ -55,7 +55,9 @@ export async function runSearchConsole({ env = process.env, kv = null, kwStore =
   /* the questions, per (product, country) */
   const byPc = new Map(); for (const v of q.values()) { const key = `${v.product}|${v.country}`; (byPc.get(key) ?? byPc.set(key, []).get(key)).push(v); }
   let questions = 0;
-  if (cfStore) for (const [key, items] of byPc) { const [product, country] = key.split("|"); await cfStore.putQuestions({ product, country, source: "gsc", items: items.map((v) => ({ text: v.text, ref: v.ref, clicks: v.clicks, impressions: v.impressions })), at }); questions += items.length; }
+  if (cfStore) for (const [key, items] of byPc) { const [product, country] = key.split("|"); await cfStore.putQuestions({ product, country, source: "gsc", items: items.map((v) => ({ text: v.text, ref: v.ref, clicks: v.clicks, impressions: v.impressions })), at }); questions += items.length;
+    /* RR-333: new questions make that country's questions due at the next run */
+    await cfStore.setTask(country, product === "oet" ? "questions" : `${product}:questions`, { day: today, state: "retry", note: "new questions from our Search Console" }); }
   /* the rest, per (site, location) — the keyword database's own label "our Search Console" */
   const byHl = new Map(); for (const v of k.values()) { const loc = LOCATIONS.find((l) => l.name === v.country)?.code ?? "ALL", key = `${v.host}|${loc}`; (byHl.get(key) ?? byHl.set(key, { host: v.host, product: v.product, loc, rows: [] }).get(key)).rows.push({ text: v.text, said: v.impressions }); }
   let keywords = 0;

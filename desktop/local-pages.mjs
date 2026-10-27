@@ -12,6 +12,7 @@
  *                       table — so the pages of one profession are less alike.
  * Hard facts only with a source and its date; nothing is guessed. Pure: everything is handed in.
  */
+import { feeShown } from "./rates.mjs"; // RR-333: one style for the fee
 import { PEOPLE_WORD, gradeLine } from "./recognition.mjs";
 import { CURRENCY_OF, localShown } from "./rates.mjs";
 import { namesOf } from "./world.mjs";
@@ -61,7 +62,7 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
     const own = (cf?.owner ?? []).filter((o) => o.value?.text).map((o) => ({ part: o.key.split("|")[2] ?? null, text: o.value.text, link: o.value.link ?? null, on: o.value.on ?? o.readOn ?? null }));
     /* 1 · the fee in its own currency — the app's own rates first, then AlmiWorld's (each with its rate's source and date); the owner's own word first */
     const ownFee = own.find((o) => o.part === "fee")?.text ?? null;
-    const feeLine = ownFee ?? (localShown(s.fee) ? s.fee : cf?.fee?.value?.local ? cf.fee.value.line : null);
+    const feeLine = ownFee ?? (localShown(s.fee) ? s.fee : cf?.fee?.value?.local ? (feeShown(cf.fee.value) ?? cf.fee.value.line) : null);
     const feeClaims = localShown(s.fee) ? [feeClaim, ...(s.steps ?? []).map((st) => ({ claimId: `rate-${slug(c)}-${slug(st.short)}-${st.to.toLowerCase()}`, fact: "rate", text: `${st.source}: 1 ${st.from} = ${st.said} ${st.to} on ${st.rateDate}${st.peg ? " (the official peg)" : ""}.`, link: st.link, readOn: st.rateDate, source: st.source, official: true, body: st.short }))]
       : feeLine ? [cfClaim(cf.fee, `${subject}'s own page states the fee: ${cf.fee.value.official}.`, "fee"), cf.fee.value.rate?.link ? { claimId: `rate-${slug(c)}-${slug(cf.fee.value.rate.source)}`, fact: "rate", text: `${cf.fee.value.rate.source}: 1 AUD = ${cf.fee.value.rate.said} ${cf.fee.value.currency} on ${cf.fee.value.rate.date}.`, link: cf.fee.value.rate.link, readOn: cf.fee.value.rate.date, source: cf.fee.value.rate.source, official: !cf.fee.value.rate.open, body: cf.fee.value.rate.source } : null] : [];
     /* 2 · the questions people there ask, each with its answer (AlmiWorld's country facts: their searches, answered from official facts; an AI-written answer says so) */
@@ -107,7 +108,7 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
     const byDest = [...new Map(dest.map((d) => [d.country, d])).values()], searched = searchedDest(c).map((x) => x.country), shown = searched.map((d) => byDest.find((x) => x.country === d)).filter(Boolean);
     const claims = [cfCouncil ? cfClaim(cfCouncil, `${council.name}${council.address ? `: ${council.address}` : ""}.`, "council") : factClaim(rec), gs ? factClaim(gs) : null, att ? factClaim(att) : null].filter(Boolean);
     for (const d of shown) if (d.claim?.link && d.claim.readOn) claims.push({ ...d.claim, claimId: `${d.claim.claimId}-for-${slug(c)}-${slug(prof)}` });
-    const sec = section(c), feeLine = localShown(sec.fee) ? sec.fee : parent?.fee ?? (cf?.fee?.value?.local ? cf.fee.value.line : sec.fee);
+    const sec = section(c), feeLine = localShown(sec.fee) ? sec.fee : parent?.fee ?? (cf?.fee?.value?.local ? (feeShown(cf.fee.value) ?? cf.fee.value.line) : sec.fee);
     if (localShown(sec.fee) && feeClaim) claims.push(feeClaim, ...(sec.steps ?? []).map((st) => ({ claimId: `rate-${slug(c)}-${slug(st.short)}-${st.to.toLowerCase()}`, fact: "rate", text: `${st.source}: 1 ${st.from} = ${st.said} ${st.to} on ${st.rateDate}.`, link: st.link, readOn: st.rateDate, source: st.source, official: true, body: st.short })));
     const full = profHubTitle(prof);
     countryprof.push({ kind: "countryprof", key: `countryprof|${c}|${prof}`, country: c, profession: prof, keepWhole: true /* RR-328: its own council and searches decide */, title: `${subject} for ${people} from ${c}: ${council.short ?? "the home council"}, the grades abroad and the steps`, council, goodStanding: gs ? { text: gs.text, link: gs.link } : null, attestation: att ?? null,

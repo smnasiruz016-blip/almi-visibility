@@ -16,6 +16,7 @@
 import { numbersOf, quoteOnPage, hostOf, governmentHost, SHOWN_STATUS } from "../desktop/country-facts.mjs";
 import { groupQuestions, questionsInComment, isQuestionForm, pageable, REDDIT } from "../desktop/real-questions.mjs";
 import { youtubeApi } from "../src/video/youtube.mjs";
+import { feeShown } from "../desktop/rates.mjs";
 import { officialAnswerQuestion } from "./cf-ai.mjs";
 
 export const CF_QUESTIONS = Object.freeze({ videos: 4, commentsPerVideo: 50, youtubeEveryDays: 7, rawDays: 30, answerPerRun: 8, answerAgainDays: 30 });
@@ -45,7 +46,7 @@ export async function collectQuestions({ country, location, subject, subjectSite
   const prev = new Map(old.map((f) => [f.key, f]));
   /* 3 · answered: the fee from its fact; the rest by the AI, checked here */
   for (const g of groups.filter((x) => x.need === "fees" && fee)) {
-    const v = value(g, { question: g.question ?? `How much does ${subject} cost in ${country}?`, answer: `${subject} costs ${String(fee.value.line).split(" — ")[0]} in ${country} (${subject}'s own page, read ${fee.readOn}${fee.value.rate ? `; the rate: ${fee.value.rate.source}, ${fee.value.rate.date}` : ""}).`, answerKind: "official", quote: null });
+    const v = value(g, { question: g.question ?? `How much does ${subject} cost in ${country}?`, answer: `${subject} costs ${feeShown(fee.value, { date: false })} in ${country} (${subject}'s own page, read ${fee.readOn}${fee.value.rate ? `; the rate: ${fee.value.rate.source}, ${fee.value.rate.date}` : ""}).`, answerKind: "official", quote: null });
     await put({ key: keyOf(g), product, country, part: "questions", kind: "question", value: { ...v, pageable: pageable(g, { kind: "official", shown: true }) }, sourceUrl: fee.sourceUrl, sourceTitle: fee.sourceTitle, readOn: today, status: "confirmed" });
   }
   /* an answer given in the last 30 days (shown or not) is not asked again before then — the cost stays inside the day's cap */

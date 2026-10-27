@@ -98,7 +98,7 @@ function standInYouTube(comments = [{ text: "Hi sir, can I take OET at home from
   const calls = { search: 0, comments: 0 };
   return { calls, set: (c) => { comments = c; }, api: { state: "READY", searchTopic: async (q, o) => { calls.search++; assert.equal(o.regionCode, "PK"); assert.match(q, /^OET exam$/); return [{ videoId: "vid1" }, { videoId: "vid2" }]; }, comments: async (id) => { calls.comments++; return id === "vid1" ? comments : []; } } };
 }
-const FEE = { value: { line: "AUD 587 — about 114,200 PKR (the open rate of 2026-10-27), not an official price", rate: null }, readOn: ON, sourceUrl: "https://oet.example/test/oet-test-at-home", sourceTitle: "OET@Home" };
+const FEE = { value: { official: "AUD 587", amount: 114200, currency: "PKR", line: "AUD 587 — about 114,200 PKR (the open rate of 2026-10-27), not an official price", rate: null }, readOn: ON, sourceUrl: "https://oet.example/test/oet-test-at-home", sourceTitle: "OET@Home" };
 async function oneCountry({ store, kw, yt, A, today = ON, aiOn = true }) {
   await store.putQuestions({ product: "oet", country: "Pakistan", source: "owner", items: [{ text: "How do I get a good standing letter for the nursing council?" }, { text: "Can I give OET from Lahore?" }], at: `${ON}T09:00:00Z` });
   const put = (f) => store.putFact({ proposedBy: "official", aiWritten: false, ...f }, { at: `${today}T10:00:00Z` });
@@ -113,7 +113,7 @@ test("B · RR-330: one country — keywords, YouTube and the owner's questions g
   assert.deepEqual(r.stats.sources, { keywords: 7, youtube: 1, owner: 2, gsc: 0 }); assert.equal(r.stats.asked, 10); assert.equal(r.stats.groups, 8);
   assert.equal(A.calls.length, 1, "ONE AI question for the country"); assert.equal(A.calls[0].search, true, "it searches for the official page");
   const f = async (id) => store.fact(`question|Pakistan|${id.replace(/ /g, "-")}`);
-  const fee = await f("fees"); assert.equal(fee.status, "confirmed"); assert.equal(fee.aiWritten, false); assert.match(fee.value.answer, /^OET costs AUD 587 in Pakistan \(OET's own page/); assert.equal(fee.value.pageable, true);
+  const fee = await f("fees"); assert.equal(fee.status, "confirmed"); assert.equal(fee.aiWritten, false); assert.match(fee.value.answer, /^OET costs AUD 587 — about 114,200 PKR in Pakistan \(OET's own page/, "RR-333: one style for the fee"); assert.equal(fee.value.pageable, true);
   const home = await f("home"); assert.equal(home.status, "confirmed"); assert.equal(home.value.answerKind, "official"); assert.equal(home.value.pageable, true); assert.equal(home.sourceUrl, "https://oet.example/test/oet-test-at-home");
   assert.equal(home.value.question, "can i take oet at home"); assert.equal(home.value.sources.youtube, 1);
   const dates = await f("dates"); assert.equal(dates.status, "unconfirmed"); assert.match(dates.why, /states 16, which its source page does not/);

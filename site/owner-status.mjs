@@ -10,6 +10,7 @@ import { currentGroups, plan, storageLimitOf, COLLECTOR } from "./kw-collector.m
 import { unitsOf, LOCATIONS } from "./kw-seeds.mjs";
 import { FACT_PRODUCTS, PRODUCT_FACTS } from "../desktop/product-facts.mjs";
 import { doneIn, pageCounts } from "../desktop/country-facts.mjs";
+import { visibilityPages, VIS_GROUPS } from "../desktop/visibility-pages.mjs";
 
 /* RR-332 · the owner's review: Pakistan and India (the collector's confirmed facts he has not decided yet), and everything not verified */
 export const REVIEW_COUNTRIES = Object.freeze(["Pakistan", "India"]);
@@ -25,8 +26,11 @@ const dayBefore = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) - n * 86400000
 const addDays = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 
 /** the owner's saved order (KV), merged with the default */
-export async function queueNow(kv) { try { const [s] = kv ? await kv.run([["GET", QUEUE_KEY]]) : [null]; return queueOf(s ? JSON.parse(s) : null); } catch { return queueOf(null); } }
-export async function saveQueue(kv, q) { await kv.run([["SET", QUEUE_KEY, JSON.stringify({ products: q.products, countries: q.countries })]]); }
+/* RR-333 D: a queue the owner saved before AlmiVisibility moved up gets it SECOND once (his later moves are kept: the mark rr333) */
+export async function queueNow(kv) { try { const [s] = kv ? await kv.run([["GET", QUEUE_KEY]]) : [null]; let saved = s ? JSON.parse(s) : null;
+  if (saved && !saved.rr333 && Array.isArray(saved.products)) { const p = saved.products.filter((x) => x !== "visibility"), at = Math.max(0, p.indexOf("oet")) + 1; p.splice(at, 0, "visibility"); saved = { ...saved, products: p, rr333: true }; try { await kv.run([["SET", QUEUE_KEY, JSON.stringify(saved)]]); } catch { /* next time */ } }
+  return queueOf(saved); } catch { return queueOf(null); } }
+export async function saveQueue(kv, q) { await kv.run([["SET", QUEUE_KEY, JSON.stringify({ products: q.products, countries: q.countries, rr333: true })]]); }
 export const PRODUCT_NAMES = Object.freeze({ oet: "AlmiOET", cv: "AlmiCV", jobs: "AlmiJob", study: "AlmiStudy", salary: "AlmiSalary", prep: "AlmiPrep (IELTS)", pte: "AlmiPTE", toefl: "AlmiTOEFL", det: "AlmiDET", celpip: "AlmiCELPIP",
   french: "AlmiFrench", goethe: "AlmiGoethe", spanish: "AlmiSpanish", italian: "AlmiItalian", portuguese: "AlmiPortuguese", dutch: "AlmiDutch", japanese: "AlmiJapanese", korean: "AlmiKorean", danish: "AlmiDanish", norwegian: "AlmiNorwegian", swedish: "AlmiSwedish", icelandic: "AlmiIcelandic", swiss: "AlmiSwiss", visibility: "AlmiVisibility" });
 export const productName = (p) => PRODUCT_NAMES[p] ?? p;
@@ -58,6 +62,8 @@ export async function ownerStatus({ kv, db = null, cf = null, env = process.env,
      * itself ("confirmed"); the owner reviews only Pakistan and India, and what was NOT verified on an official page (never shown) */
     const facts = all, review = reviewQueueOf(facts); waiting = review.total; unconfirmed = facts.filter((f) => f.status === "unconfirmed").length;
     out.review = review;
+    /* RR-333 D · AlmiVisibility's own page families (no country pages), from collected data only */
+    try { out.visibility = visibilityPages({ keywords: db?.groupKeywords ? await db.groupKeywords([...VIS_GROUPS]) : [], questions: cf.productQuestions ? await cf.productQuestions("visibility") : [] }); } catch { out.visibility = null; }
     out.pages = FACT_PRODUCTS.map((p) => ({ product: p, name: productName(p), ...pageCounts(facts, { product: p, countries: queue.countries, template: p === "oet" ? null : PRODUCT_FACTS[p] }) }));
   }
   /* A · the keywords: each product's first 30 countries (and "All locations") asked within 30 days; what is left; days at the measured pace */

@@ -402,6 +402,13 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           await saveQueue(kv, { ...q, [kind]: moveUp(q[kind], item) });
           return send(303, "", "text/plain", { ...priv, location: `/owner?moved=${encodeURIComponent(item)}#queue` });
         }
+        /* RR-333 D · the owner's own questions about AlmiVisibility (no country: "*") */
+        if (req.method === "POST" && u.pathname === "/owner/visibility/questions") {
+          const lines = ownerLines(String(form().text ?? "").slice(0, 20000));
+          if (!lines.length || !cf) return send(400, await ownerPage({ message: "Paste at least one question (one a line). Nothing was saved." }), undefined, priv);
+          const r = await cf.putQuestions({ product: "visibility", country: "*", source: "owner", items: lines.map((text) => ({ text })), at: new Date(now()).toISOString() });
+          return send(200, await ownerPage({ message: `Saved ${lines.length} AlmiVisibility question${lines.length === 1 ? "" : "s"} (${r.added} new).` }), undefined, priv);
+        }
         /* RR-332 · the owner's own Search Console read, now (the weekly cron reads it too) — the answer in one line */
         if (req.method === "POST" && u.pathname === "/owner/search-console") {
           const r = await runSearchConsole({ env, kv, kwStore: db, cfStore: cf, fetchImpl: gscFetch ?? fetchImpl, now, force: true });

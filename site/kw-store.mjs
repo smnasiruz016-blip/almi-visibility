@@ -100,6 +100,8 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       const fetches = await q("SELECT kind, count(*)::int AS n, coalesce(sum(ops), 0)::int AS ops FROM kw_fetch WHERE day = $1 GROUP BY kind", [day]);
       return { ...t, groups, locations: locs, fetchesToday: Object.fromEntries(fetches.map((r) => [r.kind, { fetches: r.n, ops: r.ops }])) };
     },
+    /** RR-333 D · the keywords collected for some groups (a product, our Search Console), each with its newest figure per location */
+    async groupKeywords(groups) { await ensure(); return (await q("SELECT gk.keyword, gk.location, o.avg_monthly_searches::text AS volume, gk.grp FROM kw_group_keyword gk LEFT JOIN LATERAL (SELECT avg_monthly_searches FROM kw_observation x WHERE x.keyword = gk.keyword AND x.location = gk.location ORDER BY x.day DESC LIMIT 1) o ON true WHERE gk.grp = ANY($1::text[])", [groups])).map((r) => ({ keyword: r.keyword, location: r.location, volume: r.volume === null ? null : Number(r.volume), group: r.grp })); },
     /** RR-333 · what takes the room: the biggest tables (their own size with indexes), in MB — for /owner */
     async tableSizes() { await ensure(); return (await q("SELECT relname AS name, round(pg_total_relation_size(relid) / 1048576.0, 1)::float8 AS mb, n_live_tup::bigint AS rows FROM pg_catalog.pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 8")).map((r) => ({ name: r.name, mb: Number(r.mb), rows: Number(r.rows) })); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
@@ -158,6 +160,7 @@ export function memoryStore({ sizeMb = null } = {}) {
       return [...best.values()].sort((a, b) => (a.volume === null) - (b.volume === null) || (b.volume ?? 0) - (a.volume ?? 0) || a.keyword.localeCompare(b.keyword)).slice(0, limit).map((o) => ({ keyword: o.keyword, volume: o.volume, day: o.day, period: o.period }));
     },
     /* the tests hand a size in (a number, or a function of what is held) */
+    async groupKeywords(groups) { return [...gk.values()].filter((x) => groups.includes(x.grp)).map((x) => { let best = null; for (const o of obs.values()) if (o.keyword === x.keyword && o.location === x.location && (!best || o.day > best.day)) best = o; return { keyword: x.keyword, location: x.location, volume: best?.volume ?? null, group: x.grp }; }); },
     async sizeMb() { return typeof sizeMb === "function" ? sizeMb({ observations: obs.size, fetches: fetches.size }) : sizeMb; },
     async counts(day) {
       const o = [...obs.values()], d = (xs) => new Set(xs).size;

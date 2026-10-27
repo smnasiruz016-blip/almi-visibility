@@ -37,6 +37,10 @@ import { DEFAULT_QUEUE, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { askAi, aiConfigured, councilQuestion, ruleQuestion, answerQuestion, productQuestion } from "./cf-ai.mjs";
 import { collectQuestions } from "./cf-questions.mjs";
+import { youtubeApi } from "../src/video/youtube.mjs";
+import { questionsInComment } from "../desktop/real-questions.mjs";
+/* RR-333 D: what people ask under videos about what AlmiVisibility does (3 searches a week of YouTube's 100 a day) */
+export const VIS_YOUTUBE = Object.freeze(["AI search visibility", "keyword research tool", "website SEO audit"]);
 
 export const CF_SUBJECT = Object.freeze({ name: "OET", site: "https://oet.com" });
 export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
@@ -88,8 +92,18 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     /* RR-333 (owner, 27 Oct: a short run spent its whole time on exchange rates): the fee and the centres are a DAILY step of their own,
      * taken only AFTER the first 15 countries' missing parts (below); the day's rates are read once and kept for the day (KV) */
     let dailyDone = false;
+    const visibilityYouTube = async () => {
+      const last = (await store.questions({ product: "visibility", country: "*", source: "youtube" }))[0];
+      if (last && Date.parse(today) - Date.parse(last.at.slice(0, 10)) < 7 * 864e5) return;
+      const api = youtube ?? youtubeApi({ env, fetchImpl: youtubeFetch }); if (api.state !== "READY") return;
+      const found = [];
+      for (const q of VIS_YOUTUBE) for (const v of (await api.searchTopic(q, { max: 2, order: "relevance", relevanceLanguage: "en" })).slice(0, 2)) for (const c of await api.comments(v.videoId, { max: 50 })) for (const x of questionsInComment(c.text)) found.push({ text: x, ref: v.videoId });
+      await store.putQuestions({ product: "visibility", country: "*", source: "youtube", items: found, at: at() });
+    };
     const dailySteps = async () => {
     dailyDone = true;
+    /* ── 0 · RR-333 D: AlmiVisibility's questions on YouTube (official API, weekly; no country) ── */
+    try { await visibilityYouTube(); } catch { /* never stops the run */ }
     /* ── 1 · AlmiOET: the fee in every country's money (daily) ── */
     if (products.includes("oet") && due(ALL, "fee") && room()) {
       const fee = await feeOf({ urls: await urls(), subject: subject.name, subjectName: subject.name, reader });

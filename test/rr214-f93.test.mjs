@@ -180,6 +180,19 @@ test("T93-C3 · F93 C3 A DATED UPDATE: a visible date between the latest recorde
 });
 
 /* ================= C4 ================= */
+/* RR-334: restored as it stood before RR-295 — it never used the retired builder; its module is live */
+test("T93-C4 · F93 C4 TRANSPARENT SOURCES: F37's every-claim-sourced record read unchanged; a draft whose record says a claim lacks its source — reported as that record says; an existing page with no citation verdict — NOT MEASURED; with a recorded verdict — that verdict", () => {
+  const c = chosen();
+  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: null });
+  const s = sourcesOfDraft(d);
+  assert.deepEqual([s.signal, s.record], [SIGNAL.PRESENT, { ...d.checks.everyClaimSourced }]);
+  const failing = { ...d, checks: { ...d.checks, everyClaimSourced: { state: "FAIL", why: "a written claim lacks its source or its trace" } } };
+  assert.deepEqual([sourcesOfDraft(failing).signal, sourcesOfDraft(failing).record], [SIGNAL.FINDING, { state: "FAIL", why: "a written claim lacks its source or its trace" }], "F37's record was re-judged or changed");
+  assert.deepEqual([sourcesOfPage("p-guide", []).signal, sourcesOfPage("p-guide", []).why], [SIGNAL.NOT_MEASURED, NO_CITATION_RECORD]);
+  assert.deepEqual([sourcesOfPage("p-guide", [{ pageId: "p-guide", verdict: "PASS", ref: "verdict:fixture" }]).signal], [SIGNAL.PRESENT]);
+  assert.deepEqual([sourcesOfPage("p-guide", [{ pageId: "p-guide", verdict: "FAIL", ref: "verdict:fixture" }]).signal], [SIGNAL.FINDING]);
+});
+
 /* ================= C5 ================= */
 test("T93-C5 · F93 C5 A MISSING SIGNAL IS A FINDING, NEVER INVENTED: every fixture page's every signal is PRESENT, REACHABLE, MATCHES, a FINDING or NOT MEASURED, each with its evidence or reason; F93 writes nothing", () => {
   const pages = [...SITE, pg("p-dated", "/guides/dated", html('<meta name="author" content="Desk">', '<time datetime="2026-09-25">x</time>'), [{ sha256: "a", observedAt: "2026-09-01T00:00:00Z" }, { sha256: "b", observedAt: "2026-09-20T00:00:00Z" }, { sha256: "b", observedAt: "2026-09-28T00:00:00Z" }])];

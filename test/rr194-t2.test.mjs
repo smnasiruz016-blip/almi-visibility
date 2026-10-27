@@ -59,6 +59,7 @@ test("T2-CHECKS · version 2: near-duplicate at 0.9 records a REVIEW SIGNAL (UNK
   const { shingles } = await import("../src/audit/shell.mjs");
   const near = await NEAR_DUPLICATE.run(ctx(page(body), [{ url: "https://fixture.invalid/b", shingles: shingles(body) }]));
   assert.deepEqual([near.verdict, near.signal.name, near.signal.value >= 0.9, near.signal.decides], ["UNKNOWN", "body-similarity", true, "nothing"]);
+  assert.ok(typeof near.signal.justification === "string" && near.signal.justification.trim() !== "", "a review signal carries no justification"); // RR-334 (rr199 T2-justification)
   assert.equal(evidenceStateOf(near).state, "UNKNOWN", "a review signal placed as anything but UNKNOWN (reached, not established)");
 });
 

@@ -147,6 +147,23 @@ test("T92-C2 · F92 C2 DESCRIBED, READ FROM F26: an image with no alt — a find
 });
 
 /* ================= C3 ================= */
+/* RR-334: restored as it stood before RR-295 — it never used the retired builder; its module is live */
+test("T92-C3 · F92 C3 TRUTHFUL AND ADEQUATE — A RECORDED JUDGEMENT ONLY: a fixture judgement in a fixture run is carried; in a real run, from an unregistered provider, from a person, or absent — NOT MEASURED with the missing judge named; a perfect-looking alt is still NOT MEASURED", () => {
+  const src = `${A}/img/chart.png`;
+  const run = (judgements, population = "FIXTURE", registeredProviders = []) => assessMedia({ pageId: "p1", url: PAGE, html: html("", IMG), judgements, population, registeredProviders }).items[0].judged;
+  assert.deepEqual([run([FIX_J(src)]).signal, run([FIX_J(src)]).source.kind], [SIGNAL.PRESENT, "FIXTURE"]);
+  assert.equal(run([FIX_J(src, { verdict: "FAIL" })]).signal, SIGNAL.FINDING);
+  assert.equal(run([FIX_J(src)], "REAL").signal, SIGNAL.NOT_MEASURED, "a fixture judgement was carried into a real run");
+  assert.equal(run([FIX_J(src, { source: { kind: "AGENT", provider: "p-x", callRef: "call:1" } })], "REAL").signal, SIGNAL.NOT_MEASURED, "an unregistered provider's judgement was accepted");
+  assert.equal(run([FIX_J(src, { source: { kind: "AGENT", provider: "p-x" } })], "REAL", ["p-x"]).signal, SIGNAL.NOT_MEASURED, "a judgement with no recorded call was accepted");
+  assert.equal(run([FIX_J(src, { source: { kind: "AGENT", provider: "p-x", callRef: "call:1" } })], "REAL", ["p-x"]).signal, SIGNAL.PRESENT, "CONTROL: a registered provider's recorded call is lawful");
+  assert.equal(run([FIX_J(src, { source: { kind: "PERSON" } })]).signal, SIGNAL.NOT_MEASURED, "a person's word was accepted as a judgement");
+  const none = run([], "REAL");
+  assert.deepEqual([none.signal, none.why], [SIGNAL.NOT_MEASURED, F92_NO_JUDGE], "a description was reported truthful without a recorded judgement");
+  const perfect = assessMedia({ pageId: "p1", url: PAGE, html: html("", '<img src="/img/p.png" alt="A clear labelled diagram of the five renewal steps, from application to approval">') }).items[0].judged;
+  assert.equal(perfect.signal, SIGNAL.NOT_MEASURED, "adequacy was inferred from the text itself");
+});
+
 /* ================= C4 ================= */
 test("T92-C4 · F92 C4 DISCOVERABLE AND CONSISTENT: structured and og media that match the visible media — CONSISTENT; naming media the page does not show — a finding; a video with a VideoObject — no finding, with none — a finding; a recorded sitemap media entry is compared; the real capture shape (URL strings only) — NOT MEASURED", () => {
   const ok = assessMedia({ pageId: "p1", url: PAGE, html: html(`${ld({ "@type": "Article", image: { "@type": "ImageObject", contentUrl: `${A}/img/chart.png` } })}<meta property="og:image" content="${A}/img/chart.png">`, IMG) });
@@ -200,6 +217,44 @@ function spyWorld() {
   };
   return { io, asked };
 }
+/* RR-334: restored as it stood before RR-295 — it never used the retired builder; its module is live */
+test("T92-C6 · F92 C6 NEVER INVENTED; THE BOUND; ONE TENANT; READ-ONLY: every signal lawful with its evidence or reason; no real tenant's inventory is COMPLETE, so no real result says the site has no media; a COMPLETE fixture may; a two-tenant world reads only its own tenant; F92 calls out to nothing and writes nothing", () => {
+  const a = auditMedia({ tenantId: T, pages: SITE, completeness: INCOMPLETE_INV });
+  for (const r of a.results) {
+    assert.ok(LAWFUL.has(r.media));
+    for (const i of r.items) for (const k of ["described", "judged"]) assert.ok(LAWFUL.has(i[k].signal) && (i[k].signal === SIGNAL.PRESENT || (typeof i[k].why === "string" && i[k].why !== "")), `${r.pageId}.${k} has no lawful signal or reason`);
+    assert.ok(LAWFUL.has(r.recommendation.signal) && LAWFUL.has(r.consistency.sitemap.signal));
+  }
+  const resolve = createTenantResolver();
+  const tenants = (readDeclarations().tenants ?? []).map((t) => t.tenantId).filter((id) => declaredScope({ tenantId: id }).origins.length > 0);
+  assert.ok(tenants.length > 0, "no real tenant was read — the control would prove nothing");
+  const tally = {};
+  const bare = [SITE[1]];
+  for (const id of tenants) {
+    const v = realVerdict(resolve, id);
+    tally[v.state] = (tally[v.state] ?? 0) + 1;
+    assert.notEqual(v.state, "COMPLETE");
+    const x = auditMedia({ tenantId: T, pages: bare, completeness: v });
+    assert.deepEqual([x.site.siteHasNoMedia, x.bound.state], [SIGNAL.NOT_MEASURED, v.state], "a real result said the site has no media");
+  }
+  console.log(`  REAL (count-only, records only): ${tenants.length} tenant(s) · ${Object.entries(tally).map(([k, x]) => `${k} ${x}`).join(" · ")} · no result claims a page the inventory does not hold`);
+  assert.equal(auditMedia({ tenantId: T, pages: bare, completeness: COMPLETE_INV }).site.siteHasNoMedia, true, "CONTROL: a COMPLETE fixture could not decide it");
+  const W = spyWorld();
+  const r = readClientMedia({ tenantId: T, chosen: [], io: W.io });
+  assert.deepEqual([...new Set(W.asked)], [T], "a read asked for another tenant");
+  assert.deepEqual([r.audit.pages, r.audit.bound.state, r.audit.bound.text, r.sitemapMediaRecorded], [3, "INCOMPLETE", INCOMPLETE_INV.bound, false], "a result lacks its bound");
+  const mixed = auditMedia({ tenantId: T, pages: [...SITE, pg("b1", "/b", html("", IMG), T2)], completeness: COMPLETE_INV });
+  assert.deepEqual([mixed.refused.map((x) => x.pageId), mixed.pages], [["b1"], 3], "another tenant's page was read into the audit");
+  for (const m of [MV, ME]) assert.deepEqual(decisionCallPaths({ entries: [m] }).faults, [], `${m} can call out`);
+  const planted = decisionCallPaths({ entries: [MV], read: (f) => { const t = existsSync(join(REPO, f)) ? readFileSync(join(REPO, f), "utf8") : null; return f === MV ? `${t}\nawait fetch(u);\n` : t; } });
+  assert.deepEqual(planted.faults.map((x) => x.code), ["RAW_NETWORK_CALL"]);
+  const WRITES = /from "node:fs"|writeFileSync|appendFileSync|createWriteStream|createJsonlStore|recordDecision|recordPartition|publish\(/;
+  for (const m of [MV, ME]) assert.doesNotMatch(code(m), WRITES, `${m} writes or records`);
+  assert.match('import { writeFileSync } from "node:fs";', WRITES, "the census cannot see a planted write");
+  assert.ok(code(ME).includes(`${"read"}ExistingPagePopulation({ scope: { tenantId }, resolve, env, now })`), "F31's reader is handed a scope that can record");
+  for (const m of [MV, ME]) assert.doesNotMatch(code(m), /construct\.mjs|\/render\.mjs|site-plan/, `${m} imports a page producer or F94's plan`);
+});
+
 /* ================= C7 ================= */
 const OTHER_ROWS = Object.freeze({
   "src/audit/accessibility.mjs": "0c2055097adf4f7d6385b855dcb984460a96a484b991444049e1e37bbd580c80",

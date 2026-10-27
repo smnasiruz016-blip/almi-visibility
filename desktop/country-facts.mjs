@@ -35,6 +35,8 @@ export function nameTypeOf(name) {
 export const CF_PRIORITY = Object.freeze(["India", "Philippines", "Pakistan", "Nigeria", "Kenya", "Egypt", "Bangladesh", "Nepal", "Ghana", "Zimbabwe", "Sri Lanka", "United Arab Emirates", "Saudi Arabia"]);
 
 const shown = (f) => SHOWN_STATUS.includes(f?.status);
+/* RR-332: the councils a country page needs (the rest add country × profession pages) */
+export const COUNCIL_CORE = Object.freeze(["nursing", "medicine"]);
 /** a council fact is whole when it has its name, official website and address */
 export const councilWhole = (v) => Boolean(v?.name && /^https?:\/\//.test(v?.website ?? "") && String(v?.address ?? "").trim().length >= 8);
 /** the fee fact shows a figure in the country's own money */
@@ -54,12 +56,15 @@ export function partsOf(country, facts, { professions = CF_PROFESSIONS } = {}) {
   const centres = own("centres")[0] ?? of("centres").find((f) => f.value?.venue || (f.value?.home && (f.value?.nearest ?? []).length)) ?? null;
   const councils = Object.fromEntries(professions.map((p) => [p, own("councils", p)[0] ?? of("councils").find((f) => f.profession === p && councilWhole(f.value)) ?? null]));
   const noCouncil = professions.filter((p) => !councils[p]), partial = professions.filter((p) => !councils[p] && of("councils").some((f) => f.profession === p));
+  /* RR-332 (owner, 27 Oct 2026): the councils part is FILLED when the nursing AND medicine councils are whole; the other professions add
+   * country × profession pages as they are found and keep being searched — REPLACES "a whole council for EVERY profession" */
+  const coreMissing = COUNCIL_CORE.filter((p) => professions.includes(p) && !councils[p]);
   const rules = [...own("rules"), ...of("rules").filter((f) => f.value?.rule)];
   const parts = {
     fee: { filled: Boolean(fee), facts: fee ? [fee] : feeAny ? [feeAny] : [], missing: fee ? [] : [feeAny ? "no figure in its own currency yet" : "no fee read yet"] },
     questions: { filled: questions.length > 0, facts: questions, missing: questions.length ? [] : ["no question from this country with its answer yet"] },
     centres: { filled: Boolean(centres), facts: centres ? [centres] : of("centres"), missing: centres ? [] : ["no venue named, and no nearest venue with taking it at home"] },
-    councils: { filled: noCouncil.length === 0, facts: Object.values(councils).filter(Boolean), missing: noCouncil.length ? [`${noCouncil.length} of ${professions.length} professions without a whole council (name, website, address)${partial.length ? ` — ${partial.length} found but incomplete` : ""}: ${noCouncil.join(", ")}`] : [] },
+    councils: { filled: coreMissing.length === 0, facts: Object.values(councils).filter(Boolean), missing: coreMissing.length ? [`the ${coreMissing.join(" and ")} council${coreMissing.length > 1 ? "s are" : " is"} not whole yet (name, website, address)${partial.some((p) => coreMissing.includes(p)) ? " — found but incomplete" : ""}; ${noCouncil.length} of ${professions.length} professions still searched: ${noCouncil.join(", ")}`] : [] },
     rules: { filled: rules.length > 0, facts: rules, missing: rules.length ? [] : ["no rule of its own from an official page yet"] },
   };
   const missing = PARTS.filter((p) => !parts[p].filled);
@@ -95,6 +100,41 @@ export function productCoverageOf(product, facts, { countries, template }) {
   const rows = countries.map((c) => productPartsOf(product, c, facts, { template }));
   return { rows, counts: { countries: rows.length, complete: rows.filter((r) => r.complete).length, byPart: Object.fromEntries(template.parts.map((k) => [k, rows.filter((r) => r.parts[k].filled).length])),
     unconfirmed: facts.filter((f) => f.product === product && f.status === "unconfirmed").length, rejected: facts.filter((f) => f.product === product && f.status === "rejected").length } };
+}
+
+/**
+ * RR-332 · ONE meaning of "done" (the owner's frozen five-part rule): a (product, country) is done only when ALL its parts are filled —
+ * AlmiOET's five (fee, questions with answers, centres, councils = nursing + medicine whole, rules), another product's own template. The
+ * first-15 line, the queue's progress and ETA, the table and the page counter all read THIS. → (product, country) => boolean
+ */
+export function doneIn(facts, { templates = {} } = {}) {
+  const memo = new Map();
+  return (product, country) => {
+    const k = `${product}|${country}`; if (memo.has(k)) return memo.get(k);
+    const v = product === "oet" ? partsOf(country, facts).complete : templates[product] ? productPartsOf(product, country, facts, { template: templates[product] }).complete : false;
+    memo.set(k, v); return v;
+  };
+}
+/**
+ * RR-332 · THE PAGE COUNTER — from collected data only, never an estimate (the frozen rules):
+ *   country page: one per country, ready when done · country × profession page: only where that profession's council is found (by its
+ *   name on its official page) · question page: a group whose answer is official AND asked enough (its stored `pageable`) · test dates
+ *   live on the country page (no page of their own) · city pages: none.
+ * → { country: { ready, waiting, why: { part: n } }, countryProfession: { ready, searching }, questions: { ready, waiting, why }, city: 0 }
+ */
+export function pageCounts(facts, { product = "oet", countries, template = null, professions = CF_PROFESSIONS }) {
+  const done = doneIn(facts, { templates: template ? { [product]: template } : {} }), why = {};
+  let ready = 0;
+  for (const c of countries) {
+    if (done(product, c)) { ready++; continue; }
+    const missing = product === "oet" ? partsOf(c, facts, { professions }).missing : productPartsOf(product, c, facts, { template }).missing;
+    for (const m of missing) why[m] = (why[m] ?? 0) + 1;
+  }
+  const mine = facts.filter((f) => (f.product ?? "oet") === product && shown(f));
+  const found = product === "oet" ? new Set(mine.filter((f) => f.part === "councils" && f.value?.name).map((f) => `${f.country}|${f.profession}`)) : new Set();
+  const qs = facts.filter((f) => (f.product ?? "oet") === product && f.part === "questions"), qReady = qs.filter((f) => shown(f) && f.value?.pageable);
+  const qWhy = {}; for (const f of qs.filter((x) => !qReady.includes(x))) { const w = !shown(f) ? "answer not shown (not verified, or rejected)" : f.value?.answerKind !== "official" ? "no official answer yet" : "asked too little (under 50 searches, 3 askers)"; qWhy[w] = (qWhy[w] ?? 0) + 1; }
+  return { country: { ready, waiting: countries.length - ready, why }, countryProfession: product === "oet" ? { ready: found.size, searching: countries.length * professions.length - found.size } : null, questions: { ready: qReady.length, waiting: qs.length - qReady.length, why: qWhy }, city: 0 };
 }
 
 /** what the app receives for a country (the service answers only SHOWN facts — never an unconfirmed one) */

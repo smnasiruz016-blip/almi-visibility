@@ -8,7 +8,15 @@ import { daysOf, redLine, weekOf } from "./health.mjs";
 import { finishedIn, costKey, capsOf, CF_COLLECTOR } from "./cf-collector.mjs";
 import { currentGroups, plan, storageLimitOf, COLLECTOR } from "./kw-collector.mjs";
 import { unitsOf, LOCATIONS } from "./kw-seeds.mjs";
-import { FACT_PRODUCTS } from "../desktop/product-facts.mjs";
+import { FACT_PRODUCTS, PRODUCT_FACTS } from "../desktop/product-facts.mjs";
+import { doneIn, pageCounts } from "../desktop/country-facts.mjs";
+
+/* RR-332 · the owner's review: Pakistan and India (the collector's confirmed facts he has not decided yet), and everything not verified */
+export const REVIEW_COUNTRIES = Object.freeze(["Pakistan", "India"]);
+export function reviewQueueOf(facts) {
+  const local = facts.filter((f) => REVIEW_COUNTRIES.includes(f.country) && f.status === "confirmed" && f.by === "collector").length, unverified = facts.filter((f) => f.status === "unconfirmed").length;
+  return { total: local + unverified, local, unverified };
+}
 
 export const QUEUE_KEY = "av:queue";
 /* the keyword collector's requests a day until enough days are measured: 8 runs of about 4 minutes at Google's pace */
@@ -33,7 +41,9 @@ export async function ownerStatus({ kv, db = null, cf = null, env = process.env,
   /* C · the country facts: progress, ETA, the "$3" advice, the spend */
   let waiting = 0, unconfirmed = 0;
   if (cf) {
-    const tasks = await cf.tasks(), finished = finishedIn(tasks), costs = {}, reads = {};
+    /* RR-332: ONE meaning of done — the five parts filled (desktop/country-facts.mjs doneIn), the same as the first-15 line, the table and
+     * the page counter (REPLACES "each part tried once" in what the owner sees; the collector still schedules by its tasks) */
+    const all = await cf.facts(), finished = doneIn(all, { templates: PRODUCT_FACTS }), costs = {}, reads = {};
     for (const p of FACT_PRODUCTS) {
       let c = null; try { const [v] = kv ? await kv.run([["GET", costKey(p)]]) : [null]; c = v ? JSON.parse(v) : null; } catch { c = null; }
       const k = p === "oet" ? "oet" : "other", measured = c && c.n >= 3;
@@ -44,7 +54,11 @@ export async function ownerStatus({ kv, db = null, cf = null, env = process.env,
     out.advice = raiseAdvice({ eta, perDayUsd: caps.aiUsd, today, readsPerDay: caps.reads });
     const month = today.slice(0, 8) + "01", days = await cf.spendSince(month);
     out.spend = { today: days.find((d) => d.day === today)?.aiUsd ?? 0, month: Math.round(days.reduce((a, d) => a + d.aiUsd, 0) * 100) / 100, cap: caps.aiUsd, days: days.slice(-7) };
-    const facts = await cf.facts(); waiting = facts.filter((f) => f.status === "confirmed" && f.by === "collector").length; unconfirmed = facts.filter((f) => f.status === "unconfirmed").length;
+    /* RR-332 (beta-g decision, the owner may change it): a fact whose quote and every number stand on its official page is approved by
+     * itself ("confirmed"); the owner reviews only Pakistan and India, and what was NOT verified on an official page (never shown) */
+    const facts = all, review = reviewQueueOf(facts); waiting = review.total; unconfirmed = facts.filter((f) => f.status === "unconfirmed").length;
+    out.review = review;
+    out.pages = FACT_PRODUCTS.map((p) => ({ product: p, name: productName(p), ...pageCounts(facts, { product: p, countries: queue.countries, template: p === "oet" ? null : PRODUCT_FACTS[p] }) }));
   }
   /* A · the keywords: each product's first 30 countries (and "All locations") asked within 30 days; what is left; days at the measured pace */
   if (db) {

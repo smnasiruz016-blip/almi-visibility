@@ -77,7 +77,11 @@ const FULL = (c) => [fact(c, "fee", `fee|${c}`, { official: "AUD 587", line: "AU
 test("B · RR-328: a country has all five parts only when each is filled by a fact a page may show; councils are whole only with name, website and address for EVERY profession; the grid counts", () => {
   const p = partsOf("Pakistan", FULL("Pakistan")); assert.equal(p.complete, true); assert.deepEqual(p.missing, []);
   const minusAddr = FULL("Pakistan").map((f) => (f.profession === "pharmacy" ? { ...f, value: { ...f.value, address: null } } : f));
-  const q = partsOf("Pakistan", minusAddr); assert.deepEqual(q.missing, ["councils"]); assert.match(q.parts.councils.missing[0], /^1 of 12 professions without a whole council .*1 found but incomplete.*: pharmacy$/);
+  /* RR-332 (owner, 27 Oct): the councils part is filled by the nursing AND medicine councils — REPLACES "every profession"; the others
+   * add country × profession pages and keep being searched */
+  assert.deepEqual(partsOf("Pakistan", minusAddr).missing, [], "pharmacy incomplete: the country is still done");
+  const minusNursing = FULL("Pakistan").map((f) => (f.profession === "nursing" ? { ...f, value: { ...f.value, address: null } } : f));
+  const q = partsOf("Pakistan", minusNursing); assert.deepEqual(q.missing, ["councils"]); assert.match(q.parts.councils.missing[0], /^the nursing council is not whole yet \(name, website, address\) — found but incomplete; 1 of 12 professions still searched: nursing$/);
   assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.part === "rules" ? { ...f, status: "unconfirmed" } : f))).missing, ["rules"], "an unconfirmed fact counts for nothing");
   assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.part === "fee" ? { ...f, value: { ...f.value, local: false } } : f))).missing, ["fee"]);
   assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.part === "rules" ? { ...f, status: "edited" } : f))).missing, [], "the owner's own version counts");
@@ -87,7 +91,7 @@ test("B · RR-328: a country has all five parts only when each is filled by a fa
   assert.deepEqual(PARTS, ["fee", "questions", "centres", "councils", "rules"]);
   /* what the app receives: only shown facts; a council found by its name only still names the profession's own council */
   const pk = countryPacket("Pakistan", [...minusAddr, fact("Pakistan", "rules", "rule|Pakistan|y|2", { rule: "Hidden." }, { status: "unconfirmed" })]);
-  assert.equal(pk.complete, false); assert.equal(pk.councils.pharmacy.whole, false); assert.equal(pk.councils.pharmacy.value.name, "Invented Council of pharmacy");
+  assert.equal(pk.complete, true, "RR-332: pharmacy incomplete — nursing and medicine are whole, so the country is done"); assert.equal(pk.councils.pharmacy.whole, false); assert.equal(pk.councils.pharmacy.value.name, "Invented Council of pharmacy");
   assert.ok(!JSON.stringify(pk).includes("Hidden."), "an unconfirmed fact never reaches the app");
 });
 

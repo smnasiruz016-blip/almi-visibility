@@ -96,7 +96,7 @@ async function kwDb() {
 }
 function standInYouTube(comments = [{ text: "Hi sir, can I take OET at home from Lahore? my number is +92 300 1234567" }, { text: "great video" }]) {
   const calls = { search: 0, comments: 0 };
-  return { calls, set: (c) => { comments = c; }, api: { state: "READY", searchTopic: async (q, o) => { calls.search++; assert.equal(o.regionCode, "PK"); assert.match(q, /^OET exam$/); return [{ videoId: "vid1" }, { videoId: "vid2" }]; }, comments: async (id) => { calls.comments++; return id === "vid1" ? comments : []; } } };
+  return { calls, set: (c) => { comments = c; }, api: { state: "READY", searchTopic: async (q, o) => { calls.search++; assert.equal(o.regionCode, "PK"); assert.match(q, /^OET exam experience Pakistan$/); /* RR-333 (owner, 27 Oct: search as the person does) replaces "OET exam" */ return [{ videoId: "vid1" }, { videoId: "vid2" }]; }, comments: async (id) => { calls.comments++; return id === "vid1" ? comments : []; } } };
 }
 const FEE = { value: { official: "AUD 587", amount: 114200, currency: "PKR", line: "AUD 587 — about 114,200 PKR (the open rate of 2026-10-27), not an official price", rate: null }, readOn: ON, sourceUrl: "https://oet.example/test/oet-test-at-home", sourceTitle: "OET@Home" };
 async function oneCountry({ store, kw, yt, A, today = ON, aiOn = true }) {
@@ -242,4 +242,18 @@ test("D · RR-330: /owner/countries — the first 15 countries' progress and ETA
     assert.equal((await req("/owner/countries/questions", { method: "POST", form: { country: "Pakistan", text: "  " } })).status, 400);
     assert.equal((await req("/owner/countries/questions", { method: "POST", form: { country: "Pakistan", text: "Can I?" }, owner: false })).status, 403);
   } finally { await new Promise((r) => srv.close(r)); }
+});
+
+/* RR-333 (owner, 27 Oct 2026: "hopeful like the market, never a lie"): guidance may be summarised from a reputable non-official page —
+ * kept with its source and date only when our reader opened it; a blocked site (an agent, an exam-help site) never; still no number */
+test("RR-333 · guidance from a reputable non-official page keeps its source and date; a blocked site never; a number still refused", async () => {
+  PAGES["https://prep-teacher.example/oet-tips"] = { title: "OET tips from a teacher", text: "Practise with sample tests under timed conditions and review every answer." };
+  const store = cfMemoryStore(), kw = await kwDb(), yt = standInYouTube(), A = answersAi();
+  const ai = async (q) => { const r = await A.ai(q); r.data.answers = r.data.answers.map((x) => (x.group === "preparation" ? { ...x, sourceUrl: "https://prep-teacher.example/oet-tips" } : x.group === "other questions" ? { ...x, sourceUrl: "https://nle.ph/oet-lahore" } : x)); return r; };
+  await oneCountry({ store, kw, yt, A: { ai } });
+  const prep = await store.fact("question|Pakistan|preparation");
+  assert.equal(prep.status, "confirmed"); assert.equal(prep.value.answerKind, "guidance"); assert.equal(prep.value.pageable, false);
+  assert.deepEqual(prep.value.guidanceSource, { url: "https://prep-teacher.example/oet-tips", title: "OET tips from a teacher", on: ON });
+  const oth = await store.fact("question|Pakistan|other-questions");
+  assert.equal(oth.value.guidanceSource, undefined, "a blocked site is never a source"); assert.equal(oth.status, "unconfirmed", "its number is still refused");
 });

@@ -49,7 +49,9 @@ export const GATE_WORDS = Object.freeze({ [GATES.A]: "not a copy of another page
 const AFTER_PUBLISHING = /^(listed in the sitemap|a URL not in the plan is 404|internal links in)$/;
 const slug = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "page";
 const SHOUTED = new Set(["not", "and", "the", "for", "you", "all", "are", "but", "new", "now", "one", "our", "free", "only", "must", "will", "can", "may", "yes", "no", "or", "to", "of", "in", "on", "is", "it", "we", "do", "be", "an", "at", "by", "if", "so", "up", "as", "my", "me", "us", "how", "why", "what", "when", "who", "best", "top", "get", "pass", "test", "exam", "score"]);
-export const casingOf = (site) => { const m = new Map(); for (const p of site.pages) for (const w of [p.title, p.h1, ...p.h2].join(" ").split(/[^\p{L}\p{N}]+/u)) if (w && w !== w.toLowerCase() && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
+/* RR-333 (buyer walk: "How much does a Dental implant cost" — from the heading "Dental implants"): a heading's FIRST word is capitalised
+ * because it is first, not because it is a name — it never sets a word's casing */
+export const casingOf = (site) => { const m = new Map(); for (const p of site.pages) for (const w of [p.title, p.h1, ...p.h2].flatMap((h) => String(h ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(1))) if (w && w !== w.toLowerCase() && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
   /* RR-308: a name the site writes with capitals INSIDE its own sentences ("in New Zealand") keeps them in a page title ("OET for Nurses in new zealand" before) */
   /* RR-310: and a short name the site writes with two or more capitals (GPhC, AHPRA, AVBC, NZ) — never a common word in capitals (NOT, FREE) */
   for (const p of site.pages) for (const s of [...(p.lead ?? []), ...(p.facts ?? [])]) for (const w of String(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(1)) if ((/^\p{Lu}\p{Ll}+$/u.test(w) || (/^\p{Lu}[\p{L}]{1,5}$/u.test(w) && (w.match(/\p{Lu}/gu) ?? []).length >= 2 && !SHOUTED.has(w.toLowerCase()))) && !m.has(w.toLowerCase())) m.set(w.toLowerCase(), w);
@@ -86,18 +88,35 @@ export function demandOf({ searchConsole = null, files = [], youtube = null, pla
   return [...out.values()].sort((a, b) => b.weight - a.weight);
 }
 
+/* RR-333: the kind of answer a question asks for, and what a line must hold to give it */
+export const ANSWER_KINDS = Object.freeze({
+  price: /[$£€₹¥]\s?\d|\b\d[\d,.]*\s?(?:USD|GBP|EUR|INR|PKR|AUD|CAD|NZD|AED|SAR|dollars?|pounds?|euros?|rupees?)\b|\b(?:USD|GBP|EUR|INR|PKR|AUD|CAD|NZD|AED|SAR)\s?\d|\bfree\b/i,
+  duration: /\b\d[\d.,]*(?:\s?(?:to|-|–)\s?\d[\d.,]*)?\s?(?:minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\b/i,
+  date: /\b(?:19|20)\d\d\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s\d|\b\d{1,2}(?:st|nd|rd|th)?\s(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|\b(?:mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?|sundays?|daily|every (?:day|week|month))\b/i,
+  count: /\d/,
+});
+const KIND_WORDS = new Set(["how", "long", "much", "many", "cost", "costs", "price", "prices", "pricing", "fee", "fees", "charge", "charges", "take", "takes", "when", "date", "day", "time"]);
+export const answerKindOf = (q) => { const t = String(q ?? "").toLowerCase();
+  return /\bhow long\b/.test(t) ? "duration" : /\b(?:how much|cost|costs|price|prices|pricing|fee|fees|charges?)\b/.test(t) ? "price" : /^when\b|\bwhat (?:date|day|time)\b/.test(t) ? "date" : /\bhow many\b/.test(t) ? "count" : null; };
+
 /** The client's own sentences that answer a search: they share most of its meaning words. Each is a claim with its page and read date. */
 export function answersFromSite(text, site, max = 3) {
-  const want = new Set(tokens(text)); if (want.size < 2) return [];
+  /* RR-333: the words that only ask for the KIND ("how long", "cost") need not stand in the answer — its kind is checked instead below */
+  const kindWords = answerKindOf(text) ? KIND_WORDS : null;
+  const want = new Set(tokens(text).filter((w) => !kindWords?.has(w))); if (want.size < 2) return [];
   const day = String(site.readOn).slice(0, 10);
   /* RR-318 B5 (owner: the Ireland page got a UK "HCPC" line): a search that names where it is about is answered only by a line that names
    * that same country — never a line about another one */
   const where = destinationsIn(text);
+  /* RR-333 (buyer walk: "How much does a dental implant cost" was answered "takes 3 to 6 months"): a question that asks for a KIND of answer
+   * — a price, a length of time, a date, a number — is answered only by a line holding that kind */
+  const kind = answerKindOf(text);
   const cands = [];
   for (const p of site.pages) {
     const lines = [...p.qa.filter((x) => x.a).map((x) => cleanAnswer(x.a)), ...p.facts.map(cleanAnswer)];
     for (const line of lines) { const t = new Set(tokens(line)); let n = 0; for (const w of want) if (t.has(w)) n++; /* RR-307: an answer holds at least two thirds of the search's words — "fee in Pakistan" is never "answered" by a sentence that only shares "exam" */
       if (where.length && !countriesIn(line).some((c) => where.includes(c))) continue;
+      if (kind && !ANSWER_KINDS[kind].test(line)) continue;
       const whole = wholeSentences(line, 600); // RR-318 B2: never cut mid-word
       if (n >= Math.max(2, Math.ceil(want.size * 2 / 3)) && whole) cands.push({ text: whole, link: p.url, readOn: day, score: n / want.size }); }
   }
@@ -171,11 +190,14 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const valueIn = (s) => (String(s).match(/(?:[$£€₹]|\b(?:USD|GBP|EUR|PKR|INR|AUD|CAD)\s?)\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:\/|per)\s?(?:month|year|week))?/i) ?? String(s).match(/\b\d[\d,.–-]*\s?(?:%|[A-Za-z]+)/) ?? [])[0];
   /* RR-318 proof (the Ireland page showed "23 April" — Australia's date — as a key fact): a page about a country takes a key fact only from a
    * sentence that names that country; the official answers first */
-  const factIn = (c, where) => { const r = c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`;
+  /* RR-333 (buyer walk: a card read "3 to"): a length of time is the whole span ("3 to 6 months") */
+  const spanIn = (s) => (String(s).match(ANSWER_KINDS.duration) ?? [])[0];
+  const factIn = (c, where, kind = null) => { if (kind === "duration" && !c.official) { const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => (!where.length || countriesIn(x).some((w) => where.includes(w))) && spanIn(x)); if (s) return spanIn(s); }
+    const r =c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`;
     /* RR-319 proof (8 of 13 drafts "no key-fact card"): an official answer's scores ("— Listening 350 · Reading 360 …"), its fee, or the
      * official page's own word that it is recognised there */
     if (c.official) { const m = / — ([^—]+)\.$/.exec(c.text); if (m && /\d|grade|Listening [ABC]/i.test(m[1])) return m[1].trim(); if (/is recognised or accepted there/.test(c.text)) return "recognised or accepted there"; } /* the card's words stand IN the sourced sentence */ const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
-  const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question); return p.need.claims.map((c) => ({ claimId: c.claimId, value: factIn(c, where) })).filter((k) => k.value).slice(0, 2); });
+  const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question), kind = answerKindOf(p.need.question); return p.need.claims.map((c) => ({ claimId: c.claimId, value: factIn(c, where, kind) })).filter((k, i, all) => !k.value || all.findIndex((x) => x.value === k.value) === i) /* RR-333: one card per value ("60 minutes" twice) */.filter((k) => k.value).slice(0, 2); });
   /* RR-321 E3: a planned page links the pages its plan names (a university page its regulator pages; a regulator page "Where to take" and
    * the topic pages); E4: it shows when its sources were last checked */
   /* the proof: a preview of two pages linked pages outside the set ("links to no other page of the set") — a link goes to a page that is
@@ -188,8 +210,11 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
   built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));
   const now = new Date(on).toISOString();
-  const cost = { gate: GATES.D, pass: true, checks: [{ name: "made on this computer from what was already read — no paid request", result: "PASS" }] };
-  const gated = built.length ? allGates(built.map((b) => gateInput(b)), { guidance: GUIDANCE, on: String(on).slice(0, 10), site: { robotsTxt: site.robotsTxt ?? null, sitemapUrls: site.sitemapUrls ?? null, extraPages: [] }, cost }) : [];
+  /* RR-333 (buyer walk: ONE new article could never be published — "it links to no other page of the set" while it linked the buyer's own
+   * Prices and Implants pages): the site's existing pages are link targets for the gates (their links IN to a new page come after publishing) */
+  const siteLinkPages = site.pages.filter((p) => p.url).map((p) => ({ url: p.url, html: "" }));
+  const cost ={ gate: GATES.D, pass: true, checks: [{ name: "made on this computer from what was already read — no paid request", result: "PASS" }] };
+  const gated = built.length ? allGates(built.map((b) => gateInput(b)), { guidance: GUIDANCE, on: String(on).slice(0, 10), site: { robotsTxt: site.robotsTxt ?? null, sitemapUrls: site.sitemapUrls ?? null, extraPages: siteLinkPages }, cost }) : [];
   const drafts = built.map((b, i) => ({ url: b.url, title: b.title, html: b.html, pass: gated[i].pass, gates: Object.entries(gated[i].gates).map(([k, g]) => ({ gate: k, words: GATE_WORDS[g.gate] ?? g.gate, pass: g.pass, failing: (g.checks ?? []).filter((c) => c.result === "FAIL" && !AFTER_PUBLISHING.test(c.name)).map((c) => `${c.name}${c.reason ? ` — ${c.reason}` : ""}`), afterPublishing: (g.checks ?? []).filter((c) => c.result !== "PASS" && (AFTER_PUBLISHING.test(c.name) || c.result === "NOT MEASURED")).map((c) => c.name) })) }));
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
   return { plan: rows, drafts, design: design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };

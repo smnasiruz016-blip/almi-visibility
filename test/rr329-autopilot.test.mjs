@@ -325,7 +325,7 @@ test("E · RR-329: the owner's status — progress per product for both collecto
   assert.equal(s.storage.mb, 300); assert.equal(s.storage.limit, 1024); assert.equal(s.storage.growth, 50); assert.equal(s.storage.fullOn, "2026-11-08", "(972.8 − 300) / 50 a day = 13 days");
   assert.equal(s.keywords.products[0].product, "oet"); assert.equal(s.keywords.products[0].first, 30, "all locations and the 29 of the first 30 Google can target (not Iran)"); assert.equal(s.keywords.perDay, 1000); assert.equal(s.keywords.measured, true);
   assert.equal(s.facts[0].product, "oet"); assert.equal(s.facts[0].name, "AlmiOET"); assert.equal(s.facts.length, FACT_PRODUCTS.length);
-  assert.deepEqual(s.red.map((r) => [r.collector, r.code]), [["facts", "NO_RUN"]], "the keyword collector is well; the country-facts collector never ran — said, never silent");
+  assert.deepEqual(s.red.map((r) => [r.collector, r.code]), [["facts", "NO_RUN"], ["dates", "NO_RUN"]], "the keyword collector is well; the country-facts and test-dates collectors never ran — said, never silent (RR-333: every collector has its alert)");
   assert.equal(s.week.keywords, 150000);
 });
 

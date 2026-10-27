@@ -226,7 +226,7 @@ test("D · RR-328: one run for Pakistan, India and the Philippines — the fee i
   /* councils: all 12 for Pakistan confirmed with their address; India — one on its page, one whose name is not there; the Philippines' page is not official */
   assert.equal(facts.filter((f) => f.country === "Pakistan" && f.part === "councils" && f.status === "confirmed" && f.value.address).length, 12);
   assert.equal((await store.fact("council|India|medicine")).status, "unconfirmed"); assert.match((await store.fact("council|India|medicine")).why, /the name is not on its source page/);
-  assert.equal((await store.fact("council|Philippines|nursing")).status, "unconfirmed"); assert.match((await store.fact("council|Philippines|nursing")).why, /not on the body's own website or its government's/);
+  assert.equal((await store.fact("council|Philippines|nursing")).status, "unconfirmed"); assert.match((await store.fact("council|Philippines|nursing")).why, /yours, to verify — its official site could not be read from our server/); // RR-333: the owner's own council (PRC) comes first and stays unconfirmed until its own page is read
   /* rules: the quoted words on the government's page → confirmed; words that are not there → unconfirmed */
   assert.equal((await store.fact("rule|Pakistan|verification|1")).status, "confirmed");
   assert.equal(facts.find((f) => f.country === "India" && f.part === "rules" && f.proposedBy === "ai").status, "unconfirmed");

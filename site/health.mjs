@@ -6,7 +6,8 @@
  * The same records give the owner's weekly summary ("This week").
  */
 export const HEALTH = Object.freeze({ failDays: 3, keepDays: 21 });
-export const COLLECTORS = Object.freeze({ keywords: "The keyword collector", facts: "The country-facts collector" });
+/* RR-333 B4 (autonomy 10 Nov – 7 Jan): EVERY collector has its red line — the test dates and the Search Console reader too */
+export const COLLECTORS = Object.freeze({ keywords: "The keyword collector", facts: "The country-facts collector", dates: "The test-dates collector", gsc: "The Search Console reader" });
 /* the fix for each reason, in the owner's words (names of settings only, never a value) */
 export const FIX = Object.freeze({
   NOT_CONNECTED: "Google is not connected: run the sign-in script in the deploy folder again (node owner-google-sign-in.mjs), then redeploy.",
@@ -22,6 +23,7 @@ export const FIX = Object.freeze({
   READS: "Today's page reads were used before anything was finished: raise COUNTRY_FACTS_READS_PER_DAY in Vercel (for example to 400).",
   DB_FULL: "The database is nearly full: upgrade the Neon project to the Launch plan (no minimum; about $0.35 per GB a month) in Neon's console, or tell CC to keep less history.",
   DB_ERROR: "The database could not be reached: check the Neon project in Neon's console (DATABASE_URL in Vercel).",
+  GSC: "Search Console could not be read: press \"Read Search Console\" below to see the reason now; if it is about the sign-in, run the sign-in script in the deploy folder again (node owner-google-sign-in.mjs), then redeploy.",
   NO_RUN: "No run at all: check Settings → Cron Jobs in Vercel (the site must be deployed, CRON_SECRET set), and that Google, the store and the database are connected.",
 });
 const dayBefore = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10);

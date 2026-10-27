@@ -176,6 +176,12 @@ export function questionGroups(rows, { subject, skip = null, max = 8 } = {}) {
 export const normText = (s) => String(s ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const words = (s) => normText(s).split(" ").filter(Boolean);
 export const hostOf = (u) => { try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ""); } catch { return null; } };
+/* RR-333 C (owner, 27 Oct 2026): private sites that are NEVER a source — exam-help sites, a private company, a licensing agent's advert.
+ * The collectors never read them, so nothing can be confirmed from them */
+export const BLOCKED_SOURCES = Object.freeze(["nle.ph", "board.com.ph", "prescriply.bd", "felixhappich.com"]);
+export const blockedSource = (u) => { const h = hostOf(u); return Boolean(h) && BLOCKED_SOURCES.some((b) => h === b || h.endsWith(`.${b}`)); };
+/** a reader that refuses the blocked sites (every other call unchanged) */
+export const refuseBlocked = (reader) => (reader ? { ...reader, read: async (url, ...rest) => (blockedSource(url) ? { ok: false, url, why: "a private site the owner blocked as a source — never read" } : reader.read(url, ...rest)) } : reader);
 /* a government's own address (gov, go, gob, govt, gouv …) */
 export const governmentHost = (h) => /(^|\.)(gov|go|gob|govt|gouv|government|gv|nic)(\.[a-z]{2,3})?\.[a-z]{2}$|\.gov$/.test(String(h ?? ""));
 /** the name stands on the page: whole, or its short name in brackets with most of its words */

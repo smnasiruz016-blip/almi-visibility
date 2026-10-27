@@ -12,6 +12,7 @@ import { DEFAULT_QUEUE, orderWork } from "./queue.mjs";
 import { capsOf, CF_COLLECTOR } from "./cf-collector.mjs";
 import { askAi, aiConfigured, testDatesQuestion } from "./cf-ai.mjs";
 import { recordRun } from "./health.mjs";
+import { refuseBlocked } from "../desktop/country-facts.mjs"; // RR-333
 
 export const CF_DATES = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, batch: 5, refreshDays: 7, noDatesRefreshDays: 30, maxDates: 6 });
 const ALL = "*";
@@ -24,6 +25,7 @@ const OWNERS = { prep: "ielts.org, the British Council or IDP (IELTS's official 
 /** one run → { ok, day, saved, dates, none, unconfirmed, done: ["OET · Pakistan", …], stoppedBy, why, aiUsd, reads } */
 export async function runTestDates({ store, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_DATES.runBudgetMs, queue = DEFAULT_QUEUE, countries = null, tests = null }) {
   const start = now(), today = dayOf(start), at = () => new Date(now()).toISOString(), id = randomBytes(8).toString("hex");
+  reader = refuseBlocked(reader); // RR-333 C: the owner's blocked private sites are never read
   if (kv) { const [locked] = await kv.run([["SET", "av:td:lock", id, "NX", "EX", CF_DATES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another test-dates run is working — this one did nothing." }; }
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
   const out = { ok: true, day: today, saved: 0, dates: 0, none: 0, unconfirmed: 0, done: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null };
@@ -52,7 +54,7 @@ export async function runTestDates({ store, kv = null, env = process.env, reader
     const ordered = orderWork(units, { queue });
     for (let i = 0; i < ordered.length && !out.stoppedBy;) {
       const p = ordered[i].product, batch = []; while (i < ordered.length && ordered[i].product === p && batch.length < CF_DATES.batch) batch.push(ordered[i++].country);
-      if (!aiConfigured(env)) { out.why = "ANTHROPIC_API_KEY is not set in Vercel — no test dates can be searched."; break; }
+      if (!aiConfigured(env)) { out.why = "ANTHROPIC_API_KEY is not set in Vercel — no test dates can be searched."; out.stoppedBy = "AI_KEY"; break; } // RR-333 B4: a reason, so 3 such days are a red line
       if (!room(true)) break;
       const T = DATE_TESTS[p], r = await ai({ env, ...testDatesQuestion({ test: T.name, owners: OWNERS[p] ?? `${T.name}'s own website or its official partners'`, countries: batch, today }) });
       out.aiUsd += r.usd ?? 0; out.searches += r.searches ?? 0;

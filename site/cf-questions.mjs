@@ -13,7 +13,7 @@
  *               where no official page says it — may state no number at all. What fails is stored "unconfirmed" (never shown) with why.
  *   4 COUNTED   per country: questions asked, groups, groups a page may carry (desktop/real-questions.mjs pageable) — kept in the task.
  */
-import { numbersOf, quoteOnPage, hostOf, governmentHost, SHOWN_STATUS } from "../desktop/country-facts.mjs";
+import { numbersOf, quoteOnPage, hostOf, governmentHost, SHOWN_STATUS, blockedSource } from "../desktop/country-facts.mjs";
 import { groupQuestions, questionsInComment, isQuestionForm, pageable, REDDIT } from "../desktop/real-questions.mjs";
 import { youtubeApi } from "../src/video/youtube.mjs";
 import { feeShown } from "../desktop/rates.mjs";
@@ -68,7 +68,11 @@ export async function collectQuestions({ country, location, subject, subjectSite
     const question = g.question ?? (String(a.question ?? "").trim() || null);
     if (kind === "guidance") {
       const extra = said.filter((n) => !allowedNumbers.has(n) && !g.asked.some((x) => numbersOf(x.text).includes(n)));
-      await put({ key: keyOf(g), product, country, part: "questions", kind: "question", value: value(g, { question, answer, answerKind: "guidance", label: "general guidance (no official page says it)", quote: null, pageable: false }), readOn: today, aiWritten: true, proposedBy: "ai",
+      /* RR-333 (owner: hopeful like the market, never a lie): guidance may be summarised from a reputable non-official page — shown with its
+       * source and date, only when our reader opened it (robots obeyed); a blocked site (an agent, an exam-help site, an advert) never */
+      let from = null;
+      if (a.sourceUrl && !blockedSource(a.sourceUrl) && room()) { const p = await reader.read(a.sourceUrl); if (p.ok) from = { url: p.url, title: p.title ?? null, on: p.checkedOn ?? today }; }
+      await put({ key: keyOf(g), product, country, part: "questions", kind: "question", value: value(g, { question, answer, answerKind: "guidance", label: "general guidance (no official page says it)", quote: null, pageable: false, ...(from ? { guidanceSource: from } : {}) }), readOn: today, aiWritten: true, proposedBy: "ai", ...(from ? { sourceUrl: from.url, sourceTitle: from.title } : {}),
         status: extra.length || !question ? "unconfirmed" : "confirmed", why: extra.length ? `the answer states ${extra.join(", ")}, which no confirmed fact says — general guidance may state no number` : !question ? "no question in words we may show" : null });
       continue;
     }
@@ -100,7 +104,8 @@ async function youtubeOf({ country, location, subject, product }, { store, env, 
   const last = (await store.questions({ product, country, source: "youtube" }))[0];
   if (last && daysAgo(last.at, today) < CF_QUESTIONS.youtubeEveryDays) return { note: `read ${last.at.slice(0, 10)}` };
   try {
-    const videos = await api.searchTopic(`${subject} exam`, { max: CF_QUESTIONS.videos, order: "relevance", regionCode: location.code, relevanceLanguage: "en" });
+    const videos = await api.searchTopic(`${subject} exam experience ${location.name ?? ""}`.trim(), { // RR-333: as a candidate from that country searches
+ max: CF_QUESTIONS.videos, order: "relevance", regionCode: location.code, relevanceLanguage: "en" });
     const found = [];
     for (const v of videos.slice(0, CF_QUESTIONS.videos)) for (const c of await api.comments(v.videoId, { max: CF_QUESTIONS.commentsPerVideo })) for (const q of questionsInComment(c.text)) found.push({ text: q, ref: v.videoId });
     const r = await store.putQuestions({ product, country, source: "youtube", items: found, at: at() });

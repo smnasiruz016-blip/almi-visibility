@@ -25,7 +25,8 @@
  */
 import { randomBytes } from "node:crypto";
 import { COUNTRIES, neighboursOf } from "../desktop/world.mjs";
-import { CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilWhole, questionGroups, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS } from "../desktop/country-facts.mjs";
+import { CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilWhole, questionGroups, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS, refuseBlocked } from "../desktop/country-facts.mjs";
+import { ownerCouncilsOf } from "../desktop/owner-councils.mjs"; // RR-333
 import { PRODUCT_FACTS, PART_INFO, FACT_PRODUCTS, searchedParts, bodyParts, ownerSite } from "../desktop/product-facts.mjs";
 import { feeOf } from "../desktop/fee.mjs";
 import { readRates, feeInCurrency, CURRENCY_OF, localShown as localFee, feeShown } from "../desktop/rates.mjs";
@@ -68,6 +69,7 @@ export const costKey = (p) => `av:cf:cost:${p}`;
 /** one run. → { ok, day, saved, unconfirmed, kept, done: ["Pakistan · councils", …], searching, finished, stoppedBy, why, aiUsd, reads, searches } */
 export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS, youtube = null, youtubeFetch = fetch }) {
   const start = now(), today = dayOf(start), at = () => new Date(now()).toISOString(), id = randomBytes(8).toString("hex");
+  reader = refuseBlocked(reader); // RR-333 C: the owner's blocked private sites are never read
   if (kv) { const [locked] = await kv.run([["SET", "av:cf:lock", id, "NX", "EX", CF_COLLECTOR.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another country-facts run is working — this one did nothing." }; }
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
   const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], finished: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null };
@@ -180,26 +182,40 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
           const unread = [...new Set(Object.values(tried).flatMap((t) => t.unread ?? []))];
           const known = (ORIGIN.items ?? []).filter((f) => f.country === country && f.fact === "council" && needed.includes(f.profession)).map((f) => ({ profession: f.profession, name: f.name ?? f.text, link: f.link }));
           let cands = known.map((k) => ({ profession: k.profession, name: k.name, nameType: nameTypeOf(k.name), website: k.link, address: "", sourceUrl: k.link, proposedBy: "almioet-record" }));
+          /* RR-333 · the owner's councils (desktop/owner-councils.mjs) are tried FIRST, each on its own official site; the AI is told of them */
+          const mine = ownerCouncilsOf(country).filter((o) => needed.includes(o.profession)).map((o) => ({ profession: o.profession, name: o.name, nameType: nameTypeOf(o.name), website: o.website, address: o.address ?? "", sourceUrl: o.website, doubt: o.doubt, proposedBy: "owner-input" }));
+          const told = [...mine.map((o) => ({ profession: o.profession, name: o.name, link: o.website })), ...known.filter((k) => !mine.some((o) => o.profession === k.profession))];
           if (aiConfigured(env)) {
-            const r = await askOne(councilQuestion({ country, subject: subject.name, professions: needed, known, tried, unread }));
-            if (!r.ok) return finish(country, "councils", "retry", r.why, tried);
-            const ai = (r.data.councils ?? []).map((x) => ({ ...x, profession: professionKey(x.profession), nameType: NAME_TYPES.includes(x.nameType) ? x.nameType : nameTypeOf(x.name), proposedBy: "ai" })).filter((x) => x.profession && needed.includes(x.profession) && x.name && x.sourceUrl);
+            const r = await askOne(councilQuestion({ country, subject: subject.name, professions: needed, known: told, tried, unread }));
+            if (!r.ok && !mine.length) return finish(country, "councils", "retry", r.why, tried);
+            const ai = r.ok ? (r.data.councils ?? []).map((x) => ({ ...x, profession: professionKey(x.profession), nameType: NAME_TYPES.includes(x.nameType) ? x.nameType : nameTypeOf(x.name), proposedBy: "ai" })).filter((x) => x.profession && needed.includes(x.profession) && x.name && x.sourceUrl) : [];
             cands = [...ai, ...cands.filter((k) => !ai.some((x) => x.profession === k.profession))];
           }
-          for (const x of cands) {
+          cands = [...mine, ...cands];
+          /* a site the owner doubts is never confirmed by itself — whoever proposes it */
+          const doubted = new Map(mine.filter((o) => o.doubt).map((o) => [hostOf(o.website), o.doubt])), ownerHeld = new Set();
+          for (const x0 of cands) {
             if (!room()) return;
+            if (whole.has(x0.profession)) continue; // RR-333: already whole this run — no further read
+            const x = { ...x0, doubt: x0.doubt ?? doubted.get(hostOf(x0.sourceUrl)) ?? null };
             const page = await reader.read(x.sourceUrl), own = hostOf(x.sourceUrl) && (hostOf(x.sourceUrl) === hostOf(x.website) || governmentHost(hostOf(x.sourceUrl)));
             const text = page.ok ? `${page.title ?? ""} ${page.h1 ?? ""} ${page.text}` : "";
             const nameOk = page.ok && nameOnPage(x.name, text), addrOk = nameOk && x.address && addressOnPage(x.address, text);
-            const why = !page.ok && goneOf(page) && x.proposedBy === "almioet-record" ? goneOf(page) : !own ? "its source page is not on the body's own website or its government's" : !page.ok ? `its source page could not be read (${page.why})` : !nameOk ? "the name is not on its source page" : null;
-            const value = { name: x.name, nameType: x.nameType ?? null, website: x.website, address: addrOk ? x.address : null, ...(nameOk && !addrOk ? { addressWhy: x.address ? "the address given is not on the source page" : "no address found yet" } : {}) };
-            if (own && nameOk && councilWhole(value)) { whole.add(x.profession); delete tried[x.profession]; }
+            const byOwner = x.proposedBy === "owner-input", ok = own && nameOk && !x.doubt;
+            /* the owner's: a doubt or an official site our server cannot read → his to approve (his address kept, said so), never shown before */
+            const why = x.doubt ? `${byOwner ? "yours, to verify" : "to verify"} — ${x.doubt}` : byOwner && !page.ok ? `yours, to verify — its official site could not be read from our server (${page.why}); approve it if it is right` : !page.ok && goneOf(page) && x.proposedBy === "almioet-record" ? goneOf(page) : !own ? "its source page is not on the body's own website or its government's" : !page.ok ? `its source page could not be read (${page.why})` : !nameOk ? `${byOwner ? "yours, to verify — " : ""}the name is not on its source page` : null;
+            const keepOwn = byOwner && !addrOk && x.address && (!page.ok || x.doubt);
+            const value = { name: x.name, nameType: x.nameType ?? null, website: x.website, address: addrOk || keepOwn ? x.address : null, ...(keepOwn ? { addressFrom: "the owner's input — not yet read on its official page" } : nameOk && !addrOk ? { addressWhy: x.address ? "the address given is not on the source page" : "no address found yet" } : {}) };
+            if (ok && councilWhole(value)) { whole.add(x.profession); delete tried[x.profession]; }
             else { const t = (tried[x.profession] ??= { names: [], types: [], since: today }); if (!t.names.includes(x.name)) t.names.push(x.name); if (x.nameType && !t.types.includes(x.nameType)) t.types.push(x.nameType);
               if (!page.ok && !goneOf(page)) { t.unread ??= []; if (!t.unread.includes(x.sourceUrl)) t.unread = [...t.unread, x.sourceUrl].slice(-5); } }
             /* a council a page may already show (found by its name) is never replaced by an unconfirmed one — the new name is kept as tried */
-            if (!(own && nameOk) && named.has(x.profession)) continue;
+            if (!ok && named.has(x.profession)) continue;
+            /* RR-333: the owner's own "to verify" is never replaced by someone else's unconfirmed one */
+            if (!ok && !byOwner && ownerHeld.has(x.profession)) continue;
+            if (byOwner && !ok) ownerHeld.add(x.profession);
             await put({ key: `council|${country}|${slug(x.profession)}`, country, profession: x.profession, part: "councils", kind: "council", value,
-              sourceUrl: page.ok ? page.url : x.sourceUrl, sourceTitle: page.title ?? null, readOn: page.checkedOn ?? today, proposedBy: x.proposedBy, status: own && nameOk ? "confirmed" : "unconfirmed", why });
+              sourceUrl: page.ok ? page.url : x.sourceUrl, sourceTitle: page.title ?? null, readOn: page.checkedOn ?? today, proposedBy: x.proposedBy, status: ok ? "confirmed" : "unconfirmed", why });
           }
           const still = CF_PROFESSIONS.filter((p) => !whole.has(p));
           for (const p of still) tried[p] ??= { names: [], types: [], since: today };

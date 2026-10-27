@@ -53,7 +53,10 @@ export function readPage(html, url) {
   const asked = [...h.matchAll(/<h[2-4]\b[^>]*>([\s\S]*?)<\/h[2-4]>\s*(?:<[^p][^>]*>\s*)*(?:<p\b[^>]*>([\s\S]*?)<\/p>)?/gi)].map((m) => ({ q: strip(m[1]), a: m[2] ? answer(m[2]) : null })).filter((x) => /\?\s*$/.test(x.q)).map((x) => ({ ...x, from: "a heading on the page" }));
   /* the FIRST reading of a question wins: the page's own structured data (its clean answer) before the open/close text */
   const qa = [...[...ldQA, ...details, ...asked].filter((x) => x.q && x.q.length <= 200).reduce((m, x) => (m.has(x.q.toLowerCase()) ? m : m.set(x.q.toLowerCase(), x)), new Map()).values()];
-  const facts = [...new Set(body.split(/(?<=[.!?])\s+/).map((x) => cleanAnswer(x)).filter((x) => /\d/.test(x) && x.length >= 25 && x.length <= 220))].slice(0, 8);
+  /* RR-333 (buyer walk: "Dental implants A dental implant at …"): a heading, a list item or a paragraph ends a sentence — a fact never starts
+   * with the heading above it */
+  const blocksText = h.replace(/<(nav|header|footer)\b[\s\S]*?<\/\1>/gi, " ").split(/<\/(?:h[1-6]|p|li|dt|dd|td|th|div|section|article|blockquote)>/i).map((x) => visibleText(x)).filter(Boolean);
+  const facts = [...new Set(blocksText.flatMap((b) => b.split(/(?<=[.!?])\s+/)).map((x) => cleanAnswer(x)).filter((x) => /\d/.test(x) && x.length >= 25 && x.length <= 220))].slice(0, 8);
   const imgs = [...h.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
   /* RR-308 C1: the page's own sentences, paragraph by paragraph (never the run-together text of cards and buttons) — what a description is
    * written from; C4: each price with the sentence it stands in (what it is for) */

@@ -40,6 +40,9 @@ export function pgStore({ url, Pool = null, max = 3 }) {
     kind: "postgres", ensure,
     async seedList() { await ensure(); const [r] = await q("SELECT text, updated_at::text AS at FROM kw_seed_list WHERE id = 1"); return r ? { text: r.text, at: r.at } : null; },
     async setSeedList(text, at) { await ensure(); await q("INSERT INTO kw_seed_list (id, text, updated_at) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at", [text, at]); },
+    /** RR-334 · the AI's keyword ideas per product (the owner's templates b and d), as JSON in row 2 of the same table */
+    async seedIdeas() { await ensure(); const [r] = await q("SELECT text FROM kw_seed_list WHERE id = 2"); try { return r ? JSON.parse(r.text) : {}; } catch { return {}; } },
+    async setSeedIdeas(ideas, at) { await ensure(); await q("INSERT INTO kw_seed_list (id, text, updated_at) VALUES (2, $1, $2) ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at", [JSON.stringify(ideas), at]); },
     /** which of these seed keys (at a location and language) were fetched on or after `since` — Map "seedKey|location|language" → last day */
     async fetchedSince(since) { await ensure(); const rs = await q("SELECT seed_key, location, language, max(day)::text AS day FROM kw_fetch WHERE day >= $1 GROUP BY 1, 2, 3", [since]); return new Map(rs.map((r) => [`${r.seed_key}|${r.location}|${r.language}`, r.day])); },
     /** one fetch and its keywords, in one transaction; the same (seed key, location, language, day) a second time stores NOTHING */
@@ -110,7 +113,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
 
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
 export function memoryStore({ sizeMb = null } = {}) {
-  let list = null, nextId = 1;
+  let list = null, nextId = 1, ideas = {};
   const fetches = new Map(), obs = new Map(), fk = new Map(), gk = new Map();
   const fkey = (f) => `${f.seedKey}|${f.location}|${f.language}|${f.day}`;
   const newestAt = (keyword, location, language, day, before = false) => { let best = null; for (const o of obs.values()) if (o.keyword === keyword && o.location === location && o.language === language && (before ? o.day < day : o.day <= day) && (!best || o.day > best.day)) best = o; return best; };
@@ -120,6 +123,8 @@ export function memoryStore({ sizeMb = null } = {}) {
     /* RR-333: the newest figure on or before a day (an unchanged figure is not stored again); the keywords fetched on a day */
     async seedList() { return list ? { ...list } : null; },
     async setSeedList(text, at) { list = { text, at }; },
+    async seedIdeas() { return JSON.parse(JSON.stringify(ideas)); },
+    async setSeedIdeas(x) { ideas = JSON.parse(JSON.stringify(x)); },
     async fetchedSince(since) { const m = new Map(); for (const f of fetches.values()) if (f.day >= since) { const k = `${f.seedKey}|${f.location}|${f.language}`; if (!m.has(k) || m.get(k) < f.day) m.set(k, f.day); } return m; },
     async saveFetch(f) {
       if (fetches.has(fkey(f))) return { duplicate: true, stored: 0 };

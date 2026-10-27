@@ -9,6 +9,7 @@ import { readFileSync, existsSync, statSync, createReadStream } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as P from "./pages.mjs";
+import { articleHtml } from "./articles.mjs";
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn } from "./email.mjs";
@@ -413,6 +414,18 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (req.method === "POST" && u.pathname === "/owner/search-console") {
           const r = await runSearchConsole({ env, kv, kwStore: db, cfStore: cf, fetchImpl: gscFetch ?? fetchImpl, now, force: true });
           return send(200, await ownerPage({ message: r.ok ? `Search Console read: ${r.sites} almiworld.com site${r.sites === 1 ? "" : "s"}, ${r.rows.toLocaleString("en-US")} rows — ${r.questions} questions, ${r.keywords} keywords (${r.period}).` : `Search Console: ${r.why}` }), undefined, priv);
+        }
+        /* RR-334 · the article drafts: the owner's one-tap word (nothing is published here) */
+        if (u.pathname.startsWith("/owner/articles")) {
+          if (!cf?.articles) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — the articles need it." }), undefined, priv);
+          const page = async (message = null) => P.ownerArticles({ articles: await cf.articles(), html: articleHtml, message });
+          if (req.method === "GET" && u.pathname === "/owner/articles") return send(200, await page(), undefined, priv);
+          if (req.method === "POST" && u.pathname === "/owner/articles/decide") {
+            const f = form();
+            if (!["approve", "reject", "reopen"].includes(f.action)) return send(400, await page("No such action. Nothing was changed."), undefined, priv);
+            const r = await cf.decideArticle(String(f.id ?? ""), { action: f.action, at: new Date(now()).toISOString() });
+            return send(r.ok ? 200 : 400, await page(r.ok ? `Saved: ${r.status}.` : r.why), undefined, priv);
+          }
         }
         /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
         if (u.pathname.startsWith("/owner/countries")) {

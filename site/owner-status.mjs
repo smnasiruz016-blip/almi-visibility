@@ -9,14 +9,14 @@ import { finishedIn, costKey, capsOf, CF_COLLECTOR } from "./cf-collector.mjs";
 import { currentGroups, plan, storageLimitOf, COLLECTOR } from "./kw-collector.mjs";
 import { unitsOf, LOCATIONS } from "./kw-seeds.mjs";
 import { FACT_PRODUCTS, PRODUCT_FACTS } from "../desktop/product-facts.mjs";
-import { doneIn, pageCounts } from "../desktop/country-facts.mjs";
+import { doneIn, pageCounts, waiting as stillToLook } from "../desktop/country-facts.mjs";
 import { visibilityPages, VIS_GROUPS } from "../desktop/visibility-pages.mjs";
 import { gscConfigured } from "./gsc.mjs";
 
 /* RR-332 · the owner's review: Pakistan and India (the collector's confirmed facts he has not decided yet), and everything not verified */
 export const REVIEW_COUNTRIES = Object.freeze(["Pakistan", "India"]);
 export function reviewQueueOf(facts) {
-  const local = facts.filter((f) => REVIEW_COUNTRIES.includes(f.country) && f.status === "confirmed" && f.by === "collector").length, unverified = facts.filter((f) => f.status === "unconfirmed").length;
+  const local = facts.filter((f) => REVIEW_COUNTRIES.includes(f.country) && f.status === "confirmed" && f.by === "collector").length, unverified = facts.filter(stillToLook).length;
   return { total: local + unverified, local, unverified };
 }
 
@@ -64,7 +64,7 @@ export async function ownerStatus({ kv, db = null, cf = null, env = process.env,
     out.spend = { today: days.find((d) => d.day === today)?.aiUsd ?? 0, month: Math.round(days.reduce((a, d) => a + d.aiUsd, 0) * 100) / 100, cap: caps.aiUsd, days: days.slice(-7) };
     /* RR-332 (beta-g decision, the owner may change it): a fact whose quote and every number stand on its official page is approved by
      * itself ("confirmed"); the owner reviews only Pakistan and India, and what was NOT verified on an official page (never shown) */
-    const facts = all, review = reviewQueueOf(facts); waiting = review.total; unconfirmed = facts.filter((f) => f.status === "unconfirmed").length;
+    const facts = all, review = reviewQueueOf(facts); waiting = review.total; unconfirmed = facts.filter(stillToLook).length;
     out.review = review;
     /* RR-333 D · AlmiVisibility's own page families (no country pages), from collected data only */
     try { out.visibility = visibilityPages({ keywords: db?.groupKeywords ? await db.groupKeywords([...VIS_GROUPS]) : [], questions: cf.productQuestions ? await cf.productQuestions("visibility") : [] }); } catch { out.visibility = null; }

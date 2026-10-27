@@ -25,7 +25,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { COUNTRIES, neighboursOf } from "../desktop/world.mjs";
-import { CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilWhole, questionGroups, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS, refuseBlocked } from "../desktop/country-facts.mjs";
+import { CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilWhole, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS, refuseBlocked } from "../desktop/country-facts.mjs";
 import { ownerCouncilsOf } from "../desktop/owner-councils.mjs"; // RR-333
 import { PRODUCT_FACTS, PART_INFO, FACT_PRODUCTS, searchedParts, bodyParts, ownerSite } from "../desktop/product-facts.mjs";
 import { feeOf } from "../desktop/fee.mjs";
@@ -36,12 +36,19 @@ import ORIGIN from "../desktop/lists/almiworld-oet-origin-facts.json" with { typ
 import { LOCATIONS } from "./kw-seeds.mjs";
 import { DEFAULT_QUEUE, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
-import { askAi, aiConfigured, councilQuestion, ruleQuestion, answerQuestion, productQuestion } from "./cf-ai.mjs";
-import { collectQuestions } from "./cf-questions.mjs";
+import { askAi, aiConfigured, councilQuestion, ruleQuestion, productQuestion, keywordIdeasQuestion } from "./cf-ai.mjs";
+import { collectQuestions, sweepQuestions, CF_QUESTIONS } from "./cf-questions.mjs";
 import { youtubeApi } from "../src/video/youtube.mjs";
 import { questionsInComment } from "../desktop/real-questions.mjs";
+import { ARTICLES, ARTICLE_PRODUCTS, answerDrafts, introQuestion, checkIntro } from "./articles.mjs";
 /* RR-333 D: what people ask under videos about what AlmiVisibility does (3 searches a week of YouTube's 100 a day) */
 export const VIS_YOUTUBE = Object.freeze(["AI search visibility", "keyword research tool", "website SEO audit"]);
+/* RR-334 (owner's templates b and d) · the keyword ideas: a product every 30 days, at most 2 a day, AlmiOET and AlmiVisibility first; the
+ * people each one is for (the owner's examples: nurses from Pakistan who want to work in the UK; business owners for AlmiVisibility) */
+export const IDEAS = Object.freeze({ everyDays: 30, perDay: 2, max: 10,
+  oet: Object.freeze({ name: "OET", countries: ["Pakistan", "India", "the Philippines"], personas: [{ who: "nurses", country: "Pakistan", goal: "work in the UK" }, { who: "doctors", country: "India", goal: "work in Ireland" }, { who: "nurses", country: "the Philippines", goal: "work in Australia" }], words: /\boet\b/ }),
+  visibility: Object.freeze({ name: "getting a business found on Google and in AI answers (SEO, AI search, website checks)", countries: ["the UK", "Pakistan"], personas: [{ who: "restaurant owners", country: "the UK", goal: "get more customers from Google" }, { who: "small business owners", country: "Pakistan", goal: "show up in ChatGPT answers" }], words: /\b(seo|google|chatgpt|ai|website|site|rank\w*|search|keywords?|audit|visib\w*|perplexity|gemini)\b/ }),
+});
 
 export const CF_SUBJECT = Object.freeze({ name: "OET", site: "https://oet.com" });
 export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
@@ -51,6 +58,10 @@ export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 29
 /* RR-329: the queue's country order (the owner's first 15, next 15, then the rest) — kept under its RR-328 name */
 export const CF_ORDER = DEFAULT_QUEUE.countries;
 const OET_TASKS = ["questions", "councils", "rules"];
+/* RR-334 (owner, 27 Oct 2026: "old code stopped new rules twice this week") · the search and answer rules a finished task was done under:
+ * a questions or rules task finished under OLDER rules is due at once — never left waiting its 7 or 30 days */
+export const CF_RULES = CF_QUESTIONS.rules;
+const STAMPED = (t) => t === "questions" || t === "rules" || t.endsWith(":questions");
 const ALL = "*";
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
@@ -72,10 +83,13 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
   reader = refuseBlocked(reader); // RR-333 C: the owner's blocked private sites are never read
   if (kv) { const [locked] = await kv.run([["SET", "av:cf:lock", id, "NX", "EX", CF_COLLECTOR.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another country-facts run is working — this one did nothing." }; }
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
-  const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], finished: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null };
+  const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], finished: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null, templates: {} };
+  /* RR-334 (owner: test and tune the templates) · per template: questions asked, web searches, results confirmed on an official page */
+  const tpl = (name) => (out.templates[name] ??= { asks: 0, searches: 0, found: 0, guidance: 0 });
+  const foundBy = (f) => (f.part === "councils" ? "councils" : f.part === "rules" ? "rules" : f.part === "questions" ? (f.value?.answerKind === "official" && f.aiWritten ? "answers" : f.value?.answerKind === "guidance" ? "answers:guidance" : null) : f.product && f.product !== "oet" && f.proposedBy === "ai" ? "facts" : null);
   /* RR-328 addition (rule R1): a council still "searching" is searched again every day — once a day, never stopped at "missing" */
-  /* RR-333: a questions task finished by the RR-328 code (no stats: keywords only) is due at once — the cause of India's "—" */
-  const due = (c, t) => { const x = tasks.get(`${c}|${t}`); if (x && t === "questions" && x.state === "done" && !x.tried?.stats) return true; return !x || (x.state === "searching" ? x.day !== today : x.state !== "done" || daysBetween(x.day, today) >= refreshOf(t)); };
+  /* RR-333, RR-334: a task finished under older rules (RR-328's keyword answers, RR-330's first queries …) is due at once */
+  const due = (c, t) => { const x = tasks.get(`${c}|${t}`); if (x && STAMPED(t) && x.state === "done" && x.tried?.rules !== CF_RULES) return true; return !x || (x.state === "searching" ? x.day !== today : x.state !== "done" || daysBetween(x.day, today) >= refreshOf(t)); };
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; return false; };
   const room = (needAi = false) => {
     if (now() - start > budgetMs) return stop("TIME", "This run's time is used — the next run continues.");
@@ -83,10 +97,10 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     if (needAi && spent.aiUsd + out.aiUsd + CF_COLLECTOR.aiReserveUsd > caps.aiUsd) return stop("AI_BUDGET", `Today's AI budget ($${caps.aiUsd.toFixed(2)}) is used — the next day continues.`);
     return true;
   };
-  const put = async (f) => { const r = await store.putFact({ proposedBy: "official", aiWritten: false, ...f }, { at: at() }); if (r.saved) { out.saved++; if (f.status === "unconfirmed") out.unconfirmed++; } else if (/owner/.test(r.why ?? "")) out.kept++; return r; };
-  const finish = async (c, t, state = "done", note = null, tried = null) => { await store.setTask(c, t, { day: today, state, note, tried }); tasks.set(`${c}|${t}`, { day: today, state, tried }); if (state === "done") out.done.push(`${c === ALL ? "all countries" : c} · ${t}`); if (state === "searching") out.searching.push(`${c} · ${t}`); };
+  const put = async (f) => { const r = await store.putFact({ proposedBy: "official", aiWritten: false, ...f }, { at: at() }); if (r.saved) { out.saved++; if (f.status === "unconfirmed") out.unconfirmed++; const by = f.status === "confirmed" ? foundBy(f) : null; if (by === "answers:guidance") tpl("answers").guidance++; else if (by) tpl(by).found++; } else if (/owner/.test(r.why ?? "")) out.kept++; return r; };
+  const finish = async (c, t, state = "done", note = null, tried = null) => { if (STAMPED(t)) tried = { ...(tried ?? {}), rules: CF_RULES }; await store.setTask(c, t, { day: today, state, note, tried }); tasks.set(`${c}|${t}`, { day: today, state, tried }); if (state === "done") out.done.push(`${c === ALL ? "all countries" : c} · ${t}`); if (state === "searching") out.searching.push(`${c} · ${t}`); };
   /* the AI's own failure (no key, a refused key, no answer) is kept for the health check — never silent */
-  const askOne = async (q) => { const r = await ai({ env, ...q }); out.aiUsd += r.usd ?? 0; out.searches += r.searches ?? 0; if (!r.ok) out.aiError = r.why; return r; };
+  const askOne = async (q) => { const r = await ai({ env, ...q }); out.aiUsd += r.usd ?? 0; out.searches += r.searches ?? 0; if (q.template) { tpl(q.template).asks++; tpl(q.template).searches += r.searches ?? 0; } if (!r.ok) out.aiError = r.why; return r; };
   const list = countries ?? queue.countries;
   const finished = finishedIn(tasks), costs = {};
   try {
@@ -102,6 +116,10 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
       for (const q of VIS_YOUTUBE) for (const v of (await api.searchTopic(q, { max: 2, order: "relevance", relevanceLanguage: "en" })).slice(0, 2)) for (const c of await api.comments(v.videoId, { max: 50 })) for (const x of questionsInComment(c.text)) found.push({ text: x, ref: v.videoId });
       await store.putQuestions({ product: "visibility", country: "*", source: "youtube", items: found, at: at() });
     };
+    /* RR-334 · a once-a-day question (keyword ideas, an introduction) marks its day — a failed one waits until tomorrow, never every run */
+    const triedToday = (task) => tasks.get(`${ALL}|${task}`)?.day === today;
+    const triedOn = (prefix) => [...tasks.entries()].filter(([k, x]) => k.startsWith(`${ALL}|${prefix}`) && x.day === today).length;
+    const tried = async (task, r) => { await store.setTask(ALL, task, { day: today, state: r.ok ? "done" : "retry", note: r.ok ? null : r.why ?? null }); tasks.set(`${ALL}|${task}`, { day: today, state: r.ok ? "done" : "retry" }); };
     const dailySteps = async () => {
     dailyDone = true;
     /* ── 0 · RR-333 D: AlmiVisibility's questions on YouTube (official API, weekly; no country) ── */
@@ -119,6 +137,23 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         await finish(ALL, "fee");
       }
     }
+    /* ── 1b · RR-334: the words people type about a product (templates b and d) → that product's Google Ads seeds ── */
+    if (kwStore?.seedIdeas && aiConfigured(env)) try {
+      const ideas = await kwStore.seedIdeas(); let n = triedOn("ideas:");
+      for (const p of ["oet", "visibility", ...products.filter((x) => x !== "oet")]) {
+        if (n >= IDEAS.perDay || !room(true)) break;
+        if ((ideas[p]?.on && daysBetween(ideas[p].on, today) < IDEAS.everyDays) || triedToday(`ideas:${p}`)) continue;
+        const T = IDEAS[p] ?? (PRODUCT_FACTS[p] ? { name: PRODUCT_FACTS[p].name, countries: ["Pakistan", "India"], personas: [], words: PRODUCT_FACTS[p].own } : null); if (!T) continue;
+        n++; const r = await askOne(keywordIdeasQuestion({ product: T.name, countries: T.countries, personas: T.personas }));
+        await tried(`ideas:${p}`, r);
+        if (!r.ok) continue;
+        const seeds = [...new Set((r.data.keywords ?? []).map((k) => String(k).toLowerCase().replace(/["“”]/g, "").replace(/\s+/g, " ").trim()).filter((k) => k.length >= 6 && k.length <= 80 && k.includes(" ") && T.words.test(k) && !BRANDS.test(k.replace(T.words, ""))))].slice(0, IDEAS.max);
+        ideas[p] = { seeds, on: today, template: "keywords" }; tpl("keywords").found += seeds.length;
+        await kwStore.setSeedIdeas(ideas, at());
+      }
+    } catch { /* never stops the run */ }
+    /* ── 1c · RR-334: article drafts for every AlmiWorld product (drafts only — the owner approves on /owner/articles) ── */
+    if (store.putArticle) try { await articleSteps(); } catch { /* never stops the run */ }
     /* ── 2 · AlmiOET: the test centres, and at home with the nearest venues (weekly) ── */
     if (products.includes("oet") && due(ALL, "centres") && room()) {
       const v = await venueCountries({ urls: await urls(), subject: subject.name, reader });
@@ -134,6 +169,26 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
       }
     }
     };
+    async function articleSteps() {
+      const all = await store.facts(), have = new Map((await store.articles()).map((a) => [a.id, a])), fresh = (id) => { const a = have.get(id); return a && (a.status !== "draft" || daysBetween(a.at.slice(0, 10), today) < ARTICLES.refreshDays); };
+      const save = async (d) => { const r = await store.putArticle({ id: d.id, product: d.product, kind: d.kind, title: d.title, body: d, why: d.dropped?.length ? `${d.dropped.length} block(s) left out: not found on an official page` : null }, { at: at() }); if (r.saved) (out.articles ??= []).push(d.id); };
+      /* the answers: from the question facts already checked (no AI, no page read) */
+      for (const p of ARTICLE_PRODUCTS) for (const d of answerDrafts({ product: p.key, facts: all, today })) if (!fresh(d.id)) await save(d);
+      /* the introductions: one AI question each, at most 2 a day, AlmiOET and AlmiVisibility first */
+      let n = triedOn("articles:");
+      for (const p of [...ARTICLE_PRODUCTS].sort((a, b) => ["oet", "visibility"].indexOf(b.key) - ["oet", "visibility"].indexOf(a.key))) {
+        if (n >= ARTICLES.introsPerDay || !aiConfigured(env) || !room(true)) break;
+        if (fresh(`${p.key}|intro`) || triedToday(`articles:${p.key}`)) continue;
+        n++;
+        const lines = all.filter((x) => (x.product ?? "oet") === p.key && SHOWN_STATUS.includes(x.status) && x.part !== "questions").map((x) => x.part === "councils" ? `${x.country}, ${x.profession}: ${x.value?.name} (${x.sourceUrl})` : x.value?.text || x.value?.rule || x.value?.line ? `${x.country}: ${x.value.text ?? x.value.rule ?? x.value.line} (${x.sourceUrl})` : null).filter(Boolean);
+        const r = await askOne(introQuestion({ product: p.key, facts: lines }));
+        await tried(`articles:${p.key}`, r);
+        if (!r.ok) continue;
+        const c = await checkIntro({ product: p.key, data: r.data, reader, room, today });
+        tpl("articles").found += c.draft ? c.draft.blocks.filter((b) => b.label === "official").length : 0;
+        if (c.draft) await save(c.draft);
+      }
+    }
     /* ── 3 · per (product, country), in the queue's order: the front first, a background task (another country, a daily re-search) every 4th ── */
     const units = [];
     for (const p of products) for (const c of list) {
@@ -142,6 +197,8 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
       units.push({ id: `${p}|${c}`, product: p, country: c, tasks: ts, background });
     }
     const FIRST15 = new Set(queue.countries.slice(0, 15));
+    /* RR-334 · a stored question that is a comment to a video's maker or its viewers leaves the counts (reversible: Approve) */
+    try { out.removed = await sweepQuestions({ store, put }); } catch { /* never stops the run */ }
     /* the very first run (no fee read yet) takes the daily step first: the fee questions are answered from it */
     if (!tasks.has(`${ALL}|fee`)) { await dailySteps(); }
     for (const u of orderWork(units, { queue })) {
@@ -177,7 +234,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
           const shownC = (await facts()).filter((f) => (f.product ?? "oet") === "oet" && f.part === "councils"), whole = new Set(shownC.filter((f) => councilWhole(f.value) || f.status === "owner").map((f) => f.profession)), named = new Set(shownC.map((f) => f.profession));
           const needed = CF_PROFESSIONS.filter((p) => !whole.has(p));
           if (!needed.length) return finish(country, "councils");
-          const prev = tasks.get(`${country}|councils`)?.tried ?? {}, tried = Object.fromEntries(Object.entries(prev).filter(([p]) => needed.includes(p)).map(([p, t]) => [p, { names: [...t.names], types: [...t.types], since: t.since, unread: [...(t.unread ?? [])] }]));
+          const prev = tasks.get(`${country}|councils`)?.tried ?? {}, tried = Object.fromEntries(Object.entries(prev).filter(([p]) => needed.includes(p)).map(([p, t]) => [p, { names: [...t.names], types: [...t.types], since: t.since, unread: [...(t.unread ?? [])], ...(t.notFound ? { notFound: t.notFound } : {}) }]));
           /* RR-330: the official pages that could not be read last time are named, so the AI gives another official page (cause of most "0") */
           const unread = [...new Set(Object.values(tried).flatMap((t) => t.unread ?? []))];
           const known = (ORIGIN.items ?? []).filter((f) => f.country === country && f.fact === "council" && needed.includes(f.profession)).map((f) => ({ profession: f.profession, name: f.name ?? f.text, link: f.link }));
@@ -189,6 +246,8 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
             const r = await askOne(councilQuestion({ country, subject: subject.name, professions: needed, known: told, tried, unread }));
             if (!r.ok && !mine.length) return finish(country, "councils", "retry", r.why, tried);
             const ai = r.ok ? (r.data.councils ?? []).map((x) => ({ ...x, profession: professionKey(x.profession), nameType: NAME_TYPES.includes(x.nameType) ? x.nameType : nameTypeOf(x.name), proposedBy: "ai" })).filter((x) => x.profession && needed.includes(x.profession) && x.name && x.sourceUrl) : [];
+            /* RR-334 (owner: where truly none exists, say "not found" and why) — kept with the names tried; still searched every day (rule R1) */
+            if (r.ok) for (const x of r.data.councils ?? []) { const p = professionKey(x.profession); if (x.notFound && p && needed.includes(p) && String(x.why ?? "").trim()) (tried[p] ??= { names: [], types: [], since: today }).notFound = String(x.why).trim().slice(0, 300); }
             cands = [...ai, ...cands.filter((k) => !ai.some((x) => x.profession === k.profession))];
           }
           cands = [...mine, ...cands];
@@ -254,30 +313,16 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     async function productOf(u) {
       const p = u.product, c = u.country, T = PRODUCT_FACTS[p], key = (part, n) => `${p}:${part}|${c}|${n}`;
       const mine = async () => (await store.facts({ country: c })).filter((f) => f.product === p && SHOWN_STATUS.includes(f.status));
+      /* RR-334 (owner: every collector by the same rules) · REPLACES RR-329's "keyword groups answered from the country's facts": the
+       * questions people really ask (keywords, Search Console, the owner's), grouped by meaning and answered from an official page, checked
+       * here — else general guidance with no number (cf-questions.mjs); YouTube stays AlmiOET's */
       if (u.tasks.includes(`${p}:questions`) && room()) {
-        const loc = LOCATIONS.find((l) => l.name === c), own = T.own;
-        if (!loc || !kwStore) await finish(c, `${p}:questions`, "done", "no keyword data for this country (Google cannot target it)");
-        else {
-          const rows = await kwStore.keywordsAt({ location: loc.code, language: "en" });
-          const top = questionGroups(rows, { subject: T.subject, skip: { test: (t) => BRANDS.test(t) && !own.test(t) }, max: CF_COLLECTOR.maxGroups });
-          if (!top.length) await finish(c, `${p}:questions`, "done", `no question-type searches about ${T.name} from ${c} in the keyword database yet`);
-          else if (!aiConfigured(env)) await finish(c, `${p}:questions`, "waiting", "the AI is not connected yet (ANTHROPIC_API_KEY)");
-          else if (room(true)) {
-            const lines = (await mine()).filter((f) => f.part !== "questions").map((f) => f.value?.text).filter(Boolean);
-            const r = await askOne(answerQuestion({ country: c, subject: T.name, groups: top, facts: lines }));
-            if (!r.ok) await finish(c, `${p}:questions`, "retry", r.why);
-            else {
-              const allowed = new Set([...numbersOf(lines.join(" ")), ...top.flatMap((g) => numbersOf(g.keywords.join(" ")))]);
-              for (const g of top) {
-                const a = (r.data.answers ?? []).find((x) => x.group === g.group); if (!a?.answer) continue;
-                const extra = numbersOf(a.answer).filter((n) => !allowed.has(n));
-                await put({ key: key("question", slug(g.group)), product: p, country: c, part: "questions", kind: "question", value: { question: g.keywords[0], keywords: g.keywords.slice(0, 10), volume: g.volume, period: g.period, intent: g.group, answer: a.answer.trim(), label: "AI-written from the country's confirmed facts" }, readOn: today, aiWritten: true, proposedBy: "ai",
-                  status: extra.length ? "unconfirmed" : "confirmed", why: extra.length ? `the answer states ${extra.join(", ")}, which no confirmed fact says` : null });
-              }
-              await finish(c, `${p}:questions`);
-            }
-          }
-        }
+        const loc = LOCATIONS.find((l) => l.name === c) ?? null, own = T.own, have = await mine();
+        const lines = have.filter((f) => f.part !== "questions").map((f) => f.value?.text).filter(Boolean);
+        const bodies = [...new Map(have.filter((f) => f.value?.name && f.value?.website).map((f) => [f.value.name, { name: f.value.name, website: f.value.website }])).values()];
+        const r = await collectQuestions({ country: c, location: loc, subject: T.name, subjectWords: T.subject, subjectSite: T.sites[0] ? `https://${T.sites[0]}` : null, skip: { test: (x) => BRANDS.test(x) && !own.test(x) }, lines, bodies, keyOf: (g) => key("question", slug(g.id)), product: p, youtube: false },
+          { store, kwStore, env, reader, room, askOne, put, today, at, fetchImpl: youtubeFetch, youtube, aiOn: aiConfigured(env) });
+        if (r.state !== null) await finish(c, `${p}:questions`, r.state, r.note, { stats: r.stats });
       }
       if (out.stoppedBy || !u.tasks.includes(`${p}:facts`)) return;
       /* the currency is known (ISO 4217) — a part of AlmiSalary's template */
@@ -320,6 +365,8 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         await kv.run([["SET", costKey(p), JSON.stringify({ usd: mix("usd", 4), reads: mix("reads", 1), n: (o?.n ?? 0) + xs.length }), "EX", 120 * 86400]]);
       } catch { /* the defaults are used */ }
     }
+    /* RR-334 · the day's template counts (KV, 40 days) — the owner's page shows searches → confirmed results per template */
+    if (kv && Object.keys(out.templates).length) try { const k = `av:cf:tpl:${today}`, [old] = await kv.run([["GET", k]]), sum = old ? JSON.parse(old) : {}; for (const [n, x] of Object.entries(out.templates)) { const s = (sum[n] ??= { asks: 0, searches: 0, found: 0, guidance: 0 }); for (const f of Object.keys(s)) s[f] += x[f] ?? 0; } await kv.run([["SET", k, JSON.stringify(sum), "EX", 40 * 86400]]); } catch { /* the owner's page only */ }
     if (kv) try { await kv.run([["SET", "av:cf:last", JSON.stringify({ at: at(), ...out }), "EX", 14 * 86400]]); } catch { /* the owner's page only */ }
     const noKey = !aiConfigured(env) && out.saved === 0;
     const code = out.stoppedBy === "TIME" ? null : out.stoppedBy ?? (noKey ? "AI_KEY" : out.aiError && out.saved === 0 ? (/not set|401|authentication|permission|403/i.test(out.aiError) ? "AI_KEY" : "AI_ERROR") : null);

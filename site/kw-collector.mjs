@@ -11,7 +11,7 @@
  *     says stop — said in plain words for the owner's page, and recorded for the 3-day health check (health.mjs).
  */
 import { randomBytes } from "node:crypto";
-import { DEFAULT_SEEDS, parseSeeds, unitsOf, LANGUAGES } from "./kw-seeds.mjs";
+import { DEFAULT_SEEDS, parseSeeds, unitsOf, LANGUAGES, withMoreSeeds } from "./kw-seeds.mjs";
 import { DEFAULT_QUEUE, FRONT, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { isQuestion } from "../desktop/country-facts.mjs";
@@ -25,7 +25,9 @@ export const storageLimitOf = (env = process.env) => (Number(env.NEON_STORAGE_LI
 /** the owner's list (or the first list, if he has none or it no longer reads) */
 export async function currentGroups(store) {
   const saved = await store.seedList(), p = saved ? parseSeeds(saved.text) : null;
-  return p?.ok ? { groups: p.groups, from: "owner", at: saved.at } : { groups: parseSeeds(DEFAULT_SEEDS).groups, from: saved ? "first list (the saved list does not read)" : "first list", at: null };
+  /* RR-334 · the AI's keyword ideas (templates b and d) join each product's seeds — the owner's list or the first one */
+  let ideas = {}; try { ideas = store.seedIdeas ? await store.seedIdeas() : {}; } catch { /* the list alone */ }
+  return p?.ok ? { groups: withMoreSeeds(p.groups, { ideas }), from: "owner", at: saved.at } : { groups: withMoreSeeds(parseSeeds(DEFAULT_SEEDS).groups, { ideas }), from: saved ? "first list (the saved list does not read)" : "first list", at: null };
 }
 
 /**

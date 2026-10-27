@@ -14,13 +14,38 @@
  *   4 COUNTED   per country: questions asked, groups, groups a page may carry (desktop/real-questions.mjs pageable) — kept in the task.
  */
 import { numbersOf, quoteOnPage, hostOf, governmentHost, SHOWN_STATUS, blockedSource } from "../desktop/country-facts.mjs";
-import { groupQuestions, questionsInComment, isQuestionForm, pageable, REDDIT } from "../desktop/real-questions.mjs";
+import { groupQuestions, questionsInComment, isQuestionForm, pageable, REDDIT, notASearch } from "../desktop/real-questions.mjs";
 import { youtubeApi } from "../src/video/youtube.mjs";
 import { feeShown } from "../desktop/rates.mjs";
 import { officialAnswerQuestion } from "./cf-ai.mjs";
 
-export const CF_QUESTIONS = Object.freeze({ videos: 4, commentsPerVideo: 50, youtubeEveryDays: 7, rawDays: 30, answerPerRun: 8, answerAgainDays: 30 });
+/* RR-334 · `rules`: the answer rules an answer was given under — an answer given under older rules is asked again (never kept 30 days) */
+export const CF_QUESTIONS = Object.freeze({ videos: 4, commentsPerVideo: 50, youtubeEveryDays: 7, rawDays: 30, answerPerRun: 8, answerAgainDays: 30, rules: "rr334" });
 export { REDDIT };
+const OWNER_HELD = ["approved", "edited", "owner", "rejected"];
+
+/**
+ * RR-334 (owner, 27 Oct 2026: "junk leaves the counts and is never shown, without the owner rejecting each one") · every stored question
+ * fact whose question is a comment to a video's maker or its viewers is REMOVED BY THE FILTER — stored "unconfirmed" (never shown, out
+ * of every count) with value.removedBy and its reason, its history row written, so one Approve brings it back; a real question grouped
+ * under the same key later replaces it. The owner's own decisions are never touched. → how many were removed
+ */
+export async function sweepQuestions({ store, put }) {
+  let n = 0;
+  for (const f of await store.facts()) {
+    if (f.part !== "questions" || OWNER_HELD.includes(f.status) || f.value?.removedBy) continue;
+    const junk = notASearch(f.value?.question) ?? (f.value?.asked ?? []).map((a) => notASearch(a.text)).find(Boolean) ?? null;
+    /* RR-334: an answer written under the REPLACED rule (RR-328/329: from the facts only, never checked on an official page) leaves too — its
+     * task is due at once (cf-collector.mjs CF_RULES) and answers it again under the current rules */
+    const old = !junk && f.value?.answer && !f.value?.answerKind && f.status === "confirmed";
+    if (!junk && !old) continue;
+    const by = junk ? "question filter" : "replaced rule", why = junk ?? "answered under the replaced RR-328/329 rule (from the facts only, never checked on an official page)";
+    const r = await put({ key: f.key, product: f.product ?? "oet", country: f.country, profession: f.profession, part: f.part, kind: f.kind, value: { ...f.value, removedBy: by, removedWhy: why }, sourceUrl: f.sourceUrl, sourceTitle: f.sourceTitle, readOn: f.readOn, aiWritten: f.aiWritten, proposedBy: f.proposedBy ?? "ai",
+      status: "unconfirmed", why: junk ? `removed by the question filter: ${why} — not a question people search (Approve brings it back)` : `set aside: ${why} — asked again under the current rules (Approve keeps it)` });
+    if (r?.saved) n++;
+  }
+  return n;
+}
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9~]+/g, "-").replace(/^-|-$/g, "");
 const daysAgo = (iso, today) => (iso ? Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(String(iso).slice(0, 10) + "T00:00:00Z")) / 864e5) : Infinity);
@@ -29,20 +54,22 @@ const daysAgo = (iso, today) => (iso ? Math.floor((Date.parse(`${today}T00:00:00
  * One (product, country). `ctx` comes from the collector run: { store, kwStore, env, reader, room(needAi), askOne(q), put(fact), today, at(),
  * fetchImpl, youtube }. → { state: "done"|"searching"|"waiting"|"retry", note, stats: { asked, groups, pageable, sources }, why }
  */
-export async function collectQuestions({ country, location, subject, subjectSite, skip, fee = null, lines = [], bodies = [], keyOf = (g) => `question|${country}|${slug(g.id)}`, product = "oet" }, ctx) {
+export async function collectQuestions({ country, location, subject, subjectWords = subject, subjectSite, skip, fee = null, lines = [], bodies = [], keyOf = (g) => `question|${country}|${slug(g.id)}`, product = "oet", youtube = true }, ctx) {
   const { store, kwStore, reader, room, askOne, put, today } = ctx;
   /* 1 · asked: keywords, YouTube, the owner */
   const items = [];
   if (location && kwStore) for (const r of await kwStore.keywordsAt({ location: location.code, language: "en" })) if (isQuestionForm(r.keyword)) items.push({ text: r.keyword, source: "keywords", volume: r.volume, period: r.period });
-  const yt = await youtubeOf({ country, location, subject, product }, ctx);
-  for (const q of await store.questions({ product, country })) items.push({ text: q.text, source: q.source, ...(q.source === "gsc" ? { volume: q.impressions ?? 0 } : {}) });
+  /* RR-334: YouTube's 100 searches a day are AlmiOET's (every other product: keywords, Search Console and the owner) */
+  const yt = youtube ? await youtubeOf({ country, location, subject, product }, ctx) : { note: "not searched for this product (YouTube's daily searches are AlmiOET's)" };
+  /* RR-334: a comment stored before the filter (RR-333) is filtered here too — it never joins a group */
+  for (const q of await store.questions({ product, country })) if (q.source !== "youtube" || !notASearch(q.text)) items.push({ text: q.text, source: q.source, ...(q.source === "gsc" ? { volume: q.impressions ?? 0 } : {}) });
   /* 2 · grouped — last run's groups first, so a group keeps its key */
   const old = (await store.facts({ country })).filter((f) => (f.product ?? "oet") === product && f.part === "questions");
   const known = old.map((f) => ({ id: f.value?.group ?? f.key.split("|").pop(), need: f.value?.intent ?? f.value?.group, sig: f.value?.sig ?? [] })).filter((k) => k.id && k.need);
-  const groups = groupQuestions(items, { subject, country, known, skip });
+  const groups = groupQuestions(items, { subject: subjectWords, country, known, skip });
   const stats = { asked: items.length, groups: groups.length, pageable: 0, sources: { keywords: items.filter((x) => x.source === "keywords").length, youtube: items.filter((x) => x.source === "youtube").length, owner: items.filter((x) => x.source === "owner").length, gsc: items.filter((x) => x.source === "gsc").length }, youtube: yt.note, reddit: REDDIT.why };
   if (!groups.length) return { state: "done", note: `no question asked about ${subject} from ${country} yet (keywords ${stats.sources.keywords}, YouTube ${yt.note}, yours ${stats.sources.owner})`, stats };
-  const value = (g, extra) => ({ group: g.id, intent: g.need, sig: g.sig, question: g.question, asked: g.asked.filter((a) => a.source !== "youtube"), keywords: g.asked.filter((a) => a.source === "keywords").map((a) => a.text), count: g.count, volume: g.volume, period: g.period, sources: g.sources, ...extra });
+  const value = (g, extra) => ({ group: g.id, intent: g.need, sig: g.sig, question: g.question, asked: g.asked.filter((a) => a.source !== "youtube"), keywords: g.asked.filter((a) => a.source === "keywords").map((a) => a.text), count: g.count, volume: g.volume, period: g.period, sources: g.sources, rules: CF_QUESTIONS.rules, ...extra });
   const prev = new Map(old.map((f) => [f.key, f]));
   /* 3 · answered: the fee from its fact; the rest by the AI, checked here */
   for (const g of groups.filter((x) => x.need === "fees" && fee)) {
@@ -50,7 +77,7 @@ export async function collectQuestions({ country, location, subject, subjectSite
     await put({ key: keyOf(g), product, country, part: "questions", kind: "question", value: { ...v, pageable: pageable(g, { kind: "official", shown: true }) }, sourceUrl: fee.sourceUrl, sourceTitle: fee.sourceTitle, readOn: today, status: "confirmed" });
   }
   /* an answer given in the last 30 days (shown or not) is not asked again before then — the cost stays inside the day's cap */
-  const fresh = (g) => { const f = prev.get(keyOf(g)); return Boolean(f?.value?.answer && daysAgo(f.readOn, today) < CF_QUESTIONS.answerAgainDays); };
+  const fresh = (g) => { const f = prev.get(keyOf(g)); return Boolean(f?.value?.answer && f.value.rules === CF_QUESTIONS.rules && daysAgo(f.readOn, today) < CF_QUESTIONS.answerAgainDays); };
   const open = groups.filter((g) => !(g.need === "fees" && fee) && !fresh(g)), ask = open.slice(0, CF_QUESTIONS.answerPerRun);
   stats.pageable = countPageable(groups, prev, keyOf, fee);
   if (!ask.length) return { state: "done", note: noteOf(stats), stats };

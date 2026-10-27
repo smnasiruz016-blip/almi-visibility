@@ -11,6 +11,7 @@ import { unitsOf, LOCATIONS } from "./kw-seeds.mjs";
 import { FACT_PRODUCTS, PRODUCT_FACTS } from "../desktop/product-facts.mjs";
 import { doneIn, pageCounts } from "../desktop/country-facts.mjs";
 import { visibilityPages, VIS_GROUPS } from "../desktop/visibility-pages.mjs";
+import { gscConfigured } from "./gsc.mjs";
 
 /* RR-332 · the owner's review: Pakistan and India (the collector's confirmed facts he has not decided yet), and everything not verified */
 export const REVIEW_COUNTRIES = Object.freeze(["Pakistan", "India"]);
@@ -38,10 +39,13 @@ export const productName = (p) => PRODUCT_NAMES[p] ?? p;
 export async function ownerStatus({ kv, db = null, cf = null, env = process.env, now = () => Date.now() }) {
   const today = new Date(now()).toISOString().slice(0, 10), queue = await queueNow(kv), caps = capsOf(env);
   const out = { today, queue, red: [], facts: null, keywords: null, spend: null, storage: null, week: null, advice: null };
-  const [kwDays, cfDays] = await Promise.all([daysOf(kv, "keywords", today, 8), daysOf(kv, "facts", today, 8)]);
+  const [kwDays, cfDays, dateDays, gscDays] = await Promise.all([daysOf(kv, "keywords", today, 8), daysOf(kv, "facts", today, 8), daysOf(kv, "dates", today, 8), daysOf(kv, "gsc", today, 8)]);
   /* F · the red lines (only for a collector that can run: the keyword collector needs Google and the database) */
   if (db) { const r = redLine("keywords", kwDays); if (r) out.red.push(r); }
   if (cf) { const r = redLine("facts", cfDays); if (r) out.red.push(r); }
+  /* RR-333 B4: the test dates (same database) and the Search Console reader (Google signed in) — a failure 3 days running is never silent */
+  if (cf) { const r = redLine("dates", dateDays); if (r) out.red.push(r); }
+  if (cf && gscConfigured(env)) { const r = redLine("gsc", gscDays); if (r) out.red.push(r); }
   /* C · the country facts: progress, ETA, the "$3" advice, the spend */
   let waiting = 0, unconfirmed = 0;
   if (cf) {

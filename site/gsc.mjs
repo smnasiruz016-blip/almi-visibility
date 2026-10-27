@@ -14,6 +14,7 @@ import { ADS_API } from "../desktop/ads-wire.mjs";
 import { countryOfCode } from "../desktop/world.mjs";
 import { isQuestionForm } from "../desktop/real-questions.mjs";
 import { LOCATIONS } from "./kw-seeds.mjs";
+import { recordRun } from "./health.mjs";
 
 export const GSC = Object.freeze({ api: "https://www.googleapis.com/webmasters/v3", scope: "https://www.googleapis.com/auth/webmasters.readonly", days: 28, lagDays: 3, rowLimit: 25000, maxPages: 2, everyDays: 7, ours: /(^|\.)almiworld\.com\/?$|almiworld\.com/ });
 /* a site's product (its subdomain: almi<name>.almiworld.com) */
@@ -25,9 +26,11 @@ export const gscConfigured = (env = process.env) => [ADS_ENV.clientId, ADS_ENV.s
 /** one read → { ok, why?, sites, rows, questions, keywords, skipped } */
 export async function runSearchConsole({ env = process.env, kv = null, kwStore = null, cfStore = null, fetchImpl = fetch, now = () => Date.now(), force = false }) {
   const today = new Date(now()).toISOString().slice(0, 10), at = new Date(now()).toISOString();
-  const remember = async (o) => { if (kv) try { await kv.run([["SET", "av:gsc:last", JSON.stringify({ at, ...o }), "EX", 60 * 86400]]); } catch { /* the owner's page only */ } return o; };
+  /* RR-333 B4: each read is also a day of the reader's health (a failed read 3 days running → a red line on /owner) */
+  const remember = async (o) => { if (kv) try { await kv.run([["SET", "av:gsc:last", JSON.stringify({ at, ...o }), "EX", 60 * 86400]]); } catch { /* the owner's page only */ }
+    await recordRun(kv, "gsc", today, { progress: o.ok ? 1 : 0, code: o.ok ? null : "GSC", why: o.why ?? null, keywords: o.keywords ?? 0 }); return o; };
   if (!gscConfigured(env)) return { ok: false, why: "Not connected — the Google sign-in is not in Vercel yet." };
-  if (!force && kv) { try { const [l] = await kv.run([["GET", "av:gsc:last"]]); const last = l ? JSON.parse(l) : null; if (last?.ok && Date.parse(today) - Date.parse(last.at.slice(0, 10)) < GSC.everyDays * 864e5) return { ok: true, skipped: true, why: `Read on ${last.at.slice(0, 10)} — again after ${GSC.everyDays} days.` }; } catch { /* read now */ } }
+  if (!force && kv) { try { const [l] = await kv.run([["GET", "av:gsc:last"]]); const last = l ? JSON.parse(l) : null; if (last?.ok && Date.parse(today) - Date.parse(last.at.slice(0, 10)) < GSC.everyDays * 864e5) return (await recordRun(kv, "gsc", today, { progress: 1 }), { ok: true, skipped: true, why: `Read on ${last.at.slice(0, 10)} — again after ${GSC.everyDays} days.` }); } catch { /* read now */ } }
   const t = await fetchImpl(ADS_API.token, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: env[ADS_ENV.clientId], client_secret: env[ADS_ENV.secret], refresh_token: env[ADS_ENV.refresh], grant_type: "refresh_token" }), signal: AbortSignal.timeout(10000) });
   const tj = await t.json().catch(() => ({}));
   if (!t.ok || !tj.access_token) return remember({ ok: false, why: `Google did not accept the sign-in (${String(tj.error ?? t.status).slice(0, 40)}) — run the sign-in script again.` });

@@ -32,13 +32,25 @@ export function ask(question, { input = process.stdin, output = process.stdout }
 /** a path as PowerShell types it when a file is dragged in: quotes, a leading "& ", spaces around */
 export const cleanPath = (p) => String(p ?? "").trim().replace(/^&\s+/, "").replace(/^(["'])(.*)\1$/, "$2").trim();
 
+/* RR-331 B: the file's bytes as text — UTF-8 with or without its byte-order mark, or UTF-16 (a file saved again by an editor); a value
+ * is never printed, only which of these went wrong */
+export function textOfBytes(b) {
+  const buf = Buffer.isBuffer(b) ? b : Buffer.from(String(b ?? ""), "utf8");
+  if (buf[0] === 0xff && buf[1] === 0xfe) return buf.subarray(2).toString("utf16le");
+  if (buf[0] === 0xfe && buf[1] === 0xff) { const s = Buffer.from(buf.subarray(2)); s.swap16(); return s.toString("utf16le"); }
+  if (buf.length >= 2 && buf[1] === 0x00 && buf[0] !== 0x00) return buf.toString("utf16le"); // UTF-16 LE without its mark
+  return buf.toString("utf8").replace(/^﻿/, "");
+}
 /** the client from Google's JSON file → { ok, clientId, secret } | { ok: false, why } — the why never carries a value */
-export function clientFromFile(path, { read = (f) => readFileSync(f, "utf8") } = {}) {
+export function clientFromFile(path, { read = (f) => readFileSync(f) } = {}) {
   const p = cleanPath(path);
   if (!p) return { ok: false, why: "No file was given." };
   if (!/\.json$/i.test(p)) return { ok: false, why: "That is not a .json file — give the client file you downloaded from Google Cloud." };
   if (!existsSync(p)) return { ok: false, why: "That file is not there — drag the file itself into this window." };
-  let j; try { j = JSON.parse(read(p)); } catch { return { ok: false, why: "That file could not be read as Google's client file." }; }
+  let raw; try { raw = read(p); } catch (e) { return { ok: false, why: `That file is there but could not be opened (${e?.code ?? "no access"}) — if it is in OneDrive, right-click it → "Always keep on this device", wait until its cloud icon turns into a green tick, then run this again.` }; }
+  const text = textOfBytes(raw).trim();
+  if (!text) return { ok: false, why: "That file is empty — if it is in OneDrive, let it finish downloading (right-click → \"Always keep on this device\"), then run this again." };
+  let j; try { j = JSON.parse(text); } catch { return { ok: false, why: `That file is not Google's client file (its text is not JSON${text.startsWith("{") ? " — it may have been changed when it was opened in an editor; download it again from Google Cloud → Credentials" : ""}).` }; }
   const c = j?.installed ?? j?.web ?? null;
   if (!c) return { ok: false, why: "That file has no client in it (Google's client file has an \"installed\" or \"web\" part)." };
   if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(String(c.client_id ?? ""))) return { ok: false, why: "That file's client ID is not a Google OAuth client ID." };

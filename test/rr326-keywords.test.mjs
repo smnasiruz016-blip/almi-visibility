@@ -378,12 +378,25 @@ test("A · the owner's sign-in script: the client ID and secret are read from Go
     const forged = await run({ argv: [fake], forge: true }); assert.equal(forged.code, 1); assert.deepEqual(forged.saved, []);
     /* a wrong file: refused in plain words that never carry a value; nothing asked of Google */
     const bad = (name, body) => { const f = join(dir, name); writeFileSync(f, body); return f; };
-    for (const [f, why] of [[bad("a.json", "not json"), /could not be read/], [bad("b.json", JSON.stringify({ other: {} })), /no client in it/], [bad("c.json", JSON.stringify({ installed: { client_id: "nope", client_secret: "secret-value-123" } })), /not a Google OAuth client ID/], [bad("d.json", JSON.stringify({ installed: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID } })), /no client secret/], [join(dir, "missing.json"), /not there/], [bad("e.txt", "x"), /not a \.json file/]]) {
+    for (const [f, why] of [[bad("a.json", "not json"), /is not Google's client file \(its text is not JSON\)/], [bad("b.json", JSON.stringify({ other: {} })), /no client in it/], [bad("c.json", JSON.stringify({ installed: { client_id: "nope", client_secret: "secret-value-123" } })), /not a Google OAuth client ID/], [bad("d.json", JSON.stringify({ installed: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID } })), /no client secret/], [join(dir, "missing.json"), /not there/], [bad("e.txt", "x"), /not a \.json file/]]) {
       const o = []; const c = await signIn({ log: (s) => o.push(s), cwd: dir, argv: [f], open: () => o.push("BROWSER OPENED"), waitMs: 50, fetchImpl: async () => { throw new Error("Google was asked"); }, addEnv: async () => { throw new Error("saved"); } }); // never a real browser, even if the refusal broke
       assert.equal(c, 2); assert.match(o.join("\n"), why); assert.ok(!o.join("\n").includes("secret-value-123") && !o.join("\n").includes(SECRETS.GOOGLE_ADS_CLIENT_ID));
     }
     assert.equal(cleanPath(`& 'C:\\Users\\x\\My Files\\client.json'`), "C:\\Users\\x\\My Files\\client.json"); assert.equal(cleanPath(`  "C:\\a b\\c.json" `), "C:\\a b\\c.json");
     const web = bad("w.json", JSON.stringify({ web: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID, client_secret: SECRETS.GOOGLE_ADS_CLIENT_SECRET } })); assert.equal(clientFromFile(web).kind, "Web application");
+    /* RR-331 B (owner, 27 Oct: "could not be read" for the file that worked on 26 Oct): the same client file saved again — with a UTF-8
+     * byte-order mark, as UTF-16 (with or without its mark, either byte order), dragged in with quotes and spaces — is read; a file that
+     * will not open (OneDrive not yet on the device) and an empty one each say so; nothing of its value is ever shown */
+    const json = JSON.stringify({ installed: { client_id: SECRETS.GOOGLE_ADS_CLIENT_ID, client_secret: SECRETS.GOOGLE_ADS_CLIENT_SECRET } }, null, 2);
+    const be = Buffer.from(json, "utf16le"); be.swap16();
+    for (const [name, bytes] of [["bom8.json", Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(json)])], ["le.json", Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(json, "utf16le")])], ["le-nobom.json", Buffer.from(json, "utf16le")], ["be.json", Buffer.concat([Buffer.from([0xfe, 0xff]), be])], ["crlf.json", Buffer.from(`\r\n  ${json.replace(/\n/g, "\r\n")}\r\n`)]]) {
+      const c = clientFromFile(bad(name, bytes)); assert.equal(c.ok, true, `${name}: ${c.why}`); assert.equal(c.clientId, SECRETS.GOOGLE_ADS_CLIENT_ID); assert.equal(c.kind, "Desktop app");
+    }
+    const spaced = bad("client secret (1).json", json); assert.equal(clientFromFile(`& '${spaced}'  `).ok, true, "dragged in: & and quotes and spaces");
+    const locked = clientFromFile(spaced, { read: () => { throw Object.assign(new Error("x"), { code: "EBUSY" }); } });
+    assert.match(locked.why, /is there but could not be opened \(EBUSY\) — if it is in OneDrive, right-click it → "Always keep on this device"/);
+    assert.match(clientFromFile(bad("empty.json", "")).why, /That file is empty/);
+    for (const r of [locked, clientFromFile(bad("x.json", "{ broken"))]) assert.ok(!JSON.stringify(r).includes(SECRETS.GOOGLE_ADS_CLIENT_SECRET));
     /* the CLI gets the value on standard input — never in its arguments; no hidden prompt (paste failed in it), no copy of the file */
     const src = readFileSync(join(REPO, "site", "owner-google-sign-in.mjs"), "utf8");
     assert.match(src, /p\.stdin\.end\(value\)/); assert.match(src, /"env", "add", name, "--environment", "production", "--sensitive", "--force"\]/); assert.doesNotMatch(src, /--value|_writeToOutput|copyFile|writeFile/);

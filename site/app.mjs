@@ -32,7 +32,7 @@ import { publicOnly } from "./free-test.mjs"; // RR-325 B
 import { cfPgStore, SHOWN, PHOTO } from "./cf-store.mjs"; // RR-328 B
 import { runCountryFacts, CF_ORDER, capsOf, finishedIn, costKey, CF_COLLECTOR } from "./cf-collector.mjs";
 import { aiConfigured } from "./cf-ai.mjs";
-import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS } from "../desktop/country-facts.mjs";
+import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS, doneIn } from "../desktop/country-facts.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { chainFetch } from "./chain-fetch.mjs"; // RR-330
 import { runTestDates, datesTask } from "./cf-dates.mjs"; // RR-331
@@ -255,7 +255,8 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     let first15 = null;
     if (product === "oet") {
       const cs = order.slice(0, 15), rows = coverage.rows.filter((r) => cs.includes(r.country)), filled = rows.reduce((a, r) => a + Object.values(r.parts).filter((p) => p.filled).length, 0);
-      const done = finishedIn(tasks), left = cs.filter((c) => !done("oet", c)).length, caps = capsOf(env);
+      /* RR-332: "done" = the five parts filled — the same meaning as /owner's queue line, the table and the page counter */
+      const done = doneIn(all, { templates: PRODUCT_FACTS }), left = cs.filter((c) => !done("oet", c)).length, caps = capsOf(env);
       let cost = null; try { const [v] = kv ? await kv.run([["GET", costKey("oet")]]) : [null]; cost = v ? JSON.parse(v) : null; } catch { cost = null; }
       const usd = cost && cost.n >= 3 ? cost.usd : CF_COLLECTOR.defaultCost.oet, reads = cost && cost.n >= 3 && cost.reads !== undefined ? cost.reads : CF_COLLECTOR.defaultReads.oet;
       const days = left ? Math.max(Math.ceil((left * usd) / Math.max(0.01, caps.aiUsd * 0.75)), Math.ceil((left * reads) / Math.max(1, caps.reads * 0.75))) : 0;
@@ -400,6 +401,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           if (!q[kind].includes(item)) return send(400, await ownerPage({ message: "Not in the queue. Nothing was changed." }), undefined, priv);
           await saveQueue(kv, { ...q, [kind]: moveUp(q[kind], item) });
           return send(303, "", "text/plain", { ...priv, location: `/owner?moved=${encodeURIComponent(item)}#queue` });
+        }
+        /* RR-332 · the owner's own Search Console read, now (the weekly cron reads it too) — the answer in one line */
+        if (req.method === "POST" && u.pathname === "/owner/search-console") {
+          const r = await runSearchConsole({ env, kv, kwStore: db, cfStore: cf, fetchImpl: gscFetch ?? fetchImpl, now, force: true });
+          return send(200, await ownerPage({ message: r.ok ? `Search Console read: ${r.sites} almiworld.com site${r.sites === 1 ? "" : "s"}, ${r.rows.toLocaleString("en-US")} rows — ${r.questions} questions, ${r.keywords} keywords (${r.period}).` : `Search Console: ${r.why}` }), undefined, priv);
         }
         /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
         if (u.pathname.startsWith("/owner/countries")) {

@@ -265,9 +265,9 @@ test("E + D · RR-329: /owner on a phone — the numbers first (This week, the q
   try {
     for (const n of [1, 2, 3]) await recordRun(a.K.kv, "facts", new Date(Date.parse(`${ON}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10), { progress: 0, code: "AI_KEY", why: "ANTHROPIC_API_KEY is not set in Vercel" });
     const page = (await a.req("/owner")).text;
-    assert.match(page, /<h1>Owner<\/h1>/); assert.match(page, /<h2>This week<\/h2>/); assert.match(page, /facts waiting for your look/);
+    assert.match(page, /<h1>Owner<\/h1>/); assert.match(page, /<h2>This week<\/h2>/); assert.match(page, /facts in your review queue \(Pakistan and India: \d+ · not verified on an official page: \d+, never shown\)/, "RR-332: only Pakistan, India and the unverified");
     assert.match(page, /class="red" role="alert"><b>The country-facts collector has failed 3 days in a row — last reason: ANTHROPIC_API_KEY is not set in Vercel<\/b><br>Fix: The AI key is missing or refused/);
-    assert.match(page, /<h2>Country facts — the queue<\/h2><p class="big">AlmiOET: 0 of 30 first countries · about \d+ days \(by 2026-\d\d-\d\d\)/);
+    assert.match(page, /<h2>Country facts — the queue<\/h2><p class="big">AlmiOET: 0 of 30 first countries done \(all five parts\) · about \d+ days \(by 2026-\d\d-\d\d\)/);
     assert.match(page, /AI spend: today <b>\$0\.00<\/b> of \$2\.00 · this month <b>\$0\.00<\/b>/);
     assert.ok(page.indexOf("This week") < page.indexOf("<summary>Google and the keyword collector</summary>"), "numbers before the tables");
     assert.match(page, /<details><summary>Google and the keyword collector<\/summary>/, "closed until tapped"); assert.match(page, /<details id="queue"><summary>The queue — move a product or a country up<\/summary>/);

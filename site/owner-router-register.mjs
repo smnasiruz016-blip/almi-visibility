@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * RR-336 · FOR THE OWNER: register AlmiVisibility in the AlmiWorld billing router (POST /api/admin/routes), so Stripe's subscription and
+ * RR-336 · FOR THE OWNER (the website's own owner script, like owner-google-sign-in.mjs — not engine code): register AlmiVisibility in the AlmiWorld billing router (POST /api/admin/routes), so Stripe's subscription and
  * invoice events for its 4 prices reach https://almivisibility.almiworld.com/api/webhooks/stripe.
- *   node tools/router-register.mjs <price 1 product> <price up to 5> <price up to 10> <price unlimited>
- *   node tools/router-register.mjs --check <the same 4 price ids>     (reads only: is it registered with exactly these 4?)
+ *   node site/owner-router-register.mjs <price 1 product> <price up to 5> <price up to 10> <price unlimited>
+ *   node site/owner-router-register.mjs --check <the same 4 price ids>     (reads only: is it registered with exactly these 4?)
  * The same tool registers the LIVE price ids later (test and live ids differ; the forwardSecret stays the same).
  * You type ROUTER_ADMIN_API_SECRET and the forwardSecret (= AlmiVisibility's ROUTER_WEBHOOK_SECRET in Vercel) at hidden prompts; nothing you
  * type is shown, written to a file or printed. It prints ONLY success or failure — never a secret, never the router's raw answer.

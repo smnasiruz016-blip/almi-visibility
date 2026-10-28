@@ -50,7 +50,7 @@ test("RR-336 · linksGate counts links in the page's own text only, to the relat
 
 /* RR-336 · the owner's router tool: registers almi-visibility with its 4 prices, reads it back, and says only OK or FAILED */
 test("RR-336 · router-register: the 4 price ids checked; POST then read back; the line never carries a secret", async () => {
-  const { checkPrices, registerRoutes, PRODUCT } = await import("../tools/router-register.mjs");
+  const { checkPrices, registerRoutes, PRODUCT } = await import("../site/owner-router-register.mjs");
   const ids = ["price_1AAAAAAA", "price_1BBBBBBB", "price_1CCCCCCC", "price_1DDDDDDD"];
   assert.equal(checkPrices(ids).ok, true);
   assert.match(checkPrices(ids.slice(0, 3)).why, /exactly 4/);

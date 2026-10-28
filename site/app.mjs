@@ -48,25 +48,38 @@ export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", 
 /* RR-337 · the launch settings /owner lists: [name, what it is for, needed now?] — the page says "set" or "missing", never a value */
 export const LAUNCH_VARS = Object.freeze([
   [SITE_KEY_NAMES.signingKey, "signs each buyer's licence", true], [PUBLIC_KEY_ENV, "the app's keyword service checks licences", true],
-  [KEY_NAMES.adminHash, "your /admin sign-in", true], [KEY_NAMES.database, "leads, licences and admin sessions", true],
+  [`${KEY_NAMES.database} or DATABASE_URL`, "buyers' licences and checkouts (RR-338: the Neon DATABASE_URL is used when the first is not set)", true, (env) => Boolean(String(env[KEY_NAMES.database] ?? "").trim() || dbUrlOf(env))],
   [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
-  [EMAIL_KEY_NAMES.resend, "emails (reports, licence keys)", true], [EMAIL_KEY_NAMES.from, "the emails' sender", true],
-  [SITE_KEY_NAMES.setupUrl, "the Setup download", true], [SITE_KEY_NAMES.updateBase, "the app's updates", true],
+  [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
-  [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false]]);
-export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed]) => ({ name, use, needed, set: String(env[name] ?? "").trim() !== "" }));
+  [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],
+  [KEY_NAMES.adminHash, "the /admin sign-in (admin is hidden on the sales site)", false],
+  [EMAIL_KEY_NAMES.resend, "emails — the sales site sends none yet", false], [EMAIL_KEY_NAMES.from, "the emails' sender — not used yet", false]]);
+export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed, isSet]) => ({ name, use, needed, set: isSet ? isSet(env) : String(env[name] ?? "").trim() !== "" }));
 const SECURITY = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", "x-frame-options": "SAMEORIGIN", "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'self'" };
 const PRIVATE = { "x-robots-tag": "noindex, nofollow", "cache-control": "no-store" };
 const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 
 /** Build the handler. `dataDir` holds the LOCAL store (local runs only); `setupFile` is a local Setup the Download button serves. */
 /** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
-export const modeOf = (env = process.env, mode = null) => (mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full")) === "full" ? "full" : "public-lite";
+/** RR-338 · a third: "sales" = everything public-lite has, PLUS selling (SALES_PATHS, served by the full handler). */
+export const modeOf = (env = process.env, mode = null) => { const m = mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full"); return m === "full" || m === "sales" ? m : "public-lite"; };
+/* RR-338 · the selling routes the sales site adds to public-lite (admin, the old free test and unsubscribe stay hidden) */
+export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence"], POST: ["/api/billing/checkout", "/api/webhooks/stripe"] });
+export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null } = {}) {
-  if (modeOf(env, mode) === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch });
-  const store = siteStore({ env, localDir: dataDir });
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null } = {}) {
+  const m = modeOf(env, mode);
+  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch });
+  /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch,
+    salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
+  return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
+}
+
+function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, freeTest, sales = false }) {
+  const store = siteStore({ env: storeEnv, localDir: dataDir });
   const limiter = dailyLimiter({ store });
   const admin = adminSessions({ env, store });
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png"));
@@ -74,7 +87,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
   const localSetup = () => Boolean(setupFile && existsSync(setupFile));
   const setupAvailable = () => localSetup() || httpsUrl(env[SITE_KEY_NAMES.setupUrl]);
   const emailOn = () => sendingOn(env);
-  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": P.pricing, "/download": () => P.download({ setupAvailable: setupAvailable() }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
+  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": () => P.pricing({ sales }), "/download": () => P.download({ setupAvailable: setupAvailable(), sales }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
   const formOf = (body, type) => (/json/.test(type ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
   const cookie = (req, name) => (req.headers.cookie ?? "").split(/;\s*/).map((c) => c.split("=")).find(([k]) => k === name)?.[1] ?? null;
   const who = (req) => String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
@@ -83,10 +96,10 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
   /* RR-304: an admin row names a licence by a short hash of its key, never the key itself */
   const refOf = (account) => createHash("sha256").update(account).digest("hex").slice(0, 16);
 
-  return async function handle(req, res) {
+  return async function handle(req, res, preRead = null) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
     let body = "";
-    for await (const c of req) { body += c; if (body.length > 200000) return send(413, "Too large", "text/plain"); }
+    if (preRead !== null) body = preRead; else for await (const c of req) { body += c; if (body.length > 200000) return send(413, "Too large", "text/plain"); } // RR-338: the sales site hands the body over
     try {
       const u = new URL(req.url, "http://127.0.0.1");
       /* the Stripe events, through the AlmiWorld billing router (its own HMAC), or Stripe's own signature — before the origin check: a webhook has no browser origin */
@@ -117,24 +130,25 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
       if (req.method === "GET" && u.pathname === "/download/AlmiVisibility-Setup.exe") {
         if (localSetup()) { res.writeHead(200, { "content-type": "application/vnd.microsoft.portable-executable", "content-length": statSync(setupFile).size, "content-disposition": 'attachment; filename="AlmiVisibility-Setup.exe"', ...SECURITY }); return createReadStream(setupFile).pipe(res); }
         if (httpsUrl(env[SITE_KEY_NAMES.setupUrl])) return send(302, "", "text/plain", { location: env[SITE_KEY_NAMES.setupUrl] });
-        return send(404, P.download({ setupAvailable: false }));
+        return send(404, P.download({ setupAvailable: false, sales }));
       }
       /* the app's update channel: the signed manifest and packages on Vercel Blob (VISIBILITY_UPDATE_BASE_URL) */
       if (req.method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(u.pathname)) {
         if (!httpsUrl(env[SITE_KEY_NAMES.updateBase])) return send(404, JSON.stringify({ refused: "no update channel is configured" }), "application/json");
-        return send(302, "", "text/plain", { location: new URL(u.pathname.slice("/updates/".length), env[SITE_KEY_NAMES.updateBase].replace(/\/?$/, "/")).href });
+        /* RR-338: the channel is a GitHub release folder — its files sit side by side, so packages/<file> is <base>/<file> */
+        return send(302, "", "text/plain", { location: new URL(u.pathname.slice("/updates/".length).replace(/^packages\//, ""), env[SITE_KEY_NAMES.updateBase].replace(/\/?$/, "/")).href });
       }
       /* Buy: a Stripe Checkout session for the plan (TEST mode until launch), named for the router — or the page saying it is not connected */
       if (req.method === "POST" && u.pathname === "/api/billing/checkout") {
         const f = formOf(body, req.headers["content-type"]);
         const c = await createCheckout({ plan: f.plan, env, origin: originOf(req), fetchImpl });
-        if (!c.ok) return send(c.state === "REFUSED" ? 400 : 503, P.buyNotConnected(f.plan, c.state), undefined, PRIVATE);
+        if (!c.ok) return send(c.state === "REFUSED" ? 400 : 503, P.buyNotConnected(f.plan, c.state, { sales, closed: Boolean(c.closed) }), undefined, PRIVATE);
         await store.addCheckout({ sessionId: c.sessionId, licenceKey: c.licenceKey, plan: c.plan, at: new Date(now()).toISOString() });
         return send(303, "", "text/plain", { location: c.url, ...PRIVATE });
       }
       if (req.method === "GET" && u.pathname === "/buy/success") {
         const c = await store.checkout(u.searchParams.get("session_id") ?? "");
-        return send(c ? 200 : 404, P.buySuccess(c), undefined, PRIVATE);
+        return send(c ? 200 : 404, P.buySuccess(c, { sales }), undefined, PRIVATE);
       }
       /* unsubscribe: a page with one button (a mail client's link check never unsubscribes anyone); POST — and List-Unsubscribe-Post — does it */
       if (u.pathname === "/unsubscribe") {
@@ -237,7 +251,8 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null }) {
+  const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
   const finderLimits = kv ? liteLimits({ kv, now, perVisitor: FINDER.perVisitorPerDay, siteTotal: FINDER.siteSearchesPerDay, counts: FINDER_COUNTS }) : null;
@@ -290,9 +305,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     let ticket = null, finderTicket = null;
     if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } }
     if (finderOn()) { try { finderTicket = await limits.ticket(); } catch { finderTicket = null; } }
-    return P.liteHome({ scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) } });
+    return P.liteHome({ sales, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) } });
   };
-  const published = () => ["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null);
+  const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download"] : [])];
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
   /* RR-331 · the one-line summary of the other collectors on each owner page (keywords today, first 15, questions, test dates, Search Console) */
   const summaryOf = async ({ all = null, first15 = null } = {}) => {
@@ -317,7 +332,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
     /* RR-326 I: the body as BYTES (a UTF-16 upload must not be decoded as text); the owner's file upload alone may be larger */
     /* RR-329 D: the owner's "Add what I know" may carry one photo (PHOTO.maxBytes) */
-    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : 64000;
+    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : sales && path0 === "/api/webhooks/stripe" ? 200000 : 64000;
     const chunks = []; let size = 0;
     for await (const c of req) { const b = Buffer.isBuffer(c) ? c : Buffer.from(c); size += b.length; if (size > max) return send(413, "Too large", "text/plain"); chunks.push(b); }
     const raw = Buffer.concat(chunks), body = raw.toString("utf8");
@@ -547,6 +562,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const r = await kwRun();
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
+      if (sales && isSalesPath(req.method, u.pathname)) return salesHandle(req, res, body); // RR-338: selling, by the full handler
       send(404, P.notFound(u.pathname, { lite: true }));
     } catch { send(503, "The free score is not available just now. Please try again later.", "text/plain"); }
   };

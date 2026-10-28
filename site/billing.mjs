@@ -4,7 +4,8 @@
  *     (STRIPE_PRICE_ID_VISIBILITY_1/_5/_10/_UNLIMITED), the key from the variable named STRIPE_SECRET_KEY; neither is printed or logged.
  *   · The session carries metadata.product = "almi-visibility" (the router's registry id), the plan, and the buyer's new LICENCE KEY
  *     (metadata.almiworld_account, also on the subscription), so every later event routes to this product and names the licence.
- *   · No free trial; a card is always collected. TEST MODE ONLY until the owner's launch GREEN: a live key is refused.
+ *   · No free trial; a card is always collected. TEST MODE ONLY until the owner's launch GREEN: a live key is refused (RR-338: `closed`,
+ *     and the buyer is told buying opens soon) until VISIBILITY_BILLING_LIVE=yes.
  *   · Stripe events arrive through the router at /api/webhooks/stripe (services/licence/service.mjs applies them).
  */
 import { randomBytes } from "node:crypto";
@@ -21,6 +22,12 @@ export function checkoutFields({ plan, priceId, licenceKey, origin }) {
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
     payment_method_collection: "always",
+    /* RR-338 (owner, 28 Oct 2026): Stripe Tax on — prices are tax-exclusive; the buyer's address is asked for the tax, and a business may
+     * give its VAT number. A promotion-code field (only the codes the owner makes in Stripe work). */
+    "automatic_tax[enabled]": "true",
+    billing_address_collection: "required",
+    "tax_id_collection[enabled]": "true",
+    allow_promotion_codes: "true",
     success_url: `${origin}/buy/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/pricing`,
     client_reference_id: licenceKey,
@@ -42,7 +49,7 @@ export async function createCheckout({ plan, env = process.env, origin, fetchImp
   if (!priceName) return { ok: false, state: "REFUSED", why: "unknown plan" };
   const key = env[BILLING_KEY_NAMES.stripeSecret];
   if (!key) return { ok: false, state: "DEFERRED", why: `checkout is not connected: no Stripe key in the environment (${BILLING_KEY_NAMES.stripeSecret})` };
-  if (!String(key).startsWith("sk_test_") && env[BILLING_KEY_NAMES.testModeOnly] !== "yes") return { ok: false, state: "REFUSED", why: "only a Stripe TEST-mode key is accepted before the owner's launch GREEN" };
+  if (!String(key).startsWith("sk_test_") && env[BILLING_KEY_NAMES.testModeOnly] !== "yes") return { ok: false, state: "REFUSED", closed: true, why: "only a Stripe TEST-mode key is accepted before the owner's launch GREEN" };
   const priceId = env[priceName];
   if (!priceId) return { ok: false, state: "DEFERRED", why: `checkout is not connected: no price for this plan (${priceName})` };
   const licenceKey = newLicenceKey();

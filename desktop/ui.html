@@ -243,8 +243,16 @@ async function tour() {
 async function planScreen() {
   if (!(await here("planScreen"))) return;
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_) — or the owner licence (it starts with avo_).</p>
-  <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div></div>`;
+  <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div></div>
+  <div class="card" data-manage-plan><h2>Manage or cancel my plan</h2><p class="ask">Cancel, change your plan or update your card on your own Stripe page. A cancelled plan keeps working until the end of the month you have paid for.</p><button class="ghost" id="manage">Manage or cancel my plan</button><div class="meta" id="mout"></div></div>`;
   $("#home").onclick = home;
+  /* RR-340: the site opens THIS licence's Stripe page; the address is shown too, in case no browser opened */
+  $("#manage").onclick = async () => {
+    $("#mout").textContent = "Opening your Stripe page…";
+    const r = await post("/api/plan/manage", {});
+    if (r.refused) { $("#mout").textContent = r.refused; return; }
+    $("#mout").innerHTML = `${r.opened ? "Your Stripe page opened in your browser." : "Open your Stripe page:"} <a href="${esc(r.url)}" target="_blank" rel="noopener">${r.opened ? "open it again" : "Manage my plan"} ↗</a> <span class="meta">(the link works for a short time)</span>`;
+  };
   $("#save").onclick = async () => {
     const r = await post("/api/account", { licenceKey: $("#k1").value }); if (r.refused) return ($("#err").textContent = r.refused);
     const H = await get("/api/home"); $("#lic").textContent = H.licence;

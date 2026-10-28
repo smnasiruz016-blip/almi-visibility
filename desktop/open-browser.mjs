@@ -9,6 +9,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 export const GOOGLE_SIGNIN_ORIGIN = "https://accounts.google.com";
+/* RR-340: the buyer's own Stripe page ("Manage or cancel my plan") — an opener made with `only` opens these addresses and nothing else */
+export const STRIPE_BILLING_ORIGIN = "https://billing.stripe.com";
 /* RR-314 (owner, 22 Oct: "please use Chrome — Chrome is set to the account"): Google's page opens in CHROME when it is installed (its
  * last-used profile, where the client is signed in to Google); only without Chrome, in the system's default browser */
 export const CHROME_PATHS = Object.freeze([
@@ -18,8 +20,9 @@ export const CHROME_PATHS = Object.freeze([
 ]);
 
 /** an opener for these sign-in addresses only. `mode` "fetch" is TESTS ONLY: a request plays the browser and follows the redirects back */
-export function browserOpener({ origins = [], mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = CHROME_PATHS, platform = process.platform } = {}) {
-  const allowed = new Set([GOOGLE_SIGNIN_ORIGIN, ...origins.filter(Boolean).map((x) => { try { return new URL(x).origin; } catch { return null; } }).filter(Boolean)]);
+export function browserOpener({ origins = [], only = null, mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = CHROME_PATHS, platform = process.platform } = {}) {
+  const originOf = (x) => { try { return new URL(x).origin; } catch { return null; } };
+  const allowed = new Set(only ? only.filter(Boolean).map(originOf).filter(Boolean) : [GOOGLE_SIGNIN_ORIGIN, ...origins.filter(Boolean).map(originOf).filter(Boolean)]);
   return function openInBrowser(url) {
     let u; try { u = new URL(url); } catch { return false; }
     if (!allowed.has(u.origin)) return false;

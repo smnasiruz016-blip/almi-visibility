@@ -201,7 +201,7 @@ test("C · the owner's Word text → his pages exactly: headings, lists, the tab
   assert.match(renderLegal(pages.terms, { preview: true }), /<mark class="fill">\[FILL 3\]<\/mark>/);
   /* the generated file from the owner's Word file (tools/legal-from-docx.mjs) */
   /* RR-326 F: the 26 Oct text came as OneDrive's copy of the same file, "…2026-10-25,1.docx" */
-  assert.match(LEGAL.source.file, /^AlmiVisibility_Terms_and_Privacy_2026-10-25(,\d+)?\.docx$/); assert.match(LEGAL.source.sha256, /^[0-9a-f]{64}$/);
+  assert.match(LEGAL.source.file, /^AlmiVisibility_Terms_and_Privacy_2026-10-2[58](,\d+)?\.docx$/); assert.match(LEGAL.source.sha256, /^[0-9a-f]{64}$/);
   const words = (pg) => pg.map((b) => (b.kind === "table" ? b.rows.flat(2).map((r) => r.text).join(" ") : b.runs.map((r) => r.text).join(""))).join("\n");
   assert.match(words(LEGAL.privacy), /AlmiVisibility’s use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements\./);
   assert.ok(LEGAL.privacy.some((b) => b.runs?.some((r) => r.text === "Google API Services User Data Policy" && r.href === "https://developers.google.com/terms/api-services-user-data-policy")), "the Limited Use link");

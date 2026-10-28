@@ -10,7 +10,7 @@
  *   node desktop/main.mjs --data=<dir> [--install=<program dir>] [--port=0]
  */
 import { createServer } from "node:http";
-import { browserOpener } from "./open-browser.mjs"; // RR-314 A1
+import { browserOpener, STRIPE_BILLING_ORIGIN } from "./open-browser.mjs"; // RR-314 A1
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync, readdirSync } from "node:fs";
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
@@ -122,6 +122,8 @@ const safeWhy = (e) => (e?.status ? plainYouTubeWhy(e) : "no answer from YouTube
 const GOOGLE = googleConnect({ keys: KEYS, config: CONFIG });
 /* RR-314 A1: Google's sign-in page in the client's OWN browser (desktop/open-browser.mjs); the stand-in addresses only in tests */
 const openInBrowser = browserOpener({ origins: [CONFIG.youtubeTestEndpoints?.auth, CONFIG.googleTestEndpoints?.auth], mode: CONFIG.testOpener === "fetch" ? "fetch" : CONFIG.testSecretsInMemory === true && CONFIG.testOpener !== "browser" ? "none" : null }); // a test app opens no real browser unless it asks to
+/* RR-340: the buyer's own Stripe page (the customer portal) — only Stripe's billing address is ever opened; tests never open a browser */
+const openBilling = browserOpener({ only: [STRIPE_BILLING_ORIGIN, CONFIG.testBillingOrigin], mode: CONFIG.testSecretsInMemory === true ? "none" : null });
 /* RR-313 B1: is Google sign-in switched on — the client id (not a secret) and whether its secret is saved; never the secret */
 const googleClientStatus = () => ({ on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved, signedIn: GOOGLE.status().signedIn });
 const allowLocal = CONFIG.testAllowLocalSites === true; // TESTS ONLY: a stand-in site on this computer
@@ -1279,6 +1281,17 @@ const server = createServer((req, res) => {
             if (y[2] === "aicap" && req.method === "POST") { const usd = Number(json().usd); if (!(usd >= 0 && usd <= 500)) return send(400, { refused: "Give a monthly limit between $0 and $500." }); CONFIG.aiMonthlyCapUSD = usd; saveConfig(); return send(200, { ok: true, line: LEDGER.line() }); }
           } catch (e) { return send(e.code === "NOT_SIGNED_IN" ? 400 : 502, { refused: e.code === "NOT_SIGNED_IN" ? "Sign in to YouTube again — Google's access has ended." : `${e?.status ? plainYouTubeWhy(e) : "YouTube could not be reached — no answer came."} Nothing was changed.` }); }
         } }
+      /* RR-340 · "Manage or cancel my plan": the site makes a portal session for THIS licence (the key goes in the request body, never an
+       * address), and the app opens Stripe's page in the browser; the address is shown too, in case no browser opens */
+      if (req.method === "POST" && u.pathname === "/api/plan/manage") {
+        if (!CONFIG.account || CONFIG.owner) return send(400, { refused: CONFIG.owner ? "The owner licence has no paid plan to manage." : "Add your licence key first (Your plan)." });
+        try {
+          const r = await fetch(new URL("v1/manage", LICENCE_URL), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ licenceKey: CONFIG.account }), signal: AbortSignal.timeout(15000) });
+          const j = await r.json().catch(() => ({}));
+          if (!j.ok || typeof j.url !== "string") return send(r.status === 404 ? 404 : 503, { refused: j.why ?? "Plan management is not available just now. Please try again later." });
+          return send(200, { ok: true, opened: Boolean(openBilling(j.url)), url: j.url });
+        } catch { return send(503, { refused: "The AlmiVisibility website could not be reached. Check the internet connection and try again." }); }
+      }
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }
       if (req.method === "GET" && u.pathname === "/api/update") { const r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); updateFound = r.manifest ?? null; return send(200, { state: r.state, line: r.line }); }
       if (req.method === "POST" && u.pathname === "/api/update/install") {

@@ -4,7 +4,7 @@
  *   · Stripe events arrive at POST /v1/stripe/webhook and are trusted only when their Stripe-Signature verifies (HMAC-SHA256 with the
  *     endpoint's secret, named STRIPE_WEBHOOK_SECRET; 5-minute tolerance). The plan is read from the price's lookup key (visibility_1 …).
  *   · GET /v1/licence?account=… answers { licence, signature } signed with the service's Ed25519 key (its file named by
- *     LICENCE_SIGNING_KEY_FILE). An unknown account gets NO_PLAN — there is no free trial.
+ *     LICENCE_SIGNING_KEY_FILE). An unknown account gets NO_PLAN.
  *   · POST /v1/checkout creates a Stripe Checkout session in TEST MODE only, with the key named STRIPE_SECRET_KEY; with no key in the
  *     environment it answers DEFERRED and names the missing key — never asks for it, never prints it.
  * Keys are referred to by NAME only: no value is printed, logged or hashed.
@@ -48,13 +48,16 @@ export function verifyRouterSignature({ header, body, secret, nowS }) {
 /** The Stripe price ids of the four plans, each in the variable NAMED here (almi-oet's STRIPE_PRICE_ID_* pattern) — never a literal id. */
 export const PRICE_ENV = Object.freeze({ visibility_1: "STRIPE_PRICE_ID_VISIBILITY_1", visibility_5: "STRIPE_PRICE_ID_VISIBILITY_5", visibility_10: "STRIPE_PRICE_ID_VISIBILITY_10", visibility_unlimited: "STRIPE_PRICE_ID_VISIBILITY_UNLIMITED" });
 const isPlan = (id) => PLANS.some((p) => p.id === id);
-/** The plan of a subscription: the plan our checkout stamped in its metadata, else the price's lookup key, else its price id by the env map. */
+/**
+ * The plan of a subscription: the price it is billed at NOW (its id by the env map, else its lookup key), else the plan our checkout
+ * stamped in its metadata. RR-340: a switch in the Stripe customer portal changes the price but never the metadata — the price decides.
+ */
 export function planOf(o, env = process.env) {
-  if (isPlan(o?.metadata?.plan)) return o.metadata.plan;
   const price = o?.items?.data?.[0]?.price;
-  if (isPlan(price?.lookup_key)) return price.lookup_key;
   const hit = Object.entries(PRICE_ENV).find(([, name]) => env[name] && env[name] === price?.id);
-  return hit ? hit[0] : null;
+  if (hit) return hit[0];
+  if (isPlan(price?.lookup_key)) return price.lookup_key;
+  return isPlan(o?.metadata?.plan) ? o.metadata.plan : null;
 }
 const periodEndOf = (o) => new Date(((o.current_period_end ?? o.items?.data?.[0]?.current_period_end) ?? 0) * 1000).toISOString();
 

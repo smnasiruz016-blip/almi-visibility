@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LANGUAGES, chooseLanguages, checkTranslation, numbersOf } from "../src/page/languages.mjs";
-import { PLANS, FREE_TRIAL, licenceState, mayAddProduct, verifyLicence, licenceBytes, OFFLINE_DAYS } from "../desktop/licence.mjs";
+import { PLANS, licenceState, mayAddProduct, verifyLicence, licenceBytes, OFFLINE_DAYS } from "../desktop/licence.mjs";
 import { verifyStripeSignature, applyEvent, signedLicence, licenceService } from "../services/licence/service.mjs";
 import { newer, verifyManifest, signedBytes, installUpdate, downloadUpdate } from "../desktop/updater.mjs";
 import { checkStep, STEPS } from "../desktop/setup.mjs";
@@ -53,9 +53,8 @@ test("A · REAL: 2 pages + 1 article of the test project in English, Spanish and
 });
 
 /* ---- B · plans + licence ---- */
-test("B · PLANS: $30 = 1 · $40 = 5 · $60 = 10 · $80 = unlimited; no free trial; the product count is enforced", () => {
+test("B · PLANS: $30 = 1 · $40 = 5 · $60 = 10 · $80 = unlimited; the product count is enforced", () => {
   assert.deepEqual(PLANS.map((p) => [p.priceUsd, p.products]), [[30, 1], [40, 5], [60, 10], [80, Infinity]]);
-  assert.equal(FREE_TRIAL, false);
   const st = licenceState({ now: NOW, check: { reached: true, signed: active("visibility_5") }, publicKeyPem: K.pub });
   assert.equal(mayAddProduct(st, 4).ok, true);
   assert.match(mayAddProduct(st, 5).line, /allows 5 product\(s\); you have 5/);

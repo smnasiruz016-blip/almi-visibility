@@ -1,6 +1,6 @@
 /**
  * 🔴 PLANS AND THE LICENCE, as the downloadable Visibility enforces them (RR-298 B; owner decisions 2 and 3).
- *   PLANS (per month, USD): $30 = 1 product · $40 = up to 5 · $60 = up to 10 · $80 = unlimited. NO free trial.
+ *   PLANS (per month, USD): $30 = 1 product · $40 = up to 5 · $60 = up to 10 · $80 = unlimited. Try the free site score first, no card needed (RR-340: the owner removed the trial line everywhere).
  *   The app checks the client's plan with AlmiWorld's licence service; the service answers with a SIGNED licence (Ed25519), which the app
  *   verifies with the service's public key — so a licence cannot be written by hand.
  *   OFFLINE: if the check cannot reach the service, the app keeps working for 7 days from the LAST GOOD check, then pauses NEW work (never
@@ -9,7 +9,6 @@
  */
 import { createPublicKey, verify } from "node:crypto";
 
-export const FREE_TRIAL = false;
 export const PLANS = Object.freeze([
   { id: "visibility_1", priceUsd: 30, products: 1, words: "$30 a month — 1 product" },
   { id: "visibility_5", priceUsd: 40, products: 5, words: "$40 a month — up to 5 products" },
@@ -68,7 +67,7 @@ export function licenceState({ now, check, last = null, publicKeyPem, owner = nu
     if (!good(check.signed)) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence answer could not be verified — new work is paused until a valid licence is received. Nothing is deleted." });
     lastGood = { at: now, signed: check.signed };
   }
-  if (!lastGood) return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: null, line: "No plan yet — choose a plan to start (there is no free trial)." });
+  if (!lastGood) return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: null, line: "No plan yet — choose a plan to start. Try the free site score first, no card needed." });
   const l = lastGood.signed.licence;
   /* RR-303: a verified "no plan yet" answer is NO_PLAN — never "an unknown plan" (a new buyer saw INVALID before the payment landed) */
   if (l.status === "NO_PLAN") return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: lastGood, line: "No plan yet for this licence key — if you have just paid, it switches on within a minute." });
@@ -90,7 +89,7 @@ export function mayAddProduct(state, productCount) {
 }
 
 /** The plans, in plain words, as the client sees them. */
-export const plansView = () => ["Plans (per month, USD) — there is no free trial:", ...PLANS.map((p) => `  • ${p.words}`), "Payment is by card through Stripe. You can change or cancel your plan at any time."];
+export const plansView = () => ["Plans (per month, USD):", ...PLANS.map((p) => `  • ${p.words}`), "Payment is by card through Stripe. You can change or cancel your plan at any time with “Manage or cancel my plan”."];
 
 /** RR-299 · the plan limit in plain words, on the products home screen. */
 export const planLimitLine = (st, count) => (!st.plan ? st.line : st.plan.products === Infinity ? `Your plan allows unlimited products (${count} added).` : `Your plan allows ${st.plan.products} product${st.plan.products === 1 ? "" : "s"}${count >= st.plan.products ? ". Choose a bigger plan to add more." : ` — ${count} added.`}`);

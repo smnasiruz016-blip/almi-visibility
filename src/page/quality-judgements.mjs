@@ -152,10 +152,14 @@ export function judgeDraft({ spec, decision, draft, parts, population, judgement
     refutation: "Void if a central claim the record marks UNKNOWN is shown supported by its recorded finding, or the reverse." });
   const verifiedFacts = Object.freeze({ verdict: fromCheck(checks.everyClaimSourced), reads: "F37 check everyClaimSourced (F91 C17 support)" });
   const gain = parts?.informationGain ?? null, rte = parts?.whyThisUrl ?? null;
-  const distinctValue = frozen?.distinct ? Object.freeze({ verdict: frozen.distinct.state === "PASS" ? VERDICT.PASS : VERDICT.FAIL, reads: "F35's CREATE — distinct and useful (F35 C8b, ruling RR-179 (c) D1; the frozen rule, RR-335)", why: frozen.distinct.why ?? null }) : Object.freeze(gain?.outcome === "CANNOT_DECIDE" || !gain
+  const f39Distinct = () => {
+  const distinctValue = Object.freeze(gain?.outcome === "CANNOT_DECIDE" || !gain
     ? { verdict: CANNOT_DECIDE, reads: "F39 information gain (with F32's duplication review), F36 right-to-exist", why: `F39 is CANNOT DECIDE: ${gain?.reason ?? "no information-gain verdict recorded"}` }
     : { verdict: gain.outcome === "REFUSED" || rte?.state === "FAIL" ? VERDICT.FAIL : gain.outcome === "ESTABLISHED" && rte?.state === "PASS" ? VERDICT.PASS : VERDICT.NOT_MEASURED,
       reads: "F39 information gain (with F32's duplication review), F36 right-to-exist", why: `F39 ${gain.outcome}; F36 ${rte?.state ?? "absent"}` });
+  return distinctValue; };
+  /* the frozen rule wins where it is handed in (RR-335); without it, F39 and F36 decide as before */
+  const distinctValue = frozen?.distinct ? Object.freeze({ verdict: frozen.distinct.state === "PASS" ? VERDICT.PASS : VERDICT.FAIL, reads: "F35's CREATE — distinct and useful (F35 C8b, ruling RR-179 (c) D1; the frozen rule, RR-335)", why: frozen.distinct.why ?? null }) : f39Distinct();
   const byName = new Map((Array.isArray(judgements) ? judgements : []).map((j) => [j?.name, j]));
   const records = Object.freeze({
     filler: fillerJudgement(draft.html),

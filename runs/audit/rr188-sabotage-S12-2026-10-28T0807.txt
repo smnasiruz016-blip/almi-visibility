@@ -1,0 +1,9 @@
+RR-188 R5c sabotage run · 2026-10-28T08:08:39.512Z
+population: 1 sabotage(s) over test/rr184-r5.test.mjs + test/rr188-r5c.test.mjs + test/rr179-r4.test.mjs + test/f41-content-brief.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S12=1 · all exactly once: true
+production trail sha256 before: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a
+
+S12 C3 · F39's CANNOT DECIDE stops the other four assessments [src/page/quality-judgements.mjs]: landed true · named test "T40-C3" red true · its failure AssertionError · SyntaxError false · a production child crashed true · failing T40-C3,T40-C7,T41-C9 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a · unchanged true

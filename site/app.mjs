@@ -13,7 +13,7 @@ import { articleHtml } from "./articles.mjs";
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn, EMAIL_KEY_NAMES } from "./email.mjs";
-import { createCheckout, BILLING_KEY_NAMES } from "./billing.mjs";
+import { createCheckout, BILLING_KEY_NAMES, portalSession, PORTAL_CONFIG_NAME } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS, PRICE_ENV } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
 import { createHash, createPublicKey, createPrivateKey, timingSafeEqual, randomBytes } from "node:crypto";
@@ -51,6 +51,7 @@ export const LAUNCH_VARS = Object.freeze([
   [`${KEY_NAMES.database} or DATABASE_URL`, "buyers' licences and checkouts (RR-338: the Neon DATABASE_URL is used when the first is not set)", true, (env) => Boolean(String(env[KEY_NAMES.database] ?? "").trim() || dbUrlOf(env))],
   [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
+  [PORTAL_CONFIG_NAME, "Manage or cancel my plan (AlmiVisibility's own Stripe portal — site/owner-portal-config.mjs makes it)", true],
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
   [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],
@@ -66,7 +67,7 @@ const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 /** RR-338 · a third: "sales" = everything public-lite has, PLUS selling (SALES_PATHS, served by the full handler). */
 export const modeOf = (env = process.env, mode = null) => { const m = mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full"); return m === "full" || m === "sales" ? m : "public-lite"; };
 /* RR-338 · the selling routes the sales site adds to public-lite (admin, the old free test and unsubscribe stay hidden) */
-export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence"], POST: ["/api/billing/checkout", "/api/webhooks/stripe"] });
+export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage"] });
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
 export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null } = {}) {
@@ -149,6 +150,16 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
       if (req.method === "GET" && u.pathname === "/buy/success") {
         const c = await store.checkout(u.searchParams.get("session_id") ?? "");
         return send(c ? 200 : 404, P.buySuccess(c, { sales }), undefined, PRIVATE);
+      }
+      /* RR-340 · "Manage or cancel my plan": the page (the buyer pastes the licence key) and the app's own request (JSON) — each opens
+       * that buyer's Stripe customer portal only; the key travels in the request body, never in an address */
+      if (u.pathname === "/manage" && req.method === "GET") return send(200, P.managePage({ sales }), undefined, PRIVATE);
+      if (req.method === "POST" && (u.pathname === "/manage" || u.pathname === "/v1/manage")) {
+        const app = u.pathname === "/v1/manage", f = app ? JSON.parse(body || "{}") : formOf(body, req.headers["content-type"]);
+        const r = await portalSession({ licenceKey: f.licenceKey, accounts: await store.accounts(), env, origin: originOf(req), fetchImpl });
+        const code = r.ok ? 200 : r.state === "NOT_FOUND" ? 404 : r.state === "REFUSED" ? 400 : 503;
+        if (app) return send(code, JSON.stringify(r.ok ? { ok: true, url: r.url } : { ok: false, why: r.state === "NOT_FOUND" || r.closed ? r.why : "Plan management is not available just now." }), "application/json", PRIVATE);
+        return r.ok ? send(303, "", "text/plain", { location: r.url, ...PRIVATE }) : send(code, P.managePage({ sales, error: r.state === "NOT_FOUND" ? r.why : r.closed ? "Payments are not switched on yet, so there is no plan to manage. Nothing was changed." : "Plan management is not available just now. Please try again later, or write to almiworld@almiworld.com." }), undefined, PRIVATE);
       }
       /* unsubscribe: a page with one button (a mail client's link check never unsubscribes anyone); POST — and List-Unsubscribe-Post — does it */
       if (u.pathname === "/unsubscribe") {

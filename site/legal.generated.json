@@ -1,8 +1,8 @@
 {
  "source": {
-  "file": "AlmiVisibility_Terms_and_Privacy_2026-10-25,1.docx",
-  "sha256": "c3c3097b23be243468f0d8c4cf787af57a7c9fec10df374ec2aa8b730cfec022",
-  "readOn": "2026-10-25"
+  "file": "AlmiVisibility_Terms_and_Privacy_2026-10-28.docx",
+  "sha256": "7c956cb54ce3e783b2368143d188a9b3bcdfccac5ca5e696b1fb114cf81a5b45",
+  "readOn": "2026-10-28"
  },
  "fills": {
   "terms": [],
@@ -24,7 +24,7 @@
    "kind": "p",
    "runs": [
     {
-     "text": "Last updated: 25 October 2026",
+     "text": "Last updated: 28 October 2026",
      "bold": false,
      "href": null
     }
@@ -76,7 +76,7 @@
    "kind": "li",
    "runs": [
     {
-     "text": "AlmiVisibility is sold as a monthly subscription. The current plans are shown on our website. There is no free trial.",
+     "text": "AlmiVisibility is sold as a monthly subscription. The current plans are shown on our website. Try the free site score first, no card needed.",
      "bold": false,
      "href": null
     }
@@ -96,7 +96,7 @@
    "kind": "li",
    "runs": [
     {
-     "text": "You may cancel at any time. Your licence then ends at the end of the period you have paid for. Payments are handled by Stripe. Refunds follow our refund policy at almiworld.com/refund_returns/.",
+     "text": "You may cancel at any time yourself, with “Manage or cancel my plan” on our website or in the app. Your licence then ends at the end of the period you have paid for. Payments are handled by Stripe. Refunds follow our refund policy at almiworld.com/refund_returns/.",
      "bold": false,
      "href": null
     }

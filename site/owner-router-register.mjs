@@ -4,7 +4,7 @@
  * invoice events for its 4 prices reach https://almivisibility.almiworld.com/api/webhooks/stripe.
  *   node site/owner-router-register.mjs <price 1 product> <price up to 5> <price up to 10> <price unlimited>
  *   node site/owner-router-register.mjs --check <the same 4 price ids>     (reads only: is it registered with exactly these 4?)
- * The same tool registers the LIVE price ids later (test and live ids differ; the forwardSecret stays the same).
+ * The same tool registers the LIVE price ids later (test and live ids differ; the forwardSecret stays the same). RR-337: the owner's prices are LIVE.
  * You type ROUTER_ADMIN_API_SECRET and the forwardSecret (= AlmiVisibility's ROUTER_WEBHOOK_SECRET in Vercel) at hidden prompts; nothing you
  * type is shown, written to a file or printed. It prints ONLY success or failure — never a secret, never the router's raw answer.
  */
@@ -14,6 +14,8 @@ import { pathToFileURL } from "node:url";
 export const ROUTER = "https://almi-billing-router.vercel.app/api/admin/routes";
 export const PRODUCT = Object.freeze({ id: "almi-visibility", name: "AlmiVisibility", forwardUrl: "https://almivisibility.almiworld.com/api/webhooks/stripe" });
 const PLANS = ["1 product", "up to 5", "up to 10", "unlimited"];
+/* RR-337 · after OK: the same forwardSecret must be AlmiVisibility's ROUTER_WEBHOOK_SECRET, or the site refuses every routed event */
+export const VERCEL_STEP = "NEXT — Vercel → almi-visibility → Settings → Environment Variables → Production: ROUTER_WEBHOOK_SECRET = the same forwardSecret you just typed (Sensitive on), then deploy again. /owner then shows it as set.";
 
 /** The 4 price ids, in plan order: each a Stripe price id, all different — or why not. */
 export function checkPrices(ids) {
@@ -70,5 +72,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
   const r = await registerRoutes({ priceIds, adminSecret, forwardSecret, checkOnly });
   (r.ok ? console.log : console.error)(r.line);
+  if (r.ok && !checkOnly) console.log(VERCEL_STEP);
   process.exit(r.ok ? 0 : 1);
 }

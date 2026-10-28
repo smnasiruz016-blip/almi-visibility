@@ -26,8 +26,10 @@ const exists = (pid) => { if (!Number.isInteger(pid) || pid <= 0) return false; 
  * (the lock stays on rather than off). */
 export const isNode = (pid) => {
   try {
-    const name = process.platform === "win32" ? execFileSync("tasklist", ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { encoding: "utf8", windowsHide: true, timeout: 5000 }) : execFileSync("ps", ["-p", String(pid), "-o", "comm="], { encoding: "utf8", timeout: 5000 });
-    return /^"?node(\.exe)?"?(,|\s*$)/im.test(String(name).trim());
+    if (process.platform === "win32") return /^"node\.exe"/im.test(String(execFileSync("tasklist", ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { encoding: "utf8", windowsHide: true, timeout: 5000 })).trim());
+    /* the program a process runs, from its command line: on Linux `comm` can be a thread's name (node's main thread may read "MainThread") */
+    const exe = String(execFileSync("ps", ["-p", String(pid), "-o", "args="], { encoding: "utf8", timeout: 5000 })).trim().split(/\s+/)[0] ?? "";
+    return /(^|\/)node$/.test(exe);
   } catch { return true; }
 };
 const alive = (pid) => exists(pid) && isNode(pid);

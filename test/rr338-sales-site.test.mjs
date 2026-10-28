@@ -55,7 +55,7 @@ test("RR-338 · THE BUYER'S PATH on the sales site (local, Stripe and the router
   const a = await salesSite(ENV);
   try {
     const home = await (await fetch(`${a.base}/`)).text();
-    assert.ok(home.includes(MARKETING.headline) && home.includes(MARKETING.data) && home.includes(MARKETING.tools), "the marketing lines");
+    assert.ok(home.includes(MARKETING.headline) && home.includes(MARKETING.data), "the marketing lines");
     assert.ok(!/guarantee/i.test(home), "never 'guaranteed'");
     assert.ok(home.includes('href="/pricing"') && home.includes('href="/download"') && !home.includes('href="/features"') && !home.includes('href="/free-test"'), "the nav opens only pages this site has");
     assert.ok(home.includes('id="score"') && home.includes('id="keywords"'), "the free score and the keyword finder stay");

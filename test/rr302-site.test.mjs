@@ -64,7 +64,8 @@ test("LIKE THE FAMILY · the family strip (all 23 products, the package's order)
   assert.match(all.download, /<a class="pill big" href="\/download\/AlmiVisibility-Setup\.exe" download>Download here<\/a>/);
   assert.match(all.download, /unknown publisher/);
   for (const [n, t] of [[30, "1 product"], [40, "up to 5 products"], [60, "up to 10 products"], [80, "unlimited products"]]) assert.match(all.pricing, new RegExp(`\\$${n}<small> / month</small></div><p><b>${t}</b>`));
-  assert.match(all.pricing, /There is no free trial/); assert.match(all.pricing, /Prices set by AlmiWorld on 20 October 2026/);
+  /* RR-339 (owner, 28 Oct 2026): "There is no free trial" and "Prices set by AlmiWorld on 20 October 2026" are removed everywhere */
+  assert.doesNotMatch(all.pricing, /There is no free trial|Prices set by AlmiWorld/);
   for (const code of ["EN", "ES", "DE", "IT", "FR", "PT", "AR", "UR", "HI", "ZH"]) { assert.match(all.features, new RegExp(`\\(${code}\\)`)); assert.match(all.home, new RegExp(`\\(${code}\\)`)); }
   for (const page of [all.home, all.features]) assert.match(page, /<h2>YouTube, too<\/h2>/);
   assert.match(all.home, /<h2>How it works<\/h2><ul class="cards steps"><li class="card"><h3>Install the app<\/h3>.*<h3>Add your product<\/h3>.*<h3>Get results<\/h3>/s);

@@ -47,6 +47,82 @@ export function checkoutFields({ plan, priceId, licenceKey, origin }) {
  * Returns { ok, url } or { ok: false, state, why }. `fetchImpl` is injected (tests answer it locally).
  */
 export const PORTAL_CONFIG_NAME = "STRIPE_PORTAL_CONFIGURATION_VISIBILITY";
+/* RR-341 · AlmiVisibility's OWN portal configuration carries this tag; the shared default portal never does, and is never touched */
+export const PORTAL_TAG = Object.freeze({ key: "product", value: PRODUCT_ID });
+export const PORTAL_SITE = "https://almivisibility.almiworld.com";
+
+/** The configuration's form fields (Stripe's form encoding). Pure — the test reads exactly what would be sent. */
+export function portalConfigFields(products) {
+  const f = {
+    "business_profile[headline]": "AlmiVisibility — manage or cancel your plan",
+    "business_profile[privacy_policy_url]": `${PORTAL_SITE}/privacy`,
+    "business_profile[terms_of_service_url]": `${PORTAL_SITE}/terms`,
+    default_return_url: `${PORTAL_SITE}/manage`,
+    "features[invoice_history][enabled]": "true",
+    "features[payment_method_update][enabled]": "true",
+    "features[customer_update][enabled]": "true",
+    "features[customer_update][allowed_updates][0]": "email",
+    "features[customer_update][allowed_updates][1]": "address",
+    "features[customer_update][allowed_updates][2]": "tax_id",
+    "features[subscription_cancel][enabled]": "true",
+    "features[subscription_cancel][mode]": "at_period_end",
+    "features[subscription_cancel][cancellation_reason][enabled]": "true",
+    "features[subscription_cancel][cancellation_reason][options][0]": "too_expensive",
+    "features[subscription_cancel][cancellation_reason][options][1]": "missing_features",
+    "features[subscription_cancel][cancellation_reason][options][2]": "unused",
+    "features[subscription_cancel][cancellation_reason][options][3]": "other",
+    "features[subscription_update][enabled]": "true",
+    "features[subscription_update][default_allowed_updates][0]": "price",
+    "features[subscription_update][proration_behavior]": "create_prorations",
+    [`metadata[${PORTAL_TAG.key}]`]: PORTAL_TAG.value,
+  };
+  products.forEach((p, i) => { f[`features[subscription_update][products][${i}][product]`] = p.product; p.prices.forEach((x, k) => { f[`features[subscription_update][products][${i}][prices][${k}]`] = x; }); });
+  return f;
+}
+
+/** AlmiVisibility's own configuration, found by its tag among the account's configurations (active only) — its id, or null. */
+export async function findPortalConfig({ stripeKey, fetchImpl = fetch }) {
+  const r = await fetchImpl("https://api.stripe.com/v1/billing_portal/configurations?limit=100&active=true", { headers: { Authorization: `Bearer ${stripeKey}` } });
+  if (!r.ok) throw Object.assign(new Error(`Stripe answered ${r.status}`), { status: r.status });
+  const j = await r.json();
+  return (j.data ?? []).find((c) => c?.active !== false && c?.metadata?.[PORTAL_TAG.key] === PORTAL_TAG.value && !c?.is_default && /^bpc_/.test(String(c.id)))?.id ?? null;
+}
+
+/**
+ * Make AlmiVisibility's own portal configuration — ONCE: if one already carries the tag, that one is returned (a second press makes no
+ * second configuration). The 4 prices must be monthly USD prices; only they can be switched to. Words only in the result, never a key.
+ */
+export async function createPortalConfig({ priceIds, stripeKey, fetchImpl = fetch }) {
+  const auth = { Authorization: `Bearer ${stripeKey}` };
+  try {
+    let existing = null;
+    try { existing = await findPortalConfig({ stripeKey, fetchImpl }); } catch (e) { if (e.status === 401 || e.status === 403) return { ok: false, line: `FAILED — Stripe refused the key (${e.status}). If it is a restricted key, give it "Customer portal: write" and "Prices: read". Nothing was made.` }; throw e; }
+    if (existing) return { ok: true, id: existing, created: false, line: `OK — AlmiVisibility's own customer portal is already there: ${existing}. Nothing new was made.` };
+    const byProduct = new Map();
+    for (const id of priceIds) {
+      const r = await fetchImpl(`https://api.stripe.com/v1/prices/${encodeURIComponent(id)}`, { headers: auth });
+      if (r.status === 401 || r.status === 403) return { ok: false, line: `FAILED — Stripe refused the key (${r.status}). If it is a restricted key, give it "Prices: read" and "Customer portal: write". Nothing was made.` };
+      if (!r.ok) return { ok: false, line: `FAILED — Stripe does not know the price ${id} (${r.status}). Nothing was made.` };
+      const p = await r.json();
+      if (p.recurring?.interval !== "month" || p.currency !== "usd" || typeof p.product !== "string") return { ok: false, line: `FAILED — the price ${id} is not a monthly USD price of a product. Nothing was made.` };
+      byProduct.set(p.product, [...(byProduct.get(p.product) ?? []), id]);
+    }
+    const products = [...byProduct].map(([product, prices]) => ({ product, prices }));
+    const c = await fetchImpl("https://api.stripe.com/v1/billing_portal/configurations", { method: "POST", headers: { ...auth, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(portalConfigFields(products)).toString() });
+    const j = await c.json().catch(() => ({}));
+    if (!c.ok || !/^bpc_[A-Za-z0-9]+$/.test(String(j.id))) return { ok: false, line: `FAILED — Stripe answered ${c.status} when making the configuration${j.error?.message ? `: ${String(j.error.message).slice(0, 200)}` : ""}.` };
+    return { ok: true, id: j.id, created: true, line: `OK — AlmiVisibility's own customer portal is made: ${j.id} (${products.length} product(s), the 4 plans; cancel at the end of the paid month).` };
+  } catch { return { ok: false, line: "FAILED — Stripe could not be reached. Nothing is confirmed." }; }
+}
+
+/** The /owner button: the Stripe key and the 4 price ids already in Vercel — the owner types nothing. */
+export async function ensurePortalConfig({ env = process.env, fetchImpl = fetch }) {
+  const stripeKey = env[BILLING_KEY_NAMES.stripeSecret];
+  if (!stripeKey) return { ok: false, line: `FAILED — no Stripe key in Vercel (${BILLING_KEY_NAMES.stripeSecret}). Nothing was made.` };
+  const names = Object.values(PRICE_ENV), missing = names.filter((n) => !env[n]);
+  if (missing.length) return { ok: false, line: `FAILED — missing in Vercel: ${missing.join(", ")}. Nothing was made.` };
+  return createPortalConfig({ priceIds: names.map((n) => String(env[n]).trim()), stripeKey, fetchImpl });
+}
 export const LICENCE_KEY_SHAPE = /^av_[A-Za-z0-9_-]{20,40}$/;
 export const NO_PLAN_FOUND = "No paid plan was found for this licence key. Check the key (it starts with av_), or write to almiworld@almiworld.com.";
 export async function portalSession({ licenceKey, accounts, env = process.env, origin, fetchImpl = fetch }) {
@@ -59,9 +135,11 @@ export async function portalSession({ licenceKey, accounts, env = process.env, o
   if (!String(stripeKey).startsWith("sk_test_") && env[BILLING_KEY_NAMES.testModeOnly] !== "yes") return { ok: false, state: "REFUSED", closed: true, why: "payments are not switched on yet" };
   /* RR-340: the Stripe account's DEFAULT portal is shared by every AlmiWorld product — AlmiVisibility opens ONLY its own configuration
    * (site/owner-portal-config.mjs makes it), never the default */
-  const config = String(env[PORTAL_CONFIG_NAME] ?? "").trim();
-  if (!/^bpc_[A-Za-z0-9]+$/.test(config)) return { ok: false, state: "DEFERRED", why: `plan management is not set up: no AlmiVisibility portal configuration (${PORTAL_CONFIG_NAME})` };
   const auth = { Authorization: `Bearer ${stripeKey}` };
+  /* RR-341: the configuration's id from Vercel if the owner set one, else found in Stripe by its tag (the /owner button made it) */
+  const set = String(env[PORTAL_CONFIG_NAME] ?? "").trim();
+  const config = /^bpc_[A-Za-z0-9]+$/.test(set) ? set : await findPortalConfig({ stripeKey, fetchImpl }).catch(() => null);
+  if (!config) return { ok: false, state: "DEFERRED", why: "plan management is not set up: press “Create Manage-plan portal” on /owner" };
   const s = await fetchImpl(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(sub)}`, { headers: auth });
   const so = await s.json().catch(() => ({}));
   /* the subscription must still name this licence key (our checkout stamped it) — else the store and Stripe disagree, and nothing opens */

@@ -527,7 +527,8 @@ function launchBox(rows = []) {
   const gaps = rows.filter((r) => r.needed && !r.set).length;
   const state = (r) => (r.set ? "<b>set</b>" : r.needed ? '<span class="err">missing</span>' : "missing (correct for now)");
   return `<details${gaps ? " open" : ""} data-launch><summary>Launch settings in Vercel — ${gaps ? `${gaps} needed missing` : "all needed are set"}</summary><p class="fine">Names only; this page never shows a value. After you change one, deploy again.</p>
-<div class="tablewrap"><table class="t"><tr><th>Variable</th><th>For</th><th>State</th></tr>${rows.map((r) => `<tr><td><code>${esc(r.name)}</code></td><td>${esc(r.use)}</td><td>${state(r)}</td></tr>`).join("")}</table></div></details>`;
+<div class="tablewrap"><table class="t"><tr><th>Variable</th><th>For</th><th>State</th></tr>${rows.map((r) => `<tr><td><code>${esc(r.name)}</code></td><td>${esc(r.use)}</td><td>${state(r)}</td></tr>`).join("")}</table></div>
+<form method="post" action="/owner/portal" data-portal><p class="fine">“Manage or cancel my plan” needs AlmiVisibility's OWN Stripe portal (the account's default portal is shared by every AlmiWorld product and is never changed). One press makes it with the Stripe key already in Vercel; pressing again makes nothing new.</p><button class="pill ghost" type="submit">Create Manage-plan portal</button></form></details>`;
 }
 export function ownerPage({ launch = [], connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));

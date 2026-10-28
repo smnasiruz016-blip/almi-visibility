@@ -13,7 +13,7 @@ import { articleHtml } from "./articles.mjs";
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn, EMAIL_KEY_NAMES } from "./email.mjs";
-import { createCheckout, BILLING_KEY_NAMES, portalSession, PORTAL_CONFIG_NAME } from "./billing.mjs";
+import { createCheckout, BILLING_KEY_NAMES, portalSession, PORTAL_CONFIG_NAME, ensurePortalConfig } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS, PRICE_ENV } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
 import { createHash, createPublicKey, createPrivateKey, timingSafeEqual, randomBytes } from "node:crypto";
@@ -51,7 +51,7 @@ export const LAUNCH_VARS = Object.freeze([
   [`${KEY_NAMES.database} or DATABASE_URL`, "buyers' licences and checkouts (RR-338: the Neon DATABASE_URL is used when the first is not set)", true, (env) => Boolean(String(env[KEY_NAMES.database] ?? "").trim() || dbUrlOf(env))],
   [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
-  [PORTAL_CONFIG_NAME, "Manage or cancel my plan (AlmiVisibility's own Stripe portal — site/owner-portal-config.mjs makes it)", true],
+  [PORTAL_CONFIG_NAME, "optional — press “Create Manage-plan portal” below; the site then finds AlmiVisibility's own portal by itself", false],
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
   [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],
@@ -74,7 +74,7 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
   const m = modeOf(env, mode);
   if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
-  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch,
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch,
     salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
@@ -262,7 +262,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null }) {
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
@@ -449,6 +449,12 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           if (!lines.length || !cf) return send(400, await ownerPage({ message: "Paste at least one question (one a line). Nothing was saved." }), undefined, priv);
           const r = await cf.putQuestions({ product: "visibility", country: "*", source: "owner", items: lines.map((text) => ({ text })), at: new Date(now()).toISOString() });
           return send(200, await ownerPage({ message: `Saved ${lines.length} AlmiVisibility question${lines.length === 1 ? "" : "s"} (${r.added} new).` }), undefined, priv);
+        }
+        /* RR-341 · "Create Manage-plan portal": AlmiVisibility's OWN Stripe portal configuration, made with the key and the 4 prices already in
+         * Vercel (the owner types nothing); once only — a second press finds the first. The shared default portal is never touched. */
+        if (req.method === "POST" && u.pathname === "/owner/portal") {
+          const r = await ensurePortalConfig({ env, fetchImpl: stripeFetch ?? fetch });
+          return send(r.ok ? 200 : 503, await ownerPage({ message: `Manage-plan portal: ${r.line}` }), undefined, priv);
         }
         /* RR-332 · the owner's own Search Console read, now (the weekly cron reads it too) — the answer in one line */
         if (req.method === "POST" && u.pathname === "/owner/search-console") {

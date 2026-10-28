@@ -12,6 +12,7 @@
  */
 import { readFileSync, writeFileSync, copyFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import { join, basename } from "node:path";
+import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { manifestFor } from "../services/update-channel/channel.mjs";
 import { verifyManifest } from "../desktop/updater.mjs";
@@ -51,11 +52,31 @@ export function nextSteps({ version, out, owner = "<your GitHub name>" }) {
   ];
 }
 
+/**
+ * RR-341 · --publish: the GitHub part too, with the owner's own `gh` login — the public repo once (if it is not there yet), then the release
+ * with the three files. `gh` is run with its arguments as a list (no shell reads them). `run` is handed in (tests answer it locally).
+ */
+export function publishRelease({ version, out, owner, run = (args) => spawnSync("gh", args, { stdio: "inherit" }).status }) {
+  const repo = `${owner}/${RELEASES_REPO}`;
+  if (run(["auth", "status"]) !== 0) return { ok: false, why: "gh is not signed in — run: gh auth login" };
+  if (run(["repo", "view", repo, "--json", "name"]) !== 0 && run(["repo", "create", repo, "--public", "--description", "AlmiVisibility for Windows — downloads"]) !== 0) return { ok: false, why: `the repository ${repo} could not be made` };
+  const files = [SETUP_NAME, `AlmiVisibility-${version}.zip`, "manifest.json"].map((f) => join(out, f));
+  if (run(["release", "create", `v${version}`, "--repo", repo, "--title", `AlmiVisibility ${version}`, "--notes", `AlmiVisibility ${version} for Windows`, ...files]) !== 0) return { ok: false, why: `the release v${version} could not be made (if it already exists, nothing was changed)` };
+  const base = `https://github.com/${repo}/releases/latest/download/`;
+  return { ok: true, setupUrl: `${base}${SETUP_NAME}`, updateBase: base };
+}
+
 const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? null;
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const out = arg("out"), r = makeRelease({ from: arg("from"), keys: arg("keys"), out });
   if (!r.ok) { console.error(`FAILED — ${r.why}. Nothing was written.`); process.exit(1); }
   console.log(`OK — release ${r.version} is ready in ${out}: ${r.files.join(", ")} (manifest signed and verified).`);
-  for (const line of nextSteps({ version: r.version, out, owner: arg("github") ?? undefined })) console.log(line);
-  console.log(`(${basename(out)} holds no key. Upload only these three files.)`);
+  if (process.argv.includes("--publish")) {
+    const p = publishRelease({ version: r.version, out, owner: arg("github") ?? "smnasiruz016-blip" });
+    if (!p.ok) { console.error(`FAILED — ${p.why}.`); process.exit(1); }
+    console.log(`OK — published on GitHub. Now in Vercel → almi-visibility → Production (no secret — plain links):`);
+    console.log(`  VISIBILITY_SETUP_URL       = ${p.setupUrl}`);
+    console.log(`  VISIBILITY_UPDATE_BASE_URL = ${p.updateBase}`);
+  } else for (const line of nextSteps({ version: r.version, out, owner: arg("github") ?? undefined })) console.log(line);
+  console.log(`(${basename(out)} holds no key. Only these three files are uploaded.)`);
 }

@@ -460,7 +460,7 @@ ${d.dropped?.length ? `<p class="fine">Left out (not found on an official page):
   const qs = articles.map((a) => articleQuality(a.body, a.body?.judged)), judgedQ = qs.filter((q) => q.judgements), spent = judgedQ.reduce((s, q) => s + Number(q.usd ?? 0), 0);
   const quality = `<p>Quality (F40): ${qs.filter((q) => q.state === "PASS").length} pass · <b>${qs.filter((q) => q.state === "WAITING").length} waiting for the AI judge</b> · ${qs.filter((q) => q.state === "FAIL").length} fail · AI judge cost ${judgedQ.length ? `$${(spent / judgedQ.length).toFixed(4)} a page ($${spent.toFixed(4)} for ${judgedQ.length})` : "none yet"} — judged inside the daily AI cap, at most ${ARTICLES_JUDGED_PER_DAY} a day.</p>`;
   return ownerFrame("Articles", `${PHONE_CSS}${ownerMenu("articles")}<h1>Articles — drafts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}${quality}
-<p>${articles.length} drafts for AlmiWorld's products · ${waiting} wait for you. Each hard fact was read on its official page (its words and every number there); general guidance is labelled and states no number. <b>Nothing is published from here</b> — publishing comes with almiworld.com's blog and AlmiVisibility's own site.</p>${articles.map(one).join("") || "<p>No draft yet — the collector writes them after the first 15 countries' work each day.</p>"}`);
+<p>${articles.length} drafts for AlmiWorld's products · ${waiting} wait for you. Each hard fact was read on its official page (its words and every number there); general guidance is labelled and states no number. <b>Nothing is published from here</b> — publishing comes with almiworld.com's blog and AlmiVisibility's own site.</p>${articles.map(one).join("") || "<p>No draft yet — the collector writes them in its daily step, once a day (by the day's last run at the latest).</p>"}`);
 }
 /* RR-331 · ONE table of every country (the queue's order), open: each cell its value or count and the day it was found or checked */
 const shortDay = (d) => (d ? String(d).slice(0, 10) : "");
@@ -555,7 +555,7 @@ function questionsPanel(country, { stats = null, facts = [], asked = [] } = {}) 
 ${asked.length ? `<details><summary>Asked on YouTube and by you (latest ${asked.length})</summary><ul>${asked.map((q) => `<li>${esc(q.text)} <span class="fine">(${q.source === "owner" ? "yours" : "a YouTube comment, kept 30 days"})</span></li>`).join("")}</ul></details>` : ""}
 <form method="post" action="/owner/countries/questions"><input type="hidden" name="country" value="${esc(country)}"><label class="f">Add questions people asked you (one a line) <textarea name="text" rows="5" style="width:100%" placeholder="Can I give OET from Lahore?&#10;How do I get a good standing letter from PNMC?"></textarea></label><p><button class="pill" type="submit">Save these questions</button></p></form></details>`;
 }
-export function ownerCountries({ coverage, facts = [], country = null, history = {}, last = null, aiOn = false, caps = null, spend = null, message = null, order = [], search = {}, product = "oet", products = [], template = null, parts = [], professions = [], qstats = {}, asked = [], first15 = null } = {}) {
+export function ownerCountries({ coverage, facts = [], country = null, history = {}, last = null, aiOn = false, caps = null, spend = null, message = null, order = [], search = {}, product = "oet", products = [], template = null, parts = [], professions = [], qstats = {}, asked = [], first15 = null, templates = null } = {}) {
   const c = coverage.counts, byC = Object.fromEntries(coverage.rows.map((r) => [r.country, r])), mark = (ok) => (ok ? "✓" : "—");
   /* RR-329 B: one product at a time — AlmiOET keeps its five-part grid; every other product its own template's parts */
   const oet = product === "oet", qp = oet ? "" : `&amp;p=${encodeURIComponent(product)}`, link = (name) => `<a href="/owner/countries?c=${encodeURIComponent(name)}${qp}">${esc(name)}</a>`;
@@ -578,6 +578,11 @@ ${f.value?.photo ? `<p><img src="/owner/countries/photo?id=${esc(f.value.photo)}
 <p class="fine">${f.sourceUrl ? `<a href="${esc(f.sourceUrl)}" rel="nofollow noopener">${esc(f.sourceTitle || f.sourceUrl)}</a>` : "—"}${f.readOn ? ` · read ${esc(f.readOn)}` : ""}</p>
 ${f.status === "owner" ? "" : `<form method="post" action="/owner/countries/fact" class="row"><input type="hidden" name="key" value="${esc(f.key)}"><button class="pill" name="action" value="approve" type="submit">Approve</button> <button class="pill ghost" name="action" value="reject" type="submit">Reject</button></form>
 <details><summary>Edit</summary><form method="post" action="/owner/countries/fact"><input type="hidden" name="key" value="${esc(f.key)}"><input type="hidden" name="action" value="edit">${editFields(f)}<button class="pill" type="submit">Save my version</button></form></details>`}</div>`;
+  /* RR-335: per template, the searches it took and the results confirmed on an official page — today against yesterday (the owner tunes the templates) */
+  const tplNames = templates ? [...new Set([...Object.keys(templates.today ?? {}), ...Object.keys(templates.yesterday ?? {})])].sort() : [];
+  const tplCell = (x) => (x ? `${x.asks} asked · ${x.searches} searches → <b>${x.found}</b> confirmed${x.guidance ? ` · ${x.guidance} guidance` : ""}` : "—");
+  const tplTable = templates === null ? "<p>Search templates: the counts could not be read.</p>" : !tplNames.length ? "<p>Search templates: no question asked yesterday or today yet.</p>"
+    : `<table><caption>Search templates — searches → results confirmed on an official page</caption><thead><tr><th>Template</th><th>Today</th><th>Yesterday</th></tr></thead><tbody>${tplNames.map((n) => `<tr><td>${esc(n)}</td><td>${tplCell(templates.today?.[n])}</td><td>${tplCell(templates.yesterday?.[n])}</td></tr>`).join("")}</tbody></table>`;
   const runLine = last ? `<p>Last run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} facts saved (${last.unconfirmed} unconfirmed), ${last.kept} kept as you decided, ${last.reads} pages read, $${Number(last.aiUsd ?? 0).toFixed(2)} of AI${last.done?.length ? `; finished: ${esc(last.done.slice(0, 8).join(", "))}${last.done.length > 8 ? " …" : ""}` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
   /* RR-329 E: the facts by part, each part closed until tapped (light on a phone) — the owner's own facts first and open */
   const groups = (mine) => { const own = mine.filter((f) => f.status === "owner"), rest = mine.filter((f) => f.status !== "owner"), by = new Map();
@@ -607,7 +612,7 @@ ${head}
 <p class="fine">AI research: ANTHROPIC_API_KEY ${aiOn ? "set" : "missing — the collector reads official pages and AlmiOET's records only"}${caps ? ` · today's caps: $${caps.aiUsd.toFixed(2)} of AI, ${caps.reads} page reads` : ""}${spend ? ` · used today: $${spend.aiUsd.toFixed(2)}, ${spend.reads} reads, ${spend.searches} web searches` : ""}.</p>
 ${detail}${pick}
 <details open><summary>All ${c.countries} countries, in the queue's order (tap a country)</summary>${table}</details>
-<details><summary>The last run</summary>${runLine}<form method="post" action="/owner/countries/run"><button class="pill" type="submit">Collect now (one short run)</button></form></details>`);
+<details><summary>The last run</summary>${runLine}${tplTable}<form method="post" action="/owner/countries/run"><button class="pill" type="submit">Collect now (one short run)</button></form></details>`);
 }
 
 export const buyNotConnected = (plan, state = "DEFERRED") => frame({ path: "/buy", title: "Checkout — AlmiVisibility", description: "AlmiVisibility checkout.", noindex: true,

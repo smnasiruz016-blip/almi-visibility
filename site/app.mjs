@@ -245,6 +245,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const d = new Date(now()).toISOString().slice(0, 10), product = FACT_PRODUCTS.includes(o.product) ? o.product : "oet", all = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
     const facts = all.filter((f) => (f.product ?? "oet") === product), order = (await queueNow(kv)).countries;
     let last = null; if (kv) { try { const [l] = await kv.run([["GET", "av:cf:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
+    /* RR-335: the collector's per-template counts (RR-334 wrote them; no page read them) — today and yesterday */
+    const yesterday = new Date(Date.parse(`${d}T00:00:00Z`) - 864e5).toISOString().slice(0, 10);
+    let templates = null; if (kv) { try { const [a, b] = await kv.run([["GET", `av:cf:tpl:${d}`], ["GET", `av:cf:tpl:${yesterday}`]]); templates = { today: a ? JSON.parse(a) : {}, yesterday: b ? JSON.parse(b) : {} }; } catch { templates = null; } }
     const history = {}; if (sel) for (const f of facts.filter((x) => x.country === sel)) history[f.key] = await cf.history(f.key);
     /* RR-328 addition (rule R1): each country's body search — "searching" with the names already tried */
     const task = product === "oet" ? "councils" : `${product}:facts`;
@@ -265,7 +268,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         councils: rows.reduce((a, r) => a + Object.values(r.councils).filter(Boolean).length, 0), councilPairs: rows.length * CF_PROFESSIONS.length, left, eta: left ? new Date(Date.parse(`${d}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10) : null, measured: Boolean(cost && cost.n >= 3) };
     }
     const taskObj = Object.fromEntries(tasks.entries()), summary = await summaryOf({ all, first15 });
-    return P.ownerCountries({ coverage, facts, country: sel, history, last, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, tasks: taskObj, today: d, dated: Boolean(DATE_TESTS[product] || NO_DATES[product]), summary, ...o, country: sel, product });
+    return P.ownerCountries({ coverage, facts, country: sel, history, last, templates, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, tasks: taskObj, today: d, dated: Boolean(DATE_TESTS[product] || NO_DATES[product]), summary, ...o, country: sel, product });
   };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};

@@ -51,7 +51,7 @@ export const IDEAS = Object.freeze({ everyDays: 30, perDay: 2, max: 10,
 });
 
 export const CF_SUBJECT = Object.freeze({ name: "OET", site: "https://oet.com" });
-export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
+export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, dailyFirstFromHourUtc: 12, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
   /* a country's AI cost and page reads until enough are measured (Claude Haiku 5.5: about 6 web searches a question; AlmiOET reads its 12
    * councils' pages, its rules and AlmiOET's records) */
   defaultCost: Object.freeze({ oet: 0.25, other: 0.12 }), defaultReads: Object.freeze({ oet: 18, other: 4 }) });
@@ -212,8 +212,11 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     const FIRST15 = new Set(queue.countries.slice(0, 15));
     /* RR-334 · a stored question that is a comment to a video's maker or its viewers leaves the counts (reversible: Approve) */
     try { out.removed = await sweepQuestions({ store, put }); } catch { /* never stops the run */ }
-    /* the very first run (no fee read yet) takes the daily step first: the fee questions are answered from it */
-    if (!tasks.has(`${ALL}|fee`)) { await dailySteps(); }
+    /* the very first run (no fee read yet) takes the daily step first: the fee questions are answered from it.
+     * RR-335 (live, 28 Oct: 4 runs, every one used up on the first 15's councils — no article, no fee, no keyword idea all day): from
+     * the day's last run on (dailyFirstFromHourUtc), a daily step not yet taken today goes first; the earlier runs keep RR-333's order */
+    const dailyLate = new Date(now()).getUTCHours() >= CF_COLLECTOR.dailyFirstFromHourUtc && tasks.get(`${ALL}|fee`)?.day !== today;
+    if (!tasks.has(`${ALL}|fee`) || dailyLate) { await dailySteps(); }
     for (const u of orderWork(units, { queue })) {
       if (out.stoppedBy) break;
       if (!dailyDone && !(u.product === "oet" && FIRST15.has(u.country))) { await dailySteps(); if (out.stoppedBy) break; }

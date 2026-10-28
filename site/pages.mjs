@@ -20,6 +20,8 @@ import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
 import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
 import { FINDER, SOURCE_LINE, periodWords, rangeOf } from "./kw-finder.mjs";
 import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.mjs";
+import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
+const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -446,13 +448,18 @@ export function ownerMenu(here, s = null) {
 /* RR-334 · the article drafts for every AlmiWorld product — nothing is published from here; the owner's word is kept */
 export function ownerArticles({ articles = [], html = (d) => "", message = null } = {}) {
   const word = { draft: "waits for you", approved: "approved by you", rejected: "rejected by you" };
-  const one = (a) => { const d = a.body, srcs = [...new Map((d.blocks ?? []).filter((b) => b.source?.url).map((b) => [b.source.url, b.source])).values()];
-    return `<details class="fact"><summary><b>${esc(a.title)}</b> · ${esc(a.product)} · ${a.kind === "intro" ? "introduction, pros and cons" : "a question answered"} · <span class="chip">${esc(word[a.status] ?? a.status)}</span></summary>
+  /* RR-335: F40's state of each draft — the page-law checks, then the AI judge's two verdicts (with their cost); a draft not judged waits */
+  const qWord = { PASS: "quality PASS", FAIL: "quality FAIL", WAITING: "waiting for the AI judge" };
+  const qLine = (q) => `<p class="fine">Quality (F40): <b>${esc(qWord[q.state])}</b>${q.why ? ` — ${esc(q.why)}` : ""}${q.judgements ? ` · ${q.judgements.map((j) => `${esc(j.name)} ${esc(j.verdict)}: ${esc(j.observation)}`).join(" · ")} · cost $${Number(q.usd ?? 0).toFixed(4)}` : ""}</p>`;
+  const one = (a) => { const d = a.body, q = articleQuality(d, d.judged), srcs = [...new Map((d.blocks ?? []).filter((b) => b.source?.url).map((b) => [b.source.url, b.source])).values()];
+    return `<details class="fact"><summary><b>${esc(a.title)}</b> · ${esc(a.product)} · ${a.kind === "intro" ? "introduction, pros and cons" : "a question answered"} · <span class="chip">${esc(word[a.status] ?? a.status)}</span> · <span class="chip">${esc(qWord[q.state])}</span></summary>${qLine(q)}
 <p class="fine">Outline: ${(d.outline ?? []).map(esc).join(" → ")}</p><p class="fine">Sources (${srcs.length}): ${srcs.map((s) => `<a href="${esc(s.url)}" rel="nofollow">${esc(s.title || s.url)}</a> (read ${esc(s.on ?? "")})`).join("; ") || "—"}</p>
 ${d.dropped?.length ? `<p class="fine">Left out (not found on an official page): ${d.dropped.map((x) => `${esc(x.heading)} — ${esc(x.why)}`).join("; ")}</p>` : ""}${html(d)}
 <form method="post" action="/owner/articles/decide" class="row"><input type="hidden" name="id" value="${esc(a.id)}">${a.status !== "approved" ? '<button class="pill" name="action" value="approve">Approve</button>' : ""} ${a.status !== "rejected" ? '<button class="pill ghost" name="action" value="reject">Reject</button>' : ""} ${a.status !== "draft" ? '<button class="pill ghost" name="action" value="reopen">Back to draft</button>' : ""}</form></details>`; };
   const waiting = articles.filter((a) => a.status === "draft").length;
-  return ownerFrame("Articles", `${PHONE_CSS}${ownerMenu("articles")}<h1>Articles — drafts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+  const qs = articles.map((a) => articleQuality(a.body, a.body?.judged)), judgedQ = qs.filter((q) => q.judgements), spent = judgedQ.reduce((s, q) => s + Number(q.usd ?? 0), 0);
+  const quality = `<p>Quality (F40): ${qs.filter((q) => q.state === "PASS").length} pass · <b>${qs.filter((q) => q.state === "WAITING").length} waiting for the AI judge</b> · ${qs.filter((q) => q.state === "FAIL").length} fail · AI judge cost ${judgedQ.length ? `$${(spent / judgedQ.length).toFixed(4)} a page ($${spent.toFixed(4)} for ${judgedQ.length})` : "none yet"} — judged inside the daily AI cap, at most ${ARTICLES_JUDGED_PER_DAY} a day.</p>`;
+  return ownerFrame("Articles", `${PHONE_CSS}${ownerMenu("articles")}<h1>Articles — drafts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}${quality}
 <p>${articles.length} drafts for AlmiWorld's products · ${waiting} wait for you. Each hard fact was read on its official page (its words and every number there); general guidance is labelled and states no number. <b>Nothing is published from here</b> — publishing comes with almiworld.com's blog and AlmiVisibility's own site.</p>${articles.map(one).join("") || "<p>No draft yet — the collector writes them after the first 15 countries' work each day.</p>"}`);
 }
 /* RR-331 · ONE table of every country (the queue's order), open: each cell its value or count and the day it was found or checked */

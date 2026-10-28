@@ -6,7 +6,8 @@
  *   · a product is asked again after 30 days, a category or niche after 60 (Google's figures are 12-month averages it updates monthly) — so
  *     every location fits in our share of Google's limit: one third of its 15,000 a day (kw-google.mjs QUOTA.collector);
  *   · RR-329 F: each fetch keeps its 300 most-searched keywords and up to 100 more that ASK something (the questions of a country) — so two
- *     months of every country fit in the database; a run stops before the database is full (NEON_STORAGE_LIMIT_MB, Neon's free plan: 1 GB);
+ *     months of every country fit in the database; a run stops before the database is full (NEON_STORAGE_LIMIT_MB; RR-335: the project is on Neon's Launch plan, so
+ *     the default is a 10 GB cost guard, no longer the free plan's 1 GB);
  *   · never the same thing twice in a day; one run at a time (a lock); a run stops at its time budget, at our daily cap, or at a refusal that
  *     says stop — said in plain words for the owner's page, and recorded for the 3-day health check (health.mjs).
  */
@@ -16,7 +17,7 @@ import { DEFAULT_QUEUE, FRONT, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { isQuestion } from "../desktop/country-facts.mjs";
 
-export const COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, keepTop: 300, keepQuestions: 100, storageLimitMb: 1024, stopAtShare: 0.95 });
+export const COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, keepTop: 300, keepQuestions: 100, storageLimitMb: 10240,stopAtShare: 0.95 });
 const STOP = new Set(["OUR_DAILY_LIMIT", "NOT_CONNECTED", "UNAUTHENTICATED", "AUTHORIZATION_ERROR", "RESOURCE_EXHAUSTED", "PERMISSION_DENIED", "ACTION_NOT_PERMITTED", "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION", "USER_PERMISSION_DENIED", "CUSTOMER_NOT_ENABLED"]);
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 const daysBefore = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10);

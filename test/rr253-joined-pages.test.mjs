@@ -92,7 +92,9 @@ const DESIGN = { siteAddress: "https://client.invalid", brandName: "Standin", pr
   fonts: { body: "Verdana, sans-serif" }, card: { radius: "14px" }, nav: [{ label: "Try it", href: "/try" }], cta: { label: "Start now", href: "/start" },
   footer: { columns: [{ title: "Company", links: [{ label: "About", href: "https://client.invalid/about" }, { label: "Contact", href: "https://client.invalid/contact" }] }], notice: "© Standin." }, basis: "CLIENT_DECLARED" };
 /* every fixture fact has a recorded recheck interval and is read inside it (RR-257 B4) */
-const joined = (construction, over = {}) => joinPages({ construction, renderNeed: passing, stamp: STAMP, design: DESIGN, productLine: DESIGN.productLine, recheckOf: () => 30, on: "2026-09-03", ...over });
+/* RR-335: every page carries at least 3 internal links from the filed plan — these fixtures file the hub, a related page and an article */
+const RELATED3 = Object.freeze([{ href: "/guides", label: "All guides" }, { href: "/guides/related", label: "A related guide" }, { href: "/articles/one", label: "An article" }]);
+const joined = (construction, over = {}) => joinPages({ construction, renderNeed: passing, stamp: STAMP, design: DESIGN, productLine: DESIGN.productLine, recheckOf: () => 30, on: "2026-09-03", relatedFor: () => RELATED3, ...over });
 /* b7Trust is left to its own firing controls (COMPARISON, AI-SEARCH PAGE LAW): these older fixtures record no comparison table */
 const present = (v) => typeof v === "string" && v.trim() !== "";
 const failed = (p) => Object.entries(p.checks).filter(([k, v]) => v.state === "FAIL" && k !== "b7Trust").map(([k]) => k);
@@ -325,7 +327,10 @@ test("GATES · FIRING CONTROL: each older check still fails for its own reason a
   assert.deepEqual(failed(joined(one([label("c", { text: "This page will rank first on search." })]))[0]), ["noPromise"]);
   assert.deepEqual(failed(joined(one(), { renderNeed: () => ({ state: "RENDERED", checks: { ...passing().checks, headingsMatch: { state: CHECK.FAIL } } }) })[0]), ["needHeadingsMatch"]);
   const good = joined(one())[0];
-  for (const k of ["internalLinks", "technical", "engaging", "acceptableToSearchAndAnswerEngines", "titleFromSearchPhrases", "law3KeyFacts"]) assert.equal(good.checks[k].state, "NOT MEASURED", k);
+  for (const k of ["technical", "engaging", "acceptableToSearchAndAnswerEngines", "titleFromSearchPhrases", "law3KeyFacts"]) assert.equal(good.checks[k].state, "NOT MEASURED", k);
+  /* RR-335: the page's own links decide (at least 3 from the filed plan) — none filed FAILS */
+  assert.equal(good.checks.internalLinks.state, "PASS");
+  assert.deepEqual(failed(joined(one(), { relatedFor: () => [] })[0]), ["internalLinks"]);
   assert.equal(joinedChecks({ items: good.itemList, html: renderJoined({ title: "t", stamp: STAMP, items: good.itemList }).replace(STAMP, "x"), stamp: STAMP }).stamped.state, "FAIL");
 });
 

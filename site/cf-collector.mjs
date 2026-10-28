@@ -40,7 +40,7 @@ import { askAi, aiConfigured, councilQuestion, ruleQuestion, productQuestion, ke
 import { collectQuestions, sweepQuestions, CF_QUESTIONS } from "./cf-questions.mjs";
 import { youtubeApi } from "../src/video/youtube.mjs";
 import { questionsInComment } from "../desktop/real-questions.mjs";
-import { ARTICLES, ARTICLE_PRODUCTS, answerDrafts, introQuestion, checkIntro } from "./articles.mjs";
+import { ARTICLES, ARTICLE_PRODUCTS, answerDrafts, introQuestion, checkIntro, articleQuality, judgeQuestion, judgementsOf } from "./articles.mjs";
 /* RR-333 D: what people ask under videos about what AlmiVisibility does (3 searches a week of YouTube's 100 a day) */
 export const VIS_YOUTUBE = Object.freeze(["AI search visibility", "keyword research tool", "website SEO audit"]);
 /* RR-334 (owner's templates b and d) · the keyword ideas: a product every 30 days, at most 2 a day, AlmiOET and AlmiVisibility first; the
@@ -187,6 +187,19 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         const c = await checkIntro({ product: p.key, data: r.data, reader, room, today });
         tpl("articles").found += c.draft ? c.draft.blocks.filter((b) => b.label === "official").length : 0;
         if (c.draft) await save(c.draft);
+      }
+      /* RR-335 · F40 with a cost guard: the page-law checks first (no AI); only a draft that passes them is judged by the AI — inside the
+       * daily cap, at most judgedPerDay a day, each verdict with its call id and its cost; one not yet judged waits (never refused) */
+      let j = triedOn("judge:");
+      for (const a of (await store.articles()).filter((x) => x.status === "draft" && !x.body?.judged)) {
+        if (articleQuality(a.body).state !== "WAITING") continue;
+        if (j >= ARTICLES.judgedPerDay || !aiConfigured(env) || !room(true)) break;
+        if (triedToday(`judge:${a.id}`)) continue;
+        j++;
+        const r = await askOne(judgeQuestion(a.body));
+        await tried(`judge:${a.id}`, r);
+        const judgements = r.ok ? judgementsOf(r.data, r.callId) : [];
+        if (judgements.length) await store.putArticle({ id: a.id, product: a.product, kind: a.kind, title: a.title, body: { ...a.body, judged: { judgements, callId: r.callId, usd: Math.round((r.usd ?? 0) * 1e5) / 1e5, at: at() } }, why: a.why ?? null }, { at: at() });
       }
     }
     /* ── 3 · per (product, country), in the queue's order: the front first, a background task (another country, a daily re-search) every 4th ── */

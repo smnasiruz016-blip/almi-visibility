@@ -45,6 +45,26 @@
  */
 import { createHash } from "node:crypto";
 import { PROMISE, CHECK } from "./draft-render.mjs";
+import { judgeDraft, VERDICT as F40 } from "./quality-judgements.mjs";
+
+/** RR-335 · the owner's research rule: every page carries at least 3 internal links — the hub, its related pages and an article — from the
+ * filed link plan (RR-286); fewer FAILS the page (it is never built) */
+export const MIN_INTERNAL_LINKS = 3;
+export const linksCheck = (related = []) => {
+  const n = new Set((Array.isArray(related) ? related : []).map((l) => String(l?.href ?? "").trim()).filter(Boolean)).size;
+  return n >= MIN_INTERNAL_LINKS ? Object.freeze({ state: CHECK.PASS, links: n })
+    : Object.freeze({ state: CHECK.FAIL, links: n, why: `${n} internal link(s) — every page needs at least ${MIN_INTERNAL_LINKS}: the hub, its related pages and an article (the filed link plan; RR-335)` });
+};
+/** RR-335 · the page's F40 verdict, from each item's: a FAIL names its blockers; a page whose only open items are the AI judge's waits */
+export function qualityOf(items) {
+  const qs = items.map((it) => it.quality).filter(Boolean);
+  if (!qs.length) return Object.freeze({ state: CHECK.NOT_MEASURED, why: "no lawful judge is connected; real proof comes only after publication" });
+  const failing = qs.filter((q) => q.verdict === F40.FAIL), open = qs.filter((q) => q.verdict !== F40.PASS);
+  if (failing.length) return Object.freeze({ state: CHECK.FAIL, why: `F40: ${[...new Set(failing.flatMap((q) => q.blockers))].join("; ")}` });
+  if (!open.length) return Object.freeze({ state: CHECK.PASS });
+  const waiting = open.every((q) => q.waitingFor.length);
+  return Object.freeze({ state: CHECK.NOT_MEASURED, waiting, why: waiting ? `waiting for the AI judge: ${[...new Set(open.flatMap((q) => q.waitingFor))].join(", ")} — the deterministic checks passed` : `F40: ${[...new Set(open.flatMap((q) => q.blockers))].join("; ")}` });
+}
 
 export const JOINED_RECORD = "joined_page_draft";
 /** What a need may be recorded to lead with. Any other recorded value is granted nothing and fails the page's own check. */
@@ -364,7 +384,7 @@ const CURRENCY_WORDS = Object.freeze({ PKR: "rupees?" });
  *   recheckOf      a claim's recorded recheck interval in days (RR-257 B4) · on  the day of the run
  *   leadOf         what a need is RECORDED to lead with (LEAD), or null (RR-262)
  */
-export function joinPages({ construction = [], questions = new Map(), renderNeed, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
+export function joinPages({ construction = [], questions = new Map(), renderNeed, judge = null, statementsFor = () => ({ shown: [], refused: [] }), stamp, orderOf = () => 0, unansweredFor = () => [],
   design = null, productLine = null, phrasesFor = () => [], keyFactsFor = () => [], ratesFor = () => [], comparisonsFor = () => [], recheckOf = () => null, on = null, needKeyOf = (id) => id, leadOf = () => null, generalViewOf = () => null, checkedNotFoundOf = () => [], fillerPhrases = [], relatedFor = () => [], quotationOf = null }) {
   if (!present(stamp)) throw new TypeError("a joined page carries its stamp — a test page says it is one on every output");
   const byCandidate = new Map();
@@ -382,8 +402,16 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     /* a question that IS a recorded search phrase leads its item (RR-256) */
     const searched = new Set(phrases.map((p) => p?.text).filter(present));
     const capitals = capitalsIn([...list.flatMap(({ spec }) => [...spec.sections.map((s) => s.heading), ...spec.answer.labels.map((c) => c.text)]), ...phrases.map((p) => p?.text)]);
+    /* RR-335: the page's links from the filed plan, known before its items — F40's technical assessment reads them (the frozen rule) */
+    const related = relatedFor(value), links = linksCheck(related);
     const items = list.sort((a, b) => orderOf(a.spec.subject) - orderOf(b.spec.subject) || (a.spec.subject < b.spec.subject ? -1 : 1)).map(({ spec, decision }) => {
       const draft = renderNeed({ spec, decision });
+      /* RR-335 (owner): F40 judges each need's draft as a gate of this builder — the frozen rules decide technical (the page's links) and
+       * distinct value (F35's CREATE); the AI judge's recorded verdicts come from `judge`, none recorded → the page waits */
+      const j = judge ? judge({ needId: spec.subject, needKey: needKeyOf(spec.subject) }) : null;
+      const q = j ? judgeDraft({ spec, decision, draft, parts: { draft: { checks: draft?.checks ?? null } }, population: j.population, judgements: j.judgements ?? [], registeredProviders: j.registeredProviders ?? [],
+        frozen: { technical: links, distinct: { state: "PASS", why: "F35 chose CREATE for this need" } } }) : null;
+      const quality = q ? Object.freeze(q.judged ? { verdict: q.gate.verdict, blockers: q.gate.blockers, waitingFor: q.gate.waitingFor, contentSha256: q.contentSha256 } : { verdict: F40.FAIL, blockers: Object.freeze([q.why]), waitingFor: Object.freeze([]), contentSha256: q.contentSha256 }) : null;
       const qs = orderedQuestions(spec.sections.map((s) => { const q = questions.get(s.questionId) ?? {}; return Object.freeze({ questionId: s.questionId, wording: s.heading, tier: s.tier, country: q.country ?? null, language: q.language ?? null }); }), searched);
       const st = statementsFor(spec.subject);
       /* RR-262: the lead is granted only as recorded, and only when an approved statement is there to lead with */
@@ -395,7 +423,7 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
       const checkedNotFound = Object.freeze([...(checkedNotFoundOf(spec.subject) ?? [])].filter((r) => r?.kind === ANSWER_KIND.CHECKED_NOT_FOUND));
       return Object.freeze({ ...(generalView ? { answerKind: ANSWER_KIND.GENERAL_VIEW, generalView } : {}), ...(checkedNotFound.length ? { checkedNotFound } : {}), ...(asked !== null ? { leadAsked: asked, lead: asked === LEAD.PRODUCT && st.shown.length > 0 ? LEAD.PRODUCT : null } : {}), needId: spec.subject, needKey: needKeyOf(spec.subject), heading: Object.freeze({ wording: qs[0].wording, shown: headingShown(qs[0].wording, capitals), questionId: qs[0].questionId, tier: qs[0].tier, searchPhrase: phrases.find((p) => p?.text === qs[0].wording)?.phraseId ?? null }), questions: Object.freeze(qs), claims: centralFirst(spec.answer.labels), unknown: spec.answer.unknown, answerJudged: spec.answer.state,
         countrySections: spec.countrySections, statements: st.shown, statementsRefused: st.refused,
-        needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
+        ...(quality ? { quality } : {}), needChecks: draft?.checks ? Object.freeze(Object.fromEntries(Object.entries(draft.checks).map(([k, v]) => [k, v.state]))) : null, needDraft: draft?.state ?? "NOT RENDERED" });
     });
     const lastChecked = items.flatMap((it) => it.claims.map((c) => c.readOn)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "")).sort().at(-1) ?? null;
     const composed = composeTitle({ phrases, needOrder: items.map((it) => it.needKey), lastChecked, capitals });
@@ -412,10 +440,10 @@ export function joinPages({ construction = [], questions = new Map(), renderNeed
     const faq = faqOf(items, cv.shown);
     const intro = Object.freeze([present(productLine) ? productLine.trim() : null, `${items.length} question${items.length === 1 ? "" : "s"} answered below, each with its source.`].filter(Boolean));
     /* RR-286: the page's internal links, from the batch's filed link plan (F94's rule: the hub and every recorded page of the same need) */
-    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown, related: relatedFor(value) });
+    const html = renderJoined({ title, stamp, items, design, intro, cards: kf.cards, faq, lastChecked, converted: cv.shown, tables: cmp.shown, related });
     const trace = items.flatMap((it) => [...it.claims.map((c) => Object.freeze({ needId: it.needId, claimId: c.claimId, label: c.label, source: c.source, link: c.link, readOn: c.readOn })),
       ...it.statements.map((s) => Object.freeze({ needId: it.needId, answerId: s.answerId, label: s.label, source: s.source, link: s.link, approvalRecord: s.approvalRecord }))]);
-    const checks = joinedChecks({ fillerPhrases, items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on });
+    const checks = joinedChecks({ fillerPhrases, items, html, stamp, title, titleTrace, composed: composed.title !== null, titleMissing: composed.missing ?? null, phrases, lastChecked, unanswered, design, intro, cards: kf.cards, cardsRefused: kf.refused, faq, converted: cv.shown, conversionsRefused: cv.refused, tables: cmp.shown, tablesRefused: cmp.refused, recheck, on, related });
     const generalViews = items.filter((it) => it.generalView).length;
     /* RR-268 A2: the needs recorded UNANSWERABLE with their checked source and day, counted apart from the answered items */
     const unanswerable = unanswered.filter(unanswerableRecorded).length;
@@ -439,7 +467,7 @@ export function faqInPage(html) {
 }
 
 /** The joined page's OWN measurable checks. A check whose input is not recorded is NOT MEASURED; none passes by default. */
-export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [], tables = [], tablesRefused = [], recheck = {}, on = null }) {
+export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "", titleTrace = [], composed = false, titleMissing = null, phrases = [], lastChecked = null, unanswered = [], design = null, intro = [], cards = [], cardsRefused = [], faq = [], converted = [], conversionsRefused = [], tables = [], tablesRefused = [], recheck = {}, on = null, related = null }) {
   const state = (ok, why) => (ok ? Object.freeze({ state: CHECK.PASS }) : Object.freeze({ state: CHECK.FAIL, why }));
   const claims = items.flatMap((it) => it.claims);
   const recorded = new Set(items.flatMap((it) => it.questions.map((q) => q.wording)));
@@ -580,9 +608,9 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
     needDirectAnswer: Object.freeze({ state: perNeed("directAnswer") }),
     needEveryClaimSourced: Object.freeze({ state: perNeed("everyClaimSourced") }),
     needHeadingsMatch: Object.freeze({ state: perNeed("headingsMatch") }),
-    internalLinks: Object.freeze({ state: perNeed("internalLinks") }),
+    internalLinks: related === null ? Object.freeze({ state: perNeed("internalLinks") }) : linksCheck(related), // RR-335: the page's own links win over F37's per-need plan
     technical: Object.freeze({ state: perNeed("technical") }),
-    engaging: Object.freeze({ state: CHECK.NOT_MEASURED, why: "no lawful judge is connected; real proof comes only after publication" }),
+    engaging: qualityOf(items), // RR-335: F40 — the deterministic checks first, then the AI judge's two verdicts; waiting until judged
     acceptableToSearchAndAnswerEngines: Object.freeze({ state: CHECK.NOT_MEASURED, why: "no lawful judge is connected; real proof comes only after publication (index, impressions, citations)" }),
   });
 }

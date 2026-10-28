@@ -14,7 +14,52 @@ import { PRODUCT_FACTS } from "../desktop/product-facts.mjs";
 import { numbersOf, quoteOnPage, hostOf, governmentHost, SHOWN_STATUS, blockedSource } from "../desktop/country-facts.mjs";
 import { NEVER_SOURCES } from "./cf-ai.mjs";
 
-export const ARTICLES = Object.freeze({ introsPerDay: 2, refreshDays: 30, related: 4, minBlocks: 3 });
+/* RR-335 · F40's two judged criteria and F37's promise rule, word for word — the site does not load the engine's page builder, so the
+ * test (rr335) holds these equal to src/page/quality-judgements.mjs CRITERIA and src/page/draft-render.mjs PROMISE */
+export const JUDGE_CRITERIA = Object.freeze({
+  engaging: Object.freeze({ id: "f40-engaging-v1", criterion: "Engaging: a reader who arrives with the page's central question is drawn to read on, judged by a declared agent on the rendered draft." }),
+  hookable: Object.freeze({ id: "f40-hookable-v1", criterion: "Hookable: the title, the direct answer and the headings state the page's value in the reader's own terms, judged by a declared agent on the rendered draft." }),
+});
+const AI_JUDGED = Object.keys(JUDGE_CRITERIA);
+export const PROMISE = /\b(guarantee[sd]?|rank(s|ed|ing)? (#?1|first|top)|top of (google|search)|cited by (ai|chatgpt|gemini)|will (rank|be indexed|be cited))\b/i;
+const JUDGE_SCHEMA = { type: "object", additionalProperties: false, required: AI_JUDGED, properties: Object.fromEntries(AI_JUDGED.map((n) => [n,
+  { type: "object", additionalProperties: false, required: ["verdict", "observation"], properties: { verdict: { type: "string", enum: ["PASS", "FAIL"] }, observation: { type: "string" } } }])) };
+/** the AI judge's one question: F40's two criteria and the page itself, nothing else */
+export const judgeQuestion = (d) => ({ template: "judge", schema: JUDGE_SCHEMA, maxTokens: 800,
+  system: "You judge one web page against two declared criteria. Read only the page given. For each criterion answer PASS or FAIL and one sentence saying what in the page decides it. Never judge anything not on the page.",
+  prompt: `${AI_JUDGED.map((n) => `${n}: ${JUDGE_CRITERIA[n].criterion}`).join("\n")}\n\nThe page:\n${articleText(d).slice(0, 12000)}` });
+/** the judge's answer as F40's recorded judgements: each with its criterion id, the observation and the provider's call id (F40 C5) */
+export const judgementsOf = (data, callId) => (callId ? AI_JUDGED.filter((n) => ["PASS", "FAIL"].includes(data?.[n]?.verdict) && String(data?.[n]?.observation ?? "").trim())
+  .map((n) => ({ name: n, verdict: data[n].verdict, criterionId: JUDGE_CRITERIA[n].id, observation: String(data[n].observation).trim().slice(0, 400), source: { kind: "AGENT", provider: "anthropic", callRef: callId } })) : []);
+
+export const ARTICLES = Object.freeze({ introsPerDay: 2, refreshDays: 30, related: 4, minBlocks: 3, judgedPerDay: 6 });
+
+/* RR-335 (owner, 28 Oct 2026) · F40 ON EVERY DRAFT, WITH A COST GUARD: the deterministic page-law checks first — the answer first, no
+ * promise of ranking, nothing said twice (no word count: RR-294) — and only a draft that passes them goes to the AI judge (the cheapest
+ * capable model, cf-ai.mjs) for F40's two judged criteria, engaging and hookable, each verdict recorded with the provider and its call id.
+ * Inside the collector's daily AI cap, at most judgedPerDay a day; a draft not yet judged WAITS — it is never refused for it. */
+export function articleChecks(d) {
+  const blocks = Array.isArray(d?.blocks) ? d.blocks : [], texts = blocks.map((b) => String(b?.text ?? "").trim().toLowerCase());
+  const said = blocks.map((b) => `${b?.heading ?? ""} ${b?.text ?? ""}`).join(" ");
+  const twice = texts.filter((t, i) => t && texts.indexOf(t) !== i).length;
+  const check = (ok, why) => (ok ? { state: "PASS" } : { state: "FAIL", why });
+  return Object.freeze({
+    answerFirst: check(Boolean(texts[0]), "the draft does not open with its answer"),
+    noPromise: check(!PROMISE.test(said), "it promises a ranking or a result"),
+    nothingTwice: check(twice === 0, `${twice} block(s) say what another block already says`),
+  });
+}
+export const articleText = (d) => [d?.title, ...(d?.blocks ?? []).flatMap((b) => [b?.heading, b?.text])].filter(Boolean).join("\n");
+/** a draft's F40 state for the owner: FAIL (a check, or the judge), PASS (both judged PASS), or WAITING for the AI judge */
+export function articleQuality(d, judged = null) {
+  const checks = articleChecks(d), failed = Object.entries(checks).filter(([, c]) => c.state === "FAIL").map(([k, c]) => `${k}: ${c.why}`);
+  if (failed.length) return Object.freeze({ state: "FAIL", checks, why: failed.join("; ") });
+  const js = judged?.judgements ?? [];
+  if (js.length !== AI_JUDGED.length) return Object.freeze({ state: "WAITING", checks, why: "waiting for the AI judge (engaging, hookable) — the page-law checks passed" });
+  const bad = js.filter((j) => j.verdict === "FAIL");
+  return Object.freeze({ state: bad.length ? "FAIL" : "PASS", checks, judgements: js, usd: judged.usd ?? null, callId: judged.callId ?? null, at: judged.at ?? null,
+    why: bad.length ? bad.map((j) => `${j.name}: ${j.observation}`).join("; ") : null });
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 

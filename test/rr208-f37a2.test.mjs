@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { judgeDraft, CRITERIA, VERDICT, CANNOT_DECIDE, NOT_JUDGED, NO_LAWFUL_JUDGE, ASSESSMENTS, JUDGEMENTS, POPULATION, MAX_REPAIR_ROUNDS } from "../src/page/quality-judgements.mjs";
 import { renderCompiledDraft, PROMISE } from "../src/page/draft-render.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
+import { constructCandidates, decisionsForConstruction } from "./helpers/compiled-construction.mjs"; /* RR-335: the retired builder's result for a compiled spec, from the live modules (test-only) */
 import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
 import { coverageJudgementRecords } from "../src/page/grouped-need-coverage.mjs";
 import { possibleCombinations } from "../src/page/page-opportunities.mjs";
@@ -23,6 +24,7 @@ import { researchDerivedQuestion, assessmentRecord, ROUTES } from "../src/resear
 import { decisionCallPaths } from "../tools/need-coverage-call-paths.mjs";
 import { planSite, planFaults } from "../src/page/site-plan.mjs";
 import { readClientSitePlans } from "../src/page/site-plan-evidence.mjs";
+import { planFor } from "./helpers/compiled-construction.mjs"; /* RR-335: the retired builder's result for a compiled spec, from the live modules (test-only) */
 import { CHECK } from "../src/page/draft-render.mjs";
 import { METHOD_SOURCE } from "../src/page/quality-judgements.mjs";
 import { scopeCompleteness } from "../src/crawl/scope-completeness.mjs";
@@ -94,6 +96,13 @@ const gainFor = (slug, withGain = true) => ({
   reviews: PAGES.map((p) => ({ pair: [`candidate:${slug}`, p.pageId], compared: ASPECTS, duplicate: false, documentedDistinctValue: "a different need", needsGuidance: false, ref: `f32:${p.pageId}` })),
 });
 /** The production path: construction judges F35's chosen spec; the draft is F37's own render of it; F40 reads both. */
+function judged(c, { plan = PLAN_OF(c.d.decision), withGain = true, population = POPULATION.FIXTURE, judgements = [], repeatJustifications = [], round = 0, previous = null, spec = c.d.spec, draft = null } = {}) {
+  /* construction is handed the SAME spec the draft renders (a changed spec rides in F35's construction set) */
+  const compiled = { ...c.g.compiled, forConstruction: c.g.compiled.forConstruction.map((x) => (x.slug === c.d.slug ? { ...x, spec } : x)) };
+  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug, withGain), decisions: decisionsForConstruction({ compiled }).decisions, plans: [plan].filter(Boolean), now: NOW })[0];
+  const d = draft ?? renderCompiledDraft({ spec, decision: c.d.decision, plan });
+  return { r, d, q: judgeDraft({ spec, decision: c.d.decision, draft: d, parts: r.parts, population, judgements, repeatJustifications, round, previous }) };
+}
 const fixtureJudgement = (name, verdict) => ({ name, verdict, criterionId: CRITERIA[name].id, observation: `the fixture judge's recorded observation of the rendered draft (${verdict})`, source: { kind: "FIXTURE", ref: `fixture-judge:${name}` } });
 const PASSING_JUDGEMENTS = [fixtureJudgement("engaging", VERDICT.PASS), fixtureJudgement("hookable", VERDICT.PASS)];
 const justifyAll = (html) => [...new Set([...html.matchAll(/<div class="claim" data-claim-id="([^"]+)">/g)].map((m) => m[1]))].map((claimId) => ({ claimId, adds: "the answer restated under the question's own wording for a reader who arrives at that question", ref: `fixture-justification:${claimId}` }));
@@ -116,11 +125,89 @@ const obs = (id, url) => ({ record_type: "observation", observation_id: id, obse
 const inventory = (extra = []) => scopeCompleteness({ origins: [A], observations: SITE.map((p, i) => obs(`o${i}`, p.url)), sitemaps: [{ record_type: "observation", observation_id: "sm", observed_at: AT, value: { origin: A, urls: [...SITE.map((p) => p.url), ...extra], coverageState: "COMPLETE", childrenSkipped: 0, urlsTotal: SITE.length + extra.length, urlsStored: SITE.length + extra.length } }], edges: [], freshnessRule: { freshnessDays: 30 }, now: NOW });
 const f94Plan = (c, { complete = true, pages = SITE } = {}) => planSite({ tenantId: T, subject: { decision: c.d.decision, slug: c.d.slug, need: "one" }, pages, edges: [], recordsOf: ok200, completeness: complete ? inventory() : inventory([`${A}/guides/unobserved`]), origins: [A] });
 /** the production path: construction reads F35's chosen spec and F94's plans; the draft is F37's own render of it with the plan for its need */
+function built(c, plans) {
+  const r = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: gainFor(c.d.slug), decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, plans, now: NOW });
+  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: planFor(plans, c.d.decision) });
+  const q = judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: d, parts: r.find((x) => x.slug === c.d.slug)?.parts, population: POPULATION.FIXTURE });
+  return { r, d, q };
+}
 const navOf = (html) => (html.match(/<nav class="related">[\s\S]*?<\/nav>/g) ?? []);
 const hrefs = (html) => navOf(html).flatMap((n) => [...n.matchAll(/<a href="([^"]+)">([^<]*)<\/a>/g)].map((m) => [m[1], m[2]]));
 const canonicalOf = (html) => html.match(/<link rel="canonical" href="([^"]+)">/)?.[1] ?? null;
 
 /* ================= C8 ================= */
+test("T37-C8 · F37 C8 (Amendment 2) THE PLAN INTO THE DRAFT: over a COMPLETE fixture inventory exactly the plan's links and URL, both checks PASS; over an INCOMPLETE one the same, labelled PARTIAL inside the related-pages navigation, both checks NOT MEASURED; with no plan a visible UNKNOWN part and no link or URL; another need's plan, a planted link and a NOT MEASURED URL are never rendered; F40's filler and repetition PASS on each", () => {
+  const c = chosen();
+  /* COMPLETE */
+  const plan = f94Plan(c);
+  assert.deepEqual(planFaults(plan, { tenantId: T, pages: SITE, origins: [A], recordsOf: ok200 }), [], "F94 refuses its own fixture plan");
+  assert.equal(plan.complete, true);
+  const full = built(c, [plan]);
+  assert.deepEqual(hrefs(full.d.html), plan.linksOut.map((l) => [l.url, l.url]), "the draft's links are not exactly the plan's (the visible text is the recorded URL)");
+  assert.equal(canonicalOf(full.d.html), plan.url.url);
+  assert.deepEqual([full.d.checks.internalLinks.state, full.d.checks.technical.state, full.d.plan.state], [CHECK.PASS, CHECK.PASS, "COMPLETE"]);
+  assert.doesNotMatch(full.d.html, /PARTIAL|no F94 plan/);
+  /* INCOMPLETE → PARTIAL */
+  const partialPlan = f94Plan(c, { complete: false });
+  assert.equal(partialPlan.complete, false);
+  const partial = built(c, [partialPlan]);
+  assert.deepEqual(hrefs(partial.d.html), partialPlan.linksOut.map((l) => [l.url, l.url]));
+  assert.equal(canonicalOf(partial.d.html), partialPlan.url.url);
+  assert.equal(navOf(partial.d.html).length, 1);
+  assert.match(navOf(partial.d.html)[0], /<p class="plan-partial">PARTIAL — this site plan stands on an INCOMPLETE inventory/, "the PARTIAL plan is not labelled inside the navigation");
+  assert.deepEqual([partial.d.checks.internalLinks.state, partial.d.checks.technical.state], [CHECK.NOT_MEASURED, CHECK.NOT_MEASURED], "a PARTIAL plan passed a check");
+  assert.match(partial.d.checks.technical.why, /uniqueness NOT MEASURED/);
+  /* no plan */
+  const none = built(c, []);
+  assert.deepEqual([navOf(none.d.html).length, canonicalOf(none.d.html), hrefs(none.d.html).length], [0, null, 0], "a link or URL was rendered with no plan");
+  assert.match(none.d.html, /<p class="unknown" data-claim-id="none">UNKNOWN — no F94 plan is recorded for this page — its internal links and its URL are NOT MEASURED<\/p>/);
+  assert.deepEqual([none.d.checks.internalLinks.state, none.d.checks.technical.state], [CHECK.NOT_MEASURED, CHECK.NOT_MEASURED]);
+  /* controls: another need's plan; a planted link without a reason; a planted broken target; a plan whose URL is NOT MEASURED */
+  const other = { ...plan, subject: { ...plan.subject, ref: "F35:CREATE:need:another" } };
+  const planted = { ...plan, linksOut: [...plan.linksOut, { pageId: "fixture-invented", url: `${A}/guides/invented`, reason: null, targetStatus: "WORKING" }] };
+  const broken = { ...plan, linksOut: [{ ...plan.linksOut[0], targetStatus: "BROKEN" }] };
+  /* another need's plan: construction never hands it (planFor), and the render refuses it when handed directly */
+  assert.equal(planFor([other], c.d.decision), null, "construction would hand another need's plan to the draft");
+  assert.equal(planFor([other, plan], c.d.decision), plan, "construction does not pick the plan for its own need");
+  assert.equal(built(c, [other]).d.plan.state, "ABSENT", "construction handed another need's plan to the draft");
+  for (const [x, why] of [[other, /not this page(?:'|&#39;)s plan/], [planted, /a link F94 would not plan/], [broken, /a link F94 would not plan/]]) {
+    const d = x === other ? renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: other }) : built(c, [x]).d;
+    assert.deepEqual([navOf(d.html).length, canonicalOf(d.html), d.plan.state], [0, null, "ABSENT"], "a plan that is not this page's, or carries a link F94 would not plan, was read");
+    assert.match(d.html, why);
+  }
+  const noUrl = built(c, [{ ...plan, url: { state: "NOT MEASURED", url: null, missing: "a structure the site uses", readFrom: [] } }]).d;
+  assert.equal(canonicalOf(noUrl.html), null, "a URL was rendered the plan does not hold");
+  assert.match(noUrl.html, /<p class="unknown" data-claim-id="none">UNKNOWN — the plan(?:'|&#39;)s URL is NOT MEASURED \(missing: a structure the site uses\) in the F94 plan — the page(?:'|&#39;)s URL is NOT MEASURED<\/p>/);
+  assert.equal(noUrl.checks.technical.state, CHECK.NOT_MEASURED);
+  /* F40's unchanged filler and repetition on each render: the label and the notice sit only in parts its criterion names */
+  for (const [name, x] of [["complete", full], ["partial", partial], ["none", none]]) {
+    assert.deepEqual([x.q.judgements.filler.verdict, x.q.judgements.repetition.verdict], [VERDICT.PASS, VERDICT.PASS], `F40 judged the ${name} render filler or repetition: ${x.q.judgements.filler.observation}`);
+  }
+  /* RR-335: the runner bin/build-page.mjs no longer builds a compiled spec or calls F40 (RR-295: the one builder, bin/build-joined-pages.mjs, renders with F37's function and gates with its own five page gates) — its wiring asserts are retired; the rule above is still proved */
+  /* F40's and F94's frozen code, byte for byte */
+  assert.equal(html256(JSON.stringify({ CRITERIA, METHOD_SOURCE })), F40_CRITERIA, "F40's criteria changed");
+  assert.equal(lfSha("src/page/site-plan.mjs"), F94_PLAN_AT_BASE, "F94's plan code changed");
+  assert.equal(lfSha("src/page/site-plan-evidence.mjs"), F94_EVIDENCE_AT_BASE, "F94's reader changed");
+});
+
+test("T37-C8-REAL · F37 C8 the real-path control, count-only, no trail write: what a real draft receives today — no real plan exists, so the no-plan notice", async () => {
+  const resolve = createTenantResolver();
+  const tenantId = resolveSide(resolve, RESOURCES.subject("almi-oet")).tenantId;
+  const product = await subject("almi-oet");
+  const { records } = await loadRegistry(product.factsDir, product.productId);
+  const ae = readClientActionEvidence({ tenantId, product, records, resolve, reviews: [], decayEvidence: NO_RECORDED_DECAY_EVIDENCE });
+  const r = readClientSitePlans({ tenantId, actionEvidence: ae, values: product.variants ?? [], resolve });
+  assert.equal(r.fault, null);
+  const chosenReal = ae.compiled?.forConstruction ?? [];
+  console.log(`  REAL (count-only): ${r.records.pages} recorded page(s) · ${r.records.edges} link(s) · inventory ${r.records.completeness} · F35 chose ${chosenReal.length} CREATE · F94 plans ${r.plans.length}`);
+  for (const d of chosenReal) assert.equal(planFor(r.plans, d.decision)?.complete ?? false, false, "a real plan was presented as complete");
+  if (!r.plans.length) {
+    const c = chosen();
+    const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: planFor(r.plans, c.d.decision) });
+    assert.deepEqual([d.plan.state, d.checks.internalLinks.state, d.checks.technical.state], ["ABSENT", CHECK.NOT_MEASURED, CHECK.NOT_MEASURED], "with no real plan the draft did not say so");
+  }
+});
+
 test("R37-A2-BOARD · F37 moves only through the production validator and the audit trail: Amendment 2 frozen alone, an explicit REOPENED, VERIFIED-PASS only with a REAL VERIFIED event after it, every clause C1–C8 PROVED", async () => {
   const { DECLARED } = await import("../config/fboard/f-board.mjs");
   const row = DECLARED.F37;

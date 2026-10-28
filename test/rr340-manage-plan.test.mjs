@@ -54,7 +54,8 @@ test("RR-340 · portalSession: only a stamped subscription of THIS key opens, fo
   assert.equal(new URLSearchParams(calls[1].init.body).get("configuration"), "bpc_visibilityOwn1", "the shared default portal");
   const { STRIPE_PORTAL_CONFIGURATION_VISIBILITY, ...noConfig } = ENV, before = calls.length;
   assert.equal((await portalSession({ licenceKey: A, accounts, env: noConfig, origin: "x", fetchImpl: f })).state, "DEFERRED", "without its own configuration, nothing opens");
-  assert.equal(calls.length, before, "Stripe was asked without the configuration");
+  /* RR-341: it may ASK Stripe for AlmiVisibility's own configuration (by its tag) — but no session opens without one */
+  assert.ok(!calls.slice(before).some((c) => c.url.endsWith("/billing_portal/sessions")), "a session without AlmiVisibility's own configuration");
   for (const k of ["", "not-a-key", "av_unknownKeyUnknownKeyUnknown", "av_noSubscriptionHereXXXXXXXXX", "avo_ownerlicence"]) assert.deepEqual(await portalSession({ licenceKey: k, accounts, env: ENV, origin: "x", fetchImpl: f }), { ok: false, state: "NOT_FOUND", why: NO_PLAN_FOUND }, k);
   /* the store and Stripe disagree (A's key pointing at B's subscription): nothing opens */
   assert.equal((await portalSession({ licenceKey: A, accounts: { [A]: { subscription: "sub_B" } }, env: ENV, origin: "x", fetchImpl: f })).state, "NOT_FOUND");

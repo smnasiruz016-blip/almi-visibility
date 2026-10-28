@@ -13,7 +13,7 @@ const VALUE = "zz-a-value-that-must-never-be-shown-zz";
 test("RR-337 · launch settings: names and set/missing only; a needed one missing opens the box; the billing switch is not a gap", () => {
   const names = LAUNCH_VARS.map(([n]) => n);
   for (const n of ["LICENCE_SIGNING_KEY", "LICENCE_PUBLIC_KEY", "SITE_ADMIN_PASSWORD_HASH", "STRIPE_SECRET_KEY", "STRIPE_PRICE_ID_VISIBILITY_1", "STRIPE_PRICE_ID_VISIBILITY_UNLIMITED", "ROUTER_WEBHOOK_SECRET", "VISIBILITY_BILLING_LIVE"]) assert.ok(names.includes(n), n);
-  const all = Object.fromEntries(LAUNCH_VARS.filter(([, , needed]) => needed).map(([n]) => [n, VALUE]));
+  const all = { ...Object.fromEntries(LAUNCH_VARS.filter(([, , needed]) => needed).map(([n]) => [n, VALUE])), DATABASE_URL: "postgres://u@h/db" }; // RR-338: the database row is set by either name
   const full = ownerPage({ launch: launchVarsOf(all) });
   assert.ok(!full.includes(VALUE), "a value reached the page");
   assert.match(full, /Launch settings in Vercel — all needed are set/);

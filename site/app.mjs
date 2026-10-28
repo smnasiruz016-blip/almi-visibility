@@ -13,7 +13,7 @@ import { articleHtml } from "./articles.mjs";
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn, EMAIL_KEY_NAMES } from "./email.mjs";
-import { createCheckout, BILLING_KEY_NAMES, portalSession } from "./billing.mjs";
+import { createCheckout, BILLING_KEY_NAMES, portalSession, PORTAL_CONFIG_NAME } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS, PRICE_ENV } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
 import { createHash, createPublicKey, createPrivateKey, timingSafeEqual, randomBytes } from "node:crypto";
@@ -51,6 +51,7 @@ export const LAUNCH_VARS = Object.freeze([
   [`${KEY_NAMES.database} or DATABASE_URL`, "buyers' licences and checkouts (RR-338: the Neon DATABASE_URL is used when the first is not set)", true, (env) => Boolean(String(env[KEY_NAMES.database] ?? "").trim() || dbUrlOf(env))],
   [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
+  [PORTAL_CONFIG_NAME, "Manage or cancel my plan (AlmiVisibility's own Stripe portal — site/owner-portal-config.mjs makes it)", true],
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
   [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],

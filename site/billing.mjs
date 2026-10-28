@@ -46,6 +46,7 @@ export function checkoutFields({ plan, priceId, licenceKey, origin }) {
  * for that customer only — no other buyer can be reached. Every miss answers the same words (a key is never confirmed or denied).
  * Returns { ok, url } or { ok: false, state, why }. `fetchImpl` is injected (tests answer it locally).
  */
+export const PORTAL_CONFIG_NAME = "STRIPE_PORTAL_CONFIGURATION_VISIBILITY";
 export const LICENCE_KEY_SHAPE = /^av_[A-Za-z0-9_-]{20,40}$/;
 export const NO_PLAN_FOUND = "No paid plan was found for this licence key. Check the key (it starts with av_), or write to almiworld@almiworld.com.";
 export async function portalSession({ licenceKey, accounts, env = process.env, origin, fetchImpl = fetch }) {
@@ -56,12 +57,16 @@ export async function portalSession({ licenceKey, accounts, env = process.env, o
   const stripeKey = env[BILLING_KEY_NAMES.stripeSecret];
   if (!stripeKey) return { ok: false, state: "DEFERRED", why: `plan management is not connected: no Stripe key in the environment (${BILLING_KEY_NAMES.stripeSecret})` };
   if (!String(stripeKey).startsWith("sk_test_") && env[BILLING_KEY_NAMES.testModeOnly] !== "yes") return { ok: false, state: "REFUSED", closed: true, why: "payments are not switched on yet" };
+  /* RR-340: the Stripe account's DEFAULT portal is shared by every AlmiWorld product — AlmiVisibility opens ONLY its own configuration
+   * (site/owner-portal-config.mjs makes it), never the default */
+  const config = String(env[PORTAL_CONFIG_NAME] ?? "").trim();
+  if (!/^bpc_[A-Za-z0-9]+$/.test(config)) return { ok: false, state: "DEFERRED", why: `plan management is not set up: no AlmiVisibility portal configuration (${PORTAL_CONFIG_NAME})` };
   const auth = { Authorization: `Bearer ${stripeKey}` };
   const s = await fetchImpl(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(sub)}`, { headers: auth });
   const so = await s.json().catch(() => ({}));
   /* the subscription must still name this licence key (our checkout stamped it) — else the store and Stripe disagree, and nothing opens */
   if (!s.ok || typeof so.customer !== "string" || so.metadata?.almiworld_account !== key) return miss;
-  const p = await fetchImpl("https://api.stripe.com/v1/billing_portal/sessions", { method: "POST", headers: { ...auth, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ customer: so.customer, return_url: `${origin}/manage` }).toString() });
+  const p = await fetchImpl("https://api.stripe.com/v1/billing_portal/sessions", { method: "POST", headers: { ...auth, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ customer: so.customer, configuration: config, return_url: `${origin}/manage` }).toString() });
   const pj = await p.json().catch(() => ({}));
   if (!p.ok || typeof pj.url !== "string" || !pj.url.startsWith("https://billing.stripe.com/")) return { ok: false, state: "FAILED", why: `Stripe answered HTTP ${p.status} — is the customer portal switched on in Stripe (Settings → Billing → Customer portal)?` };
   return { ok: true, url: pj.url };

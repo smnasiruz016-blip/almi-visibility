@@ -23,7 +23,7 @@ const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, 
 const ROUTER = "fake-router-secret-for-this-test-only";
 const keys = generateKeyPairSync("ed25519");
 const PRIV = keys.privateKey.export({ type: "pkcs8", format: "pem" }), PUB = keys.publicKey.export({ type: "spki", format: "pem" });
-const ENV = { STRIPE_SECRET_KEY: "sk_test_fakeForThisTestOnly", STRIPE_PRICE_ID_VISIBILITY_1: "price_fake1", STRIPE_PRICE_ID_VISIBILITY_5: "price_fake5", STRIPE_PRICE_ID_VISIBILITY_10: "price_fake10", STRIPE_PRICE_ID_VISIBILITY_UNLIMITED: "price_fakeU", ROUTER_WEBHOOK_SECRET: ROUTER, LICENCE_SIGNING_KEY: PRIV };
+const ENV = { STRIPE_SECRET_KEY: "sk_test_fakeForThisTestOnly", STRIPE_PRICE_ID_VISIBILITY_1: "price_fake1", STRIPE_PRICE_ID_VISIBILITY_5: "price_fake5", STRIPE_PRICE_ID_VISIBILITY_10: "price_fake10", STRIPE_PRICE_ID_VISIBILITY_UNLIMITED: "price_fakeU", ROUTER_WEBHOOK_SECRET: ROUTER, LICENCE_SIGNING_KEY: PRIV, STRIPE_PORTAL_CONFIGURATION_VISIBILITY: "bpc_visibilityOwn1" };
 const A = "av_buyerAaaaaaaaaaaaaaaaaaaaaaa", B = "av_buyerBbbbbbbbbbbbbbbbbbbbbbb";
 /* Stripe, in this process: two subscriptions, each of its own customer and stamped with its own licence key */
 const SUBS = { sub_A: { customer: "cus_A", metadata: { almiworld_account: A } }, sub_B: { customer: "cus_B", metadata: { almiworld_account: B } } };
@@ -51,6 +51,10 @@ test("RR-340 · portalSession: only a stamped subscription of THIS key opens, fo
   const r = await portalSession({ licenceKey: ` ${A} `, accounts, env: ENV, origin: "https://o.example", fetchImpl: f });
   assert.deepEqual(r, { ok: true, url: "https://billing.stripe.com/p/session/test_cus_A" });
   assert.equal(new URLSearchParams(calls[1].init.body).get("return_url"), "https://o.example/manage");
+  assert.equal(new URLSearchParams(calls[1].init.body).get("configuration"), "bpc_visibilityOwn1", "the shared default portal");
+  const { STRIPE_PORTAL_CONFIGURATION_VISIBILITY, ...noConfig } = ENV, before = calls.length;
+  assert.equal((await portalSession({ licenceKey: A, accounts, env: noConfig, origin: "x", fetchImpl: f })).state, "DEFERRED", "without its own configuration, nothing opens");
+  assert.equal(calls.length, before, "Stripe was asked without the configuration");
   for (const k of ["", "not-a-key", "av_unknownKeyUnknownKeyUnknown", "av_noSubscriptionHereXXXXXXXXX", "avo_ownerlicence"]) assert.deepEqual(await portalSession({ licenceKey: k, accounts, env: ENV, origin: "x", fetchImpl: f }), { ok: false, state: "NOT_FOUND", why: NO_PLAN_FOUND }, k);
   /* the store and Stripe disagree (A's key pointing at B's subscription): nothing opens */
   assert.equal((await portalSession({ licenceKey: A, accounts: { [A]: { subscription: "sub_B" } }, env: ENV, origin: "x", fetchImpl: f })).state, "NOT_FOUND");
@@ -115,6 +119,25 @@ test("RR-340 · THE APP: Your plan → Manage or cancel my plan asks the site fo
     const ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
     assert.match(ui, /<button class="ghost" id="manage">Manage or cancel my plan<\/button>/);
   } finally { p.kill(); s.close(); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("RR-340 · the owner's portal tool: AlmiVisibility's OWN configuration — the 4 plans only, cancel at the period's end, its Terms; never the key in a line", async () => {
+  const { configFields, makePortalConfig, vercelStep } = await import("../site/owner-portal-config.mjs");
+  const ids = ["price_1AAAAAAA", "price_1BBBBBBB", "price_1CCCCCCC", "price_1DDDDDDD"], KEY = "sk_live_SECRET_for_this_test", sent = [];
+  const fake = async (url, o = {}) => { sent.push({ url: String(url), o }); if (o.headers.Authorization !== `Bearer ${KEY}`) return new Response("{}", { status: 401 });
+    const m = /\/v1\/prices\/(price_\w+)$/.exec(String(url)); if (m) return new Response(JSON.stringify({ id: m[1], product: m[1] === "price_1DDDDDDD" ? "prod_U" : "prod_V", currency: "usd", recurring: { interval: "month" } }), { status: 200 });
+    return new Response(JSON.stringify({ id: "bpc_made1" }), { status: 200 }); };
+  const r = await makePortalConfig({ priceIds: ids, stripeKey: KEY, fetchImpl: fake });
+  assert.deepEqual([r.ok, r.id], [true, "bpc_made1"], r.line);
+  const body = new URLSearchParams(sent.at(-1).o.body);
+  assert.deepEqual([body.get("features[subscription_cancel][mode]"), body.get("business_profile[terms_of_service_url]"), body.get("business_profile[privacy_policy_url]")], ["at_period_end", "https://almivisibility.almiworld.com/terms", "https://almivisibility.almiworld.com/privacy"]);
+  const listed = [...body].filter(([k]) => /\[products\]\[\d+\]\[prices\]/.test(k)).map(([, v]) => v).sort();
+  assert.deepEqual(listed, [...ids].sort(), "only the 4 AlmiVisibility prices may be switched to");
+  assert.equal(Object.keys(configFields([])).some((k) => /trial/.test(k)), false);
+  const wrong = await makePortalConfig({ priceIds: ids, stripeKey: "nope", fetchImpl: fake });
+  assert.match(wrong.line, /refused the key \(401\)/);
+  for (const x of [r, wrong]) assert.ok(!x.line.includes(KEY), x.line);
+  assert.match(vercelStep("bpc_made1"), /STRIPE_PORTAL_CONFIGURATION_VISIBILITY = bpc_made1/);
 });
 
 test("RR-340 · 'no free trial' is gone (owner decision): the site, the app, the services and the Terms; the cancel line is true now", () => {

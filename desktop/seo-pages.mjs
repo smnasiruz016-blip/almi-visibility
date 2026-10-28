@@ -14,6 +14,8 @@
  */
 import { planNewPages, buildNewPages, gateInput } from "../src/page/one-builder.mjs";
 import { allGates, GATES } from "../src/page/page-gates.mjs";
+import { linksCheck, MIN_INTERNAL_LINKS } from "../src/page/joined-page.mjs";
+import { CHECK } from "../src/page/draft-render.mjs";
 import { postsForArticle } from "../src/page/social-posts.mjs";
 import { monthlyReport, searchFromExport } from "../src/report/monthly-report.mjs";
 import { validateDesign } from "../src/questionnaire/product-questionnaire.mjs";
@@ -47,6 +49,21 @@ export function sameNeed(a, b, subject = null) {
 export const GATE_WORDS = Object.freeze({ [GATES.A]: "not a copy of another page", [GATES.B]: "not competing with another page for the same search", [GATES.C]: "technically ready for search and AI engines", [GATES.D]: "made inside its cost", [GATES.E]: "no existing page already does the job" });
 /* checks that can only be true once the page is live on the client's site (it is a draft until then) */
 const AFTER_PUBLISHING = /^(listed in the sitemap|a URL not in the plan is 404|internal links in)$/;
+/* RR-336 (beta-g decision, Gate C): a draft links at least MIN_INTERNAL_LINKS of the client's pages when the site has that many related pages
+ * (the pages built with it, and the site's own pages on the same topic); with fewer, a short list is a warning, never a block.
+ * Counted in the page's own text: navigation, header and footer links are not internal links of the page. */
+const topicOf = (s) => new Set(tokens(s).filter((w) => !ASKING.has(w)));
+export const siteRelatedPages = (site) => { const home = String(site.origin ?? "").replace(/\/$/, "");
+  return (question) => { const t = topicOf(question); return (site.pages ?? []).filter((p) => p.url && p.url.replace(/\/$/, "") !== home && [...topicOf(`${p.title ?? ""} ${p.h1 ?? ""}`)].some((w) => t.has(w))).map((p) => ({ href: p.url, label: p.h1 || p.title || p.url })); }; };
+export function linksGate(html, url, builtUrls, related) {
+  const own = String(html ?? "").replace(/<(nav|header|footer)\b[\s\S]*?<\/\1>/gi, " ");
+  const targets = new Set([...builtUrls, ...related.map((l) => l.href)].map((u) => String(u).replace(/#.*$/, "")));
+  const links = [...own.matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"']*)["']/gi)].map((m) => { try { return new URL(m[1], url).href.replace(/#.*$/, ""); } catch { return null; } }).filter((h) => h && h !== url && targets.has(h)).map((href) => ({ href }));
+  const r = linksCheck(links);
+  if (r.state === CHECK.PASS) return { block: null, warning: null };
+  if (targets.size >= MIN_INTERNAL_LINKS) return { block: `at least ${MIN_INTERNAL_LINKS} internal links — it links ${r.links} of the ${targets.size} related pages on your site`, warning: null };
+  return { block: null, warning: `${r.links} internal link(s): your site has ${targets.size} related page(s), fewer than ${MIN_INTERNAL_LINKS} — add links when you add related pages` };
+}
 const slug = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "page";
 const SHOUTED = new Set(["not", "and", "the", "for", "you", "all", "are", "but", "new", "now", "one", "our", "free", "only", "must", "will", "can", "may", "yes", "no", "or", "to", "of", "in", "on", "is", "it", "we", "do", "be", "an", "at", "by", "if", "so", "up", "as", "my", "me", "us", "how", "why", "what", "when", "who", "best", "top", "get", "pass", "test", "exam", "score"]);
 /* RR-333 (buyer walk: "How much does a Dental implant cost" — from the heading "Dental implants"): a heading's FIRST word is capitalised
@@ -204,7 +221,11 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
    * built with it; with none, to the others built with it */
   const base = site.origin.replace(/\/$/, ""), built0 = new Map(news.map((x) => [x.need.question, x]));
   const relatedFor = pagePlan?.some((p) => p.links?.length) ? (np) => { const l = (meta.get(np.needId)?.links ?? []).filter((t) => built0.has(t) && t !== np.need.question).map((t) => ({ href: `${base}${built0.get(t).path}`, label: t })); return l.length ? l : news.filter((x) => x.needId !== np.needId).slice(0, 8).map((x) => ({ href: `${base}${x.path}`, label: x.need.question })); } : null;
-  let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin, ...(relatedFor ? { relatedFor } : {}) }) : [];
+  /* RR-336 (beta-g decision, Gate C): the client's own pages on the same topic are related pages too — a draft links them beside the pages
+   * built with it, so it can reach MIN_INTERNAL_LINKS */
+  const siteRelated = siteRelatedPages(site);
+  const withSite = (np) => { const seen = new Set(); return [...(relatedFor ? relatedFor(np) : news.filter((x) => x.needId !== np.needId).map((x) => ({ href: `${base}${x.path}`, label: x.need.question }))), ...siteRelated(np.need.question)].filter((l) => l.href && !seen.has(l.href) && seen.add(l.href)).slice(0, 8); };
+  let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin, relatedFor: withSite }) : [];
   built = built.map((b) => richPage(b, meta.get(b.needId), String(on).slice(0, 10)));
   built = built.map((b) => { const lc = meta.get(b.needId)?.lastChecked; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
@@ -216,6 +237,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const cost ={ gate: GATES.D, pass: true, checks: [{ name: "made on this computer from what was already read — no paid request", result: "PASS" }] };
   const gated = built.length ? allGates(built.map((b) => gateInput(b)), { guidance: GUIDANCE, on: String(on).slice(0, 10), site: { robotsTxt: site.robotsTxt ?? null, sitemapUrls: site.sitemapUrls ?? null, extraPages: siteLinkPages }, cost }) : [];
   const drafts = built.map((b, i) => ({ url: b.url, title: b.title, html: b.html, pass: gated[i].pass, gates: Object.entries(gated[i].gates).map(([k, g]) => ({ gate: k, words: GATE_WORDS[g.gate] ?? g.gate, pass: g.pass, failing: (g.checks ?? []).filter((c) => c.result === "FAIL" && !AFTER_PUBLISHING.test(c.name)).map((c) => `${c.name}${c.reason ? ` — ${c.reason}` : ""}`), afterPublishing: (g.checks ?? []).filter((c) => c.result !== "PASS" && (AFTER_PUBLISHING.test(c.name) || c.result === "NOT MEASURED")).map((c) => c.name) })) }));
+  drafts.forEach((d, i) => { const r = linksGate(d.html, d.url, built.filter((x) => x.url !== d.url).map((x) => x.url), siteRelated(built[i].title)); if (r.block) { const c = d.gates.find((g) => g.gate === "C"); if (c) { c.pass = false; c.failing.push(r.block); d.pass = false; } } d.warnings = r.warning ? [r.warning] : []; });
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
   return { plan: rows, drafts, design: design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };
   }

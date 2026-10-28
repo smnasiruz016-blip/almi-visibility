@@ -1,0 +1,9 @@
+F88 sabotage run · 2026-10-28T01:58:52.666Z
+population: 1 source sabotage(s) over test/f88-owner-workflows.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S1=1 · all exactly once: true
+production trail sha256 before: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a
+
+S1 C7 · a long line is not wrapped on a phone [src/report/view.mjs] → test/f88-owner-workflows.test.mjs: landed true · named test "A1 C7 · THE REPORT PAGE'S OWN CSS · FIRING CONTROL:" red true · its failure AssertionError · SyntaxError false · failing A1 C7 · restored true · PROVED
+
+proved 1 of 1 (source 1 of 1) · residue 0 · production trail sha256 after: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a · unchanged true

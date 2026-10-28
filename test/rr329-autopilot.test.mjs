@@ -146,7 +146,7 @@ test("B · RR-329: one (product, country) of another product — its questions f
   const by = (part) => cv.find((f) => f.part === part);
   assert.equal(by("cvNorms").status, "confirmed"); assert.equal(by("employment").status, "confirmed"); assert.equal(by("employment").value.name, "Invented National Employment Bureau");
   assert.equal(by("workRules").status, "unconfirmed"); assert.match(by("workRules").why, /the quoted words are not on its source page/);
-  assert.equal(by("questions").value.question, "how to write cv", "a search that asks (\"cv format for job\" asks nothing)"); assert.match(by("questions").value.label, /AI-written/);
+  assert.equal(by("questions").value.question, "how to write cv", "a search that asks (\"cv format for job\" asks nothing)"); assert.match(by("questions").value.label, /^general guidance \(no official page says it\)$/); // RR-334: every product's questions under AlmiOET's rules (was RR-329's "AI-written from the facts")
   assert.ok(cv.every((f) => f.key.startsWith("cv:")), "each product's keys of its own");
   const cvp = productPartsOf("cv", "Pakistan", cv, { template: PRODUCT_FACTS.cv }); assert.deepEqual(cvp.missing, ["workRules"], "an unconfirmed fact fills nothing");
   /* AlmiJob: its recognition body is on a blog — unconfirmed, the name kept as tried; searched again tomorrow, not today */

@@ -284,7 +284,8 @@ test("D · RR-328 addition (owner, 26 Oct, rule R1): a council not found is sear
   await store.putFact(fact("India", "councils", "council|India|dentistry", { name: "Invented Dental Council", website: "https://in-dental.example", address: null }, { profession: "dentistry" }), { at: `${ON}T10:30:00Z` });
   clock.t += 864e5; day = 2; const r2 = await run(), t2 = (await store.tasks()).get("India|councils");
   assert.equal(asked.length, 2, "the next day, searched again");
-  assert.match(asked[1], /for people of that profession — registers or licenses them to practise, or checks their credentials: medicine, dentistry, pharmacy/, "only the professions still without a whole council (not nursing)"); assert.doesNotMatch(asked[1], /: medicine, nursing/);
+  /* RR-334: the owner's templates — one line a profession still without a whole council (not nursing) */
+  assert.match(asked[1], /\n- medicine: I need the official website, address and contact details of .+ in India\.\n- dentistry: What is the official body that registers dentists in India\?/, "only the professions still without a whole council (not nursing)"); assert.doesNotMatch(asked[1], /\n- nursing:/);
   assert.match(asked[1], /Already tried and NOT confirmed on an official page \(look for another body or another official page\): medicine: Invented Medical Commission/);
   const med = await store.fact("council|India|medicine"); assert.equal(med.status, "confirmed"); assert.equal(med.value.nameType, "ministry or department of health"); assert.ok(councilWhole(med.value));
   assert.ok(!t2.tried.medicine, "found — no longer searched"); assert.deepEqual(t2.tried.dentistry.names, ["A Blog's Dentistry Body"]); assert.deepEqual(t2.tried.dentistry.types, ["board"]);

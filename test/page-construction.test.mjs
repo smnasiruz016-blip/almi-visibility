@@ -25,7 +25,8 @@ import { loadRegistry, primaryFacts } from "../src/facts/registry.mjs";
 import { chosenFor } from "./helpers/f35-chosen.mjs"; /* RR-179 (c): construction acts only on F35's decision */
 import { judgeWhy, WHY_NOT_ENFORCED } from "../src/gate-a/why-this-url.mjs";
 import { MIN_UNIQUE_WORDS, MAX_SIBLING_OVERLAP } from "../src/gate-a/run.mjs";
-import { MIN_FACTS } from "../src/gate-a/facts.mjs";
+import { MIN_FACTS, judgeFact } from "../src/gate-a/facts.mjs";
+import { isChosenCreate, DECISION } from "../src/page/action-decision.mjs";
 import { subject, subjectModule, subjectDir } from "./support/subjects.mjs";
 /* RR-295: the old builder (src/page/construct.mjs) is removed; the verdict words its tests compared with, kept here as they were */
 const ACCEPTED = "ACCEPTED", REFUSED = "REFUSED";
@@ -175,6 +176,24 @@ test("🔴 61 · THE SECOND DECLARED PRODUCT — declared as one, sharing no sub
 });
 
 /* ================= RR-179 · R4 — construction acts only on F35's decision; a compiled spec waits for F37; FS-A1 ================= */
-
+/* RR-334: RR-295 retired construction and these two tests with it; the two rules live on (F37's draft render asks isChosenCreate, every fact
+ * count asks judgeFact), so each is now tested on the rule itself */
+test("R4c · RULING RR-179 (c): only a grouped need F35 CHOSE to CREATE is acted on — a chosen KEEP, a HOLD, no action or another subject kind never", () => {
+  const need = { kind: "GROUPED_NEED", needId: "need:alpha" };
+  const create = { subject: need, decision: DECISION.CHOSEN, actions: [{ action: "CREATE", evidence: [] }] };
+  assert.equal(isChosenCreate(create), true, "CONTROL: F35's chosen CREATE is not acted on");
+  assert.equal(isChosenCreate({ ...create, actions: [{ action: "KEEP", evidence: [] }] }), false, "a chosen KEEP was acted on as a CREATE");
+  assert.equal(isChosenCreate({ ...create, actions: [] }), false, "a decision with no action was acted on");
+  assert.equal(isChosenCreate({ ...create, decision: DECISION.CANNOT_DECIDE }), false, "a HOLD was acted on");
+  assert.equal(isChosenCreate({ ...create, subject: { kind: "EXISTING_PAGE", pageId: "p1" } }), false, "another subject kind was acted on");
+  assert.equal(isChosenCreate(null), false, "no decision was acted on");
+});
+test("R4f · FS-A1 (RTP-1 S39, D2): a tier-4 source counts for an ORDINARY claim; for a body's rule, or a claim of no recorded kind, it does not", () => {
+  const f = (claimStates) => judgeFact({ value: "12 weeks", sourceUrl: "https://example.org/guide", tier: 4, verifiedDate: "2026-09-01", claimStates }, NOW);
+  assert.deepEqual(f("OTHER"), { counts: true, reasons: [] }, "an ordinary claim was refused for its source's tier alone");
+  assert.equal(f("RESPONSIBLE_BODY_RULE").counts, false, "a tier-4 source was accepted for a body's rule");
+  assert.equal(f(undefined).counts, false, "a tier-4 source was accepted for a claim of no recorded kind");
+  assert.match(f("RESPONSIBLE_BODY_RULE").reasons[0], /tier 4 only for an ordinary claim/);
+});
 
 /* RR-180: F37's acceptance is frozen (9516f2c) and its draft render built — R4e follows: the compiled spec is RENDERED and judged by F37's checks */

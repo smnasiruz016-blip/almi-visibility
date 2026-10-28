@@ -35,17 +35,19 @@ export function questionsInComment(text) {
   let t = String(text ?? "").replace(/\s+/g, " ").trim();
   for (const re of PERSONAL) t = t.replace(re, " ");
   return t.split(/(?<=[?!.])\s+|\n+/).map((s) => askingPart(s.replace(GREETING, "").replace(/\s+/g, " ").trim()))
-    .filter((s) => s.length >= QUESTIONS.minChars && s.length <= QUESTIONS.maxChars && /\p{L}{3}/u.test(s) && (s.endsWith("?") || ASK_FIRST.test(s.toLowerCase())) && !NOT_A_SEARCH.some((re) => re.test(s)));
+    .filter((s) => s.length >= QUESTIONS.minChars && s.length <= QUESTIONS.maxChars && /\p{L}{3}/u.test(s) && (s.endsWith("?") || ASK_FIRST.test(s.toLowerCase())) && !notASearch(s));
 }
 /* RR-333 (owner, 27 Oct 2026: "think like the person"): a comment talking TO the video's maker or its viewers is not a question anyone
  * searches ("How can I register for your class?", "Will you apply for this year's match?", "Is anyone else here preparing?") */
 const NOT_A_SEARCH = [
-  /\b(?:your|ur)\s+(?:class|channel|video|course|academy|institute|lecture|session|number|whatsapp|page)s?\b/i,
-  /\b(?:this|that|the)\s+(?:video|lecture|channel)\b/i,
-  /\b(?:will|can|could|would)\s+(?:you|u)\s+(?:please\s+)?(?:apply|make|upload|share|teach|reply|send|post|guide|tell me)\b/i,
-  /\b(?:any ?one|anybody|someone|somebody|guys)\b/i,
-  /\b(?:sir|ma'?am|mam|madam|bro|brother|sister)\b/i,
+  [/\b(?:your|ur)\s+(?:class|channel|video|course|academy|institute|lecture|session|number|whatsapp|page)s?\b/i, "it asks the video's maker about their own class, channel or contact"],
+  [/\b(?:this|that|the)\s+(?:video|lecture|channel)\b/i, "it is about the video itself"],
+  [/\b(?:will|can|could|would)\s+(?:you|u)\s+(?:please\s+)?(?:apply|make|upload|share|teach|reply|send|post|guide|tell me)\b/i, "it asks the video's maker to do something"],
+  [/\b(?:any ?one|anybody|someone|somebody|guys)\b/i, "it asks the other viewers"],
+  [/\b(?:sir|ma'?am|mam|madam|bro|brother|sister)\b/i, "it speaks to a person"],
 ];
+/** RR-334 · why a question is NOT one people search (a comment to the video's maker or its viewers) — or null */
+export const notASearch = (text) => NOT_A_SEARCH.find(([re]) => re.test(String(text ?? "")))?.[1] ?? null;
 /* the part of a sentence that asks: its last clause, from its first question word ("… mail me — see how long are results valid?" → "how long …") */
 const QWORD = /\b(how|what|when|where|which|why|who|can|could|is|are|do|does|did|should|will|would)\b/i;
 function askingPart(s) {

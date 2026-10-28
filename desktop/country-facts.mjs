@@ -16,6 +16,9 @@ export const PARTS = Object.freeze(["fee", "questions", "centres", "councils", "
 export const PART_NAMES = Object.freeze({ fee: "the fee in its currency", questions: "the questions people there ask, with answers", centres: "test centres (or the nearest and at home)", councils: "the council for each profession", rules: "a rule of its own" });
 /* RR-329 D (rule R9): "owner" — a fact the owner supplied himself ("Add what I know"), dated; shown as AlmiWorld's own checked information */
 export const SHOWN_STATUS = Object.freeze(["confirmed", "approved", "edited", "owner"]);
+/* RR-334 · a question the filter removed (a comment to a video's maker) is out of every count; an unconfirmed fact still waits for a look */
+export const removed = (f) => f.status === "unconfirmed" && Boolean(f.value?.removedBy);
+export const waiting = (f) => f.status === "unconfirmed" && !f.value?.removedBy;
 /* RR-329 C (rule R8): an AlmiOET record whose page is gone is hidden until the collector reads it again and confirms it */
 export const GONE = /^the page is gone/;
 /* the subject's professions (AlmiOET's list, desktop/lists/almiworld-oet-professions.json), by the keys the page plan uses */
@@ -76,7 +79,7 @@ export function coverageOf(facts, { countries, professions = CF_PROFESSIONS } = 
   const rows = countries.map((c) => partsOf(c, facts, { professions }));
   const pairs = rows.flatMap((r) => professions.map((p) => ({ country: r.country, profession: p, council: Boolean(r.councils[p]) })));
   return { rows, pairs, counts: { countries: rows.length, complete: rows.filter((r) => r.complete).length, byPart: Object.fromEntries(PARTS.map((p) => [p, rows.filter((r) => r.parts[p].filled).length])), pairs: pairs.length, councilsFound: pairs.filter((x) => x.council).length,
-    unconfirmed: facts.filter((f) => f.status === "unconfirmed").length, rejected: facts.filter((f) => f.status === "rejected").length } };
+    unconfirmed: facts.filter(waiting).length, rejected: facts.filter((f) => f.status === "rejected").length, removed: facts.filter(removed).length } };
 }
 
 /**
@@ -99,7 +102,7 @@ const PART_LABEL = { questions: "question with its answer", offices: "office tha
 export function productCoverageOf(product, facts, { countries, template }) {
   const rows = countries.map((c) => productPartsOf(product, c, facts, { template }));
   return { rows, counts: { countries: rows.length, complete: rows.filter((r) => r.complete).length, byPart: Object.fromEntries(template.parts.map((k) => [k, rows.filter((r) => r.parts[k].filled).length])),
-    unconfirmed: facts.filter((f) => f.product === product && f.status === "unconfirmed").length, rejected: facts.filter((f) => f.product === product && f.status === "rejected").length } };
+    unconfirmed: facts.filter((f) => f.product === product && waiting(f)).length, rejected: facts.filter((f) => f.product === product && f.status === "rejected").length, removed: facts.filter((f) => f.product === product && removed(f)).length } };
 }
 
 /**

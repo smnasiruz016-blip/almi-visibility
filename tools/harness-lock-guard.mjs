@@ -15,11 +15,24 @@
  */
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const SELF_REPO = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const REPOS = (process.env.HARNESS_LOCK_REPOS ? process.env.HARNESS_LOCK_REPOS.split(";") : [SELF_REPO]).filter(Boolean).map((r) => resolve(r));
-const alive = (pid) => { if (!Number.isInteger(pid) || pid <= 0) return false; try { process.kill(pid, 0); return true; } catch (e) { return e?.code === "EPERM"; } };
+const exists = (pid) => { if (!Number.isInteger(pid) || pid <= 0) return false; try { process.kill(pid, 0); return true; } catch (e) { return e?.code === "EPERM"; } };
+/* RR-334 (27 Oct 2026: a harness killed by its timeout left its mark; Windows gave its pid to svchost, and the lock refused every edit) ·
+ * a marked pid counts only while it is a NODE process — a reused pid is not a harness. If the process name cannot be read, it counts
+ * (the lock stays on rather than off). */
+export const isNode = (pid) => {
+  try {
+    if (process.platform === "win32") return /^"node\.exe"/im.test(String(execFileSync("tasklist", ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { encoding: "utf8", windowsHide: true, timeout: 5000 })).trim());
+    /* the program a process runs, from its command line: on Linux `comm` can be a thread's name (node's main thread may read "MainThread") */
+    const exe = String(execFileSync("ps", ["-p", String(pid), "-o", "args="], { encoding: "utf8", timeout: 5000 })).trim().split(/\s+/)[0] ?? "";
+    return /(^|\/)node$/.test(exe);
+  } catch { return true; }
+};
+const alive = (pid) => exists(pid) && isNode(pid);
 /* every git directory of a repository: its own, and each worktree's */
 function gitDirs(repo) {
   const dot = join(repo, ".git"); if (!existsSync(dot)) return [];

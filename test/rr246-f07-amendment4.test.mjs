@@ -22,7 +22,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, rmSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { EVIDENCE_ROLE_REGISTRY } from "../config/evidence-roles.mjs";
@@ -159,7 +159,10 @@ test("GD-1 · LOCAL: ONE PreToolUse hook for every tool runs the guard; driven e
   assert.equal(mine[0].matcher, "*", "the guard does not cover every tool");
   const command = mine[0].hooks.find((x) => /sealed-store-read-guard/.test(String(x.command))).command;
   const script = command.match(/"([^"]+sealed-store-read-guard\.mjs)"/)[1];
-  assert.equal(resolve(script).toLowerCase(), resolve(REPO, "tools", "sealed-store-read-guard.mjs").toLowerCase(), "the installed hook runs another file");
+  /* RR-334: the hook is installed from the repository's main checkout — run from one of its worktrees, that file is the same guard */
+  const common = spawnSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: REPO, encoding: "utf8" }).stdout.trim();
+  const ours = [REPO, common ? dirname(common) : REPO].map((r) => resolve(r, "tools", "sealed-store-read-guard.mjs").toLowerCase());
+  assert.ok(ours.includes(resolve(script).toLowerCase()), `the installed hook runs another file (${resolve(script)})`);
   const dir = mkdtempSync(join(tmpdir(), "rr246-syn-store-"));
   try {
     mkdirSync(join(dir, "set"));

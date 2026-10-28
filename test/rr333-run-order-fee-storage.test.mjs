@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
-import { runCountryFacts, ratesOfToday } from "../site/cf-collector.mjs";
+import { runCountryFacts, ratesOfToday, CF_RULES } from "../site/cf-collector.mjs";
 import { cfMemoryStore } from "../site/cf-store.mjs";
 import { memoryStore, pgStore } from "../site/kw-store.mjs";
 import { kvStore } from "../site/limits.mjs";
@@ -32,15 +32,15 @@ test("A1 · RR-333: the day's rates are read ONCE and reused; a run with the fee
   assert.ok(order.indexOf("ai Afghanistan") > firstFee, "a country after the first 15 comes after the daily step");
 });
 
-test("A2 · RR-333: a questions task finished by the RR-328 code (no stats) is due at once — and asked; one with stats waits its week", async () => {
+test("A2 · RR-333, RR-334: a questions task finished under older rules (RR-328's: no stats) is due at once — and asked; one under today's rules waits its week", async () => {
   const store = cfMemoryStore(), seen = [];
   await store.setTask("*", "fee", { day: ON, state: "done" }); await store.setTask("*", "centres", { day: ON, state: "done" });
   for (const c of ["India", "Pakistan"]) for (const t of ["councils", "rules"]) await store.setTask(c, t, { day: ON, state: "done" });
   await store.setTask("India", "questions", { day: "2026-10-26", state: "done", note: "no question-type searches from India in the keyword database yet" });
-  await store.setTask("Pakistan", "questions", { day: "2026-10-26", state: "done", note: "x", tried: { stats: { asked: 3 } } });
+  await store.setTask("Pakistan", "questions", { day: "2026-10-26", state: "done", note: "x", tried: { stats: { asked: 3 }, rules: CF_RULES } });
   const kw = { keywordsAt: async ({ location }) => { seen.push(location); return []; } };
   const r = await runCountryFacts({ store, kwStore: kw, reader: { read: async () => ({ ok: false }), raw: async () => null, sitemapOf: async () => ({ ok: true, urls: [] }), requests: () => 0 }, ai: async () => ({ ok: true, usd: 0, data: {} }), env: {}, now: () => T0, budgetMs: 1e9, countries: ["India", "Pakistan"], products: ["oet"] });
-  assert.deepEqual(seen, ["IN"], "India asked again (its task had no stats); Pakistan's waits its week");
+  assert.deepEqual(seen, ["IN"], "India asked again (its task was done under older rules); Pakistan's waits its week");
   assert.ok(r.done.includes("India · questions"));
 });
 

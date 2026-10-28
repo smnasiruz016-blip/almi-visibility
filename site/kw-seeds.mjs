@@ -74,6 +74,15 @@ category:charity | Charity | donate, charity school, zakat
 youtube:niches | YouTube niches | daily vlog, family vlog, daily life routine, cooking channel, recipe videos, travel vlog, tech review, unboxing, gaming, fitness videos, beauty and makeup, diy, kids videos, study with me, motivation, islamic videos, comedy, pakistani vlog, indian vlog
 `;
 
+/** RR-334 · a product group's seeds with the AI's keyword ideas (templates b and d) (each a real search Google then measures), at most the limit */
+export function withMoreSeeds(groups, { ideas = {} } = {}) {
+  return Object.freeze(groups.map((g) => {
+    if (g.kind !== "product") return g;
+    const more = (ideas[g.key]?.seeds ?? []).map(normSeed).filter((s) => s && s.length <= SEED_RULES.seedLength);
+    const seeds = [...new Set([...g.seeds, ...more])].slice(0, SEED_RULES.productSeeds);
+    return seeds.length === g.seeds.length ? g : Object.freeze({ ...g, seeds: Object.freeze(seeds) });
+  }));
+}
 /** a seed as Google receives it and the store keys it: trimmed, lower case, one space */
 export const normSeed = (s) => String(s ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " ");
 /** what a request asks, as the database knows it: one seed → "q:<seed>" (the finder's, a category's); several → "seeds:<hash>" (a product's,

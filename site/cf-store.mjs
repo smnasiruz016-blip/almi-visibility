@@ -30,6 +30,7 @@ CREATE INDEX IF NOT EXISTS cf_fact_product ON cf_fact (product, country);
 CREATE TABLE IF NOT EXISTS cf_photo (id text PRIMARY KEY, country text NOT NULL, type text NOT NULL, bytes bytea NOT NULL, at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS cf_question (product text NOT NULL, country text NOT NULL, source text NOT NULL, id text NOT NULL, text text NOT NULL, ref text, at timestamptz NOT NULL, PRIMARY KEY (product, country, source, id));
 ALTER TABLE cf_question ADD COLUMN IF NOT EXISTS clicks int, ADD COLUMN IF NOT EXISTS impressions int;
+CREATE TABLE IF NOT EXISTS cf_article (id text PRIMARY KEY, product text NOT NULL, kind text NOT NULL, title text NOT NULL, body jsonb NOT NULL, status text NOT NULL, why text, by_who text NOT NULL, at timestamptz NOT NULL);
 `;
 /* RR-330 · the questions people asked that are not keywords: "youtube" (a comment's question, its words kept 30 days at most — YouTube's
  * rule for API data — then deleted by the collector) and "owner" (pasted on /owner, kept). A question's id is its words' fingerprint, so the
@@ -46,6 +47,10 @@ export const OWNER_DECIDED = Object.freeze(["approved", "edited", "rejected", "o
 /* RR-329 D: a photo the owner adds (a test centre's notice, a fee board …) — small, so two months fit the free database */
 export const PHOTO = Object.freeze({ maxBytes: 1_500_000, types: Object.freeze(["image/jpeg", "image/png", "image/webp"]) });
 const ACTIONS = { approve: "approved", edit: "edited", reject: "rejected" };
+/* RR-334 · an article draft: "draft" until the owner's Approve or Reject — then the collector never changes it (a new draft needs his Reject) */
+export const ARTICLE_STATUS = Object.freeze({ draft: "draft", approved: "approved", rejected: "rejected" });
+const ARTICLE_ACTIONS = { approve: "approved", reject: "rejected", reopen: "draft" };
+const artRow = (r) => ({ id: r.id, product: r.product, kind: r.kind, title: r.title, body: r.body, status: r.status, why: r.why ?? null, by: r.by_who ?? r.by, at: r.at ? new Date(r.at).toISOString() : null });
 
 const row = (r) => ({ key: r.key, product: r.product ?? "oet", country: r.country, profession: r.profession ?? null, part: r.part, kind: r.kind, value: r.value, sourceUrl: r.source_url ?? r.sourceUrl ?? null, sourceTitle: r.source_title ?? r.sourceTitle ?? null, readOn: r.read_on ? String(r.read_on).slice(0, 10) : r.readOn ?? null, status: r.status, by: r.by_who ?? r.by, aiWritten: Boolean(r.ai_written ?? r.aiWritten), proposedBy: r.proposed_by ?? r.proposedBy, why: r.why ?? null, at: r.at ? new Date(r.at).toISOString() : null });
 /* the same value, whatever order its keys come back in (Postgres jsonb keeps its own order) */
@@ -113,13 +118,25 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
     async productQuestions(product) { await ensure(); return (await q("SELECT country, source, text, impressions FROM cf_question WHERE product = $1", [product])).map((r) => ({ country: r.country, source: r.source, text: r.text, impressions: r.impressions ?? null })); },
     /** YouTube's rule: a comment's words older than `before` are deleted → how many */
     async dropQuestions({ source, before }) { await ensure(); return (await q("DELETE FROM cf_question WHERE source = $1 AND at < $2 RETURNING id", [source, before])).length; },
+    /** RR-334 · the collector's draft — refused when the owner already approved or rejected that article */
+    async putArticle(a, { at }) {
+      return tx(async (x) => {
+        const [old] = await x("SELECT status, body FROM cf_article WHERE id = $1 FOR UPDATE", [a.id]);
+        if (old && old.status !== "draft") return { saved: false, why: `the owner ${old.status} it` };
+        if (old && canon(old.body) === canon(a.body)) return { saved: false, why: "unchanged" };
+        await x("INSERT INTO cf_article (id, product, kind, title, body, status, why, by_who, at) VALUES ($1,$2,$3,$4,$5,'draft',$6,'collector',$7) ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, body = EXCLUDED.body, why = EXCLUDED.why, at = EXCLUDED.at", [a.id, a.product, a.kind, a.title, JSON.stringify(a.body), a.why ?? null, at]);
+        return { saved: true };
+      });
+    },
+    async articles({ product = null } = {}) { await ensure(); return (await q(`SELECT id, product, kind, title, body, status, why, by_who, at FROM cf_article${product ? " WHERE product = $1" : ""} ORDER BY product, kind, id`, product ? [product] : [])).map(artRow); },
+    async decideArticle(id, { action, at }) { const status = ARTICLE_ACTIONS[action]; if (!status) throw new Error(`no such action: ${action}`); await ensure(); const r = await q("UPDATE cf_article SET status = $2, by_who = 'owner', at = $3 WHERE id = $1 RETURNING id", [id, status, at]); return r.length ? { ok: true, status } : { ok: false, why: "No such article." }; },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }
 
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
 export function cfMemoryStore() {
-  const facts = new Map(), hist = [], tasks = new Map(), days = new Map(), photos = new Map(), asked = new Map();
+  const facts = new Map(), hist = [], tasks = new Map(), days = new Map(), photos = new Map(), asked = new Map(), arts = new Map();
   const copy = (o) => JSON.parse(JSON.stringify(o));
   return Object.freeze({
     kind: "memory", ensure: async () => {},
@@ -161,6 +178,15 @@ export function cfMemoryStore() {
     async questions({ product = "oet", country, source = null }) { return [...asked.entries()].filter(([, v]) => v.product === product && v.country === country && (!source || v.source === source)).sort((a, b) => b[1].at.localeCompare(a[1].at) || a[0].localeCompare(b[0])).map(([, v]) => ({ source: v.source, text: v.text, ref: v.ref, at: v.at, clicks: v.clicks ?? null, impressions: v.impressions ?? null })); },
     async productQuestions(product) { return [...asked.values()].filter((v) => v.product === product).map((v) => ({ country: v.country, source: v.source, text: v.text, impressions: v.impressions ?? null })); },
     async dropQuestions({ source, before }) { let n = 0; for (const [k, v] of asked) if (v.source === source && v.at < new Date(before).toISOString()) { asked.delete(k); n++; } return n; },
+    async putArticle(a, { at }) {
+      const old = arts.get(a.id);
+      if (old && old.status !== "draft") return { saved: false, why: `the owner ${old.status} it` };
+      if (old && canon(old.body) === canon(a.body)) return { saved: false, why: "unchanged" };
+      arts.set(a.id, { id: a.id, product: a.product, kind: a.kind, title: a.title, body: copy(a.body), status: "draft", why: a.why ?? null, by: "collector", at: new Date(at).toISOString() });
+      return { saved: true };
+    },
+    async articles({ product = null } = {}) { return [...arts.values()].filter((a) => !product || a.product === product).sort((a, b) => a.product.localeCompare(b.product) || a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id)).map(copy); },
+    async decideArticle(id, { action, at }) { const status = ARTICLE_ACTIONS[action]; if (!status) throw new Error(`no such action: ${action}`); const a = arts.get(id); if (!a) return { ok: false, why: "No such article." }; arts.set(id, { ...a, status, by: "owner", at: new Date(at).toISOString() }); return { ok: true, status }; },
     async close() {},
   });
 }

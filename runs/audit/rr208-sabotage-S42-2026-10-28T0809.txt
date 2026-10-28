@@ -1,0 +1,9 @@
+RR-208 F37 A2 sabotage run · 2026-10-28T08:10:08.262Z
+population: 1 sabotage(s) over test/rr180-r4b.test.mjs + test/rr186-r5b.test.mjs + test/rr208-f37a2.test.mjs + test/rr210-f38.test.mjs · each applied ALONE · no provider, no network, no third-party read
+BASELINE (the named tests before any sabotage): GREEN · named tests seen GREEN: 1 of 1
+PRE-FLIGHT (span occurrences in the code live now): S42=1 · all exactly once: true
+production trail sha256 before: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a
+
+S42 F37 C7 · F40's text, criteria or method is changed to make a draft pass [src/page/quality-judgements.mjs]: landed true · named test "T37-C7" red true · its failure AssertionError · SyntaxError false · a production child crashed false · failing T37-C7,T37-C8,T38-C7 · restored by sha256 true · PROVED
+
+proved 1 of 1 · residue 0 · production trail sha256 after: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a · unchanged true

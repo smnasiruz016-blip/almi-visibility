@@ -187,7 +187,7 @@ function standInAi() {
   const calls = [];
   const ai = async ({ prompt, search, schema }) => {
     const country = /^Country: ([^.]+)\./.exec(prompt)?.[1] ?? /people in ([A-Z][\w ]+) search/.exec(prompt)?.[1] ?? /Groups of searches from ([A-Z][\w ]+) \(/.exec(prompt)?.[1];
-    const kind = schema.properties.councils ? "councils" : schema.properties.rules ? "rules" : "answers"; calls.push({ kind, country, search });
+    const kind = schema.properties.councils ? "councils" : schema.properties.rules ? "rules" : schema.properties.engaging ? "judge" : "answers"; calls.push({ kind, country, search }); // RR-335: the AI judge of an article draft
     if (kind === "councils") return { ok: true, usd: 0.4, searches: 3, data: { councils: country === "Pakistan" ? CF_PROFESSIONS.map((p) => ({ profession: p, name: `Pakistan Council of ${p}`, website: PK_HOST(p), address: "10 Invented Avenue, Islamabad 44000", sourceUrl: `${PK_HOST(p)}/contact` }))
       : country === "India" ? [{ profession: "nursing", name: "Invented Indian Nursing Council", website: "https://in-nursing.example", address: "2 Invented Marg, New Delhi 110001", sourceUrl: "https://in-nursing.example/contact" }, { profession: "Doctors", name: "Invented Medical Commission", website: "https://in-medicine.example", address: "3 Invented Road, New Delhi 110002", sourceUrl: "https://in-medicine.example/about" }]
       : [{ profession: "nursing", name: "Invented Board of Nursing", website: "https://board.example", address: "4 Invented St, Manila 1000", sourceUrl: "https://someones-blog.example/boards" }] } };
@@ -239,7 +239,8 @@ test("D · RR-328: one run for Pakistan, India and the Philippines — the fee i
   const pk = countryPacket("Pakistan", facts); assert.equal(pk.complete, true); assert.ok(!pk.questions.some((q) => /9 years/.test(q.value.answer)));
   /* the same day again: nothing finished is done again (the AI is not asked) */
   const before = A.calls.length, again = await runCountryFacts({ store, kwStore: kw, reader: W.reader, ai: A.ai, env: ENV_AI10, now: clock.now, budgetMs: 1e9, countries: ["Pakistan", "India", "Philippines"], subject: SUBJECT, products: ["oet"] });
-  assert.equal(A.calls.length, before); assert.deepEqual(again.done, []);
+  /* RR-335: only the AI judge is asked — once, about the answer draft the first run made possible (a new draft, judged inside the cap) */
+  assert.deepEqual(A.calls.slice(before).map((c) => c.kind), ["judge"]); assert.deepEqual(again.done, []);
 });
 
 test("D · RR-328: the owner's edit is kept when the collector comes back a month later; the daily caps stop a run in plain words; no AI key → official pages and AlmiOET's records only; one run at a time", async () => {

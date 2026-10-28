@@ -39,7 +39,7 @@ export async function askAi({ env = process.env, fetchImpl = fetch, base = CF_AI
     /* a long search may pause its turn: send its work back and let it go on */
     if (body?.stop_reason === "pause_turn") { messages.push({ role: "assistant", content: body.content }); continue; }
     const text = (body?.content ?? []).filter((b) => b?.type === "text").map((b) => b.text).join("").trim();
-    try { return { ok: true, data: JSON.parse(text), usd, searches }; } catch { return { ok: false, why: "the AI's answer could not be read", usd, searches }; }
+    try { return { ok: true, data: JSON.parse(text), usd, searches, callId: body?.id ?? null }; } catch { return { ok: false, why: "the AI's answer could not be read", usd, searches }; }
   }
   return { ok: false, why: "the AI's search did not finish", usd, searches };
 }

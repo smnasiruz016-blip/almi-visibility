@@ -235,7 +235,7 @@ test("F · RR-329: the keyword collector keeps each fetch's 300 most-searched an
   const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9, limitMb: 1024 });
   assert.equal(r.stoppedBy, "DB_FULL"); assert.match(r.why, /^The database holds 990 MB of its 1024 MB — the collector stopped before it is full\.$/);
   const [today] = await daysOf(K.kv, "keywords", ON, 1); assert.equal(today.lastCode, "DB_FULL"); assert.equal(today.sizeMb, 990);
-  assert.equal(COLLECTOR.storageLimitMb, 1024, "Neon's free plan: 1 GB per project");
+  assert.equal(COLLECTOR.storageLimitMb, 10240, "RR-335: Neon's Launch plan — a 10 GB cost guard, no longer the free plan's 1 GB");
   /* a day on which Google answered nothing (every request skipped) is a failed day — never a silent one */
   const K2 = fakeKv(clock), s2 = memoryStore(); await s2.setSeedList("product:oet | AlmiOET | oet", `${ON}T00:00:00Z`);
   const busy = await runCollector({ store: s2, ads: { ideas: async () => ({ ok: false, code: "BUSY", why: "busy", ops: 1 }) }, kv: K2.kv, now: clock.now, budgetMs: 1e9 });
@@ -321,7 +321,7 @@ test("E · RR-329: the owner's status — progress per product for both collecto
   const clock = clockAt(), K = fakeKv(clock), cf = cfMemoryStore(), db = memoryStore({ sizeMb: 300 });
   for (const [n, mb] of [[3, 150], [2, 200], [1, 250]]) await recordRun(K.kv, "keywords", new Date(Date.parse(`${ON}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10), { progress: 1000, keywords: 50000, sizeMb: mb });
   await recordRun(K.kv, "keywords", ON, { progress: 10, sizeMb: 300 });
-  const s = await ownerStatus({ kv: K.kv, db, cf, env: {}, now: clock.now });
+  const s = await ownerStatus({ kv: K.kv, db, cf, env: { NEON_STORAGE_LIMIT_MB: "1024" }, now: clock.now }); // RR-335: the limit set, as Vercel sets it (the default is now 10 GB)
   assert.equal(s.storage.mb, 300); assert.equal(s.storage.limit, 1024); assert.equal(s.storage.growth, 50); assert.equal(s.storage.fullOn, "2026-11-08", "(972.8 − 300) / 50 a day = 13 days");
   assert.equal(s.keywords.products[0].product, "oet"); assert.equal(s.keywords.products[0].first, 30, "all locations and the 29 of the first 30 Google can target (not Iran)"); assert.equal(s.keywords.perDay, 1000); assert.equal(s.keywords.measured, true);
   assert.equal(s.facts[0].product, "oet"); assert.equal(s.facts[0].name, "AlmiOET"); assert.equal(s.facts.length, FACT_PRODUCTS.length);

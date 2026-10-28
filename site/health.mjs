@@ -21,7 +21,7 @@ export const FIX = Object.freeze({
   AI_BUDGET: "Today's AI budget was used before anything was finished: raise COUNTRY_FACTS_AI_USD_PER_DAY in Vercel (for example to 3), then redeploy.",
   AI_ERROR: "The AI did not answer: if it repeats, check your Anthropic workspace (its monthly limit) and ANTHROPIC_API_KEY.",
   READS: "Today's page reads were used before anything was finished: raise COUNTRY_FACTS_READS_PER_DAY in Vercel (for example to 400).",
-  DB_FULL: "The database is nearly full: upgrade the Neon project to the Launch plan (no minimum; about $0.35 per GB a month) in Neon's console, or tell CC to keep less history.",
+  DB_FULL: "The database is near its cost guard (10 GB unless NEON_STORAGE_LIMIT_MB says otherwise): tell CC to keep less history, or raise NEON_STORAGE_LIMIT_MB in Vercel (Neon's Launch plan bills about $0.35 per GB a month).",
   DB_ERROR: "The database could not be reached: check the Neon project in Neon's console (DATABASE_URL in Vercel).",
   GSC: "Search Console could not be read: press \"Read Search Console\" below to see the reason now; if it is about the sign-in, run the sign-in script in the deploy folder again (node owner-google-sign-in.mjs), then redeploy.",
   NO_RUN: "No run at all: check Settings → Cron Jobs in Vercel (the site must be deployed, CRON_SECRET set), and that Google, the store and the database are connected.",

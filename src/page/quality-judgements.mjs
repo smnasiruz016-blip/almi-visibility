@@ -26,6 +26,8 @@ export const CANNOT_DECIDE = "CANNOT DECIDE";
 export const NOT_JUDGED = "NOT JUDGED";
 export const ASSESSMENTS = Object.freeze(["technicalIndexability", "answerQuality", "verifiedFacts", "distinctValue", "engagingPresentation"]);
 export const JUDGEMENTS = Object.freeze(["filler", "repetition", "engaging", "hookable"]);
+/** RR-335 · the two a recorded judge decides (the AI judge, asked only once the deterministic checks pass); filler and repetition are methods */
+export const AI_JUDGED = Object.freeze(["engaging", "hookable"]);
 export const MAX_REPAIR_ROUNDS = 2;
 export const POPULATION = Object.freeze({ REAL: "REAL", FIXTURE: "FIXTURE" });
 /** the kind of subject F40 judges (C1): a grouped need F35 chose — F41 C9 matches a brief's subject against it */
@@ -114,7 +116,12 @@ function recordedJudgement(name, given, { population, registeredProviders }) {
  * @param {number} [input.round]         0 for the initial draft, then the repair round (F42's) being re-judged
  * @param {object|null} [input.previous] the previous round's result
  */
-export function judgeDraft({ spec, decision, draft, parts, population, judgements = [], registeredProviders = [], repeatJustifications = [], round = 0, previous = null }) {
+/* RR-335 (owner, 28 Oct 2026: F40 is a gate of the live builder; where an F40 rule conflicts with a frozen rule, the frozen rule wins):
+ * `frozen` hands in what the frozen rules decide for the page this draft is part of — `technical` (the page's own technical and link
+ * checks: the internal links of the filed link plan, at least MIN_INTERNAL_LINKS, RR-286/RR-335) in place of F37's per-need checks, and
+ * `distinct` (F35's CREATE: distinct and useful, F35 C8b, ruling RR-179 (c) D1) in place of F39's gain records, which the live builder
+ * never files. Without `frozen` F40 reads F37 and F39 exactly as before. */
+export function judgeDraft({ spec, decision, draft, parts, population, judgements = [], registeredProviders = [], repeatJustifications = [], round = 0, previous = null, frozen = null }) {
   const contentSha256 = contentSha256Of(draft?.html);
   /* C1: only a complete draft F37 rendered for a need F35 chose; F37's checks read exactly as construction judged them */
   if (!isChosenCreate(decision) || decision.subject?.needId !== spec?.subject) return refuse("F35 did not choose CREATE for this need — F40 judges only a draft for a need F35 chose", contentSha256);
@@ -128,8 +135,11 @@ export function judgeDraft({ spec, decision, draft, parts, population, judgement
   if (round > MAX_REPAIR_ROUNDS) return refuse(`a third repair round: at most ${MAX_REPAIR_ROUNDS} follow the initial draft (v3 §15); the draft is halted or parked with its exact blocker`, contentSha256);
 
   /* the five assessments, each with its own result and what it read */
-  const technicalIndexability = Object.freeze({ verdict: worst(["technical", "internalLinks", "markup"].map((k) => fromCheck(checks[k]))), reads: "F37 checks technical, internalLinks, markup",
-    detail: Object.fromEntries(["technical", "internalLinks", "markup"].map((k) => [k, checks[k]?.state ?? "absent"])) });
+  const technicalIndexability = frozen?.technical
+    ? Object.freeze({ verdict: worst([fromCheck({ state: frozen.technical.state }), fromCheck(checks.markup)]), reads: "the page's own technical and link checks (the frozen rule, RR-335) and F37 check markup",
+      detail: Object.freeze({ page: frozen.technical.state, markup: checks.markup?.state ?? "absent", why: frozen.technical.why ?? null }) })
+    : Object.freeze({ verdict: worst(["technical", "internalLinks", "markup"].map((k) => fromCheck(checks[k]))), reads: "F37 checks technical, internalLinks, markup",
+      detail: Object.fromEntries(["technical", "internalLinks", "markup"].map((k) => [k, checks[k]?.state ?? "absent"])) });
   const { unknown } = claimsOf(spec);
   /* centrality as F91 C17 recorded it: a label's own flag, or the UNKNOWN part's (carried by the spec compiler since RR-184); none recorded is central */
   const centralOf = new Map([...(spec.answer?.labels ?? []).map((l) => [l.claimId, l.central !== false]), ...(spec.answer?.unknown ?? []).map((x) => [x.claimId, x.central !== false])]);
@@ -142,10 +152,14 @@ export function judgeDraft({ spec, decision, draft, parts, population, judgement
     refutation: "Void if a central claim the record marks UNKNOWN is shown supported by its recorded finding, or the reverse." });
   const verifiedFacts = Object.freeze({ verdict: fromCheck(checks.everyClaimSourced), reads: "F37 check everyClaimSourced (F91 C17 support)" });
   const gain = parts?.informationGain ?? null, rte = parts?.whyThisUrl ?? null;
+  const f39Distinct = () => {
   const distinctValue = Object.freeze(gain?.outcome === "CANNOT_DECIDE" || !gain
     ? { verdict: CANNOT_DECIDE, reads: "F39 information gain (with F32's duplication review), F36 right-to-exist", why: `F39 is CANNOT DECIDE: ${gain?.reason ?? "no information-gain verdict recorded"}` }
     : { verdict: gain.outcome === "REFUSED" || rte?.state === "FAIL" ? VERDICT.FAIL : gain.outcome === "ESTABLISHED" && rte?.state === "PASS" ? VERDICT.PASS : VERDICT.NOT_MEASURED,
       reads: "F39 information gain (with F32's duplication review), F36 right-to-exist", why: `F39 ${gain.outcome}; F36 ${rte?.state ?? "absent"}` });
+  return distinctValue; };
+  /* the frozen rule wins where it is handed in (RR-335); without it, F39 and F36 decide as before */
+  const distinctValue = frozen?.distinct ? Object.freeze({ verdict: frozen.distinct.state === "PASS" ? VERDICT.PASS : VERDICT.FAIL, reads: "F35's CREATE — distinct and useful (F35 C8b, ruling RR-179 (c) D1; the frozen rule, RR-335)", why: frozen.distinct.why ?? null }) : f39Distinct();
   const byName = new Map((Array.isArray(judgements) ? judgements : []).map((j) => [j?.name, j]));
   const records = Object.freeze({
     filler: fillerJudgement(draft.html),
@@ -165,10 +179,14 @@ export function judgeDraft({ spec, decision, draft, parts, population, judgement
   const failed = new Set(JUDGEMENTS.filter((n) => records[n].verdict === VERDICT.FAIL));
   const before = previous?.judged ? new Set(JUDGEMENTS.filter((n) => previous.judgements[n].verdict === VERDICT.FAIL)) : null;
   const stopsEarly = round > 0 && before !== null && failed.size > 0 && ![...before].some((n) => !failed.has(n));
+  /* RR-335 (owner): a draft whose ONLY open items are the AI judge's two verdicts WAITS for the judge — never refused, never passed */
+  const waitingFor = verdict === VERDICT.NOT_MEASURED && blockers.length === 1 && blockers[0].startsWith("engagingPresentation")
+    ? JUDGEMENTS.filter((n) => records[n].verdict === VERDICT.NOT_MEASURED) : [];
+  const waitsOnJudge = waitingFor.length > 0 && waitingFor.every((n) => AI_JUDGED.includes(n));
   return Object.freeze({
     judged: true, population, subject: spec.subject, contentSha256, writer: draft.writer, round, stopsEarly,
     assessments, judgements: records,
-    gate: Object.freeze({ verdict, blockers: Object.freeze(blockers), passesF40: verdict === VERDICT.PASS,
+    gate: Object.freeze({ verdict, blockers: Object.freeze(blockers), passesF40: verdict === VERDICT.PASS, waitingFor: Object.freeze(waitsOnJudge ? waitingFor : []),
       standing: "F40 publishes nothing, approves nothing and decides no ranking; a draft that does not pass F40 is never a complete passing preview (D5)" }),
   });
 }

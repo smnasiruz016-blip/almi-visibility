@@ -16,6 +16,7 @@ import { renderCompiledDraft } from "../src/page/draft-render.mjs";
 import { judgeDraft, CRITERIA, METHOD_SOURCE, VERDICT, POPULATION } from "../src/page/quality-judgements.mjs";
 import { assessPage, STATE as MARKUP } from "../src/page/structured-data.mjs";
 import { decideGroupedNeeds } from "../src/page/action-evidence.mjs";
+import { constructCandidates, decisionsForConstruction } from "./helpers/compiled-construction.mjs"; /* RR-335: the retired builder's result for a compiled spec, from the live modules (test-only) */
 import { connectQuestions, coverageRecords, CONNECTION } from "../src/page/demand-connection.mjs";
 import { coverageJudgementRecords } from "../src/page/grouped-need-coverage.mjs";
 import { possibleCombinations } from "../src/page/page-opportunities.mjs";
@@ -86,5 +87,33 @@ function claimsOnce(html, spec) {
     noNewVisibleText: sectionText.every((t, i) => t === `${spec.sections[i].heading} ${(/<p class="qa-tier">([^<]*)<\/p>/.exec([...html.matchAll(/<section class="qa"[^>]*>([\s\S]*?)<\/section>/g)][i][1]) ?? [])[1]}`),
   };
 }
+
+test("T37-C7 · F37 C7 EACH DISTINCT CLAIM ONCE: F37's own render of a one-question need and of a grouped need, judged by F40's UNCHANGED repetition and filler judgements, PASS — every distinct claim rendered once with its label, source and trace, every refer-back a link resolving to a rendered claim, no new visible text; a claim rendered twice is refused; markup checked by F48's rule; F40's criteria and method byte for byte as frozen", () => {
+  for (const grouped of [false, true]) {
+    const c = chosen(grouped);
+    const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: PLAN_OF(c.d.decision) });
+    const r = claimsOnce(d.html, c.d.spec);
+    assert.deepEqual([r.once, r.answerAnchor, r.everyHeadingLinksBack, r.refersResolve, r.noNewVisibleText], [true, true, true, true, true], `${grouped ? "grouped" : "one-question"}: ${JSON.stringify(r)}`);
+    assert.deepEqual([r.blocks, r.distinct], [2, 2], "the RR-180 fixture's two supported claims, each once (5 blocks for 2 claims before Amendment 1)");
+    assert.deepEqual(d.trace.map((t) => t.claimId).sort(), ["c-body", "c-central"], "a claim lost its trace by being referred to");
+    for (const t of d.trace) assert.ok(t.label && t.source && t.link && t.readOn, `${t.claimId} lost its label, source or date read`);
+    assert.equal(d.checks.headingsMatch.state, "PASS", "a heading's wording changed to carry its refer-back");
+    assert.deepEqual([assessPage({ pageId: "d", html: d.html, verified: true }).state, d.checks.markup.state], [MARKUP.ALIGNED, "PASS"], "markup carries an answer not visible on the page");
+    const r0 = constructCandidates({ pageSpecs: {}, variants: PRODUCT.variants, records: [], requested: [c.d.slug], tenantId: T, existingPages: POP, gainEvidence: null, decisions: decisionsForConstruction({ compiled: c.g.compiled }).decisions, plans: [PLAN_OF(c.d.decision)], now: NOW })[0];
+    const q = judgeDraft({ spec: c.d.spec, decision: c.d.decision, draft: d, parts: r0.parts, population: POPULATION.REAL });
+    assert.equal(q.judged, true, q.why);
+    assert.deepEqual([q.judgements.repetition.verdict, q.judgements.filler.verdict], [VERDICT.PASS, VERDICT.PASS], `${grouped ? "grouped" : "one-question"}: F40's repetition or filler FAILS F37's render: ${q.judgements.repetition.observation} / ${q.judgements.filler.observation}`);
+  }
+  /* a control rendering a claim twice is refused by the same reading */
+  const c = chosen(true);
+  const d = renderCompiledDraft({ spec: c.d.spec, decision: c.d.decision, plan: PLAN_OF(c.d.decision) });
+  const twice = d.html.replace(/(<div class="claim" data-claim-id="c-body">[\s\S]*?<\/p><\/div>)/, "$1\n$1");
+  assert.equal(claimsOnce(twice, c.d.spec).once, false, "a claim rendered twice was not seen");
+  assert.equal(claimsOnce(d.html.replace('href="#answer"', 'href="#elsewhere"'), c.d.spec).everyHeadingLinksBack, false, "a broken refer-back was not seen");
+  /* F40's text, criteria and method: unchanged, byte for byte */
+  assert.equal(sha(JSON.stringify({ CRITERIA, METHOD_SOURCE })), F40_CRITERIA_SHA, "F40's criteria changed");
+  const qj = readFileSync(join(REPO, "src/page/quality-judgements.mjs"), "utf8").replace(/\r\n/g, "\n");
+  for (const [name, want] of Object.entries(F40_METHOD_SHA)) { const s = qj.indexOf(`function ${name}(`); assert.equal(sha(qj.slice(s, qj.indexOf("\n}\n", s) + 2)), want, `F40's ${name} changed`); }
+});
 
 test("the production trail was not written by this file", () => assert.equal(trailSha(), TRAIL_BEFORE));

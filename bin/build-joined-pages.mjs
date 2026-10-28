@@ -215,7 +215,11 @@ const unanswered = new Map(resolved.pages.map((p) => [valueOf(p.combination), p.
 const linkPlanFile = readdirSync(batchDir).filter((f) => /^internal-links-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().at(-1) ?? null;
 const linkPlan = linkPlanFile ? JSON.parse(readFileSync(join(batchDir, linkPlanFile), "utf8")).pages ?? {} : {};
 if (linkPlanFile) console.log(`  link plan        ${linkPlanFile}: ${Object.keys(linkPlan).length} page(s)`);
-const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, relatedFor: (value) => (Array.isArray(linkPlan[value]) ? linkPlan[value] : []), orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
+/* RR-335 (owner): F40 is a gate of this builder. The AI judge's recorded verdicts (engaging, hookable) are read from the batch's
+ * page-judgements.json, by need key, each with its provider and call id; none recorded → the page WAITS (it is kept, never refused) */
+const judged = list("page-judgements.json");
+const judge = ({ needKey }) => ({ population: "REAL", registeredProviders: ["anthropic"], judgements: judged.filter((j) => j?.needKey === needKey) });
+const pages = joinPages({ construction: joinable.construction, questions, stamp: X.stamp, judge, relatedFor: (value) => (Array.isArray(linkPlan[value]) ? linkPlan[value] : []), orderOf: (needId) => order.get(needId) ?? 0, unansweredFor: (value) => unanswered.get(value) ?? [],
   design, productLine: design?.productLine ?? null, needKeyOf: (needId) => needToKey.get(needId) ?? needId, leadOf: (needId) => leadOfKey.get(needToKey.get(needId)) ?? null, generalViewOf: (needId) => generalViewOfKey.get(needToKey.get(needId)) ?? null, checkedNotFoundOf: (needId) => cnf.byNeed.get(needToKey.get(needId)) ?? [], fillerPhrases,
   phrasesFor: (value) => phrases.filter((p) => p?.page === value), keyFactsFor: (value) => keyFacts.filter((k) => k?.page === value), quotationOf: (claimId) => quotationOfClaim.get(claimId) ?? null, ratesFor: (value) => rates.filter((r) => r?.page === value), comparisonsFor: (value) => comparisons.filter((t) => t?.page === value), recheckOf: (claimId) => intervals.get(claimId) ?? null, on: ON,
   renderNeed: ({ spec, decision }) => renderCompiledDraft({ spec, decision, plan: null }),
@@ -235,6 +239,13 @@ const views = built.reduce((n, { record: p }) => n + (p.generalViews ?? 0), 0);
 console.log(`  general views    ${views} (GENERAL_VIEW, INFERRED — counted apart from sourced answers, never in the FAQ data) on ${built.filter(({ record: p }) => p.generalViews).length} page(s)`);
 /* RR-265: an answer that is not to the point fails the build, named — no page is written */
 const pointless = built.filter(({ record: p }) => p.checks.toThePoint?.state === "FAIL").map(({ record: p }) => `${p.value}: ${p.checks.toThePoint.why}`);
+/* RR-335: a page with fewer than 3 internal links, or one F40 FAILS, fails the build — no page is written; a page waiting for the AI judge is kept */
+const unlinked = built.filter(({ record: p }) => p.checks.internalLinks?.state === "FAIL").map(({ record: p }) => `${p.value}: ${p.checks.internalLinks.why}`);
+const poor = built.filter(({ record: p }) => p.checks.engaging?.state === "FAIL").map(({ record: p }) => `${p.value}: ${p.checks.engaging.why}`);
+const waitingJudge = built.filter(({ record: p }) => p.checks.engaging?.waiting).map(({ record: p }) => p.value);
+console.log(`  F40 quality      ${built.length - unlinked.length - poor.length - waitingJudge.length} passed · ${waitingJudge.length} waiting for the AI judge${waitingJudge.length ? ` (${waitingJudge.join(", ")})` : ""} · ${poor.length} failed`);
+if (unlinked.length) { console.error(`🔴 REFUSED — TOO_FEW_INTERNAL_LINKS: ${unlinked.join(" | ")}; no page written`); process.exit(3); }
+if (poor.length) { console.error(`🔴 REFUSED — F40_QUALITY: ${poor.join(" | ")}; no page written`); process.exit(3); }
 if (pointless.length) { console.error(`🔴 REFUSED — NOT_TO_THE_POINT: ${pointless.join(" | ")}; no page written`); process.exit(3); }
 if (unlabelled.length) { console.error(`🔴 REFUSED — GENERAL_VIEW_NOT_LABELLED: ${unlabelled.length} page(s) hold a general view that breaks its rules; no page written`); process.exit(3); }
 /* RR-269 §3: a checked-not-found line not shown with its checked pages, or found in the FAQ data, fails the build — no page is written */

@@ -1,0 +1,13 @@
+RR-281 link-guard sabotage run · 2026-10-28T05:24:31.818Z
+population: 5 source sabotage(s) over test/rr281-link-guard.test.mjs · each applied ALONE · the real records are only READ; no network
+BASELINE (the named test files before any sabotage): GREEN · files green 1 of 1 · named tests seen GREEN 5 of 5
+PRE-FLIGHT (span occurrences in the code live now): G1=1 G2=1 G3=1 G4=1 G5=1 · all exactly once: true
+production trail sha256 before: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a
+
+G1 a registry link that differs from the page link is never refused [src/facts/link-guard.mjs] → test/rr281-link-guard.test.mjs: landed true · named test "RR-281 · FIRING CONTROLS:" red true · its failure AssertionError · SyntaxError false · failing RR-281 · restored true · PROVED
+G2 a quote missing from the linked text is never refused [src/facts/link-guard.mjs] → test/rr281-link-guard.test.mjs: landed true · named test "RR-281 · FIRING CONTROLS:" red true · its failure AssertionError · SyntaxError false · failing RR-281 · restored true · PROVED
+G3 a quote found in ANOTHER link's stored text passes [src/facts/link-guard.mjs] → test/rr281-link-guard.test.mjs: landed true · named test "RR-281 · FIRING CONTROLS:" red true · its failure AssertionError · SyntaxError false · failing RR-281 · restored true · PROVED
+G4 the ahpra-2026 case as it stood before RR-279 passes (the link check gone), on the real batch [src/facts/link-guard.mjs] → test/rr281-link-guard.test.mjs: landed true · named test "RR-281 · REAL:" red true · its failure AssertionError · SyntaxError false · failing RR-281 · restored true · PROVED
+G5 the builder computes the guard but builds anyway [bin/build-joined-pages.mjs] → test/rr281-link-guard.test.mjs: landed true · named test "RR-281 · PRODUCTION PATH:" red true · its failure AssertionError · SyntaxError false · failing RR-281 · restored true · PROVED
+
+proved 5 of 5 (source 5 of 5) · residue 0 · production trail sha256 after: 6a39ed394ebc9c6a65707735eb533651a734e8b8e0f795448e5f47b784584e8a · unchanged true

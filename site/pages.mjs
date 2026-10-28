@@ -489,7 +489,15 @@ export function countriesTable({ order, byC, facts, tasks = {}, product = "oet",
 /* "AUD 587 — about 114,260 PKR" from the fee line (its source and rate stay in the country's detail) */
 const feeShort = (v) => feeShown(v) ?? "✓";
 const upcomingIn = (dates = [], today) => (dates ?? []).filter((d) => !today || d.date >= today);
-export function ownerPage({ connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null } = {}) {
+/* RR-337 · the launch settings: each variable's NAME, what it is for, set or missing — never a value; open while a needed one is missing */
+function launchBox(rows = []) {
+  if (!rows.length) return "";
+  const gaps = rows.filter((r) => r.needed && !r.set).length;
+  const state = (r) => (r.set ? "<b>set</b>" : r.needed ? '<span class="err">missing</span>' : "missing (correct for now)");
+  return `<details${gaps ? " open" : ""} data-launch><summary>Launch settings in Vercel — ${gaps ? `${gaps} needed missing` : "all needed are set"}</summary><p class="fine">Names only; this page never shows a value. After you change one, deploy again.</p>
+<div class="tablewrap"><table class="t"><tr><th>Variable</th><th>For</th><th>State</th></tr>${rows.map((r) => `<tr><td><code>${esc(r.name)}</code></td><td>${esc(r.use)}</td><td>${state(r)}</td></tr>`).join("")}</table></div></details>`;
+}
+export function ownerPage({ launch = [], connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
   const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · every 30 days" : k === "youtube" ? "YouTube niche · every 60 days · Google Search volumes, not YouTube's numbers" : "category · every 60 days"; };
   /* RR-326 H: Google's own reason and message for the last refusal */
@@ -508,6 +516,7 @@ export function ownerPage({ connected = false, missing = [], dbOn = false, dbErr
   /* RR-329 E: the numbers first; every heavy table is closed until tapped (a phone on weak internet) */
   return ownerFrame("Owner", `${PHONE_CSS}${ownerMenu("keywords", arguments[0]?.summary ?? null)}<h1>Owner</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
 ${statusHtml(status)}
+${launchBox(launch)}
 <p class="row"><a class="pill" href="/owner/countries">Country facts</a> <a class="pill ghost" href="#queue">The queue</a></p>
 <details${check ? " open" : ""}><summary>Google and the keyword collector</summary>
 <p class="fine"><b>No daily limit on this browser</b> for the free score and the keyword finder.</p>

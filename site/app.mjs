@@ -12,9 +12,9 @@ import * as P from "./pages.mjs";
 import { articleHtml } from "./articles.mjs";
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
-import { reportEmail, sendEmail, sendingOn } from "./email.mjs";
-import { createCheckout } from "./billing.mjs";
-import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS } from "../services/licence/service.mjs";
+import { reportEmail, sendEmail, sendingOn, EMAIL_KEY_NAMES } from "./email.mjs";
+import { createCheckout, BILLING_KEY_NAMES } from "./billing.mjs";
+import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS, PRICE_ENV } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
 import { createHash, createPublicKey, createPrivateKey, timingSafeEqual, randomBytes } from "node:crypto";
 import { storeOf, kvStore, liteLimits, LITE_LIMITS, FINDER_COUNTS } from "./limits.mjs"; // RR-325 B
@@ -26,7 +26,7 @@ import { moveUp } from "./queue.mjs";
 import { PRODUCT_FACTS, FACT_PRODUCTS, PART_INFO } from "../desktop/product-facts.mjs";
 import { importFiles, parseMultipart, IMPORT } from "./kw-import.mjs"; // RR-326 I
 import { findKeywords, lookupKeywords, finderQuery, csvOf, groupOf, FINDER } from "./kw-finder.mjs";
-import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER, publicKeyState } from "./kw-service.mjs";
+import { checkLicence, takeSearch, giveBack, usageOf, serviceSeeds, LICENCE_HEADER, publicKeyState, PUBLIC_KEY_ENV } from "./kw-service.mjs";
 import { DEFAULT_SEEDS, parseSeeds, locationOf, LANGUAGES } from "./kw-seeds.mjs";
 import { isOwner, ownerOn, ownerState, ownerCookie, ownerSignOut, ownerSignIn } from "./owner.mjs";
 import { publicOnly } from "./free-test.mjs"; // RR-325 B
@@ -45,6 +45,17 @@ import { COUNTRIES } from "../desktop/world.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY" });
+/* RR-337 · the launch settings /owner lists: [name, what it is for, needed now?] — the page says "set" or "missing", never a value */
+export const LAUNCH_VARS = Object.freeze([
+  [SITE_KEY_NAMES.signingKey, "signs each buyer's licence", true], [PUBLIC_KEY_ENV, "the app's keyword service checks licences", true],
+  [KEY_NAMES.adminHash, "your /admin sign-in", true], [KEY_NAMES.database, "leads, licences and admin sessions", true],
+  [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
+  [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
+  [EMAIL_KEY_NAMES.resend, "emails (reports, licence keys)", true], [EMAIL_KEY_NAMES.from, "the emails' sender", true],
+  [SITE_KEY_NAMES.setupUrl, "the Setup download", true], [SITE_KEY_NAMES.updateBase, "the app's updates", true],
+  [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
+  [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false]]);
+export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed]) => ({ name, use, needed, set: String(env[name] ?? "").trim() !== "" }));
 const SECURITY = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", "x-frame-options": "SAMEORIGIN", "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'self'" };
 const PRIVATE = { "x-robots-tag": "noindex, nofollow", "cache-control": "no-store" };
 const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
@@ -300,7 +311,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (kv) { try { const [l] = await kv.run([["GET", "av:collector:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
     /* RR-329: what matters first on his phone — red lines, this week, progress, ETA, spend, the database */
     let status = null; try { status = await ownerStatus({ kv, db, cf, env, now }); } catch { status = null; }
-    return P.ownerPage({ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
+    return P.ownerPage({ launch: launchVarsOf(env), /* RR-337 */ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };

@@ -21,15 +21,29 @@ import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
 import { FINDER, SOURCE_LINE, periodWords, rangeOf } from "./kw-finder.mjs";
 import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.mjs";
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
+import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-export const PRICES_SOURCE = "Prices set by AlmiWorld on 20 October 2026.";
 export const BUILT_ON = "As built and tested on 20 October 2026.";
+/* RR-339 (owner, 28 Oct 2026): each plan says who it is for */
 export const PLANS = Object.freeze([
-  { id: "visibility_1", price: 30, products: "1 product" }, { id: "visibility_5", price: 40, products: "up to 5 products" },
-  { id: "visibility_10", price: 60, products: "up to 10 products" }, { id: "visibility_unlimited", price: 80, products: "unlimited products" },
+  { id: "visibility_1", price: 30, products: "1 product", forWho: "One website, shop or YouTube channel" }, { id: "visibility_5", price: 40, products: "up to 5 products", forWho: "A small business with several products" },
+  { id: "visibility_10", price: 60, products: "up to 10 products", forWho: "A growing business" }, { id: "visibility_unlimited", price: 80, products: "unlimited products", forWho: "Agencies and big businesses" },
+]);
+/* RR-339 · "Every plan includes": ONLY what works in the app today, each line checked against desktop/features.mjs (the app's own card
+ * list — a feature that does not work has no card). A line that needs the client's own connection says so. */
+export const INCLUDES = Object.freeze([
+  "Site check: a score, broken links, security basics and what to fix first",
+  "Real Google keyword volumes (Google Ads data)",
+  "The questions people ask about your product",
+  "Page and article plans, and drafts with their sources",
+  "Your Google Search Console searches (with your own Google sign-in)",
+  "YouTube advice: titles, descriptions and topics",
+  "Send your finished pages to WordPress",
+  "Pages in 10 languages (with your own AI key)",
+  "Your data stays on your computer",
 ]);
 export const LANGS = Object.freeze(["English (EN)", "Spanish (ES)", "German (DE)", "Italian (IT)", "French (FR)", "Portuguese (PT)", "Arabic (AR)", "Urdu (UR)", "Hindi (HI)", "Chinese (ZH)"]);
 const NAV = [["/", "Home"], ["/free-test", "Free test"], ["/features", "Features"], ["/pricing", "Pricing"], ["/download", "Download"]];
@@ -41,6 +55,7 @@ export const SAMPLE = Object.freeze({ score: 72, byCategory: { TECHNICAL: 88, CO
 export const scoreWord = (s) => (s === null || s === undefined ? "Not measured" : s >= 90 ? "Very good" : s >= 75 ? "Good" : s >= 50 ? "Needs work" : "Poor");
 
 const CSS = `${cssVariables()}
+${FLOW_CSS}
 *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--cream);color:var(--text);font:16px/1.6 var(--font);min-height:100vh;display:flex;flex-direction:column}
 a{color:var(--ink)} main{flex:1 0 auto;width:100%}
 .wrap{max-width:1152px;margin:0 auto;padding:0 24px}
@@ -173,7 +188,8 @@ const SALES_NAV = [["/", "Home"], ["/#score", "Free score"], ["/pricing", "Prici
 /* RR-338 · the owner's marketing lines (28 Oct 2026): bold, never "guaranteed", no invented number */
 export const MARKETING = Object.freeze({
   headline: "Rank higher on Google — and get recommended by ChatGPT",
-  tools: "Stop paying $500 a month for 5 SEO tools. One app. $30.",
+  pricingHeading: "Rank higher on Google. Get found in ChatGPT. One app, from $30.",
+  pricingLine: "Real Google data. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed.",
   data: "Real Google data. No risky backlinks.",
 });
 const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout.";
@@ -212,7 +228,8 @@ export const FEATURES = Object.freeze([
   ["A Windows app", "Install it like any Windows program. Your data stays on your computer, and a newer version installs itself only when you agree."],
 ]);
 export const YOUTUBE = "Visibility checks your own channel — missing titles, descriptions, chapters, thumbnail text and links back to your product page — and suggests titles, tags and chapters only from your real search phrases and questions. It writes a short video script from each article; you make the video. It reads your channel only through your own YouTube key or a YouTube Studio export you import — never by scraping youtube.com.";
-const priceCards = (sales = false) => `<ul class="cards">${PLANS.map((p) => `<li class="card center"><div class="price">$${p.price}<small> / month</small></div><p><b>${esc(p.products)}</b></p><form method="post" action="/api/billing/checkout"><input type="hidden" name="plan" value="${p.id}"><button class="pill" type="submit">Buy</button></form></li>`).join("")}</ul><p class="note center" style="margin-top:16px">${PRICES_SOURCE} Per month, in US dollars. Every plan has every feature — plans differ only in how many products you add. There is no free trial; the website test is free for everyone.${sales ? ` ${TAX_LINE}` : ""}</p>`;
+const priceCards = (sales = false) => `<ul class="cards">${PLANS.map((p) => `<li class="card center"><div class="price">$${p.price}<small> / month</small></div><p><b>${esc(p.products)}</b></p><p class="note" data-for>${esc(p.forWho)}</p><form method="post" action="/api/billing/checkout"><input type="hidden" name="plan" value="${p.id}"><button class="pill" type="submit">Buy</button></form></li>`).join("")}</ul><p class="note center" style="margin-top:16px">Per month, in US dollars. Every plan has every feature — plans differ only in how many products you add. The free site score needs no card.${sales ? ` ${TAX_LINE}` : ""}</p>`;
+const includesBox = () => `<div class="card" data-includes style="max-width:820px;margin:28px auto 0"><h3>Every plan includes</h3><ul>${INCLUDES.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`;
 
 export const home = ({ result = null, error = null, values = {}, emailOn = false, emailed = null } = {}) => frame({ path: "/", title: "AlmiVisibility — is your website easy to find on Google and in AI answers?", description: "Test your website free: a visibility score out of 100 for technical basics, content, accessibility, links and security — then AlmiVisibility builds the sourced pages your customers search for.",
   body: `<section class="hero"><div class="wrap grid2"><div>
@@ -266,15 +283,16 @@ ${section("", `<h2>YouTube, too</h2><div class="card tick-card" style="max-width
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`)}
 ${section("", `<div class="final"><h2>Start with the free test</h2><p>See your score before you decide.</p><p><a class="pill big" href="/#test">Test my site</a></p></div>`)}` });
 
-export const pricing = ({ sales = false } = {}) => frame({ path: "/pricing", lite: sales ? "sales" : false, title: "Pricing — AlmiVisibility", description: "AlmiVisibility plans: $30 a month for 1 product, $40 for up to 5, $60 for up to 10, $80 for unlimited products. No free trial.",
-  body: `<section class="hero"><div class="wrap"><p class="eyebrow">Pricing</p><h1>${sales ? esc(MARKETING.tools) : "Simple plans"}</h1><p class="lead">${sales ? `${esc(MARKETING.data)} ` : ""}Pick the number of products. Every plan has every feature. There is no free trial.</p></div></section>
-${section("paper", priceCards(sales))}
+export const pricing = ({ sales = false } = {}) => frame({ path: "/pricing", lite: sales ? "sales" : false, title: "Pricing — AlmiVisibility", description: "AlmiVisibility plans: $30 a month for 1 product, $40 for up to 5, $60 for up to 10, $80 for unlimited products. Every plan has every feature.",
+  body: `<section class="hero"><div class="wrap"><p class="eyebrow">Pricing</p><h1>${esc(MARKETING.pricingHeading)}</h1><p class="lead">${esc(MARKETING.pricingLine)}</p>${IMG.pricing}</div></section>
+${section("paper", priceCards(sales) + includesBox())}
 ${section("", `<div class="final"><h2>Not sure yet?</h2><p>Run the free website test first.</p><p><a class="pill big" href="${sales ? "/#score" : "/#test"}">Test my site</a></p></div>`)}` });
 
 export const download = ({ setupAvailable = false, sales = false } = {}) => frame({ path: "/download", lite: sales ? "sales" : false, title: "Download AlmiVisibility for Windows", description: "Download AlmiVisibility for Windows: install it like any program, add your product, and get sourced pages, articles and a monthly report.",
   body: `<section class="hero"><div class="wrap"><p class="eyebrow">Download</p><h1>AlmiVisibility for Windows</h1>
 <p class="lead">Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop.</p>
 <div class="cta">${setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
+${sales ? IMG.download : ""}
 <p class="small">Windows 10 or 11. Your data stays on your own computer. The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway”.</p></div></section>
 ${section("paper", `<h2>After you install</h2>${cardList([
   ["Add your product", "Your company, your product and its website."],
@@ -357,10 +375,10 @@ ${sales ? `<h1>${esc(MARKETING.headline)}</h1>
 <div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill ghost" href="/pricing">See the plans</a></div>` : `<h1>Get the score of your site</h1>
 <p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>`}
 <p class="small">${esc(NO_PROMISE)}</p></div>
-<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
+<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div>${sales ? `<div class="wrap">${IMG.home}${IMG.score}</div>` : ""}</section>
 ${result ? resultDetail(result, left) : ""}
-${section("paper", finderSection(finder, owner))}
-${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub"><b>${esc(MARKETING.tools)}</b> ${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`)
+${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
+${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`)
     : section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
 <script src="/score.js" defer></script>` });

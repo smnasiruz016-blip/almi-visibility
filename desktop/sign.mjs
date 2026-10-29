@@ -11,7 +11,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 
 export const SIGNING_FILE = "signing.json";
 export const TIMESTAMP = Object.freeze({ certum: "http://time.certum.pl", artifact: "http://timestamp.acs.microsoft.com" });
@@ -38,7 +38,7 @@ export function signArgs(cfg, file) {
 export function findSigntool(cfg = {}, { exists = existsSync, list = (d) => readdirSync(d) } = {}) {
   if (cfg.signtool) return exists(cfg.signtool) ? cfg.signtool : null;
   const base = "C:\\Program Files (x86)\\Windows Kits\\10\\bin";
-  try { for (const v of list(base).filter((d) => /^10\./.test(d)).sort((a, b) => b.localeCompare(a, "en", { numeric: true }))) { const p = join(base, v, "x64", "signtool.exe"); if (exists(p)) return p; } } catch { /* no SDK */ }
+  try { for (const v of list(base).filter((d) => /^10\./.test(d)).sort((a, b) => b.localeCompare(a, "en", { numeric: true }))) { const p = win32.join(base, v, "x64", "signtool.exe"); // a Windows path, also where the tests run on Linux if (exists(p)) return p; } } catch { /* no SDK */ }
   return null;
 }
 

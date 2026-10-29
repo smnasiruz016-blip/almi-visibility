@@ -157,8 +157,9 @@ async function home() {
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
   $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
-  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
+  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button><div class="meta today" data-today="${esc(p.id)}"></div><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button> <button class="ghost" id="gsignon">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></p><div class="err" id="err"></div>
+  <p class="meta" style="margin-top:8px"><label class="check"><input type="checkbox" id="notify"> Tell me with a Windows notification when today's article is ready (while Visibility is open)</label> · A daily or weekly e-mail summary — coming soon</p>
   <div class="card" style="margin-top:16px"><h2>${esc(M.question)}</h2><p class="tabline">Everything Visibility can do for you. Pick a card — Visibility asks which product it is for.</p>${cardsHtml(M.cards)}</div>`;
   document.querySelectorAll(".product").forEach((b) => (b.onclick = () => openProduct(b.dataset.id)));
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
@@ -166,7 +167,41 @@ async function home() {
   $("#add").onclick = () => addProduct();
   $("#plan").onclick = () => planScreen();
   $("#gsignon").onclick = () => googleSignInScreen(home);
+  notifySwitch(); todayLines(H.products);
   tour();
+}
+/* RR-344 B2 · today's article, one line a product (ready · published · none, and why); a Windows notification only when the client switched
+ * it on and Windows allows it — once a day a product */
+const notifyOn = () => { try { return localStorage.getItem("av-notify") === "on"; } catch { return false; } };
+function notifySwitch() {
+  const c = $("#notify"); if (!c) return; c.checked = notifyOn() && "Notification" in window && Notification.permission === "granted";
+  c.onchange = async () => {
+    if (!c.checked) { try { localStorage.setItem("av-notify", "off"); } catch {} return; }
+    const p = "Notification" in window ? await Notification.requestPermission() : "denied";
+    if (p === "granted") { try { localStorage.setItem("av-notify", "on"); } catch {} } else { c.checked = false; $("#err").textContent = "Windows notifications are not allowed for Visibility — allow them in Windows Settings → Notifications, then tick this again."; }
+  };
+}
+async function todayLines(products) {
+  for (const p of products) {
+    const el = [...document.querySelectorAll("[data-today]")].find((x) => x.dataset.today === p.id); if (!el) continue;
+    const t = await get(`/api/products/${encodeURIComponent(p.id)}/articles/today`); if (!t || t.refused || !t.line) continue;
+    el.textContent = t.line; el.dataset.state = t.state;
+    if (t.state !== "ready" || !notifyOn() || !("Notification" in window) || Notification.permission !== "granted") continue;
+    const k = `av-told-${p.id}-${new Date().toISOString().slice(0, 10)}`; let told = true; try { told = localStorage.getItem(k) === "1"; localStorage.setItem(k, "1"); } catch {}
+    if (!told) new Notification(`${p.name}: today's article is ready`, { body: t.line });
+  }
+}
+/* RR-344 B1 + B3 · today's article: where it goes (the client's choice), its export files, and — once published, or when the client chose
+ * posts — its LinkedIn and Facebook posts to copy */
+async function todayCard(box, a) {
+  const base = `/api/products/${encodeURIComponent(P)}`, T = await get(`${base}/articles/today`), W = await get(`${base}/articles/where`), url = T.url ?? a.url ?? null;
+  box.innerHTML = `<div class="card"><h3>Today's article</h3><p data-today-line>${esc(T.line ?? a.none ?? "")}</p>
+    ${url ? `<p><a href="${base}/draft?url=${encodeURIComponent(url)}" target="_blank">Read the article</a> · <a href="${base}/articles/export?url=${encodeURIComponent(url)}&format=html">Export HTML</a> · <a href="${base}/articles/export?url=${encodeURIComponent(url)}&format=md">Export Markdown</a></p>` : ""}
+    ${(T.posts ?? []).length ? `<h4>Your LinkedIn and Facebook posts are ready</h4>${T.posts.map((p) => `<p><b>${esc(p.network)}</b> ${copyBtn(p.text)}</p><div class="paste">${esc(p.text)}</div>`).join("")}<p class="meta">Copy and post them yourself — Visibility does not post for you in this version.</p>` : ""}
+    <h4>Where should your articles go?</h4>${(W.options ?? []).map((o) => `<label class="check"><input type="radio" name="go" value="${esc(o.id)}" ${o.id === W.go ? "checked" : ""}> ${esc(o.label)}</label>`).join("")}
+    <p class="meta">${esc(W.email?.line ?? "")}</p><button id="gosave">Save</button> <span id="gomsg"></span></div>`;
+  wireCopy(box);
+  $("#gosave").onclick = async () => { const go = box.querySelector("input[name=go]:checked")?.value; const r2 = await post(`${base}/articles/where`, { go, notify: W.notify === true }); note($("#gomsg"), r2.refused ?? r2.line, r2.refused ? "err" : "ok"); };
 }
 /* RR-309 A: Delete, right on the product's box — asked first, in the owner's words; only this product goes */
 function askDelete(id, name) {
@@ -743,7 +778,7 @@ async function openFeature(f) {
       <h4>Improve your existing pages (${by("SECTION").length})</h4><ul>${by("SECTION").map((x) => `<li><b>${esc(x.question)}</b> — ${esc(x.why)}</li>`).join("") || "<li>None.</li>"}</ul>
       <details><summary>Not made — no answer on your pages yet (${by("REFUSED").length})</summary><ul>${by("REFUSED").map((x) => `<li>${esc(x.question)} <span class="src">(${esc(x.demand?.source ?? "")})</span></li>`).join("")}</ul><p class="meta">Write the answer on your site, then press Create SEO pages again.</p></details></div>`);
   }
-  if (r.article) return (box.innerHTML = `<div class="card"><h3>Today's article</h3>${r.article.none ? `<p>${esc(r.article.none)}</p>` : `<p><b>${esc(r.article.title)}</b> — a draft for ${esc(r.article.day)}. ${r.article.publishMode === "REVIEW_FIRST" ? "It waits for your yes." : "It stays a draft: Visibility has no connection to your site in this version."}</p><a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(r.article.url)}" target="_blank">Read the article</a>`}</div>`);
+  if (r.article) return todayCard(box, r.article); // RR-344 B
   /* RR-310 B6: posts from the newest videos — their own words, their links */
   if (r.socialVideos) return (setTimeout(() => wireCopy(box), 0), box.innerHTML = `<div class="card"><h3>Social posts from your videos</h3>${r.none ? `<p>${esc(r.none)}</p>` : r.socialVideos.length ? r.socialVideos.map((s) => `<h4>${esc(s.video)}</h4>${s.posts.map((p) => `<p><b>${esc(p.network)}</b> ${copyBtn(p.text)}</p><div class="paste">${esc(p.text)}</div>`).join("")}<div class="src">From: ${esc(s.from)}</div>`).join("") : "<p>No video found yet.</p>"}<p class="meta">Copy and post them yourself — Visibility does not post for you in this version.</p></div>`);
   if (r.social) return (box.innerHTML = `<div class="card"><h3>Social posts</h3>${r.social.posts.length ? r.social.posts.map((p) => `<p><b>${esc(p.network)}</b></p><div class="paste">${esc(p.text)}</div>`).join("") : `<p>${esc(r.social.refused?.[0]?.why ?? "No post yet.")}</p>`}<p class="meta">Copy and post them yourself — Visibility does not post for you in this version.</p></div>`);

@@ -9,7 +9,8 @@ import { readFileSync, existsSync, statSync, createReadStream } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as P from "./pages.mjs";
-import { articleHtml } from "./articles.mjs";
+import { articleHtml, ARTICLE_PRODUCTS } from "./articles.mjs";
+import { publishToWordPress, wpConfigured, WP_KEYS, todayArticle } from "./wp-publish.mjs"; // RR-344
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn, EMAIL_KEY_NAMES } from "./email.mjs";
@@ -55,6 +56,7 @@ export const LAUNCH_VARS = Object.freeze([
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
   [PORTAL_CONFIG_NAME, "optional — press “Create Manage-plan portal” below; the site then finds AlmiVisibility's own portal by itself", false],
   [SITE_KEY_NAMES.storeUrl, "optional — the Microsoft Store listing (https://apps.microsoft.com/…); once set, Download points there", false],
+  [WP_KEYS.user, "optional — your WordPress user name: an approved article is published on the almiworld.com blog (RR-344)", false], [WP_KEYS.password, "optional — the WordPress application password for the blog (never shown)", false],
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
   [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],
@@ -99,11 +101,11 @@ export const modeOf = (env = process.env, mode = null) => { const m = mode ?? en
 export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage", "/v1/licence"] }); // RR-342: the licence check, key in the body
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null } = {}) {
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null } = {}) {
   const m = modeOf(env, mode);
-  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch });
+  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
-  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch,
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch,
     salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
@@ -296,7 +298,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null }) {
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
@@ -373,7 +375,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     let status = null; try { status = await ownerStatus({ kv, db, cf, env, now }); } catch { status = null; }
     /* RR-342 (owner: the button "showed no visible result"): the Manage-plan portal's state, read-only from Stripe, beside its button */
     const portal = o.portal ?? (env[BILLING_KEY_NAMES.stripeSecret] ? await portalStatus({ env, fetchImpl: stripeFetch ?? fetch }) : null);
-    return P.ownerPage({ portal, portalPressed: Boolean(o.portal), launch: launchVarsOf(env), /* RR-337 */ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
+    /* RR-344 A3 · today's article in one line: published (its link) · ready — approve · none today, and why */
+    let article = null; if (cf?.articles) { try { article = todayArticle({ articles: await cf.articles(), today: d, aiOn: aiConfigured(env), blogOn: wpConfigured(env) }); } catch { article = null; } }
+    return P.ownerPage({ article, portal, portalPressed: Boolean(o.portal), launch: launchVarsOf(env), /* RR-337 */ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
@@ -391,6 +395,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published()].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
@@ -449,7 +454,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         /* RR-343 (owner, 29 Oct: /owner/collect said "Page not found") · a button's own address opened again — a refresh, a typed or a
          * remembered address — goes back to a page, never to "Page not found" (the buttons themselves POST) */
         const BACK = { "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries",
-          "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles" };
+          "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles", "/owner/articles/publish": "/owner/articles" };
         if (req.method === "GET" && BACK[u.pathname]) return send(303, "", "text/plain", { ...priv, location: BACK[u.pathname] });
         if (req.method === "POST" && u.pathname === "/owner/seeds") {
           if (!db) return send(503, await ownerPage({ message: "The keyword database is not connected." }), undefined, priv);
@@ -505,14 +510,27 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         /* RR-334 · the article drafts: the owner's one-tap word (nothing is published here) */
         if (u.pathname.startsWith("/owner/articles")) {
           if (!cf?.articles) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — the articles need it." }), undefined, priv);
-          const page = async (message = null) => P.ownerArticles({ articles: await cf.articles(), html: articleHtml, message });
+          const page = async (message = null) => P.ownerArticles({ articles: await cf.articles(), html: articleHtml, message, blogOn: wpConfigured(env) });
+          /* RR-344 A1 · an approved article goes to the almiworld.com blog (WordPress) — once; a failure is said, and "Publish" tries again */
+          const publish = async (id) => {
+            const a = (await cf.articles()).find((x) => x.id === id);
+            if (!a || a.status !== "approved") return "Not published — only an approved article is published.";
+            if (a.body?.published?.link) return `Already on the blog: ${a.body.published.link}`;
+            if (!wpConfigured(env)) return `Approved — not published: the blog is not connected yet (${WP_KEYS.user} and ${WP_KEYS.password} in Vercel, then deploy).`;
+            const r = await publishToWordPress({ env, fetchImpl: wpFetch ?? fetch, article: a, html: articleHtml(a.body), tagName: ARTICLE_PRODUCTS.find((p) => p.key === a.product)?.name ?? null });
+            if (!r.ok) return `Approved — not published: ${r.why}. Press "Publish on the blog" to try again.`;
+            await cf.markPublished(a.id, { id: r.id, link: r.link, on: new Date(now()).toISOString().slice(0, 10) });
+            return `Approved and published on the blog: ${r.link}`;
+          };
           if (req.method === "GET" && u.pathname === "/owner/articles") return send(200, await page(), undefined, priv);
           if (req.method === "POST" && u.pathname === "/owner/articles/decide") {
             const f = form();
             if (!["approve", "reject", "reopen"].includes(f.action)) return send(400, await page("No such action. Nothing was changed."), undefined, priv);
             const r = await cf.decideArticle(String(f.id ?? ""), { action: f.action, at: new Date(now()).toISOString() });
+            if (r.ok && f.action === "approve") return send(200, await page(await publish(String(f.id ?? ""))), undefined, priv);
             return send(r.ok ? 200 : 400, await page(r.ok ? `Saved: ${r.status}.` : r.why), undefined, priv);
           }
+          if (req.method === "POST" && u.pathname === "/owner/articles/publish") return send(200, await page(await publish(String(form().id ?? ""))), undefined, priv);
         }
         /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
         if (u.pathname.startsWith("/owner/countries")) {

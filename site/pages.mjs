@@ -22,6 +22,7 @@ import { FINDER, SOURCE_LINE, periodWords, rangeOf } from "./kw-finder.mjs";
 import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.mjs";
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
+import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
@@ -326,6 +327,10 @@ const HEADER_WORDS = Object.freeze({ "strict-transport-security": "Browsers are 
 /* RR-325 (owner, 25 Oct) · while a score is being checked: a moving meter (the gauge sweeps, a bar runs, the seconds count); the button is
  * turned off so a second click cannot use a second score. The result then fills the gauge to the real score. Served as /score.js (the
  * page's Content-Security-Policy allows scripts from the site itself only); without it the form works as before. */
+/* RR-344 · the Copy buttons on the owner's pages (the Content-Security-Policy allows the site's own scripts only) */
+export const COPY_JS = `document.addEventListener("click", function (e) { var b = e.target.closest("[data-copy]"); if (!b) return; var t = document.getElementById(b.getAttribute("data-copy")); if (!t) return; t.select();
+  var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 2000); };
+  if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(done, function () { document.execCommand("copy"); done(); }); else { document.execCommand("copy"); done(); } });`;
 export const SCORE_JS = `(function () {
   /* RR-326: the keyword finder's button, once */
   var k = document.querySelector("form.kwform");
@@ -484,7 +489,7 @@ export function ownerMenu(here, s = null) {
   return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")}</nav>${line}`;
 }
 /* RR-334 · the article drafts for every AlmiWorld product — nothing is published from here; the owner's word is kept */
-export function ownerArticles({ articles = [], html = (d) => "", message = null } = {}) {
+export function ownerArticles({ articles = [], html = (d) => "", message = null, blogOn = false } = {}) {
   const word = { draft: "waits for you", approved: "approved by you", rejected: "rejected by you" };
   /* RR-335: F40's state of each draft — the page-law checks, then the AI judge's two verdicts (with their cost); a draft not judged waits */
   const qWord = { PASS: "quality PASS", FAIL: "quality FAIL", WAITING: "waiting for the AI judge" };
@@ -493,12 +498,16 @@ export function ownerArticles({ articles = [], html = (d) => "", message = null 
     return `<details class="fact"><summary><b>${esc(a.title)}</b> · ${esc(a.product)} · ${a.kind === "intro" ? "introduction, pros and cons" : "a question answered"} · <span class="chip">${esc(word[a.status] ?? a.status)}</span> · <span class="chip">${esc(qWord[q.state])}</span></summary>${qLine(q)}
 <p class="fine">Outline: ${(d.outline ?? []).map(esc).join(" → ")}</p><p class="fine">Sources (${srcs.length}): ${srcs.map((s) => `<a href="${esc(s.url)}" rel="nofollow">${esc(s.title || s.url)}</a> (read ${esc(s.on ?? "")})`).join("; ") || "—"}</p>
 ${d.dropped?.length ? `<p class="fine">Left out (not found on an official page): ${d.dropped.map((x) => `${esc(x.heading)} — ${esc(x.why)}`).join("; ")}</p>` : ""}${html(d)}
-<form method="post" action="/owner/articles/decide" class="row"><input type="hidden" name="id" value="${esc(a.id)}">${a.status !== "approved" ? '<button class="pill" name="action" value="approve">Approve</button>' : ""} ${a.status !== "rejected" ? '<button class="pill ghost" name="action" value="reject">Reject</button>' : ""} ${a.status !== "draft" ? '<button class="pill ghost" name="action" value="reopen">Back to draft</button>' : ""}</form></details>`; };
+<form method="post" action="/owner/articles/decide" class="row"><input type="hidden" name="id" value="${esc(a.id)}">${a.status !== "approved" ? '<button class="pill" name="action" value="approve">Approve</button>' : ""} ${a.status !== "rejected" ? '<button class="pill ghost" name="action" value="reject">Reject</button>' : ""} ${a.status !== "draft" ? '<button class="pill ghost" name="action" value="reopen">Back to draft</button>' : ""}</form>${a.status === "approved" ? blogBox(a) : ""}</details>`; };
+  /* RR-344 A1+A2 · an approved article: on the blog (its link, and the LinkedIn and Facebook posts to copy) — or the button that publishes it */
+  const blogBox = (a) => { const p = a.body?.published;
+    if (!p?.link) return `<form method="post" action="/owner/articles/publish" class="row"><input type="hidden" name="id" value="${esc(a.id)}"><button class="pill alt" type="submit">Publish on the blog</button></form>${blogOn ? "" : `<p class="fine">The blog is not connected yet: ${esc(WP_KEYS.user)} and ${esc(WP_KEYS.password)} in Vercel, then deploy.</p>`}`;
+    return `<p class="ok" data-published>On the blog: <a href="${esc(p.link)}">${esc(p.link)}</a> (${esc(p.on ?? "")})</p>${socialPosts({ article: a, link: p.link }).map((s, i) => `<p><b>${esc(s.network)}</b> <button class="pill ghost" type="button" data-copy="post-${esc(a.id)}-${i}">Copy</button></p><textarea id="post-${esc(a.id)}-${i}" readonly rows="4" style="width:100%">${esc(s.text)}</textarea>`).join("")}<p class="fine">Copy each post and put it on LinkedIn and Facebook yourself — Visibility does not post for you.</p>`; };
   const waiting = articles.filter((a) => a.status === "draft").length;
   const qs = articles.map((a) => articleQuality(a.body, a.body?.judged)), judgedQ = qs.filter((q) => q.judgements), spent = judgedQ.reduce((s, q) => s + Number(q.usd ?? 0), 0);
   const quality = `<p>Quality (F40): ${qs.filter((q) => q.state === "PASS").length} pass · <b>${qs.filter((q) => q.state === "WAITING").length} waiting for the AI judge</b> · ${qs.filter((q) => q.state === "FAIL").length} fail · AI judge cost ${judgedQ.length ? `$${(spent / judgedQ.length).toFixed(4)} a page ($${spent.toFixed(4)} for ${judgedQ.length})` : "none yet"} — judged inside the daily AI cap, at most ${ARTICLES_JUDGED_PER_DAY} a day.</p>`;
   return ownerFrame("Articles", `${PHONE_CSS}${ownerMenu("articles")}<h1>Articles — drafts</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}${quality}
-<p>${articles.length} drafts for AlmiWorld's products · ${waiting} wait for you. Each hard fact was read on its official page (its words and every number there); general guidance is labelled and states no number. <b>Nothing is published from here</b> — publishing comes with almiworld.com's blog and AlmiVisibility's own site.</p>${articles.map(one).join("") || "<p>No draft yet — the collector writes them in its daily step, once a day (by the day's last run at the latest).</p>"}`);
+<p>${articles.length} drafts for AlmiWorld's products · ${waiting} wait for you. Each hard fact was read on its official page (its words and every number there); general guidance is labelled and states no number. <b>Nothing is published until you approve it</b> — your Approve publishes it on the almiworld.com blog${blogOn ? "" : " (once the blog is connected)"}.</p>${articles.map(one).join("") || "<p>No draft yet — the collector writes them in its daily step, once a day (by the day's last run at the latest).</p>"}<script src="/copy.js" defer></script>`);
 }
 /* RR-331 · ONE table of every country (the queue's order), open: each cell its value or count and the day it was found or checked */
 const shortDay = (d) => (d ? String(d).slice(0, 10) : "");
@@ -546,7 +555,7 @@ function launchBox(rows = [], portal = null, pressed = false) {
 <div class="tablewrap"><table class="t"><tr><th>Variable</th><th>For</th><th>State</th></tr>${rows.map((r) => `<tr><td><code>${esc(r.name)}</code></td><td>${esc(r.use)}</td><td>${state(r)}</td></tr>`).join("")}</table></div>
 <form method="post" action="/owner/portal#portal" data-portal><p class="fine">“Manage or cancel my plan” needs AlmiVisibility's OWN Stripe portal (the account's default portal is shared by every AlmiWorld product and is never changed). One press makes it with the Stripe key already in Vercel; pressing again makes nothing new.</p><button class="pill ghost" type="submit">Create Manage-plan portal</button></form>${portalLine}</details>`;
 }
-export function ownerPage({ launch = [], connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null, portal = null, portalPressed = false } = {}) {
+export function ownerPage({ launch = [], connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null, portal = null, portalPressed = false, article = null } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
   const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · every 30 days" : k === "youtube" ? "YouTube niche · every 60 days · Google Search volumes, not YouTube's numbers" : "category · every 60 days"; };
   /* RR-326 H: Google's own reason and message for the last refusal */
@@ -564,6 +573,7 @@ export function ownerPage({ launch = [], connected = false, missing = [], dbOn =
 <h2>By country</h2><div class="tablewrap"><table class="t"><tr><th>Country</th><th>Keywords</th><th>Today</th></tr>${[...counts.locations].sort((x, y) => (x.location === "ALL" ? -1 : y.location === "ALL" ? 1 : String(lname[x.location] ?? x.location).localeCompare(String(lname[y.location] ?? y.location)))).map((l) => `<tr><td>${esc(lname[l.location] ?? l.location)}</td><td>${l.keywords.toLocaleString("en-US")}</td><td>${l.today.toLocaleString("en-US")}</td></tr>`).join("") || '<tr><td colspan="3">Nothing collected yet.</td></tr>'}</table></div>` : "";
   /* RR-329 E: the numbers first; every heavy table is closed until tapped (a phone on weak internet) */
   return ownerFrame("Owner", `${PHONE_CSS}${ownerMenu("keywords", arguments[0]?.summary ?? null)}<h1>Owner</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+${article ? `<p class="card" data-today-article="${esc(article.state)}"><b>Today's article:</b> ${article.link ? `published: <a href="${esc(article.link)}">${esc(article.link)}</a>` : esc(article.line)}${article.state === "ready" ? ` · <a href="/owner/articles">Open the articles</a>` : ""}</p>` : ""}
 ${statusHtml(status)}
 ${launchBox(launch, portal, portalPressed)}
 <p class="row"><a class="pill" href="/owner/countries">Country facts</a> <a class="pill ghost" href="#queue">The queue</a></p>

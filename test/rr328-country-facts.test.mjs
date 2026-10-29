@@ -71,7 +71,7 @@ test("A · RR-328: every one of AlmiWorld's 197 countries has its ISO 4217 curre
 
 /* ── B · the five parts and the collector's checks ──────────────────────────────────────────────────────────────────────────── */
 const fact = (country, part, key, value, extra = {}) => ({ key, country, profession: null, part, kind: part, value, sourceUrl: `https://${part}.example/${country.toLowerCase().replace(/\W+/g, "-")}`, sourceTitle: `Invented ${part}`, readOn: ON, status: "confirmed", by: "collector", aiWritten: false, proposedBy: "official", why: null, ...extra });
-const wholeCouncils = (country) => CF_PROFESSIONS.map((p) => fact(country, "councils", `council|${country}|${p}`, { name: `Invented Council of ${p}`, website: "https://council.example", address: "1 Invented Road, Islamabad 44000" }, { profession: p }));
+const wholeCouncils = (country) => CF_PROFESSIONS.map((p) => fact(country, "councils", `council|${country}|${p}`, { name: `Invented Council of ${p}`, website: "https://council.example.org", address: "1 Invented Road, Islamabad 44000", siteCheck: "read" /* RR-343: its website read */ }, { profession: p }));
 const FULL = (c) => [fact(c, "fee", `fee|${c}`, { official: "AUD 587", line: "AUD 587 — about 114,200 PKR (…)", local: true }), fact(c, "questions", `question|${c}|fees`, { question: "oet fee", answer: "OET costs …" }), fact(c, "centres", `centres|${c}`, { venue: true }), ...wholeCouncils(c), fact(c, "rules", `rule|${c}|x|1`, { rule: "A rule." })];
 
 test("B · RR-328: a country has all five parts only when each is filled by a fact a page may show; councils are whole only with name, website and address for EVERY profession; the grid counts", () => {
@@ -80,8 +80,10 @@ test("B · RR-328: a country has all five parts only when each is filled by a fa
   /* RR-332 (owner, 27 Oct): the councils part is filled by the nursing AND medicine councils — REPLACES "every profession"; the others
    * add country × profession pages and keep being searched */
   assert.deepEqual(partsOf("Pakistan", minusAddr).missing, [], "pharmacy incomplete: the country is still done");
-  const minusNursing = FULL("Pakistan").map((f) => (f.profession === "nursing" ? { ...f, value: { ...f.value, address: null } } : f));
-  const q = partsOf("Pakistan", minusNursing); assert.deepEqual(q.missing, ["councils"]); assert.match(q.parts.councils.missing[0], /^the nursing council is not whole yet \(name, website, address\) — found but incomplete; 1 of 12 professions still searched: nursing$/);
+  /* RR-343 (owner, 29 Oct 2026): found = the official name + the official website — the address is optional; no website: not found */
+  assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.profession === "nursing" ? { ...f, value: { ...f.value, address: null } } : f))).missing, [], "nursing without an address: found");
+  const minusNursing = FULL("Pakistan").map((f) => (f.profession === "nursing" ? { ...f, value: { ...f.value, website: null } } : f));
+  const q = partsOf("Pakistan", minusNursing); assert.deepEqual(q.missing, ["councils"]); assert.match(q.parts.councils.missing[0], /^the nursing council is not found yet \(official name and website\) — a name was found, its official website not confirmed yet; 1 of 12 professions still searched: nursing$/);
   assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.part === "rules" ? { ...f, status: "unconfirmed" } : f))).missing, ["rules"], "an unconfirmed fact counts for nothing");
   assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.part === "fee" ? { ...f, value: { ...f.value, local: false } } : f))).missing, ["fee"]);
   assert.deepEqual(partsOf("Pakistan", FULL("Pakistan").map((f) => (f.part === "rules" ? { ...f, status: "edited" } : f))).missing, [], "the owner's own version counts");
@@ -167,7 +169,7 @@ for (const [name, make] of KW_STORES) {
 const SUBJECT = { name: "OET", site: "https://oet.example" };
 const rssOf = (r) => `<rss>${Object.entries(r).map(([c, v]) => `<item><cb:targetCurrency>${c}</cb:targetCurrency><cb:value>${v}</cb:value><cb:period>${ON}</cb:period></item>`).join("")}</rss>`;
 const slugP = (p) => p.replace(/\W+/g, "");
-const PK_HOST = (p) => `https://pk-${slugP(p)}.example`;
+const PK_HOST = (p) => `https://pk-${slugP(p)}.org`; // RR-343: a council's own domain (an .org)
 function oetWorld({ vetPageAddress = true } = {}) {
   const pages = {
     "https://oet.example/test/oet-test-at-home": { title: "OET@Home", text: "Test fee: AUD $587. OET@Home is offered in countries where a test venue is not yet available." },
@@ -177,7 +179,7 @@ function oetWorld({ vetPageAddress = true } = {}) {
     "https://pnc.gov.pk/verification": { title: "Verification", text: "Verification. The applicant must submit a request for verification of registration to the council with the fee and the documents listed below." },
   };
   for (const p of CF_PROFESSIONS) pages[`${PK_HOST(p)}/contact`] = { title: `Contact — Pakistan Council of ${p}`, text: `Pakistan Council of ${p}. ${p === "veterinary science" && !vetPageAddress ? "Write to us." : "10 Invented Avenue, Islamabad 44000."}` };
-  pages["https://in-nursing.example/contact"] = { title: "Contact", text: "Invented Indian Nursing Council, 2 Invented Marg, New Delhi 110001." };
+  pages["https://in-nursing.org/contact"] = { title: "Contact", text: "Invented Indian Nursing Council, 2 Invented Marg, New Delhi 110001." };
   pages["https://in-medicine.example/about"] = { title: "About", text: "Something else entirely." };
   const raws = { "https://www.rba.gov.au/rss/rss-cb-exchange-rates.xml": rssOf({ USD: "0.6600", INR: "55.10", PHP: "37.20" }), [OPEN_RATES.url]: JSON.stringify(OPEN_JSON) };
   let n = 0;
@@ -189,7 +191,7 @@ function standInAi() {
     const country = /^Country: ([^.]+)\./.exec(prompt)?.[1] ?? /people in ([A-Z][\w ]+) search/.exec(prompt)?.[1] ?? /Groups of searches from ([A-Z][\w ]+) \(/.exec(prompt)?.[1];
     const kind = schema.properties.councils ? "councils" : schema.properties.rules ? "rules" : schema.properties.engaging ? "judge" : "answers"; calls.push({ kind, country, search }); // RR-335: the AI judge of an article draft
     if (kind === "councils") return { ok: true, usd: 0.4, searches: 3, data: { councils: country === "Pakistan" ? CF_PROFESSIONS.map((p) => ({ profession: p, name: `Pakistan Council of ${p}`, website: PK_HOST(p), address: "10 Invented Avenue, Islamabad 44000", sourceUrl: `${PK_HOST(p)}/contact` }))
-      : country === "India" ? [{ profession: "nursing", name: "Invented Indian Nursing Council", website: "https://in-nursing.example", address: "2 Invented Marg, New Delhi 110001", sourceUrl: "https://in-nursing.example/contact" }, { profession: "Doctors", name: "Invented Medical Commission", website: "https://in-medicine.example", address: "3 Invented Road, New Delhi 110002", sourceUrl: "https://in-medicine.example/about" }]
+      : country === "India" ? [{ profession: "nursing", name: "Invented Indian Nursing Council", website: "https://in-nursing.org", address: "2 Invented Marg, New Delhi 110001", sourceUrl: "https://in-nursing.org/contact" }, { profession: "Doctors", name: "Invented Medical Commission", website: "https://in-medicine.example", address: "3 Invented Road, New Delhi 110002", sourceUrl: "https://in-medicine.example/about" }]
       : [{ profession: "nursing", name: "Invented Board of Nursing", website: "https://board.example", address: "4 Invented St, Manila 1000", sourceUrl: "https://someones-blog.example/boards" }] } };
     if (kind === "rules") return { ok: true, usd: 0.3, searches: 2, data: { rules: country === "Pakistan" ? [{ kind: "verification", rule: "Nurses ask their council for a verification of registration first.", quote: "The applicant must submit a request for verification of registration to the council", sourceUrl: "https://pnc.gov.pk/verification" }] : [{ kind: "documents", rule: "Documents are attested first.", quote: "All documents must be attested by the ministry before submission", sourceUrl: "https://pnc.gov.pk/verification" }] } };
     const groups = [...prompt.matchAll(/^- ([a-z ]+): /gm)].map((m) => m[1]);
@@ -226,14 +228,14 @@ test("D · RR-328: one run for Pakistan, India and the Philippines — the fee i
   /* councils: all 12 for Pakistan confirmed with their address; India — one on its page, one whose name is not there; the Philippines' page is not official */
   assert.equal(facts.filter((f) => f.country === "Pakistan" && f.part === "councils" && f.status === "confirmed" && f.value.address).length, 12);
   assert.equal((await store.fact("council|India|medicine")).status, "unconfirmed"); assert.match((await store.fact("council|India|medicine")).why, /the name is not on its source page/);
-  assert.equal((await store.fact("council|Philippines|nursing")).status, "unconfirmed"); assert.match((await store.fact("council|Philippines|nursing")).why, /yours, to verify — its official site could not be read from our server/); // RR-333: the owner's own council (PRC) comes first and stays unconfirmed until its own page is read
+  assert.equal((await store.fact("council|Philippines|nursing")).status, "approved"); assert.match((await store.fact("council|Philippines|nursing")).why, /^your own council — counted by your word \(RR-343\)/); // RR-343 (owner, 29 Oct): his own council (PRC) counts by his word, unread
   /* rules: the quoted words on the government's page → confirmed; words that are not there → unconfirmed */
   assert.equal((await store.fact("rule|Pakistan|verification|1")).status, "confirmed");
   assert.equal(facts.find((f) => f.country === "India" && f.part === "rules" && f.proposedBy === "ai").status, "unconfirmed");
   const cov = coverageOf(facts, { countries: ["Pakistan", "India", "Philippines"] });
   assert.ok(cov.rows[1].missing.includes("councils"), "India: two councils, one unconfirmed");
   assert.equal(cov.rows[0].complete, true, "Pakistan: all five parts");
-  assert.ok(cov.rows[2].missing.includes("councils") && !cov.rows[2].missing.includes("centres"), "the Philippines: at home with the nearest venue, councils missing");
+  assert.ok(!cov.rows[2].missing.includes("councils") && !cov.rows[2].missing.includes("centres"), "the Philippines: at home with the nearest venue; councils filled by the owner's own PRC (nursing and medicine, RR-343)");
   assert.ok(r.aiUsd > 0 && r.reads > 0); assert.deepEqual(await store.spend(ON), { aiUsd: r.aiUsd, reads: r.reads, searches: r.searches });
   /* the app receives Pakistan whole — and no unconfirmed fact */
   const pk = countryPacket("Pakistan", facts); assert.equal(pk.complete, true); assert.ok(!pk.questions.some((q) => /9 years/.test(q.value.answer)));

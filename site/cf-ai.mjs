@@ -25,7 +25,7 @@ export const costOf = (u) => (Number(u?.input_tokens ?? 0) + Number(u?.cache_cre
 export async function askAi({ env = process.env, fetchImpl = fetch, base = CF_AI.origin, system, prompt, schema, search = false, maxTokens = 8000, timeoutMs = 150000 }) {
   if (!aiConfigured(env)) return { ok: false, why: "ANTHROPIC_API_KEY is not set in Vercel yet.", usd: 0, searches: 0 };
   const messages = [{ role: "user", content: prompt }];
-  let usd = 0, searches = 0;
+  let usd = 0, searches = 0; const results = [];
   for (let turn = 0; turn < 4; turn++) {
     let r, body;
     try {
@@ -34,12 +34,14 @@ export async function askAi({ env = process.env, fetchImpl = fetch, base = CF_AI
       body = await r.json().catch(() => null);
     } catch (e) { return { ok: false, why: e?.name === "TimeoutError" ? "the AI did not answer in time" : "the AI could not be reached", usd, searches }; }
     usd += costOf(body?.usage); searches += Number(body?.usage?.server_tool_use?.web_search_requests ?? 0);
+    /* RR-343: the search results' addresses and titles (a council's site that does not open from abroad is confirmed by them) */
+    for (const b of body?.content ?? []) if (b?.type === "web_search_tool_result" && Array.isArray(b.content)) for (const x of b.content) if (x?.type === "web_search_result" && x.url) results.push({ url: String(x.url), title: String(x.title ?? "") });
     if (!r.ok) return { ok: false, why: `the AI answered ${r.status}${body?.error?.type ? ` (${body.error.type})` : ""}`, usd, searches };
     if (body?.stop_reason === "refusal") return { ok: false, why: "the AI declined this question", usd, searches };
     /* a long search may pause its turn: send its work back and let it go on */
     if (body?.stop_reason === "pause_turn") { messages.push({ role: "assistant", content: body.content }); continue; }
     const text = (body?.content ?? []).filter((b) => b?.type === "text").map((b) => b.text).join("").trim();
-    try { return { ok: true, data: JSON.parse(text), usd, searches, callId: body?.id ?? null }; } catch { return { ok: false, why: "the AI's answer could not be read", usd, searches }; }
+    try { return { ok: true, data: JSON.parse(text), usd, searches, results, callId: body?.id ?? null }; } catch { return { ok: false, why: "the AI's answer could not be read", usd, searches }; }
   }
   return { ok: false, why: "the AI's search did not finish", usd, searches };
 }

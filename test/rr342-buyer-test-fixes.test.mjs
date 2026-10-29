@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHmac, generateKeyPairSync } from "node:crypto";
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,6 +24,7 @@ import { memoryStore, packMonths, unpackMonths, RETAIN } from "../site/kw-store.
 import { FINDER } from "../site/kw-finder.mjs";
 import { CF_COLLECTOR, datesShareOf } from "../site/cf-collector.mjs";
 import { readSigning, signArgs, signFile, findSigntool, TIMESTAMP } from "../desktop/sign.mjs";
+import { setSigningKey, prepare } from "../site/owner-set-signing-key.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const pair = () => { const k = generateKeyPairSync("ed25519"); return { PRIV: k.privateKey.export({ type: "pkcs8", format: "pem" }), PUB: k.publicKey.export({ type: "spki", format: "pem" }) }; };
@@ -113,6 +114,41 @@ test("RR-342 · /owner Launch settings: 'set' is not enough — a key the site c
   assert.match(html, /<code>LICENCE_SIGNING_KEY<\/code><\/td><td>[^<]*<\/td><td><span class="err">set, but/);
   assert.ok(!html.includes(K.PUB.split("\n")[1]), "a key reached the page");
   assert.match(pemOf("abc\\ndef"), /^-----BEGIN PRIVATE KEY-----\nabcdef\n-----END PRIVATE KEY-----\n$/);
+});
+
+test("RR-342 follow-up · the loader reads a key made by make-signing-keys.mjs in every paste shape — CRLF written out, invisible characters too", () => {
+  const dir = mkdtempSync(join(tmpdir(), "rr342-keys-")), k = join(dir, "k");
+  try {
+    spawnSync(process.execPath, [join(REPO, "tools", "make-signing-keys.mjs"), k]);
+    const priv = readFileSync(join(k, "licence-private.pem"), "utf8"), pub = readFileSync(join(k, "licence-public.pem"), "utf8");
+    const shapes = [priv, priv.replace(/\n/g, "\r\n"), priv.replace(/\n/g, ""), priv.replace(/\n/g, " "), priv.trim().replace(/\n/g, "\\n"), priv.trim().replace(/\n/g, "\\r\\n"), priv.replace("-----\n", "-----\n​"), `﻿${priv}`, `"${priv.trim()}"`];
+    shapes.forEach((v, i) => assert.equal(signingKeyState({ LICENCE_SIGNING_KEY: v, LICENCE_PUBLIC_KEY: pub }).ok, true, `shape ${i}`));
+    assert.equal(signingKeyState({ LICENCE_SIGNING_KEY: pub, LICENCE_PUBLIC_KEY: pub }).ok, false, "a public key passed as the signing key");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("RR-342 follow-up · the owner's tool: checks the pair, then hands the key to Vercel on STDIN as one line; never prints it", () => {
+  const dir = mkdtempSync(join(tmpdir(), "rr342-set-")), k = join(dir, "k"), siteDir = join(dir, "site");
+  try {
+    spawnSync(process.execPath, [join(REPO, "tools", "make-signing-keys.mjs"), k]);
+    mkdirSync(join(siteDir, ".vercel"), { recursive: true });
+    const priv = readFileSync(join(k, "licence-private.pem"), "utf8"), calls = [], lines = [];
+    const code = setSigningKey({ keysDir: k, siteDir, run: (cwd, args, input = "") => { calls.push({ cwd, args, input }); return 0; }, log: (l) => lines.push(l) });
+    assert.equal(code, 0, lines.join("\n"));
+    assert.deepEqual(calls.map((c) => c.args), [["env", "rm", "LICENCE_SIGNING_KEY", "production", "--yes"], ["env", "add", "LICENCE_SIGNING_KEY", "production", "--sensitive"]]);
+    const sent = calls[1].input.trimEnd();
+    assert.ok(!sent.includes("\n") && !sent.includes("\r"), "the key went with line breaks");
+    assert.equal(signingKeyState({ LICENCE_SIGNING_KEY: sent, LICENCE_PUBLIC_KEY: readFileSync(join(k, "licence-public.pem"), "utf8") }).ok, true, "the site cannot read what the tool sends");
+    const body = priv.split("\n")[1];
+    assert.ok(lines.every((l) => !l.includes(body) && !l.includes("BEGIN")), "the key reached the output");
+    assert.ok(calls.every((c) => c.cwd === siteDir && !c.args.join(" ").includes(body)), "the key reached a command line");
+    /* a wrong pair: refused, nothing sent to Vercel */
+    writeFileSync(join(k, "licence-public.pem"), generateKeyPairSync("ed25519").publicKey.export({ type: "spki", format: "pem" }));
+    calls.length = 0;
+    assert.equal(setSigningKey({ keysDir: k, siteDir, run: (cwd, args, input) => { calls.push(args); return 0; }, log: (l) => lines.push(l) }), 2);
+    assert.equal(calls.length, 0); assert.match(lines.at(-1), /not the pair of licence-public\.pem/);
+    assert.equal(prepare({ privText: "nope", pubText: "nope" }).ok, false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("RR-342 · the Manage-plan portal: its state read-only beside the button; the answer to a press stays there and the page opens on it", async () => {

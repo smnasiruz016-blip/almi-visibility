@@ -69,11 +69,13 @@ export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed, isSet]
  * RR-342 (owner's live test: /v1/licence answered 500 to every check since the sales deploy) · the signing key as Vercel holds it: a pasted PEM
  * whose line breaks became "\n" or spaces, or a bare body, is put back into PEM form. Whether it can be read — and is the pair of
  * LICENCE_PUBLIC_KEY — is said in words only; the key is never shown, logged or measured.
+ * RR-342 follow-up (owner: still "cannot read it" after two careful pastes; a throwaway key made by tools/make-signing-keys.mjs failed the
+ * loader only when Windows' CRLF had been written out as "\r\n" or an invisible character sat inside): the body keeps base64 characters only.
  */
 export function pemOf(v, kind = "PRIVATE KEY") {
-  const t = String(v ?? "").trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n").trim();
+  const t = String(v ?? "").replace(/[​-‍⁠﻿]/g, "").trim().replace(/^["']|["']$/g, "").replace(/\\r/g, "").replace(/\\n/g, "\n").trim();
   if (!t) return null;
-  const m = /-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/.exec(t), label = m ? m[1] : kind, body = (m ? m[2] : t).replace(/\s+/g, "");
+  const m = /-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/.exec(t), label = m ? m[1] : kind, body = (m ? m[2] : t).replace(/[^A-Za-z0-9+/=]/g, "");
   return `-----BEGIN ${label}-----\n${(body.match(/.{1,64}/g) ?? []).join("\n")}\n-----END ${label}-----\n`;
 }
 export function signingKeyState(env) {

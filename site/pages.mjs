@@ -23,7 +23,7 @@ import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.m
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
-import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS } from "./home-sales.mjs"; // RR-347: YouTube at the top
+import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, downloadHero, DOWNLOAD } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
 import { TITLE_TOOL } from "./title-check.mjs"; // RR-347 ADD-2: the free title checker
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
@@ -301,7 +301,7 @@ export const download = ({ setupAvailable = false, sales = false, storeUrl = nul
   body: `<section class="hero"><div class="wrap"><p class="eyebrow">Download</p><h1>AlmiVisibility for Windows</h1>
 <p class="lead">${storeUrl ? "Get it from the Microsoft Store: one click installs it, and the Store keeps it up to date." : "Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop."}</p>
 <div class="cta">${storeUrl ? `<a class="pill big" href="${esc(storeUrl)}" rel="noopener" data-store>Get it from the Microsoft Store</a>` : setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
-${sales ? IMG.download : ""}
+${sales ? `<p class="small" data-update-line><b>${esc(DOWNLOAD.update.replace("download it here", "download it above"))}</b></p>${IMG.download}` : ""}
 <p class="small">Windows 10 or 11. Your data stays on your own computer.${storeUrl ? "</p>" : ` The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway”.</p>`}</div></section>
 ${section("paper", `<h2>After you install</h2>${cardList([
   ["Add your product", "Your company, your product and its website."],
@@ -378,15 +378,16 @@ ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 ${scoreOn && ticket ? form : off}</div>`;
 }
-export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {} } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
+export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, download = "/download" } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
   title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
-  description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+  description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   body: `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
 ${sales ? `<h1>${esc(MARKETING.headline)}</h1>
 <p class="lead">${esc(HERO.sub)}</p>
 <p class="small">${esc(MARKETING.data)} Your site score is free — no card, no email.</p>
 <div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a></div>
+${downloadHero(download)}
 ${aiMap()}` : `<h1>Get the score of your site</h1>
 <p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>`}
 <p class="small">${esc(NO_PROMISE)}</p></div>

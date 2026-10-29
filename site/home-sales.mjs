@@ -14,6 +14,7 @@
  *     Approve or by itself once every check passes (the client's choice). The app runs on the client's Windows computer.
  * No ranking, traffic, views or citation is promised anywhere.
  */
+import { PLATFORMS, PLATFORM_NAME, CAPTION_TOOL, platformOf } from "./title-check.mjs"; // RR-348
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 export const HERO = Object.freeze({
@@ -28,23 +29,30 @@ export const ENGINES = Object.freeze([
   { name: "Claude", mark: "Cl", shape: "round", does: "AI search check" },
   { name: "Perplexity", mark: "P", shape: "square", does: "AI search check" },
   { name: "YouTube", mark: "▶", shape: "diamond", does: "Channel advice" },
+  /* RR-348 (owner): TikTok and Instagram in the strip — our own marks (a note, a lens), never their logos; what they are today: the free checker */
+  { name: "TikTok", mark: "♪", shape: "round", does: "Caption checker" },
+  { name: "Instagram", mark: "◎", shape: "square", does: "Caption checker" },
 ].map(Object.freeze));
 export const TRADEMARKS = "Names are trademarks of their owners; AlmiVisibility is not affiliated with them.";
 
-/* three engines above the hub, three below: a 3 × 3 grid with no gaps, so the node centres sit at 1/6, 3/6 and 5/6 of each side and
- * the lines (an SVG stretched over the grid) meet them at any width — on a phone too */
+/* four engines above the hub, four below: a 4 × 3 grid with no gaps, so the node centres sit at 1/8, 3/8, 5/8 and 7/8 across and 1/6,
+ * 5/6 down, and the lines (an SVG stretched over the grid) meet them at any width — on a phone too */
 export function aiMap() {
   const node = (e) => `<li class="ai-node"><span class="ai-ic ${e.shape}" aria-hidden="true">${esc(e.mark)}</span><b>${esc(e.name)}</b><small>${esc(e.does)}</small></li>`;
-  const ends = [[1, 1], [3, 1], [5, 1], [1, 5], [3, 5], [5, 5]];
-  return `<div class="aimap" data-ai-map><svg class="ai-lines" viewBox="0 0 6 6" preserveAspectRatio="none" aria-hidden="true">${ends.map(([x, y]) => `<line x1="${x}" y1="${y}" x2="3" y2="3" vector-effect="non-scaling-stroke"/>`).join("")}</svg>
-<ul aria-label="Where AlmiVisibility works">${ENGINES.slice(0, 3).map(node).join("")}<li class="ai-hub"><span>AlmiVisibility</span></li>${ENGINES.slice(3).map(node).join("")}</ul></div>
+  const half = ENGINES.length / 2, ends = [...[1, 3, 5, 7].map((x) => [x, 1]), ...[1, 3, 5, 7].map((x) => [x, 5])];
+  return `<div class="aimap" data-ai-map><svg class="ai-lines" viewBox="0 0 8 6" preserveAspectRatio="none" aria-hidden="true">${ends.map(([x, y]) => `<line x1="${x}" y1="${y}" x2="4" y2="3" vector-effect="non-scaling-stroke"/>`).join("")}</svg>
+<ul aria-label="Where AlmiVisibility works">${ENGINES.slice(0, half).map(node).join("")}<li class="ai-hub"><span>AlmiVisibility</span></li>${ENGINES.slice(half).map(node).join("")}</ul></div>
 <p class="fine ai-tm">${esc(TRADEMARKS)}</p>`;
 }
 
 export const YT = Object.freeze({
-  heading: "Finally: SEO for your YouTube channel. Not just your website.",
+  /* RR-348 ADD (owner, 29 Oct 2026): the section line now names all three; was "Finally: SEO for your YouTube channel. Not just your website." */
+  heading: "SEO for YouTube, TikTok & Instagram — not just your website.",
+  eyebrow: "YouTube · TikTok · Instagram",
   /* the owner's line, with "hashtags" for "tags": the app suggests hashtags, not the hidden tags field */
-  sub: "Titles that get clicked. Hashtags that get found. Video ideas your audience is already searching for.",
+  sub: "Titles and captions that get clicked. Hashtags that get found. Video ideas your audience is already searching for.",
+  /* honest about today: the checker does all three now; the app's TikTok and Instagram part comes with its next update (RR-348 b) */
+  social: "TikTok and Instagram: the free caption checker works now. In the app, TikTok and Instagram come with the next update.",
   example: Object.freeze({ before: "my morning routine vlog", after: "My 5 AM Morning Routine in Iceland — What I Never Skip" }),
   cards: Object.freeze([
     { title: "Better titles & hashtags", line: "For each video: three ready titles with the main words first, a description and three relevant hashtags — each saying what it is based on." },
@@ -55,36 +63,60 @@ export const YT = Object.freeze({
   fine: "Uses your own free YouTube key and YouTube's official API. Nothing changes on YouTube unless you switch on “Apply to YouTube”. No views or growth are promised.",
 });
 /* RR-347 ADD-2 · the free title checker (site/title-check.mjs): the form, then the gauge, the checks, the AI titles and the offer */
-export const TOOL = Object.freeze({ heading: "Free YouTube title checker", label: "Paste your video title", topicLabel: "What is the video about? (optional, one line)", button: "Check my title",
+/* RR-348 · one checker, three tabs (YouTube the default). The tabs are radio buttons styled as tabs — no script (the site's policy runs
+ * none inline); the words that change with the tab are shown by CSS :has() */
+export const TOOL = Object.freeze({ heading: "Free title & caption checker", topicLabel: "What is the video about? (optional, one line)",
+  per: Object.freeze({
+    youtube: Object.freeze({ label: "Paste your video title", button: "Check my title", placeholder: "my morning routine vlog" }),
+    tiktok: Object.freeze({ label: "Paste your TikTok caption", button: "Check my caption", placeholder: "my morning routine #fyp" }),
+    instagram: Object.freeze({ label: "Paste your Instagram caption", button: "Check my caption", placeholder: "my morning routine #reels" }),
+  }),
   offer: "Want this for every video — plus hashtags, ideas and channel advice? Get AlmiVisibility for $30/month →" });
+const per = (k) => PLATFORMS.map((p) => `<span class="for-${p}">${esc(TOOL.per[p][k])}</span>`).join("");
 export function titleTool({ on = false, ticket = null, values = {}, error = null, result = null, left = null, buyHref = "/pricing", gauge = null, guidance = "", perDay = 5 } = {}) {
+  const chosen = platformOf(result?.platform ?? values.platform);
+  const tabs = `<fieldset class="tt-tabs"><legend>Platform</legend>${PLATFORMS.map((p) => `<input type="radio" name="platform" id="tt-p-${p}" value="${p}"${p === chosen ? " checked" : ""}><label for="tt-p-${p}" class="tab-${p}">${esc(PLATFORM_NAME[p])}</label>`).join("")}</fieldset>`;
   const form = on && ticket ? `<form class="tt-form" method="post" action="/title-check#title-check"><input type="hidden" name="ticket" value="${esc(ticket)}">
 <div class="hp" aria-hidden="true"><label>Leave this empty <input name="homepage" tabindex="-1" autocomplete="off"></label></div>
-<label class="tt-l" for="tt-title">${esc(TOOL.label)}</label><input id="tt-title" name="title" type="text" maxlength="150" required autocomplete="off" placeholder="my morning routine vlog" value="${esc(values.title ?? "")}">
+${tabs}
+<label class="tt-l" for="tt-title">${per("label")}</label><textarea id="tt-title" name="title" rows="3" maxlength="${CAPTION_TOOL.maxCaption}" required autocomplete="off" placeholder="${esc(TOOL.per[chosen].placeholder)}">${esc(values.title ?? "")}</textarea>
 <label class="tt-l" for="tt-topic">${esc(TOOL.topicLabel)}</label><input id="tt-topic" name="topic" type="text" maxlength="120" autocomplete="off" placeholder="a calm 5 AM routine before work" value="${esc(values.topic ?? "")}">
-<button class="pill big yt" type="submit">${esc(TOOL.button)}</button><p class="tt-fine">Free: ${perDay} checks a day. Your title is not stored.</p></form>`
-    : `<p class="tt-fine" role="status">The free title checker is being switched on. Please come back soon.</p>`;
+<button class="pill big yt" type="submit">${per("button")}</button><p class="tt-fine">Free: ${perDay} checks a day across the three tabs. What you paste is not stored.</p></form>`
+    : `<p class="tt-fine" role="status">The free title and caption checker is being switched on. Please come back soon.</p>`;
   const err = error ? `<p class="tt-err" role="alert">${esc(error)}</p>` : "";
   let out = "";
   if (result) {
-    const c = result.check, ai = result.ai;
+    const c = result.check, ai = result.ai, yt = chosen === "youtube", what = yt ? "title" : "caption";
     const list = c.checks.map((x) => `<li class="${x.ok === true ? "ok" : x.ok === false ? "no" : "nm"}"><span aria-hidden="true">${x.ok === true ? "✓" : x.ok === false ? "✗" : "–"}</span><div><b>${esc(x.label)}</b><p>${esc(x.line)}</p></div></li>`).join("");
-    const aiPart = ai.state === "ok" ? `<h3>3 better titles</h3><ol class="tt-better">${ai.titles.map((t, i) => `<li><input id="tt-s${i}" class="tt-copyin" type="text" readonly value="${esc(t.title)}" aria-label="Suggested title ${i + 1}"><button class="tt-copy" type="button" data-copy="tt-s${i}">Copy</button><p>${esc(t.why)}</p></li>`).join("")}</ol><p class="tt-fine">Written by AI from your title and topic only. A [bracket] is a detail only you know — fill it in.</p>`
+    const box = (t, i) => (yt ? `<input id="tt-s${i}" class="tt-copyin" type="text" readonly value="${esc(t.title)}" aria-label="Suggested title ${i + 1}">`
+      : `<textarea id="tt-s${i}" class="tt-copyin" rows="4" readonly aria-label="Suggested caption ${i + 1}">${esc(t.title)}</textarea>`);
+    const aiPart = ai.state === "ok" ? `<h3>3 better ${what}s</h3><ol class="tt-better">${ai.titles.map((t, i) => `<li>${box(t, i)}<button class="tt-copy" type="button" data-copy="tt-s${i}">Copy</button><p>${esc(t.why)}</p></li>`).join("")}</ol><p class="tt-fine">Written by AI from your ${what} and topic only. A [bracket] is a detail only you know — fill it in.</p>`
       : `<p class="tt-busy" role="status">${esc(ai.line)}</p>`;
-    out = `<div class="tt-result" data-title-result><p class="tt-for">Your title: <b>${esc(result.title)}</b></p><div class="tt-top">${gauge ? gauge(c.score) : ""}<ul class="tt-checks">${list}</ul></div>
-<p class="tt-fine">${esc(guidance)}${left !== null && left !== undefined ? ` · ${left} free check${left === 1 ? "" : "s"} left today.` : ""}</p>${aiPart}
+    out = `<div class="tt-result" data-title-result data-platform="${chosen}"><p class="tt-for">Your ${esc(PLATFORM_NAME[chosen])} ${what}: <b>${esc(result.title)}</b></p><div class="tt-top">${gauge ? gauge(c.score) : ""}<ul class="tt-checks">${list}</ul></div>
+<p class="tt-fine">${esc(yt ? guidance : CAPTION_TOOL.guidance(chosen))}${left !== null && left !== undefined ? ` · ${left} free check${left === 1 ? "" : "s"} left today.` : ""}</p>${aiPart}
 <p class="tt-offer"><a href="${esc(buyHref)}" data-buy>${esc(TOOL.offer)}</a></p></div>`;
   }
   return `<div class="tt" id="title-check" data-title-check><h3 class="tt-h">${esc(TOOL.heading)}</h3>${err}${form}${out}</div>`;
 }
 export function youtubeBand(buyHref, tool = {}) {
   return `<section class="ytband" data-youtube><div class="wrap">
-<div class="yt-head"><span class="yt-play" aria-hidden="true"><i></i></span><div><p class="yt-eyebrow">YouTube</p><h2>${esc(YT.heading)}</h2><p class="yt-sub">${esc(YT.sub)}</p></div></div>
+<div class="yt-head"><span class="yt-play" aria-hidden="true"><i></i></span><div><p class="yt-eyebrow">${esc(YT.eyebrow)}</p><h2>${esc(YT.heading)}</h2><p class="yt-sub">${esc(YT.sub)}</p></div></div>
 ${titleTool({ ...tool, buyHref })}
 <div class="yt-ba" data-example><span class="yt-tag">Example</span><p><small>Before</small><s>${esc(YT.example.before)}</s></p><p class="yt-arrow" aria-hidden="true">→</p><p><small>After</small><b>${esc(YT.example.after)}</b></p></div>
 <ul class="yt-cards">${YT.cards.map((c, i) => `<li><div class="yt-thumb t${i + 1}" aria-hidden="true"><span>▶</span></div><h3>${esc(c.title)}</h3><p>${esc(c.line)}</p></li>`).join("")}</ul>
 <p class="yt-cta"><a class="pill big yt" href="${esc(buyHref)}" data-buy>${esc(YT.cta)}</a></p>
-<p class="yt-fine">${esc(YT.fine)}</p></div></section>`;
+<p class="yt-fine">${esc(YT.fine)}</p><p class="yt-fine">${esc(YT.social)}</p></div></section>`;
+}
+
+/* RR-348 (owner): the Download button high on the home, right under the hero's buttons — visible without scrolling on a desktop, near the
+ * top on a phone. `href` is the Store, or the LATEST Setup (/download/AlmiVisibility-Setup.exe → VISIBILITY_SETUP_URL, GitHub's
+ * releases/latest), or the Download page. Older copies (1.14 and before) cannot check today's licence: the line under it says to update. */
+export const DOWNLOAD = Object.freeze({ button: "Download the app here", os: "Windows 10 & 11 · always the latest version",
+  update: "Using an older AlmiVisibility (1.14 or earlier)? Please update to the latest version — download it here and install it over the old one. Your data stays." });
+export function downloadHero(href = "/download") {
+  const setup = href.startsWith("/download/");
+  return `<div class="dl-hero" data-download-hero><a class="pill big dl" href="${esc(href)}"${setup ? " download" : ""}${href.startsWith("https://") ? ' rel="noopener"' : ""}><span aria-hidden="true">⬇</span> ${esc(DOWNLOAD.button)}</a><span class="dl-os">${esc(DOWNLOAD.os)}</span></div>
+<p class="dl-update"><a href="${esc(href)}"${setup ? " download" : ""}>${esc(DOWNLOAD.update)}</a></p>`;
 }
 
 export const DAYS = Object.freeze({
@@ -124,8 +156,11 @@ export function faqSection() {
 }
 
 export const HOME_CSS = `<style>
-.aimap{position:relative;margin:28px 0 0;max-width:520px}
-.aimap ul{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:0;margin:0;padding:0;list-style:none}
+.dl-hero{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0 0}
+.pill.dl{background:#1A1A2E;color:#FFFFFF;border:2px solid #1A1A2E;font-weight:700} .pill.dl:hover{background:#2E2E4A} .pill.dl span{margin-right:8px}
+.dl-os{font-size:14px;color:var(--muted);font-weight:600} .dl-update{margin:8px 0 0;font-size:13px} .dl-update a{color:var(--coralDeep)}
+.aimap{position:relative;margin:28px 0 0;max-width:600px}
+.aimap ul{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:0;margin:0;padding:0;list-style:none}
 .ai-lines{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible} .ai-lines line{stroke:var(--sunrise);stroke-width:2;stroke-dasharray:5 5;opacity:.75}
 .ai-node{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px 4px}
 .ai-node b{display:block;margin-top:4px;font-size:14px;line-height:1.2;color:var(--ink);background:var(--cream);padding:0 4px;border-radius:6px} .ai-node small{font-size:12px;color:var(--muted);background:var(--cream);padding:0 4px;border-radius:6px}
@@ -159,8 +194,15 @@ export const HOME_CSS = `<style>
 .yt-fine{margin:14px auto 0;max-width:640px;text-align:center;font-size:13px;color:#A9A9B3}
 .tt{margin:32px 0 0;padding:24px;border-radius:18px;background:#15151C;border:1px solid #2A2A33;max-width:860px}
 .tt-h{margin:0 0 12px;color:#FFFFFF;font-size:22px} .tt-l{display:block;margin:12px 0 6px;font-size:14px;font-weight:600;color:#FFFFFF}
-.tt input[type=text]{width:100%;min-height:52px;padding:12px 16px;border-radius:12px;border:2px solid #3A3A46;background:#0B0B0F;color:#FFFFFF;font:inherit;font-size:17px}
-.tt input[type=text]:focus{outline:3px solid #F4A340;outline-offset:1px;border-color:#F4A340} .tt input::placeholder{color:#8E8E99}
+.tt input[type=text],.tt textarea{display:block;width:100%;min-height:52px;padding:12px 16px;border-radius:12px;border:2px solid #3A3A46;background:#0B0B0F;color:#FFFFFF;font:inherit;font-size:17px;resize:vertical}
+.tt input[type=text]:focus,.tt textarea:focus{outline:3px solid #F4A340;outline-offset:1px;border-color:#F4A340} .tt input::placeholder,.tt textarea::placeholder{color:#8E8E99}
+.tt-tabs{display:flex;gap:8px;margin:0 0 4px;padding:0;border:0;flex-wrap:wrap} .tt-tabs legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.tt-tabs input{position:absolute;opacity:0;width:1px;height:1px} .tt-tabs label{display:inline-flex;align-items:center;min-height:44px;padding:8px 18px;border-radius:999px;border:2px solid #3A3A46;color:#C9C9D1;font-weight:700;cursor:pointer}
+.tt-tabs input:checked+label{background:#FFFFFF;border-color:#FFFFFF;color:#0B0B0F} .tt-tabs input:focus-visible+label{outline:3px solid #F4A340;outline-offset:2px}
+.tt-tabs input#tt-p-youtube:checked+label{background:#E02424;border-color:#E02424;color:#FFFFFF} .tt-tabs input#tt-p-tiktok:checked+label{background:#25F4EE;border-color:#25F4EE;color:#0B0B0F} .tt-tabs input#tt-p-instagram:checked+label{background:#F4A340;border-color:#F4A340;color:#0B0B0F}
+.tt-form .for-tiktok,.tt-form .for-instagram{display:none} .tt-form:has(#tt-p-tiktok:checked) .for-youtube,.tt-form:has(#tt-p-instagram:checked) .for-youtube{display:none}
+.tt-form:has(#tt-p-tiktok:checked) .for-tiktok,.tt-form:has(#tt-p-instagram:checked) .for-instagram{display:inline}
+.tt-copyin{white-space:pre-wrap}
 .tt-form .pill{margin-top:16px} .tt-fine{margin:10px 0 0;font-size:13px;color:#A9A9B3} .tt-err{margin:0 0 8px;color:#FF9B8F;font-weight:600} .tt-busy{margin:16px 0 0;color:#F4C15A;font-weight:600}
 .tt-result{margin-top:22px;padding-top:20px;border-top:1px solid #2A2A33} .tt-for{margin:0 0 12px;color:#C9C9D1;overflow-wrap:anywhere} .tt-for b{color:#FFFFFF}
 .tt-top{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start}
@@ -182,5 +224,5 @@ export const HOME_CSS = `<style>
 @media (max-width:820px){.tt-top{grid-template-columns:1fr} .tt{padding:18px} .yt-head{flex-direction:column;align-items:flex-start;gap:18px} .yt-cards,.days{grid-template-columns:1fr} .yt-ba{grid-template-columns:1fr} .yt-arrow{transform:rotate(90deg);justify-self:start} .ytband{padding:56px 0}}
 @media (max-width:480px){.yt-play{width:72px;height:72px} .yt-play i{border-width:14px 0 14px 23px;margin-left:5px} .ai-ic{width:34px;height:34px;font-size:14px} .ai-node b{font-size:13px} .ai-node small{font-size:11px} .yt-ba b{font-size:17px} .yt-cards li:hover{box-shadow:0 0 12px rgba(224,36,36,.2)}}
 @media (prefers-reduced-motion:reduce){.yt-play{animation:none} .yt-cards li{transition:none} .yt-cards li:hover{transform:none}}
-@media (prefers-color-scheme:dark){.ai-node b,.ai-node small{background:#14110D} .ai-ic,.ai-hub span{color:#1A1A2E} .ai-ic.round{background:#FFE8D6} .days li{background:var(--white)}}
+@media (prefers-color-scheme:dark){.pill.dl{background:#FFFFFF;color:#1A1A2E;border-color:#FFFFFF} .pill.dl:hover{background:#FFE8D6} .ai-node b,.ai-node small{background:#14110D} .ai-ic,.ai-hub span{color:#1A1A2E} .ai-ic.round{background:#FFE8D6} .days li{background:var(--white)}}
 </style>`;

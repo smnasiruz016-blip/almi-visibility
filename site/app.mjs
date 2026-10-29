@@ -43,7 +43,7 @@ import { DATE_TESTS, NO_DATES, upcoming } from "../desktop/test-dates.mjs"; // R
 import { daysOf } from "./health.mjs"; // RR-331
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
-import { TITLE_TOOL, TITLE_COUNTS, checkTitle, titleInput, betterTitles } from "./title-check.mjs"; // RR-347 ADD-2
+import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -355,7 +355,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } }
     if (finderOn()) { try { finderTicket = await limits.ticket(); } catch { finderTicket = null; } }
     let titleTicket = null; if (titleLimits) { try { titleTicket = await titleLimits.ticket(); } catch { titleTicket = null; } }
-    return P.liteHome({ sales, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
+    /* RR-348 (owner): the Download button high on the home — the Store once it is set, else the latest Setup (VISIBILITY_SETUP_URL), else the page */
+    const download = storeUrlOf(env) ?? (httpsUrl(env[SITE_KEY_NAMES.setupUrl]) ? "/download/AlmiVisibility-Setup.exe" : "/download");
+    return P.liteHome({ sales, download, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
   };
   const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download"] : [])];
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
@@ -416,15 +418,15 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       }
       /* RR-347 ADD-2 · the free YouTube title checker (sales home only): the checks always; the AI titles inside the tool's daily dollar cap */
       if (sales && req.method === "POST" && u.pathname === "/title-check") {
-        const f = form(), inp = titleInput(f), values = { title: inp.title, topic: inp.topic };
+        const f = form(), inp = captionInput(f), values = { title: inp.title, topic: inp.topic, platform: inp.platform }; // RR-348: YouTube · TikTok · Instagram
         const again = async (code, error) => send(code, await home(req, { title: { error, values } }), undefined, { "cache-control": "no-store" });
         if (!titleLimits) return again(503, "The free title checker is being switched on. Please come back soon.");
         if (f.homepage) return again(400, "Please use the form on this page.");
         const tk = await titleLimits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
         if (!inp.ok) return again(400, inp.why);
         const take = owner(req) ? { ok: true, left: null } : await titleLimits.take(who(req)); if (!take.ok) return again(429, take.why);
-        const ai = await betterTitles({ title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });
-        return send(200, await home(req, { title: { result: { title: inp.title, check: checkTitle(inp.title, inp.topic), ai }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
+        const ai = await betterCaptions({ platform: inp.platform, title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });
+        return send(200, await home(req, { title: { result: { platform: inp.platform, title: inp.title, check: checkCaption(inp.platform, inp.title, inp.topic), ai }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
       }
       /* RR-326 C · the keyword finder */
       if (req.method === "POST" && u.pathname === "/keywords") {

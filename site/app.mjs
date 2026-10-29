@@ -44,6 +44,7 @@ import { daysOf } from "./health.mjs"; // RR-331
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
+import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -93,6 +94,9 @@ export function signingKeyState(env) {
 const SECURITY = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", "x-frame-options": "SAMEORIGIN", "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'self'" };
 const PRIVATE = { "x-robots-tag": "noindex, nofollow", "cache-control": "no-store" };
 const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
+/* RR-348 owner change: the sales home's pictures — the app's own main screen (demo data) and the brands' official icons (BRAND_ICONS) */
+export const SITE_MEDIA = Object.freeze({ "/img/app-home.jpg": { file: "img/app-home.jpg", type: "image/jpeg" },
+  ...Object.fromEntries(Object.values(BRAND_ICONS).map((b) => [`/img/brands/${b.file}`, { file: `img/brands/${b.file}`, type: b.file.endsWith(".svg") ? "image/svg+xml" : "image/png" }])) });
 
 /** Build the handler. `dataDir` holds the LOCAL store (local runs only); `setupFile` is a local Setup the Download button serves. */
 /** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
@@ -396,7 +400,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       const u = new URL(req.url, "http://127.0.0.1");
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
       const form = () => (/json/.test(req.headers["content-type"] ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
-      if (req.method === "GET" && u.pathname === "/") return send(200, await home(req), undefined, { "cache-control": "no-store" });
+      /* RR-348: /?tab=tiktok (or instagram) opens the checker on that tab — the NEW band's and the TikTok + Instagram band's links */
+      if (req.method === "GET" && u.pathname === "/") return send(200, await home(req, u.searchParams.has("tab") ? { title: { values: { platform: u.searchParams.get("tab") } } } : {}), undefined, { "cache-control": "no-store" });
+      /* RR-348 owner change: the home's pictures — a FIXED list, files from site/img only (no path from the request reaches the disk) */
+      if (req.method === "GET" && sales && SITE_MEDIA[u.pathname]) return send(200, readFileSync(join(HERE, SITE_MEDIA[u.pathname].file)), SITE_MEDIA[u.pathname].type, { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });

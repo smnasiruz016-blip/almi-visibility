@@ -23,22 +23,36 @@ export const HERO = Object.freeze({
 });
 /* what each engine is to the app — the small line under its name */
 export const ENGINES = Object.freeze([
-  { name: "ChatGPT", mark: "C", shape: "round", does: "AI search check" },
-  { name: "Google", mark: "G", shape: "square", does: "Search data" },
-  { name: "Gemini", mark: "Ge", shape: "diamond", does: "Writes, your key" },
-  { name: "Claude", mark: "Cl", shape: "round", does: "AI search check" },
-  { name: "Perplexity", mark: "P", shape: "square", does: "AI search check" },
-  { name: "YouTube", mark: "▶", shape: "diamond", does: "Channel advice" },
-  /* RR-348 (owner): TikTok and Instagram in the strip — our own marks (a note, a lens), never their logos; what they are today: the free checker */
-  { name: "TikTok", mark: "♪", shape: "round", does: "Caption checker" },
-  { name: "Instagram", mark: "◎", shape: "square", does: "Caption checker" },
+  { name: "ChatGPT", does: "AI search check" },
+  { name: "Google", does: "Search data" },
+  { name: "Gemini", does: "Writes, your key" },
+  { name: "Claude", does: "AI search check" },
+  { name: "Perplexity", does: "AI search check" },
+  { name: "YouTube", does: "Channel advice" },
+  /* RR-348 (owner): TikTok and Instagram in the strip; what they are today: the free checker. RR-348 owner change: the official icons
+   * (BRAND_ICONS) replaced our own letter marks */
+  { name: "TikTok", does: "Caption checker" },
+  { name: "Instagram", does: "Caption checker" },
 ].map(Object.freeze));
-export const TRADEMARKS = "Names are trademarks of their owners; AlmiVisibility is not affiliated with them.";
+export const TRADEMARKS = "Names and logos are trademarks of their owners; AlmiVisibility is not affiliated with them.";
+/* RR-348 OWNER CHANGE point 2 · the official icons — only where the company's own brand kit allows this use (a third-party page listing
+ * what it works with), shown as given. Read on 29 Oct 2026: Google ("Don't use the Google G in marketing materials for a business") and
+ * Gemini (an approved Partner Marketing Hub account) forbid it; TikTok ("prior written permission"), OpenAI ("without permission"),
+ * Anthropic (approved beforehand) and Perplexity (request access) need permission first; Instagram's download needs its terms accepted
+ * and its rules keep other networks out of the same spot; YouTube allows its icon for API attribution only at the brand site's minimum
+ * size. So until the owner has the permissions, every brand shows its NAME in text (the owner's rule for a brand without an icon).
+ * A permitted icon goes here as { Name: { file } } with the file in site/img/brands. */
+export const BRAND_ICONS = Object.freeze({});
+export function brandIcon(name, size = 40) {
+  const b = BRAND_ICONS[name];
+  return b ? `<img class="bi" src="/img/brands/${b.file}" width="${size}" height="${size}" alt="" loading="lazy">` : `<span class="bi-text">${esc(name)}</span>`;
+}
 
 /* four engines above the hub, four below: a 4 × 3 grid with no gaps, so the node centres sit at 1/8, 3/8, 5/8 and 7/8 across and 1/6,
  * 5/6 down, and the lines (an SVG stretched over the grid) meet them at any width — on a phone too */
 export function aiMap() {
-  const node = (e) => `<li class="ai-node"><span class="ai-ic ${e.shape}" aria-hidden="true">${esc(e.mark)}</span><b>${esc(e.name)}</b><small>${esc(e.does)}</small></li>`;
+  const node = (e) => (BRAND_ICONS[e.name] ? `<li class="ai-node"><span class="ai-logo" aria-hidden="true">${brandIcon(e.name, 40)}</span><b>${esc(e.name)}</b><small>${esc(e.does)}</small></li>`
+    : `<li class="ai-node"><b class="ai-name">${esc(e.name)}</b><small>${esc(e.does)}</small></li>`);
   const half = ENGINES.length / 2, ends = [...[1, 3, 5, 7].map((x) => [x, 1]), ...[1, 3, 5, 7].map((x) => [x, 5])];
   return `<div class="aimap" data-ai-map><svg class="ai-lines" viewBox="0 0 8 6" preserveAspectRatio="none" aria-hidden="true">${ends.map(([x, y]) => `<line x1="${x}" y1="${y}" x2="4" y2="3" vector-effect="non-scaling-stroke"/>`).join("")}</svg>
 <ul aria-label="Where AlmiVisibility works">${ENGINES.slice(0, half).map(node).join("")}<li class="ai-hub"><span>AlmiVisibility</span></li>${ENGINES.slice(half).map(node).join("")}</ul></div>
@@ -51,8 +65,6 @@ export const YT = Object.freeze({
   eyebrow: "YouTube · TikTok · Instagram",
   /* the owner's line, with "hashtags" for "tags": the app suggests hashtags, not the hidden tags field */
   sub: "Titles and captions that get clicked. Hashtags that get found. Video ideas your audience is already searching for.",
-  /* honest about today: the checker does all three now; the app's TikTok and Instagram part comes with its next update (RR-348 b) */
-  social: "TikTok and Instagram: the free caption checker works now. In the app, TikTok and Instagram come with the next update.",
   example: Object.freeze({ before: "my morning routine vlog", after: "My 5 AM Morning Routine in Iceland — What I Never Skip" }),
   cards: Object.freeze([
     { title: "Better titles & hashtags", line: "For each video: three ready titles with the main words first, a description and three relevant hashtags — each saying what it is based on." },
@@ -105,7 +117,52 @@ ${titleTool({ ...tool, buyHref })}
 <div class="yt-ba" data-example><span class="yt-tag">Example</span><p><small>Before</small><s>${esc(YT.example.before)}</s></p><p class="yt-arrow" aria-hidden="true">→</p><p><small>After</small><b>${esc(YT.example.after)}</b></p></div>
 <ul class="yt-cards">${YT.cards.map((c, i) => `<li><div class="yt-thumb t${i + 1}" aria-hidden="true"><span>▶</span></div><h3>${esc(c.title)}</h3><p>${esc(c.line)}</p></li>`).join("")}</ul>
 <p class="yt-cta"><a class="pill big yt" href="${esc(buyHref)}" data-buy>${esc(YT.cta)}</a></p>
-<p class="yt-fine">${esc(YT.fine)}</p><p class="yt-fine">${esc(YT.social)}</p></div></section>`;
+<p class="yt-fine">${esc(YT.fine)}</p></div></section>`; // RR-348 ADD: the honest TikTok/Instagram line now sits in their own band (SOCIAL.honest)
+}
+
+/* ── RR-348 OWNER CHANGE (29 Oct 2026) · the hero: the words on the left; on the right a REAL screenshot of the app's main screen ("Your
+ * products" + "What would you like to do now?", made with demo data: a test key pair, a demo company, no real key or person) with the
+ * Download button directly under it. On a phone the picture and the button come right after the heading. ── */
+export const APP_SHOT = Object.freeze({ src: "/img/app-home.jpg", width: 1600, height: 1216, alt: "The AlmiVisibility app on Windows: “Your products” with a website, a YouTube channel and a shop, and “What would you like to do now?” (demo data)" });
+export function salesHero({ headline, sub, data, noPromise, buyHref, buyLabel, download = "/download" }) {
+  return `<section class="hero shero"><div class="wrap sh-grid">
+<div class="sh-text"><p class="eyebrow">AlmiVisibility · by AlmiWorld</p><h1>${esc(headline)}</h1><p class="lead">${esc(sub)}</p></div>
+<div class="sh-media" data-app-shot><figure class="sh-shot"><img src="${APP_SHOT.src}" width="${APP_SHOT.width}" height="${APP_SHOT.height}" alt="${esc(APP_SHOT.alt)}" fetchpriority="high"></figure>${downloadHero(download)}</div>
+<div class="sh-act"><p class="small">${esc(data)} Your site score is free — no card, no email.</p>
+<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${esc(buyHref)}" data-buy>${esc(buyLabel)}</a></div>
+<p class="small">${esc(noPromise)}</p></div></div></section>`;
+}
+
+/* ── RR-348 OWNER CHANGE point 3 · the NEW band, high on the page: the two icons, the owner's line, a link to the checker's TikTok tab ── */
+export const NEW_BAND = Object.freeze({ tag: "NEW", line: "Now you can do SEO for TikTok and Instagram too.", sub: "Captions, hooks and hashtags checked and rewritten — free checker below.", href: "/?tab=tiktok#title-check", go: "Try it free →" });
+export function newBand() {
+  return `<section class="newband" data-new-band><div class="wrap nb-row"><span class="nb-icons" aria-hidden="true">${brandIcon("TikTok", 40)}${brandIcon("Instagram", 40)}</span>
+<p class="nb-text"><b class="nb-tag">${esc(NEW_BAND.tag)}</b> <strong>${esc(NEW_BAND.line)}</strong><span>${esc(NEW_BAND.sub)}</span></p><a class="pill nb-go" href="${NEW_BAND.href}">${esc(NEW_BAND.go)}</a></div></section>`;
+}
+
+/* ── RR-348 ADD · the TikTok + Instagram section, built like the YouTube one, right after it ── */
+export const SOCIAL = Object.freeze({
+  eyebrow: "TikTok · Instagram",
+  heading: "Now you can do SEO for TikTok and Instagram too.",
+  sub: "Hooks that stop the scroll. Captions that get found. Hashtags that fit your video.",
+  example: Object.freeze({ before: "cooking today #fyp #viral #foryou", after: "3-ingredient chicken karahi in 15 minutes 🔥 Save this for dinner tonight! #karahi #easyrecipes #pakistanifood" }),
+  /* the three mini screens: what the checker and the app give, each marked Example */
+  cards: Object.freeze([
+    Object.freeze({ title: "Hook + caption", screen: [["Hook", "3 ingredients. 15 minutes. Dinner done."], ["Caption", "Chicken karahi the easy way — save this for tonight!"]] }),
+    Object.freeze({ title: "Hashtag set", screen: [["For this video", "#karahi #easyrecipes #pakistanifood #dinnerideas"]] }),
+    Object.freeze({ title: "Content ideas", screen: [["Next videos", "1 · Karahi vs. handi — which is easier?"], ["", "2 · 5 mistakes that make karahi watery"]] }),
+  ]),
+  check: "Check my caption free →", checkHref: "/?tab=tiktok#title-check", grow: "Grow my TikTok & Instagram →",
+  honest: "The free checker works now. In the app, TikTok and Instagram come with the next update.",
+});
+export function socialBand(buyHref = "/pricing") {
+  const screen = (rows) => rows.map(([k, v]) => `${k ? `<small>${esc(k)}</small>` : ""}<span>${esc(v)}</span>`).join("");
+  return `<section class="soband" data-social><div class="wrap">
+<div class="so-head"><span class="so-icons" aria-hidden="true">${brandIcon("TikTok", 56)}${brandIcon("Instagram", 56)}</span><div><p class="so-eyebrow">${esc(SOCIAL.eyebrow)}</p><h2>${esc(SOCIAL.heading)}</h2><p class="so-sub">${esc(SOCIAL.sub)}</p></div></div>
+<div class="yt-ba so-ba" data-example><span class="yt-tag">Example</span><p><small>Before</small><s>${esc(SOCIAL.example.before)}</s></p><p class="yt-arrow" aria-hidden="true">→</p><p><small>After</small><b>${esc(SOCIAL.example.after)}</b></p></div>
+<ul class="so-cards">${SOCIAL.cards.map((c) => `<li><div class="so-screen" aria-label="Example: ${esc(c.title)}"><i class="so-tag">Example</i>${screen(c.screen)}</div><h3>${esc(c.title)}</h3></li>`).join("")}</ul>
+<p class="so-cta"><a class="pill big so-check" href="${SOCIAL.checkHref}">${esc(SOCIAL.check)}</a><a class="pill big so-grow" href="${esc(buyHref)}" data-buy>${esc(SOCIAL.grow)}</a></p>
+<p class="yt-fine">${esc(SOCIAL.honest)}</p></div></section>`;
 }
 
 /* RR-348 (owner): the Download button high on the home, right under the hero's buttons — visible without scrolling on a desktop, near the
@@ -164,8 +221,38 @@ export const HOME_CSS = `<style>
 .ai-lines{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible} .ai-lines line{stroke:var(--sunrise);stroke-width:2;stroke-dasharray:5 5;opacity:.75}
 .ai-node{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px 4px}
 .ai-node b{display:block;margin-top:4px;font-size:14px;line-height:1.2;color:var(--ink);background:var(--cream);padding:0 4px;border-radius:6px} .ai-node small{font-size:12px;color:var(--muted);background:var(--cream);padding:0 4px;border-radius:6px}
-.ai-ic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;font-weight:700;font-size:16px;color:var(--ink);background:var(--peach);border:2px solid var(--sunrise)}
-.ai-ic.round{border-radius:50%;background:var(--peach)} .ai-ic.square{border-radius:10px;background:#FFF1C9} .ai-ic.diamond{border-radius:12px 2px 12px 2px;background:#FFD9CF}
+.ai-logo{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;background:#FFFFFF;border:1px solid var(--peach);box-shadow:0 2px 8px rgba(26,26,46,.06)}
+.bi{display:block;object-fit:contain}
+.ai-node b.ai-name{display:inline-block;padding:8px 14px;border-radius:999px;background:#FFFFFF;border:2px solid var(--sunrise);font-size:15px;box-shadow:0 2px 8px rgba(26,26,46,.06)}
+.bi-text{display:inline-flex;align-items:center;padding:6px 14px;border-radius:999px;font-weight:800;letter-spacing:.01em;color:#FFFFFF;background:#15151C;border:2px solid #25F4EE;box-shadow:3px 3px 0 #FE2C55}
+.bi-text+.bi-text{border-color:#DD2A7B;box-shadow:3px 3px 0 #F58529}
+/* the sales hero: words | the app picture + Download; on a phone: words, picture + Download, then the buttons */
+.shero .sh-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"text media" "act media";column-gap:48px;align-items:start}
+.sh-text{grid-area:text} .sh-media{grid-area:media} .sh-act{grid-area:act} .shero h1{font-size:clamp(34px,4.4vw,56px)}
+.sh-shot{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--peach);box-shadow:0 18px 48px rgba(26,26,46,.18);background:#FFFFFF}
+.sh-shot img{display:block;width:100%;height:auto}
+.sh-media .dl-hero{margin-top:18px} .sh-media .pill.dl{font-size:20px;padding:16px 30px}
+.newband{background:linear-gradient(90deg,#0B0B0F,#1B1030);color:#FFFFFF;padding:18px 0}
+.nb-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap} .nb-icons{display:inline-flex;gap:10px} .nb-icons .bi,.so-icons .bi{border-radius:10px;background:#FFFFFF;padding:4px}
+.nb-text{margin:0;flex:1 1 320px;font-size:19px;line-height:1.35} .nb-text strong{color:#FFFFFF} .nb-text span{display:block;font-size:15px;color:#D9D9E3}
+.nb-tag{display:inline-block;margin-right:6px;padding:2px 10px;border-radius:999px;background:#FE2C55;color:#FFFFFF;font-size:13px;letter-spacing:.08em}
+.newband .pill.nb-go{background:#25F4EE;color:#0B0B0F;font-weight:700}
+.soband{position:relative;overflow:hidden;background:#0B0B0F;color:#C9C9D1;padding:72px 0}
+.soband::before{content:"";position:absolute;right:-120px;top:-140px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(37,244,238,.18),transparent 70%);pointer-events:none}
+.soband::after{content:"";position:absolute;left:-140px;bottom:-160px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(221,42,123,.26),rgba(129,52,175,.12) 45%,transparent 72%);pointer-events:none}
+.soband .wrap{position:relative;z-index:1} .so-head{display:flex;gap:24px;align-items:center} .so-icons{flex:none;display:inline-flex;gap:12px}
+.so-eyebrow{margin:0 0 8px;font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:linear-gradient(90deg,#25F4EE,#FE2C55,#F58529,#DD2A7B,#8134AF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.soband h2{color:#FFFFFF;text-align:left;font-size:clamp(28px,4vw,44px);line-height:1.12;font-weight:700} .so-sub{margin:12px 0 0;font-size:18px;color:#C9C9D1}
+.so-ba{border-color:#3A2346} .so-ba .yt-tag{background:linear-gradient(90deg,#FE2C55,#DD2A7B);color:#FFFFFF} .so-ba .yt-arrow{color:#25F4EE}
+.so-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:28px 0 0;padding:0;list-style:none}
+.so-cards li{background:#15151C;border:1px solid #2A2A33;border-radius:18px;padding:14px 14px 18px}
+.so-screen{position:relative;display:flex;flex-direction:column;gap:4px;min-height:132px;max-height:150px;overflow:hidden;padding:14px 14px 12px;border-radius:14px;background:#0B0B0F;border:2px solid #2A2A33;box-shadow:inset 0 0 0 1px rgba(37,244,238,.12)}
+.so-screen small{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#25F4EE} .so-screen span{font-size:15px;line-height:1.35;color:#FFFFFF}
+.so-tag{position:absolute;top:8px;right:10px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#F58529}
+.so-cards h3{margin:12px 0 0;color:#FFFFFF;font-size:18px}
+.so-cta{margin:32px 0 0;display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.soband .pill.so-check{background:linear-gradient(90deg,#FE2C55,#DD2A7B);color:#FFFFFF} .soband .pill.so-grow{background:transparent;border:2px solid #25F4EE;color:#FFFFFF}
+.shome .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
 .ai-hub{grid-column:1 / -1;display:flex;align-items:center;justify-content:center;padding:8px 0}
 .ai-hub span{display:inline-block;padding:10px 22px;border-radius:999px;background:linear-gradient(135deg,var(--sunrise),var(--coral));color:var(--ink);font-weight:700;box-shadow:0 6px 18px rgba(244,163,64,.35)}
 .ai-tm{margin-top:8px}
@@ -222,7 +309,8 @@ export const HOME_CSS = `<style>
 .daytag{margin:24px 0 8px;text-align:center;font-size:18px;color:var(--ink)}
 .faq details{border-top:1px solid var(--peach);padding:12px 0} .faq summary{cursor:pointer;font-weight:600;color:var(--ink)} .faq details p{margin:8px 0 0}
 @media (max-width:820px){.tt-top{grid-template-columns:1fr} .tt{padding:18px} .yt-head{flex-direction:column;align-items:flex-start;gap:18px} .yt-cards,.days{grid-template-columns:1fr} .yt-ba{grid-template-columns:1fr} .yt-arrow{transform:rotate(90deg);justify-self:start} .ytband{padding:56px 0}}
-@media (max-width:480px){.yt-play{width:72px;height:72px} .yt-play i{border-width:14px 0 14px 23px;margin-left:5px} .ai-ic{width:34px;height:34px;font-size:14px} .ai-node b{font-size:13px} .ai-node small{font-size:11px} .yt-ba b{font-size:17px} .yt-cards li:hover{box-shadow:0 0 12px rgba(224,36,36,.2)}}
+@media (max-width:820px){.shero .sh-grid{grid-template-columns:1fr;grid-template-areas:"text" "media" "act";row-gap:22px} .shome .sgrid{grid-template-columns:1fr;gap:32px} .so-head{flex-direction:column;align-items:flex-start;gap:16px} .so-cards{grid-template-columns:1fr} .so-screen{min-height:0;max-height:140px} .soband{padding:56px 0} .sh-media .pill.dl{width:100%;justify-content:center}}
+@media (max-width:480px){.yt-play{width:72px;height:72px} .yt-play i{border-width:14px 0 14px 23px;margin-left:5px} .ai-logo{width:46px;height:46px} .ai-logo .bi{width:32px;height:32px} .nb-text{font-size:17px} .ai-node b{font-size:13px} .ai-node small{font-size:11px} .yt-ba b{font-size:17px} .yt-cards li:hover{box-shadow:0 0 12px rgba(224,36,36,.2)}}
 @media (prefers-reduced-motion:reduce){.yt-play{animation:none} .yt-cards li{transition:none} .yt-cards li:hover{transform:none}}
-@media (prefers-color-scheme:dark){.pill.dl{background:#FFFFFF;color:#1A1A2E;border-color:#FFFFFF} .pill.dl:hover{background:#FFE8D6} .ai-node b,.ai-node small{background:#14110D} .ai-ic,.ai-hub span{color:#1A1A2E} .ai-ic.round{background:#FFE8D6} .days li{background:var(--white)}}
+@media (prefers-color-scheme:dark){.pill.dl{background:#FFFFFF;color:#1A1A2E;border-color:#FFFFFF} .pill.dl:hover{background:#FFE8D6} .ai-node b,.ai-node small{background:#14110D} .ai-hub span{color:#1A1A2E} .days li{background:var(--white)}}
 </style>`;

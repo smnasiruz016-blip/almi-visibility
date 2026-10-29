@@ -111,7 +111,11 @@ test("RR-343 · \"Buy now — from $30/month\": the header, the home hero and a 
   assert.match(home, /<div class="cta"><a class="pill big" href="#score">Get my free score<\/a><a class="pill big alt" href="\/pricing" data-buy>Buy now — from \$30\/month<\/a><\/div>/, "the hero");
   const img = home.indexOf("<p class=\"buystrip\""), strip = home.slice(img, home.indexOf("</p>", img) + 4);
   assert.equal(strip, '<p class="buystrip" data-buy-strip>Plans from $30 a month · Every feature in every plan · <a href="/pricing" data-buy>Buy now</a></p>');
-  assert.ok(home.indexOf("<figure") < img && img < home.indexOf("<figure", home.indexOf("<figure") + 1), "under the FIRST home image");
+  /* RR-348 owner change: the hero now shows the app's own screen with Download under it; the strip stays under the first home
+   * illustration after the hero */
+  const first = home.indexOf("<figure", home.indexOf("</section>", home.indexOf('<section class="hero shero"')));
+  assert.ok(home.indexOf("<figure", home.indexOf('<section class="hero shero"')) < home.indexOf("data-download-hero"), "the hero's picture, Download under it");
+  assert.ok(first < img && img < home.indexOf("<figure", first + 1), "under the FIRST home image after the hero");
   assert.match(home, /<h2 id="plans">Simple plans<\/h2>/, "the plans at the bottom stay");
   assert.ok(!/guarantee/i.test(strip + BUY_NOW.label));
   assert.match(frame({ path: "/download", title: "t", description: "d", body: "", lite: "sales" }), /data-buy>Buy now — from \$30\/month<\/a><\/nav>/, "on every sales page");

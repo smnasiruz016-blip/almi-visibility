@@ -23,7 +23,7 @@ import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.m
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
-import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, downloadHero, DOWNLOAD } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
+import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, DOWNLOAD, salesHero, newBand, socialBand } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
 import { TITLE_TOOL } from "./title-check.mjs"; // RR-347 ADD-2: the free title checker
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
@@ -381,18 +381,17 @@ ${scoreOn && ticket ? form : off}</div>`;
 export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, download = "/download" } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
   title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
   description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
-  body: `<section class="hero"><div class="wrap grid2"><div>
+  /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
+   * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
+  body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, noPromise: NO_PROMISE, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}
+<section class="band shome"><div class="wrap sgrid"><div>${aiMap()}</div><div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
+${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${socialBand(BUY_NOW.href)}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>`
+    : `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
-${sales ? `<h1>${esc(MARKETING.headline)}</h1>
-<p class="lead">${esc(HERO.sub)}</p>
-<p class="small">${esc(MARKETING.data)} Your site score is free — no card, no email.</p>
-<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a></div>
-${downloadHero(download)}
-${aiMap()}` : `<h1>Get the score of your site</h1>
-<p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>`}
+<h1>Get the score of your site</h1>
+<p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>
 <p class="small">${esc(NO_PROMISE)}</p></div>
-<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
-${sales ? `${HOME_CSS}${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>` : ""}
+<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>`}
 ${result ? resultDetail(result, left) : ""}
 ${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
 ${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()

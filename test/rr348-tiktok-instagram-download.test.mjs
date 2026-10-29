@@ -40,17 +40,17 @@ test("RR-348 · Instagram: first line before “more”, clear value, keywords, 
   assert.equal(captionInput({ platform: "evil", title: "a" }).platform, "youtube", "an unknown tab is YouTube");
 });
 
-test("RR-348 · the home: the owner's line, TikTok and Instagram in the strip (own marks), three tabs with YouTube checked, Download high", () => {
+test("RR-348 · the home: the owner's line, TikTok and Instagram in the strip, three tabs with YouTube checked, the app picture with Download under it", () => {
   const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t", title: { on: true, ticket: "tt" }, download: "/download/AlmiVisibility-Setup.exe" });
   assert.ok(home.includes("<h2>SEO for YouTube, TikTok &amp; Instagram — not just your website.</h2>") && YT.heading === "SEO for YouTube, TikTok & Instagram — not just your website.");
   assert.ok(ENGINES.some((e) => e.name === "TikTok") && ENGINES.some((e) => e.name === "Instagram"));
-  assert.ok(!/<img[^>]+(tiktok|instagram)/i.test(home), "no logo files");
+  assert.ok(home.includes("Names and logos are trademarks of their owners; AlmiVisibility is not affiliated with them."));
   assert.match(home, /<input type="radio" name="platform" id="tt-p-youtube" value="youtube" checked><label for="tt-p-youtube"[^>]*>YouTube<\/label><input type="radio" name="platform" id="tt-p-tiktok" value="tiktok"><label[^>]*>TikTok<\/label><input type="radio" name="platform" id="tt-p-instagram" value="instagram"><label[^>]*>Instagram<\/label>/);
   assert.ok(home.includes("Free title &amp; caption checker"));
   assert.doesNotMatch(home, /guarantee/i);
   /* the button sits in the hero, right after its two buttons and before the strip — above the score card's end, so at the top */
-  const dl = home.indexOf("data-download-hero"), cta = home.indexOf('<div class="cta">'), map = home.indexOf("data-ai-map");
-  assert.ok(cta < dl && dl < map, "Download sits right under the hero's buttons");
+  const shot = home.indexOf("data-app-shot"), img = home.indexOf("src=\"/img/app-home.jpg\""), dl = home.indexOf("data-download-hero"), nb = home.indexOf("data-new-band");
+  assert.ok(home.indexOf("<section class=\"hero shero\"") < shot && shot < img && img < dl && dl < home.indexOf("class=\"sh-act\"") && dl < nb, "the app picture in the hero, the Download button directly under it");
   assert.match(home, /<a class="pill big dl" href="\/download\/AlmiVisibility-Setup\.exe" download><span aria-hidden="true">⬇<\/span> Download the app here<\/a>/);
   assert.ok(home.includes(DOWNLOAD.update.replace("(", "(")) && /1\.14 or earlier/.test(DOWNLOAD.update));
   assert.ok(home.includes('<a href="/download">Download</a>'), "Download stays in the menu");

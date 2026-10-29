@@ -24,7 +24,9 @@ export function siteFiles() {
     for (const m of text.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+["'](\.{1,2}\/[^"']+)["']/g)) walk(relative(REPO, resolve(REPO, dirname(file), m[1])).replace(/\\/g, "/"));
   };
   walk("site/app.mjs");
-  return [...seen, ...ASSETS].sort();
+  /* RR-348: the home's pictures (site/img: the app screenshot, the brands' icons and where each came from) */
+  const img = (d) => (existsSync(join(REPO, d)) ? readdirSync(join(REPO, d), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? img(`${d}/${e.name}`) : [`${d}/${e.name}`])) : []);
+  return [...seen, ...ASSETS, ...img("site/img")].sort();
 }
 
 export const FUNCTION = `/* RR-303 F · the Vercel function: the same handler the local server runs (site/app.mjs). Keys are read by NAME from the project's environment. */

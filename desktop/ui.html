@@ -239,11 +239,12 @@ async function tour() {
   $("#tourclose").onclick = async () => { await post("/api/tour", {}); t.remove(); };
 }
 /* RR-303 A: the licence key from the page shown after a purchase — saved in the app; never shown back.
-   RR-306 A1: once saved, a clear "Licence saved ✓" and one big next step. */
+   RR-306 A1: once saved, a clear "Licence saved ✓" and one big next step.
+   RR-342: a box that takes any paste (Notepad, PowerShell, a browser); the app keeps only the key itself. */
 async function planScreen() {
   if (!(await here("planScreen"))) return;
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><div class="card"><h2>Your plan</h2><p class="ask">Paste the licence key shown after you bought your plan (it starts with av_) — or the owner licence (it starts with avo_).</p>
-  <label>Licence key<input id="k1" autocomplete="off" spellcheck="false"></label><button id="save">Save</button><div class="err" id="err"></div></div>
+  <label>Licence key<textarea id="k1" rows="3" autocomplete="off" spellcheck="false" autocapitalize="off" style="width:100%;font-family:monospace;word-break:break-all"></textarea></label><button id="save">Save</button><div class="err" id="err"></div></div>
   <div class="card" data-manage-plan><h2>Manage or cancel my plan</h2><p class="ask">Cancel, change your plan or update your card on your own Stripe page. A cancelled plan keeps working until the end of the month you have paid for.</p><button class="ghost" id="manage">Manage or cancel my plan</button><div class="meta" id="mout"></div></div>`;
   $("#home").onclick = home;
   /* RR-340: the site opens THIS licence's Stripe page; the address is shown too, in case no browser opened */

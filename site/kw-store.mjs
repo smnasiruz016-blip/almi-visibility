@@ -11,11 +11,36 @@
  *   kw_fetch_keyword  which keywords a fetch returned (the finder serves a search from it)
  *   kw_group_keyword  which product / category / YouTube niche a keyword was collected for, per location, and its last day
  *   kw_seed_list      the owner's editable seed list (site/kw-seeds.mjs)
+ * RR-342 (owner: "~110 MB a day … the RR-333 fix is not enough"): a keyword's 12 months are stored in the SHORT shape ["2025-11", 120, 90, …]
+ * (the first month, then one figure a month) and handed back to every reader in the old shape {"2025-11": 120, …}; old rows are put in
+ * the short shape a batch at a time (packMonths). prune() drops, past RETAIN.days, the keyword list of a collected fetch (the finder
+ * reuses a fetch for FINDER.reuseDays only) and an observation that a NEWER one on or before the cut-off replaces — the newest figure of
+ * every keyword, and everything of the owner's files, always stay.
  * No personal data: no address, no visitor, no account — only words, places, numbers and dates.
  * Two stores with ONE contract (test/rr326-*.test.mjs runs the same tests on both): pgStore (production; locally on a throwaway Postgres)
  * and memoryStore (the tests in CI, which installs nothing). `pg` is loaded only when the database is used.
  */
 export const DB_NAMES = Object.freeze(["DATABASE_URL", "POSTGRES_URL"]);
+/* RR-342: the clean-up's cut-off (days, more than FINDER.reuseDays) and its batch sizes — one collector run spends at most a quarter of its time here */
+export const RETAIN = Object.freeze({ days: 31, fetches: 50, rows: 10000, batches: 10 });
+const nextMonth = (k) => { const [y, m] = k.split("-").map(Number); return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`; };
+/** RR-342 · {"2025-11": 120, "2025-12": 90} → ["2025-11", 120, 90]; a missing month in between is a null (every stored figure is a number) */
+export function packMonths(m) {
+  if (Array.isArray(m)) return m;
+  if (!m || typeof m !== "object") return null;
+  const ks = Object.keys(m).filter((k) => /^\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
+  if (!ks.length || ks.length !== Object.keys(m).length) return Object.keys(m).length ? m : null; // an unknown shape is kept as it was
+  const out = [ks[0]];
+  for (let k = ks[0]; k <= ks.at(-1); k = nextMonth(k)) out.push(Number.isFinite(m[k]) ? m[k] : null);
+  return out;
+}
+/** RR-342 · the short shape back into the shape every reader knows */
+export function unpackMonths(m) {
+  if (!Array.isArray(m)) return m ?? null;
+  const out = {}; let k = m[0];
+  for (const v of m.slice(1)) { if (v !== null) out[k] = v; k = nextMonth(k); }
+  return Object.keys(out).length ? out : null;
+}
 export const dbUrlOf = (env = process.env) => { for (const n of DB_NAMES) if (/^postgres(ql)?:\/\//.test(env[n] ?? "")) return env[n]; return null; };
 
 export const SCHEMA = `
@@ -53,7 +78,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
           [f.unitId ?? null, f.kind, f.group ?? null, f.seedKey, f.location, f.language, f.day, f.at, f.period ?? null, f.ops, rows.length]);
         if (!ins) return { duplicate: true, stored: 0 };
         if (rows.length) {
-          const k = rows.map((r) => r.keyword), v = rows.map((r) => r.volume), m = rows.map((r) => (r.months ? JSON.stringify(r.months) : null));
+          const k = rows.map((r) => r.keyword), v = rows.map((r) => r.volume), m = rows.map((r) => (r.months ? JSON.stringify(packMonths(r.months)) : null)); // RR-342: the short shape
           await x("INSERT INTO kw_observation (keyword, location, language, day, avg_monthly_searches, months, period, at) SELECT t.k, $4, $5, $6, t.v, t.m::jsonb, $7, $8 FROM unnest($1::text[], $2::bigint[], $3::text[]) AS t(k, v, m) WHERE NOT EXISTS (SELECT 1 FROM (SELECT p.avg_monthly_searches, p.months FROM kw_observation p WHERE p.keyword = t.k AND p.location = $4 AND p.language = $5 AND p.day < $6 ORDER BY p.day DESC LIMIT 1) l WHERE l.avg_monthly_searches IS NOT DISTINCT FROM t.v AND l.months IS NOT DISTINCT FROM t.m::jsonb) ON CONFLICT (keyword, location, language, day) DO UPDATE SET avg_monthly_searches = EXCLUDED.avg_monthly_searches, months = EXCLUDED.months, period = EXCLUDED.period, at = EXCLUDED.at",
             [k, v, m, f.location, f.language, f.day, f.period ?? null, f.at]);
           await x("INSERT INTO kw_fetch_keyword (fetch_id, keyword) SELECT $1, unnest($2::text[]) ON CONFLICT DO NOTHING", [ins.id, k]);
@@ -68,7 +93,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       const [f] = await q("SELECT id, day::text AS day, period, at::text AS at FROM kw_fetch WHERE seed_key = $1 AND location = $2 AND language = $3 AND day >= $4 ORDER BY day DESC LIMIT 1", [seedKey, location, language, since]);
       if (!f) return null;
       const rows = await q("SELECT o.keyword, o.avg_monthly_searches::text AS volume, o.months FROM kw_fetch_keyword fk JOIN LATERAL (SELECT * FROM kw_observation x WHERE x.keyword = fk.keyword AND x.location = $2 AND x.language = $3 AND x.day <= $4 ORDER BY x.day DESC LIMIT 1) o ON true WHERE fk.fetch_id = $1 ORDER BY o.avg_monthly_searches DESC NULLS LAST, o.keyword", [f.id, location, language, f.day]);
-      return { day: f.day, period: f.period, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
+      return { day: f.day, period: f.period, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: unpackMonths(r.months) })) };
     },
     /* RR-326 I · the owner's Keyword Planner files (kw-import.mjs) */
     /** was this file (its bytes' key) stored already — with any country or day? */
@@ -84,7 +109,24 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       if (!res.length) return null;
       const rows = await q(`SELECT * FROM (SELECT DISTINCT ON (o.keyword) o.keyword, o.avg_monthly_searches::text AS volume, o.months, o.day::text AS day, o.period FROM kw_observation o JOIN kw_fetch_keyword fk ON fk.keyword = o.keyword JOIN kw_fetch f ON f.id = fk.fetch_id AND f.kind = 'file' AND f.location = o.location AND f.language = o.language AND o.day <= f.day WHERE o.location = $1 AND o.language = $2 AND o.keyword ~ ANY($3::text[]) ORDER BY o.keyword, o.day DESC) x ORDER BY (volume IS NULL), volume::bigint DESC, keyword LIMIT $4`, [location, language, res, limit]);
       if (!rows.length) return null;
-      return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: r.months })) };
+      return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), months: unpackMonths(r.months) })) };
+    },
+    /** RR-342 · up to `rows` old observations put in the short months shape (same figures); the number changed */
+    async packMonths({ rows = RETAIN.rows } = {}) {
+      await ensure();
+      const old = await q("SELECT keyword, location, language, day::text AS day, months FROM kw_observation WHERE jsonb_typeof(months) = 'object' LIMIT $1", [rows]);
+      if (!old.length) return 0;
+      await q("UPDATE kw_observation o SET months = t.m::jsonb FROM unnest($1::text[], $2::text[], $3::text[], $4::date[], $5::text[]) AS t(k, l, g, d, m) WHERE o.keyword = t.k AND o.location = t.l AND o.language = t.g AND o.day = t.d",
+        [old.map((r) => r.keyword), old.map((r) => r.location), old.map((r) => r.language), old.map((r) => r.day), old.map((r) => { const p = packMonths(r.months); return p ? JSON.stringify(p) : null; })]);
+      return old.length;
+    },
+    /** RR-342 · the clean-up before `before` (one batch): a collected fetch's keyword list, and observations a newer one on or before the
+     *  cut-off replaces — never the newest, never a keyword of the owner's files, never a kw_fetch row (fetchedSince and fileSeen read them) */
+    async prune({ before, fetches = RETAIN.fetches, rows = RETAIN.rows }) {
+      await ensure();
+      const [a] = await q("WITH f AS (SELECT id FROM kw_fetch WHERE kind <> 'file' AND day < $1 AND EXISTS (SELECT 1 FROM kw_fetch_keyword k WHERE k.fetch_id = kw_fetch.id) ORDER BY day LIMIT $2), d AS (DELETE FROM kw_fetch_keyword WHERE fetch_id IN (SELECT id FROM f) RETURNING 1) SELECT count(*)::int AS n FROM d", [before, fetches]);
+      const [b] = await q("WITH w AS (SELECT DISTINCT fk.keyword, f.location, f.language FROM kw_fetch f JOIN kw_fetch_keyword fk ON fk.fetch_id = f.id WHERE f.kind = 'file'), old AS (SELECT o.ctid FROM kw_observation o WHERE o.day < $1 AND EXISTS (SELECT 1 FROM kw_observation n WHERE n.keyword = o.keyword AND n.location = o.location AND n.language = o.language AND n.day > o.day AND n.day <= $1) AND NOT EXISTS (SELECT 1 FROM w WHERE w.keyword = o.keyword AND w.location = o.location AND w.language = o.language) LIMIT $2), d AS (DELETE FROM kw_observation WHERE ctid IN (SELECT ctid FROM old) RETURNING 1) SELECT count(*)::int AS n FROM d", [before, rows]);
+      return { fetchKeywords: a?.n ?? 0, observations: b?.n ?? 0 };
     },
     /** RR-328 B · every keyword the database holds at a location (any source), each with its newest figure — the country's own searches */
     async keywordsAt({ location, language, limit = 3000 }) {
@@ -132,7 +174,8 @@ export function memoryStore({ sizeMb = null } = {}) {
       fetches.set(fkey(f), { id, kind: f.kind, group: f.group ?? null, seedKey: f.seedKey, location: f.location, language: f.language, day: f.day, period: f.period ?? null, ops: f.ops });
       for (const r of rows) {
         const prev = newestAt(r.keyword, f.location, f.language, f.day, true);
-        if (!prev || prev.volume !== r.volume || JSON.stringify(prev.months ?? null) !== JSON.stringify(r.months ?? null)) obs.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, volume: r.volume, months: r.months, period: f.period ?? null });
+        const pm = packMonths(r.months); // RR-342: the short shape, as on Postgres
+        if (!prev || prev.volume !== r.volume || JSON.stringify(prev.months ?? null) !== JSON.stringify(pm ?? null)) obs.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, volume: r.volume, months: pm, period: f.period ?? null });
         fk.set(`${id}|${r.keyword}`, { id, keyword: r.keyword });
         if (f.group) { const k = `${f.group}|${r.keyword}|${f.location}`, o = gk.get(k); gk.set(k, { grp: f.group, keyword: r.keyword, location: f.location, last: o && o.last > f.day ? o.last : f.day }); }
       }
@@ -142,7 +185,7 @@ export function memoryStore({ sizeMb = null } = {}) {
       const f = [...fetches.values()].filter((x) => x.seedKey === seedKey && x.location === location && x.language === language && x.day >= since).sort((a, b) => b.day.localeCompare(a.day))[0];
       if (!f) return null;
       const rows = [...fk.values()].filter((x) => x.id === f.id).map((x) => newestAt(x.keyword, location, language, f.day)).filter(Boolean)
-        .map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword));
+        .map((o) => ({ keyword: o.keyword, volume: o.volume, months: unpackMonths(o.months) })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword));
       return { day: f.day, period: f.period, rows };
     },
     async fileSeen(seedKey) { return [...fetches.values()].some((f) => f.seedKey === seedKey); },
@@ -158,8 +201,23 @@ export function memoryStore({ sizeMb = null } = {}) {
       }
       const rows = [...best.values()].sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword)).slice(0, limit);
       if (!rows.length) return null;
-      return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((o) => ({ keyword: o.keyword, volume: o.volume, months: o.months })) };
+      return { day: rows.map((r) => r.day).sort().at(-1), period: rows.find((r) => r.period)?.period ?? null, rows: rows.map((o) => ({ keyword: o.keyword, volume: o.volume, months: unpackMonths(o.months) })) };
     },
+    /* RR-342 · the same packing and clean-up as on Postgres (and `_put` stores an OLD-shape row, as rows written before RR-342 are — tests only) */
+    async packMonths({ rows = RETAIN.rows } = {}) { let n = 0; for (const o of obs.values()) { if (n >= rows) break; if (o.months && !Array.isArray(o.months)) { o.months = packMonths(o.months); n++; } } return n; },
+    async prune({ before, fetches: nf = RETAIN.fetches, rows = RETAIN.rows }) {
+      const ids = new Set([...fetches.values()].filter((f) => f.kind !== "file" && f.day < before && [...fk.values()].some((x) => x.id === f.id)).sort((a, b) => a.day.localeCompare(b.day)).slice(0, nf).map((f) => f.id));
+      let a = 0, b = 0; for (const [k, x] of fk) if (ids.has(x.id)) { fk.delete(k); a++; }
+      const byId = new Map([...fetches.values()].map((f) => [f.id, f]));
+      const kept = new Set([...fk.values()].filter((x) => byId.get(x.id)?.kind === "file").map((x) => `${x.keyword}|${byId.get(x.id).location}|${byId.get(x.id).language}`));
+      for (const [k, o] of [...obs]) {
+        if (b >= rows) break;
+        if (o.day >= before || kept.has(`${o.keyword}|${o.location}|${o.language}`)) continue;
+        if ([...obs.values()].some((n) => n.keyword === o.keyword && n.location === o.location && n.language === o.language && n.day > o.day && n.day <= before)) { obs.delete(k); b++; }
+      }
+      return { fetchKeywords: a, observations: b };
+    },
+    _put(o) { obs.set(`${o.keyword}|${o.location}|${o.language}|${o.day}`, { period: null, ...o }); },
     async keywordsAt({ location, language, limit = 3000 }) {
       const best = new Map(); for (const o of obs.values()) if (o.location === location && o.language === language && (!best.has(o.keyword) || best.get(o.keyword).day < o.day)) best.set(o.keyword, o);
       return [...best.values()].sort((a, b) => (a.volume === null) - (b.volume === null) || (b.volume ?? 0) - (a.volume ?? 0) || a.keyword.localeCompare(b.keyword)).slice(0, limit).map((o) => ({ keyword: o.keyword, volume: o.volume, day: o.day, period: o.period }));

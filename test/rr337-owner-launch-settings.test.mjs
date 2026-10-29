@@ -4,6 +4,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import { launchVarsOf, LAUNCH_VARS } from "../site/app.mjs";
 import { ownerPage } from "../site/pages.mjs";
 import { VERCEL_STEP } from "../site/owner-router-register.mjs";
@@ -14,6 +15,8 @@ test("RR-337 · launch settings: names and set/missing only; a needed one missin
   const names = LAUNCH_VARS.map(([n]) => n);
   for (const n of ["LICENCE_SIGNING_KEY", "LICENCE_PUBLIC_KEY", "SITE_ADMIN_PASSWORD_HASH", "STRIPE_SECRET_KEY", "STRIPE_PRICE_ID_VISIBILITY_1", "STRIPE_PRICE_ID_VISIBILITY_UNLIMITED", "ROUTER_WEBHOOK_SECRET", "VISIBILITY_BILLING_LIVE"]) assert.ok(names.includes(n), n);
   const all = { ...Object.fromEntries(LAUNCH_VARS.filter(([, , needed]) => needed).map(([n]) => [n, VALUE])), DATABASE_URL: "postgres://u@h/db" }; // RR-338: the database row is set by either name
+  /* RR-342: the signing key row now asks whether the site can READ the key — a real pair, made for the test */
+  const pair = generateKeyPairSync("ed25519"); all.LICENCE_SIGNING_KEY = pair.privateKey.export({ type: "pkcs8", format: "pem" }); all.LICENCE_PUBLIC_KEY = pair.publicKey.export({ type: "spki", format: "pem" });
   const full = ownerPage({ launch: launchVarsOf(all) });
   assert.ok(!full.includes(VALUE), "a value reached the page");
   assert.match(full, /Launch settings in Vercel — all needed are set/);

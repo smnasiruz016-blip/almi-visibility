@@ -31,6 +31,14 @@ export const licenceBytes = (l) => Buffer.from(JSON.stringify(l.kind ? { account
 export const OWNER = Object.freeze({ kind: "OWNER", licensee: "AlmiWorld (owner)", plan: "visibility_unlimited", words: "Owner — AlmiWorld" });
 export const isOwnerLicence = (l) => l?.kind === OWNER.kind && l.plan === OWNER.plan && l.periodEnd === null && l.status === "ACTIVE";
 export const OWNER_LICENCE_TEXT = /^avo_[A-Za-z0-9_-]{40,4000}$/;
+/**
+ * RR-342 (owner's live test: a key copied with PowerShell did not take, the same key from Notepad did) · the key as PASTED, from anywhere:
+ * invisible characters, line breaks, spaces and quotes are dropped and only the av_ / avo_ text itself is kept ("" when there is none).
+ */
+export function cleanLicenceText(text) {
+  const t = String(text ?? "").replace(/[\s\uFEFF\u200B-\u200D\u2060"'`“”‘’]/g, "");
+  return /avo?_[A-Za-z0-9_-]+/.exec(t)?.[0] ?? "";
+}
 export const ownerLicenceText = (signed) => `avo_${Buffer.from(JSON.stringify(signed)).toString("base64url")}`;
 /** The signed owner licence inside the pasted text, or null (no shape check of its truth here: verifyLicence decides). */
 export function readOwnerLicenceText(text) {
@@ -51,7 +59,7 @@ export function verifyLicence(signed, publicKeyPem) {
  * The licence STATE the app runs under. `check` is the latest attempt: { reached: true, signed } or { reached: false };
  * `last` is the last GOOD check { at, signed } (or null). Returns { state, mayStartNewWork, plan, line, last }.
  */
-export function licenceState({ now, check, last = null, publicKeyPem, owner = null }) {
+export function licenceState({ now, check, last = null, publicKeyPem, owner = null, account = null }) {
   const good = (s) => s && verifyLicence(s, publicKeyPem);
   /* RR-304: the owner licence — unlimited, no expiry, no offline limit; only a verified REVOKED answer for the same licence ends it */
   if (owner && good(owner) && isOwnerLicence(owner.licence)) {
@@ -62,9 +70,12 @@ export function licenceState({ now, check, last = null, publicKeyPem, owner = nu
     if (revoked) return Object.freeze({ state: "ENDED", mayStartNewWork: false, plan: planOf(OWNER.plan), owner: true, last: revoked, line: `The ${OWNER.words} licence was revoked in AlmiWorld's admin — new work is paused. Nothing is deleted.` });
     return Object.freeze({ state: "ACTIVE", mayStartNewWork: true, plan: planOf(OWNER.plan), owner: true, last: { at: now, signed: owner }, line: `Your plan: ${OWNER.words} — unlimited products, no expiry.` });
   }
-  let lastGood = last;
+  /* RR-342 (owner's live test: the buyer key was saved, the app still said "Owner — unlimited"): a stored check or an answer for ANOTHER
+   * licence (the owner licence pasted before) never counts for this key */
+  const mine = (s) => !account || s?.licence?.account === account;
+  let lastGood = last && mine(last.signed) ? last : null;
   if (check?.reached) {
-    if (!good(check.signed)) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence answer could not be verified — new work is paused until a valid licence is received. Nothing is deleted." });
+    if (!good(check.signed) || !mine(check.signed)) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence answer could not be verified — new work is paused until a valid licence is received. Nothing is deleted." });
     lastGood = { at: now, signed: check.signed };
   }
   if (!lastGood) return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: null, line: "No plan yet — choose a plan to start. Try the free site score first, no card needed." });

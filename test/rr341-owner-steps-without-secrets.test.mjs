@@ -69,9 +69,13 @@ test("RR-341 · /owner: the button is there; only the owner may press it; the an
   const srv = createServer(app); await new Promise((r) => srv.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${srv.address().port}`, cookie = ownerCookie({ OWNER_ACCESS_KEY: OWNER_KEY }, T0).split(";")[0];
   try {
-    assert.match(await (await fetch(`${base}/owner`, { headers: { cookie } })).text(), /<form method="post" action="\/owner\/portal" data-portal>[\s\S]*Create Manage-plan portal/);
+    /* RR-342: /owner reads the portal's state from Stripe (read-only: one list call, no write) and shows it beside the button */
+    const page = await (await fetch(`${base}/owner`, { headers: { cookie } })).text();
+    assert.match(page, /<form method="post" action="\/owner\/portal#portal" data-portal>[\s\S]*Create Manage-plan portal[\s\S]*<p id="portal" role="status" class="err"><b>Manage-plan portal:<\/b> not made yet/);
+    assert.ok(S.calls.every((c) => c.method === "GET"), "opening /owner wrote to Stripe");
+    const seen = S.calls.length;
     const stranger = await fetch(`${base}/owner/portal`, { method: "POST", redirect: "manual" });
-    assert.notEqual(stranger.status, 200); assert.equal(S.calls.length, 0, "Stripe was called for someone who is not the owner");
+    assert.notEqual(stranger.status, 200); assert.equal(S.calls.length, seen, "Stripe was called for someone who is not the owner");
     const r = await fetch(`${base}/owner/portal`, { method: "POST", headers: { cookie } }), t = await r.text();
     assert.equal(r.status, 200); assert.match(t, /Manage-plan portal: OK — AlmiVisibility&#39;s own customer portal is made: bpc_made2|Manage-plan portal: OK — AlmiVisibility's own customer portal is made: bpc_made2/);
     assert.ok(!t.includes(KEY));

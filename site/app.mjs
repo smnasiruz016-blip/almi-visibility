@@ -13,7 +13,7 @@ import { articleHtml } from "./articles.mjs";
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
 import { checkLead, testRecord, siteStore, adminSessions, dailyCounts, leadsCsv, KEY_NAMES } from "./leads.mjs";
 import { reportEmail, sendEmail, sendingOn, EMAIL_KEY_NAMES } from "./email.mjs";
-import { createCheckout, BILLING_KEY_NAMES, portalSession, PORTAL_CONFIG_NAME, ensurePortalConfig } from "./billing.mjs";
+import { createCheckout, BILLING_KEY_NAMES, portalSession, PORTAL_CONFIG_NAME, ensurePortalConfig, portalStatus } from "./billing.mjs";
 import { applyEvent, signedLicence, ownerRecord, verifyRouterSignature, verifyStripeSignature, ROUTER_KEY_NAME, KEY_NAMES as LICENCE_KEYS, PRICE_ENV } from "../services/licence/service.mjs";
 import { readOwnerLicenceText, isOwnerLicence, verifyLicence, OWNER } from "../desktop/licence.mjs";
 import { createHash, createPublicKey, createPrivateKey, timingSafeEqual, randomBytes } from "node:crypto";
@@ -44,7 +44,9 @@ import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY" });
+export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
+/** RR-342 · the Microsoft Store listing's address (apps.microsoft.com only), or null */
+export const storeUrlOf = (env) => { const v = String(env[SITE_KEY_NAMES.storeUrl] ?? "").trim(); return /^https:\/\/apps\.microsoft\.com\/[^\s"'<>]+$/.test(v) ? v : null; };
 /* RR-337 · the launch settings /owner lists: [name, what it is for, needed now?] — the page says "set" or "missing", never a value */
 export const LAUNCH_VARS = Object.freeze([
   [SITE_KEY_NAMES.signingKey, "signs each buyer's licence", true], [PUBLIC_KEY_ENV, "the app's keyword service checks licences", true],
@@ -52,12 +54,37 @@ export const LAUNCH_VARS = Object.freeze([
   [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
   [PORTAL_CONFIG_NAME, "optional — press “Create Manage-plan portal” below; the site then finds AlmiVisibility's own portal by itself", false],
+  [SITE_KEY_NAMES.storeUrl, "optional — the Microsoft Store listing (https://apps.microsoft.com/…); once set, Download points there", false],
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
   [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],
   [KEY_NAMES.adminHash, "the /admin sign-in (admin is hidden on the sales site)", false],
   [EMAIL_KEY_NAMES.resend, "emails — the sales site sends none yet", false], [EMAIL_KEY_NAMES.from, "the emails' sender — not used yet", false]]);
-export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed, isSet]) => ({ name, use, needed, set: isSet ? isSet(env) : String(env[name] ?? "").trim() !== "" }));
+export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed, isSet]) => {
+  const set = isSet ? isSet(env) : String(env[name] ?? "").trim() !== "";
+  const k = set && name === SITE_KEY_NAMES.signingKey ? signingKeyState(env) : null; // RR-342: set is not enough — can the site READ it?
+  return { name, use, needed, set, ...(k && !k.ok ? { bad: k.why } : {}) };
+});
+/**
+ * RR-342 (owner's live test: /v1/licence answered 500 to every check since the sales deploy) · the signing key as Vercel holds it: a pasted PEM
+ * whose line breaks became "\n" or spaces, or a bare body, is put back into PEM form. Whether it can be read — and is the pair of
+ * LICENCE_PUBLIC_KEY — is said in words only; the key is never shown, logged or measured.
+ */
+export function pemOf(v, kind = "PRIVATE KEY") {
+  const t = String(v ?? "").trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n").trim();
+  if (!t) return null;
+  const m = /-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/.exec(t), label = m ? m[1] : kind, body = (m ? m[2] : t).replace(/\s+/g, "");
+  return `-----BEGIN ${label}-----\n${(body.match(/.{1,64}/g) ?? []).join("\n")}\n-----END ${label}-----\n`;
+}
+export function signingKeyState(env) {
+  const pem = pemOf(env[SITE_KEY_NAMES.signingKey]);
+  if (!pem) return { set: false, ok: false };
+  let key; try { key = createPrivateKey(pem); } catch { return { set: true, ok: false, why: "the site cannot read it as a private key — paste the whole text of licence-private.pem, from BEGIN to END" }; }
+  if (key.asymmetricKeyType !== "ed25519") return { set: true, ok: false, why: "it is not the licence key (Ed25519) — paste the whole text of licence-private.pem" };
+  const pub = pemOf(env[PUBLIC_KEY_ENV], "PUBLIC KEY");
+  if (pub) { try { if (!createPublicKey(key).export({ type: "spki", format: "der" }).equals(createPublicKey(pub).export({ type: "spki", format: "der" }))) return { set: true, ok: false, why: `it is not the pair of ${PUBLIC_KEY_ENV} — the app would refuse every licence; paste licence-private.pem from the same keys folder` }; } catch { /* the public key's own row says so */ } }
+  return { set: true, ok: true };
+}
 const SECURITY = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", "x-frame-options": "SAMEORIGIN", "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'self'" };
 const PRIVATE = { "x-robots-tag": "noindex, nofollow", "cache-control": "no-store" };
 const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
@@ -67,7 +94,7 @@ const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
 /** RR-338 · a third: "sales" = everything public-lite has, PLUS selling (SALES_PATHS, served by the full handler). */
 export const modeOf = (env = process.env, mode = null) => { const m = mode ?? env.VISIBILITY_SITE_MODE ?? (env.VERCEL ? "public-lite" : "full"); return m === "full" || m === "sales" ? m : "public-lite"; };
 /* RR-338 · the selling routes the sales site adds to public-lite (admin, the old free test and unsubscribe stay hidden) */
-export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage"] });
+export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage", "/v1/licence"] }); // RR-342: the licence check, key in the body
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
 export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null } = {}) {
@@ -88,12 +115,12 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
   const localSetup = () => Boolean(setupFile && existsSync(setupFile));
   const setupAvailable = () => localSetup() || httpsUrl(env[SITE_KEY_NAMES.setupUrl]);
   const emailOn = () => sendingOn(env);
-  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": () => P.pricing({ sales }), "/download": () => P.download({ setupAvailable: setupAvailable(), sales }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
+  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": () => P.pricing({ sales }), "/download": () => P.download({ setupAvailable: setupAvailable(), sales, storeUrl: storeUrlOf(env) }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
   const formOf = (body, type) => (/json/.test(type ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
   const cookie = (req, name) => (req.headers.cookie ?? "").split(/;\s*/).map((c) => c.split("=")).find(([k]) => k === name)?.[1] ?? null;
   const who = (req) => String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
   const originOf = (req) => (env.VERCEL ? P.ORIGIN : `http://${req.headers.host}`);
-  const signingPem = () => env[SITE_KEY_NAMES.signingKey] ?? (env[LICENCE_KEYS.signingKeyFile] && existsSync(env[LICENCE_KEYS.signingKeyFile]) ? readFileSync(env[LICENCE_KEYS.signingKeyFile], "utf8") : null);
+  const signingPem = () => pemOf(env[SITE_KEY_NAMES.signingKey]) ?? (env[LICENCE_KEYS.signingKeyFile] && existsSync(env[LICENCE_KEYS.signingKeyFile]) ? readFileSync(env[LICENCE_KEYS.signingKeyFile], "utf8") : null);
   /* RR-304: an admin row names a licence by a short hash of its key, never the key itself */
   const refOf = (account) => createHash("sha256").update(account).digest("hex").slice(0, 16);
 
@@ -114,11 +141,16 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
         if (changed) await store.saveAccounts(accounts);
         return send(200, JSON.stringify({ received: true, licenceChanged: Boolean(changed) }), "application/json");
       }
-      /* the app's licence check: a SIGNED answer for one licence key */
-      if (req.method === "GET" && u.pathname === "/v1/licence") {
+      /* the app's licence check: a SIGNED answer for one licence key — RR-342: POST with the key in the body (1.15.1 and older still GET) */
+      if ((req.method === "GET" || req.method === "POST") && u.pathname === "/v1/licence") {
         const pem = signingPem();
         if (!pem) return send(503, JSON.stringify({ deferred: `the licence signing key is not configured (${SITE_KEY_NAMES.signingKey})` }), "application/json", PRIVATE);
-        return send(200, JSON.stringify(signedLicence({ accounts: await store.accounts(), account: u.searchParams.get("account"), privateKeyPem: pem, now: now() })), "application/json", PRIVATE);
+        let account = u.searchParams.get("account");
+        if (req.method === "POST") { try { account = String(formOf(body, req.headers["content-type"]).account ?? ""); } catch { return send(400, JSON.stringify({ refused: "not JSON" }), "application/json", PRIVATE); } }
+        const accounts = await store.accounts();
+        /* RR-342: a key Vercel holds but the site cannot use is said by NAME (it was a bare 500 to every app) */
+        let signed; try { signed = signedLicence({ accounts, account, privateKeyPem: pem, now: now() }); } catch { return send(503, JSON.stringify({ deferred: `the licence signing key in Vercel (${SITE_KEY_NAMES.signingKey}) cannot be used — see /owner, Launch settings` }), "application/json", PRIVATE); }
+        return send(200, JSON.stringify(signed), "application/json", PRIVATE);
       }
       /* a form from another site is refused (the site's own forms only) */
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
@@ -281,7 +313,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   const countriesPage = async (o = {}) => {
     const d = new Date(now()).toISOString().slice(0, 10), product = FACT_PRODUCTS.includes(o.product) ? o.product : "oet", all = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
     const facts = all.filter((f) => (f.product ?? "oet") === product), order = (await queueNow(kv)).countries;
-    let last = null; if (kv) { try { const [l] = await kv.run([["GET", "av:cf:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
+    let last = null, datesLast = null; if (kv) { try { const [l, t] = await kv.run([["GET", "av:cf:last"], ["GET", "av:td:last"]]); last = l ? JSON.parse(l) : null; datesLast = t ? JSON.parse(t) : null; } catch { last = null; } } // RR-342: the test dates' last run too
     /* RR-335: the collector's per-template counts (RR-334 wrote them; no page read them) — today and yesterday */
     const yesterday = new Date(Date.parse(`${d}T00:00:00Z`) - 864e5).toISOString().slice(0, 10);
     let templates = null; if (kv) { try { const [a, b] = await kv.run([["GET", `av:cf:tpl:${d}`], ["GET", `av:cf:tpl:${yesterday}`]]); templates = { today: a ? JSON.parse(a) : {}, yesterday: b ? JSON.parse(b) : {} }; } catch { templates = null; } }
@@ -305,7 +337,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         councils: rows.reduce((a, r) => a + Object.values(r.councils).filter(Boolean).length, 0), councilPairs: rows.length * CF_PROFESSIONS.length, left, eta: left ? new Date(Date.parse(`${d}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10) : null, measured: Boolean(cost && cost.n >= 3) };
     }
     const taskObj = Object.fromEntries(tasks.entries()), summary = await summaryOf({ all, first15 });
-    return P.ownerCountries({ coverage, facts, country: sel, history, last, templates, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, tasks: taskObj, today: d, dated: Boolean(DATE_TESTS[product] || NO_DATES[product]), summary, ...o, country: sel, product });
+    return P.ownerCountries({ coverage, facts, country: sel, history, last, datesLast, templates, aiOn: aiConfigured(env), caps: capsOf(env), spend: await cf.spend(d), order, search, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), template, parts: template.parts.map((k) => ({ key: k, name: PART_INFO[k]?.name ?? k })), professions: CF_PROFESSIONS, qstats, asked, first15, tasks: taskObj, today: d, dated: Boolean(DATE_TESTS[product] || NO_DATES[product]), summary, ...o, country: sel, product });
   };
   const LOGO = readFileSync(join(HERE, "..", "desktop", "brand", "almiworld-logo.png")), ICON = readFileSync(join(HERE, "..", "installer", "almiworld.ico"));
   const preview = legalPreview(env), dns = resolve ? { resolve } : {};
@@ -337,7 +369,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (kv) { try { const [l] = await kv.run([["GET", "av:collector:last"]]); last = l ? JSON.parse(l) : null; } catch { last = null; } }
     /* RR-329: what matters first on his phone — red lines, this week, progress, ETA, spend, the database */
     let status = null; try { status = await ownerStatus({ kv, db, cf, env, now }); } catch { status = null; }
-    return P.ownerPage({ launch: launchVarsOf(env), /* RR-337 */ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
+    /* RR-342 (owner: the button "showed no visible result"): the Manage-plan portal's state, read-only from Stripe, beside its button */
+    const portal = o.portal ?? (env[BILLING_KEY_NAMES.stripeSecret] ? await portalStatus({ env, fetchImpl: stripeFetch ?? fetch }) : null);
+    return P.ownerPage({ portal, portalPressed: Boolean(o.portal), launch: launchVarsOf(env), /* RR-337 */ licenceKey: publicKeyState(env), /* RR-327 */ connected: Boolean(ads?.configured()), missing: ads ? ads.missing() : ["KV_REST_API_URL", "KV_REST_API_TOKEN"], dbOn: Boolean(db), dbError, counts, usage, last, groups: db ? await groupNames() : [], seedText: list?.text ?? DEFAULT_SEEDS, seedAt: list?.at ?? null, status, names: PRODUCT_NAMES, summary: await summaryOf(), ...o });
   };
   return async function handle(req, res) {
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
@@ -454,7 +488,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
          * Vercel (the owner types nothing); once only — a second press finds the first. The shared default portal is never touched. */
         if (req.method === "POST" && u.pathname === "/owner/portal") {
           const r = await ensurePortalConfig({ env, fetchImpl: stripeFetch ?? fetch });
-          return send(r.ok ? 200 : 503, await ownerPage({ message: `Manage-plan portal: ${r.line}` }), undefined, priv);
+          return send(r.ok ? 200 : 503, await ownerPage({ message: `Manage-plan portal: ${r.line}`, portal: r }), undefined, priv);
         }
         /* RR-332 · the owner's own Search Console read, now (the weekly cron reads it too) — the answer in one line */
         if (req.method === "POST" && u.pathname === "/owner/search-console") {

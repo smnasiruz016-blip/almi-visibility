@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync,
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwnerLicenceText, isOwnerLicence, verifyLicence } from "./licence.mjs";
+import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwnerLicenceText, isOwnerLicence, verifyLicence, cleanLicenceText } from "./licence.mjs";
 import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
 import { STEPS, checkStep, webAddress, stepsFor, CHOICES, HOWTO, recommended } from "./setup.mjs";
@@ -89,14 +89,20 @@ export const LICENCE_KEY = /^av_[A-Za-z0-9_-]{20,64}$/;
 
 async function licenceNow() {
   let check = { reached: false };
-  try { const r = await fetch(new URL(`v1/licence?account=${encodeURIComponent(CONFIG.account ?? "unset")}`, LICENCE_URL), { signal: AbortSignal.timeout(4000) }); if (r.ok) check = { reached: true, signed: await r.json() }; } catch {}
-  const st = licenceState({ now: Date.now(), check, last: licenceLast(), publicKeyPem: keyPem("licence-public.pem"), owner: CONFIG.owner ?? null });
+  /* RR-342: the key goes in the request BODY (a query string lands in the site's request logs); a site not yet updated answers 404 → the old GET */
+  try {
+    const account = CONFIG.account ?? "unset", wait = () => AbortSignal.timeout(4000);
+    let r = await fetch(new URL("v1/licence", LICENCE_URL), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ account }), signal: wait() });
+    if (r.status === 404 || r.status === 405) r = await fetch(new URL(`v1/licence?account=${encodeURIComponent(account)}`, LICENCE_URL), { signal: wait() });
+    if (r.ok) check = { reached: true, signed: await r.json() };
+  } catch {}
+  const st = licenceState({ now: Date.now(), check, last: licenceLast(), publicKeyPem: keyPem("licence-public.pem"), owner: CONFIG.owner ?? null, account: CONFIG.account ?? null });
   if (st.last) saveLicence(st.last);
   return st;
 }
 const limitLine = planLimitLine;
 /* RR-326 E: the licence the app runs under (the owner's, or the last good check's) — what AlmiWorld's keyword service checks */
-const currentLicence = () => CONFIG.owner ?? licenceLast()?.signed ?? null;
+const currentLicence = () => { if (CONFIG.owner) return CONFIG.owner; const s = licenceLast()?.signed ?? null; return s?.licence?.account === CONFIG.account ? s : null; }; // RR-342: never another licence's check
 const kwService = () => keywordService({ siteUrl: CONFIG.keywordServiceUrl ?? LICENCE_URL, signed: currentLicence() });
 
 const page = () => readFileSync(join(HERE, "ui.html"), "utf8").replace("/*SUNRISE*/", cssVariables());
@@ -1184,7 +1190,7 @@ const server = createServer((req, res) => {
       if (req.method === "POST" && u.pathname === "/api/tour") { CONFIG.tourSeen = true; saveConfig(); return send(200, { ok: true }); }
       /* RR-303 A: the licence key from a purchase — saved, never echoed */
       if (req.method === "POST" && u.pathname === "/api/account") {
-        const { licenceKey } = json();
+        const licenceKey = cleanLicenceText(json().licenceKey); // RR-342: the key as pasted from anywhere — only the av_ / avo_ text is kept
         /* RR-304: the owner licence (avo_…) — kept only when THIS copy's public key verifies it */
         if (String(licenceKey ?? "").trim().startsWith("avo_")) {
           const signed = readOwnerLicenceText(licenceKey);
@@ -1194,7 +1200,8 @@ const server = createServer((req, res) => {
           return send(200, { ok: true, line: st.line });
         }
         if (!LICENCE_KEY.test(String(licenceKey ?? "").trim())) return send(400, { refused: "That is not a licence key. It starts with av_ — copy it from the page shown after you bought your plan." });
-        CONFIG.account = String(licenceKey).trim(); saveConfig();
+        /* RR-342 (owner's live test): a buyer key REPLACES the owner licence, and the last check of the old licence is dropped */
+        delete CONFIG.owner; CONFIG.account = licenceKey; saveConfig(); saveLicence(null);
         const st = await licenceNow();
         return send(200, { ok: true, line: st.line });
       }

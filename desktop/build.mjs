@@ -2,8 +2,8 @@
 /**
  * RR-298 C · BUILD THE WINDOWS SETUP. Stages the app (its own Node runtime, the desktop app, the engine's src/ and config/), zips it as the
  * install payload — the same zip is the update package — and compiles installer/Setup.cs with the C# compiler that ships with Windows
- * (.NET Framework 4.x csc.exe), embedding the payload. No paid tool, no download. The Setup.exe is UNSIGNED (a code-signing certificate is
- * a paid owner decision for later), so Windows shows an "unknown publisher" warning.
+ * (.NET Framework 4.x csc.exe), embedding the payload. No paid tool, no download. RR-342: the Setup.exe is SIGNED when the keys folder
+ * holds signing.json (desktop/sign.mjs — no secret in it); without it the Setup is UNSIGNED, so Windows shows an "unknown publisher" warning.
  *   node desktop/build.mjs --version=1.0.0 --out=<dir> --keys=<dir holding licence-public.pem and update-public.pem>
  * Writes only under --out; an existing output file is never overwritten (the build refuses).
  */
@@ -12,6 +12,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { compileSetup } from "./installer-compile.mjs";
+import { readSigning, signFile } from "./sign.mjs"; // RR-342
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
@@ -41,4 +42,7 @@ ps(`Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.Zip
 writeFileSync(join(OUT, `version-${VERSION}.txt`), VERSION);
 compileSetup({ repo: REPO, out: setupExe, payloadZip: packageZip, versionFile: join(OUT, `version-${VERSION}.txt`) }); /* RR-305: the one compile step, shared with the installer test */
 rmSync(stage, { recursive: true, force: true });
-console.log(`built ${setupExe} (${Math.round(statSync(setupExe).size / 1048576)} MB) · update package ${packageZip} · UNSIGNED`);
+/* RR-342: signed when the owner's keys folder holds signing.json (desktop/sign.mjs) — no secret in it; without it, unsigned as before */
+const signing = readSigning(KEYS), signed = signing?.ok ? signFile({ cfg: signing.cfg, file: setupExe }) : null;
+console.log(`built ${setupExe} (${Math.round(statSync(setupExe).size / 1048576)} MB) · update package ${packageZip} · ${signed ? signed.line : signing ? `NOT signed — ${signing.why}` : "UNSIGNED (no signing.json in the keys folder)"}`);
+if (signing && !signed?.ok) process.exit(3); // a signer was asked for: an unsigned Setup is not handed on as if it were signed

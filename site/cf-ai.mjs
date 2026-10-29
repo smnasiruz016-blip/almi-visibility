@@ -22,7 +22,7 @@ export const costOf = (u) => (Number(u?.input_tokens ?? 0) + Number(u?.cache_cre
  * One question to the AI, its answer as JSON in `schema`. `search`: may it search the web (Anthropic's tool, at most CF_AI.maxSearches).
  * → { ok, data, usd, searches } | { ok: false, why, usd, searches }
  */
-export async function askAi({ env = process.env, fetchImpl = fetch, base = CF_AI.origin, system, prompt, schema, search = false, maxTokens = 8000, timeoutMs = 150000 }) {
+export async function askAi({ env = process.env, fetchImpl = fetch, base = CF_AI.origin, system, prompt, schema, search = false, maxSearches = CF_AI.maxSearches, maxTokens = 8000, timeoutMs = 150000 }) { // RR-348 c: maxSearches (the creator research asks for 2)
   if (!aiConfigured(env)) return { ok: false, why: "ANTHROPIC_API_KEY is not set in Vercel yet.", usd: 0, searches: 0 };
   const messages = [{ role: "user", content: prompt }];
   let usd = 0, searches = 0; const results = [];
@@ -30,7 +30,7 @@ export async function askAi({ env = process.env, fetchImpl = fetch, base = CF_AI
     let r, body;
     try {
       r = await fetchImpl(`${base}${CF_AI.path}`, { method: "POST", signal: AbortSignal.timeout(timeoutMs), headers: { "content-type": "application/json", "x-api-key": env[CF_AI.keyName], "anthropic-version": CF_AI.version },
-        body: JSON.stringify({ model: CF_AI.model, max_tokens: maxTokens, system, messages, output_config: { effort: "medium", format: { type: "json_schema", schema } }, ...(search ? { tools: [{ type: CF_AI.search, name: "web_search", max_uses: CF_AI.maxSearches }] } : {}) }) });
+        body: JSON.stringify({ model: CF_AI.model, max_tokens: maxTokens, system, messages, output_config: { effort: "medium", format: { type: "json_schema", schema } }, ...(search ? { tools: [{ type: CF_AI.search, name: "web_search", max_uses: Math.max(1, Math.min(CF_AI.maxSearches, Number(maxSearches) || CF_AI.maxSearches)) }] } : {}) }) });
       body = await r.json().catch(() => null);
     } catch (e) { return { ok: false, why: e?.name === "TimeoutError" ? "the AI did not answer in time" : "the AI could not be reached", usd, searches }; }
     usd += costOf(body?.usage); searches += Number(body?.usage?.server_tool_use?.web_search_requests ?? 0);

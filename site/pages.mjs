@@ -24,6 +24,7 @@ import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on eve
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
 import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, DOWNLOAD, salesHero, newBand, socialBand } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
+import { slugOf } from "./creators.mjs"; // RR-348 c: the Creators tab names a niche's keyword group the way the collector does
 import { TITLE_TOOL } from "./title-check.mjs"; // RR-347 ADD-2: the free title checker
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
@@ -492,7 +493,29 @@ function queueHtml(q, names, moved) {
 export function ownerMenu(here, s = null) {
   const item = (k, href, name) => (k === here ? `<b>${name}</b>` : `<a href="${href}">${name}</a>`);
   const line = s ? `<p class="fine">Keywords today ${Number(s.keywordsToday ?? 0).toLocaleString("en-US")} · first 15 countries ${s.first15 ?? "—"}% done · question groups ${s.questionGroups ?? 0} · test dates found for ${s.datesFound ?? 0} test × country${s.gsc ? ` · Search Console: ${esc(s.gsc)}` : ""}</p>` : "";
-  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")}</nav>${line}`;
+  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")} · ${item("creators", "/owner/creators", "Creators")}</nav>${line}`;
+}
+
+/* RR-348 c · the owner's Creators tab: what the creator collectors hold per platform, niche and country; "Collect now"; each platform on or
+ * off; the niches and the countries to add or remove; today's spend against the slice; which keys are set (names only, never a value) */
+export function ownerCreators({ settings, counts = { research: [], keywords: [] }, names = {}, last = null, spentUsd = 0, capUsd = 1, ytUnits = 0, ytCap = 2000, aiOn = false, ytOn = false, message = null } = {}) {
+  const P3 = Object.keys(names), kwOf = (p, n) => counts.keywords.filter((k) => k.grp === `creator:${p}-${slugOf(n)}`);
+  const total = (p) => ({ research: counts.research.filter((r) => r.platform === p).length, keywords: counts.keywords.filter((k) => k.grp.startsWith(`creator:${p}-`)).reduce((a, k) => a + k.keywords, 0), yt: counts.research.filter((r) => r.platform === p && r.yt).length });
+  const cell = (p, n) => { const r = counts.research.filter((x) => x.platform === p && x.niche === n), k = kwOf(p, n).reduce((a, x) => a + x.keywords, 0);
+    return `<td>${r.length}/${settings.countries.length}${k ? ` · ${k.toLocaleString("en-US")} kw` : ""}</td>`; };
+  const toggle = (p) => `<form method="post" action="/owner/creators" class="inline"><input type="hidden" name="platform" value="${p}"><input type="hidden" name="state" value="${settings.on[p] ? "off" : "on"}"><button class="pill ${settings.on[p] ? "ghost" : ""}" type="submit">${settings.on[p] ? `Switch ${names[p]} off` : `Switch ${names[p]} on`}</button></form>`;
+  return ownerFrame("Creators", `${PHONE_CSS}${ownerMenu("creators")}<h1>Creators — YouTube, TikTok, Instagram</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+<p class="fine">Google Ads keywords with the platform added, the questions people ask, and AI research (ideas, hashtags, hooks) — per niche, platform and country. TikTok and Instagram: Google data and AI research only (no scraping). YouTube: also the official YouTube Data API when YOUTUBE_API_KEY is set in Vercel.</p>
+<table class="prices" data-creator-totals><tr><th>Platform</th><th>On</th><th>AI research (niche × country)</th><th>Keywords</th><th>YouTube API rows</th><th></th></tr>
+${P3.map((p) => { const t = total(p); return `<tr><td><b>${esc(names[p])}</b></td><td>${settings.on[p] ? "on" : "off"}</td><td>${t.research.toLocaleString("en-US")} of ${(settings.niches.length * settings.countries.length).toLocaleString("en-US")}</td><td>${t.keywords.toLocaleString("en-US")}</td><td>${p === "youtube" ? t.yt.toLocaleString("en-US") : "—"}</td><td>${toggle(p)}</td></tr>`; }).join("")}</table>
+<p class="fine">Today: AI $${spentUsd.toFixed(3)} of the $${capUsd.toFixed(2)} slice (CREATORS_AI_USD_PER_DAY) · YouTube ${ytUnits.toLocaleString("en-US")} of ${ytCap.toLocaleString("en-US")} units (CREATORS_YT_UNITS_PER_DAY) · ANTHROPIC_API_KEY ${aiOn ? "set" : "NOT set"} · YOUTUBE_API_KEY ${ytOn ? "set" : "not set — YouTube uses Google data and AI research only"}</p>
+${last ? `<p class="fine">Last run ${esc(String(last.at ?? "").slice(0, 16).replace("T", " "))} UTC: ${Number(last.saved ?? 0)} saved, ${Number(last.youtube ?? 0)} with YouTube data, $${Number(last.aiUsd ?? 0).toFixed(3)}${last.why ? ` — ${esc(last.why)}` : ""}${Number.isFinite(last.left) ? ` · ${last.left} still to do` : ""}</p>` : `<p class="fine">No run yet.</p>`}
+<form method="post" action="/owner/creators/collect"><button class="pill" type="submit">Collect now</button> <span class="fine">One run of about a minute: AI research first, then this tab shows the counts. Keywords come with the keyword collector's next runs.</span></form>
+<h2>Per niche</h2><div class="kw-wrap"><table class="prices" data-creator-niches><tr><th>Niche</th>${P3.map((p) => `<th>${esc(names[p])}</th>`).join("")}<th></th></tr>
+${settings.niches.map((n) => `<tr><td>${esc(n)}</td>${P3.map((p) => cell(p, n)).join("")}<td><form method="post" action="/owner/creators" class="inline"><input type="hidden" name="removeNiche" value="${esc(n)}"><button class="pill ghost" type="submit">Remove</button></form></td></tr>`).join("")}</table></div>
+<form method="post" action="/owner/creators" class="row"><label>Add a niche <input name="addNiche" maxlength="60" placeholder="home cooking"></label><button class="pill" type="submit">Add</button></form>
+<h2>Countries</h2><p>${settings.countries.map((c) => `<span class="chip">${esc(c)} <form method="post" action="/owner/creators" class="inline"><input type="hidden" name="removeCountry" value="${esc(c)}"><button class="pill ghost" type="submit" aria-label="Remove ${esc(c)}">×</button></form></span>`).join(" ")}</p>
+<form method="post" action="/owner/creators" class="row"><label>Add a country (code) <input name="addCountry" maxlength="3" placeholder="FR"></label><button class="pill" type="submit">Add</button></form>`);
 }
 /* RR-334 · the article drafts for every AlmiWorld product — nothing is published from here; the owner's word is kept */
 export function ownerArticles({ articles = [], html = (d) => "", message = null, blogOn = false } = {}) {

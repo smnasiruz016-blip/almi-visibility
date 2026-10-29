@@ -33,6 +33,7 @@ import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/article
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { youtubeApp } from "./youtube-app.mjs";
 import { SOCIAL_PLATFORMS, socialSetup, socialPlan, writeCaptionsAI } from "./social-app.mjs"; // RR-348 b
+import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name → its code for the creator data
 import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
 import { guidePage } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
@@ -253,7 +254,17 @@ const plannedOf = (id) => pread(id, "planned.json", []);
 /* the client's AI (Settings → Your AI connection): its provider and key — the key only ever goes to the provider */
 /* RR-348 c · the AlmiWorld creator data for a niche × platform, kept in the data folder once fetched ({ questions, hashtags, ideas, hooks, on })
  * — null until there is some; the plan then uses the niche's own words only */
-const creatorData = (platform, niche) => { const all = (() => { try { return JSON.parse(readFileSync(join(DATA, "creator-data.json"), "utf8")); } catch { return null; } })(); return all?.[platform]?.[String(niche).toLowerCase()] ?? null; };
+const CREATOR_FILE = () => join(DATA, "creator-data.json"), CREATOR_REUSE_DAYS = 7;
+const countryCodeOf = (name) => { const n = String(name ?? "").trim().toLowerCase(); return n ? LOCATIONS.find((l) => l.name.toLowerCase() === n || l.code.toLowerCase() === n)?.code ?? "" : ""; };
+const creatorCache = () => { try { return JSON.parse(readFileSync(CREATOR_FILE(), "utf8")); } catch { return {}; } };
+/* the service first (licence-checked, at most once a week per niche × platform), else what was kept; never a wait that blocks the plan */
+async function creatorData(platform, niche, country = "") {
+  const all = creatorCache(), k = String(niche).toLowerCase(), kept = all?.[platform]?.[k] ?? null;
+  if (kept && Date.now() - Date.parse(kept.fetchedAt ?? 0) < CREATOR_REUSE_DAYS * 864e5) return kept.data;
+  const r = await kwService().creators({ platform, niche, country }).catch(() => null);
+  if (r?.ok) { (all[platform] ??= {})[k] = { fetchedAt: new Date().toISOString(), data: r.data ?? null }; try { writeFileSync(`${CREATOR_FILE()}.tmp`, JSON.stringify(all)); renameSync(`${CREATOR_FILE()}.tmp`, CREATOR_FILE()); } catch { /* used once */ } return r.data ?? null; }
+  return kept?.data ?? null;
+}
 const aiOf = (s) => { const c = s.setup?.aiConnection, p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName); return p && KEYS.status(p.keyName).saved ? { provider: p.id, key: KEYS.get(p.keyName) } : null; };
 const reader = () => officialReader({ allowLocal, on: new Date().toISOString(), ...(Number.isInteger(CONFIG.testOfficialPaceMs) ? { paceMs: CONFIG.testOfficialPaceMs } : {}) });
 /* what the product is about, and the official site of that (e.g. "OET", oet.com) — the client says it once in "How many pages"; a short
@@ -1268,7 +1279,7 @@ const server = createServer((req, res) => {
           if (t[2] === "setup" && req.method === "POST") { const r = socialSetup(v); if (!r.ok) return send(400, { refused: r.why }); pwrite(tid, "social-creator.json", { ...saved, [r.platform]: { handle: r.handle, niche: r.niche, country: String(v.country ?? "").slice(0, 40), on: new Date().toISOString() } }); return send(200, { ok: true }); }
           if (!platform || !saved[platform]) return send(400, { refused: "Add your handle and niche for TikTok or Instagram first." });
           const set = saved[platform];
-          if (t[2] === "plan" && req.method === "POST") return send(200, { plan: socialPlan({ platform, handle: set.handle, niche: set.niche, country: set.country, captions: Array.isArray(v.captions) ? v.captions.map(String) : [], analytics: typeof v.analytics === "string" ? v.analytics.slice(0, 2_000_000) : null, data: creatorData(platform, set.niche) }) });
+          if (t[2] === "plan" && req.method === "POST") return send(200, { plan: socialPlan({ platform, handle: set.handle, niche: set.niche, country: set.country, captions: Array.isArray(v.captions) ? v.captions.map(String) : [], analytics: typeof v.analytics === "string" ? v.analytics.slice(0, 2_000_000) : null, data: await creatorData(platform, set.niche, countryCodeOf(set.country)) }) });
           if (t[2] === "write" && req.method === "POST") {
             const ai = aiOf(s); if (!ai) return send(400, { refused: "Connect your AI key first (Settings → Your AI connection)." });
             const ok = LEDGER.allowed(); if (!ok.ok) return send(400, { refused: ok.why });

@@ -112,10 +112,18 @@ ${tabs}
     const aiPart = ai.state === "ok" ? `<h3>3 better ${what}s</h3><ol class="tt-better">${ai.titles.map((t, i) => `<li>${box(t, i)}<button class="tt-copy" type="button" data-copy="tt-s${i}">Copy</button><p>${esc(t.why)}</p></li>`).join("")}</ol><p class="tt-fine">Written by AI from your ${what} and topic only. A [bracket] is a detail only you know — fill it in.</p>`
       : `<p class="tt-busy" role="status">${esc(ai.line)}</p>`;
     out = `<div class="tt-result" data-title-result data-platform="${chosen}"><p class="tt-for">Your ${esc(PLATFORM_NAME[chosen])} ${what}: <b>${esc(result.title)}</b></p><div class="tt-top">${gauge ? gauge(c.score) : ""}<ul class="tt-checks">${list}</ul></div>
-<p class="tt-fine">${esc(yt ? guidance : CAPTION_TOOL.guidance(chosen))}${left !== null && left !== undefined ? ` · ${left} free check${left === 1 ? "" : "s"} left today.` : ""}</p>${aiPart}
+<p class="tt-fine">${esc(yt ? guidance : CAPTION_TOOL.guidance(chosen))}${left !== null && left !== undefined ? ` · ${left} free check${left === 1 ? "" : "s"} left today.` : ""}</p>${aiPart}${creatorBox(result.creator, chosen)}
 <p class="tt-offer"><a href="${esc(buyHref)}" data-buy>${esc(TOOL.offer)}</a></p></div>`;
   }
   return `<div class="tt" id="title-check" data-title-check><h3 class="tt-h">${esc(TOOL.heading)}</h3>${err}${form}${out}</div>`;
+}
+/* RR-348 c · what AlmiWorld's creator collectors hold for the topic's niche on this platform — each list with its source and date */
+export function creatorBox(c, platform) {
+  const d = c?.data; if (!d) return "";
+  const tags = (d.youtube?.tags?.length && platform === "youtube" ? d.youtube.tags.map((t) => `#${t.replace(/[^\p{L}\p{N}_]+/gu, "")}`) : d.hashtags ?? []).slice(0, 8);
+  return `<div class="tt-creator" data-creator-box><h3>For “${esc(c.niche)}” on ${esc(PLATFORM_NAME[platform])}</h3>
+${tags.length ? `<p><b>Hashtags that fit:</b> ${esc(tags.join(" "))}</p>` : ""}${d.questions?.length ? `<p><b>Questions people ask:</b></p><ul>${d.questions.slice(0, 3).map((q) => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}
+<p class="tt-fine">${esc(d.source ?? "")}${d.youtube && platform === "youtube" ? ` · titles and tags: ${esc(d.youtube.source)}` : ""} · AlmiWorld creator data</p></div>`;
 }
 export function youtubeBand(buyHref, tool = {}) {
   return `<section class="ytband" data-youtube><div class="wrap">
@@ -307,7 +315,7 @@ export const HOME_CSS = `<style>
 .tt-better{list-style:none;margin:0;padding:0;display:grid;gap:12px} .tt-better li{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
 .tt-better p{grid-column:1 / -1;margin:0;font-size:15px;color:#E4E4EC} .tt .tt-copyin{min-height:44px;font-size:16px;font-weight:600}
 .tt-copy{min-height:44px;padding:8px 16px;border-radius:999px;border:2px solid #F4A340;background:transparent;color:#FFFFFF;font:inherit;font-weight:600;cursor:pointer} .tt-copy:hover{background:#F4A340;color:#1A1A2E}
-.tt-offer{margin:22px 0 0} .tt-offer a{color:#F4A340;font-weight:700;font-size:17px}
+.tt-creator{margin:22px 0 0;padding:16px;border-radius:14px;background:#0B0B0F;border:1px solid #2A2A33;color:#E4E4EC;font-size:15px} .tt-creator ul{margin:4px 0 0;padding-left:20px} .tt-creator h3{margin:0 0 8px} .tt-offer{margin:22px 0 0} .tt-offer a{color:#F4A340;font-weight:700;font-size:17px}
 .dayplan h2{margin-top:4px} .dayplan .center{text-align:center}
 .days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:28px 0 0;padding:0;list-style:none}
 .days li{background:var(--white);border:1px solid var(--peach);border-radius:16px;padding:16px 18px} .days b{display:block;color:var(--coralDeep);font-size:15px;text-transform:uppercase;letter-spacing:.06em} .days span{display:block;margin-top:4px;color:var(--ink);font-weight:600}

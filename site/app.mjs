@@ -696,6 +696,12 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           : await runSearchConsole({ env, kv, kwStore: db, cfStore: cf, fetchImpl: gscFetch ?? fetchImpl, now });
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
+      /* RR-349 · the creator research's own cron slot (hourly, tools/bundle-site.mjs CR_CRONS) — Vercel Cron only; 250 s of the function's 300 */
+      if (req.method === "GET" && u.pathname === "/cron/creators") {
+        if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!kv || !db) return send(200, JSON.stringify({ ok: false, why: "The store or the database is not connected." }), "application/json", { "cache-control": "no-store" });
+        return send(200, JSON.stringify(await crRun({ budgetMs: 230000 })), "application/json", { "cache-control": "no-store" });
+      }
       /* RR-326 B · the daily collector — Vercel Cron only (its Authorization header carries CRON_SECRET) */
       if (req.method === "GET" && u.pathname === "/cron/keywords") {
         const okAuth = cronAuth();

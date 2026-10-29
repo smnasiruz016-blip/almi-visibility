@@ -32,6 +32,7 @@ import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { youtubeApp } from "./youtube-app.mjs";
+import { SOCIAL_PLATFORMS, socialSetup, socialPlan, writeCaptionsAI } from "./social-app.mjs"; // RR-348 b
 import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
 import { guidePage } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
@@ -250,6 +251,9 @@ const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null); return
 const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
 const plannedOf = (id) => pread(id, "planned.json", []);
 /* the client's AI (Settings → Your AI connection): its provider and key — the key only ever goes to the provider */
+/* RR-348 c · the AlmiWorld creator data for a niche × platform, kept in the data folder once fetched ({ questions, hashtags, ideas, hooks, on })
+ * — null until there is some; the plan then uses the niche's own words only */
+const creatorData = (platform, niche) => { const all = (() => { try { return JSON.parse(readFileSync(join(DATA, "creator-data.json"), "utf8")); } catch { return null; } })(); return all?.[platform]?.[String(niche).toLowerCase()] ?? null; };
 const aiOf = (s) => { const c = s.setup?.aiConnection, p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName); return p && KEYS.status(p.keyName).saved ? { provider: p.id, key: KEYS.get(p.keyName) } : null; };
 const reader = () => officialReader({ allowLocal, on: new Date().toISOString(), ...(Number.isInteger(CONFIG.testOfficialPaceMs) ? { paceMs: CONFIG.testOfficialPaceMs } : {}) });
 /* what the product is about, and the official site of that (e.g. "OET", oet.com) — the client says it once in "How many pages"; a short
@@ -752,6 +756,7 @@ const server = createServer((req, res) => {
             if (f === "languages") return send(200, { result: languagesCheck(site, s.setup?.languages?.codes ?? []) });
             if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }) });
             if (f === "youtube") return send(200, { open: "youtube" });
+            if (f === "tiktok-instagram") return send(200, { open: "tiktok-instagram" }); // RR-348 b
             if (f === "google") return send(200, { open: "google" });
             if (f === "page-count") return send(200, { open: "page-count" }); // RR-318 C
             if (f === "search-power") return send(200, { open: "search" }); // RR-318 D
@@ -1249,6 +1254,29 @@ const server = createServer((req, res) => {
           if (k[2]) { KEYS.remove(k[1]); return send(200, { ok: true, status: KEYS.status(k[1]) }); }
           const r = KEYS.set(k[1], json().key);
           return r.ok ? send(200, { ok: true, status: KEYS.status(k[1]) }) : send(400, { refused: r.why });
+        } }
+      /* RR-348 b · TikTok & Instagram: the client's handle and niche, the plan (checks, ideas, hooks, hashtag sets, advice, best times from their
+       * own file), "Write better with AI" with their own key inside their own monthly AI limit. Nothing is read from or posted to TikTok or
+       * Instagram. */
+      { const t = /^\/api\/products\/([^/]+)\/social-creator(?:\/(setup|plan|write))?$/.exec(u.pathname);
+        if (t) {
+          const tid = decodeURIComponent(t[1]);
+          let s; try { s = store.read(tid); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
+          const saved = pread(tid, "social-creator.json", {});
+          if (!t[2] && req.method === "GET") return send(200, { setups: saved, aiCost: LEDGER.line(), ai: Boolean(aiOf(s)) });
+          const v = json(), platform = SOCIAL_PLATFORMS.includes(v.platform) ? v.platform : null;
+          if (t[2] === "setup" && req.method === "POST") { const r = socialSetup(v); if (!r.ok) return send(400, { refused: r.why }); pwrite(tid, "social-creator.json", { ...saved, [r.platform]: { handle: r.handle, niche: r.niche, country: String(v.country ?? "").slice(0, 40), on: new Date().toISOString() } }); return send(200, { ok: true }); }
+          if (!platform || !saved[platform]) return send(400, { refused: "Add your handle and niche for TikTok or Instagram first." });
+          const set = saved[platform];
+          if (t[2] === "plan" && req.method === "POST") return send(200, { plan: socialPlan({ platform, handle: set.handle, niche: set.niche, country: set.country, captions: Array.isArray(v.captions) ? v.captions.map(String) : [], analytics: typeof v.analytics === "string" ? v.analytics.slice(0, 2_000_000) : null, data: creatorData(platform, set.niche) }) });
+          if (t[2] === "write" && req.method === "POST") {
+            const ai = aiOf(s); if (!ai) return send(400, { refused: "Connect your AI key first (Settings → Your AI connection)." });
+            const ok = LEDGER.allowed(); if (!ok.ok) return send(400, { refused: ok.why });
+            const r = await writeCaptionsAI({ provider: ai.provider, key: ai.key, platform, niche: set.niche, handle: set.handle, caption: String(v.caption ?? "").slice(0, 2200) });
+            if (r.usage) LEDGER.add(r.usage);
+            return send(r.ok ? 200 : 400, r.ok ? { ...r, usage: undefined, aiCost: LEDGER.line() } : { refused: r.why, aiCost: LEDGER.line() });
+          }
+          return send(404, { refused: "not found" });
         } }
       /* RR-303 D + RR-306 B/C: YouTube settings, the channel lookup and confirmation, the research, the advice, search-data files */
       { const y = /^\/api\/products\/([^/]+)\/youtube(?:\/(lookup|confirm|research|advice|file|write|signin|signout|signed|chapters|competitor|competitor\/remove|competitors\/refresh|apply|undo|coach|aicap|links))?$/.exec(u.pathname);

@@ -438,6 +438,22 @@ test("D IN THE APP: Approve & Publish asks where the site is built the first tim
     await a.post(`/api/products/${id}/setup`, { id: "publishMode", value: { mode: "REVIEW_FIRST" } });
     const n = wp.calls.length; const rev = await a.post(`/api/products/${id}/feature/seo-pages`, {});
     assert.equal(rev.autoPublished, null); assert.equal(wp.calls.length, n);
+    /* RR-344 B · today's notice; "Where should your articles go?" (review first = my site after I approve); drafts only never publishes;
+     * the export files; fully automatic sets the publishing to automatic */
+    const t1 = await a.get(`/api/products/${id}/articles/today`);
+    assert.ok(["ready", "published"].includes(t1.state), JSON.stringify(t1)); assert.equal(t1.go, "site-approve"); assert.match(t1.line, /^(Today's article is ready — review and approve|Published: )/);
+    const W = await a.get(`/api/products/${id}/articles/where`);
+    assert.deepEqual(W.options.map((o) => o.id), ["site-approve", "site-auto", "export", "social", "drafts"]); assert.equal(W.email.state, "coming soon");
+    assert.equal((await a.post(`/api/products/${id}/articles/where`, { go: "nowhere" })).http, 400);
+    assert.match((await a.post(`/api/products/${id}/articles/where`, { go: "drafts" })).line, /^Saved: Drafts only/);
+    const kept = await a.post(`/api/products/${id}/publish/draft`, { url: ready[1].url });
+    assert.equal(kept.ok, false); assert.match(kept.why, /nothing is published/); assert.equal(wp.calls.length, n, "drafts only reached the site");
+    assert.equal((await a.post(`/api/products/${id}/feature/seo-pages`, {})).autoPublished, null);
+    const md = await fetch(`${a.url}/api/products/${id}/articles/export?url=${encodeURIComponent(ready[1].url)}&format=md`);
+    assert.match(md.headers.get("content-type"), /^text\/markdown/); assert.match(md.headers.get("content-disposition"), /^attachment; filename="[a-z0-9-]+\.md"$/); assert.match(await md.text(), /^# /);
+    assert.equal((await fetch(`${a.url}/api/products/${id}/articles/export?url=${encodeURIComponent(ready[1].url)}&format=html`)).headers.get("content-type"), "text/html; charset=utf-8");
+    await a.post(`/api/products/${id}/articles/where`, { go: "site-auto" }); assert.equal((await a.get(`/api/products/${id}/state`)).setup.publishMode.mode, "AUTO_AFTER_GATES");
+    await a.post(`/api/products/${id}/articles/where`, { go: "site-approve" });
     const ui = await screen(a.url);
     ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#pubbox"); await ui.api.pagesBox(false);
     const shown = ui.el("#pubbox").innerHTML;

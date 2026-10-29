@@ -130,6 +130,8 @@ export function cfPgStore({ url, Pool = null, max = 3 }) {
     },
     async articles({ product = null } = {}) { await ensure(); return (await q(`SELECT id, product, kind, title, body, status, why, by_who, at FROM cf_article${product ? " WHERE product = $1" : ""} ORDER BY product, kind, id`, product ? [product] : [])).map(artRow); },
     async decideArticle(id, { action, at }) { const status = ARTICLE_ACTIONS[action]; if (!status) throw new Error(`no such action: ${action}`); await ensure(); const r = await q("UPDATE cf_article SET status = $2, by_who = 'owner', at = $3 WHERE id = $1 RETURNING id", [id, status, at]); return r.length ? { ok: true, status } : { ok: false, why: "No such article." }; },
+    /** RR-344 · where an approved article was published (the blog post's id, link, day) — kept in its body, never changing its words */
+    async markPublished(id, published) { await ensure(); const r = await q("UPDATE cf_article SET body = jsonb_set(body, '{published}', $2::jsonb) WHERE id = $1 AND status = 'approved' RETURNING id", [id, JSON.stringify(published)]); return { ok: r.length > 0 }; },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }
@@ -187,6 +189,7 @@ export function cfMemoryStore() {
     },
     async articles({ product = null } = {}) { return [...arts.values()].filter((a) => !product || a.product === product).sort((a, b) => a.product.localeCompare(b.product) || a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id)).map(copy); },
     async decideArticle(id, { action, at }) { const status = ARTICLE_ACTIONS[action]; if (!status) throw new Error(`no such action: ${action}`); const a = arts.get(id); if (!a) return { ok: false, why: "No such article." }; arts.set(id, { ...a, status, by: "owner", at: new Date(at).toISOString() }); return { ok: true, status }; },
+    async markPublished(id, published) { const a = arts.get(id); if (!a || a.status !== "approved") return { ok: false }; arts.set(id, { ...a, body: { ...a.body, published: copy(published) } }); return { ok: true }; },
     async close() {},
   });
 }

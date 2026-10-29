@@ -44,7 +44,7 @@ export const CHOICES = Object.freeze({
     { value: 3, label: "Your AI assistant's search", chooseIf: "you use an AI assistant account (Claude, ChatGPT, Gemini) for search.", gives: "How AI answers questions about your topics.", cost: "Your AI account's own price.", needs: "Your AI key (next steps).", howTo: "Connect your AI assistant in the step \"Your AI assistant\"." },
   ],
   publishMode: [
-    { value: "AUTO_AFTER_GATES", label: "Automatically, once every check passes", chooseIf: "you trust the checks and want no extra work.", gives: "Pages go out without waiting for you.", cost: "Free.", needs: "A connection to your site (coming; until then everything stays a draft for you to copy)." },
+    { value: "AUTO_AFTER_GATES", label: "Automatically, once every check passes", chooseIf: "you trust the checks and want no extra work.", gives: "Pages go out without waiting for you.", cost: "Free.", needs: "Your site connected under Publish (WordPress, GitHub + Vercel or Shopify) — or choose export, posts or drafts only on Today's article." },
     { value: "REVIEW_FIRST", label: "Show me first", chooseIf: "you want to read every page before it goes out.", gives: "Nothing goes out until you approve it.", cost: "Free.", needs: "A few minutes of your time per page." },
   ],
 });

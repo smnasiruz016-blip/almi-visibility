@@ -161,7 +161,7 @@ test("3 · RR-334: article drafts — a question answered from facts checked on 
   assert.deepEqual(await store.decideArticle(a.id, { action: "approve", at: `${ON}T11:00:00Z` }), { ok: true, status: "approved" });
   assert.equal((await store.putArticle({ id: a.id, product: "oet", kind: "answer", title: "changed", body: { ...a, title: "changed" } }, { at: `${ON}T12:00:00Z` })).saved, false);
   const page = ownerArticles({ articles: await store.articles(), html: articleHtml });
-  assert.match(page, /Nothing is published from here/); assert.match(page, /approved by you/); assert.match(page, /Outline: The answer → Related questions/);
+  assert.match(page, /Nothing is published until you approve it/); /* RR-344: Approve publishes on the blog */ assert.match(page, /approved by you/); assert.match(page, /Outline: The answer → Related questions/);
 });
 
 test("guard · RR-334: a harness mark whose pid now belongs to another program (Windows reuses pids) holds no lock; a live node harness still does", async () => {

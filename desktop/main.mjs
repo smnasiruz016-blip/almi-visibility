@@ -25,7 +25,8 @@ import { googleConnect, importExport } from "./google-connect.mjs";
 import { seoPages, articleOfDay, socialFor, monthReport } from "./seo-pages.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, checkTarget, publishDraft, unpublish, editDraft } from "./publish.mjs";
+import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf } from "./publish.mjs";
+import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
@@ -184,6 +185,8 @@ const downloadsFor = (id) => join(CONFIG.downloadsDir ?? join(homedir(), "Downlo
 /** Approve & Publish ONE draft: the five gates judge it again right before (as the client edited it); a failing gate stops it, said */
 async function publishOne(id, url) {
   if (isAlmiWorld(store.read(id))) return { ok: false, why: ALMIWORLD_NO }; // RR-310 D5
+  const refusal = publishRefusal(destOf(pread(id, "articles-go.json"), store.read(id).setup?.publishMode?.mode)); // RR-344 B
+  if (refusal) return { ok: false, why: refusal };
   const conn = pread(id, "publish.json");
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
@@ -1144,6 +1147,39 @@ const server = createServer((req, res) => {
           }
         } }
       /* a draft page, opened in the app to read (never published) */
+      /* RR-344 B · where the articles go, today's notice (the dashboard asks it each time it opens), and the export file */
+      { const r = /^\/api\/products\/([^/]+)\/articles\/(today|where|export)$/.exec(u.pathname);
+        if (r) {
+          const id = decodeURIComponent(r[1]); let s;
+          try { s = store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
+          const saved = pread(id, "articles-go.json"), go = destOf(saved, s.setup?.publishMode?.mode);
+          if (r[2] === "where" && req.method === "GET") return send(200, { go, options: Object.entries(ARTICLE_DEST).map(([k, v]) => ({ id: k, label: v.label })), notify: saved?.notify === true, email: EMAIL_SUMMARY });
+          if (r[2] === "where" && req.method === "POST") {
+            const v = json(); if (!ARTICLE_DEST[v.go]) return send(400, { refused: "Choose where your articles go." });
+            pwrite(id, "articles-go.json", { go: v.go, notify: v.notify === true, on: new Date().toISOString() });
+            s.setup.publishMode = { mode: ARTICLE_DEST[v.go].mode }; store.write(id, s);
+            return send(200, { ok: true, line: `Saved: ${ARTICLE_DEST[v.go].label}.` });
+          }
+          if (r[2] === "today" && req.method === "GET") {
+            const day = new Date().toISOString().slice(0, 10), pages = pread(id, "pages.json"), made = pread(id, "articles.json", []);
+            let today = made.find((x) => x.day === day) ?? null, none = null;
+            if (!hasWebsite(s)) none = "articles are made from a website, and this product has none";
+            else if (Number(s.setup?.articlesPerDay?.perDay ?? 1) === 0) none = "you paused articles (0 a day, in Settings)";
+            else if (!pages) none = "press \"Check my product now\", then \"Create SEO pages\" — the articles are made from them";
+            else if (!today) { const a = articleOfDay({ pages, earlier: made.map((x) => x.url), day }); if (a.url) { pwrite(id, "articles.json", [...made, { url: a.url, title: a.title, day }]); today = { url: a.url, title: a.title, day }; } else none = String(a.none ?? "").replace(/^No new article today — /, ""); }
+            const n = todayNotice({ go, today, none, live: pread(id, "published.json", []), connected: Boolean(pread(id, "publish.json")?.kind) });
+            const d = today ? (pages?.drafts ?? []).find((x) => x.url === today.url) : null;
+            const posts = d && (n.state === "published" || go === "social") ? socialFor(d, pages.plan?.find((x) => x.kind === "NEW" && x.question === d.title) ?? pages.plan?.find((x) => x.kind === "NEW")).posts ?? [] : [];
+            return send(200, { ...n, go, notify: saved?.notify === true, posts });
+          }
+          if (r[2] === "export" && req.method === "GET") {
+            const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); if (!d) return send(404, { refused: "No such draft." });
+            const md = u.searchParams.get("format") === "md", name = `${String(d.url).replace(/^https?:\/\/[^/]+/, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "article"}.${md ? "md" : "html"}`;
+            res.writeHead(200, { "content-type": md ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8", "content-disposition": `attachment; filename="${name}"`, "cache-control": "no-store" });
+            return res.end(md ? `# ${d.title}\n\n${markdownOf(mainOf(d.html)).replace(/^# [^\n]*\n+/, "")}` : d.html);
+          }
+          return send(405, { refused: "Not here." });
+        } }
       { const r = /^\/api\/products\/([^/]+)\/draft$/.exec(u.pathname);
         if (r && req.method === "GET") { const id = decodeURIComponent(r[1]); try { store.read(id); } catch (e) { return send(400, { refused: e.message }); } const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, d.html, "text/html; charset=utf-8") : send(404, { refused: "no such draft" }); } }
       /* RR-307 E1: Google sends the browser back here after the client signed in — the access is kept, then the site is picked in the app */

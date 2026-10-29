@@ -16,7 +16,7 @@ import { ownerCookie } from "../site/owner.mjs";
 
 const ON = "2026-10-27", T0 = Date.parse(`${ON}T10:00:00Z`);
 const F = (country, part, key, value, extra = {}) => ({ key, country, profession: null, part, kind: part, value, sourceUrl: `https://${part}.example/${country.toLowerCase()}`, sourceTitle: part, readOn: ON, status: "confirmed", by: "collector", aiWritten: false, proposedBy: "official", why: null, product: "oet", ...extra });
-const council = (c, p, whole = true) => F(c, "councils", `council|${c}|${p}`, { name: `Invented ${p} council`, website: "https://ic.example", address: whole ? "1 Invented Road, City 44000" : null }, { profession: p });
+const council = (c, p, whole = true) => F(c, "councils", `council|${c}|${p}`, { name: `Invented ${p} council`, website: whole ? "https://ic.example.org" : null, address: whole ? "1 Invented Road, City 44000" : null, siteCheck: "read" } /* RR-343: not whole = no official website */, { profession: p });
 const DONE = (c) => [F(c, "fee", `fee|${c}`, { official: "AUD 587", amount: 114260, currency: "PKR", rate: { date: "2026-10-26", source: "ExchangeRate-API" }, line: "AUD 587 — about 114,260 PKR (ExchangeRate-API's open rate of 2026-10-26: 1 AUD = 194.65 PKR; Rates By Exchange Rate API), not an official price", local: true }),
   F(c, "questions", `question|${c}|home`, { question: "can i take oet at home", answer: "Yes …", answerKind: "official", pageable: true }), F(c, "questions", `question|${c}|fees~x`, { question: "fee in rupees", answer: "General …", answerKind: "guidance", pageable: false }),
   F(c, "centres", `centres|${c}`, { venue: true }), council(c, "nursing"), council(c, "medicine"), F(c, "rules", `rule|${c}|x|1`, { rule: "A rule." })];
@@ -25,7 +25,7 @@ test("A · RR-332: done = all five parts, the councils part filled by nursing AN
   const facts = [...DONE("Pakistan"), ...DONE("India").filter((f) => f.profession !== "medicine"), council("India", "medicine", false), council("Kenya", "pharmacy"), F("Kenya", "fee", "fee|Kenya", { line: "x", local: true }, { status: "unconfirmed" })];
   const done = doneIn(facts);
   assert.deepEqual(["Pakistan", "India", "Kenya"].map((c) => done("oet", c)), [true, false, false]);
-  assert.match(partsOf("India", facts).parts.councils.missing[0], /^the medicine council is not whole yet/);
+  assert.match(partsOf("India", facts).parts.councils.missing[0], /^the medicine council is not found yet/);
   const p = pageCounts(facts, { product: "oet", countries: ["Pakistan", "India", "Kenya"] });
   assert.deepEqual([p.country.ready, p.country.waiting], [1, 2]); assert.equal(p.country.why.councils, 2); assert.equal(p.country.why.fee, 1, "an unconfirmed fee counts for nothing");
   assert.equal(p.countryProfession.ready, 5, "Pakistan 2 + India 2 (medicine found by its name, not whole) + Kenya pharmacy 1 — only where a council is found");

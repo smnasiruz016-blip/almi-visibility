@@ -69,6 +69,7 @@ a{color:var(--ink)} main{flex:1 0 auto;width:100%}
 .family{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px 16px} .family a{font-size:15px;font-weight:600;color:var(--text);text-decoration:none} .family a:hover{color:var(--coral)}
 .product{display:flex;align-items:center;gap:16px} .product a{font-weight:600;color:var(--ink);text-decoration:none} .product a:hover,.product a[aria-current]{color:var(--coralDeep)}
 .pill{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 22px;border-radius:999px;background:var(--coral);color:var(--ink);font-weight:600;text-decoration:none;border:0;font:inherit;font-weight:600;cursor:pointer}
+.menu .drawer a.pill{display:inline-flex;padding:10px 22px;margin:4px 0} .buystrip{margin:14px 0 22px;padding:12px 16px;border-radius:12px;background:var(--peach);color:#1A1A2E;text-align:center;font-weight:600} .buystrip a{color:#1A1A2E}
 .pill:hover{background:var(--coralDeep)} .pill.alt{background:var(--sunrise)} .pill.ghost{background:transparent;border:2px solid var(--coral)} .pill.big{min-height:50px;padding:12px 28px;font-size:17px}
 .menu{display:none} .menu summary{list-style:none;cursor:pointer;border:1px solid var(--peach);border-radius:10px;padding:8px 12px;font-weight:600;color:var(--ink);background:var(--white)} .menu summary::-webkit-details-marker{display:none}
 .menu .drawer{position:absolute;left:0;right:0;top:100%;background:var(--cream);border-bottom:1px solid var(--peach);padding:12px 24px 18px;max-height:75vh;overflow:auto}
@@ -184,6 +185,9 @@ export const emailNotice = (e) => (!e ? "" : e.sent ? `<p class="card" role="sta
 /* RR-325 A: the public-lite header — no Pricing, no Download, no Buy (they are not served) */
 const LITE_NAV = [["/", "Home"], ["/#score", "Free score"], ["/privacy", "Privacy"], ["/terms", "Terms"]];
 /* RR-338 · THE SALES SITE (public-lite + selling): the lite pages plus Pricing and Download; every link opens on this site */
+/* RR-343 (owner, 29 Oct 2026) · "Buy now — from $30/month": in the header (beside "Get my score"), in the home hero and as a strip under
+ * the first home image — each to the plans (/pricing); the price is the lowest plan's, read from PLANS */
+export const BUY_NOW = Object.freeze({ href: "/pricing", label: `Buy now — from $${Math.min(...PLANS.map((p) => p.price))}/month`, strip: `Plans from $${Math.min(...PLANS.map((p) => p.price))} a month · Every feature in every plan` });
 const SALES_NAV = [["/", "Home"], ["/#score", "Free score"], ["/pricing", "Pricing"], ["/download", "Download"], ["/privacy", "Privacy"], ["/terms", "Terms"]];
 /* RR-338 · the owner's marketing lines (28 Oct 2026): bold, never "guaranteed", no invented number */
 export const MARKETING = Object.freeze({
@@ -204,8 +208,8 @@ export function frame({ path, title, description, body, noindex = false, lite = 
 <header class="site-header" data-testid="global-header"><div class="wrap bar">
 <a class="brand" href="/" aria-label="AlmiVisibility home"><img src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully" width="96" height="40"><span class="name">AlmiVisibility</span></a>
 <div class="rows"><nav class="family" aria-label="Family navigation">${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</nav>
-<nav class="product" aria-label="AlmiVisibility">${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<a class="pill" href="${cta[0]}">${cta[1]}</a></nav></div>
-<details class="menu"><summary aria-label="Open menu">Menu</summary><div class="drawer"><p>AlmiVisibility</p>${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<p>AlmiWorld</p>${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</div></details>
+<nav class="product" aria-label="AlmiVisibility">${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<a class="pill" href="${cta[0]}">${cta[1]}</a>${lite === "sales" ? `<a class="pill alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a>` : ""}</nav></div>
+<details class="menu"><summary aria-label="Open menu">Menu</summary><div class="drawer">${lite === "sales" ? `<a class="pill alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a>` : ""}<p>AlmiVisibility</p>${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<p>AlmiWorld</p>${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</div></details>
 </div></header>
 <main id="main">${body}</main>
 <footer class="site-footer"><div class="wrap"><div class="fcols">${footerCols().map((c) => `<div class="${c.title === "Products" ? "products" : ""}"><p>${esc(c.title)}</p><ul>${c.links.map((l) => `<li><a href="${l.href}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>
@@ -374,10 +378,10 @@ export const liteHome = ({ result = null, error = null, values = {}, scoreOn = f
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
 ${sales ? `<h1>${esc(MARKETING.headline)}</h1>
 <p class="lead">${esc(MARKETING.data)} Start with your free score: enter your website address — AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages, following its robots.txt, and shows your score and the main findings here, on screen.</p>
-<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill ghost" href="/pricing">See the plans</a></div>` : `<h1>Get the score of your site</h1>
+<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a></div>` : `<h1>Get the score of your site</h1>
 <p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>`}
 <p class="small">${esc(NO_PROMISE)}</p></div>
-<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div>${sales ? `<div class="wrap">${IMG.home}${IMG.score}</div>` : ""}</section>
+<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div>${sales ? `<div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div>` : ""}</section>
 ${result ? resultDetail(result, left) : ""}
 ${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
 ${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`)
@@ -583,7 +587,7 @@ const factLine = (f) => {
   if (f.status === "owner") return `${v.text ?? ""}${v.link ? ` · ${v.link}` : ""}`; // RR-329: the owner's own words first, whatever part
   if (f.part === "fee") return `${feeShown(v) ?? v.line ?? ""}${v.rate?.source ? ` · rate: ${v.rate.source}` : ""}`;
   if (f.part === "centres") return v.venue ? "a venue named on OET's own pages" : `no venue — ${v.home ?? "at home not stated"}${v.nearest?.length ? `; nearest venues: ${v.nearest.join(", ")}` : "; no nearest venue"}`;
-  if (f.part === "councils") return `${f.profession}: ${v.name ?? "?"}${v.nameType ? ` (${v.nameType})` : ""} · ${v.website ?? "no website"} · ${v.address ?? `address missing${v.addressWhy ? ` (${v.addressWhy})` : ""}`}`;
+  if (f.part === "councils") return `${f.profession}: ${v.name ?? "?"}${v.nameType ? ` (${v.nameType})` : ""} · ${v.website ?? "no website"}${v.siteNote ? ` (${v.siteNote})` : ""} · ${v.address ?? `no address (optional)${v.addressWhy ? ` — ${v.addressWhy}` : ""}`}`; // RR-343: the address is optional
   if (f.part === "questions") return `“${v.question ?? ""}” (${Number(v.volume ?? 0).toLocaleString("en-US")} a month) → ${v.answer ?? "no answer yet"}`;
   if (f.part === "rules" && v.rule) return `${v.rule ?? ""}${v.quote ? ` — the page says: “${v.quote}”` : ""}`;
   /* RR-329: another product's fact (a body or a statement) */
@@ -637,7 +641,7 @@ ${f.status === "owner" ? "" : `<form method="post" action="/owner/countries/fact
   const tplCell = (x) => (x ? `${x.asks} asked · ${x.searches} searches → <b>${x.found}</b> confirmed${x.guidance ? ` · ${x.guidance} guidance` : ""}` : "—");
   const tplTable = templates === null ? "<p>Search templates: the counts could not be read.</p>" : !tplNames.length ? "<p>Search templates: no question asked yesterday or today yet.</p>"
     : `<table><caption>Search templates — searches → results confirmed on an official page</caption><thead><tr><th>Template</th><th>Today</th><th>Yesterday</th></tr></thead><tbody>${tplNames.map((n) => `<tr><td>${esc(n)}</td><td>${tplCell(templates.today?.[n])}</td><td>${tplCell(templates.yesterday?.[n])}</td></tr>`).join("")}</tbody></table>`;
-  const runLine = last ? `<p>Last run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} facts saved (${last.unconfirmed} unconfirmed), ${last.kept} kept as you decided, ${last.reads} pages read, $${Number(last.aiUsd ?? 0).toFixed(2)} of AI${last.done?.length ? `; finished: ${esc(last.done.slice(0, 8).join(", "))}${last.done.length > 8 ? " …" : ""}` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
+  const runLine = last ? `<p>Last run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} facts saved (${last.unconfirmed} unconfirmed), ${last.kept} kept as you decided${last.recheck?.approved ? `, ${last.recheck.approved} of your own councils counted by your word (RR-343)` : ""}, ${last.reads} pages read, $${Number(last.aiUsd ?? 0).toFixed(2)} of AI${last.done?.length ? `; finished: ${esc(last.done.slice(0, 8).join(", "))}${last.done.length > 8 ? " …" : ""}` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
   /* RR-329 E: the facts by part, each part closed until tapped (light on a phone) — the owner's own facts first and open */
   const groups = (mine) => { const own = mine.filter((f) => f.status === "owner"), rest = mine.filter((f) => f.status !== "owner"), by = new Map();
     for (const f of rest) (by.get(f.part) ?? by.set(f.part, []).get(f.part)).push(f);
@@ -654,7 +658,7 @@ ${knowBox(country)}
   }
   /* RR-330: the first 15 countries first (the owner's question): % of their 75 parts filled, each part, and when every part is tried once */
   const f15 = oet && first15 ? `<p class="card"><b>First ${first15.countries} countries: ${first15.percent}% done</b> · fee ${first15.byPart.fee}/${first15.countries} · questions ${first15.byPart.questions}/${first15.countries} · centres ${first15.byPart.centres}/${first15.countries} · councils ${first15.byPart.councils}/${first15.countries} (a council for ${first15.councils} of ${first15.councilPairs} professions) · rules ${first15.byPart.rules}/${first15.countries}<br><span class="fine">${first15.left ? `${first15.left} still to try in full — every part tried once by about ${esc(first15.eta)} at today's caps${first15.measured ? "" : " (an estimate until 3 countries are measured)"}; a council nobody's page shows is searched again every day after that.` : "Every part of these countries has been tried; councils not found yet are searched again every day."}</span></p>` : "";
-  const head = oet ? `${f15}<p><b>${c.complete}</b> of ${c.countries} countries have all five parts (a country page) · fee ${c.byPart.fee} · questions ${c.byPart.questions} · centres ${c.byPart.centres} · councils for every profession ${c.byPart.councils} · rule ${c.byPart.rules}</p>
+  const head = oet ? `${f15}<p><b>${c.complete}</b> of ${c.countries} countries have all five parts (a country page) · fee ${c.byPart.fee} · questions ${c.byPart.questions} · centres ${c.byPart.centres} · councils (nursing and medicine found) ${c.byPart.councils} · rule ${c.byPart.rules}</p>
 <p>Country × profession: a council found for <b>${c.councilsFound.toLocaleString("en-US")}</b> of ${c.pairs.toLocaleString("en-US")} · ${c.unconfirmed} facts unconfirmed (never shown on a page) · ${c.rejected} rejected by you${c.removed ? ` · ${c.removed} questions set aside (a comment to a video's maker, or an answer under a replaced rule; Approve brings one back)` : ""}</p>`
     : `<p><b>${c.complete}</b> of ${c.countries} countries have all ${parts.length} parts (a country page) · ${parts.map((p) => `${esc(p.name)} ${c.byPart[p.key]}`).join(" · ")}</p><p>${c.unconfirmed} facts unconfirmed (never shown on a page) · ${c.rejected} rejected by you${c.removed ? ` · ${c.removed} questions set aside (the filter or a replaced rule)` : ""}</p>`;
   const nav = products.length ? `<p class="row">${products.map((p) => (p.key === product ? `<span class="chip"><b>${esc(p.name)}</b></span>` : `<a class="chip" href="/owner/countries${p.key === "oet" ? "" : `?p=${encodeURIComponent(p.key)}`}">${esc(p.name)}</a>`)).join(" ")}</p>` : "";

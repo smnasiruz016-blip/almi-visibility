@@ -40,8 +40,32 @@ export const CF_PRIORITY = Object.freeze(["India", "Philippines", "Pakistan", "N
 const shown = (f) => SHOWN_STATUS.includes(f?.status);
 /* RR-332: the councils a country page needs (the rest add country × profession pages) */
 export const COUNCIL_CORE = Object.freeze(["nursing", "medicine"]);
-/** a council fact is whole when it has its name, official website and address */
+/** a council fact is whole when it has its name, official website and address (the app's pages print the address: desktop/local-pages.mjs) */
 export const councilWhole = (v) => Boolean(v?.name && /^https?:\/\//.test(v?.website ?? "") && String(v?.address ?? "").trim().length >= 8);
+/* RR-343 (owner, 29 Oct 2026) · a council is FOUND when its official NAME and official WEBSITE are known: the website is the body's own
+ * domain (a government's, an .org, or the body's own name), confirmed by reading it — or, when the site does not open from abroad, by its
+ * domain and its name together in the search results (siteCheck "search", shown with SITE_ABROAD). The ADDRESS is optional. The owner's
+ * own councils and his Approve/Edit count by his word; a blocked private site never. REPLACES "name + website + address" for counting. */
+export const SITE_ABROAD = "website does not open from abroad";
+const NAME_STOP = new Set(["of", "and", "the", "for", "in", "on", "de", "del", "la", "le", "des", "et", "du"]);
+const GENERIC = new Set(["council", "board", "authority", "ministry", "department", "national", "health", "medical", "nursing", "commission", "general", "registration", "regulatory", "professions", "professional", "midwifery", "dental", "pharmacy", "republic", "state", "federal"]);
+/** the website is the body's OWN domain: a government's, an .org, or a domain made of the body's name (its short name, its initials, its words) */
+export function officialSite(name, website) {
+  const h = hostOf(website); if (!h || !/^https?:\/\//.test(String(website ?? "")) || blockedSource(website)) return false;
+  if (governmentHost(h) || /(^|\.)(org|or)(\.[a-z]{2})?$/.test(h)) return true;
+  const label = h.split(".")[0].replace(/[^a-z0-9]/g, ""), short = /\(([A-Za-z]{2,10})\)/.exec(String(name ?? ""))?.[1]?.toLowerCase();
+  const ws = words(String(name ?? "").replace(/\([^)]*\)/g, "")).filter((w) => !NAME_STOP.has(w)), initials = ws.map((w) => w[0]).join("");
+  const inLabel = ws.filter((w) => w.length >= 4 && label.includes(w));
+  return Boolean((short && label.includes(short)) || (initials.length >= 3 && label.includes(initials)) || inLabel.length >= 2 || inLabel.some((w) => w.length >= 5 && !GENERIC.has(w)));
+}
+/** a council fact counts as FOUND (the RR-343 rule above) — the whole fact, because "confirmed" must say how its website was confirmed */
+export function councilFound(f) {
+  const v = f?.value; if (!f || !SHOWN_STATUS.includes(f.status) || !v?.name || !/^https?:\/\//.test(String(v.website ?? "")) || blockedSource(v.website) || blockedSource(f.sourceUrl)) return false;
+  if (f.status !== "confirmed") return true; // the owner's word: his own council, his Approve or his Edit
+  if (!officialSite(v.name, v.website)) return false;
+  /* RR-343: the collector records how; a council stored before says it by its source page — the website itself was read */
+  return v.siteCheck === "read" || v.siteCheck === "search" || (!v.siteCheck && hostOf(f.sourceUrl) === hostOf(v.website));
+}
 /** the fee fact shows a figure in the country's own money */
 export const feeLocal = (v) => Boolean(v?.local && v?.line);
 
@@ -57,7 +81,7 @@ export function partsOf(country, facts, { professions = CF_PROFESSIONS } = {}) {
   const fee = own("fee")[0] ?? of("fee").find((f) => feeLocal(f.value)) ?? null, feeAny = of("fee")[0] ?? null;
   const questions = [...own("questions"), ...of("questions").filter((f) => f.value?.question && f.value?.answer)];
   const centres = own("centres")[0] ?? of("centres").find((f) => f.value?.venue || (f.value?.home && (f.value?.nearest ?? []).length)) ?? null;
-  const councils = Object.fromEntries(professions.map((p) => [p, own("councils", p)[0] ?? of("councils").find((f) => f.profession === p && councilWhole(f.value)) ?? null]));
+  const councils = Object.fromEntries(professions.map((p) => [p, own("councils", p)[0] ?? of("councils").find((f) => f.profession === p && councilFound(f)) ?? null])); // RR-343: found = name + official website
   const noCouncil = professions.filter((p) => !councils[p]), partial = professions.filter((p) => !councils[p] && of("councils").some((f) => f.profession === p));
   /* RR-332 (owner, 27 Oct 2026): the councils part is FILLED when the nursing AND medicine councils are whole; the other professions add
    * country × profession pages as they are found and keep being searched — REPLACES "a whole council for EVERY profession" */
@@ -67,7 +91,7 @@ export function partsOf(country, facts, { professions = CF_PROFESSIONS } = {}) {
     fee: { filled: Boolean(fee), facts: fee ? [fee] : feeAny ? [feeAny] : [], missing: fee ? [] : [feeAny ? "no figure in its own currency yet" : "no fee read yet"] },
     questions: { filled: questions.length > 0, facts: questions, missing: questions.length ? [] : ["no question from this country with its answer yet"] },
     centres: { filled: Boolean(centres), facts: centres ? [centres] : of("centres"), missing: centres ? [] : ["no venue named, and no nearest venue with taking it at home"] },
-    councils: { filled: coreMissing.length === 0, facts: Object.values(councils).filter(Boolean), missing: coreMissing.length ? [`the ${coreMissing.join(" and ")} council${coreMissing.length > 1 ? "s are" : " is"} not whole yet (name, website, address)${partial.some((p) => coreMissing.includes(p)) ? " — found but incomplete" : ""}; ${noCouncil.length} of ${professions.length} professions still searched: ${noCouncil.join(", ")}`] : [] },
+    councils: { filled: coreMissing.length === 0, facts: Object.values(councils).filter(Boolean), missing: coreMissing.length ? [`the ${coreMissing.join(" and ")} council${coreMissing.length > 1 ? "s are" : " is"} not found yet (official name and website)${partial.some((p) => coreMissing.includes(p)) ? " — a name was found, its official website not confirmed yet" : ""}; ${noCouncil.length} of ${professions.length} professions still searched: ${noCouncil.join(", ")}`] : [] },
     rules: { filled: rules.length > 0, facts: rules, missing: rules.length ? [] : ["no rule of its own from an official page yet"] },
   };
   const missing = PARTS.filter((p) => !parts[p].filled);
@@ -149,7 +173,7 @@ export function countryPacket(country, facts, { professions = CF_PROFESSIONS } =
     owner: facts.filter((f) => f.country === country && f.status === "owner" && (f.product ?? "oet") === "oet").map(pick),
     fee: p.parts.fee.facts.filter(shown).map(pick)[0] ?? null, questions: p.parts.questions.facts.map(pick), centres: p.parts.centres.facts.filter(shown).map(pick)[0] ?? null,
     /* every profession's council the page may show — whole (name, website, address: part 4) or found by its name only (enough for a country × profession page) */
-    councils: Object.fromEntries(professions.map((k) => { const f = p.councils[k] ?? facts.find((x) => x.country === country && x.part === "councils" && x.profession === k && shown(x) && x.value?.name); return [k, f ? { ...pick(f), whole: councilWhole(f.value) } : null]; })), rules: p.parts.rules.facts.map(pick) };
+    councils: Object.fromEntries(professions.map((k) => { const f = p.councils[k] ?? facts.find((x) => x.country === country && x.part === "councils" && x.profession === k && shown(x) && x.value?.name); return [k, f ? { ...pick(f), whole: councilWhole(f.value), found: councilFound(f) } : null]; })), rules: p.parts.rules.facts.map(pick) };
 }
 
 /* ── the questions of a country: its searches that ASK something about the subject, grouped by the need they ask about (the first group

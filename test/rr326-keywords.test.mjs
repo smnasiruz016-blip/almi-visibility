@@ -193,9 +193,9 @@ test("B · the collector STOPS in plain words: our daily cap (given back, never 
 });
 
 /* the public-lite app with every stand-in */
-async function site({ env = FULL_ENV, clock = clockAt("2026-10-26T10:00:00Z"), kv = null, google = null, store = memoryStore() } = {}) {
+async function site({ env = FULL_ENV, clock = clockAt("2026-10-26T10:00:00Z"), kv = null, google = null, store = memoryStore(), mode = "public-lite" } = {}) {
   const K = kv ?? fakeKv(clock), G = google ?? fakeGoogle(clock);
-  const app = createApp({ mode: "public-lite", env, kvFetch: K.fetchImpl, adsFetch: G.fetchImpl, kwStore: store, now: clock.now, sleep: clock.sleep, resolve: async () => [{ address: "93.184.216.34" }] });
+  const app = createApp({ mode, env, kvFetch: K.fetchImpl, adsFetch: G.fetchImpl, kwStore: store, now: clock.now, sleep: clock.sleep, resolve: async () => [{ address: "93.184.216.34" }] });
   const srv = createServer(app); await new Promise((r) => srv.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${srv.address().port}`;
   const req = (p, { method = "GET", form = null, ip = "203.0.113.9", cookie = null, headers = {} } = {}) => fetch(base + p, { method, redirect: "manual", headers: { "x-real-ip": ip, ...(form ? { "content-type": "application/x-www-form-urlencoded" } : {}), ...(cookie ? { cookie } : {}), ...headers }, body: form ? new URLSearchParams(form) : undefined }).then(async (r) => ({ status: r.status, text: await r.text(), headers: r.headers }));
@@ -309,6 +309,16 @@ test("B + G · the owner's page: per product, category and YouTube niche (keywor
   try {
     const cookie = (await a.req("/owner/sign-in", { method: "POST", form: { key: OWNER_KEY } })).headers.get("set-cookie").split(";")[0];
     const ran = await a.req("/owner/collect", { method: "POST", form: {}, cookie }); assert.match(ran.text, /This run: \d+ requests saved/);
+    /* RR-343 (owner, 29 Oct: /owner/collect said "Page not found") · the SALES build: Collect now runs; its address opened again (a refresh, a
+     * typed address) goes back to the countries page — never 404; signed out it is the sign-in, as every owner page */
+    const sb = await site({ clock, kv: K, google: G, store, mode: "sales" });
+    try {
+      const sc = (await sb.req("/owner/sign-in", { method: "POST", form: { key: OWNER_KEY } })).headers.get("set-cookie").split(";")[0];
+      const run2 = await sb.req("/owner/collect", { method: "POST", form: {}, cookie: sc }); assert.equal(run2.status, 200); assert.match(run2.text, /This run: \d+ requests saved/);
+      const again = await sb.req("/owner/collect", { cookie: sc }); assert.deepEqual([again.status, again.headers.get("location")], [303, "/owner/countries"]);
+      assert.deepEqual([(await sb.req("/owner/seeds", { cookie: sc })).headers.get("location"), (await sb.req("/owner/countries/run", { cookie: sc })).headers.get("location")], ["/owner", "/owner/countries"]);
+      assert.equal((await sb.req("/owner/collect")).status, 403, "signed out: the sign-in");
+    } finally { await sb.close(); }
     const page = (await a.req("/owner", { cookie })).text;
     /* one short run (50 s) reaches the first product of the owner's queue — AlmiOET (RR-329, rule R4; it was AlmiJob, the list's first) */
     assert.match(page, /<td>AlmiOET<\/td><td>AlmiWorld product · every 30 days<\/td><td>\d+<\/td><td>\d+<\/td><td>\d+<\/td><td>2026-10-26<\/td>/);

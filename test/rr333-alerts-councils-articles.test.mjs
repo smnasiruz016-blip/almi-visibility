@@ -13,7 +13,7 @@ import { kvStore } from "../site/limits.mjs";
 import { ownerStatus } from "../site/owner-status.mjs";
 import { runSearchConsole } from "../site/gsc.mjs";
 import { FIX } from "../site/health.mjs";
-import { refuseBlocked, blockedSource, BLOCKED_SOURCES } from "../desktop/country-facts.mjs";
+import { refuseBlocked, blockedSource, BLOCKED_SOURCES, councilFound } from "../desktop/country-facts.mjs";
 import { OWNER_COUNCILS } from "../desktop/owner-councils.mjs";
 import { questionsInComment } from "../desktop/real-questions.mjs";
 import { answersFromSite, answerKindOf, casingOf, seoPages } from "../desktop/seo-pages.mjs";
@@ -55,10 +55,13 @@ test("Councils · RR-333: the owner's councils are tried first on their OWN site
   const f = async (c, p) => (await store.facts({ country: c })).find((x) => x.part === "councils" && x.profession === p);
   const nn = await f("Nepal", "nursing"), nm = await f("Nepal", "medicine"), en = await f("Egypt", "nursing"), em = await f("Egypt", "medicine");
   assert.deepEqual([nn.status, nn.proposedBy, nn.value.address], ["confirmed", "owner-input", "Bansbari, Kathmandu (P.O. Box 12541)"], "read on its own site");
-  assert.deepEqual([nm.status, nm.value.address, nm.value.addressFrom], ["unconfirmed", "Bansbari, Kathmandu (P.O. Box 13890)", "the owner's input — not yet read on its official page"]);
-  assert.match(nm.why, /^yours, to verify — its official site could not be read from our server \(the site refused our server \(403\)\); approve it if it is right$/);
-  assert.equal(en.status, "unconfirmed", "the owner doubts this site: never confirmed by itself"); assert.match(en.why, /^yours, to verify — the owner asks to confirm/);
+  /* RR-343 (owner, 29 Oct 2026): his own councils count as approved by his word — read on their own site first (confirmed when they stand
+   * there); one that cannot be read, or one he noted a doubt on, is "approved" (his address kept, said so), never left unshown */
+  assert.deepEqual([nm.status, nm.value.address, nm.value.addressFrom], ["approved", "Bansbari, Kathmandu (P.O. Box 13890)", "the owner's input — not yet read on its official page"]);
+  assert.equal(nm.why, "your own council — counted by your word (RR-343)");
+  assert.equal(en.status, "approved"); assert.match(en.why, /^your own council — counted by your word \(RR-343\); your note: the owner asks to confirm/);
   assert.equal(em.status, "confirmed");
+  assert.ok([nn, nm, en, em].every(councilFound), "all four count");
   /* section A: 13 bodies, 16 country × profession pairs, plus 2 of section B (no address copied) */
   assert.equal(new Set(OWNER_COUNCILS.map((x) => x.name)).size, 15); assert.equal(OWNER_COUNCILS.length, 18);
   assert.equal(OWNER_COUNCILS.find((x) => x.country === "Bangladesh" && x.profession === "medicine").address, null, "BNMC's address is never copied for BMDC");

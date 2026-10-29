@@ -446,6 +446,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         }
         if (req.method === "POST" && u.pathname === "/owner/sign-out") return send(303, "", "text/plain", { ...priv, location: "/", "set-cookie": ownerSignOut() });
         if (!owner(req)) return send(403, P.ownerSignIn(), undefined, priv);
+        /* RR-343 (owner, 29 Oct: /owner/collect said "Page not found") · a button's own address opened again — a refresh, a typed or a
+         * remembered address — goes back to a page, never to "Page not found" (the buttons themselves POST) */
+        const BACK = { "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries",
+          "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles" };
+        if (req.method === "GET" && BACK[u.pathname]) return send(303, "", "text/plain", { ...priv, location: BACK[u.pathname] });
         if (req.method === "POST" && u.pathname === "/owner/seeds") {
           if (!db) return send(503, await ownerPage({ message: "The keyword database is not connected." }), undefined, priv);
           const text = String(form().seeds ?? ""), p = parseSeeds(text);

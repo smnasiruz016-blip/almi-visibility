@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { createApp } from "../site/app.mjs";
 import * as P from "../site/pages.mjs";
 import { YT, DOWNLOAD, ENGINES } from "../site/home-sales.mjs";
-import { checkCaption, captionInput, betterCaptions, CAPTION_TOOL, TITLE_TOOL } from "../site/title-check.mjs";
+import { checkCaption, captionInput, betterCaptions, CAPTION_TOOL, TITLE_TOOL, withMeaning } from "../site/title-check.mjs";
 
 const ids = (r) => r.checks.filter((c) => c.ok === false).map((c) => c.id).sort();
 
@@ -21,7 +21,7 @@ test("RR-348 · TikTok: hook in the first line, short and clear, a call to actio
   const good = checkCaption("tiktok", "Why I wake up at 5 AM before work\nMy calm morning routine in 3 steps. Follow for part 2!\n#morningroutine #5amclub #productivity", "morning routine before work");
   assert.equal(good.score, 100, JSON.stringify(good.checks));
   assert.deepEqual(good.checks.map((c) => c.id), ["hook", "short", "cta", "hashtags", "keywords"]);
-  const bad = checkCaption("tiktok", "vlog #fyp #foryou #viral", "morning routine");
+  const bad = withMeaning(checkCaption("tiktok", "vlog #fyp #foryou #viral", "morning routine"), { meaning: false }); // RR-347 FIX v2 point 1
   assert.deepEqual(ids(bad), ["cta", "hashtags", "hook", "keywords", "short"].sort(), "generic tags are not relevant ones");
   assert.equal(checkCaption("tiktok", "a #a #b #c #d #e #f #g", "").checks.find((c) => c.id === "hashtags").ok, false, "more than 5");
   assert.equal(checkCaption("tiktok", "Why this works #a").checks.find((c) => c.id === "keywords").ok, null, "not checked without a topic — never a fail");

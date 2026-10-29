@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { createApp } from "../site/app.mjs";
 import * as P from "../site/pages.mjs";
 import { ENGINES, TRADEMARKS, YT, DAYS, FAQ, BRAND_ICONS } from "../site/home-sales.mjs";
-import { checkTitle, titleInput, betterTitles, TITLE_TOOL } from "../site/title-check.mjs";
+import { checkTitle, titleInput, betterTitles, TITLE_TOOL, withMeaning } from "../site/title-check.mjs";
 
 const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t" });
 
@@ -55,7 +55,8 @@ test("RR-347 · title, description and the FAQ JSON-LD mention YouTube; the FAQ 
 test("RR-347 ADD-2 · the six checks: length, keyword at the start, promise, detail, curiosity without clickbait, readable", () => {
   const good = checkTitle("Morning Routine at 5 AM: What I Never Skip Before Work", "morning routine before work");
   assert.equal(good.score, 100); assert.equal(good.checks.length, 6);
-  const bad = checkTitle("MY VLOG VLOG VLOG YOU WON'T BELIEVE THIS!!!", "morning routine");
+  /* RR-347 FIX v2 point 1: words not in common wait for the AI's meaning answer — "no" makes it a ✗ */
+  const bad = withMeaning(checkTitle("MY VLOG VLOG VLOG YOU WON'T BELIEVE THIS!!!", "morning routine"), { meaning: false });
   assert.ok(bad.score < 40, String(bad.score));
   assert.deepEqual(bad.checks.filter((c) => c.ok === false).map((c) => c.id).sort(), ["curiosity", "detail", "keyword", "promise", "readable"].sort());
   const before = checkTitle(YT.example.before, "morning routine"), after = checkTitle(YT.example.after, "morning routine");

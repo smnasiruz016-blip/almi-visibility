@@ -383,7 +383,7 @@ export const liteHome = ({ result = null, error = null, values = {}, scoreOn = f
   description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
    * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
-  body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, noPromise: NO_PROMISE, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}
+  body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}
 <section class="band shome"><div class="wrap sgrid"><div>${aiMap()}</div><div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
 ${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${socialBand(BUY_NOW.href)}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>`
     : `<section class="hero"><div class="wrap grid2"><div>
@@ -397,6 +397,7 @@ ${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
 ${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()
     : section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
+${sales ? `<div class="wrap"><p class="fine footnote" data-footnote>${esc(NO_PROMISE)}</p></div>` : ""}
 <script src="/score.js" defer></script>${sales && title.result ? '<script src="/copy.js" defer></script>' : ""}` });
 
 /* ── RR-326 C · THE FREE KEYWORD FINDER on the public-lite home: "coming soon" until Google, the store and the database are connected ── */

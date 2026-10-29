@@ -43,7 +43,7 @@ import { DATE_TESTS, NO_DATES, upcoming } from "../desktop/test-dates.mjs"; // R
 import { daysOf } from "./health.mjs"; // RR-331
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
-import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
+import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, withMeaning } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
 import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -433,7 +433,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!inp.ok) return again(400, inp.why);
         const take = owner(req) ? { ok: true, left: null } : await titleLimits.take(who(req)); if (!take.ok) return again(429, take.why);
         const ai = await betterCaptions({ platform: inp.platform, title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });
-        return send(200, await home(req, { title: { result: { platform: inp.platform, title: inp.title, check: checkCaption(inp.platform, inp.title, inp.topic), ai }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
+        return send(200, await home(req, { title: { result: { platform: inp.platform, title: inp.title, check: withMeaning(checkCaption(inp.platform, inp.title, inp.topic), ai), ai }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
       }
       /* RR-326 C · the keyword finder */
       if (req.method === "POST" && u.pathname === "/keywords") {

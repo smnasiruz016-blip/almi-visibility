@@ -31,8 +31,8 @@ export const ENGINES = Object.freeze([
   { name: "YouTube", does: "Channel advice" },
   /* RR-348 (owner): TikTok and Instagram in the strip; what they are today: the free checker. RR-348 owner change: the official icons
    * (BRAND_ICONS) replaced our own letter marks */
-  { name: "TikTok", does: "Caption checker" },
-  { name: "Instagram", does: "Caption checker" },
+  { name: "TikTok", does: "Captions & ideas" },
+  { name: "Instagram", does: "Captions & ideas" },
 ].map(Object.freeze));
 export const TRADEMARKS = "Names and logos are trademarks of their owners; AlmiVisibility is not affiliated with them.";
 /* RR-348 OWNER CHANGE point 2 · the official icons — only where the company's own brand kit allows this use (a third-party page listing
@@ -168,7 +168,8 @@ export const SOCIAL = Object.freeze({
     Object.freeze({ title: "Content ideas", screen: [["Next videos", "1 · Karahi vs. handi — which is easier?"], ["", "2 · 5 mistakes that make karahi watery"]] }),
   ]),
   check: "Check my caption free →", checkHref: "/?tab=tiktok#title-check", grow: "Grow my TikTok & Instagram →",
-  honest: "The free checker works now. In the app, TikTok and Instagram come with the next update.",
+  /* RR-349 (owner, 30 Oct 2026): 1.15.4 is published (desktop/social-app.mjs) — was "… come with the next update." */
+  honest: "The free checker works now — and TikTok & Instagram are in the app since version 1.15.4: ideas, hooks, captions and hashtag sets, each with Copy.",
 });
 export function socialBand(buyHref = "/pricing") {
   const screen = (rows) => rows.map(([k, v]) => `${k ? `<small>${esc(k)}</small>` : ""}<span>${esc(v)}</span>`).join("");

@@ -10,7 +10,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { memoryStore } from "../site/kw-store.mjs";
 import { unitsOf } from "../site/kw-seeds.mjs";
 import { currentGroups } from "../site/kw-collector.mjs";
-import { CREATORS, DEFAULT_NICHES, DEFAULT_COUNTRIES, settingsOf, changeSettings, creatorGroups, dueResearch, runCreatorResearch, creatorFor, nicheOfTopic } from "../site/creators.mjs";
+import { CREATORS, DEFAULT_NICHES, DEFAULT_COUNTRIES, settingsOf, changeSettings, creatorGroups, dueResearch, dueBatches, runCreatorResearch, creatorFor, nicheOfTopic } from "../site/creators.mjs";
 import { createApp } from "../site/app.mjs";
 import { ownerCookie } from "../site/owner.mjs";
 import { makeOwnerLicence } from "../services/licence/service.mjs";
@@ -30,7 +30,9 @@ function kvMap() {
   return { m, fetchImpl, kv: { run: async (cmds) => (await (await fetchImpl("", { body: JSON.stringify(cmds) })).json()).map((x) => x.result) } };
 }
 const T0 = Date.parse("2026-10-29T10:00:00Z"), DAY = "2026-10-29";
-const research = (n = { calls: 0 }) => async (o) => { n.calls++; return { ok: true, usd: 0.01, searches: 1, data: { questions: ["How do I start?", "What do I need?"], ideas: ["A beginner's first week"], hashtags: ["#homecooking", "fyp", "#EasyRecipes", "#viral"], hooks: ["Nobody tells you this…"], titlePatterns: ["[Number] tips for [niche]"] }, prompt: o.prompt }; };
+/* RR-349: one call answers a BATCH — every country code named in the prompt ("Countries (code = name): PK = Pakistan; US = …") */
+const research = (n = { calls: 0 }, usd = 0.01) => async (o) => { n.calls++; n.prompts = [...(n.prompts ?? []), o.prompt]; const codes = [...String(o.prompt).matchAll(/\b([A-Z]{2}) = /g)].map((m) => m[1]);
+  return { ok: true, usd, searches: 1, data: { countries: codes.map((code) => ({ code, questions: ["How do I start?", "What do I need?"], ideas: ["A beginner's first week"], hashtags: ["#homecooking", "fyp", "#EasyRecipes", "#viral"], hooks: ["Nobody tells you this…"], titlePatterns: ["[Number] tips for [niche]"] })) } }; };
 
 test("RR-348 c · the settings: the owner's niches and the 10 countries first; add or remove a niche or a country; a platform on or off", () => {
   const s = settingsOf(null);
@@ -60,11 +62,18 @@ test("RR-348 c · KEYWORDS: each niche × platform is a keyword group with the p
 });
 
 test("RR-348 c · AI RESEARCH: never-asked first, inside the daily slice; generic tags dropped; marked \"AI research, <date>\"; YouTube's API only with its key", async () => {
-  const store = memoryStore(), { kv, m } = kvMap(), n = { calls: 0 }, s = settingsOf({ niches: ["cooking"], countries: ["PK", "US"] });
-  assert.equal(dueResearch(s, new Map(), DAY).length, 6);
-  const r = await runCreatorResearch({ store, kv, env: { CREATORS_AI_USD_PER_DAY: "0.08" }, now: () => T0, ai: research(n), settings: s, budgetMs: 1e9 });
-  assert.equal(r.saved, 0 + n.calls); assert.equal(r.stoppedBy, "AI_BUDGET"); assert.ok(n.calls < 6, "the slice stopped it");
-  assert.equal(Number(m.get(CREATORS.usdKey(DAY))), n.calls * 10000, "each call counted from its own usage");
+  const store = memoryStore(), { kv, m } = kvMap(), n = { calls: 0 }, s = settingsOf({ niches: ["cooking", "travel"], countries: ["PK", "US"] });
+  assert.equal(dueResearch(s, new Map(), DAY).length, 12);
+  assert.deepEqual(dueBatches(s, new Map(), DAY).map((b) => b.locations), Array(6).fill(["PK", "US"]), "RR-349: one batch per niche × platform, its countries together");
+  /* $0.05 a call against a $0.20 slice with an $0.08 reserve: three calls, then the slice stops it */
+  const r = await runCreatorResearch({ store, kv, env: { CREATORS_AI_USD_PER_DAY: "0.2" }, now: () => T0, ai: research(n, 0.05), settings: s, budgetMs: 1e9 });
+  assert.deepEqual([n.calls, r.calls, r.saved, r.stoppedBy, r.left], [3, 3, 6, "AI_BUDGET", 6], "each call saved BOTH countries; the slice stopped it");
+  assert.match(n.prompts[0], /Countries \(code = name\): PK = Pakistan; US = United States/);
+  assert.equal(Number(m.get(CREATORS.usdKey(DAY))), 3 * 50000, "each call counted from its own usage");
+  /* a run at a time: a held lock refuses a second run */
+  m.set(CREATORS.lockKey, "someone-else");
+  assert.equal((await runCreatorResearch({ store, kv, env: {}, now: () => T0, ai: research(), settings: s })).stoppedBy, "BUSY");
+  m.delete(CREATORS.lockKey);
   const d = await creatorFor({ store, platform: "youtube", niche: "cooking", location: "PK" }) ?? await creatorFor({ store, platform: "tiktok", niche: "cooking" });
   assert.equal(d.source, `AI research, ${DAY}`);
   assert.deepEqual(d.hashtags, ["#homecooking", "#easyrecipes"], "#fyp and #viral are never kept");
@@ -109,7 +118,12 @@ test("RR-348 c · ON THE SITE: the Creators tab (counts, on/off, add a niche, Co
     assert.ok(page.includes("<td>cricket</td>"));
     /* the cron: unauthorised refused; authorised runs the research in the time left (Google is not connected here) */
     assert.equal((await fetch(base + "/cron/keywords")).status, 401);
+    await post("/owner/creators", { addNiche: "chess" }); // RR-349: Collect now finished every batch — a new niche is due again
     const before = n.calls, cron = await (await fetch(base + "/cron/keywords", { headers: { authorization: `Bearer ${CRON}` } })).json();
+    /* RR-349 · the research's own hourly cron: refused without the secret; with it, it runs (nothing is due now: it says so) */
+    assert.equal((await fetch(base + "/cron/creators")).status, 401);
+    const own = await (await fetch(base + "/cron/creators", { headers: { authorization: `Bearer ${CRON}` } })).json();
+    assert.deepEqual([own.ok, own.calls, own.left], [true, 0, 0]);
     assert.ok(cron.creators && n.calls > before, JSON.stringify(cron).slice(0, 200));
     /* the checker: a topic in a niche shows its data, with its source and date */
     const home = await (await fetch(base + "/")).text(), ticket = /name="ticket" value="([^"]+)"/.exec(home.slice(home.indexOf("data-title-check")))[1];

@@ -34,7 +34,7 @@ test("RR-348 ADD · the TikTok + Instagram band right after the YouTube band: he
   assert.deepEqual([...b.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]), ["Hook + caption", "Hashtag set", "Content ideas"]);
   assert.equal((b.match(/<i class="so-tag">Example<\/i>/g) ?? []).length, 3, "every mini screen says Example");
   assert.match(b, /<a class="pill big so-check" href="\/\?tab=tiktok#title-check">Check my caption free →<\/a><a class="pill big so-grow" href="\/pricing" data-buy>Grow my TikTok &amp; Instagram →<\/a>/);
-  assert.ok(b.includes("The free checker works now. In the app, TikTok and Instagram come with the next update."));
+  assert.ok(b.includes("The free checker works now — and TikTok &amp; Instagram are in the app since version 1.15.4: ideas, hooks, captions and hashtag sets, each with Copy."));
   assert.ok(home.split("\n").some((l) => l.startsWith("@media (max-width:820px){.shero") && l.includes(".so-screen{min-height:0;max-height:140px}")), "a mini screen is at most 140px high on a phone");
   assert.doesNotMatch(b, /guarantee/i);
 });

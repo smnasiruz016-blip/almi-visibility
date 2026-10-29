@@ -23,6 +23,8 @@ import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.m
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
+import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS } from "./home-sales.mjs"; // RR-347: YouTube at the top
+import { TITLE_TOOL } from "./title-check.mjs"; // RR-347 ADD-2: the free title checker
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
 export const ORIGIN = "https://almivisibility.almiworld.com";
@@ -192,7 +194,7 @@ export const BUY_NOW = Object.freeze({ href: "/pricing", label: `Buy now — fro
 const SALES_NAV = [["/", "Home"], ["/#score", "Free score"], ["/pricing", "Pricing"], ["/download", "Download"], ["/privacy", "Privacy"], ["/terms", "Terms"]];
 /* RR-338 · the owner's marketing lines (28 Oct 2026): bold, never "guaranteed", no invented number */
 export const MARKETING = Object.freeze({
-  headline: "Rank higher on Google — and get recommended by ChatGPT",
+  headline: HERO.headline, // RR-347 (owner, 29 Oct 2026): YouTube at the top; was "Rank higher on Google — and get recommended by ChatGPT"
   pricingHeading: "Rank higher on Google. Get found in ChatGPT. One app, from $30.",
   pricingLine: "Real Google data. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed.",
   data: "Real Google data. No risky backlinks.",
@@ -376,23 +378,26 @@ ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 ${scoreOn && ticket ? form : off}</div>`;
 }
-export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
-  title: sales ? `AlmiVisibility — ${MARKETING.headline}` : "AlmiVisibility — get the score of your site",
-  description: sales ? `${MARKETING.headline}. ${MARKETING.data} Get your website's visibility score free; plans from $30 a month.` : "Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {} } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
+  title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
+  description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   body: `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
 ${sales ? `<h1>${esc(MARKETING.headline)}</h1>
-<p class="lead">${esc(MARKETING.data)} Start with your free score: enter your website address — AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages, following its robots.txt, and shows your score and the main findings here, on screen.</p>
-<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a></div>` : `<h1>Get the score of your site</h1>
+<p class="lead">${esc(HERO.sub)}</p>
+<p class="small">${esc(MARKETING.data)} Your site score is free — no card, no email.</p>
+<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a></div>
+${aiMap()}` : `<h1>Get the score of your site</h1>
 <p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>`}
 <p class="small">${esc(NO_PROMISE)}</p></div>
-<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div>${sales ? `<div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div>` : ""}</section>
+<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
+${sales ? `${HOME_CSS}${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>` : ""}
 ${result ? resultDetail(result, left) : ""}
 ${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
-${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`)
+${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()
     : section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
-<script src="/score.js" defer></script>` });
+<script src="/score.js" defer></script>${sales && title.result ? '<script src="/copy.js" defer></script>' : ""}` });
 
 /* ── RR-326 C · THE FREE KEYWORD FINDER on the public-lite home: "coming soon" until Google, the store and the database are connected ── */
 const n = (v) => (v === null || v === undefined ? '<span class="nmtext">no figure from Google</span>' : Number(v).toLocaleString("en-US"));

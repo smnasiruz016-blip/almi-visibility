@@ -43,6 +43,7 @@ import { DATE_TESTS, NO_DATES, upcoming } from "../desktop/test-dates.mjs"; // R
 import { daysOf } from "./health.mjs"; // RR-331
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
+import { TITLE_TOOL, TITLE_COUNTS, checkTitle, titleInput, betterTitles } from "./title-check.mjs"; // RR-347 ADD-2
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -101,11 +102,11 @@ export const modeOf = (env = process.env, mode = null) => { const m = mode ?? en
 export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage", "/v1/licence"] }); // RR-342: the licence check, key in the body
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null } = {}) {
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null } = {}) {
   const m = modeOf(env, mode);
   if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
-  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch,
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi,
     salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
@@ -298,11 +299,12 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null }) {
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
   const finderLimits = kv ? liteLimits({ kv, now, perVisitor: FINDER.perVisitorPerDay, siteTotal: FINDER.siteSearchesPerDay, counts: FINDER_COUNTS }) : null;
+  const titleLimits = sales && kv ? liteLimits({ kv, now, perVisitor: TITLE_TOOL.perVisitorPerDay, siteTotal: TITLE_TOOL.siteTotalPerDay, counts: TITLE_COUNTS }) : null; // RR-347 ADD-2
   const ads = kv ? siteAds({ env, kv, fetchImpl: adsFetch, now, ...(sleep ? { sleep } : {}) }) : null;
   const db = kwStore ?? (dbUrlOf(env) ? pgStore({ url: dbUrlOf(env) }) : null);
   const finderOn = () => Boolean(kv && db && ads && ads.configured());
@@ -352,7 +354,8 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     let ticket = null, finderTicket = null;
     if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } }
     if (finderOn()) { try { finderTicket = await limits.ticket(); } catch { finderTicket = null; } }
-    return P.liteHome({ sales, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) } });
+    let titleTicket = null; if (titleLimits) { try { titleTicket = await titleLimits.ticket(); } catch { titleTicket = null; } }
+    return P.liteHome({ sales, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
   };
   const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download"] : [])];
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
@@ -397,7 +400,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
-      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
+      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /title-check\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published()].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
       if (req.method === "POST" && u.pathname === "/score") {
         const f = form();
@@ -410,6 +413,18 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const take = owner(req) ? { ok: true, left: null } : await limits.take(who(req)); if (!take.ok) return again(429, take.why); // RR-326 D: the owner has no limit
         const result = await freeTest({ url: t.url, fetchImpl: publicOnly(fetchImpl, dns), deadlineMs: LITE_LIMITS.checkDeadlineMs, linksAndSecurity: true });
         return send(200, await home(req, { result, left: take.left, values }), undefined, { "cache-control": "no-store" });
+      }
+      /* RR-347 ADD-2 · the free YouTube title checker (sales home only): the checks always; the AI titles inside the tool's daily dollar cap */
+      if (sales && req.method === "POST" && u.pathname === "/title-check") {
+        const f = form(), inp = titleInput(f), values = { title: inp.title, topic: inp.topic };
+        const again = async (code, error) => send(code, await home(req, { title: { error, values } }), undefined, { "cache-control": "no-store" });
+        if (!titleLimits) return again(503, "The free title checker is being switched on. Please come back soon.");
+        if (f.homepage) return again(400, "Please use the form on this page.");
+        const tk = await titleLimits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
+        if (!inp.ok) return again(400, inp.why);
+        const take = owner(req) ? { ok: true, left: null } : await titleLimits.take(who(req)); if (!take.ok) return again(429, take.why);
+        const ai = await betterTitles({ title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });
+        return send(200, await home(req, { title: { result: { title: inp.title, check: checkTitle(inp.title, inp.topic), ai }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
       }
       /* RR-326 C · the keyword finder */
       if (req.method === "POST" && u.pathname === "/keywords") {

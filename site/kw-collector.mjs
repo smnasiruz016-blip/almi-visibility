@@ -16,6 +16,7 @@ import { DEFAULT_SEEDS, parseSeeds, unitsOf, LANGUAGES, withMoreSeeds } from "./
 import { DEFAULT_QUEUE, FRONT, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { isQuestion } from "../desktop/country-facts.mjs";
+import { RETAIN } from "./kw-store.mjs"; // RR-342: the clean-up's cut-off and batches
 
 export const COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, keepTop: 300, keepQuestions: 100, storageLimitMb: 10240,stopAtShare: 0.95 });
 const STOP = new Set(["OUR_DAILY_LIMIT", "NOT_CONNECTED", "UNAUTHENTICATED", "AUTHORIZATION_ERROR", "RESOURCE_EXHAUSTED", "PERMISSION_DENIED", "ACTION_NOT_PERMITTED", "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION", "USER_PERMISSION_DENIED", "CUSTOMER_NOT_ENABLED"]);
@@ -61,6 +62,15 @@ export async function runCollector({ store, ads, kv, now = () => Date.now(), bud
     /* the database's size first: a run never fills it (Neon stops writing when a project is full) */
     try { out.sizeMb = (await store.sizeMb?.()) ?? null; } catch { out.sizeMb = null; }
     if (out.sizeMb !== null && out.sizeMb >= limitMb * COLLECTOR.stopAtShare) { out.stoppedBy = "DB_FULL"; out.why = `The database holds ${Math.round(out.sizeMb)} MB of its ${limitMb} MB — the collector stopped before it is full.`; }
+    /* RR-342 (owner: ~110 MB a day): old rows into the short months shape, then the 31-day clean-up — a quarter of the run at most */
+    out.tidied = { packed: 0, fetchKeywords: 0, observations: 0 };
+    for (let b = 0, before = daysBefore(today, RETAIN.days); b < RETAIN.batches && now() - start < budgetMs / 4 && (store.packMonths || store.prune); b++) {
+      try {
+        const packed = (await store.packMonths?.({ rows: RETAIN.rows })) ?? 0, pr = (await store.prune?.({ before })) ?? { fetchKeywords: 0, observations: 0 };
+        out.tidied.packed += packed; out.tidied.fetchKeywords += pr.fetchKeywords; out.tidied.observations += pr.observations;
+        if (!packed && !pr.fetchKeywords && !pr.observations) break;
+      } catch { out.tidied.error = "The clean-up could not run just now."; break; }
+    }
     const { groups } = await currentGroups(store);
     const units = unitsOf(groups), fetched = await store.fetchedSince(daysBefore(today, 61));
     const p = plan(units, fetched, today, { queue }), todo = out.stoppedBy ? [] : p.due;

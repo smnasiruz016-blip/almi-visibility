@@ -123,6 +123,17 @@ export async function ensurePortalConfig({ env = process.env, fetchImpl = fetch 
   if (missing.length) return { ok: false, line: `FAILED — missing in Vercel: ${missing.join(", ")}. Nothing was made.` };
   return createPortalConfig({ priceIds: names.map((n) => String(env[n]).trim()), stripeKey, fetchImpl });
 }
+/** RR-342 · read-only: is AlmiVisibility's own portal in Stripe? One list call (5 s at most); words only — the bpc_ id is not a secret. */
+export async function portalStatus({ env = process.env, fetchImpl = fetch }) {
+  const stripeKey = env[BILLING_KEY_NAMES.stripeSecret];
+  if (!stripeKey) return { ok: false, line: `no Stripe key in Vercel (${BILLING_KEY_NAMES.stripeSecret})` };
+  const pinned = String(env[PORTAL_CONFIG_NAME] ?? "").trim();
+  try {
+    const id = await Promise.race([findPortalConfig({ stripeKey, fetchImpl }), new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 5000))]);
+    if (!id) return { ok: false, line: "not made yet — press “Create Manage-plan portal”" };
+    return { ok: true, id, line: `OK — AlmiVisibility's own portal is in Stripe: ${id}${pinned && pinned !== id ? ` (${PORTAL_CONFIG_NAME} names another one, and the site uses that)` : ""}` };
+  } catch (e) { return { ok: false, line: `Stripe could not be read just now (${e.status ? `HTTP ${e.status}` : "no answer"})${e.status === 401 || e.status === 403 ? " — the key needs “Customer portal: Read”" : ""}` }; }
+}
 export const LICENCE_KEY_SHAPE = /^av_[A-Za-z0-9_-]{20,40}$/;
 export const NO_PLAN_FOUND = "No paid plan was found for this licence key. Check the key (it starts with av_), or write to almiworld@almiworld.com.";
 export async function portalSession({ licenceKey, accounts, env = process.env, origin, fetchImpl = fetch }) {

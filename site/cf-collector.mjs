@@ -51,7 +51,9 @@ export const IDEAS = Object.freeze({ everyDays: 30, perDay: 2, max: 10,
 });
 
 export const CF_SUBJECT = Object.freeze({ name: "OET", site: "https://oet.com" });
-export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, maxGroups: 8, dailyFirstFromHourUtc: 12, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
+/* RR-342 (owner: "0 test dates for every test × country after 2+ days"): the four country-facts runs used the whole day's caps before the
+ * test-dates runs (13:37, 14:37 UTC) began, so every dates run stopped before its first question. Country facts now leave datesShare for them. */
+export const CF_COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, aiUsdPerDay: 2, readsPerDay: 200, aiReserveUsd: 0.1, datesShare: Object.freeze({ aiUsd: 0.5, reads: 40 }), maxGroups: 8, dailyFirstFromHourUtc: 12, refreshDays: Object.freeze({ fee: 1, centres: 7, questions: 7, councils: 30, rules: 30, facts: 30 }),
   /* a country's AI cost and page reads until enough are measured (Claude Haiku 5.5: about 6 web searches a question; AlmiOET reads its 12
    * councils' pages, its rules and AlmiOET's records) */
   defaultCost: Object.freeze({ oet: 0.25, other: 0.12 }), defaultReads: Object.freeze({ oet: 18, other: 4 }) });
@@ -68,6 +70,8 @@ const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.pa
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const PROF_OF = Object.fromEntries(CF_PROFESSIONS.flatMap((p) => [[p, p], [`${p}s`, p]]).concat([["doctors", "medicine"], ["nurses", "nursing"], ["dentists", "dentistry"], ["pharmacists", "pharmacy"], ["physiotherapists", "physiotherapy"], ["occupational therapists", "occupational therapy"], ["radiographers", "radiography"], ["dietitians", "dietetics"], ["optometrists", "optometry"], ["podiatrists", "podiatry"], ["speech pathologists", "speech pathology"], ["vets", "veterinary science"], ["veterinarians", "veterinary science"]]));
 export const professionKey = (s) => PROF_OF[String(s ?? "").toLowerCase().trim()] ?? null;
+/** RR-342 · what country facts leave each day for the test dates: datesShare, but never more than a quarter of a smaller cap */
+export const datesShareOf = (caps) => ({ aiUsd: Math.min(CF_COLLECTOR.datesShare.aiUsd, caps.aiUsd / 4), reads: Math.min(CF_COLLECTOR.datesShare.reads, Math.floor(caps.reads / 4)) });
 export const capsOf = (env = process.env) => ({ aiUsd: Number(env.COUNTRY_FACTS_AI_USD_PER_DAY) > 0 ? Number(env.COUNTRY_FACTS_AI_USD_PER_DAY) : CF_COLLECTOR.aiUsdPerDay, reads: Number(env.COUNTRY_FACTS_READS_PER_DAY) > 0 ? Math.floor(Number(env.COUNTRY_FACTS_READS_PER_DAY)) : CF_COLLECTOR.readsPerDay });
 /* the tasks of one (product, country) — AlmiOET keeps its RR-328 task names; every other product "<key>:questions" and "<key>:facts" */
 export const tasksOf = (product) => (product === "oet" ? OET_TASKS : [`${product}:questions`, `${product}:facts`]);
@@ -91,10 +95,11 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
   /* RR-333, RR-334: a task finished under older rules (RR-328's keyword answers, RR-330's first queries …) is due at once */
   const due = (c, t) => { const x = tasks.get(`${c}|${t}`); if (x && STAMPED(t) && x.state === "done" && x.tried?.rules !== CF_RULES) return true; return !x || (x.state === "searching" ? x.day !== today : x.state !== "done" || daysBetween(x.day, today) >= refreshOf(t)); };
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; return false; };
+  const share = datesShareOf(caps); // RR-342
   const room = (needAi = false) => {
     if (now() - start > budgetMs) return stop("TIME", "This run's time is used — the next run continues.");
-    if (spent.reads + reader.requests() - r0 >= caps.reads) return stop("READS", `Today's ${caps.reads} page reads are used — the next day continues.`);
-    if (needAi && spent.aiUsd + out.aiUsd + CF_COLLECTOR.aiReserveUsd > caps.aiUsd) return stop("AI_BUDGET", `Today's AI budget ($${caps.aiUsd.toFixed(2)}) is used — the next day continues.`);
+    if (spent.reads + reader.requests() - r0 >= caps.reads - share.reads) return stop("READS", `Today's ${caps.reads - share.reads} page reads for country facts are used (${share.reads} stay for the test dates) — the next day continues.`);
+    if (needAi && spent.aiUsd + out.aiUsd + CF_COLLECTOR.aiReserveUsd > caps.aiUsd - share.aiUsd) return stop("AI_BUDGET", `Today's AI budget for country facts ($${(caps.aiUsd - share.aiUsd).toFixed(2)}) is used ($${share.aiUsd.toFixed(2)} stays for the test dates) — the next day continues.`);
     return true;
   };
   const put = async (f) => { const r = await store.putFact({ proposedBy: "official", aiWritten: false, ...f }, { at: at() }); if (r.saved) { out.saved++; if (f.status === "unconfirmed") out.unconfirmed++; const by = f.status === "confirmed" ? foundBy(f) : null; if (by === "answers:guidance") tpl("answers").guidance++; else if (by) tpl(by).found++; } else if (/owner/.test(r.why ?? "")) out.kept++; return r; };

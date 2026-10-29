@@ -288,12 +288,14 @@ export const pricing = ({ sales = false } = {}) => frame({ path: "/pricing", lit
 ${section("paper", priceCards(sales) + includesBox() + MANAGE_LINE)}
 ${section("", `<div class="final"><h2>Not sure yet?</h2><p>Run the free website test first.</p><p><a class="pill big" href="${sales ? "/#score" : "/#test"}">Test my site</a></p></div>`)}` });
 
-export const download = ({ setupAvailable = false, sales = false } = {}) => frame({ path: "/download", lite: sales ? "sales" : false, title: "Download AlmiVisibility for Windows", description: "Download AlmiVisibility for Windows: install it like any program, add your product, and get sourced pages, articles and a monthly report.",
+/* RR-342 (owner: the Microsoft Store is the main path): once the listing exists, Download points to it; the GitHub Setup stays at its old
+ * address only, linked from nowhere (a hidden fallback) */
+export const download = ({ setupAvailable = false, sales = false, storeUrl = null } = {}) => frame({ path: "/download", lite: sales ? "sales" : false, title: "Download AlmiVisibility for Windows", description: "Download AlmiVisibility for Windows: install it like any program, add your product, and get sourced pages, articles and a monthly report.",
   body: `<section class="hero"><div class="wrap"><p class="eyebrow">Download</p><h1>AlmiVisibility for Windows</h1>
-<p class="lead">Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop.</p>
-<div class="cta">${setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
+<p class="lead">${storeUrl ? "Get it from the Microsoft Store: one click installs it, and the Store keeps it up to date." : "Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop."}</p>
+<div class="cta">${storeUrl ? `<a class="pill big" href="${esc(storeUrl)}" rel="noopener" data-store>Get it from the Microsoft Store</a>` : setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
 ${sales ? IMG.download : ""}
-<p class="small">Windows 10 or 11. Your data stays on your own computer. The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway”.</p></div></section>
+<p class="small">Windows 10 or 11. Your data stays on your own computer.${storeUrl ? "</p>" : ` The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway”.</p>`}</div></section>
 ${section("paper", `<h2>After you install</h2>${cardList([
   ["Add your product", "Your company, your product and its website."],
   ["Choose your plan", "Pay monthly by card. Your plan sets how many products you can add."],
@@ -518,19 +520,29 @@ export function countriesTable({ order, byC, facts, tasks = {}, product = "oet",
     return `<tr><td>${link(c)}</td>${cells.map((x) => `<td>${x}</td>`).join("")}${dated ? `<td>${datesCell(c, fs)}</td>` : ""}<td>${esc(shortDay(last(fs))) || "—"}</td></tr>`; }).join("");
   return `<div class="tablewrap"><table class="t"><tr><th>Country</th>${head.map((h) => `<th>${esc(h)}</th>`).join("")}${dated ? "<th>Test dates</th>" : ""}<th>Last updated</th></tr>${rows}</table></div>`;
 }
+/* RR-342 · the test dates' last run in one line (its stop was written to KV and read by no page: a 0 stayed silent for 2 days) — red when it
+ * stopped before finishing a single test × country */
+export function datesLine(d) {
+  if (!d) return "<p data-dates-last>Test dates: not run yet.</p>";
+  const red = d.stoppedBy && !d.done?.length;
+  return `<p data-dates-last${red ? ' class="err"' : ""}>Test dates — last run ${esc(String(d.at ?? "").slice(0, 16).replace("T", " "))} UTC: ${d.done?.length ?? 0} test × country tried, ${d.dates ?? 0} dates kept, ${d.unconfirmed ?? 0} not confirmed on an official page, ${d.reads ?? 0} pages read, $${Number(d.aiUsd ?? 0).toFixed(2)} of AI${d.stoppedBy ? ` · stopped: ${esc(String(d.why ?? d.stoppedBy).replace(/\.$/, ""))}` : ""}${d.ok === false && d.why && !d.stoppedBy ? ` · ${esc(d.why)}` : ""}.</p>`;
+}
 /* "AUD 587 — about 114,260 PKR" from the fee line (its source and rate stay in the country's detail) */
 const feeShort = (v) => feeShown(v) ?? "✓";
 const upcomingIn = (dates = [], today) => (dates ?? []).filter((d) => !today || d.date >= today);
 /* RR-337 · the launch settings: each variable's NAME, what it is for, set or missing — never a value; open while a needed one is missing */
-function launchBox(rows = []) {
+function launchBox(rows = [], portal = null, pressed = false) {
   if (!rows.length) return "";
-  const gaps = rows.filter((r) => r.needed && !r.set).length;
-  const state = (r) => (r.set ? "<b>set</b>" : r.needed ? '<span class="err">missing</span>' : "missing (correct for now)");
-  return `<details${gaps ? " open" : ""} data-launch><summary>Launch settings in Vercel — ${gaps ? `${gaps} needed missing` : "all needed are set"}</summary><p class="fine">Names only; this page never shows a value. After you change one, deploy again.</p>
+  const gaps = rows.filter((r) => r.needed && (!r.set || r.bad)).length;
+  /* RR-342: "set" alone hid a key the site could not read */
+  const state = (r) => (r.bad ? `<span class="err">set, but ${esc(r.bad)}</span>` : r.set ? "<b>set</b>" : r.needed ? '<span class="err">missing</span>' : "missing (correct for now)");
+  /* RR-342 (owner: "no visible result"): the portal's answer stays BESIDE its button, and the page opens there */
+  const portalLine = portal ? `<p id="portal" role="status" class="${portal.ok ? "ok" : "err"}"><b>Manage-plan portal:</b> ${esc(portal.line)}</p>` : '<p id="portal" class="fine">Manage-plan portal: not checked (no Stripe key).</p>';
+  return `<details${gaps || pressed ? " open" : ""} data-launch><summary>Launch settings in Vercel — ${gaps ? `${gaps} needed missing` : "all needed are set"}</summary><p class="fine">Names only; this page never shows a value. After you change one, deploy again.</p>
 <div class="tablewrap"><table class="t"><tr><th>Variable</th><th>For</th><th>State</th></tr>${rows.map((r) => `<tr><td><code>${esc(r.name)}</code></td><td>${esc(r.use)}</td><td>${state(r)}</td></tr>`).join("")}</table></div>
-<form method="post" action="/owner/portal" data-portal><p class="fine">“Manage or cancel my plan” needs AlmiVisibility's OWN Stripe portal (the account's default portal is shared by every AlmiWorld product and is never changed). One press makes it with the Stripe key already in Vercel; pressing again makes nothing new.</p><button class="pill ghost" type="submit">Create Manage-plan portal</button></form></details>`;
+<form method="post" action="/owner/portal#portal" data-portal><p class="fine">“Manage or cancel my plan” needs AlmiVisibility's OWN Stripe portal (the account's default portal is shared by every AlmiWorld product and is never changed). One press makes it with the Stripe key already in Vercel; pressing again makes nothing new.</p><button class="pill ghost" type="submit">Create Manage-plan portal</button></form>${portalLine}</details>`;
 }
-export function ownerPage({ launch = [], connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null } = {}) {
+export function ownerPage({ launch = [], connected = false, missing = [], dbOn = false, dbError = null, counts = null, usage = null, last = null, groups = [], seedText = "", seedDraft = null, seedAt = null, message = null, check = null, imported = null, licenceKey = null, status = null, names = {}, moved = null, portal = null, portalPressed = false } = {}) {
   const gname = Object.fromEntries(groups.map((g) => [g.id, g])), lname = Object.fromEntries(LOCATIONS.map((l) => [l.code, l.name]));
   const kindWord = (id) => { const k = id.split(":")[0]; return k === "product" ? "AlmiWorld product · every 30 days" : k === "youtube" ? "YouTube niche · every 60 days · Google Search volumes, not YouTube's numbers" : "category · every 60 days"; };
   /* RR-326 H: Google's own reason and message for the last refusal */
@@ -542,14 +554,14 @@ export function ownerPage({ launch = [], connected = false, missing = [], dbOn =
 <tr><td>Public keyword finder</td><td>${usage.finder.toLocaleString("en-US")}</td><td>${usage.caps.finder.toLocaleString("en-US")}</td></tr>
 <tr><td>The app's keyword service (clients)</td><td>${(usage.app ?? 0).toLocaleString("en-US")}</td><td>${(usage.caps.app ?? 0).toLocaleString("en-US")}</td></tr>
 <tr><td>You (no limit — inside the total)</td><td>${usage.owner.toLocaleString("en-US")}</td><td>—</td></tr></table></div>` : "";
-  const run = last ? `<p>Last collector run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} requests saved (${(last.keywords ?? 0).toLocaleString("en-US")} keywords), ${last.duplicates ?? 0} already collected today, ${last.skipped ?? 0} to ask again${last.left ? `; still to do today: ${last.left.daily} product requests, ${last.left.weekly} weekly requests` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
+  const run = last ? `<p>Last collector run: ${esc(String(last.at).slice(0, 16).replace("T", " "))} UTC — ${last.ok ? `${last.saved} requests saved (${(last.keywords ?? 0).toLocaleString("en-US")} keywords), ${last.duplicates ?? 0} already collected today, ${last.skipped ?? 0} to ask again${last.tidied ? `; clean-up (RR-342): ${last.tidied.packed.toLocaleString("en-US")} rows put in the short shape, ${(last.tidied.fetchKeywords + last.tidied.observations).toLocaleString("en-US")} old rows removed${last.tidied.error ? ` — ${esc(last.tidied.error)}` : ""}` : ""}${last.left ? `; still to do today: ${last.left.daily} product requests, ${last.left.weekly} weekly requests` : ""}${last.stoppedBy ? ` · stopped: ${esc(String(last.why).replace(/\.$/, ""))}` : ""}` : esc(String(last.why).replace(/\.$/, ""))}.</p>` : "<p>The collector has not run yet.</p>";
   const db = !dbOn ? `<p class="err">The keyword database is not connected (DATABASE_URL in Vercel — the Neon database).</p>` : dbError ? `<p class="err">${esc(dbError)}</p>` : counts ? `<p><b>${counts.keywords.toLocaleString("en-US")}</b> keywords in all · ${counts.observations.toLocaleString("en-US")} figures kept (with history) · <b>${counts.today.toLocaleString("en-US")}</b> collected today</p>
 <h2>By product, category and YouTube niche</h2><div class="tablewrap"><table class="t"><tr><th>Group</th><th>What</th><th>Keywords</th><th>Today</th><th>Countries</th><th>Last refresh</th></tr>${counts.groups.map((g) => `<tr><td>${esc(gname[g.grp]?.name ?? g.grp)}</td><td>${esc(kindWord(g.grp))}</td><td>${g.keywords.toLocaleString("en-US")}</td><td>${g.today.toLocaleString("en-US")}</td><td>${g.locations}</td><td>${esc(g.last ?? "")}</td></tr>`).join("") || '<tr><td colspan="6">Nothing collected yet.</td></tr>'}</table></div>
 <h2>By country</h2><div class="tablewrap"><table class="t"><tr><th>Country</th><th>Keywords</th><th>Today</th></tr>${[...counts.locations].sort((x, y) => (x.location === "ALL" ? -1 : y.location === "ALL" ? 1 : String(lname[x.location] ?? x.location).localeCompare(String(lname[y.location] ?? y.location)))).map((l) => `<tr><td>${esc(lname[l.location] ?? l.location)}</td><td>${l.keywords.toLocaleString("en-US")}</td><td>${l.today.toLocaleString("en-US")}</td></tr>`).join("") || '<tr><td colspan="3">Nothing collected yet.</td></tr>'}</table></div>` : "";
   /* RR-329 E: the numbers first; every heavy table is closed until tapped (a phone on weak internet) */
   return ownerFrame("Owner", `${PHONE_CSS}${ownerMenu("keywords", arguments[0]?.summary ?? null)}<h1>Owner</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
 ${statusHtml(status)}
-${launchBox(launch)}
+${launchBox(launch, portal, portalPressed)}
 <p class="row"><a class="pill" href="/owner/countries">Country facts</a> <a class="pill ghost" href="#queue">The queue</a></p>
 <details${check ? " open" : ""}><summary>Google and the keyword collector</summary>
 <p class="fine"><b>No daily limit on this browser</b> for the free score and the keyword finder.</p>
@@ -597,7 +609,7 @@ function questionsPanel(country, { stats = null, facts = [], asked = [] } = {}) 
 ${asked.length ? `<details><summary>Asked on YouTube and by you (latest ${asked.length})</summary><ul>${asked.map((q) => `<li>${esc(q.text)} <span class="fine">(${q.source === "owner" ? "yours" : "a YouTube comment, kept 30 days"})</span></li>`).join("")}</ul></details>` : ""}
 <form method="post" action="/owner/countries/questions"><input type="hidden" name="country" value="${esc(country)}"><label class="f">Add questions people asked you (one a line) <textarea name="text" rows="5" style="width:100%" placeholder="Can I give OET from Lahore?&#10;How do I get a good standing letter from PNMC?"></textarea></label><p><button class="pill" type="submit">Save these questions</button></p></form></details>`;
 }
-export function ownerCountries({ coverage, facts = [], country = null, history = {}, last = null, aiOn = false, caps = null, spend = null, message = null, order = [], search = {}, product = "oet", products = [], template = null, parts = [], professions = [], qstats = {}, asked = [], first15 = null, templates = null } = {}) {
+export function ownerCountries({ coverage, facts = [], country = null, history = {}, last = null, datesLast = null, aiOn = false, caps = null, spend = null, message = null, order = [], search = {}, product = "oet", products = [], template = null, parts = [], professions = [], qstats = {}, asked = [], first15 = null, templates = null } = {}) {
   const c = coverage.counts, byC = Object.fromEntries(coverage.rows.map((r) => [r.country, r])), mark = (ok) => (ok ? "✓" : "—");
   /* RR-329 B: one product at a time — AlmiOET keeps its five-part grid; every other product its own template's parts */
   const oet = product === "oet", qp = oet ? "" : `&amp;p=${encodeURIComponent(product)}`, link = (name) => `<a href="/owner/countries?c=${encodeURIComponent(name)}${qp}">${esc(name)}</a>`;
@@ -654,7 +666,7 @@ ${head}
 <p class="fine">AI research: ANTHROPIC_API_KEY ${aiOn ? "set" : "missing — the collector reads official pages and AlmiOET's records only"}${caps ? ` · today's caps: $${caps.aiUsd.toFixed(2)} of AI, ${caps.reads} page reads` : ""}${spend ? ` · used today: $${spend.aiUsd.toFixed(2)}, ${spend.reads} reads, ${spend.searches} web searches` : ""}.</p>
 ${detail}${pick}
 <details open><summary>All ${c.countries} countries, in the queue's order (tap a country)</summary>${table}</details>
-<details><summary>The last run</summary>${runLine}${tplTable}<form method="post" action="/owner/countries/run"><button class="pill" type="submit">Collect now (one short run)</button></form></details>`);
+<details${datesLast?.stoppedBy && !datesLast.done?.length ? " open" : ""}><summary>The last run</summary>${runLine}${datesLine(datesLast)}${tplTable}<form method="post" action="/owner/countries/run"><button class="pill" type="submit">Collect now (one short run)</button></form></details>`);
 }
 
 /* RR-338: `closed` = a live key before the owner switches payments on — the buyer is told plainly that buying is not open yet */

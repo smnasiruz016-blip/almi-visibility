@@ -254,9 +254,9 @@ test("D · RR-328: the owner's edit is kept when the collector comes back a mont
   assert.ok(later.kept >= 1); assert.equal((await store.fact("council|Pakistan|nursing")).value.name, "The owner's council name"); assert.equal((await store.fact("council|Pakistan|medicine")).status, "rejected");
   /* caps: today's AI dollars, today's page reads */
   const s2 = cfMemoryStore(), capAi = await runCountryFacts({ store: s2, kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_AI_USD_PER_DAY: "0.5" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] });
-  assert.equal(capAi.stoppedBy, "AI_BUDGET"); assert.match(capAi.why, /Today's AI budget \(\$0\.50\) is used/);
+  assert.equal(capAi.stoppedBy, "AI_BUDGET"); assert.match(capAi.why, /Today's AI budget for country facts \(\$0\.38\) is used \(\$0\.13 stays for the test dates\)/); // RR-342: a quarter of a small cap stays for the dates
   const capReads = await runCountryFacts({ store: cfMemoryStore(), kwStore: kw, reader: oetWorld().reader, ai: A.ai, env: { ...ENV_AI, COUNTRY_FACTS_READS_PER_DAY: "3" }, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] });
-  assert.equal(capReads.stoppedBy, "READS"); assert.match(capReads.why, /Today's 3 page reads are used/);
+  assert.equal(capReads.stoppedBy, "READS"); assert.match(capReads.why, /Today's 3 page reads for country facts are used \(0 stay for the test dates\)/); // RR-342
   /* no AI key: the AI is never asked; tasks wait for it */
   const B = standInAi(), s3 = cfMemoryStore(), noAi = await runCountryFacts({ store: s3, kwStore: kw, reader: oetWorld().reader, ai: B.ai, env: {}, now: clockAt().now, budgetMs: 1e9, countries: ["Pakistan"], subject: SUBJECT, products: ["oet"] });
   assert.equal(B.calls.length, 0); assert.equal(noAi.ok, true); assert.equal((await s3.tasks()).get("Pakistan|councils").state, "waiting");

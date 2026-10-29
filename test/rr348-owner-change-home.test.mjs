@@ -39,6 +39,24 @@ test("RR-348 ADD · the TikTok + Instagram band right after the YouTube band: he
   assert.doesNotMatch(b, /guarantee/i);
 });
 
+test("RR-348 owner decision · the brands' icons on the WEBSITE only: served, coloured, switchable per brand; never in the desktop app", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const files = Object.values(BRAND_ICONS).map((b) => b.file);
+  assert.deepEqual(Object.keys(BRAND_ICONS).sort(), ["Claude", "Gemini", "Google", "Instagram", "Perplexity", "TikTok", "YouTube"], "ChatGPT has no Simple Icon: its name");
+  for (const f of files) {
+    const svg = readFileSync(new URL(`../site/img/brands/${f}`, import.meta.url), "utf8");
+    assert.match(svg, /^<svg role="img" fill="#[0-9A-F]{6}" viewBox="0 0 24 24"/, f);
+    assert.doesNotMatch(svg, /<script|on\w+=/i, f);
+    assert.ok(Object.keys(SITE_MEDIA).includes(`/img/brands/${f}`), f);
+  }
+  const strip = home.slice(home.indexOf("data-ai-map"), home.indexOf("</ul>", home.indexOf("data-ai-map")));
+  assert.ok(strip.includes('<b class="ai-name">ChatGPT</b>') && files.every((f) => strip.includes(`/img/brands/${f}`)));
+  assert.ok(home.includes("Names and logos are trademarks of their owners; AlmiVisibility is not affiliated with them."));
+  /* the desktop app (and so any Store screenshot of it) never carries them */
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(`${d}/${e.name}`) : [`${d}/${e.name}`]));
+  for (const f of walk(new URL("../desktop", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1")).filter((x) => /\.(mjs|html|json)$/.test(x))) assert.doesNotMatch(readFileSync(f, "utf8"), /img\/brands|simple-?icons|BRAND_ICONS/i, f);
+});
+
 test("RR-348 owner change · on the site: /?tab=tiktok opens the TikTok tab; the app picture is served; a path outside the fixed list is not", async () => {
   const dir = mkdtempSync(join(tmpdir(), "rr348oc-"));
   const app = createApp({ mode: "sales", env: {}, dataDir: dir, fetchImpl: async () => new Response("", { status: 404 }) });

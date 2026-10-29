@@ -40,9 +40,14 @@ export const TRADEMARKS = "Names and logos are trademarks of their owners; AlmiV
  * Gemini (an approved Partner Marketing Hub account) forbid it; TikTok ("prior written permission"), OpenAI ("without permission"),
  * Anthropic (approved beforehand) and Perplexity (request access) need permission first; Instagram's download needs its terms accepted
  * and its rules keep other networks out of the same spot; YouTube allows its icon for API attribution only at the brand site's minimum
- * size. So until the owner has the permissions, every brand shows its NAME in text (the owner's rule for a brand without an icon).
- * A permitted icon goes here as { Name: { file } } with the file in site/img/brands. */
-export const BRAND_ICONS = Object.freeze({});
+ * size. OWNER DECISION (29 Oct 2026, after reading this): the brands' icons on the WEBSITE only, from Simple Icons 16.36.0 (CC0), each in
+ * the brand's own colour (site/img/brands/SOURCES.md) — never in the desktop app or a Microsoft Store listing or screenshot. Per brand
+ * switchable: if a company asks, delete its line here and it shows its NAME the same day. ChatGPT/OpenAI is not in Simple Icons: its name. */
+export const BRAND_ICONS = Object.freeze({
+  Google: Object.freeze({ file: "google.svg" }), Gemini: Object.freeze({ file: "googlegemini.svg" }), Claude: Object.freeze({ file: "claude.svg" }),
+  Perplexity: Object.freeze({ file: "perplexity.svg" }), YouTube: Object.freeze({ file: "youtube.svg" }), TikTok: Object.freeze({ file: "tiktok.svg" }),
+  Instagram: Object.freeze({ file: "instagram.svg" }),
+});
 export function brandIcon(name, size = 40) {
   const b = BRAND_ICONS[name];
   return b ? `<img class="bi" src="/img/brands/${b.file}" width="${size}" height="${size}" alt="" loading="lazy">` : `<span class="bi-text">${esc(name)}</span>`;

@@ -11,8 +11,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../site/app.mjs";
 import * as P from "../site/pages.mjs";
-import { ENGINES, TRADEMARKS, YT, DAYS, FAQ } from "../site/home-sales.mjs";
-import { checkTitle, titleInput, betterTitles, TITLE_TOOL } from "../site/title-check.mjs";
+import { ENGINES, TRADEMARKS, YT, DAYS, FAQ, BRAND_ICONS } from "../site/home-sales.mjs";
+import { checkTitle, titleInput, betterTitles, TITLE_TOOL, withMeaning } from "../site/title-check.mjs";
 
 const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t" });
 
@@ -21,18 +21,19 @@ test("RR-347 · the hero: the owner's headline and line, Buy now and the free sc
   assert.ok(home.includes("One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas — every day, for $30 a month."));
   assert.match(home, /<div class="cta"><a class="pill big" href="#score">Get my free score<\/a><a class="pill big alt" href="\/pricing" data-buy>/);
   const map = home.slice(home.indexOf("data-ai-map"), home.indexOf(TRADEMARKS) + TRADEMARKS.length);
-  assert.deepEqual([...map.matchAll(/<li class="ai-node">.*?<b>([^<]+)<\/b>/g)].map((m) => m[1]), ["ChatGPT", "Google", "Gemini", "Claude", "Perplexity", "YouTube"]);
-  assert.equal((map.match(/<line /g) ?? []).length, 6, "one line from each engine to the hub");
+  assert.deepEqual([...map.matchAll(/<li class="ai-node">.*?<b[^>]*>([^<]+)<\/b>/g)].map((m) => m[1]), ["ChatGPT", "Google", "Gemini", "Claude", "Perplexity", "YouTube", "TikTok", "Instagram"]); // RR-348: TikTok and Instagram joined
+  assert.equal((map.match(/<line /g) ?? []).length, 8, "one line from each engine to the hub");
   assert.ok(map.includes('class="ai-hub"') && home.indexOf("data-ai-map") < home.indexOf('id="score"'), "inside the hero, beside the score card");
-  assert.ok(!/<img[^>]+(chatgpt|openai|gemini|claude|perplexity|youtube)/i.test(home), "our own icons — no logo files");
-  assert.equal(ENGINES.length, 6);
+  /* RR-348 owner change: the OFFICIAL icons, each from the company's brand page — every picture in the strip is one of BRAND_ICONS, served by the site */
+  for (const m of map.matchAll(/<img[^>]+src="([^"]+)"/g)) assert.ok(Object.values(BRAND_ICONS).some((b) => m[1] === `/img/brands/${b.file}`), m[1]);
+  assert.equal(ENGINES.length, 8);
 });
 
 test("RR-347 · the YouTube band right under the hero; its Example is marked; three cards; the button goes to the plans; honest lines", () => {
   const hero = home.indexOf('<section class="hero"'), band = home.indexOf("data-youtube"), days = home.indexOf("data-day-plan");
   assert.ok(hero < band && band < days && home.indexOf("</section>", hero) < band, "the band follows the hero, then the day plan");
-  const b = home.slice(band, days);
-  assert.ok(b.includes(YT.heading) && b.includes('<span class="yt-tag">Example</span>') && b.includes(YT.example.before) && b.includes(YT.example.after));
+  const b = home.slice(band, home.indexOf("data-social")); // RR-348 ADD: the TikTok + Instagram band follows the YouTube one
+  assert.ok(b.includes(YT.heading.replace("&", "&amp;")) && b.includes('<span class="yt-tag">Example</span>') && b.includes(YT.example.before) && b.includes(YT.example.after));
   assert.deepEqual([...b.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]), ["Better titles &amp; hashtags", "Video ideas from real searches", "Advice to grow your channel"]);
   assert.match(b, /<a class="pill big yt" href="\/pricing" data-buy>Grow my channel →<\/a>/);
   assert.match(home, /@media \(prefers-reduced-motion:reduce\)\{\.yt-play\{animation:none\}/, "the pulse stops for reduced motion");
@@ -54,7 +55,8 @@ test("RR-347 · title, description and the FAQ JSON-LD mention YouTube; the FAQ 
 test("RR-347 ADD-2 · the six checks: length, keyword at the start, promise, detail, curiosity without clickbait, readable", () => {
   const good = checkTitle("Morning Routine at 5 AM: What I Never Skip Before Work", "morning routine before work");
   assert.equal(good.score, 100); assert.equal(good.checks.length, 6);
-  const bad = checkTitle("MY VLOG VLOG VLOG YOU WON'T BELIEVE THIS!!!", "morning routine");
+  /* RR-347 FIX v2 point 1: words not in common wait for the AI's meaning answer — "no" makes it a ✗ */
+  const bad = withMeaning(checkTitle("MY VLOG VLOG VLOG YOU WON'T BELIEVE THIS!!!", "morning routine"), { meaning: false });
   assert.ok(bad.score < 40, String(bad.score));
   assert.deepEqual(bad.checks.filter((c) => c.ok === false).map((c) => c.id).sort(), ["curiosity", "detail", "keyword", "promise", "readable"].sort());
   const before = checkTitle(YT.example.before, "morning routine"), after = checkTitle(YT.example.after, "morning routine");

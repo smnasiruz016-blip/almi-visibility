@@ -34,6 +34,7 @@ import { publicOnly } from "./free-test.mjs"; // RR-325 B
 import { cfPgStore, SHOWN, PHOTO } from "./cf-store.mjs"; // RR-328 B
 import { runCountryFacts, CF_ORDER, capsOf, finishedIn, costKey, CF_COLLECTOR } from "./cf-collector.mjs";
 import { aiConfigured } from "./cf-ai.mjs";
+import { CREATORS, settingsOf, changeSettings, runCreatorResearch, creatorFor, nicheOfTopic, aiUsdCapOf as crAiCapOf, ytUnitsOf, ytConfigured } from "./creators.mjs"; // RR-348 c
 import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS, doneIn } from "../desktop/country-facts.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { chainFetch } from "./chain-fetch.mjs"; // RR-330
@@ -43,7 +44,8 @@ import { DATE_TESTS, NO_DATES, upcoming } from "../desktop/test-dates.mjs"; // R
 import { daysOf } from "./health.mjs"; // RR-331
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
-import { TITLE_TOOL, TITLE_COUNTS, checkTitle, titleInput, betterTitles } from "./title-check.mjs"; // RR-347 ADD-2
+import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, withMeaning } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
+import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -93,6 +95,9 @@ export function signingKeyState(env) {
 const SECURITY = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", "x-frame-options": "SAMEORIGIN", "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'self'" };
 const PRIVATE = { "x-robots-tag": "noindex, nofollow", "cache-control": "no-store" };
 const httpsUrl = (v) => typeof v === "string" && /^https:\/\//.test(v);
+/* RR-348 owner change: the sales home's pictures — the app's own main screen (demo data) and the brands' official icons (BRAND_ICONS) */
+export const SITE_MEDIA = Object.freeze({ "/img/app-home.jpg": { file: "img/app-home.jpg", type: "image/jpeg" },
+  ...Object.fromEntries(Object.values(BRAND_ICONS).map((b) => [`/img/brands/${b.file}`, { file: `img/brands/${b.file}`, type: b.file.endsWith(".svg") ? "image/svg+xml" : "image/png" }])) });
 
 /** Build the handler. `dataDir` holds the LOCAL store (local runs only); `setupFile` is a local Setup the Download button serves. */
 /** RR-325 A · the site's ONE switch: "public-lite" (ON until sales open) or "full". On Vercel it is public-lite unless set otherwise. */
@@ -102,11 +107,11 @@ export const modeOf = (env = process.env, mode = null) => { const m = mode ?? en
 export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage", "/v1/licence"] }); // RR-342: the licence check, key in the body
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null } = {}) {
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null } = {}) {
   const m = modeOf(env, mode);
-  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch });
+  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch, creatorAi, ytFetch });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
-  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi,
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi, creatorAi, ytFetch,
     salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
@@ -299,7 +304,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null }) {
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null }) { // RR-348 c: creatorAi, ytFetch (tests)
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
@@ -315,6 +320,15 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   const cfFetch = chainFetch(fetchImpl, { allowed: async (url) => (await testableUrl(url, resolve ? { resolve } : {})).ok });
   const cfRun = async (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv), youtubeFetch: fetchImpl, ...o });
   const kwRun = async (o = {}) => runCollector({ store: db, ads, kv, now, queue: await queueNow(kv), limitMb: storageLimitOf(env), ...o });
+  /* RR-348 c · the creator research (site/creators.mjs) — in the keyword cron's time that is left, and on the owner's "Collect now" */
+  const crSettings = async () => { try { return settingsOf(db?.creatorSettings ? await db.creatorSettings() : null); } catch { return settingsOf(null); } };
+  const crRun = async (o = {}) => runCreatorResearch({ store: db, kv, env, now, fetchImpl: ytFetch ?? fetchImpl, ...(creatorAi ? { ai: creatorAi } : {}), settings: await crSettings(), ...o });
+  const creatorsPage = async (message = null) => {
+    const d = new Date(now()).toISOString().slice(0, 10);
+    let counts = { research: [], keywords: [] }; try { counts = await db.creatorCounts(); } catch { /* shown as none */ }
+    let last = null, usd = 0, units = 0; try { const [l, u1, u2] = await kv.run([["GET", CREATORS.lastKey], ["GET", CREATORS.usdKey(d)], ["GET", CREATORS.ytKey(d)]]); last = l ? JSON.parse(l) : null; usd = Number(u1 ?? 0) / 1e6; units = Number(u2 ?? 0); } catch { /* none */ }
+    return P.ownerCreators({ settings: await crSettings(), counts, names: CREATORS.names, last, spentUsd: usd, capUsd: crAiCapOf(env), ytUnits: units, ytCap: ytUnitsOf(env), aiOn: aiConfigured(env), ytOn: ytConfigured(env), message });
+  };
   /* RR-329 B/E: one product's grid at a time (light on a phone); AlmiOET keeps its five-part grid */
   const countriesPage = async (o = {}) => {
     const d = new Date(now()).toISOString().slice(0, 10), product = FACT_PRODUCTS.includes(o.product) ? o.product : "oet", all = await cf.facts(), sel = o.country && COUNTRIES.includes(o.country) ? o.country : null;
@@ -355,7 +369,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (limits) { try { ticket = await limits.ticket(); } catch { ticket = null; } }
     if (finderOn()) { try { finderTicket = await limits.ticket(); } catch { finderTicket = null; } }
     let titleTicket = null; if (titleLimits) { try { titleTicket = await titleLimits.ticket(); } catch { titleTicket = null; } }
-    return P.liteHome({ sales, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
+    /* RR-348 (owner): the Download button high on the home — the Store once it is set, else the latest Setup (VISIBILITY_SETUP_URL), else the page */
+    const download = storeUrlOf(env) ?? (httpsUrl(env[SITE_KEY_NAMES.setupUrl]) ? "/download/AlmiVisibility-Setup.exe" : "/download");
+    return P.liteHome({ sales, download, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
   };
   const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download"] : [])];
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
@@ -394,7 +410,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       const u = new URL(req.url, "http://127.0.0.1");
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
       const form = () => (/json/.test(req.headers["content-type"] ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
-      if (req.method === "GET" && u.pathname === "/") return send(200, await home(req), undefined, { "cache-control": "no-store" });
+      /* RR-348: /?tab=tiktok (or instagram) opens the checker on that tab — the NEW band's and the TikTok + Instagram band's links */
+      if (req.method === "GET" && u.pathname === "/") return send(200, await home(req, u.searchParams.has("tab") ? { title: { values: { platform: u.searchParams.get("tab") } } } : {}), undefined, { "cache-control": "no-store" });
+      /* RR-348 owner change: the home's pictures — a FIXED list, files from site/img only (no path from the request reaches the disk) */
+      if (req.method === "GET" && sales && SITE_MEDIA[u.pathname]) return send(200, readFileSync(join(HERE, SITE_MEDIA[u.pathname].file)), SITE_MEDIA[u.pathname].type, { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
@@ -416,15 +435,17 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       }
       /* RR-347 ADD-2 · the free YouTube title checker (sales home only): the checks always; the AI titles inside the tool's daily dollar cap */
       if (sales && req.method === "POST" && u.pathname === "/title-check") {
-        const f = form(), inp = titleInput(f), values = { title: inp.title, topic: inp.topic };
+        const f = form(), inp = captionInput(f), values = { title: inp.title, topic: inp.topic, platform: inp.platform }; // RR-348: YouTube · TikTok · Instagram
         const again = async (code, error) => send(code, await home(req, { title: { error, values } }), undefined, { "cache-control": "no-store" });
         if (!titleLimits) return again(503, "The free title checker is being switched on. Please come back soon.");
         if (f.homepage) return again(400, "Please use the form on this page.");
         const tk = await titleLimits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
         if (!inp.ok) return again(400, inp.why);
         const take = owner(req) ? { ok: true, left: null } : await titleLimits.take(who(req)); if (!take.ok) return again(429, take.why);
-        const ai = await betterTitles({ title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });
-        return send(200, await home(req, { title: { result: { title: inp.title, check: checkTitle(inp.title, inp.topic), ai }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
+        const ai = await betterCaptions({ platform: inp.platform, title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });
+        /* RR-348 c · the creator data for the topic's niche on this platform, when the collectors hold some (never a wait: a failure is none) */
+        let creator = null; if (db) { try { const niche = nicheOfTopic(`${inp.topic} ${inp.title}`, (await crSettings()).niches); creator = niche ? { niche, data: await creatorFor({ store: db, platform: inp.platform, niche }) } : null; if (!creator?.data) creator = null; } catch { creator = null; } }
+        return send(200, await home(req, { title: { result: { platform: inp.platform, title: inp.title, check: withMeaning(checkCaption(inp.platform, inp.title, inp.topic), ai), ai, creator }, left: take.left, values } }), undefined, { "cache-control": "no-store" });
       }
       /* RR-326 C · the keyword finder */
       if (req.method === "POST" && u.pathname === "/keywords") {
@@ -468,7 +489,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!owner(req)) return send(403, P.ownerSignIn(), undefined, priv);
         /* RR-343 (owner, 29 Oct: /owner/collect said "Page not found") · a button's own address opened again — a refresh, a typed or a
          * remembered address — goes back to a page, never to "Page not found" (the buttons themselves POST) */
-        const BACK = { "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries",
+        const BACK = { "/owner/creators/collect": "/owner/creators", "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries",
           "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles", "/owner/articles/publish": "/owner/articles" };
         if (req.method === "GET" && BACK[u.pathname]) return send(303, "", "text/plain", { ...priv, location: BACK[u.pathname] });
         if (req.method === "POST" && u.pathname === "/owner/seeds") {
@@ -496,6 +517,25 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           if (!finderOn()) return send(503, await ownerPage({ message: "Google, the store and the database must all be connected first." }), undefined, priv);
           const r = await kwRun({ budgetMs: 50000 });
           return send(200, await ownerPage({ message: r.ok ? `This run: ${r.saved} requests saved (${r.keywords} keywords)${r.stoppedBy ? ` — ${r.why}` : ""}.` : r.why }), undefined, priv);
+        }
+        /* RR-348 c · the Creators tab: the counts; a change of niches, countries or a platform on/off; "Collect now" (one short research run) */
+        if (u.pathname === "/owner/creators" || u.pathname === "/owner/creators/collect") {
+          if (!db) return send(503, await ownerPage({ message: "The database must be connected first." }), undefined, priv);
+          if (req.method === "GET" && u.pathname === "/owner/creators") {
+            /* the first visit saves the first list — from then the keyword collector asks Google for the creator keywords too */
+            let first = null; try { if (!(await db.creatorSettings())) { const s = settingsOf(null); await db.setCreatorSettings({ niches: s.niches, countries: s.countries, on: s.on }, new Date(now()).toISOString()); first = "The first creator list is saved — the keyword collector asks Google for these from its next run; the AI research runs already."; } } catch { /* shown as it is */ }
+            return send(200, await creatorsPage(first), undefined, priv);
+          }
+          if (req.method === "POST" && u.pathname === "/owner/creators") {
+            const c = changeSettings(await crSettings(), form());
+            if (!c.ok) return send(400, await creatorsPage(c.why), undefined, priv);
+            await db.setCreatorSettings({ niches: c.settings.niches, countries: c.settings.countries, on: c.settings.on }, new Date(now()).toISOString());
+            return send(200, await creatorsPage("Saved — both creator collectors follow it from their next run."), undefined, priv);
+          }
+          if (req.method === "POST" && u.pathname === "/owner/creators/collect") {
+            const r = await crRun({ budgetMs: 50000 });
+            return send(200, await creatorsPage(r.ok ? `This run: ${r.saved} niche × platform × country researched (${r.youtube} with YouTube data), $${r.aiUsd.toFixed(3)}${r.why ? ` — ${r.why.replace(/.$/, "")}` : ""}.` : r.why), undefined, priv);
+          }
         }
         /* RR-329 A · the queue: one product or country one place up (one tap) — both collectors follow it from their next run */
         if (req.method === "POST" && u.pathname === "/owner/queue") {
@@ -602,6 +642,17 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         }
         return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
       }
+      /* RR-348 c · the creator data for the app's TikTok & Instagram — the same licence check as the keyword service; read only, not counted */
+      if (req.method === "GET" && u.pathname === "/v1/creators") {
+        const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
+        if (!db) return json(503, { ok: false, why: "The creator data is not connected yet." });
+        const lic = checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: false });
+        if (!lic.ok) return json(lic.status, { ok: false, why: lic.why });
+        const platform = String(u.searchParams.get("platform") ?? ""), niche = nicheOfTopic(u.searchParams.get("niche") ?? "", (await crSettings()).niches);
+        if (!Object.hasOwn(CREATORS.platforms, platform)) return json(400, { ok: false, why: "Choose YouTube, TikTok or Instagram." });
+        const d = niche ? await creatorFor({ store: db, platform, niche, location: String(u.searchParams.get("country") ?? "").toUpperCase() || null }) : null;
+        return json(200, { ok: true, niche, data: d });
+      }
       /* RR-326 E · the app's keyword service — the licence decides; while sales are not open, the owner's licence only */
       if (u.pathname === "/v1/keywords" || u.pathname === "/v1/keywords/usage") {
         const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
@@ -649,8 +700,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && u.pathname === "/cron/keywords") {
         const okAuth = cronAuth();
         if (!okAuth) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
-        if (!finderOn()) return send(200, JSON.stringify({ ok: false, why: "Google, the store or the database is not connected." }), "application/json", { "cache-control": "no-store" });
-        const r = await kwRun();
+        const t0 = now(), r = finderOn() ? await kwRun() : { ok: false, why: "Google, the store or the database is not connected." }; // RR-348 c: the creator research needs only the database, the store and the AI
+        if (!kv || !db) return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
+        /* RR-348 c · the creator research rides the same cron in the time left (the function may run 300 s; the keywords take up to 240) */
+        const left = 270000 - (now() - t0);
+        if (left > 30000) { try { r.creators = await crRun({ budgetMs: Math.min(left - 20000, 200000) }); } catch { r.creators = { ok: false, why: "The creator research could not run this time." }; } }
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       if (sales && isSalesPath(req.method, u.pathname)) return salesHandle(req, res, body); // RR-338: selling, by the full handler

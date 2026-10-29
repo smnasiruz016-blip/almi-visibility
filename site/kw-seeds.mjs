@@ -28,8 +28,8 @@ export const PLAN_LOCATIONS = Object.freeze(["ALL", "PK", "IN", "PH", "NG", "KE"
 
 /* RR-329 (rule R5): how often a unit is asked again, in days — Google's figures are 12-month averages it updates once a month, so a product
  * is asked again after 30 days and a category or YouTube niche after 60 (all 193 locations stay under a third of Google's daily limit) */
-export const KINDS = Object.freeze({ product: "monthly", category: "every two months", youtube: "every two months" });
-export const REFRESH_DAYS = Object.freeze({ product: 30, category: 60, youtube: 60 });
+export const KINDS = Object.freeze({ product: "monthly", category: "every two months", youtube: "every two months", creator: "every two months" }); // RR-348 c: creator (site/creators.mjs)
+export const REFRESH_DAYS = Object.freeze({ product: 30, category: 60, youtube: 60, creator: 60 });
 export const SEED_RULES = Object.freeze({ productSeeds: 20, groupSeeds: 60, groups: 80, seedLength: 80 });
 
 /* the FIRST list (RR-326 B: the 24 products of almi-data's family list; G: the owner's categories and YouTube niches, his words) */
@@ -120,7 +120,7 @@ export function parseSeeds(text) {
  */
 export function unitsOf(groups, { language = "en" } = {}) {
   const out = [];
-  for (const g of groups) for (const loc of LOCATIONS) {
+  for (const g of groups) for (const loc of g.locations ? LOCATIONS.filter((l) => g.locations.includes(l.code)) : LOCATIONS) { // RR-348 c: a creator group, its countries only
     const seedSets = g.kind === "product" ? [g.seeds] : g.seeds.map((s) => [s]);
     for (const seeds of seedSets) {
       const what = g.kind === "product" ? g.id : `${g.id}:${seeds[0]}`;

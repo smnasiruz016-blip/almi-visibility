@@ -83,6 +83,8 @@ export function keywordService({ siteUrl = SERVICE_URL, signed = null, fetchImpl
     search,
     /** RR-328 C · AlmiWorld's country facts for these countries (only facts read on their own official pages — never an unconfirmed one) */
     countryFacts: ({ countries = [] } = {}) => call(`v1/countries/facts${countries.length ? `?countries=${encodeURIComponent(countries.join(","))}` : ""}`),
+    /** RR-348 c · AlmiWorld's creator data for a niche on YouTube, TikTok or Instagram → { ok, niche, data } (data null when there is none) */
+    creators: ({ platform, niche, country = "" }) => call(`v1/creators?platform=${encodeURIComponent(platform)}&niche=${encodeURIComponent(niche)}${country ? `&country=${encodeURIComponent(country)}` : ""}`),
     /**
      * RR-327 · the plan's keyword data: the seeds once for ALL locations, then once per country (`skip` = locations whose service figures are
      * still fresh — never asked again within PLAN_REUSE_DAYS). Stops at the first refusal that is not about one country (no plan, unreachable,

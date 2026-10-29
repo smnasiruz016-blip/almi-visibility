@@ -23,7 +23,8 @@ import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.m
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
-import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS } from "./home-sales.mjs"; // RR-347: YouTube at the top
+import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, DOWNLOAD, salesHero, newBand, socialBand } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
+import { slugOf } from "./creators.mjs"; // RR-348 c: the Creators tab names a niche's keyword group the way the collector does
 import { TITLE_TOOL } from "./title-check.mjs"; // RR-347 ADD-2: the free title checker
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
 
@@ -301,7 +302,7 @@ export const download = ({ setupAvailable = false, sales = false, storeUrl = nul
   body: `<section class="hero"><div class="wrap"><p class="eyebrow">Download</p><h1>AlmiVisibility for Windows</h1>
 <p class="lead">${storeUrl ? "Get it from the Microsoft Store: one click installs it, and the Store keeps it up to date." : "Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop."}</p>
 <div class="cta">${storeUrl ? `<a class="pill big" href="${esc(storeUrl)}" rel="noopener" data-store>Get it from the Microsoft Store</a>` : setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
-${sales ? IMG.download : ""}
+${sales ? `<p class="small" data-update-line><b>${esc(DOWNLOAD.update.replace("download it here", "download it above"))}</b></p>${IMG.download}` : ""}
 <p class="small">Windows 10 or 11. Your data stays on your own computer.${storeUrl ? "</p>" : ` The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway”.</p>`}</div></section>
 ${section("paper", `<h2>After you install</h2>${cardList([
   ["Add your product", "Your company, your product and its website."],
@@ -378,25 +379,26 @@ ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 ${scoreOn && ticket ? form : off}</div>`;
 }
-export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {} } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
+export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, download = "/download" } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
   title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
-  description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
-  body: `<section class="hero"><div class="wrap grid2"><div>
+  description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+  /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
+   * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
+  body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}
+<section class="band shome"><div class="wrap sgrid"><div>${aiMap()}</div><div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
+${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${socialBand(BUY_NOW.href)}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>`
+    : `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>
-${sales ? `<h1>${esc(MARKETING.headline)}</h1>
-<p class="lead">${esc(HERO.sub)}</p>
-<p class="small">${esc(MARKETING.data)} Your site score is free — no card, no email.</p>
-<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a></div>
-${aiMap()}` : `<h1>Get the score of your site</h1>
-<p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>`}
+<h1>Get the score of your site</h1>
+<p class="lead">Enter your website address. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of its public pages — following its robots.txt — and shows your score and the main findings here, on screen.</p>
 <p class="small">${esc(NO_PROMISE)}</p></div>
-<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
-${sales ? `${HOME_CSS}${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>` : ""}
+<div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>`}
 ${result ? resultDetail(result, left) : ""}
 ${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
 ${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()
     : section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
+${sales ? `<div class="wrap"><p class="fine footnote" data-footnote>${esc(NO_PROMISE)}</p></div>` : ""}
 <script src="/score.js" defer></script>${sales && title.result ? '<script src="/copy.js" defer></script>' : ""}` });
 
 /* ── RR-326 C · THE FREE KEYWORD FINDER on the public-lite home: "coming soon" until Google, the store and the database are connected ── */
@@ -491,7 +493,29 @@ function queueHtml(q, names, moved) {
 export function ownerMenu(here, s = null) {
   const item = (k, href, name) => (k === here ? `<b>${name}</b>` : `<a href="${href}">${name}</a>`);
   const line = s ? `<p class="fine">Keywords today ${Number(s.keywordsToday ?? 0).toLocaleString("en-US")} · first 15 countries ${s.first15 ?? "—"}% done · question groups ${s.questionGroups ?? 0} · test dates found for ${s.datesFound ?? 0} test × country${s.gsc ? ` · Search Console: ${esc(s.gsc)}` : ""}</p>` : "";
-  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")}</nav>${line}`;
+  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")} · ${item("creators", "/owner/creators", "Creators")}</nav>${line}`;
+}
+
+/* RR-348 c · the owner's Creators tab: what the creator collectors hold per platform, niche and country; "Collect now"; each platform on or
+ * off; the niches and the countries to add or remove; today's spend against the slice; which keys are set (names only, never a value) */
+export function ownerCreators({ settings, counts = { research: [], keywords: [] }, names = {}, last = null, spentUsd = 0, capUsd = 1, ytUnits = 0, ytCap = 2000, aiOn = false, ytOn = false, message = null } = {}) {
+  const P3 = Object.keys(names), kwOf = (p, n) => counts.keywords.filter((k) => k.grp === `creator:${p}-${slugOf(n)}`);
+  const total = (p) => ({ research: counts.research.filter((r) => r.platform === p).length, keywords: counts.keywords.filter((k) => k.grp.startsWith(`creator:${p}-`)).reduce((a, k) => a + k.keywords, 0), yt: counts.research.filter((r) => r.platform === p && r.yt).length });
+  const cell = (p, n) => { const r = counts.research.filter((x) => x.platform === p && x.niche === n), k = kwOf(p, n).reduce((a, x) => a + x.keywords, 0);
+    return `<td>${r.length}/${settings.countries.length}${k ? ` · ${k.toLocaleString("en-US")} kw` : ""}</td>`; };
+  const toggle = (p) => `<form method="post" action="/owner/creators" class="inline"><input type="hidden" name="platform" value="${p}"><input type="hidden" name="state" value="${settings.on[p] ? "off" : "on"}"><button class="pill ${settings.on[p] ? "ghost" : ""}" type="submit">${settings.on[p] ? `Switch ${names[p]} off` : `Switch ${names[p]} on`}</button></form>`;
+  return ownerFrame("Creators", `${PHONE_CSS}<style>.cr-wrap{max-width:100%;overflow-x:auto} .cr-wrap .pill{white-space:nowrap} form.inline{display:inline;margin:0} .chip form.inline .pill{min-height:28px;padding:0 8px;margin-left:4px;font-size:13px}</style>${ownerMenu("creators")}<h1>Creators — YouTube, TikTok, Instagram</h1>${message ? `<p class="card" role="status">${esc(message)}</p>` : ""}
+<p class="fine">Google Ads keywords with the platform added, the questions people ask, and AI research (ideas, hashtags, hooks) — per niche, platform and country. TikTok and Instagram: Google data and AI research only (no scraping). YouTube: also the official YouTube Data API when YOUTUBE_API_KEY is set in Vercel.</p>
+<div class="cr-wrap"><table class="prices" data-creator-totals><tr><th>Platform</th><th>On</th><th>AI research (niche × country)</th><th>Keywords</th><th>YouTube API rows</th><th></th></tr>
+${P3.map((p) => { const t = total(p); return `<tr><td><b>${esc(names[p])}</b></td><td>${settings.on[p] ? "on" : "off"}</td><td>${t.research.toLocaleString("en-US")} of ${(settings.niches.length * settings.countries.length).toLocaleString("en-US")}</td><td>${t.keywords.toLocaleString("en-US")}</td><td>${p === "youtube" ? t.yt.toLocaleString("en-US") : "—"}</td><td>${toggle(p)}</td></tr>`; }).join("")}</table></div>
+<p class="fine">Today: AI $${spentUsd.toFixed(3)} of the $${capUsd.toFixed(2)} slice (CREATORS_AI_USD_PER_DAY) · YouTube ${ytUnits.toLocaleString("en-US")} of ${ytCap.toLocaleString("en-US")} units (CREATORS_YT_UNITS_PER_DAY) · ANTHROPIC_API_KEY ${aiOn ? "set" : "NOT set"} · YOUTUBE_API_KEY ${ytOn ? "set" : "not set — YouTube uses Google data and AI research only"}</p>
+${last ? `<p class="fine">Last run ${esc(String(last.at ?? "").slice(0, 16).replace("T", " "))} UTC: ${Number(last.saved ?? 0)} saved, ${Number(last.youtube ?? 0)} with YouTube data, $${Number(last.aiUsd ?? 0).toFixed(3)}${last.why ? ` — ${esc(last.why)}` : ""}${Number.isFinite(last.left) ? ` · ${last.left} still to do` : ""}</p>` : `<p class="fine">No run yet.</p>`}
+<form method="post" action="/owner/creators/collect"><button class="pill" type="submit">Collect now</button> <span class="fine">One run of about a minute: AI research first, then this tab shows the counts. Keywords come with the keyword collector's next runs.</span></form>
+<h2>Per niche</h2><div class="cr-wrap"><table class="prices" data-creator-niches><tr><th>Niche</th>${P3.map((p) => `<th>${esc(names[p])}</th>`).join("")}<th></th></tr>
+${settings.niches.map((n) => `<tr><td>${esc(n)}</td>${P3.map((p) => cell(p, n)).join("")}<td><form method="post" action="/owner/creators" class="inline"><input type="hidden" name="removeNiche" value="${esc(n)}"><button class="pill ghost" type="submit">Remove</button></form></td></tr>`).join("")}</table></div>
+<form method="post" action="/owner/creators" class="row"><label>Add a niche <input name="addNiche" maxlength="60" placeholder="home cooking"></label><button class="pill" type="submit">Add</button></form>
+<h2>Countries</h2><div class="row">${settings.countries.map((c) => `<span class="chip">${esc(c)} <form method="post" action="/owner/creators" class="inline"><input type="hidden" name="removeCountry" value="${esc(c)}"><button class="pill ghost" type="submit" aria-label="Remove ${esc(c)}">×</button></form></span>`).join(" ")}</div>
+<form method="post" action="/owner/creators" class="row"><label>Add a country (code) <input name="addCountry" maxlength="3" placeholder="FR"></label><button class="pill" type="submit">Add</button></form>`);
 }
 /* RR-334 · the article drafts for every AlmiWorld product — nothing is published from here; the owner's word is kept */
 export function ownerArticles({ articles = [], html = (d) => "", message = null, blogOn = false } = {}) {

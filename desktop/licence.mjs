@@ -75,7 +75,7 @@ export function licenceState({ now, check, last = null, publicKeyPem, owner = nu
   const mine = (s) => !account || s?.licence?.account === account;
   let lastGood = last && mine(last.signed) ? last : null;
   if (check?.reached) {
-    if (!good(check.signed) || !mine(check.signed)) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence answer could not be verified — new work is paused until a valid licence is received. Nothing is deleted." });
+    if (!good(check.signed) || !mine(check.signed)) return Object.freeze({ state: "INVALID", mayStartNewWork: false, plan: null, last: lastGood, line: "The licence answer could not be verified — new work is paused until a valid licence is received. Nothing is deleted. If this keeps happening, please update to the latest version: almivisibility.almiworld.com/download" }); // RR-348 (owner): an old copy cannot check a newer licence
     lastGood = { at: now, signed: check.signed };
   }
   if (!lastGood) return Object.freeze({ state: "NO_PLAN", mayStartNewWork: false, plan: null, last: null, line: "No plan yet — choose a plan to start. Try the free site score first, no card needed." });

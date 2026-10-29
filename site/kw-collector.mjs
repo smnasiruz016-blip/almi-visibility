@@ -17,6 +17,7 @@ import { DEFAULT_QUEUE, FRONT, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { isQuestion } from "../desktop/country-facts.mjs";
 import { RETAIN } from "./kw-store.mjs"; // RR-342: the clean-up's cut-off and batches
+import { creatorGroups, settingsOf } from "./creators.mjs"; // RR-348 c
 
 export const COLLECTOR = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, keepTop: 300, keepQuestions: 100, storageLimitMb: 10240,stopAtShare: 0.95 });
 const STOP = new Set(["OUR_DAILY_LIMIT", "NOT_CONNECTED", "UNAUTHENTICATED", "AUTHORIZATION_ERROR", "RESOURCE_EXHAUSTED", "PERMISSION_DENIED", "ACTION_NOT_PERMITTED", "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION", "USER_PERMISSION_DENIED", "CUSTOMER_NOT_ENABLED"]);
@@ -29,7 +30,10 @@ export async function currentGroups(store) {
   const saved = await store.seedList(), p = saved ? parseSeeds(saved.text) : null;
   /* RR-334 · the AI's keyword ideas (templates b and d) join each product's seeds — the owner's list or the first one */
   let ideas = {}; try { ideas = store.seedIdeas ? await store.seedIdeas() : {}; } catch { /* the list alone */ }
-  return p?.ok ? { groups: withMoreSeeds(p.groups, { ideas }), from: "owner", at: saved.at } : { groups: withMoreSeeds(parseSeeds(DEFAULT_SEEDS).groups, { ideas }), from: saved ? "first list (the saved list does not read)" : "first list", at: null };
+  /* RR-348 c · the creator niches × platforms join as their own groups, asked only in the creator countries (the owner's Creators tab) */
+  /* only once the owner's creator settings are saved (the Creators tab saves the first list on its first visit) — Google's requests stay his */
+  let creators = []; try { const saved = store.creatorSettings ? await store.creatorSettings() : null; if (saved) creators = creatorGroups(settingsOf(saved)); } catch { /* the list alone */ }
+  return p?.ok ? { groups: [...withMoreSeeds(p.groups, { ideas }), ...creators], from: "owner", at: saved.at } : { groups: [...withMoreSeeds(parseSeeds(DEFAULT_SEEDS).groups, { ideas }), ...creators], from: saved ? "first list (the saved list does not read)" : "first list", at: null };
 }
 
 /**

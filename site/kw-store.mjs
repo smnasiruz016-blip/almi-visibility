@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS kw_observation (keyword text NOT NULL, location text 
 CREATE TABLE IF NOT EXISTS kw_fetch_keyword (fetch_id bigint NOT NULL REFERENCES kw_fetch(id), keyword text NOT NULL, PRIMARY KEY (fetch_id, keyword));
 CREATE TABLE IF NOT EXISTS kw_group_keyword (grp text NOT NULL, keyword text NOT NULL, location text NOT NULL, last_day date NOT NULL, PRIMARY KEY (grp, keyword, location));
 CREATE INDEX IF NOT EXISTS kw_observation_day ON kw_observation (day);
-`;
+CREATE TABLE IF NOT EXISTS kw_creator_research (platform text NOT NULL, niche text NOT NULL, location text NOT NULL, day date NOT NULL, data jsonb NOT NULL, PRIMARY KEY (platform, niche, location));
+`; // RR-348 c: kw_creator_research — the creator AI research (and YouTube's titles and tags), one row per platform × niche × country, the newest
 
 const clean = (rows) => { const m = new Map(); for (const r of rows) { const k = String(r.text ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " "); if (k && k.length <= 200 && !m.has(k)) m.set(k, { keyword: k, volume: Number.isFinite(r.said) ? r.said : null, months: r.months ?? null }); } return [...m.values()]; };
 
@@ -63,6 +64,16 @@ export function pgStore({ url, Pool = null, max = 3 }) {
   const tx = async (fn) => { await ensure(); const c = await (await db()).connect(); try { await c.query("BEGIN"); const out = await fn((s, p = []) => c.query(s, p).then((r) => r.rows)); await c.query("COMMIT"); return out; } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); } };
   return Object.freeze({
     kind: "postgres", ensure,
+    /* RR-348 c · the creator settings (kw_seed_list row 3), the research, and the counts for the owner's Creators tab */
+    async creatorSettings() { await ensure(); const [r] = await q("SELECT text FROM kw_seed_list WHERE id = 3"); try { return r ? JSON.parse(r.text) : null; } catch { return null; } },
+    async setCreatorSettings(s, at) { await ensure(); await q("INSERT INTO kw_seed_list (id, text, updated_at) VALUES (3, $1, $2) ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at", [JSON.stringify(s), at]); },
+    async creatorDays() { await ensure(); return new Map((await q("SELECT platform, niche, location, day::text AS day FROM kw_creator_research")).map((r) => [`${r.platform}|${r.niche}|${r.location}`, r.day])); },
+    async saveCreatorResearch({ platform, niche, location, day, data }) { await ensure(); await q("INSERT INTO kw_creator_research (platform, niche, location, day, data) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (platform, niche, location) DO UPDATE SET day = EXCLUDED.day, data = EXCLUDED.data", [platform, niche, location, day, JSON.stringify(data)]); },
+    async creatorResearch({ platform, niche, location = null }) { await ensure(); const [r] = await q("SELECT location, day::text AS day, data FROM kw_creator_research WHERE platform = $1 AND niche = $2 ORDER BY (location = $3) DESC, day DESC LIMIT 1", [platform, niche, location ?? ""]); return r ? { ...r.data, location: r.location, on: r.day } : null; },
+    async creatorCounts() { await ensure();
+      const research = await q("SELECT platform, niche, location, day::text AS day, (data ? 'youtube') AS yt FROM kw_creator_research ORDER BY platform, niche, location");
+      const keywords = await q("SELECT f.grp, f.location, count(fk.keyword)::int AS keywords, max(f.day)::text AS day FROM kw_fetch f JOIN kw_fetch_keyword fk ON fk.fetch_id = f.id WHERE f.grp LIKE 'creator:%' GROUP BY 1, 2");
+      return { research, keywords }; },
     async seedList() { await ensure(); const [r] = await q("SELECT text, updated_at::text AS at FROM kw_seed_list WHERE id = 1"); return r ? { text: r.text, at: r.at } : null; },
     async setSeedList(text, at) { await ensure(); await q("INSERT INTO kw_seed_list (id, text, updated_at) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at", [text, at]); },
     /** RR-334 · the AI's keyword ideas per product (the owner's templates b and d), as JSON in row 2 of the same table */
@@ -156,12 +167,23 @@ export function pgStore({ url, Pool = null, max = 3 }) {
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
 export function memoryStore({ sizeMb = null } = {}) {
   let list = null, nextId = 1, ideas = {};
+  const creator = { settings: null, rows: new Map() }; // RR-348 c
   const fetches = new Map(), obs = new Map(), fk = new Map(), gk = new Map();
   const fkey = (f) => `${f.seedKey}|${f.location}|${f.language}|${f.day}`;
   const newestAt = (keyword, location, language, day, before = false) => { let best = null; for (const o of obs.values()) if (o.keyword === keyword && o.location === location && o.language === language && (before ? o.day < day : o.day <= day) && (!best || o.day > best.day)) best = o; return best; };
   const fetchedOn = (day) => { const ids = new Map([...fetches.values()].filter((f) => f.day === day).map((f) => [f.id, f])); return [...fk.values()].filter((x) => ids.has(x.id)).map((x) => ({ keyword: x.keyword, location: ids.get(x.id).location })); };
   return Object.freeze({
     kind: "memory", ensure: async () => {},
+    /* RR-348 c · the creator settings, research and counts — the same contract */
+    async creatorSettings() { return creator.settings ? JSON.parse(JSON.stringify(creator.settings)) : null; },
+    async setCreatorSettings(s) { creator.settings = JSON.parse(JSON.stringify(s)); },
+    async creatorDays() { return new Map([...creator.rows.values()].map((r) => [`${r.platform}|${r.niche}|${r.location}`, r.day])); },
+    async saveCreatorResearch({ platform, niche, location, day, data }) { creator.rows.set(`${platform}|${niche}|${location}`, { platform, niche, location, day, data: JSON.parse(JSON.stringify(data)) }); },
+    async creatorResearch({ platform, niche, location = null }) { const rs = [...creator.rows.values()].filter((r) => r.platform === platform && r.niche === niche).sort((a, b) => (b.location === location) - (a.location === location) || b.day.localeCompare(a.day)); return rs[0] ? { ...rs[0].data, location: rs[0].location, on: rs[0].day } : null; },
+    async creatorCounts() {
+      const research = [...creator.rows.values()].map((r) => ({ platform: r.platform, niche: r.niche, location: r.location, day: r.day, yt: Boolean(r.data.youtube) }));
+      const m = new Map(); for (const f of fetches.values()) if (String(f.group ?? "").startsWith("creator:")) { const k = `${f.group}|${f.location}`, o = m.get(k) ?? { grp: f.group, location: f.location, keywords: 0, day: f.day }; o.keywords += [...fk.values()].filter((x) => x.id === f.id).length; if (f.day > o.day) o.day = f.day; m.set(k, o); }
+      return { research, keywords: [...m.values()] }; },
     /* RR-333: the newest figure on or before a day (an unchanged figure is not stored again); the keywords fetched on a day */
     async seedList() { return list ? { ...list } : null; },
     async setSeedList(text, at) { list = { text, at }; },

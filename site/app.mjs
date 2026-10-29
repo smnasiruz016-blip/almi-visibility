@@ -534,7 +534,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           }
           if (req.method === "POST" && u.pathname === "/owner/creators/collect") {
             const r = await crRun({ budgetMs: 50000 });
-            return send(200, await creatorsPage(r.ok ? `This run: ${r.saved} niche × platform × country researched (${r.youtube} with YouTube data), $${r.aiUsd.toFixed(3)}${r.why ? ` — ${r.why}` : ""}.` : r.why), undefined, priv);
+            return send(200, await creatorsPage(r.ok ? `This run: ${r.saved} niche × platform × country researched (${r.youtube} with YouTube data), $${r.aiUsd.toFixed(3)}${r.why ? ` — ${r.why.replace(/.$/, "")}` : ""}.` : r.why), undefined, priv);
           }
         }
         /* RR-329 A · the queue: one product or country one place up (one tap) — both collectors follow it from their next run */

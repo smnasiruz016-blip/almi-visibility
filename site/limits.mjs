@@ -58,12 +58,13 @@ export function liteLimits({ kv, now = () => Date.now(), perVisitor = LITE_LIMIT
     async ticket() { const t = randomBytes(18).toString("base64url"); await kv.run([["SET", `av:ticket:${t}`, String(now()), "EX", Math.ceil(LITE_LIMITS.ticketMaxMs / 1000)]]); return t; },
     /** the ticket used once: missing, used, too fast or too old → refused */
     async useTicket(t) {
-      if (!/^[\w-]{20,40}$/.test(String(t ?? ""))) return { ok: false, why: "Please use the form on this page." };
+      /* RR-350: each refusal says WHICH it is (code), so a form can treat an old page differently from a bot */
+      if (!/^[\w-]{20,40}$/.test(String(t ?? ""))) return { ok: false, code: "SHAPE", why: "Please use the form on this page." };
       const [at] = await kv.run([["GETDEL", `av:ticket:${t}`]]);
-      if (at === null || at === undefined) return { ok: false, why: "That form has expired. Please try again." };
+      if (at === null || at === undefined) return { ok: false, code: "STALE", why: "That form has expired. Please try again." };
       const age = now() - Number(at);
-      if (age < LITE_LIMITS.ticketMinMs) return { ok: false, why: "Please try again." };
-      return age > LITE_LIMITS.ticketMaxMs ? { ok: false, why: "That form has expired. Please try again." } : { ok: true };
+      if (age < LITE_LIMITS.ticketMinMs) return { ok: false, code: "FAST", why: "Please try again." };
+      return age > LITE_LIMITS.ticketMaxMs ? { ok: false, code: "STALE", why: "That form has expired. Please try again." } : { ok: true };
     },
   });
 }

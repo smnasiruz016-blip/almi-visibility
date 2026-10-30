@@ -17,9 +17,9 @@ import { checkTitle, titleInput, betterTitles, TITLE_TOOL, withMeaning } from ".
 const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t" });
 
 test("RR-347 · the hero: the owner's headline and line, Buy now and the free score stay, six engines on one hub, the trademark line", () => {
-  assert.match(home, /<h1>Get found on Google, ChatGPT — and YouTube\.<\/h1>/);
-  assert.ok(home.includes("One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas — every day, for $30 a month."));
-  assert.match(home, /<div class="cta"><a class="pill big" href="#score">Get my free score<\/a><a class="pill big alt" href="\/pricing" data-buy>/);
+  assert.match(home, /<h1>Stop Guessing\. Start Getting Found\.<\/h1>/); // RR-350 COPY v2
+  assert.ok(home.includes("AI grows your website, YouTube, TikTok and Instagram — every single day, while you sleep. Pages, articles, keywords, hooks and captions. All for $30 a month."));
+  assert.match(home, /<div class="cta"><a class="pill big" href="#score">Get My Free Site Score<\/a><a class="pill big alt" href="\/pricing" data-buy>/); // RR-350 COPY v2
   const map = home.slice(home.indexOf("data-ai-map"), home.indexOf(TRADEMARKS) + TRADEMARKS.length);
   assert.deepEqual([...map.matchAll(/<li class="ai-node">.*?<b[^>]*>([^<]+)<\/b>/g)].map((m) => m[1]), ["ChatGPT", "Google", "Gemini", "Claude", "Perplexity", "YouTube", "TikTok", "Instagram"]); // RR-348: TikTok and Instagram joined
   assert.equal((map.match(/<line /g) ?? []).length, 8, "one line from each engine to the hub");
@@ -35,7 +35,7 @@ test("RR-347 · the YouTube band right under the hero; its Example is marked; th
   const b = home.slice(band, home.indexOf("data-social")); // RR-348 ADD: the TikTok + Instagram band follows the YouTube one
   assert.ok(b.includes(YT.heading.replace("&", "&amp;")) && b.includes('<span class="yt-tag">Example</span>') && b.includes(YT.example.before) && b.includes(YT.example.after));
   assert.deepEqual([...b.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]), ["Better titles &amp; hashtags", "Video ideas from real searches", "Advice to grow your channel"]);
-  assert.match(b, /<a class="pill big yt" href="\/pricing" data-buy>Grow my channel →<\/a>/);
+  assert.match(b, /<a class="pill big yt" href="#title-check">Check My Title Free →<\/a>/, "RR-350: the free checker above");
   assert.match(home, /@media \(prefers-reduced-motion:reduce\)\{\.yt-play\{animation:none\}/, "the pulse stops for reduced motion");
   for (const s of [home, ...DAYS.plan.flat()]) assert.ok(!/guarantee/i.test(s), "never guaranteed");
   assert.ok(DAYS.plan.some(([d, t]) => d === "Day 30" && /^Up to thirty/.test(t)) && DAYS.plan.some(([d, t]) => d === "Day 7" && /^Up to seven/.test(t)), "a day with no sourced answer has no article — 'up to'");

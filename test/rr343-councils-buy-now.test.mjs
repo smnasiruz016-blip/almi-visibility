@@ -108,7 +108,7 @@ test("RR-343 · \"Buy now — from $30/month\": the header, the home hero and a 
   const home = liteHome({ sales: true, scoreOn: true, ticket: "t" });
   assert.match(home, /<a class="pill" href="\/#score">Get my score<\/a><a class="pill alt" href="\/pricing" data-buy>Buy now — from \$30\/month<\/a><\/nav>/, "the header, beside Get my score");
   assert.match(home, /<div class="drawer"><a class="pill alt" href="\/pricing" data-buy>Buy now — from \$30\/month<\/a><p>AlmiVisibility<\/p>/, "the phone menu");
-  assert.match(home, /<div class="cta"><a class="pill big" href="#score">Get my free score<\/a><a class="pill big alt" href="\/pricing" data-buy>Buy now — from \$30\/month<\/a><\/div>/, "the hero");
+  assert.ok(home.includes('<div class="cta"><a class="pill big" href="#score">Get My Free Site Score</a><a class="pill big alt" href="/pricing" data-buy>Buy Now — $30/month</a></div>'), "the hero (RR-350 COPY v2)");
   const img = home.indexOf("<p class=\"buystrip\""), strip = home.slice(img, home.indexOf("</p>", img) + 4);
   assert.equal(strip, '<p class="buystrip" data-buy-strip>Plans from $30 a month · Every feature in every plan · <a href="/pricing" data-buy>Buy now</a></p>');
   /* RR-348 owner change: the hero now shows the app's own screen with Download under it; the strip stays under the first home
@@ -116,7 +116,7 @@ test("RR-343 · \"Buy now — from $30/month\": the header, the home hero and a 
   const first = home.indexOf("<figure", home.indexOf("</section>", home.indexOf('<section class="hero shero"')));
   assert.ok(home.indexOf("<figure", home.indexOf('<section class="hero shero"')) < home.indexOf("data-download-hero"), "the hero's picture, Download under it");
   assert.ok(first < img && img < home.indexOf("<figure", first + 1), "under the FIRST home image after the hero");
-  assert.match(home, /<h2 id="plans">Simple plans<\/h2>/, "the plans at the bottom stay");
+  assert.match(home, /<h2 id="plans">Fire Your SEO Agency\. Hire AI for \$30\.<\/h2>/, "the plans at the bottom stay (RR-350: the owner's heading)");
   assert.ok(!/guarantee/i.test(strip + BUY_NOW.label));
   assert.match(frame({ path: "/download", title: "t", description: "d", body: "", lite: "sales" }), /data-buy>Buy now — from \$30\/month<\/a><\/nav>/, "on every sales page");
   for (const h of [liteHome({ sales: false }), frame({ path: "/", title: "t", description: "d", body: "", lite: true })]) assert.ok(!h.includes("data-buy"), "not before sales open");

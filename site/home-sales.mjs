@@ -18,8 +18,13 @@ import { PLATFORMS, PLATFORM_NAME, CAPTION_TOOL, platformOf } from "./title-chec
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 export const HERO = Object.freeze({
-  headline: "Get found on Google, ChatGPT — and YouTube.",
-  sub: "One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas — every day, for $30 a month.",
+  /* RR-350 COPY v2 (owner, 30 Oct 2026); was "Get found on Google, ChatGPT — and YouTube." */
+  headline: "Stop Guessing. Start Getting Found.",
+  sub: "AI grows your website, YouTube, TikTok and Instagram — every single day, while you sleep. Pages, articles, keywords, hooks and captions. All for $30 a month.",
+  score: "Get My Free Site Score", buy: "Buy Now — $30/month",
+  /* the owner's third tick was "You approve every change"; on a website the client may choose automatic publishing after every check
+   * passes (desktop publishMode AUTO_AFTER_GATES), so the true line is that the client chooses */
+  ticks: Object.freeze(["Real Google data", "No card, no email", "You choose what goes live"]),
 });
 /* what each engine is to the app — the small line under its name */
 export const ENGINES = Object.freeze([
@@ -66,17 +71,17 @@ export function aiMap() {
 
 export const YT = Object.freeze({
   /* RR-348 ADD (owner, 29 Oct 2026): the section line now names all three; was "Finally: SEO for your YouTube channel. Not just your website." */
-  heading: "SEO for YouTube, TikTok & Instagram — not just your website.",
+  heading: "Stop Making Videos Nobody Finds.", // RR-350 COPY v2; was "SEO for YouTube, TikTok & Instagram — not just your website."
   eyebrow: "YouTube · TikTok · Instagram",
   /* the owner's line, with "hashtags" for "tags": the app suggests hashtags, not the hidden tags field */
-  sub: "Titles and captions that get clicked. Hashtags that get found. Video ideas your audience is already searching for.",
+  sub: "Hooks that stop the scroll. Titles that get clicked. Hashtags that get found. Turn your low-view videos into ones people actually watch.",
   example: Object.freeze({ before: "my morning routine vlog", after: "My 5 AM Morning Routine in Iceland — What I Never Skip" }),
   cards: Object.freeze([
     { title: "Better titles & hashtags", screen: [["Title", "Morning Routine Before Work: What I Never Skip"], ["Hashtags", "#morningroutine #5amclub #productivity"]], line: "For each video: three ready titles with the main words first, a description and three relevant hashtags — each saying what it is based on." },
     { title: "Video ideas from real searches", screen: [["Video ideas", "1 · My night routine for an early start"], ["", "2 · 5 AM vs 7 AM: what changed for me"], ["", "3 · What I eat before work"]], line: "New video ideas from what does well in your niche on YouTube and the questions viewers write in comments — each with a ready title." },
     { title: "Advice to grow your channel", screen: [["Do first this week", "1 · Main words first in your next 3 titles"], ["", "2 · Answer the top question from your comments"], ["", "3 · Add chapters to videos over 8 minutes"]], line: "Channel advice and the steps to do first this week, from your own videos — with your Google sign-in, from your watch time and the searches that brought viewers too." },
   ].map(Object.freeze)),
-  cta: "Grow my channel →",
+  cta: "Check My Title Free →", ctaHref: "#title-check", // RR-350: the free checker above (was "Grow my channel →" to the plans)
   /* RR-347 FIX v2 point 3 (owner): true — the app reads through the official API, and "Apply to YouTube" shows a preview and changes a
    * video only after the client confirms (desktop/main.mjs D1) */
   fine: "Works with YouTube's official API. You approve every change.",
@@ -131,7 +136,7 @@ export function youtubeBand(buyHref, tool = {}) {
 ${titleTool({ ...tool, buyHref })}
 <div class="yt-ba" data-example><span class="yt-tag">Example</span><p><small>Before</small><s>${esc(YT.example.before)}</s></p><p class="yt-arrow" aria-hidden="true">→</p><p><small>After</small><b>${esc(YT.example.after)}</b></p></div>
 <ul class="yt-cards">${YT.cards.map((c) => `<li><div class="so-screen yt-screen" aria-label="Example: ${esc(c.title)}"><i class="so-tag">Example</i>${c.screen.map(([k, v]) => `${k ? `<small>${esc(k)}</small>` : ""}<span>${esc(v)}</span>`).join("")}</div><h3>${esc(c.title)}</h3><p>${esc(c.line)}</p></li>`).join("")}</ul>
-<p class="yt-cta"><a class="pill big yt" href="${esc(buyHref)}" data-buy>${esc(YT.cta)}</a></p>
+<p class="yt-cta"><a class="pill big yt" href="${YT.ctaHref}">${esc(YT.cta)}</a></p>
 <p class="yt-fine">${esc(YT.fine)}</p></div></section>`; // RR-348 ADD: the honest TikTok/Instagram line now sits in their own band (SOCIAL.honest)
 }
 
@@ -143,8 +148,8 @@ export function salesHero({ headline, sub, data, buyHref, buyLabel, download = "
   return `<section class="hero shero"><div class="wrap sh-grid">
 <div class="sh-text"><p class="eyebrow">AlmiVisibility · by AlmiWorld</p><h1>${esc(headline)}</h1><p class="lead">${esc(sub)}</p></div>
 <div class="sh-media" data-app-shot><figure class="sh-shot"><img src="${APP_SHOT.src}" width="${APP_SHOT.width}" height="${APP_SHOT.height}" alt="${esc(APP_SHOT.alt)}" fetchpriority="high"></figure>${downloadHero(download)}</div>
-<div class="sh-act"><p class="small">${esc(data)} Your site score is free — no card, no email.</p>
-<div class="cta"><a class="pill big" href="#score">Get my free score</a><a class="pill big alt" href="${esc(buyHref)}" data-buy>${esc(buyLabel)}</a></div>
+<div class="sh-act"><div class="cta"><a class="pill big" href="#score">${esc(HERO.score)}</a><a class="pill big alt" href="${esc(buyHref)}" data-buy>${esc(HERO.buy)}</a></div>
+<p class="sh-ticks" data-ticks>${HERO.ticks.map((t) => `<span>✓ ${esc(t)}</span>`).join("")}</p>
 </div></div></section>`; // RR-347 FIX v2 point 5: the no-promise line is a footnote at the end of the page
 }
 
@@ -194,7 +199,7 @@ export function downloadHero(href = "/download") {
 
 export const DAYS = Object.freeze({
   eyebrow: "Your own SEO team for $30 a month.",
-  heading: "GIVE AI YOUR WEBSITE. WAKE UP TO NEW PAGES EVERY DAY.",
+  heading: "Give AI Your Website. Wake Up to New Pages Every Day.", // RR-350: the owner's words, in title case
   sub: "SEO agencies charge hundreds a month. AlmiVisibility does the daily work for $30.",
   plan: Object.freeze([
     ["Day 1", "Your site's score — out of 100, with what to fix first."],
@@ -222,6 +227,13 @@ export const FAQ = Object.freeze([
   ["What do I get for $30 a month?", "Every feature, for one product: one website, shop or YouTube channel. Bigger plans cover more products. Prices exclude VAT and sales tax where it applies."],
   ["Do I approve what goes on my site?", "You choose. Each article can wait for your Approve, or go out by itself once every check passes. You can also export the file or keep drafts only."],
 ].map(Object.freeze));
+
+/* RR-350 COPY v2 · the heading above the plans, and the last band of the page */
+export const PLANS_BAND = Object.freeze({ heading: "Fire Your SEO Agency. Hire AI for $30.", sub: "Agencies charge hundreds a month. AlmiVisibility builds your pages, writes your articles and pushes your content up Google, ChatGPT and social media — every day." });
+export const FINAL_CTA = Object.freeze({ line: "Your competitors are already using AI. Are you?", button: "Start Now — $30/month" });
+export function finalCta(buyHref = "/pricing") {
+  return `<section class="finalcta" data-final-cta><div class="wrap"><h2>${esc(FINAL_CTA.line)}</h2><p><a class="pill big" href="${esc(buyHref)}" data-buy>${esc(FINAL_CTA.button)}</a></p></div></section>`;
+}
 export function faqSection() {
   const ld = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
   return `<section class="band faq" data-faq><div class="wrap prose"><h2>Questions</h2>${FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div>
@@ -327,4 +339,16 @@ export const HOME_CSS = `<style>
 @media (max-width:480px){.yt-play{width:72px;height:72px} .yt-play i{border-width:14px 0 14px 23px;margin-left:5px} .ai-logo{width:46px;height:46px} .ai-logo .bi{width:32px;height:32px} .nb-text{font-size:17px} .ai-node b{font-size:13px} .ai-node small{font-size:11px} .yt-ba b{font-size:17px} .yt-cards li:hover{box-shadow:0 0 12px rgba(224,36,36,.2)}}
 @media (prefers-reduced-motion:reduce){.yt-play{animation:none} .yt-cards li{transition:none} .yt-cards li:hover{transform:none}}
 @media (prefers-color-scheme:dark){.pill.dl{background:#FFFFFF;color:#1A1A2E;border-color:#FFFFFF} .pill.dl:hover{background:#FFE8D6} .ai-node b,.ai-node small{background:#14110D} .ai-hub span{color:#1A1A2E} .days li{background:var(--white)}}
+/* RR-350 · the owner's fixes (30 Oct 2026): Download and its two lines centred under the app picture; the YouTube and the TikTok/Instagram
+ * bands about a third smaller (headings ~40px, ~28px on a phone; less padding; tighter cards); the hero's ticks; the last band */
+.sh-media .dl-hero{flex-direction:column;align-items:center;text-align:center} .sh-media .dl-update{text-align:center;margin-left:auto;margin-right:auto;max-width:560px}
+.sh-ticks{display:flex;flex-wrap:wrap;gap:6px 18px;margin:16px 0 0;font-size:15px;font-weight:600;color:var(--ink)} .sh-ticks span{white-space:nowrap}
+.ytband,.soband{padding:44px 0} .ytband h2,.soband h2{font-size:clamp(26px,3.2vw,40px)}
+.yt-play{width:64px;height:64px} .yt-play i{border-width:12px 0 12px 20px;margin-left:5px} .so-icons .bi{width:40px;height:40px}
+.yt-head,.so-head{gap:18px} .yt-sub,.so-sub{font-size:17px;margin-top:8px}
+.yt-ba{margin-top:22px;padding:16px 18px} .yt-cards,.so-cards{gap:14px;margin-top:18px} .yt-cards li,.so-cards li{padding:12px 12px 14px}
+.yt-screen{margin-bottom:10px} .so-screen{min-height:110px} .yt-cards h3,.so-cards h3{font-size:17px;margin-top:8px} .yt-cards p{font-size:15px;margin-top:6px}
+.tt{margin-top:22px;padding:18px 20px} .yt-cta,.so-cta{margin-top:20px} .yt-fine{margin-top:10px}
+.finalcta{background:linear-gradient(135deg,#1A1A2E,#3A1C4A);padding:48px 0;text-align:center} .finalcta h2{color:#FFFFFF;font-size:clamp(24px,3.2vw,36px)} .finalcta .pill{margin-top:16px;background:var(--sunrise);color:#1A1A2E}
+@media (max-width:820px){.ytband,.soband{padding:32px 0} .ytband h2,.soband h2{font-size:28px} .yt-play{width:52px;height:52px} .yt-play i{border-width:10px 0 10px 16px;margin-left:4px} .finalcta{padding:36px 0}}
 </style>`;

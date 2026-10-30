@@ -439,7 +439,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const again = async (code, error) => send(code, await home(req, { title: { error, values } }), undefined, { "cache-control": "no-store" });
         if (!titleLimits) return again(503, "The free title checker is being switched on. Please come back soon.");
         if (f.homepage) return again(400, "Please use the form on this page.");
-        const tk = await titleLimits.useTicket(f.ticket); if (!tk.ok) return again(400, tk.why);
+        /* RR-350 (owner, live: "That form has expired" after the page sat open): an OLD page's ticket is accepted here — the visitor never
+         * sees that line; the per-visitor limit, the site total and the AI's daily dollar cap below still hold. A malformed or a 2-second
+         * post (a bot's) is still refused. */
+        const tk = await titleLimits.useTicket(f.ticket); if (!tk.ok && tk.code !== "STALE") return again(400, tk.why);
         if (!inp.ok) return again(400, inp.why);
         const take = owner(req) ? { ok: true, left: null } : await titleLimits.take(who(req)); if (!take.ok) return again(429, take.why);
         const ai = await betterCaptions({ platform: inp.platform, title: inp.title, topic: inp.topic, kv, env, now, fetchImpl, ...(titleAi ? { ai: titleAi } : {}) });

@@ -23,7 +23,7 @@ import { ACCESS_LINE, plainError, reasonLine, ownerRefusal } from "./kw-google.m
 import { articleQuality, ARTICLES } from "./articles.mjs"; // RR-335: F40 on every draft
 import { IMG, FLOW_CSS } from "./page-images.mjs"; // RR-339: a different image on every public page
 import { socialPosts, WP_KEYS } from "./wp-publish.mjs"; // RR-344: the blog and the posts to copy
-import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, DOWNLOAD, salesHero, newBand, socialBand } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
+import { HERO, aiMap, youtubeBand, dayPlan, faqSection, HOME_CSS, DOWNLOAD, salesHero, newBand, socialBand, PLANS_BAND, finalCta } from "./home-sales.mjs"; // RR-347: YouTube at the top · RR-348 Download
 import { slugOf } from "./creators.mjs"; // RR-348 c: the Creators tab names a niche's keyword group the way the collector does
 import { TITLE_TOOL } from "./title-check.mjs"; // RR-347 ADD-2: the free title checker
 const ARTICLES_JUDGED_PER_DAY = ARTICLES.judgedPerDay;
@@ -395,10 +395,10 @@ ${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, pe
 <div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>`}
 ${result ? resultDetail(result, left) : ""}
 ${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
-${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">Simple plans</h2>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()
+${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">${esc(PLANS_BAND.heading)}</h2><p class="sub">${esc(PLANS_BAND.sub)}</p>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()
     : section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
-${sales ? `<div class="wrap"><p class="fine footnote" data-footnote>${esc(NO_PROMISE)}</p></div>` : ""}
+${sales ? `${finalCta(BUY_NOW.href)}<div class="wrap"><p class="fine footnote" data-footnote>The app runs on your Windows computer and works while it is on. ${esc(NO_PROMISE)}</p></div>` : ""}
 <script src="/score.js" defer></script>${sales && title.result ? '<script src="/copy.js" defer></script>' : ""}` });
 
 /* ── RR-326 C · THE FREE KEYWORD FINDER on the public-lite home: "coming soon" until Google, the store and the database are connected ── */

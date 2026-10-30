@@ -42,7 +42,7 @@ test("RR-348 · Instagram: first line before “more”, clear value, keywords, 
 
 test("RR-348 · the home: the owner's line, TikTok and Instagram in the strip, three tabs with YouTube checked, the app picture with Download under it", () => {
   const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t", title: { on: true, ticket: "tt" }, download: "/download/AlmiVisibility-Setup.exe" });
-  assert.ok(home.includes("<h2>SEO for YouTube, TikTok &amp; Instagram — not just your website.</h2>") && YT.heading === "SEO for YouTube, TikTok & Instagram — not just your website.");
+  assert.ok(home.includes("<h2>Stop Making Videos Nobody Finds.</h2>") && YT.heading === "Stop Making Videos Nobody Finds.", "RR-350 COPY v2");
   assert.ok(ENGINES.some((e) => e.name === "TikTok") && ENGINES.some((e) => e.name === "Instagram"));
   assert.ok(home.includes("Names and logos are trademarks of their owners; AlmiVisibility is not affiliated with them."));
   assert.match(home, /<input type="radio" name="platform" id="tt-p-youtube" value="youtube" checked><label for="tt-p-youtube"[^>]*>YouTube<\/label><input type="radio" name="platform" id="tt-p-tiktok" value="tiktok"><label[^>]*>TikTok<\/label><input type="radio" name="platform" id="tt-p-instagram" value="instagram"><label[^>]*>Instagram<\/label>/);

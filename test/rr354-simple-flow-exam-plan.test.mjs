@@ -43,14 +43,18 @@ test("RR-354 · 4 · the exam plan: one page per profession, one per main countr
   assert.deepEqual(nurses.questions.map((q) => q.question), ["oet for nurses", "oet nursing requirements"], "a profession search joins the profession's page — never a country page");
   assert.deepEqual(nurses.claims.map((c) => c.text.slice(0, 26)), ["In the United Kingdom: NMC", "In Ireland: NMBI accepts O"]);
   assert.deepEqual(x.pages.find((p) => p.country === "Pakistan").questions.map((q) => q.question), ["oet pakistan fee"]);
-  assert.equal(x.pages.find((p) => p.country === "Pakistan").title, "OET in Pakistan: fee, centres and scores");
+  /* RR-355: a country page holds the owner's five things — the fee, its questions, its centres, its councils, a rule of its own */
+  assert.equal(x.pages.find((p) => p.country === "Pakistan").title, "OET in Pakistan: fee, centres and councils");
   /* "OET Exam", "OET Examination", "OET English Test" — one need, one page; "practice test" is already the client's own page */
   const what = x.pages.find((p) => p.title === "What is OET? The test, its fee and the scores asked");
   assert.deepEqual(what.questions.map((q) => q.question), ["oet examination", "oet english test"]);
   assert.deepEqual(x.existing, [{ text: "oet practice test", page: "https://prep.example/practice" }]);
   assert.deepEqual(x.pages.filter((p) => p.kind === "topic").map((p) => p.title), ["What is OET? The test, its fee and the scores asked", "Oet Exam Price".replace("Oet", "OET"), "OET Result"]);
-  /* a topic page gets the checked fact that fits it — the fee for a price, the scores for a result — and two topics never share facts */
-  assert.match(x.pages.find((p) => p.title === "OET Exam Price").claims[0].text, /PKR 113,000|AUD 587/);
+  /* a topic page gets the checked fact that fits it — and two topics never share facts. RR-355 (owner: ONE exchange-rate service, never a
+   * bank's rate): "PKR 113,000 at the bank's rate" is on no page; with no fee from OET's own page and no facts of OET's own pages, the
+   * price page holds nothing — it is not made, never filled with another page's facts */
+  assert.ok(!JSON.stringify(x.pages).includes("113,000"), "a bank's converted amount reached a page");
+  assert.deepEqual(x.pages.find((p) => p.title === "OET Exam Price").claims, []);
   assert.ok(x.pages.find((p) => p.title === "OET Result").claims.every((c) => /accepts OET|does not accept/.test(c.text)));
   const ids = x.pages.filter((p) => p.kind === "topic").flatMap((p) => p.claims.map((c) => c.claimId)); assert.equal(new Set(ids).size, ids.length);
   /* the truth rule: an unchecked fact is never on a page */
@@ -79,7 +83,11 @@ test("RR-354 · 5 · the searches that make no page, the need a search asks, and
   assert.equal(factsOfStore({ files: [{ facts: [{ id: "a", key: "regulator:nursing-midwifery", profession: "nursing-midwifery" }] }] })[0].profession, "nursing", "a file added before the fix is read with the fixed name");
   /* AlmiWorld's country facts (the service's shown facts) become checked lines with their page and date — an undated one never */
   const svc = serviceFactsOf({ Kenya: { fee: { value: { line: "KES 65,000 (OET's own page)" }, source: "https://oet.example/kenya", readOn: ON }, centres: { value: { venue: true }, source: "https://oet.example/venues", readOn: "" }, questions: [{ value: { pageable: true, question: "Where can I take OET in Kenya?", answer: "In Nairobi." }, source: "https://oet.example/kenya", readOn: ON }] } });
-  assert.deepEqual(svc.Kenya.map((f) => [f.part, f.text]), [["fee", "KES 65,000 (OET's own page)"], ["questions", "In Nairobi."]]);
+  /* RR-355: the service's fee LINE is never shown (the page converts the official fee itself, with the one rate service); a question is
+   * shown with an OFFICIAL answer only */
+  assert.deepEqual(svc.Kenya ?? [], [], "a converted fee line, an undated centre and an answer not marked official reached a page");
+  const svc2 = serviceFactsOf({ Kenya: { fee: { value: { official: "AUD 587", line: "AUD 587 — about 65,000 KES" }, source: "https://oet.example/kenya", readOn: ON }, questions: [{ value: { question: "Where can I take OET in Kenya?", answer: "In Nairobi, at a test venue.", answerKind: "official" }, source: "https://oet.example/kenya", readOn: ON, status: "confirmed" }], rules: [{ value: { rule: "Bring your passport (this file says so — the page is blocked by Cloudflare)." }, source: "https://oet.example/rules", readOn: ON, status: "confirmed" }] } });
+  assert.deepEqual(svc2.Kenya.map((f) => [f.part, f.text]), [["fee", "OET's own page: the full OET costs AUD 587."], ["rules", "Bring your passport."], ["questions", "In Nairobi, at a test venue."]]);
 });
 
 test("RR-354 · 2 + 4 · the drafts: every exam-plan page carries a checked card; a page with no checked fact says why in plain words", () => {
@@ -88,7 +96,8 @@ test("RR-354 · 2 + 4 · the drafts: every exam-plan page carries a checked card
   const out = seoPages({ site, on: `${ON}T00:00:00Z`, pagePlan: x.pages, max: x.pages.length, subject: "OET", cta: { label: "Try free", href: "https://prep.example/signup" } });
   const nurses = out.drafts.find((d) => d.title === "OET for Nurses");
   assert.match(nurses.html, /United Kingdom — B \(350\+\)/, "the card is the fact's own score with its country");
-  assert.equal(nurses.readyAsDraft, true, JSON.stringify(nurses.gates.filter((g) => !g.pass)));
+  /* RR-355: the FIVE checks pass here; good to read and the site's look are judged in test/rr355-page-quality-client-look.test.mjs */
+  assert.equal(nurses.gates.filter((g) => g.gate !== "F" && g.gate !== "G").every((g) => g.pass || g.failing.length === 0), true, JSON.stringify(nurses.gates.filter((g) => !g.pass)));
   /* a page with no checked fact and no answer is never made — the report says so in plain words */
   assert.equal(out.drafts.find((d) => d.title === "OET for Podiatrists"), undefined);
   assert.deepEqual(notMadeOf(out.plan).find((x) => x.title === "OET for Podiatrists"), { title: "OET for Podiatrists", why: "Not made yet — there is no checked fact or answer for it so far." });

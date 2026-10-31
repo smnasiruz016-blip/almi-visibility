@@ -25,13 +25,13 @@ import { plainWhy, JOBS, jobReport, notMadeOf } from "./plain-words.mjs"; // RR-
 import { CF_PRIORITY } from "./country-facts.mjs"; // RR-354
 import { bingQueries, bingPhrases, bingKeyName, BING_HOWTO, BING_SETUP_STEPS } from "./bing-webmaster.mjs"; // RR-353
 import { SOCIAL_NETWORKS, socialFrom, socialShare, AUTO_POST_LINE } from "./social-links.mjs"; // RR-353
-import { readSite, addressOpens } from "./site-read.mjs";
+import { readSite, addressOpens, USER_AGENT } from "./site-read.mjs";
 import { scoreCard, foundInfo, fixForMe } from "./product-check.mjs";
 import { googleConnect, importExport } from "./google-connect.mjs";
 import { seoPages, articleOfDay, socialFor, monthReport } from "./seo-pages.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf } from "./publish.mjs";
+import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting } from "./publish.mjs";
 import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
@@ -53,7 +53,7 @@ import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeH
 import { recognitionOf, callNames } from "./recognition.mjs"; // RR-321 A
 import { planFromList } from "./plan-list.mjs"; // RR-321 B
 import { venueCountries, statisticsOf, gazetteerOf } from "./venues.mjs"; // RR-321 G1, B2; RR-327 the venue cities
-import { readRates } from "./rates.mjs"; // RR-321 D5
+import { readRates, OPEN_RATES, openRates } from "./rates.mjs"; // RR-321 D5; RR-355 the one rate service
 import { sortQuestions } from "./questions.mjs"; // RR-321 C
 import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
 import { regulatorPagesOf } from "./recognition.mjs"; // RR-322 A2
@@ -115,7 +115,7 @@ const currentLicence = () => { if (CONFIG.owner) return CONFIG.owner; const s = 
 const kwService = () => keywordService({ siteUrl: CONFIG.keywordServiceUrl ?? LICENCE_URL, signed: currentLicence() });
 
 const page = () => readFileSync(join(HERE, "ui.html"), "utf8").replace("/*SUNRISE*/", cssVariables());
-let updateFound = null;
+let updateFound = null, updateReady = null, updateDownloading = null; // RR-355: the newer version, downloaded and verified in the background
 /* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
  * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
 const KEYS = keyStore({ backend: CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
@@ -200,7 +200,7 @@ async function publishOne(id, url) {
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
   if (!site) return { ok: false, why: "Check your product first — the gates need your site's latest read." };
-  const again = seoPages({ site, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+  const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
   const d = again.drafts.find((x) => x.url === url);
   if (!d) return { ok: false, why: "This draft is out of date — what Visibility knows changed since it was made. Press Create SEO pages again." };
   if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true, why: `Not published — the page has no offer button. ${NO_CTA}` };
@@ -249,8 +249,8 @@ async function buildPlan(id) {
     if (ctx.youtubeConfirmed && ctx.youtubeKey) { try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
     const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
     const web = hasWebsite(s) && site?.ok ? site : null;
-    const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) }) : null;
-    const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), on });
+    const pages = web ? seoPages({ site: web, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) }) : null;
+    const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on });
     const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
     pwrite(id, "plan.json", plan);
     return plan;
@@ -260,7 +260,7 @@ async function buildPlan(id) {
 }
 const weeklyOf = (id) => { const w = pread(id, "weekly.json", {}), c = pread(id, "check.json"); const last = c?.on ?? null; return { on: w.on !== false, last, next: last ? new Date(Date.parse(last) + 7 * 864e5).toISOString() : null }; };
 const willDoOf = (id, plan) => { const s = store.read(id), sc = searchConsoleOf(id), inx = pread(id, "indexnow.json");
-  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: publishBlocked(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: subjectOf({ what: s.setup?.product?.what, name: s.product?.name }) }); };
+  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: publishBlocked(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: subjectOf({ what: s.setup?.product?.what, name: s.product?.name }) }); };
 /* ── RR-318 · the official answers, "How many pages", the website's AI writing, Search Console power ── */
 const officialOf = (id) => pread(id, "official.json", {});
 /* RR-351: what a PAGE may say — the official pages Visibility read, then the owner's facts file (its VERIFIED facts only). The read store
@@ -283,6 +283,8 @@ const sameSiteProduct = (site, exceptId = null) => { const h = hostOf(site); ret
  * nothing else knew a search. Every call that makes the drafts reads the SAME list (publishing judges a draft made from the same data).
  */
 const seedOf = (s) => aboutOf(s) ?? /\b(?!AI\b|USD\b|FAQ\b)([A-Z][A-Z0-9]{1,7})\b/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? s.product?.name ?? null;
+/* RR-355: the questions AlmiWorld's question collector found for the product (kept with the country facts) — each with its page and day */
+const askedOf = (id) => Object.values(pread(id, "country-facts.json", null)?.countries ?? {}).flatMap((p) => p?.questions ?? []).filter((q) => q?.value?.question && /^https:\/\//.test(q.source ?? "")).map((q) => ({ text: q.value.question, source: `AlmiWorld's question collector (answered from ${q.source})`, on: String(q.readOn ?? "").slice(0, 10) || null }));
 const ownItemsOf = (id) => [
   ...phraseItems(id).filter((x) => x.text).map((x) => ({ text: x.text, source: x.source, on: x.on ?? null, weight: (x.weight ?? 4) + 2 + (Number.isFinite(Number(x.volume)) && Number(x.volume) > 0 ? Math.log10(1 + Number(x.volume)) : 0) })),
   ...pread(id, "ai-research.json", []).map((x) => ({ text: x.text, source: x.source, weight: 1 })),
@@ -315,11 +317,41 @@ async function gatherOwnDemand(id) {
  */
 const examProduct = (s, id) => Boolean(listOf(s, seedOf(s), id));
 const examCountriesOf = (id) => { const own = [...new Set(factsOfStore(pread(id, FACTS_FILE, null)).map((f) => f.country))]; return (own.length ? own : CF_PRIORITY).slice(0, 10); };
+/*
+ * 🔴 RR-355 · THE TWO MORE COLLECTORS A PAGE OF AN EXAM-PREP PRODUCT NEEDS, asked by Create SEO pages itself (the client never uploads them):
+ *   · the subject's OWN pages about each sub-test, booking, results and scores (desktop/subject-facts.mjs) — read once a week, kept in
+ *     subject-facts.json (its numbers in Visibility's own words, never the page's sentences);
+ *   · the ONE exchange-rate service every page uses (owner decision: never a central bank's page) — read once a day, kept in rates-open.json.
+ * Each said in plain words when it could not be read; nothing is made up in its place.
+ */
+async function subjectFactsFor(id, subject) {
+  const kept = pread(id, "subject-facts.json", null), site = store.read(id).setup?.official?.site ?? (/^oet$/i.test(String(subject)) ? "https://oet.com" : null);
+  if (!site || CONFIG.testOffline === true) return { facts: kept?.facts ?? {}, line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
+  if (kept?.on && kept.v === 355 && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
+  try {
+    const rd = reader(), urls = ((await rd.sitemapOf(site)).urls ?? []).filter((u) => SUBJECT_FACT_PAGES.test(String(u).replace(/\/$/, ""))).slice(0, 16), pages = [];
+    for (const u of urls) pages.push(await rd.read(u));
+    const facts = subjectFactsOf(pages, subject);
+    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 355, on: new Date().toISOString(), site, facts });
+    return { facts: Object.keys(facts).length ? facts : kept?.facts ?? {}, line: `${subject}'s own pages: ${Object.keys(facts).length} facts read from ${pages.filter((p) => p.ok).length} pages` };
+  } catch (e) { return { facts: kept?.facts ?? {}, line: `${subject}'s own pages could not be read just now` }; }
+}
+async function oneRatesFor(id) {
+  const kept = pread(id, "rates-open.json", null), today = new Date().toISOString().slice(0, 10);
+  const shown = (r) => (r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null);
+  if (CONFIG.testOffline === true || (kept?.readOn === today)) return shown(kept);
+  try { const res = await fetch(CONFIG.testRatesUrl ?? OPEN_RATES.url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(15000) }); const r = res.ok ? openRates(await res.text()) : null; if (r) { pwrite(id, "rates-open.json", { ...r, readOn: today }); return shown(r); } } catch { /* said below */ }
+  return shown(kept);
+}
+/* a site built by a framework (Next.js: its pages' titles are written in code) — its files are not plain pages a fix can be written into */
+const siteFramework = (id) => /\/_next\/|__NEXT_DATA__|\/_nuxt\/|data-reactroot/.test(String(pread(id, "site-read.json")?.shell?.head ?? ""));
+const fixViaOf = (id, s) => { const t = pread(id, "publish.json"); return t?.kind && !publishBlocked(s) ? ["title", "meta-description"].filter((k) => fixVia(t, k, { framework: siteFramework(id) })) : []; };
+const examExtras = new Map(); // id → { subjectFacts, rates } of this run (createPages fills it before the plan is made)
 function buildExamPlan(id) {
-  const s = store.read(id), sc = searchConsoleOf(id);
+  const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
   const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s) ?? "OET")).flat()];
   const demand = [...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
-  const x = examPlan({ subject: seedOf(s) ?? "OET", professions: professionsOf(), countries: examCountriesOf(id), facts, demand, site: pread(id, "site-read.json") });
+  const x = examPlan({ subject: seedOf(s) ?? "OET", professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, demand, site: pread(id, "site-read.json") });
   pwrite(id, "auto-plan.json", { on: new Date().toISOString(), ...x });
   return x;
 }
@@ -596,20 +628,23 @@ async function createPages(id) {
   if (!ctaOf(s)) return { refused: NO_CTA, needsCta: true }; // RR-351
   /* RR-353: our own data first (read by ownItemsOf below); RR-354: an exam-prep product then gets its own plan (profession + country pages) */
   const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
+  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s) ?? "OET"), rt = await oneRatesFor(id); examExtras.set(id, { subjectFacts: sf.facts, rates: rt }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
   const exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;
   const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
   /* RR-318 B6: the countries the searches are about get their official answers first (read once; a country already read is kept) */
   const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
   if (want.length && s.setup?.official?.site) await refreshOfficial(id, want.slice(0, 12)).catch(() => null);
-  const pages = seoPages({ site, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+  const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
   pwrite(id, "pages.json", pages);
   /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
   let auto = null;
-  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
   /* RR-353: where the searches came from, said; nothing known → what to add, each with its one-click way */
   pages.sources = own.lines;
   if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing };
   if (pages.noDemand) pages.add = DEMAND_ADDS.filter((a) => !(a.action === "google" && sc) && !(a.action === "ai" && aiOf(s)));
+  /* RR-355 (owner: "Keywords to use (0)" and "Articles to make (0)" beside 529 search phrases): the plan is made again from the same data */
+  await buildPlan(id).catch(() => null);
   return { pages, auto };
 }
 /** D3 · submit the published pages: Google (the sitemap, through the client's own Search Console) and Bing (IndexNow, the client's key file) */
@@ -671,7 +706,7 @@ async function weeklyRound() {
       await checkProduct(id); didIt(id, "Weekly check: checked again and made the action plan again.");
       await recheckSources(id).catch(() => null); // RR-321 E4
       const s = store.read(id);
-      if (hasWebsite(s) && !publishBlocked(s) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) {
+      if (hasWebsite(s) && !publishBlocked(s) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) {
         const r = await createPages(id); const n = (r.auto ?? []).filter((x) => x.ok).length;
         if (n) { didIt(id, `Weekly: published ${n} new page${n === 1 ? "" : "s"} (your choice: automatically after the five checks).`); await submitAll(id); }
       }
@@ -744,7 +779,7 @@ const server = createServer((req, res) => {
         const id = decodeURIComponent(m[1]);
         let s;
         try { s = store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
-        if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, almiworld: isAlmiWorld(s), realProject: s.setup?.realProject?.on === true, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
+        if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, almiworld: isAlmiWorld(s), realProject: s.setup?.realProject?.on === true, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */ })) });
         if (req.method === "POST" && m[2] === "setup") {
           const st = await licenceNow();
           if (!st.mayStartNewWork) return send(403, { refused: st.line });
@@ -788,7 +823,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -802,8 +837,8 @@ const server = createServer((req, res) => {
             if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) buildPlan(id).catch(() => {});
             const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
             const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
-            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, /* RR-354: the ticked jobs, the approval asked once, the last report */ jobs: JOBS, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST, report: pread(id, "last-report.json"), weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
-              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
+            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, /* RR-354: the ticked jobs, the approval asked once, the last report */ jobs: JOBS, fixVia: fixViaOf(id, s), review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST, report: pread(id, "last-report.json"), weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
+              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
           }
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
           if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
@@ -831,18 +866,30 @@ const server = createServer((req, res) => {
               if (!ctx.hasSite || !site) lines.push("Pages: Visibility first needs to read your website — press Check my product now, then Start again.");
               else { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${x.pages.drafts.length} page drafts${pub ? ` and published ${pub}` : ""}.`); }
             }
-            if (jobs.includes("structure")) { const p = pread(id, "plan.json"), n = p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.ready?.length).length : 0; lines.push(`Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready to copy into your site (Overview → What to fix first). Visibility cannot change a page that is already on your site — only your site's own editor can.`); }
+            if (jobs.includes("structure")) { const p = pread(id, "plan.json"), n = p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.ready?.length).length : 0; const via = fixViaOf(id, s); lines.push(via.length ? `Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready — Visibility can make the ${via.map((k) => (k === "title" ? "titles" : "descriptions")).join(" and ")} through your site's connection (Overview → What to fix first → Fix it for me); the rest are ready to copy.` : `Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready to copy into your site's own editor (Overview → What to fix first → Give me the content) — your site is built in a way Visibility's connection cannot change by itself.`); }
             if (jobs.includes("submit")) { const x = await submitAll(id); lines.push(x.ok ? x.lines.join(" ") : `Google and Bing: ${x.why}`); }
             if (jobs.includes("social")) { const n = Object.keys(s.setup?.social ?? {}).length; lines.push(n ? `Social posts: a post for each new page is ready for your ${n} social page${n === 1 ? "" : "s"} — open Social media, then Copy and Open.` : "Social posts: the posts are ready to copy — add your social pages once under Social media to get an Open button for each."); }
             if (jobs.includes("reports")) { pwrite(id, "weekly.json", { ...pread(id, "weekly.json", {}), on: true }); lines.push("Reports: the weekly check is on; this month's report is under Monthly report."); }
-            const mode = store.read(id).setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES;
+            const mode = store.read(id).setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */;
             const rep = jobReport({ notMade: notMadeOf(pread(id, "pages.json")?.plan ?? []), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url), approval: mode === PUBLISH_MODE.REVIEW_FIRST ? "review" : "publish", connected: Boolean(pread(id, "publish.json")?.kind), blocked: blocked ? ALMIWORLD_NO : null, lines });
             pwrite(id, "last-report.json", { on, jobs, ...rep });
             return send(200, { ok: true, report: rep });
           }
+          /* RR-355 · "Fix it for me" on a page already on the client's site — through its own connection, only where it can really be done */
+          if (r[2] === "fix-existing" && req.method === "POST") {
+            const v = json(), plan = pread(id, "plan.json"), item = plan ? [...(plan.thisWeek ?? []), ...(plan.rest ?? [])].find((i) => i.id === v.item) : null, t = pread(id, "publish.json");
+            if (publishBlocked(s)) return send(200, { ok: false, lines: [ALMIWORLD_NO] });
+            if (!item || !t?.kind || !fixVia(t, item.id, { framework: siteFramework(id) })) return send(400, { refused: "Visibility cannot make this change through your site's connection — press \"Give me the content\" and paste it in your site's editor." });
+            const keyName = TARGETS.find((x) => x.id === t.kind)?.keyName, key = keyName ? KEYS.get(publishKeyName(t.kind, id)) : null;
+            if (keyName && !key) return send(400, { refused: "Your site's key is not saved on this computer — paste it again in Publish settings." });
+            const perPage = new Map(); for (const x of item.ready ?? []) if (x.for && x.text && !perPage.has(x.for)) perPage.set(x.for, x.text);
+            const lines = []; for (const [url, text] of perPage) { const x = await fixExisting({ target: t, key, url, kind: item.id, text, framework: siteFramework(id), allowLocal, testBase: CONFIG.testPublishBase ?? null }); lines.push(x.ok ? x.line : x.why); }
+            didIt(id, `Fixed through the connection: ${lines.filter((l) => /^Fixed/.test(l)).length} of ${perPage.size} pages (${item.id}).`);
+            return send(200, { ok: true, lines });
+          }
           if (r[2] === "pages-view" && req.method === "GET") {
             const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = pread(id, "pages.json")?.drafts ?? [];
-            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST });
+            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
           }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);
@@ -851,7 +898,7 @@ const server = createServer((req, res) => {
             if (what === "publish") {
               if (aw) return send(200, { ok: false, refused: ALMIWORLD_NO });
               if (!pread(id, "publish.json")?.kind) return send(200, { ok: false, open: "publish-settings", line: "First tell Visibility where your site is built." });
-              if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST && json().approved !== true /* RR-354: "Publish all ready" is the client's OK */) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
+              if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST && json().approved !== true /* RR-354: "Publish all ready" is the client's OK */) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
               const live = new Set(pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url)), out = [];
               for (const d of (pread(id, "pages.json")?.drafts ?? []).filter((x) => x.readyAsDraft && !live.has(x.url))) out.push({ url: d.url, ...(await publishOne(id, d.url)) });
               if (out.some((x) => x.ok)) didIt(id, `Published ${out.filter((x) => x.ok).length} page(s).`);
@@ -918,7 +965,7 @@ const server = createServer((req, res) => {
             if (f === "geo") return send(200, { result: geoCheck(site) });
             if (f === "links") return send(200, { result: linksCheck(site) });
             if (f === "languages") return send(200, { result: languagesCheck(site, s.setup?.languages?.codes ?? []) });
-            if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), on: new Date().toISOString() }) });
+            if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on: new Date().toISOString() }) });
             if (f === "youtube") return send(200, { open: "youtube" });
             if (f === "tiktok-instagram") return send(200, { open: "tiktok-instagram" }); // RR-348 b
             if (f === "google") return send(200, { open: "google" });
@@ -929,11 +976,11 @@ const server = createServer((req, res) => {
               if (!ctaOf(s)) return send(400, { refused: NO_CTA, needsCta: true }); // RR-351: no page is made without the client's own offer button
               /* RR-353: Create SEO pages = createPages (our own data first, the official answers read, auto-publish only where allowed) */
               if (f === "seo-pages") { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); return send(200, { pages: { ...x.pages, drafts: x.pages.drafts.map(({ html, ...d }) => ({ ...d, why: plainWhy(d) })) }, autoPublished: x.auto }); } // RR-354: each not-ready page with its plain reason
-              const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+              const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
               let auto = null;
-              if (f === "seo-pages" && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+              if (f === "seo-pages" && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
               if (f === "seo-pages") return send(200, { pages: { ...pages, drafts: pages.drafts.map(({ html, ...d }) => d) }, autoPublished: auto });
               const made = pread(id, "articles.json", []);
               const a = articleOfDay({ pages, earlier: made.map((x) => x.url), day: new Date().toISOString().slice(0, 10) });
@@ -1210,7 +1257,7 @@ const server = createServer((req, res) => {
             const sevenLocal = SEVEN.map(([k, re]) => by(k, re) ?? (K2[k] ?? [])[0] ?? null);
             const six = local ? [...sevenLocal, pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), by("practice", /Writing sample for nurses/), by("topic", /exam fees$/), K2.university.find((p) => p.title === v.university) ?? K2.university.find((p) => p.country === "Pakistan") ?? K2.university[0]].filter(Boolean) : (demandFirst ? [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), by("practice", /Writing sample for nurses/), by("topic", /exam fees$/), by("topic", /^How to book/), by("practice", /Listening practice test/), K2.taking[0]]
               : [pick("regulator", rp.title) ?? K2.regulator.find((p) => p.listId === rp.listId), pick("subtest", sub?.title), K2.university.find((p) => p.title === v.university) ?? K2.university[0], K2.topic[0] ?? null, K2.language[0] ?? null, K2.taking[0]]).filter(Boolean);
-            const built = seoPages({ site, on: new Date().toISOString(), pagePlan: six, subject: c.subject, official: officialForPages(id), cta: ctaOf(s) });
+            const built = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, on: new Date().toISOString(), pagePlan: six, subject: c.subject, official: officialForPages(id), cta: ctaOf(s) });
             const html = (p) => built.drafts.find((d) => d.title === p.title) ?? null;
             const judge = (p) => { const x = p.content ?? {}; return { answerWords: x.answerWords, answerOk: x.answerWords >= 40 && x.answerWords <= 60 && x.answerHasNumber, table: (x.table?.length ?? 1) - 1, steps: x.steps?.length ?? 0, checklist: x.checklist?.length ?? 0, faq: x.faq?.length ?? 0, tip: Boolean(x.tip), cta: Boolean(x.cta), lastUpdated: x.lastUpdated, links: p.links?.length ?? 0, dataPoints: p.dataPoints?.length ?? 0, status: p.status, range: p.kp?.label ?? null, waitFor: p.waitFor ?? null, sample: p.sampleCheck ? { ok: p.sampleCheck.ok, why: p.sampleCheck.why, run: p.sampleCheck.run, labelled: p.sampleCheck.labelled, words: p.sampleCheck.words, against: p.sampleCheck.against ?? null } : null }; };
             const out = six.map((p) => ({ kind: p.kind, title: p.title, read: p.read ?? null, lastChecked: p.lastChecked, claims: p.claims, content: p.content, links: p.links, judge: judge(p), draft: html(p) ? { html: html(p).html, readyAsDraft: html(p).readyAsDraft, gates: html(p).gates } : null }));
@@ -1307,7 +1354,7 @@ const server = createServer((req, res) => {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
           const s = store.read(id), conn = pread(id, "publish.json"), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
-          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
+          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });
@@ -1551,12 +1598,15 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/update") {
         let r; try { r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); } catch { r = { state: "UNREACHABLE", line: `Could not check for updates just now. Visibility keeps working on ${VERSION}; try again later.` }; }
         updateFound = r.state === "AVAILABLE" ? r.manifest : null;
-        return send(200, { state: r.state, line: r.line, current: VERSION, version: r.version ?? null, checkedOn: new Date().toISOString() });
+        /* 🔴 RR-355 (owner: "check at app start and every 4 hours, download in the background, then one button 'Update ready — Restart'; the client
+         * never has to visit the website"): a newer, signed version is downloaded and its sha256 checked at once, in the background */
+        if (updateFound && updateReady?.version !== updateFound.version && !updateDownloading) updateDownloading = downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }).then((d) => { if (d.ok) updateReady = { version: d.version, file: d.file }; }).catch(() => null).finally(() => { updateDownloading = null; });
+        return send(200, { state: r.state, line: r.line, current: VERSION, version: r.version ?? null, checkedOn: new Date().toISOString(), ready: Boolean(updateFound && updateReady?.version === updateFound.version), downloading: Boolean(updateDownloading) });
       }
       if (req.method === "POST" && u.pathname === "/api/update/install") {
         const { agree } = json();
         if (!updateFound) return send(400, { refused: "Check for updates first — no newer version is waiting." });
-        let d; try { d = await downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }); } catch { return send(400, { refused: "The update could not be downloaded — check the internet connection and try again. Nothing was changed." }); }
+        let d; try { d = updateReady && updateReady.version === updateFound.version ? { ok: true, ...updateReady } : await downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }); } catch { return send(400, { refused: "The update could not be downloaded — check the internet connection and try again. Nothing was changed." }); }
         if (!d.ok) return send(400, { refused: d.why });
         const r = installUpdate({ agreed: agree === true, verified: true, file: d.file, launcher: join(INSTALL, "AlmiVisibility.exe"), quiet: CONFIG.quietUpdate === true });
         if (!r.ok) return send(400, { refused: r.why });

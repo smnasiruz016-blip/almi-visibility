@@ -69,7 +69,7 @@ button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#F
 .crumbs{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;margin-left:8px;font-size:14px;color:var(--muted)} .crumbs button{background:none;border:0;padding:2px 4px;color:var(--ink);text-decoration:underline;font-weight:600} .crumbs .here{color:var(--ink);font-weight:700}
 .pact{display:flex;gap:6px;flex-wrap:wrap;align-items:center} .pact button{padding:6px 14px;font-size:13px} .product .open{display:inline-block;margin-top:6px;color:var(--ink);font-weight:700}
 .bigact{background:#FFF1E6;border:2px solid var(--coral)} .bigact button.big{font-size:19px;padding:16px 30px}
-a.btnlink{display:inline-block;font-weight:600;padding:6px 14px;border-radius:999px;border:1px solid var(--coral);color:var(--ink);text-decoration:none;font-size:13px} .jobst{font-weight:600} .plainsum{font-size:16px;margin:4px 0 10px} .report{border-top:1px solid var(--peach);margin-top:12px;padding-top:10px} .report h3{font-size:18px} .bigrow{margin-top:14px} details.more{margin-top:10px} details.more summary{cursor:pointer;color:var(--muted)} .twochoice{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+a.btnlink{display:inline-block;font-weight:600;padding:6px 14px;border-radius:999px;border:1px solid var(--coral);color:var(--ink);text-decoration:none;font-size:13px} .jobst{font-weight:600} .plainsum{font-size:16px;margin:4px 0 10px} .report{border-top:1px solid var(--peach);margin-top:12px;padding-top:10px} .report h3{font-size:18px} .bigrow{margin-top:14px} .fcard .fgo{display:inline-block;margin-top:8px;padding:6px 14px;border-radius:9999px;background:var(--coral,#FF7A6B);color:var(--ink,#1A1A2E);font-weight:600}details.more{margin-top:10px} details.more summary{cursor:pointer;color:var(--muted)} .twochoice{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 @media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
 @media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22} a{color:#9CC8FF} a:visited{color:#C9B3FF} textarea{background:#1E1A15;color:var(--cream);border-color:#3A2F22} .plan{background:#241D14} .okbar{background:#163323;color:#CFF2DD} .bigact,.warn{background:#241D14} .crumbs button,.crumbs .here{color:var(--cream)}}
 </style></head>
@@ -289,7 +289,7 @@ function note(el, text, kind = "info") { if (!el) return; el.classList.remove("e
 function cardsHtml(cards, { checking = false } = {}) {
   const sorted = [...cards.filter((c) => c.recommended), ...cards.filter((c) => !c.recommended)];
   /* a check that is running is never offered again — its card says so */
-  return `<div class="fcards">${sorted.map((c) => c.id === "check" && checking ? `<button class="fcard" disabled><h3>${esc(c.title)}</h3><p><b>Running now</b> — see its progress at the top of this page.</p></button>` : `<button class="fcard" data-f="${esc(c.id)}"><h3>${esc(c.title)} ${c.recommended ? `<span class="rec">Recommended for you now</span>` : ""}</h3><p>${esc(c.does)}</p><p><b>You get:</b> ${esc(c.youGet)}</p><p class="meta">${esc(c.time)}</p>${c.needs?.length ? `<p class="needs">Needs: ${esc(c.needs.map((n) => n.what).join("; "))}</p>` : ""}</button>`).join("")}</div>`;
+  return `<div class="fcards">${sorted.map((c) => c.id === "check" && checking ? `<button class="fcard" disabled><h3>${esc(c.title)}</h3><p><b>Running now</b> — see its progress at the top of this page.</p></button>` : `<button class="fcard" data-f="${esc(c.id)}"><h3>${esc(c.title)} ${c.recommended ? `<span class="rec">Recommended for you now</span>` : ""}</h3><p>${esc(c.does)}</p><p><b>You get:</b> ${esc(c.youGet)}</p><p class="meta">${esc(c.time)}</p>${c.needs?.length ? `<p class="needs">Needs: ${esc(c.needs.map((n) => n.what).join("; "))}</p>` : ""}<span class="fgo">${c.id === "google" ? "Connect" : "Open"} →</span></button>`).join("")}</div>`;
 }
 async function tour() {
   if (!(await get("/api/tour")).show) return;
@@ -734,8 +734,15 @@ async function checkUpdates(byHand = false) {
   let r; try { r = await get("/api/update"); } catch { r = { state: "UNREACHABLE", line: "Could not check for updates — Visibility did not answer. Try again." }; }
   btn.disabled = false;
   const at = new Date().toTimeString().slice(0, 5);
+  if (r.state === "AVAILABLE" && !r.ready) {
+    /* RR-355: downloaded in the background first — the bar says so, and asks again in a minute */
+    $("#updbar").innerHTML = `<div class="okbar" id="updnew"><b>Version ${esc(r.version)} is downloading in the background</b> (you have ${esc(r.current)}) — keep working; a Restart button appears here when it is ready.</div>`;
+    setTimeout(() => checkUpdates(false), 60e3);
+    note(msg, `Version ${r.version} found (${at}) — downloading.`, "ok");
+    return r;
+  }
   if (r.state === "AVAILABLE") {
-    $("#updbar").innerHTML = `<div class="okbar" id="updnew"><b>A new version is ready: ${esc(r.version)}</b> (you have ${esc(r.current)}). It installs in a minute and Visibility opens again by itself — your products and data are kept. <button id="updgo" type="button">Update to ${esc(r.version)} — Install</button> <span id="updgomsg"></span></div>`;
+    $("#updbar").innerHTML = `<div class="okbar" id="updnew"><b>Update ready: version ${esc(r.version)}</b> (you have ${esc(r.current)}). Visibility restarts in a minute — your products and data are kept. <button id="updgo" type="button">Update ready — Restart</button> <span id="updgomsg"></span></div>`;
     $("#updgo").onclick = updateNow;
     note(msg, `Version ${r.version} found (${at}).`, "ok");
     return r;
@@ -746,7 +753,7 @@ async function checkUpdates(byHand = false) {
   return r;
 }
 async function updateNow() {
-  const b = $("#updgo"); b.disabled = true; note($("#updgomsg"), "Downloading and checking the update… (about a minute)");
+  const b = $("#updgo"); b.disabled = true; note($("#updgomsg"), "Restarting with the new version…");
   const x = await post("/api/update/install", { agree: true });
   if (x.refused) { b.disabled = false; return note($("#updgomsg"), x.refused, "err"); }
   $("#updbar").innerHTML = `<div class="okbar"><b>${esc(x.line)}</b></div>`;
@@ -760,9 +767,13 @@ function checkingHtml(p) {
   return `<p><b>Checking your product now…</b> ${esc(p?.stage ?? "Starting")}${p?.of > 1 ? ` — ${p.done} of ${p.of}` : ""}. ${esc(left)}</p><div class="progress"><div style="width:${pct}%"></div></div>
   <p class="meta">Visibility reads one page a second, so it never slows your site down. You can leave this screen — the check goes on, and the score appears here when it is done.${p?.seconds ? ` Running for ${p.seconds >= 60 ? `${Math.floor(p.seconds / 60)} min ${p.seconds % 60} s` : `${p.seconds} s`}.` : ""}</p>`;
 }
+/* RR-355 (owner: "The biggest gains now: website and website."): each gain by what it is, never its area twice */
+const GAIN = Object.freeze({ "meta-description": "page descriptions for Google", title: "page titles", "structured-data": "structured data for search engines", canonical: "page addresses", sitemap: "your sitemap", robots: "your robots file", noindex: "pages hidden from Google", "new-pages": "new pages for what people search", sections: "missing sections on your pages" });
+const gainsOf = (items) => { const g = [...new Set(items.map((i) => GAIN[i.id] ?? (String(i.id).startsWith("yt:") ? "your videos" : String(i.problem ?? i.area ?? "").split(/[—:(]/)[0].trim().toLowerCase())).filter(Boolean))].slice(0, 2); return g.join(" and "); };
 async function overview() {
   const pid = P;
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`);
+  FIXVIA = O.fixVia ?? [];
   if (!$("#ov") || P !== pid) return; // the client moved to another screen meanwhile — nothing to draw
   const c = O.card;
   /* RR-308 C5: a failed check says so — never a score, never "Nothing to fix"; YouTube has its own /100 next to the website's */
@@ -806,14 +817,14 @@ async function overview() {
    * done?" (the five jobs as ticks, the approval asked once) → ONE big Start → the short report with its ONE next step. Everything else is
    * under "More".
    */
-  const summary = c && !c.failed && !O.checking ? `<p class="plainsum" id="plainsum"><b>${c.youtubeOnly ? "Your channel" : "Your site"} scores ${esc(c.score ?? "—")} out of 100.</b> ${PL?.thisWeek?.length ? `The biggest gains now: ${esc(PL.thisWeek.slice(0, 2).map((i) => String(i.area).toLowerCase()).join(" and "))}.` : ""}</p>` : "";
+  const summary = c && !c.failed && !O.checking ? `<p class="plainsum" id="plainsum"><b>${c.youtubeOnly ? "Your channel" : "Your site"} scores ${esc(c.score ?? "—")} out of 100.</b> ${PL?.thisWeek?.length ? `The biggest gains now: ${esc(gainsOf(PL.thisWeek))}.` : ""}</p>` : "";
   const jobsHtml = O.noWebsite || !c || c.failed || O.checking ? "" : `<div class="card bigact" id="jobs"><h3>What do you want done?</h3><p class="meta">Tick what you want — Visibility does each job to the end by itself, and asks you only for what it cannot find.</p>
     ${(O.jobs ?? []).map((j) => `<label class="check"><input type="checkbox" class="jobtick nodirty" value="${esc(j.id)}" ${j.id === "create-pages" || j.id === "submit" ? "checked" : ""}> <b>${esc(j.label)}</b> <span class="meta">— ${esc(j.does)}</span></label>`).join("")}
     <h4 style="margin-top:10px">Before a page goes live</h4><label class="choice"><input type="radio" class="nodirty" name="appr" value="review" ${O.review ? "checked" : ""}> <b>Show me before publishing</b></label><label class="choice"><input type="radio" class="nodirty" name="appr" value="publish" ${O.review ? "" : "checked"}> <b>Publish for me</b> <span class="meta">— each page goes live once it passes every check</span></label>
     <p><button class="big" id="jobsgo" type="button">Start</button> <span id="jobsmsg"></span></p><div id="jobrep">${O.report ? reportHtml(O.report) : ""}</div></div>`;
   const more = `<details class="card more" id="more"><summary><b>More</b> — each job on its own, the page count, and the full plan</summary>${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}</details>`;
   $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${O.checking ? "" : `<p><button id="chk" class="${c ? "ghost" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
-    <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
+    <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${(() => { /* RR-355 (owner: 17 cards at once): at most 2 recommended cards; the rest under More */ const top = [...O.menu.cards.filter((c) => c.recommended), ...O.menu.cards.filter((c) => !c.recommended)].slice(0, 2), rest = O.menu.cards.filter((c) => !top.includes(c)); return `${cardsHtml(top, { checking: O.checking })}${rest.length ? `<details class="card more" id="morecards"><summary><b>More</b> — everything else Visibility can do (${rest.length})</summary>${cardsHtml(rest, { checking: O.checking })}</details>` : ""}`; })()}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
   if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
   if ($("#fixaddr")) $("#fixaddr").onclick = () => act("settings");
@@ -858,16 +869,20 @@ function wireAIW(root = document) {
  * "Give me the content, I'll do it myself" opens the ready text, each piece with Copy.
  */
 function itemHtml(i, k) {
-  const has = i.ready?.length > 0, does = i.fixForMe === "create-pages";
+  /* RR-355 (owner: "'Fix it for me' while the screen says Visibility cannot change a page already on your site"): "Fix it for me" only where
+   * Visibility really does it — it makes the pages, or the site's own connection can write this change; else ONE button: the content */
+  const has = i.ready?.length > 0, does = i.fixForMe === "create-pages", via = has && FIXVIA.includes(i.id);
   return `<div class="item"><h4>${k + 1}. ${esc(i.area)}</h4><p><b>Problem:</b> ${esc(i.problem)}</p><p><b>Solution:</b> ${esc(i.solution)}</p>
-  ${i.note ? `<p class="meta">${esc(i.note)}</p>` : ""}<div class="twochoice">${does ? `<button data-do="create-pages">Fix it for me</button>` : `<button type="button" data-nofix="${has ? "1" : ""}">Fix it for me</button>`}${has ? `<button class="ghost" type="button" data-self>Give me the content, I'll do it myself</button>` : ""}</div><span class="domsg"></span>
+  ${i.note ? `<p class="meta">${esc(i.note)}</p>` : ""}<div class="twochoice">${does ? `<button data-do="create-pages">Fix it for me</button>` : via ? `<button type="button" data-fixvia="${esc(i.id)}">Fix it for me</button>` : ""}${has ? `<button class="${does || via ? "ghost" : ""}" type="button" data-self>Give me the content${does || via ? ", I'll do it myself" : ""}</button>` : ""}</div><span class="domsg"></span>
   ${has ? `<div class="selfbox" hidden><b>Ready to use</b>${i.ready.map(readyHtml).join("")}</div>` : ""}</div>`;
 }
+let FIXVIA = []; // RR-355: the changes the site's connection can make (the Overview sets it)
 const NOFIX = "Visibility cannot change a page that is already on your site — only your site's own editor can. Every NEW page Visibility makes has this built in.";
 /* the two choices work in every box that shows a problem (the Overview, Do it for me, each check's own card) */
 document.addEventListener("click", (e) => {
-  const b = e.target?.closest?.("[data-self],[data-nofix]"); if (!b) return;
+  const b = e.target?.closest?.("[data-self],[data-nofix],[data-fixvia]"); if (!b) return;
   const item = b.closest(".item"), box = item?.querySelector(".selfbox"), msg = item?.querySelector(".domsg");
+  if (b.matches("[data-fixvia]")) { b.disabled = true; note(msg, "Changing it on your site through its connection…", "info"); post(`/api/products/${encodeURIComponent(P)}/fix-existing`, { item: b.dataset.fixvia }).then((r) => { b.disabled = false; note(msg, r.refused ?? (r.lines ?? []).join(" "), r.refused ? "err" : "ok"); }); return; }
   if (b.matches("[data-nofix]")) { note(msg, box ? `${NOFIX} The content is below — copy it into your site's editor.` : `${NOFIX} Follow the Solution above.`, "info"); if (box) { box.hidden = false; wireCopy(item); wireAIW(item); } return; }
   if (box) { box.hidden = !box.hidden; b.textContent = box.hidden ? "Give me the content, I'll do it myself" : "Hide the content"; if (!box.hidden) { wireCopy(item); wireAIW(item); } }
 });
@@ -1061,7 +1076,7 @@ async function pagesBox(waitingOnly = false) {
    * Publish all ready at the bottom") */
   const V = await get(`/api/products/${encodeURIComponent(P)}/pages-view`).catch(() => ({ rows: [] })), why = (url) => V.rows?.find((r) => r.url === url)?.why ?? "";
   const nReady = drafts.filter((d) => d.readyAsDraft && !live(d.url)).length, nWork = drafts.filter((d) => !d.readyAsDraft).length;
-  $("#pubbox").innerHTML = `<p class="meta">${where ? `Publishing to: <b>${esc(where)}</b>.` : "Not connected to your site yet — the first time you press Approve & Publish, Visibility asks where your site is built."} ${X.mode === "REVIEW_FIRST" ? "You chose to approve each page first." : "You chose: publish automatically after the five checks (only once your site is connected)."}</p>
+  $("#pubbox").innerHTML = `<p class="meta">${where ? `Publishing to: <b>${esc(where)}</b>.` : "Not connected to your site yet — the first time you press Approve & Publish, Visibility asks where your site is built."} ${X.mode === "AUTO_AFTER_GATES" ? "You chose: <b>Publish for me</b> — each page goes live once it passes every check (only once your site is connected)." : "You chose: <b>Show me before publishing</b> — nothing goes live until you press Publish."} <a href="#" id="chgappr">Change</a></p>
   ${V.blocked ? `<p class="warn">${esc(V.blocked)}</p>` : ""}
   ${drafts.length ? drafts.map((d) => { const L = live(d.url); return `<div class="draftrow"><b>${esc(d.title)}</b>${d.edited ? ` <span class="tag">edited by you</span>` : ""} ${L ? `<b class="ok">Published ✓</b>` : d.readyAsDraft ? `<span class="ok-i">✅ ready</span>` : `<span class="warn-i">⚠️ needs work</span>`}
     ${!d.readyAsDraft ? `<div class="meta" data-why>${esc(why(d.url))}</div>` : ""}
@@ -1075,6 +1090,7 @@ async function pagesBox(waitingOnly = false) {
   const fixAll = async (box, url = null) => { note(box, "Making the pages again with the newest checked facts…"); const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what: "create-pages" }); if (r.refused) return note(box, r.refused, "err"); const W = await get(`/api/products/${encodeURIComponent(P)}/pages-view`); const row = url ? W.rows.find((x) => x.url === url) : null; await pagesBox(waitingOnly); note(url ? msg(url) ?? $("#allmsg") : $("#allmsg"), url ? (row?.ready ? "✅ Fixed — it is ready now." : `Still needs work: ${row?.why ?? "it was not made again"}`) : `${W.rows.filter((x) => x.ready).length} of ${W.rows.length} pages ready now.`, row?.ready || !url ? "ok" : "info"); };
   document.querySelectorAll("[data-fixpage]").forEach((b) => (b.onclick = () => fixAll(msg(b.dataset.fixpage), b.dataset.fixpage)));
   if ($("#fixall")) $("#fixall").onclick = () => fixAll($("#allmsg"));
+  if ($("#chgappr")) $("#chgappr").onclick = (e) => { e.preventDefault(); work("Overview"); }; // RR-355: the choice is changed where it was asked
   if ($("#puball")) $("#puball").onclick = async () => { $("#puball").disabled = true; note($("#allmsg"), "Checking each page again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what: "publish", approved: true }); if (r.open === "publish-settings") return publishScreen(); note($("#allmsg"), r.refused ?? r.line, r.refused ? "err" : "ok"); setTimeout(() => pagesBox(waitingOnly), 1800); };
   document.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = async () => { b.disabled = true; note(msg(b.dataset.pub), "Checking the five gates again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: b.dataset.pub }); if (r.needsConnection) return publishScreen(b.dataset.pub); note(msg(b.dataset.pub), r.ok ? `${r.line} ${r.sitemap ?? ""} ${r.bing ?? ""}` : r.why ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); else b.disabled = false; }));
   document.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/publish/undo`, { url: b.dataset.undo }); note(msg(b.dataset.undo), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); }));
@@ -1088,7 +1104,7 @@ async function publishScreen(thenPublish = null) {
   const t = X.target ?? {};
   $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>Where is your site built?</h2><p class="ask">Visibility publishes your finished pages there — only after the five checks pass again, and only through a connection you make.</p>
   ${X.targets.map((c) => `<label class="choice"><input type="radio" name="tg" value="${esc(c.id)}" ${t.kind === c.id ? "checked" : ""}> <b>${esc(c.label)}</b><div class="why">Choose this if ${esc(c.chooseIf)} You need: ${esc(c.needs)}</div></label>`).join("")}
-  <div id="tgf"></div><button id="tgsave">${thenPublish ? "Save and publish — Next →" : "Save — Next →"}</button><div class="err" id="err"></div></div>`;
+  <div id="tgf"></div><button id="tgsave">Save — Next →</button><div class="err" id="err"></div></div>`;
   $("#back").onclick = () => work("Pages and articles");
   const fieldsFor = (k) => ({
     wordpress: `<label>Your WordPress site's address<input id="t1" value="${esc(t.site ?? S.product.site ?? "")}" placeholder="https://www.example.com"></label><label>Your WordPress user name<input id="t2" value="${esc(t.user ?? "")}"></label><label>Paste your application password here<input id="tk" type="password" autocomplete="off" placeholder="${X.keySaved && t.kind === k ? "saved ✓ — paste a new one to replace it" : "It is kept safely on this computer"}"></label>`,
@@ -1105,8 +1121,9 @@ async function publishScreen(thenPublish = null) {
     const r = await post(`/api/products/${encodeURIComponent(P)}/publish/connect`, body); if ($("#tk")) $("#tk").value = "";
     if (r.refused) return note($("#err"), r.refused, "err");
     note($("#err"), r.line, "ok");
-    if (thenPublish) { const x = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: thenPublish }); const p = document.createElement("p"); $("#err").after(p); note(p, x.ok ? `${x.line} ${x.sitemap ?? ""}` : x.why ?? x.refused, x.ok ? "ok" : "err"); }
-    setTimeout(() => work("Pages and articles"), thenPublish ? 2500 : 1200);
+    /* RR-355 (owner: "the button on Publish settings says Save, not Save and publish"): saving the connection never publishes — the client's
+     * own choice ("Show me before publishing" / "Publish for me") decides, on the Pages screen */
+    setTimeout(() => work("Pages and articles"), 1200);
   };
 }
 /* "Edit": the draft's title and its main text, edited in place; the five checks judge the edited page before it is published */
@@ -1164,12 +1181,13 @@ async function googleScreen() {
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`), g = O.google;
   const status = g.kind === "CONNECTED" ? `<div class="okbar" id="gscbar"><b>Connected ✓ — ${g.searches} search${g.searches === 1 ? "" : "es"} read</b> from ${esc(g.site)} (${esc(g.window)}). <button class="ghost" id="gscpower">Positions and opportunities →</button></div>` : g.kind === "EXPORT" ? `<p class="ok">Search Console download added ✓ (${esc(g.window)})</p>` : `<p><b>Not connected</b> — connect now to bring in the real searches people make.</p>`;
   $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>Google Search Console</h2>${status}
-    <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><button id="connect">Connect Google</button>`) : `<p class="meta">Google sign-in is off — switch it on with the button "Google sign-in: switch it on" below. Meanwhile, add Search Console's download file below — it gives the same searches.</p>`}
+    <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><p><button class="big" id="connect">Connect Google Search Console</button></p>`) : `<p>First Visibility needs Google sign-in switched on — about 2 minutes, once.</p><p><button class="big" id="gsignon1">Connect Google Search Console</button></p><p class="meta">Or add Search Console's download file under More — it gives the same searches.</p>`}
     <details class="more"><summary>More — add Search Console's download file instead</summary><div class="howto">${esc(O.howTo.google)}</div><label>The download (the ZIP, or its CSV files)<input id="gf" type="file" accept=".zip,.csv" multiple></label><button id="gup">Add the download</button></details>
     <div class="err" id="err"></div>
     <p style="margin-top:16px"><button class="ghost" id="gsignon">Google sign-in: ${g.ready ? "on ✓ — change the client" : "switch it on"}</button> ${guideLink("google-client")}</p></div>`;
   wireGuides();
   $("#back").onclick = () => work("Overview");
+  if ($("#gsignon1")) $("#gsignon1").onclick = () => $("#gsignon").click();
   if ($("#connect")) $("#connect").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/google/start`, { submit: Boolean($("#gsub")?.checked) }); if (r.refused) return ($("#err").textContent = r.refused); signinOpened($("#err"), r, "Google will ask which account — choose the Google account that owns your Search Console.", async () => (await get("/api/google/client")).signedIn === true, () => googleScreen()); };
   if ($("#sites")) { const r = await get("/api/google/sites"); $("#sites").innerHTML = r.sites ? `${r.sites.map((s) => `<label class="choice"><input type="radio" name="site" value="${esc(s)}"> ${esc(s)}</label>`).join("")}<button id="pick">Use this site</button>` : `<p class="err">${esc(r.refused)}</p>`; if ($("#pick")) $("#pick").onclick = async () => { const v = document.querySelector("input[name=site]:checked")?.value; if (!v) return; const x = await post(`/api/products/${encodeURIComponent(P)}/google/site`, { site: v }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 600); }; } // RR-318 B7: the screen is drawn again — Connected ✓ at the top
   $("#gup").onclick = async () => { const fs = [...$("#gf").files]; if (!fs.length) return ($("#err").textContent = "Choose the download first."); const files = await Promise.all(fs.map((f) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name: f.name, base64: String(fr.result).split(",")[1] }); fr.readAsDataURL(f); }))); const x = await post(`/api/products/${encodeURIComponent(P)}/google/export`, { files }); note($("#err"), x.line ?? x.refused, x.ok ? "ok" : "err"); if (x.ok) setTimeout(googleScreen, 1200); };

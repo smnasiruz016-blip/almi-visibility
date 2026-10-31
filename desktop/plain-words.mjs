@@ -21,6 +21,9 @@ const RULES = [
 /** a draft that is not ready → one plain line (a ready one → null) */
 export function plainWhy(draft) {
   if (!draft || draft.readyAsDraft) return null;
+  /* RR-355: the sixth check ("good to read") and "looks like your site" already speak in plain words — their own line first */
+  const own = (draft.gates ?? []).filter((g) => !g.pass && (g.words === "good to read" || g.words === "looks like your site")).flatMap((g) => g.failing ?? []);
+  if (own.length) return own[0];
   const fails = (draft.gates ?? []).filter((g) => !g.pass).flatMap((g) => g.failing ?? []);
   for (const [re, line] of RULES) if (fails.some((f) => re.test(f))) return line;
   return fails.length ? "One of the five checks did not pass yet — press Fix and Visibility tries again with its newest data." : "It is not ready yet.";

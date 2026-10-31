@@ -370,9 +370,22 @@ test("A + B IN THE APP: research searches the NICHE (top = most viewed in a year
 });
 
 /* a small site with two questions answered across its pages (so two NEW drafts that link to each other), and a stand-in WordPress */
-function prepSite() {
+/* RR-355: `rich` — a site with its own header, footer and style (its look can be read) and real questions answered on two of its pages (one page alone
+ * would be "improve that page"), so a page
+ * made from it is GOOD TO READ (three answers or more) and in the site's own look; without it, the earlier small site */
+const RICH_QA = [
+  ["How long does fixture exam practice online take for nurses?", "Fixture exam practice online for nurses takes about 4 weeks for most nurses, with 30 minutes of fixture exam practice online each day and one full practice test every week."],
+  ["What does fixture exam practice online for nurses cover?", "Fixture exam practice online for nurses covers all 4 parts of the fixture exam, with 120 practice tasks in total, written for nurses who want online practice before the exam day."],
+  ["Is fixture exam practice online for nurses marked?", "Every fixture exam practice online task for nurses is marked at once, and each marked answer shows what to change, so nurses see their progress in the fixture exam practice online."],
+  ["How do speaking test role plays work for nurses?", "Speaking test role plays for nurses last 20 minutes in total, with 2 speaking test role plays for nurses, each with a card, a patient and a clear task to finish in the speaking test."],
+  ["How often should nurses practise speaking test role plays?", "Nurses practise speaking test role plays 2 times a day in the course, and each of the speaking test role plays gets feedback on its language and its clinical communication in the speaking test."],
+  ["What do speaking test role plays for nurses check?", "Speaking test role plays for nurses check 5 language skills and 4 clinical communication skills, so nurses in the speaking test role plays show how they speak with a patient."],
+  ["Can nurses take fixture exam practice online on a phone?", "Fixture exam practice online for nurses works on a phone, a tablet or a computer, so nurses can take fixture exam practice online on a break at work or at home."],
+  ["Who writes the speaking test role plays for nurses?", "Teachers who trained nurses write every one of the speaking test role plays for nurses, and each of the speaking test role plays follows a real clinical setting."],
+];
+function prepSite({ rich = false } = {}) {
   let base = "";
-  const page = (t, b) => `<!doctype html><html lang="en"><head><title>${t}</title></head><body><nav><a href="/">Home</a> <a href="/pricing">Pricing</a> <a href="/course">Course</a></nav><main>${b}</main><footer>F</footer></body></html>`;
+  const page = (t, b) => rich ? `<!doctype html><html lang="en"><head><title>${t}</title><style>body{font-family:Georgia,serif;color:#222}</style></head><body><header><nav><a href="/">Home</a> <a href="/pricing">Pricing</a> <a href="/course">Course</a></nav></header><main>${b}${RICH_QA.filter((_, i) => (t === "Fixture Prep" ? [0, 3] : t === "Course" ? [1, 2, 4, 5, 6, 7] : []).includes(i)).map(([q, a]) => `<h2>${q}</h2><p>${a}</p>`).join("")}</main><footer>F</footer></body></html>` : `<!doctype html><html lang="en"><head><title>${t}</title></head><body><nav><a href="/">Home</a> <a href="/pricing">Pricing</a> <a href="/course">Course</a></nav><main>${b}</main><footer>F</footer></body></html>`;
   const srv = createServer((q, r) => { const h = (s) => { r.writeHead(200, { "content-type": "text/html" }); r.end(s); };
     if (q.url === "/robots.txt") { r.writeHead(200, { "content-type": "text/plain" }); return r.end("User-agent: *\nAllow: /\n"); }
     if (q.url === "/") return h(page("Fixture Prep", "<h1>Practise the Fixture exam</h1><p>Fixture exam practice online covers all 4 parts of the test for nurses, with 120 tasks in total.</p><p>The speaking test role plays last 20 minutes, with 2 role plays for nurses.</p>"));
@@ -392,7 +405,7 @@ function fakeWordPress() {
 }
 
 test("D IN THE APP: Approve & Publish asks where the site is built the first time; the five gates run again RIGHT BEFORE publishing (an edit that breaks a gate is refused, said); the page goes to the client's own WordPress with the client's own key; the live link is shown; Undo puts it back to draft; 'publish automatically after the gates' publishes only once a site is connected; the screen draws the buttons", async () => {
-  const s = prepSite(); const base = await s.listen();
+  const s = prepSite({ rich: true }); const base = await s.listen();
   const wp = fakeWordPress(); const wpBase = await wp.listen();
   const a = await app();
   try {
@@ -401,7 +414,8 @@ test("D IN THE APP: Approve & Publish asks where the site is built the first tim
     assert.equal((await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "Fixture Prep", site: base, what: "Fixture exam practice online.", ctaLabel: "Try the fixture free", ctaHref: `${base}/signup` } })).http, 200, "RR-351: no page without the client's own offer button");
     const GSC = { "Queries.csv": "Top queries,Clicks,Impressions,CTR,Position\nfixture exam practice online for nurses,3,40,7.5%,4.1\nspeaking test role plays nurses,1,20,5%,6\n", "Pages.csv": `Top pages,Clicks,Impressions,CTR,Position\n${base}/,4,61,6%,5\n`, "Chart.csv": "Date,Clicks,Impressions,CTR,Position\n2026-10-01,2,30,6%,5\n2026-10-02,2,31,6%,5\n" };
     const ex = await a.post(`/api/products/${id}/google/export`, { files: Object.entries(GSC).map(([name, t]) => ({ name, base64: Buffer.from(t).toString("base64") })) }); assert.equal(ex.http, 200, ex.refused);
-    /* publishing automatic after the gates (the default) — but no site connected yet: nothing is published */
+    /* publishing automatic after the gates (RR-355: the client's own choice — never chosen is "show me first") — but no site connected yet: nothing is published */
+    await a.post(`/api/products/${id}/setup`, { id: "publishMode", value: { mode: "AUTO_AFTER_GATES" } });
     const plan = await a.post(`/api/products/${id}/feature/seo-pages`, {});
     assert.equal(plan.autoPublished, null, "published without a connection");
     const ready = plan.pages.drafts.filter((d) => d.readyAsDraft); assert.equal(ready.length, 2, JSON.stringify(plan.pages.drafts.map((d) => d.gates)));
@@ -458,7 +472,7 @@ test("D IN THE APP: Approve & Publish asks where the site is built the first tim
     const ui = await screen(a.url);
     ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#pubbox"); await ui.api.pagesBox(false);
     const shown = ui.el("#pubbox").innerHTML;
-    for (const x of ["Publishing to: <b>WordPress</b>", "Published ✓", "Undo — unpublish", "Edit", "You chose to approve each page first."]) assert.ok(shown.includes(x), x);
+    for (const x of ["Publishing to: <b>WordPress</b>", "Published ✓", "Undo — unpublish", "Edit", "You chose: <b>Show me before publishing</b>"]) assert.ok(shown.includes(x), x); // RR-355: the choice in the words it was asked in
     /* RR-354 (owner: "a Fix or Publish button"): a ready page has Approve & Publish, a page that needs work has Fix — never a disabled button */
     assert.ok(shown.includes("Approve &amp; Publish") || shown.includes(">Fix</button>"), "neither Publish nor Fix");
     assert.ok(!/<button data-pub="[^"]*" disabled>/.test(shown));

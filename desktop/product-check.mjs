@@ -171,7 +171,7 @@ export function fixForMe(id, site) {
 }
 
 /** B3 · "We found …": what Visibility gathered for this product, each with its source and date — and what is missing, with what it would add. */
-export function foundInfo({ site = null, youtube = null, files = [], searchConsole = null, keys = {}, own = [], on }) {
+export function foundInfo({ site = null, youtube = null, files = [], searchConsole = null, keys = {}, own = [], asked = [], on }) {
   const day = String(on).slice(0, 10);
   /* RR-308 C3: the questions ALREADY ANSWERED on the client's pages are kept apart — "questions people ask" come only from search data and
    * research, each with its source */
@@ -184,7 +184,11 @@ export function foundInfo({ site = null, youtube = null, files = [], searchConso
   for (const t of youtube?.terms ?? []) phrases.push({ text: t.phrase, source: t.from, on: day });
   /* RR-354 (owner: "0 search phrases" was shown beside "keyword service on"): AlmiVisibility's own searches — the keyword service and the
    * keyword database, the search-data files, Bing — are search phrases too, each with its source */
-  for (const o of own) phrases.push({ text: o.text, source: o.source, on: o.on ?? day });
+  /* RR-355 (owner: "Questions people ask (0)" even with the licence): a search that asks a question is a question; AlmiWorld's question
+   * collector's questions (asked by people about the product's subject) are questions people ask, each with its source */
+  const ASKS = /\?$|^(how|what|why|which|where|when|who|can|is|are|does|do|should|will|kya|kaise)\b/i;
+  for (const o of own) (ASKS.test(String(o.text).trim()) ? questions : phrases).push({ text: o.text, source: o.source, on: o.on ?? day });
+  for (const q of asked) if (q?.text) questions.push({ text: q.text, source: q.source, on: q.on ?? day });
   const uniq = (xs) => [...new Map(xs.map((x) => [x.text.toLowerCase(), x])).values()];
   const missing = [];
   if (!site?.ok) missing.push({ what: "Your website", adds: "Your pages, prices, facts and existing questions — the base of every page Visibility writes.", action: "settings" });

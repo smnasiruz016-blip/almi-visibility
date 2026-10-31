@@ -26,7 +26,7 @@ test("RR-352 · the rule: an AlmiWorld product is plan-only until the owner mark
   assert.equal(publishBlocked({ ...AW, setup: { realProject: { on: "yes" } } }), true, "only true marks it");
   assert.equal(publishBlocked({ product: { site: "https://client.example" }, setup: {} }), false);
   const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8");
-  assert.equal((main.match(/publishBlocked\(/g) ?? []).length, 14, "publish, auto-publish, submit, weekly, Do it for me, the plan's lines, the screens, (RR-353) the Search engines panel and (RR-354) the ticked jobs and the pages view read the RULE");
+  assert.equal((main.match(/publishBlocked\(/g) ?? []).length, 16, "publish, auto-publish, submit, weekly, Do it for me, the plan's lines, the screens, (RR-353) the Search engines panel, (RR-354) the ticked jobs and the pages view, and (RR-355) a fix made through the site's connection (its route and the Overview's offer) read the RULE");
   /* the YouTube channel rule and the built-in lists still read the KIND */
   assert.ok(main.includes(`if (isAlmiWorld(s)) return send(200, { ok: false, refused: "AlmiWorld's own channel: nothing is changed on YouTube from here (owner's rule)." });`));
   assert.ok(main.includes("const listOf = (s, subject, id = null) => (isAlmiWorld(s) &&"));

@@ -19,9 +19,10 @@ export function guideItemsByValue(joinedRecords) {
 const rateFor = (rates, claimIds) => { const latest = new Map(); for (const r of rates) if (claimIds.has(r.claimId)) latest.set(r.claimId, r); return [...latest.values()]; };
 
 /** Render one page from its items by the one renderer. */
-function renderPage({ title, items, keyFacts, rates, quotationOf, design, stamp, on, related }) {
+function renderPage({ title, items, keyFacts, rates, quotationOf, design, stamp, on, related, needId = null }) {
   const claimIds = new Set(items.flatMap((it) => it.claims.map((c) => c.claimId)));
-  const kf = keyFactCards({ facts: keyFacts.filter((k) => claimIds.has(k.claimId)), items, quotationOf });
+  /* RR-355: a card made FOR a page (its needId) is shown on that page only — a claim several pages share never brings another page's card */
+  const kf = keyFactCards({ facts: keyFacts.filter((k) => claimIds.has(k.claimId) && (!k.needId || k.needId === needId)), items, quotationOf });
   const cv = conversions({ rates: rateFor(rates, claimIds), items, on });
   const faq = faqOf(items, cv.shown);
   const intro = [design?.productLine, `${items.length} question${items.length === 1 ? "" : "s"} answered below, each with its source.`].filter(Boolean);
@@ -96,10 +97,12 @@ export function buildNewPages({ plan, keyFacts = [], rates = [], quotationOf = n
   /* internal links: by default each new page links its sibling new pages of the same plan (crawlable links in and out, G9/G10) */
   const siblings = (p) => plan.filter((x) => x.kind === "NEW" && x.needId !== p.needId).map((x) => ({ href: `${base}${x.path}`, label: x.need.question }));
   return plan.filter((p) => p.kind === "NEW").map((p) => {
-    const items = [itemOfNeed(p.need)];
-    const url = `${String(site ?? "").replace(/\/$/, "")}${p.path}`;
-    return Object.freeze({ kind: "NEW", needId: p.needId, label: p.label, path: p.path, url, title: p.need.question, questions: p.questions, answer: p.claimIds,
-      ...renderPage({ title: p.need.question, items, keyFacts, rates, quotationOf, design, stamp, on, related: relatedFor ? relatedFor(p) : siblings(p) }) });
+    /* RR-355: a page answers several questions — its need's own, then each of its other parts, each with its own sourced claims (a part
+     * without a sourced claim is left out: an unanswered question is never shown); the page's title may differ from its first question */
+    const items = [itemOfNeed(p.need), ...(p.need.extraItems ?? []).filter((x) => x?.needId && x.claims?.length && x.claims.every(sourced)).map(itemOfNeed)];
+    const url = `${String(site ?? "").replace(/\/$/, "")}${p.path}`, title = p.need.title ?? p.need.question;
+    return Object.freeze({ kind: "NEW", needId: p.needId, label: p.label, path: p.path, url, title, questions: p.questions, answer: p.claimIds,
+      ...renderPage({ title, items, keyFacts, rates, quotationOf, design, stamp, on, related: relatedFor ? relatedFor(p) : siblings(p), needId: p.needId }) });
   });
 }
 

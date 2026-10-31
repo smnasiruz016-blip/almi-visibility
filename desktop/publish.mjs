@@ -54,6 +54,35 @@ export function checkTarget(t, { allowLocal = false } = {}) {
  * Publish ONE draft. `draft` = { url, title, html }; `target` = the checked connection; `key` = the client's key (from the secure store, handed
  * straight in, never kept). Returns { ok, live, remote } or { ok:false, why }.
  */
+/**
+ * 🔴 RR-355 (owner's publish: "Your site refused the key" — and nothing more) · WHY THE SITE REFUSED, in plain words, with what to change.
+ * `what` (GitHub's 404) is "repo" or "branch" once asked. Nothing was published in every case — said once, at the end.
+ */
+export function refusedWhy(target, status, body = {}, what = null) {
+  const msg = String(body?.message ?? body?.code ?? ""), none = " Nothing was published.";
+  if (target?.kind === "github") {
+    const repo = target.repo ?? "your repository", branch = target.branch || "main";
+    if (status === 401) return `GitHub says your token is not valid or has expired — make a new token on GitHub (Settings → Developer settings → Personal access tokens), give it "Contents: Read and write" for ${repo}, and paste it in Publish settings.${none}`;
+    if (status === 403 && /rate limit/i.test(msg)) return `GitHub asks to wait a little (too many requests in a short time) — try again in an hour.${none}`;
+    if (status === 403) return `Your token cannot write files in ${repo} — on GitHub, give the token "Contents: Read and write" permission for this repository, then paste it again in Publish settings.${none}`;
+    if (status === 404 && what === "branch") return `The branch "${branch}" does not exist in ${repo} — check the branch name in Publish settings (it is often "main").${none}`;
+    if (status === 404) return `GitHub cannot find the repository "${repo}" with this token — check its name (owner/name) in Publish settings, or give the token access to that repository.${none}`;
+    if ((status === 409 || status === 422) && /branch/i.test(msg)) return `The branch "${branch}" does not exist in ${repo} or is protected — check the branch name in Publish settings.${none}`;
+  }
+  if (target?.kind === "wordpress") {
+    if (status === 401) return `WordPress did not accept the user name and application password — make a new application password (Users → Profile → Application Passwords) and paste it in Publish settings.${none}`;
+    if (status === 403) return `This WordPress user may not create pages — use an Administrator or Editor account in Publish settings.${none}`;
+    if (status === 404) return `WordPress's page service was not found at ${target.site ?? "this address"} — check the site address, and that no security plugin blocks the WordPress REST API.${none}`;
+  }
+  if (target?.kind === "shopify") {
+    if (status === 401) return `Shopify did not accept the access token — make a new one in your store's custom app and paste it in Publish settings.${none}`;
+    if (status === 403) return `The Shopify token may not write pages — give your custom app the "write_content" permission, then paste the new token.${none}`;
+    if (status === 404) return `Shopify cannot find the store "${target.shop ?? ""}" — check its address (name.myshopify.com) in Publish settings.${none}`;
+  }
+  if (status === 401 || status === 403) return `Your site refused the key (${status}) — make a new key and paste it in Publish settings.${none}`;
+  return `Your site answered with an error (${status}${msg ? `: ${msg.slice(0, 80)}` : ""}).${none}`;
+}
+
 export async function publishDraft({ draft, target, key, fetchImpl = fetch, downloadsDir, allowLocal = false, testBase = null }) {
   /* only a draft the five gates passed (as judged again right before, by the caller) ever leaves — here too, never only in the caller */
   if (draft.readyAsDraft !== true) return { ok: false, why: "Not published — this draft has not passed the five checks." };
@@ -65,8 +94,7 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
     if (!keyMayGo(target, url, { allowLocal })) return { ok: false, why: "Refused: the key may go only to your own site's address." };
     let r; try { r = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(20000) }); } catch { return { ok: false, why: "Your site did not answer — nothing was published." }; }
     const body = await r.json().catch(() => ({}));
-    if (r.status === 401 || r.status === 403) return { ok: false, why: "Your site refused the key — check it in Publish settings. Nothing was published." };
-    if (!r.ok) return { ok: false, why: `Your site answered with an error (${r.status}) — nothing was published.` };
+    if (!r.ok) return { ok: false, status: r.status, body, why: refusedWhy(target, r.status, body) };
     return { ok: true, body };
   };
   if (target.kind === "download") {
@@ -86,8 +114,15 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
   if (target.kind === "github") {
     const api = testBase ?? "https://api.github.com";
     const path = [String(target.folder ?? "").replace(/^\/+|\/+$/g, ""), slug, "index.html"].filter(Boolean).join("/");
-    const r = await send(`${api}/repos/${target.repo}/contents/${path}`, { method: "PUT", headers: { "content-type": "application/json", authorization: `Bearer ${key}`, accept: "application/vnd.github+json", "user-agent": "AlmiVisibility" }, body: JSON.stringify({ message: `Add page ${slug} (AlmiVisibility)`, content: Buffer.from(html).toString("base64"), branch: target.branch }) });
-    if (!r.ok) return r;
+    const gh = { authorization: `Bearer ${key}`, accept: "application/vnd.github+json", "user-agent": "AlmiVisibility" };
+    const put = (sha = null) => send(`${api}/repos/${target.repo}/contents/${path}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `${sha ? "Update" : "Add"} page ${slug} (AlmiVisibility)`, content: Buffer.from(html).toString("base64"), branch: target.branch, ...(sha ? { sha } : {}) }) });
+    let r = await put();
+    /* RR-355: the page is already in the repository (published before) — GitHub asks for its current version; it is updated, never refused */
+    if (!r.ok && (r.status === 422 || r.status === 409) && /\bsha\b/i.test(String(r.body?.message ?? ""))) { const cur = await send(`${api}/repos/${target.repo}/contents/${path}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh }); if (cur.ok && cur.body?.sha) r = await put(cur.body.sha); }
+    /* RR-355 (owner: "say exactly why — repository not found / no permission / branch not found / token expired"): GitHub answers 404 both for
+     * a repository the token cannot see and for a missing branch — asked which, so the client knows what to change */
+    if (!r.ok && r.status === 404) { const repo = await send(`${api}/repos/${target.repo}`, { method: "GET", headers: gh }); r = { ...r, why: !repo.ok ? refusedWhy(target, 404, { message: "Not Found" }, "repo") : refusedWhy(target, 404, { message: "Branch not found" }, "branch") }; }
+    if (!r.ok) return { ok: false, why: r.why };
     return { ok: true, live: `${String(target.site).replace(/\/+$/, "")}/${slug}/`, remote: { path, sha: r.body.content?.sha ?? null } };
   }
   if (target.kind === "shopify") {
@@ -97,6 +132,56 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
     return { ok: true, live: `https://${target.shop}/pages/${r.body.page?.handle ?? slug}`, remote: { id: r.body.page?.id } };
   }
   return { ok: false, why: "Choose where your site is built." };
+}
+
+/*
+ * 🔴 RR-355 (owner: "'Fix it for me' while the screen says 'Visibility cannot change a page already on your site': when a GitHub / WordPress /
+ * Shopify connection exists, the app does the fix through it; otherwise the button says 'Give me the content'") · A FIX TO A PAGE ALREADY ON
+ * THE CLIENT'S SITE, through its own connection — only where the connection can really make it:
+ *   · GitHub, a site of plain HTML files: the page's own file gets its new <title> or meta description (a site built by a framework, such as
+ *     Next.js, writes its titles in code — Visibility gives the content instead);
+ *   · WordPress: the page's title (a meta description lives in an SEO plugin, which its REST service does not write).
+ * Anything else: no "Fix it for me" — the content to paste.
+ */
+export function fixVia(target, kind, { framework = false } = {}) {
+  if (target?.kind === "github" && !framework) return ["title", "meta-description"].includes(kind);
+  if (target?.kind === "wordpress") return kind === "title";
+  return false;
+}
+const escA = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export function withFix(html, kind, text) {
+  const h = String(html ?? "");
+  if (kind === "title") return /<title\b[^>]*>[\s\S]*?<\/title>/i.test(h) ? h.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, `<title>${escA(text)}</title>`) : h.replace(/<\/head>/i, `<title>${escA(text)}</title></head>`);
+  if (kind === "meta-description") return /<meta\b[^>]*name\s*=\s*["']description["'][^>]*>/i.test(h) ? h.replace(/<meta\b[^>]*name\s*=\s*["']description["'][^>]*>/i, `<meta name="description" content="${escA(text)}">`) : h.replace(/<\/head>/i, `<meta name="description" content="${escA(text)}"></head>`);
+  return h;
+}
+export async function fixExisting({ target, key, url, kind, text, framework = false, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  if (!fixVia(target, kind, { framework })) return { ok: false, why: "Visibility cannot change this on your site through its connection — use \"Give me the content\" and paste it in your site's editor." };
+  const call = async (u, init) => { if (!keyMayGo(target, u, { allowLocal })) return { ok: false, why: "Refused: the key may go only to your own site's address." }; let r; try { r = await fetchImpl(u, { ...init, signal: AbortSignal.timeout(20000) }); } catch { return { ok: false, why: "Your site did not answer — nothing was changed." }; } const body = await r.json().catch(() => ({})); return r.ok ? { ok: true, body } : { ok: false, status: r.status, body, why: refusedWhy(target, r.status, body).replace("Nothing was published.", "Nothing was changed.") }; };
+  const path = (() => { try { return new URL(url).pathname.replace(/^\/+|\/+$/g, ""); } catch { return null; } })(); if (path === null) return { ok: false, why: "Not a page address." };
+  if (target.kind === "github") {
+    const api = testBase ?? "https://api.github.com", gh = { authorization: `Bearer ${key}`, accept: "application/vnd.github+json", "user-agent": "AlmiVisibility" };
+    const tries = path ? [`${path}/index.html`, `${path}.html`, `public/${path}/index.html`, `public/${path}.html`] : ["index.html", "public/index.html"];
+    for (const p of tries) {
+      const got = await call(`${api}/repos/${target.repo}/contents/${p}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh });
+      if (!got.ok) { if (got.status === 404) continue; return got; }
+      if (!got.body?.content || !got.body.sha) continue;
+      const html = Buffer.from(got.body.content, "base64").toString("utf8"), next = withFix(html, kind, text);
+      if (next === html) return { ok: true, line: `Already right on ${url}.` };
+      const put = await call(`${api}/repos/${target.repo}/contents/${p}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `Fix ${kind} of ${path || "home"} (AlmiVisibility)`, content: Buffer.from(next).toString("base64"), branch: target.branch, sha: got.body.sha }) });
+      return put.ok ? { ok: true, line: `Fixed on your site: the ${kind === "title" ? "title" : "description"} of ${url} (in ${p}).` } : put;
+    }
+    return { ok: false, why: `Visibility found no file for ${url} in ${target.repo} — use "Give me the content" and paste it yourself.` };
+  }
+  if (target.kind === "wordpress") {
+    const base = testBase ?? new URL(target.site).origin, auth = { authorization: `Basic ${Buffer.from(`${target.user}:${key}`).toString("base64")}` };
+    const slug = path.split("/").pop(); if (!slug) return { ok: false, why: "Your home page's title is set in WordPress → Settings → General — use \"Give me the content\"." };
+    const found = await call(`${base}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`, { method: "GET", headers: auth }); if (!found.ok) return found;
+    const pg = Array.isArray(found.body) ? found.body[0] : null; if (!pg?.id) return { ok: false, why: `WordPress has no page at ${url} — use "Give me the content".` };
+    const up = await call(`${base}/wp-json/wp/v2/pages/${pg.id}`, { method: "POST", headers: { "content-type": "application/json", ...auth }, body: JSON.stringify({ title: text }) });
+    return up.ok ? { ok: true, line: `Fixed on your site: the title of ${url}.` } : up;
+  }
+  return { ok: false, why: "Not possible through this connection." };
 }
 
 /** Undo ONE publish (the record made by publishDraft). */

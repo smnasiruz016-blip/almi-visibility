@@ -15,12 +15,15 @@ const siteOf = (extra) => ({ ok: true, origin: "https://clinic.example", readOn:
   ...extra.map(([path, t]) => readPage(page(t, `<h1>${t}</h1><p>${t} at the clinic, explained by our dentists.</p>`), `https://clinic.example${path}`))] });
 const gsc = { queries: [{ query: "how long does teeth whitening take", impressions: 70 }], window: "28 days" };
 const C = (d) => d.gates.find((g) => g.gate === "C");
+/* RR-355: this file's subject is the FIVE checks (gate C's links); the sixth ("good to read") and "looks like your site" are judged in
+ * test/rr355-page-quality-client-look.test.mjs — here the five decide, as they did */
+const five = (d) => d.gates.filter((g) => g.gate !== "F" && g.gate !== "G").every((g) => g.pass || g.failing.length === 0);
 
 test("RR-336 · Gate C: fewer than 3 related pages on the client's site is a warning, never a block", () => {
   const out = seoPages({ site: siteOf([]), searchConsole: gsc, on: `${ON}T10:00:00Z` });
   assert.equal(out.drafts.length, 1);
   const d = out.drafts[0];
-  assert.equal(d.readyAsDraft, true, JSON.stringify(d.gates.filter((g) => g.failing.length)));
+  assert.equal(five(d), true, JSON.stringify(d.gates.filter((g) => g.failing.length)));
   assert.equal(d.warnings.length, 1, JSON.stringify(d.warnings));
   assert.match(d.warnings[0], /1 related page\(s\), fewer than 3/);
 });
@@ -29,14 +32,14 @@ test("RR-336 · Gate C: with 3+ related pages the draft links them (ready); an e
   const site = siteOf([["/whitening-prices", "Whitening prices"], ["/whitening-aftercare", "Whitening aftercare"], ["/braces", "Braces"]]);
   const out = seoPages({ site, searchConsole: gsc, on: `${ON}T10:00:00Z` });
   const d = out.drafts[0];
-  assert.equal(d.readyAsDraft, true, JSON.stringify(d.gates.filter((g) => g.failing.length)));
+  assert.equal(five(d), true, JSON.stringify(d.gates.filter((g) => g.failing.length)));
   assert.deepEqual(d.warnings, []);
   for (const p of ["/whitening", "/whitening-prices", "/whitening-aftercare"]) assert.ok(d.html.includes(`href="https://clinic.example${p}"`), p);
   assert.ok(!/<section class="related">[\s\S]*braces/i.test(d.html), "a page on another topic is not a related page");
   /* the client edits the draft: two links left in its own text (the menu's links do not count) */
   const edited = d.html.replace(/<section class="related">[\s\S]*?<\/section>/, '<p><a href="https://clinic.example/whitening">Whitening</a> <a href="https://clinic.example/whitening-prices">Prices</a></p>');
   const again = seoPages({ site, searchConsole: gsc, on: `${ON}T10:00:00Z`, overrides: { [d.url]: edited } }).drafts[0];
-  assert.equal(again.readyAsDraft, false);
+  assert.equal(again.readyAsDraft, false); assert.equal(five(again), false);
   assert.ok(C(again).failing.some((f) => /at least 3 internal links — it links 2 of the 3 related pages/.test(f)), JSON.stringify(C(again).failing));
 });
 

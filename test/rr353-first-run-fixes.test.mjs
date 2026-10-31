@@ -49,7 +49,7 @@ test("RR-353 · 1 · the update check says what happened: the channel's status, 
   assert.equal(bad.state, "REFUSED");
   /* the app: only an AVAILABLE answer keeps a package to install; the screen asks on start and every 4 hours, and always says what happened */
   assert.ok(MAIN.includes('updateFound = r.state === "AVAILABLE" ? r.manifest : null;'));
-  for (const s of ['<button class="ghost small" id="updchk" type="button">Check for updates</button>', '<div id="updbar" class="updbar"></div>', 'note(msg, "Checking for updates…");', '<button id="updgo" type="button">Update to ${esc(r.version)} — Install</button>',
+  for (const s of ['<button class="ghost small" id="updchk" type="button">Check for updates</button>', '<div id="updbar" class="updbar"></div>', 'note(msg, "Checking for updates…");', /* RR-355: downloaded in the background first, then ONE button */ '<button id="updgo" type="button">Update ready — Restart</button>',
     "const UPDATE_EVERY = 4 * 3600e3;", "setTimeout(() => { checkUpdates(false).catch(() => {}); updateLoop(); }, 1500);", '$("#updchk").onclick = () => checkUpdates(true);'])
     assert.ok(UI.includes(s), s);
   assert.ok(!UI.includes('id="upd">Check for updates'), "the old button deep in the product's tabs (with its answer at the bottom of the card) is gone");
@@ -67,7 +67,8 @@ test("RR-353 · 2–6 · the screens: breadcrumb on every screen, Open/Settings 
   assert.ok(UI.includes('{ what: job, ...(job === "weekly" ? { on: true } : {}) }'), "a ticked weekly check is turned ON, never toggled off");
   assert.ok(MAIN.includes('const on = typeof json().on === "boolean" ? json().on : w.on === false;'));
   /* 4 */
-  assert.ok(UI.includes(`<button class="ghost" type="button" data-self>Give me the content, I'll do it myself</button>`));
+  /* RR-355 (owner: "Fix it for me" where Visibility cannot change the page): "Fix it for me" only where it is done; else ONE button, the content */
+  assert.ok(UI.includes('${has ? `<button class="${does || via ? "ghost" : ""}" type="button" data-self>Give me the content${does || via ? ", I\'ll do it myself" : ""}</button>` : ""}'));
   assert.ok(UI.includes('<div class="selfbox" hidden><b>Ready to use</b>'));
   assert.ok(UI.includes('const NOFIX = "Visibility cannot change a page that is already on your site — only your site\'s own editor can.'));
   /* 5 */

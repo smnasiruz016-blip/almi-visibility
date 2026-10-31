@@ -135,7 +135,7 @@ test("B1 · EVERY SCREEN is a step in the window's history: each screen function
   assert.match(UI, /<div id="backbar" class="backbar"><\/div>\n<main id="app"><\/main>/);
   /* the step-by-step flows have Next → */
   assert.match(UI, /"Next →"\}<\/button>/); assert.match(UI, /<button class=ghost id=back>← Back<\/button>/);
-  assert.match(UI, /Save and publish — Next →" : "Save — Next →"/); assert.match(UI, /Next → Sign in for YouTube/);
+  assert.match(UI, /<button id="tgsave">Save — Next →<\/button>/); /* RR-355 (owner: the button says Save, never "Save and publish") */ assert.match(UI, /Next → Sign in for YouTube/);
 });
 
 test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed data is never lost without asking (on the app's own screens)", async () => {

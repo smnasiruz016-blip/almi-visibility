@@ -38,7 +38,7 @@ import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name �
 import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
 import { guidePage } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
-import { actionPlan, willDo, planDocument, isAlmiWorld, subjectOf } from "./action-plan.mjs";
+import { actionPlan, willDo, planDocument, isAlmiWorld, publishBlocked, subjectOf } from "./action-plan.mjs";
 import { plainYouTubeWhy } from "../src/video/youtube.mjs"; // RR-313 A3
 import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS, understandFormulaAI, researchQuestionsAI, figureLeadAI } from "./web-ai.mjs"; // RR-318 A
 import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
@@ -187,7 +187,7 @@ const publishKeyName = (kind, id) => { const k = TARGETS.find((x) => x.id === ki
 const downloadsFor = (id) => join(CONFIG.downloadsDir ?? join(homedir(), "Downloads", "AlmiVisibility"), id);
 /** Approve & Publish ONE draft: the five gates judge it again right before (as the client edited it); a failing gate stops it, said */
 async function publishOne(id, url) {
-  if (isAlmiWorld(store.read(id))) return { ok: false, why: ALMIWORLD_NO }; // RR-310 D5
+  if (publishBlocked(store.read(id))) return { ok: false, why: ALMIWORLD_NO }; // RR-310 D5
   const refusal = publishRefusal(destOf(pread(id, "articles-go.json"), store.read(id).setup?.publishMode?.mode)); // RR-344 B
   if (refusal) return { ok: false, why: refusal };
   if (!ctaOf(store.read(id))) return { ok: false, needsCta: true, why: NO_CTA }; // RR-351: no page goes out without the client's own offer button
@@ -224,7 +224,7 @@ function todoOf(id) {
 
 /* ── RR-310 · the action plan, "What I will do for you", submitting, the weekly check ── */
 /* AlmiWorld's OWN products (its sites, its channel): the plan is shown, nothing is published or submitted (owner's rule, RR-310 D5) */
-const ALMIWORLD_NO = "AlmiWorld's own product: nothing is published or submitted from here (owner's rule). The plan and the drafts are yours to read.";
+const ALMIWORLD_NO = "AlmiWorld's own product: nothing is published or submitted from here (owner's rule). The plan and the drafts are yours to read. To publish it, mark it a real project in Settings → Your product.";
 const didIt = (id, what) => pwrite(id, "done.json", [...pread(id, "done.json", []), { on: new Date().toISOString(), what }].slice(-100));
 const planning = new Map();
 /** the product's ACTION PLAN, from its last check, its YouTube advice (read today, or read now) and its page plan — kept in plan.json */
@@ -247,7 +247,7 @@ async function buildPlan(id) {
 }
 const weeklyOf = (id) => { const w = pread(id, "weekly.json", {}), c = pread(id, "check.json"); const last = c?.on ?? null; return { on: w.on !== false, last, next: last ? new Date(Date.parse(last) + 7 * 864e5).toISOString() : null }; };
 const willDoOf = (id, plan) => { const s = store.read(id), sc = searchConsoleOf(id), inx = pread(id, "indexnow.json");
-  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: isAlmiWorld(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: subjectOf({ what: s.setup?.product?.what, name: s.product?.name }) }); };
+  return willDo(plan, { mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, connected: Boolean(pread(id, "publish.json")?.kind), almiworld: publishBlocked(s), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((r) => r.state === "LIVE"), submitted: pread(id, "submissions.json", {}), canSubmitGoogle: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, indexNowReady: inx?.verified === true, weekly: weeklyOf(id), product: subjectOf({ what: s.setup?.product?.what, name: s.product?.name }) }); };
 /* ── RR-318 · the official answers, "How many pages", the website's AI writing, Search Console power ── */
 const officialOf = (id) => pread(id, "official.json", {});
 /* RR-351: what a PAGE may say — the official pages Visibility read, then the owner's facts file (its VERIFIED facts only). The read store
@@ -531,13 +531,13 @@ async function createPages(id) {
   pwrite(id, "pages.json", pages);
   /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
   let auto = null;
-  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !isAlmiWorld(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
   return { pages, auto };
 }
 /** D3 · submit the published pages: Google (the sitemap, through the client's own Search Console) and Bing (IndexNow, the client's key file) */
 async function submitAll(id) {
   const s = store.read(id);
-  if (isAlmiWorld(s)) return { ok: false, why: ALMIWORLD_NO };
+  if (publishBlocked(s)) return { ok: false, why: ALMIWORLD_NO };
   const live = pread(id, "published.json", []).filter((r) => r.state === "LIVE" && r.live);
   if (!live.length) return { ok: false, why: "Nothing is published yet — publish a page first, then submit it." };
   const site = pread(id, "site-read.json"), origin = site?.origin ?? new URL(s.product.site).origin, sc = searchConsoleOf(id), on = new Date().toISOString();
@@ -593,7 +593,7 @@ async function weeklyRound() {
       await checkProduct(id); didIt(id, "Weekly check: checked again and made the action plan again.");
       await recheckSources(id).catch(() => null); // RR-321 E4
       const s = store.read(id);
-      if (hasWebsite(s) && !isAlmiWorld(s) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) {
+      if (hasWebsite(s) && !publishBlocked(s) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) {
         const r = await createPages(id); const n = (r.auto ?? []).filter((x) => x.ok).length;
         if (n) { didIt(id, `Weekly: published ${n} new page${n === 1 ? "" : "s"} (your choice: automatically after the five checks).`); await submitAll(id); }
       }
@@ -662,7 +662,7 @@ const server = createServer((req, res) => {
         const id = decodeURIComponent(m[1]);
         let s;
         try { s = store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
-        if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
+        if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, almiworld: isAlmiWorld(s), realProject: s.setup?.realProject?.on === true, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES })) });
         if (req.method === "POST" && m[2] === "setup") {
           const st = await licenceNow();
           if (!st.mayStartNewWork) return send(403, { refused: st.line });
@@ -677,6 +677,8 @@ const server = createServer((req, res) => {
           const why = checkStep(step, value);
           if (why) return send(400, { refused: why });
           /* RR-351: the offer button is kept with the product — typed now (both empty = removed), or the one set before when not sent */
+          /* RR-352: an AlmiWorld product the owner marks a REAL project is published and submitted (default off; kept with its date) */
+          if (step === "product" && value && "realProject" in value) { if (isAlmiWorld(s)) s.setup.realProject = { on: value.realProject === true, markedOn: new Date().toISOString() }; delete value.realProject; }
           if (step === "product" && value) { const typed = "ctaLabel" in value || "ctaHref" in value, c = ctaFrom(value); delete value.ctaLabel; delete value.ctaHref; if (typed ? c.cta : s.setup?.product?.cta) value.cta = typed ? c.cta : s.setup.product.cta; }
           /* RR-306 A3: a pasted key goes to Windows' secure store; the product's setup keeps only which key it uses */
           const keep = (name, key) => { if (!String(key ?? "").trim()) return null; const r = KEYS.set(name, key); return r.ok ? null : r.why; };
@@ -716,7 +718,7 @@ const server = createServer((req, res) => {
             if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) buildPlan(id).catch(() => {});
             const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
             const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
-            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, weekly: weeklyOf(id), since, almiworld: isAlmiWorld(s), noWebsite: ctx.noWebsite,
+            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
               checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
           }
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
@@ -733,7 +735,7 @@ const server = createServer((req, res) => {
           }
           /* RR-310 D · "Do it for me", following the client's own publish choice; never published or submitted for AlmiWorld's own products */
           if (r[2] === "do" && req.method === "POST") {
-            const what = json().what, aw = isAlmiWorld(s);
+            const what = json().what, aw = publishBlocked(s);
             if (what === "create-pages") { if (!ctx.hasSite || !site) return send(400, { refused: "Check your website first — the pages are answered from it." }); const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length, pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"}${pub ? ` and published ${pub}` : ""}.`); return send(200, { ok: true, line: `${n} draft${n === 1 ? "" : "s"} made${pub ? `, ${pub} published` : ""} — read them under "Pages and articles".${aw ? ` ${ALMIWORLD_NO}` : ""}`, open: "pages" }); }
             if (what === "structure") { const p = pread(id, "plan.json"); return send(200, { ok: true, items: p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.id === "ai:faq") : [], line: "New pages have the structure built in. For your existing pages, here it is ready to paste:" }); }
             if (what === "publish") {
@@ -750,7 +752,7 @@ const server = createServer((req, res) => {
             return send(400, { refused: "not something Visibility does" });
           }
           /* D3 · the IndexNow key file: the key (public by design — it sits on the client's own site), where to put it, and the check */
-          if (r[2] === "indexnow" && req.method === "GET") { if (!ctx.hasSite) return send(400, { refused: "IndexNow needs a website." }); const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx); const origin = site?.origin ?? new URL(s.product.site).origin; return send(200, { key: inx.key, url: keyFileUrl(origin, inx.key), howTo: keyFileHowTo(origin, inx.key), verified: inx.verified === true, pages: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: isAlmiWorld(s) }); }
+          if (r[2] === "indexnow" && req.method === "GET") { if (!ctx.hasSite) return send(400, { refused: "IndexNow needs a website." }); const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx); const origin = site?.origin ?? new URL(s.product.site).origin; return send(200, { key: inx.key, url: keyFileUrl(origin, inx.key), howTo: keyFileHowTo(origin, inx.key), verified: inx.verified === true, pages: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s) }); }
           if (r[2] === "indexnow/check" && req.method === "POST") { const inx = pread(id, "indexnow.json"); if (!inx) return send(400, { refused: "Open the IndexNow setup first." }); const origin = site?.origin ?? new URL(s.product.site).origin; const k = await checkKeyFile({ origin, key: inx.key }); pwrite(id, "indexnow.json", { ...inx, verified: k.ok }); return send(200, k.ok ? { ok: true, line: `Your key file is on your site ✓ (${keyFileUrl(origin, inx.key)}).` } : { ok: false, refused: k.why }); }
           if (r[2] === "fix" && req.method === "POST") { if (!site) return send(400, { refused: "Check your product first." }); return send(200, { items: fixForMe(json().id, site) }); }
           /* RR-309 A: delete removes THIS product's folder and THIS product's own publishing keys (named by its id) — never another product's,
@@ -1115,7 +1117,7 @@ const server = createServer((req, res) => {
               const notMade = pages.filter((p) => !x.pages.drafts.some((d) => d.title === p.title)).map((p) => `${p.title} — ${(x.pages.plan ?? []).find((r) => r.question === p.title)?.why ?? "not built"}`);
               pwrite(id, "batches.json", [...batchesMade, { made: new Date().toISOString(), titles: pages.map((p) => p.title), urls: x.pages.drafts.filter((d) => first.has(d.title)).map((d) => d.url) }]);
               didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned; ${regs.length} regulator pages read).`);
-              pwrite(id, "make.json", { on: new Date().toISOString(), drafts: n, planned: pages.length, all: all.length, read: regs.length, notMade, line: `${n} of the first batch's ${pages.length} pages made as drafts (${all.length} planned in all); ${regs.length} regulators' own pages read for it.${notMade.length ? ` Not made as a page of its own: ${notMade.join("; ")}.` : ""} Read them under "Pages and articles".${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}` });
+              pwrite(id, "make.json", { on: new Date().toISOString(), drafts: n, planned: pages.length, all: all.length, read: regs.length, notMade, line: `${n} of the first batch's ${pages.length} pages made as drafts (${all.length} planned in all); ${regs.length} regulators' own pages read for it.${notMade.length ? ` Not made as a page of its own: ${notMade.join("; ")}.` : ""} Read them under "Pages and articles".${publishBlocked(s) ? ` ${ALMIWORLD_NO}` : ""}` });
             })().catch((e) => pwrite(id, "make.json", { on: new Date().toISOString(), line: `Making stopped: ${e.message}` })).finally(() => { counting.delete(id); countProgress.delete(id); });
             counting.set(id, run);
             return send(200, { ok: true, running: true, line: "Reading each regulator's own page of the first batch, then making the drafts — a few minutes. You can leave this screen." });
@@ -1130,7 +1132,7 @@ const server = createServer((req, res) => {
             const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true });
             const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
             didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned).`);
-            return send(200, { ok: true, line: `${n} of the first batch's ${pages.length} page${pages.length === 1 ? "" : "s"} made as drafts (${all.length} planned in all) — read them under "Pages and articles". A page that is not ready lacks an official fact with its source and date (it says which). The next batch comes when your Search Console shows Google showing these.${isAlmiWorld(s) ? ` ${ALMIWORLD_NO}` : ""}`, drafts: n, planned: pages.length, all: all.length });
+            return send(200, { ok: true, line: `${n} of the first batch's ${pages.length} page${pages.length === 1 ? "" : "s"} made as drafts (${all.length} planned in all) — read them under "Pages and articles". A page that is not ready lacks an official fact with its source and date (it says which). The next batch comes when your Search Console shows Google showing these.${publishBlocked(s) ? ` ${ALMIWORLD_NO}` : ""}`, drafts: n, planned: pages.length, all: all.length });
           }
           /* B6 · the official pages per country: what was read, what each says, and the leads to read (pasted, or suggested by the client's AI) */
           if (r[2] === "official" && req.method === "GET") return send(200, { subject: aboutOf(s), site: s.setup?.official?.site ?? null, claims: officialOf(id), notSaid: pread(id, "official-notsaid.json", {}), leads: pread(id, "official-sources.json", {}) });
@@ -1167,7 +1169,7 @@ const server = createServer((req, res) => {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
           const s = store.read(id), conn = pread(id, "publish.json"), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
-          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: isAlmiWorld(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
+          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });

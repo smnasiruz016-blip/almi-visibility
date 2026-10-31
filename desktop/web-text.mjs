@@ -59,22 +59,27 @@ const brandless = (s, name) => (name ? String(s ?? "").split(/\s+[|·—–-]\s+
 
 /**
  * Up to 2 WRITTEN descriptions for one page (owner: "what the reader gets on that page, complete sentences, never cut"):
- *   · its main heading, then what its own sections cover ("Inside: the four OET sub-tests; all 12 healthcare professions; …"), or how many
+ *   · its main heading, then what its own sections cover ("Read about the four OET sub-tests and all 12 healthcare professions."), or how many
  *     questions it answers with one of them; topics are dropped from the end until it fits 160 characters — never a cut word;
  *   · its present description, kept to its complete sentences (when it is too long).
  * Never a sentence lifted from the page's body. Unique across the site (`used`).
  */
 export function writtenDescriptions(page, { siteName = null, used = new Set(), min = 70, max = 160 } = {}) {
   const head = sentence(brandless(page.h1 || page.title, siteName));
-  const topics = (page.h2 ?? []).map((h) => String(h).replace(/\s+/g, " ").trim()).filter((h) => h && !GENERIC_H2.test(h) && h.length <= 70 && norm(h) !== norm(page.h1));
+  /* RR-352 (owner: option 1 read "Inside: why AlmiOET? Compare for yourself; …"): a topic is a plain name of what the page covers — never a
+   * question, a slogan with its own punctuation ("An honest estimate, not a fake score", "Practise honestly. Walk in ready.") or the brand */
+  const brandWord = siteName ? norm(siteName) : null;
+  const topics = (page.h2 ?? []).map((h) => String(h).replace(/\s+/g, " ").trim()).filter((h) => h && !GENERIC_H2.test(h) && h.length <= 70 && norm(h) !== norm(page.h1) && !/[?!.,;:]/.test(h) && !(brandWord && norm(h).includes(brandWord)));
+  /* "a, b and c" — one natural sentence */
+  const listOf = (xs) => (xs.length === 1 ? xs[0] : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
   const qs = (page.qa ?? []).map((x) => String(x.q).trim()).filter(Boolean);
   const sourced = (page.qa ?? []).some((x) => /\bsource:/i.test(String(x.a ?? "")));
   const cands = [];
-  if (head && topics.length >= 2) for (let k = Math.min(4, topics.length); k >= 2; k--) { const t = `${head} Inside: ${topics.slice(0, k).map(lowerFirst).join("; ")}.`; if (t.length <= max) { cands.push({ text: t, from: "the page's main heading and what its sections cover" }); break; } }
+  if (head && topics.length >= 2) for (let k = Math.min(4, topics.length); k >= 2; k--) { const t = `${head} Read about ${listOf(topics.slice(0, k).map(lowerFirst))}.`; if (t.length <= max) { cands.push({ text: t, from: "the page's main heading and what its sections cover" }); break; } }
   /* the client's own present description, kept to its complete sentences, comes before a count of questions */
   if (page.description && page.description.length > max) { const d = wholeSentences(page.description, max); if (d && d.length >= min) cands.push({ text: d, from: "your page's present description, kept to its complete sentences" }); }
   if (head && qs.length) { const t = `${head} ${qs.length} question${qs.length === 1 ? "" : "s"} answered${sourced ? ", each with its official source" : ""} — for example: ${qs[0]}`; const s = /[.!?]$/.test(t) ? t : `${t}.`; if (s.length <= max) cands.push({ text: s, from: "the page's main heading and the questions it answers" }); else { const u = `${head} ${qs.length} question${qs.length === 1 ? "" : "s"} answered${sourced ? ", each with its official source" : ""}.`; if (u.length <= max) cands.push({ text: u, from: "the page's main heading and the questions it answers" }); } }
-  if (head && !cands.length && topics.length === 1) { const t = `${head} Inside: ${lowerFirst(topics[0])}.`; if (t.length <= max) cands.push({ text: t, from: "the page's main heading and its section" }); }
+  if (head && !cands.length && topics.length === 1) { const t = `${head} Read about ${lowerFirst(topics[0])}.`; if (t.length <= max) cands.push({ text: t, from: "the page's main heading and its section" }); }
   const out = [];
   for (const c of cands) { const k = norm(c.text); if (c.text.length < min || used.has(k) || out.some((o) => norm(o.text) === k)) continue; out.push(c); if (out.length === 2) break; }
   for (const o of out) used.add(norm(o.text));

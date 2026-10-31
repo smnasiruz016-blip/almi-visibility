@@ -21,6 +21,11 @@ import { casingOf } from "./seo-pages.mjs";
 import { newPageDescription, siteNameOf } from "./web-text.mjs";
 
 /* AlmiWorld's OWN products (a site on almiworld.com, the AlmiWorld channel): the plan is shown; nothing is published or submitted (D5) */
+/* 🔴 RR-352 (owner, 31 Oct 2026: "AlmiOET is now a REAL project"): an AlmiWorld product the owner marked REAL in its Settings
+ * (setup.realProject.on, default off) is published and submitted like a client's — only for its website; AlmiWorld's own YouTube channel is
+ * still never changed from here. isAlmiWorld stays the product's KIND (its built-in AlmiWorld lists); publishBlocked is the RULE */
+export const realProject = (s) => s?.setup?.realProject?.on === true;
+export const publishBlocked = (s) => isAlmiWorld(s) && !realProject(s);
 export const isAlmiWorld = (s) => { let host = ""; try { host = new URL(s?.product?.site ?? "").host; } catch {} return /(^|\.)almiworld\.com$/i.test(host) || /almiworld/i.test(String(s?.setup?.youtube?.confirmed?.handle ?? s?.setup?.youtube?.handle ?? "")); };
 export const HONEST = "This gives your product a better chance to appear in Google and AI answers. It promises no ranking, traffic or citation.";
 export const EFFECT_RULE = "Order: how much search engines and YouTube rely on each thing, times how many of your pages or videos miss it. Visibility's own ordering — not a forecast of rankings or visits.";

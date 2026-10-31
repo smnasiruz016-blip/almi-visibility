@@ -98,7 +98,8 @@ test("Articles · RR-333 (the buyer walk): an answer of the question's KIND; no 
     readPage(page("Teeth whitening", "<h1>Teeth whitening</h1><p>Teeth whitening at the clinic is done in one visit of 60 minutes, with results the same day.</p>"), "https://clinic.example/whitening")] };
   const out = seoPages({ site: two, searchConsole: { queries: [{ query: "how long does teeth whitening take", impressions: 70 }], window: "28 days" }, on: `${ON}T10:00:00Z` });
   assert.equal(out.drafts.length, 1, JSON.stringify(out.plan.map((p) => [p.kind, p.question, p.why])));
-  assert.equal(out.drafts[0].readyAsDraft, true, JSON.stringify(out.drafts[0].gates.filter((g) => g.failing.length)));
+  /* RR-355: the five checks decide here (this test's subject: its links); good to read and the site's look are rr355's */
+  assert.equal(out.drafts[0].gates.filter((g) => g.gate !== "F" && g.gate !== "G").every((g) => g.pass || g.failing.length === 0), true, JSON.stringify(out.drafts[0].gates.filter((g) => g.failing.length)));
   assert.equal((out.drafts[0].html.match(/class="v">60 minutes</g) ?? []).length, 1, "the same card twice");
 });
 

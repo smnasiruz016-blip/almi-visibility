@@ -135,9 +135,21 @@ test("B1–B4 · A PRODUCT WITH NO WEBSITE: the gauge is the YouTube /100 and on
 });
 
 /* ── in the app: one stand-in for the client's site, its WordPress, IndexNow and Google ── */
+/* RR-355: the site has its own header, footer and style, and real questions answered on two of its pages — so the pages made from it are
+ * good to read (three answers or more) and in the site's own look (the same questions as rr308's site) */
+const RICH_QA = [
+  ["How long does fixture exam practice online take for nurses?", "Fixture exam practice online for nurses takes about 4 weeks for most nurses, with 30 minutes of fixture exam practice online each day and one full practice test every week."],
+  ["What does fixture exam practice online for nurses cover?", "Fixture exam practice online for nurses covers all 4 parts of the fixture exam, with 120 practice tasks in total, written for nurses who want online practice before the exam day."],
+  ["Is fixture exam practice online for nurses marked?", "Every fixture exam practice online task for nurses is marked at once, and each marked answer shows what to change, so nurses see their progress in the fixture exam practice online."],
+  ["How do speaking test role plays work for nurses?", "Speaking test role plays for nurses last 20 minutes in total, with 2 speaking test role plays for nurses, each with a card, a patient and a clear task to finish in the speaking test."],
+  ["How often should nurses practise speaking test role plays?", "Nurses practise speaking test role plays 2 times a day in the course, and each of the speaking test role plays gets feedback on its language and its clinical communication in the speaking test."],
+  ["What do speaking test role plays for nurses check?", "Speaking test role plays for nurses check 5 language skills and 4 clinical communication skills, so nurses in the speaking test role plays show how they speak with a patient."],
+  ["Can nurses take fixture exam practice online on a phone?", "Fixture exam practice online for nurses works on a phone, a tablet or a computer, so nurses can take fixture exam practice online on a break at work or at home."],
+  ["Who writes the speaking test role plays for nurses?", "Teachers who trained nurses write every one of the speaking test role plays for nurses, and each of the speaking test role plays follows a real clinical setting."],
+];
 function clientSite() {
   const st = { key: null, published: new Set(), indexnow: [], google: [] }; let base = "";
-  const page = (t, b) => `<!doctype html><html lang="en"><head><title>${t}</title></head><body><nav><a href="/">Home</a> <a href="/pricing">Pricing</a> <a href="/course">Course</a></nav><main>${b}</main><footer>F</footer></body></html>`;
+  const page = (t, b) => `<!doctype html><html lang="en"><head><title>${t}</title><style>body{font-family:Georgia,serif;color:#222}</style></head><body><header><nav><a href="/">Home</a> <a href="/pricing">Pricing</a> <a href="/course">Course</a></nav></header><main>${b}${RICH_QA.filter((_, i) => (t === "Fixture Prep" ? [0, 3] : t === "Course" ? [1, 2, 4, 5, 6, 7] : []).includes(i)).map(([q, a]) => `<h2>${q}</h2><p>${a}</p>`).join("")}</main><footer>F</footer></body></html>`;
   const srv = createServer((q, r) => { let body = ""; q.on("data", (c) => (body += c)); q.on("end", () => {
     const h = (s, type = "text/html", code = 200) => { r.writeHead(code, { "content-type": type }); r.end(s); };
     const u = new URL(q.url, "http://x");
@@ -189,6 +201,8 @@ test("D IN THE APP: the plan after the check; Do it for me creates the pages, pu
     const st = await a.post(`/api/products/${id}/google/start`, { submit: true }); assert.equal(st.http, 200, st.refused);
     await a.raw(`/oauth/google?code=one-time&state=${new URL(st.url).searchParams.get("state")}`);
     assert.equal((await a.post(`/api/products/${id}/google/site`, { site: `${base}/` })).http, 200);
+    /* RR-355: "publish for me" is the client's own choice (never chosen = show me first) */
+    await a.post(`/api/products/${id}/setup`, { id: "publishMode", value: { mode: "AUTO_AFTER_GATES" } });
     O = (await a.post(`/api/products/${id}/plan`, {})).willDo;
     assert.match(O.lines[0].text, /^Create these \d+ pages?, answering the questions people ask about Fixture Prep\.$/);
     const made = await a.post(`/api/products/${id}/do`, { what: "create-pages" });

@@ -105,6 +105,30 @@ export function readDesign(html, url) {
 }
 
 /**
+ * 🔴 RR-355 Rule 1 (owner: "pages look EXACTLY like the client's site — the same header/menu, colours, fonts, footer") · THE SITE'S OWN
+ * SHELL, read from its start page: its stylesheets and style blocks, its <header> (or first <nav>) and its <footer>, every address made
+ * absolute, scripts, forms and event handlers taken out (a page only SHOWS the site's look — it never runs the site's code). Null when the
+ * page has no header or no footer or no style: the app then says the page does not look like the site yet.
+ */
+export function shellOf(html, url) {
+  const h = String(html ?? "");
+  const abs = (s) => { try { return new URL(s, url).href; } catch { return null; } };
+  const clean = (part) => String(part ?? "").replace(/<script\b[\s\S]*?<\/script>|<noscript\b[\s\S]*?<\/noscript>|<form\b[\s\S]*?<\/form>|<iframe\b[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\s(on[a-z]+)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(href|src|srcset|poster)\s*=\s*"([^"]*)"/gi, (m, a, v) => (a.toLowerCase() === "srcset" ? ` srcset="${v.split(",").map((x) => { const [u0, w] = x.trim().split(/\s+/); return [abs(u0), w].filter(Boolean).join(" "); }).join(", ")}"` : /^(javascript|data):/i.test(v.trim()) ? ` ${a}="#"` : ` ${a}="${abs(v) ?? "#"}"`))
+    .replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (m, q, v) => (/^data:/i.test(v) ? m : `url("${abs(v) ?? v}")`));
+  const head = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(h)?.[1] ?? "";
+  const links = [...head.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((t) => /rel\s*=\s*["']?(?:stylesheet|preload)["']?/i.test(t) && (/rel\s*=\s*["']?stylesheet/i.test(t) || /as\s*=\s*["']?(?:style|font)/i.test(t)));
+  const styles = [...h.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
+  const header = /<header\b[\s\S]*?<\/header>/i.exec(h)?.[0] ?? /<nav\b[\s\S]*?<\/nav>/i.exec(h)?.[0] ?? null;
+  const footer = [...h.matchAll(/<footer\b[\s\S]*?<\/footer>/gi)].at(-1)?.[0] ?? null;
+  const bodyAttr = /<body\b([^>]*)>/i.exec(h)?.[1] ?? "", htmlAttr = /<html\b([^>]*)>/i.exec(h)?.[1] ?? "";
+  const cls = (a) => /\bclass\s*=\s*"([^"]*)"/i.exec(a)?.[1] ?? "";
+  if (!header || !footer || (!links.length && !styles.trim())) return null;
+  return Object.freeze({ from: url, head: [...links.map((t) => clean(t)), styles.trim() ? `<style>${clean(styles)}</style>` : ""].join(""), header: clean(header), footer: clean(footer), htmlClass: cls(htmlAttr), bodyClass: cls(bodyAttr), lang: /\blang\s*=\s*"([^"]*)"/i.exec(htmlAttr)?.[1] ?? null });
+}
+
+/**
  * Read the site. Returns { ok, origin, readOn, pages:[readPage…], design, sitemap, robots, skipped, pageReads, securityReads, linkObs } —
  * pageReads/securityReads/linkObs are what the engine's own score (src/report/visibility-score.mjs) is made from; the caller does not keep
  * the HTML. `allowLocal` is for TESTS ONLY (a stand-in site on this computer).
@@ -138,7 +162,7 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
     for (const s of sm.sitemaps) if (s.startsWith(origin) && sitemaps.length < 10) sitemaps.push(s);
   }
   const queue = [start, ...[...sitemapUrls].filter((u) => htmlish(u))], seen = new Set(), pages = [], pageReads = [], linkSets = new Map();
-  let design = null;
+  let design = null, shell = null;
   const notChecked = { signup: [], parameters: [], noindex: [] };
   while (queue.length && pages.length < maxPages) {
     tell("Reading your pages", pages.length, Math.min(maxPages, pages.length + queue.length) + Math.min(FULL.linkChecks, 30));
@@ -163,6 +187,7 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
     pageReads.push({ url: u, html, recorded_at: on, read_id: `site-read:${pages.length + 1}` });
     pages.push(page);
     if (!design) design = readDesign(html, u);
+    if (!shell) shell = shellOf(html, u); // RR-355 Rule 1
     linkSets.set(u, [...new Set(links)]);
     for (const l of links) if (htmlish(l) && !seen.has(l) && !queue.includes(l)) queue.push(l);
   }
@@ -188,7 +213,7 @@ export async function readSite({ url, fetchImpl = fetch, maxPages = FULL.pages, 
   /* what robots.txt tells the AI search bots about the start page */
   const aiBots = Object.fromEntries(AI_SEARCH_BOTS.map((b) => [b, robotsTxt === null ? (rt.status === 404 ? true : null) : isAllowedByRules(parseRobots(robotsTxt, b), start)]));
   return Object.freeze({
-    ok: true, origin, start, readOn: on, pages, design, skipped, notChecked: notCheckedLine(notChecked),
+    ok: true, origin, start, readOn: on, pages, design, shell, skipped, notChecked: notCheckedLine(notChecked),
     sitemap: { found: sitemapFound, urls: sitemapUrls.size },
     robots: { found: robotsTxt !== null, aiBots },
     /* for the five gates: the site's own robots.txt and its sitemap's addresses */

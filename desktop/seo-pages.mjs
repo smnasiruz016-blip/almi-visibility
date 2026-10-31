@@ -25,6 +25,8 @@ import { tokens } from "./youtube-advice.mjs";
 import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
+import { goodToRead, topicOf as pageTopicOf, offTopic, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
+import { PEOPLE_WORD } from "./recognition.mjs";
 
 /*
  * RR-318 B4 · THE SAMENESS GATE (owner: "OET Requirements for Ireland" and "OET Score for Ireland" were two pages for ONE need; Google calls
@@ -64,6 +66,7 @@ export function linksGate(html, url, builtUrls, related) {
   if (targets.size >= MIN_INTERNAL_LINKS) return { block: `at least ${MIN_INTERNAL_LINKS} internal links — it links ${r.links} of the ${targets.size} related pages on your site`, warning: null };
   return { block: null, warning: `${r.links} internal link(s): your site has ${targets.size} related page(s), fewer than ${MIN_INTERNAL_LINKS} — add links when you add related pages` };
 }
+const normQ = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const slug = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "page";
 const SHOUTED = new Set(["not", "and", "the", "for", "you", "all", "are", "but", "new", "now", "one", "our", "free", "only", "must", "will", "can", "may", "yes", "no", "or", "to", "of", "in", "on", "is", "it", "we", "do", "be", "an", "at", "by", "if", "so", "up", "as", "my", "me", "us", "how", "why", "what", "when", "who", "best", "top", "get", "pass", "test", "exam", "score"]);
 /* RR-333 (buyer walk: "How much does a Dental implant cost" — from the heading "Dental implants"): a heading's FIRST word is capitalised
@@ -147,7 +150,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -156,9 +159,35 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
    * the topic pages dropped): the PLAN is already one page per different answer — each planned page is its own need, its questions are its
    * "also asked", its own official claims answer it first */
   if (pagePlan?.length) {
-    const needs = [], meta = new Map();
+    const needs = [], meta = new Map(), usedSite = new Map(); // a line of the client's site → how many pages it answers on (at most 3)
+    const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
     for (const p of pagePlan) {
-      const qs = (p.questions ?? []).map((q) => q.question ?? q), needId = `need-${slug(p.title)}`;
+      const qs = (p.questions ?? []).map((q) => q.question ?? q), base = `need-${slug(p.title)}`;
+      /* RR-355: a page planned as a set of questions (desktop/exam-plan.mjs) — each part its own question with its own facts; the client's own
+       * pages fill it further: each question people ask that one of its pages answers (on the page's own topic) becomes one more part */
+      if (Array.isArray(p.items)) {
+        const topic = pageTopicOf({ title: p.title, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, people: PEOPLE_WORD });
+        /* one thing once: a line that says what another line of the page says (the same numbers from the same body, or most of its words) goes */
+        const sig = (t) => new Set(String(t).toLowerCase().match(/[a-z]{4,}/g) ?? []), nums = (t) => (String(t).match(/\d[\d,.]*/g) ?? []).map((n) => n.replace(/[,.]/g, "")).sort().join("|");
+        /* a council or score line differs by its body's name only — those are never merged; a rule or centre said twice (the same fee of the same body) is */
+        const same = (a, b, loose = true) => { if (a.text === b.text) return true; if (!loose) return false; const x = sig(a.text), y = sig(b.text); return Boolean(nums(a.text)) && nums(a.text) === nums(b.text) && hostOf(a.link) === hostOf(b.link) || [...x].filter((w) => y.has(w)).length / Math.max(1, Math.min(x.size, y.size)) >= 0.85; };
+        const loose = (part) => !/^(councils|scores|fee)$/.test(String(part));
+        const clean = (cs, part = "site") => cs.map((c) => ({ ...c, text: cleanFact(c.text) })).filter((c) => c.text.length >= 12 && !offTopic(c.text, topic)).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
+        const parts = p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length);
+        const kept = parts.flatMap((it) => it.claims);
+        /* the client's own pages answer the questions people ask about it — a real question only (never a bare search wording as a heading), a
+         * whole answer only (never a lone "No." whose question is not shown, never a page title), each site line on three pages at most */
+        const ASKS = /^(how|what|why|which|where|when|who|is|are|can|does|do|should|will)\b/i;
+        const whole = (c) => /[.!?]$/.test(c.text) && !/^(yes|no)\b/i.test(c.text) && c.text.split(/\s+/).length >= 8 && (usedSite.get(c.text) ?? 0) < 3;
+        /* the page's own title is asked of the site too ("OET for Nurses" → its pages about nurses), under "What else should I know about …?" */
+        const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim())).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` })), { q: p.title, heading: `What else should I know about ${p.title}?`, max: 3 }];
+        let fromSite = 0; for (const { q, heading, max = 2 } of asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
+        const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
+        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic });
+        needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
+        continue;
+      }
+      const needId = base;
       /* RR-321 proof: a page planned from the list keeps ALL its own facts (a section per country) — never its first five */
       const claims = p.claims?.length > 5 ? p.claims.slice(0, 60) : [...(p.claims?.length ? p.claims : p.country ? official[p.country] ?? [] : []), ...answersFromSite([p.title, ...qs].join(" "), site)].slice(0, 5);
       meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: claims, alsoAsked: qs, links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, about: p.body ?? p.uni?.name ?? null, sample: p.sample?.check?.ok ? p.sample : null });
@@ -196,16 +225,40 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   }
   for (let k = needs.length - 1; k >= 0; k--) if (needs[k].merged) { meta.get(needs[k].merged).alsoAsked = [...(meta.get(needs[k].merged).alsoAsked ?? []), needs[k].question]; needs.splice(k, 1); }
   for (const n of needs) delete n.merged;
+  /* 🔴 RR-355 (owner: "a page that answers only 1 question or is thin does not get ✅ — the app fills it from collector data and the client's own
+   * pages"): each page also answers the questions asked with it ("also asked") and the questions the client's own pages answer on its
+   * topic — each a part of its own, with its own sourced answer from the client's pages; a question with no sourced answer is not shown */
+  const topicWords = (s) => new Set(tokens(s).filter((w) => !ASKING.has(w) && !KIND_WORDS.has(w)));
+  for (const n of needs) {
+    if (!n.claims.length) continue;
+    const t = topicWords(n.question), extra = [], day = String(site.readOn).slice(0, 10);
+    /* the client's own question-and-answer pairs on this page's topic: each question with ITS OWN answer from its page (an answer the first
+     * part already shows is not shown twice) */
+    const pairs = site.pages.flatMap((p) => p.qa.filter((x) => x.q && x.a).map((x) => ({ q: x.q, text: wholeSentences(cleanAnswer(x.a), 600), link: p.url }))).filter((x) => x.text && [...topicWords(x.q)].filter((w) => t.has(w)).length >= Math.min(2, t.size));
+    for (const x of pairs) {
+      if (extra.length >= 5 || normQ(x.q) === normQ(n.question)) continue;
+      if (n.claims.some((c) => c.text === x.text)) continue;
+      extra.push({ needId: `${n.needId}--q${extra.length + 1}`, question: asQuestion(x.q, casing), claims: [{ claimId: `site-${createHash("sha256").update(`${x.link}|${x.text}`).digest("hex").slice(0, 16)}`, text: x.text, link: x.link, readOn: day, source: new URL(x.link).hostname }] });
+    }
+    const used = new Set([...n.claims, ...extra.flatMap((e) => e.claims)].map((c) => c.text));
+    for (const q of meta.get(n.needId)?.alsoAsked ?? []) {
+      if (extra.length >= 5) break;
+      const a = answersFromSite(q, site, 2).filter((c) => !used.has(c.text)); if (!a.length) continue;
+      for (const c of a) used.add(c.text);
+      extra.push({ needId: `${n.needId}--q${extra.length + 1}`, question: asQuestion(q, casing), claims: a });
+    }
+    if (extra.length) { n.extraItems = extra; meta.get(n.needId).alsoAsked = (meta.get(n.needId).alsoAsked ?? []).filter((q) => !extra.some((x) => x.question === asQuestion(q, casing))); }
+  }
   return finish({ needs, meta });
   function finish({ needs, meta }) {
   const existing = site.pages.map((p) => ({ id: p.url, url: p.url, claimIds: [], questions: [p.h1, p.title, ...p.qa.map((x) => x.q)].filter(Boolean) }));
   /* an answer taken from ONE existing page means that page already does the job: improve it (existing page first) */
   for (const n of needs) { const own = n.claims.filter((c) => !c.official), pages = new Set(own.map((c) => c.link)); if (pages.size === 1 && own.length === n.claims.length) { const e = existing.find((x) => x.url === [...pages][0]); if (e) e.claimIds.push(...own.map((c) => c.claimId)); } } // an official answer is no page of the client's
   const plan = planNewPages({ needs, existing });
-  const rows = plan.map((p) => { const m = meta.get(p.needId) ?? {}; return { kind: p.kind, question: p.question ?? p.need?.question ?? needs.find((n) => n.needId === p.needId)?.question, demand: m.demand, alsoAsked: m.alsoAsked ?? [], answers: m.answers ?? [],
+  const rows = plan.map((p) => { const m = meta.get(p.needId) ?? {}; return { kind: p.kind, question: p.need?.title ?? needs.find((n) => n.needId === p.needId)?.title ?? p.question ?? p.need?.question ?? needs.find((n) => n.needId === p.needId)?.question, demand: m.demand, alsoAsked: m.alsoAsked ?? [], answers: m.answers ?? [],
     into: p.into ?? null, why: p.kind === "REFUSED" ? (p.reason?.startsWith("its answer is not sourced") ? "No answer to it was found on your pages yet — write the answer on your site (or tell Visibility where it is), then plan again." : p.reason) : p.kind === "SECTION" ? `Improve your existing page ${p.into}: add this question and its answer there — a second page would compete with it.` : "A new page: real demand, answered from your own pages, each answer with its source and date." }; });
   const news = plan.filter((p) => p.kind === "NEW").slice(0, max);
-  const design = designFromSite(site);
+  const design = site.shell ? null : designFromSite(site); // RR-355: the site's own shell replaces the engine's header and footer
   /* key-fact cards: a price, or a number with its word, standing IN one of the page's own sourced answer sentences (never typed in) */
   const valueIn = (s) => (String(s).match(/(?:[$£€₹]|\b(?:USD|GBP|EUR|PKR|INR|AUD|CAD)\s?)\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?(?:\/|per)\s?(?:month|year|week))?/i) ?? String(s).match(/\b\d[\d,.–-]*\s?(?:%|[A-Za-z]+)/) ?? [])[0];
   /* RR-318 proof (the Ireland page showed "23 April" — Australia's date — as a key fact): a page about a country takes a key fact only from a
@@ -218,17 +271,20 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     /* RR-319 proof (8 of 13 drafts "no key-fact card"): an official answer's scores ("— Listening 350 · Reading 360 …"), its fee, or the
      * official page's own word that it is recognised there */
     if (c.official) { const m = / — ([^—]+)\.$/.exec(c.text); if (m && /\d|grade|Listening [ABC]/i.test(m[1])) return m[1].trim(); if (/is recognised or accepted there/.test(c.text)) return "recognised or accepted there"; } /* the card's words stand IN the sourced sentence */ const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
-  const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question), kind = answerKindOf(p.need.question); return p.need.claims.map((c) => ({ claimId: c.claimId, value: factIn(c, where, kind) })).filter((k, i, all) => !k.value || all.findIndex((x) => x.value === k.value) === i) /* RR-333: one card per value ("60 minutes" twice) */.filter((k) => k.value).slice(0, 2); });
+  /* RR-355: a page of several parts takes its cards from each part in order (the country's fee first), never a broken or doubled one */
+  const cardKey = (v) => String(v ?? "").replace(/^[A-Za-z ]+ — /, "").trim().toLowerCase();
+  const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question), kind = answerKindOf(p.need.question), parts = p.need.extraItems ? [p.need, ...p.need.extraItems] : [p.need];
+    return parts.flatMap((n) => n.claims).map((c) => ({ claimId: c.claimId, ...(p.need.extraItems ? { needId: p.needId } : {}), value: typeof c.card === "string" ? c.card : c.card === null ? null : factIn(c, where, kind) /* a planned part's card is its own (null: none) */ })).filter((k) => k.value && !brokenCard(k.value)).filter((k, i, all) => all.findIndex((x) => cardKey(x.value) === cardKey(k.value)) === i) /* RR-333: one card per value ("60 minutes" twice) */.slice(0, p.need.extraItems ? 3 : 2); });
   /* RR-321 E3: a planned page links the pages its plan names (a university page its regulator pages; a regulator page "Where to take" and
    * the topic pages); E4: it shows when its sources were last checked */
   /* the proof: a preview of two pages linked pages outside the set ("links to no other page of the set") — a link goes to a page that is
    * built with it; with none, to the others built with it */
-  const base = site.origin.replace(/\/$/, ""), built0 = new Map(news.map((x) => [x.need.question, x]));
-  const relatedFor = pagePlan?.some((p) => p.links?.length) ? (np) => { const l = (meta.get(np.needId)?.links ?? []).filter((t) => built0.has(t) && t !== np.need.question).map((t) => ({ href: `${base}${built0.get(t).path}`, label: t })); return l.length ? l : news.filter((x) => x.needId !== np.needId).slice(0, 8).map((x) => ({ href: `${base}${x.path}`, label: x.need.question })); } : null;
+  const base = site.origin.replace(/\/$/, ""), built0 = new Map(news.map((x) => [x.need.title ?? x.need.question, x])); // RR-355: a page planned with its own title is linked by it
+  const relatedFor = pagePlan?.some((p) => p.links?.length) ? (np) => { const l = (meta.get(np.needId)?.links ?? []).filter((t) => built0.has(t) && t !== (np.need.title ?? np.need.question)).map((t) => ({ href: `${base}${built0.get(t).path}`, label: t })); return l.length ? l : news.filter((x) => x.needId !== np.needId).slice(0, 8).map((x) => ({ href: `${base}${x.path}`, label: x.need.title ?? x.need.question })); } : null;
   /* RR-336 (beta-g decision, Gate C): the client's own pages on the same topic are related pages too — a draft links them beside the pages
    * built with it, so it can reach MIN_INTERNAL_LINKS */
   const siteRelated = siteRelatedPages(site);
-  const withSite = (np) => { const seen = new Set(); return [...(relatedFor ? relatedFor(np) : news.filter((x) => x.needId !== np.needId).map((x) => ({ href: `${base}${x.path}`, label: x.need.question }))), ...siteRelated(np.need.question)].filter((l) => l.href && !seen.has(l.href) && seen.add(l.href)).slice(0, 8); };
+  const withSite = (np) => { const seen = new Set(); return [...(relatedFor ? relatedFor(np) : news.filter((x) => x.needId !== np.needId).map((x) => ({ href: `${base}${x.path}`, label: x.need.title ?? x.need.question }))), ...siteRelated(np.need.title ?? np.need.question)].filter((l) => l.href && !seen.has(l.href) && seen.add(l.href)).slice(0, 8); };
   let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin, relatedFor: withSite }) : [];
   built = built.map((b) => richPage(b, meta.get(b.needId), String(on).slice(0, 10)));
   built = built.map((b) => { const lc = meta.get(b.needId)?.lastChecked; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
@@ -237,6 +293,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   /* RR-351 (owner, 31 Oct 2026): EVERY draft ends with the client's own offer button — a page planned from the list carries it already; a
    * page made from a search, or one the client edited without it, gets it before "Last updated" (the gates then read the page with it) */
   if (cta?.label && cta?.href) built = built.map((b) => (/data-cta>/.test(b.html) ? b : { ...b, html: withCta(b.html, cta) }));
+  /* RR-355 Rule 1: in the site's own look (its header, footer and styles), read from the site */
+  built = built.map((b) => ({ ...b, html: inSiteLook(b.html, site.shell ?? null) }));
   const now = new Date(on).toISOString();
   /* RR-333 (buyer walk: ONE new article could never be published — "it links to no other page of the set" while it linked the buyer's own
    * Prices and Implants pages): the site's existing pages are link targets for the gates (their links IN to a new page come after publishing) */
@@ -245,8 +303,18 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const gated = built.length ? allGates(built.map((b) => gateInput(b)), { guidance: GUIDANCE, on: String(on).slice(0, 10), site: { robotsTxt: site.robotsTxt ?? null, sitemapUrls: site.sitemapUrls ?? null, extraPages: siteLinkPages }, cost }) : [];
   const drafts = built.map((b, i) => ({ url: b.url, title: b.title, html: b.html, pass: gated[i].pass, gates: Object.entries(gated[i].gates).map(([k, g]) => ({ gate: k, words: GATE_WORDS[g.gate] ?? g.gate, pass: g.pass, failing: (g.checks ?? []).filter((c) => c.result === "FAIL" && !AFTER_PUBLISHING.test(c.name)).map((c) => `${c.name}${c.reason ? ` — ${c.reason}` : ""}`), afterPublishing: (g.checks ?? []).filter((c) => c.result !== "PASS" && (AFTER_PUBLISHING.test(c.name) || c.result === "NOT MEASURED")).map((c) => c.name) })) }));
   drafts.forEach((d, i) => { const r = linksGate(d.html, d.url, built.filter((x) => x.url !== d.url).map((x) => x.url), siteRelated(built[i].title)); if (r.block) { const c = d.gates.find((g) => g.gate === "C"); if (c) { c.pass = false; c.failing.push(r.block); d.pass = false; } } d.warnings = r.warning ? [r.warning] : []; });
+  /* 🔴 RR-355 · THE SIXTH CHECK, "GOOD TO READ" (desktop/page-quality.mjs), and LOOKS LIKE YOUR SITE: a page that fails either never gets ✅ */
+  drafts.forEach((d, i) => {
+    const m = meta.get(built[i].needId) ?? {}, topic = m.topic ?? pageTopicOf({ title: d.title, kind: m.kind ?? null, people: PEOPLE_WORD });
+    const q = goodToRead(d.html, topic), missing = partsMissing(d.html, m.kind, { localCurrency: m.localCurrency });
+    const failing = [...q.problems.map((x) => x.line), ...(missing.length ? [`Missing: ${missing.join("; ")}.`] : [])];
+    d.gates.push({ gate: QUALITY_GATE, words: "good to read", pass: !failing.length, failing, afterPublishing: [] });
+    const look = looksLikeSite(d.html, { target });
+    d.gates.push({ gate: LOOK_GATE, words: "looks like your site", pass: look.pass, failing: look.pass ? [] : [look.why], afterPublishing: [] });
+    if (failing.length || !look.pass) d.pass = false;
+  });
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
-  return { plan: rows, drafts, design: design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };
+  return { plan: rows, drafts, design: site.shell ? "your site's own look — its header, footer and styles" : design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };
   }
 }
 
@@ -266,6 +334,28 @@ export function withCta(html, cta) {
   if (/<\/main>/.test(h)) return h.replace(/<\/main>/, `${row}</main>`);
   if (/<\/body>/.test(h)) return h.replace(/<\/body>/, `${row}</body>`);
   return `${h}${row}`;
+}
+/*
+ * 🔴 RR-355 Rule 1 · THE PAGE IN THE SITE'S OWN LOOK: the engine's page content (its <main>) inside the site's own shell — its stylesheets,
+ * its header and its footer, read from the site (desktop/site-read.mjs shellOf). The engine's own colours and fonts are dropped: the content
+ * takes the site's. A small layout style for the content travels INSIDE <main> (so a theme or a site layout that takes only the content keeps
+ * it), scoped to .av-page, with no colour or font of its own. The call-to-action button takes the classes of the site's own button.
+ */
+export const CONTENT_CSS = ".av-page{max-width:860px;margin:0 auto;padding:24px 16px 56px;line-height:1.6}.av-page h1{font-size:2rem;line-height:1.2;margin:8px 0 12px;font-weight:700}.av-page h2{font-size:1.4rem;margin:32px 0 12px;font-weight:700}.av-page h3{font-size:1.1rem;margin:20px 0 8px;font-weight:600}.av-page p{margin:10px 0}.av-page ul,.av-page ol{padding-left:1.4em}.av-page .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;list-style:none;padding:0;margin:0}.av-page .card{border:1px solid rgba(127,127,127,.3);border-radius:12px;padding:14px}.av-page .card .k{display:block;font-size:.85rem;opacity:.8}.av-page .card .v{display:block;font-size:1.15rem;font-weight:700;margin:4px 0 6px}.av-page .src,.av-page .checked,.av-page .also,.av-page .citation{font-size:.85rem;opacity:.8}.av-page details{border:1px solid rgba(127,127,127,.3);border-radius:12px;margin:0 0 10px;padding:0 14px}.av-page summary{cursor:pointer;padding:12px 0;font-weight:600}.av-page table{width:100%;border-collapse:collapse;margin:12px 0}.av-page th,.av-page td{border:1px solid rgba(127,127,127,.3);padding:8px;text-align:left;vertical-align:top}.av-page .cta-row{margin:24px 0}.av-page a.cta:not([class*=' ']){display:inline-block;padding:10px 22px;border-radius:9999px;border:2px solid currentColor;font-weight:600;text-decoration:none}.av-page .stamp{font-size:.8rem;opacity:.75}";
+const tagWith = (part, attr) => String(part).replace(/^<(header|footer|nav)\b/i, (m) => `${m} ${attr}`);
+/** the class list of the site's own main button (a link in its header styled as a button), or null */
+const siteButtonClass = (header) => [...String(header ?? "").matchAll(/<a\b[^>]*class="([^"]*)"[^>]*>/gi)].map((m) => m[1]).reverse().find((c) => /\b(?:bg-|btn|button|cta|wp-element-button)/i.test(c)) ?? null;
+export function inSiteLook(html, shell) {
+  const h = String(html ?? "");
+  if (!shell || /data-site-shell/.test(h)) return h;
+  const head = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(h)?.[1] ?? "";
+  const keep = [...head.matchAll(/<meta\b[^>]*>|<title\b[\s\S]*?<\/title>|<link\b[^>]*rel="canonical"[^>]*>|<script type="application\/ld\+json">[\s\S]*?<\/script>/gi)].map((m) => m[0]).join("");
+  const main = /<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(h)?.[1] ?? h;
+  const btn = siteButtonClass(shell.header);
+  const content = btn ? main.replace(/<a class="cta"/g, `<a class="cta ${btn.replace(/"/g, "")}"`) : main;
+  const stamps = [...h.matchAll(/<p class="stamp">[\s\S]*?<\/p>/gi)].map((m) => m[0]);
+  const lang = /<html lang="([^"]*)"/.exec(h)?.[1] ?? shell.lang ?? "en", dir = /<html[^>]*\sdir="(rtl)"/.exec(h)?.[1];
+  return `<!doctype html>\n<html lang="${lang}"${dir ? ` dir="${dir}"` : ""}${shell.htmlClass ? ` class="${shell.htmlClass}"` : ""}><head>${keep}<meta name="av-site-style" data-site-style content="${escH(shell.from)}">${shell.head}</head><body${shell.bodyClass ? ` class="${shell.bodyClass}"` : ""}>\n${stamps[0] ?? ""}${tagWith(shell.header, "data-site-shell")}\n<main class="av-page"><style data-av-content>${CONTENT_CSS}</style>${content}</main>\n${tagWith(shell.footer, "data-site-shell")}\n</body></html>\n`;
 }
 const RTL = new Set(["ar", "ur"]);
 export function richPage(b, m, on) {

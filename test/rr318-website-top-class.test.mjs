@@ -384,6 +384,7 @@ test("IN THE APP · How many pages (count → advice → drafts answered from th
     const made = await a.post("/api/products", { name: "XPrep", site: csBase });
     const id = made.product.id;
     let o; for (let i = 0; i < 200; i++) { o = await a.get(`/api/products/${id}/overview`); if (!o.checking && o.card) break; await new Promise((r) => setTimeout(r, 150)); }
+    { const c = await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "XPrep", site: csBase, what: "Practice for the XTEST.", ctaLabel: "Try XPrep free", ctaHref: `${csBase}/signup` } }); assert.equal(c.http, 200, `RR-351: no page without the client's own offer button — ${c.refused}`); }
     /* C: refused without a subject; then the count runs, and the advice comes from the official pages */
     assert.match((await a.post(`/api/products/${id}/count`, { dims: ["countries"] })).refused, /^Say what your product is about/);
     /* RR-320 (owner): a profession page only where the regulator's own page accepts it — the client pasted the regulator's page as a lead */

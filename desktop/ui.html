@@ -405,7 +405,7 @@ let KS = null; // the keys' status (never a key)
 const choiceList = (name, list, current, rec) => list.map((c) => `<label class="choice"><input type="radio" name="${name}" value="${esc(c.value)}" ${String(current ?? rec ?? "") === String(c.value) ? "checked" : ""}> <b>${esc(c.label)}</b> ${String(rec) === String(c.value) ? `<span class="rec">Recommended for you</span>` : ""}<div class="why">Choose this if ${esc(c.chooseIf)} You get: ${esc(c.gives)} Cost: ${esc(c.cost)} You need: ${esc(c.needs)}</div>${c.howTo ? `<div class="howto">How: ${esc(c.howTo)}</div>` : ""}</label>`).join("");
 const fields = {
   goal: () => `<h3>What do you want to grow?</h3>${choiceList("grow", S.choices.grow, S.setup.goal?.grow, null)}<h3 style="margin-top:10px">Do you have a website for this product?</h3><label class="choice"><input type="radio" name="hasweb" value="yes" ${S.setup.goal?.hasWebsite === true ? "checked" : ""}> Yes</label><label class="choice"><input type="radio" name="hasweb" value="no" ${S.setup.goal?.hasWebsite === false ? "checked" : ""}> No</label>`,
-  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label>`,
+  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for (keep its price and offer up to date: Visibility writes from it)<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label>${S.setup.goal?.hasWebsite === false ? "" : `<h3 style="margin-top:14px">Your offer button</h3><p class="meta">Every page Visibility makes ends with this button. No page is made or published without it.</p><label>The button's words<input id=f4 maxlength=80 placeholder="for example: Try free for 48 hours" value="${esc(S.setup.product?.cta?.label ?? "")}"></label><label>The page it opens (a full web address)<input id=f5 placeholder="https://yoursite.com/signup" value="${esc(S.setup.product?.cta?.href ?? "")}"></label>`}`,
   searchData: () => `${choiceList("sd", S.choices.searchData, S.setup.searchData?.option, S.recommended.searchData)}<div id=sk>${keyBox("SEARCH_API_KEY", "Your search service key (for that choice)", KS.keys.SEARCH_API_KEY)}</div>`,
   languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${(S.setup.languages?.codes ?? ["en"]).includes(l.code) ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
   articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=${Number.isInteger(S.setup.articlesPerDay?.perDay) ? S.setup.articlesPerDay.perDay : S.recommended.articlesPerDay ?? 1}> <span class="rec">Recommended for you: 1 a day</span>`,
@@ -418,7 +418,7 @@ const fields = {
 };
 const value = (id) => ({
   goal: () => ({ grow: document.querySelector("input[name=grow]:checked")?.value, hasWebsite: document.querySelector("input[name=hasweb]:checked") ? document.querySelector("input[name=hasweb]:checked").value === "yes" : undefined }),
-  product: () => ({ name: $("#f1").value, site: $("#f2") ? $("#f2").value : "", what: $("#f3").value }),
+  product: () => ({ name: $("#f1").value, site: $("#f2") ? $("#f2").value : "", what: $("#f3").value, ...($("#f4") ? { ctaLabel: $("#f4").value, ctaHref: $("#f5").value } : {}) }),
   searchData: () => ({ option: Number(document.querySelector("input[name=sd]:checked")?.value) }),
   languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }), articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
   publishMode: () => ({ mode: document.querySelector("input[name=m]:checked")?.value }), aiConnection: () => ({ provider: $("#f1").value, key: $("#f2").value }),
@@ -427,6 +427,24 @@ const value = (id) => ({
 /* RR-307: a product always opens on its Overview — its check is already there; an unfinished setup is a banner, never a wall */
 async function openProduct(id) { P = id; S = await get(`/api/products/${encodeURIComponent(id)}/state`); await work("Overview"); }
 function continueSetup() { step = S.steps.findIndex((x) => !S.setup[x.id] || (x.id === "product" && !S.setup.product?.what)); if (step < 0) step = S.steps.length - 1; setup(); }
+/* 🔴 RR-351 · "Add official facts file": verified-facts files (source URL, quote, check date per fact). Only a fact proved on its
+   official page goes on a page; the rest say "check the official page" with the link. Several files at once; the same name replaces itself */
+async function factsFileBox() {
+  const box = $("#featbox"); if (!box) return;
+  const show = (V, msg = "", cls = "ok") => {
+    box.innerHTML = `<div class="card"><h3>Official facts files</h3><p class="meta">A file of facts read on their official pages — each with its page's address, the quote and the day it was checked. Only a fact whose quote and numbers were proved on its page goes on your pages; every other one shows only "check the official page" with its link.</p>
+    <label>The file (or several files, .json)<input type="file" id="fffile" accept=".json,application/json" multiple></label><button id="ffup">Add</button> <span id="ffmsg" class="${cls}">${esc(msg)}</span>
+    ${V.files.length ? `<ul>${V.files.map((f) => `<li><b>${esc(f.file)}</b> — ${f.verified} on pages, ${f.check} "check the official page" · ${esc(f.countries.join(", "))} · added ${esc(String(f.addedOn).slice(0, 10))}</li>`).join("")}</ul>` : `<p>No facts file added yet.</p>`}
+    ${V.notShown.length ? `<details><summary>Not shown with their value (${V.notShown.length}) — the page sends the reader to the official page</summary><ul>${V.notShown.map((x) => `<li>${esc(x.country)} · ${esc(x.label)} — ${esc(x.why ?? "")} <span class="src">(${esc(x.link)})</span></li>`).join("")}</ul></details>` : ""}</div>`;
+    $("#ffup").onclick = async () => {
+      const fs = [...$("#fffile").files]; if (!fs.length) return note($("#ffmsg"), "Choose the file first.", "err");
+      const lines = []; let last = null, bad = false;
+      for (const f of fs) { const r = await post(`/api/products/${encodeURIComponent(P)}/facts-file`, { name: f.name, text: await f.text() }); if (r.ok) last = r.view; else bad = true; lines.push(r.ok ? r.line : `${f.name}: ${r.refused}`); }
+      show(last ?? V, lines.join(" · "), bad ? "err" : "ok");
+    };
+  };
+  show(await get(`/api/products/${encodeURIComponent(P)}/facts-file`));
+}
 /* RR-306 A2 / RR-307 E2: the product's Settings — the same steps, with the answers given, any time; and "Delete product" */
 async function settings() { S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = 0; setup(); }
 async function setup() {
@@ -617,13 +635,14 @@ async function work(tab) {
   const lists = { "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly };
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
   <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="upd">Check for updates</button></nav>
-  <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button></p><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
+  <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button> <button class="ghost" id="ffile">Add official facts file</button></p><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
   $("#yts").onclick = youtubeSettings; $("#set").onclick = settings;
   if (tab === "Overview") await overview(); // RR-348: openFeature waits for the overview and its #featbox
   if (tab === "YouTube") youtubeTab();
   if ($("#pubbox")) pagesBox(tab === "Approvals");
   if ($("#pubset")) $("#pubset").onclick = publishScreen;
+  if ($("#ffile")) $("#ffile").onclick = factsFileBox; // RR-351
   if ($("#mk")) $("#mk").onclick = () => openFeature("seo-pages"); if ($("#art")) $("#art").onclick = () => openFeature("articles"); if ($("#mr")) $("#mr").onclick = () => openFeature("monthly");
   $("#upd").onclick = async () => { const r = await get("/api/update"); $("#u").innerHTML = `<p>${esc(r.line)}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await post("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${esc(x.line ?? x.refused)}</p>`; }; };
 }
@@ -760,6 +779,8 @@ async function openFeature(f) {
   if (!$("#featbox")) { await work("Overview"); }
   const box = $("#featbox"); box.innerHTML = `<p class="meta">Working…</p>`; box.scrollIntoView({ behavior: "smooth" });
   const r = await post(`/api/products/${encodeURIComponent(P)}/feature/${f}`, {});
+  /* RR-351: no offer button set → straight to Settings → Your product, where it is set */
+  if (r.needsCta) return (box.innerHTML = `<div class="card"><h3>First, your offer button</h3><p>${esc(r.refused)}</p><button id="setcta">Set it now</button></div>`, ($("#setcta").onclick = () => act("settings")));
   if (r.needs) return (box.innerHTML = `<div class="card"><h3>First, Visibility needs:</h3><ul>${r.needs.map((n) => `<li>${esc(n.what)} <button data-act="${esc(n.action)}">Set it up now</button></li>`).join("")}</ul><button class="ghost" id="skipneed">Skip for now</button></div>`, document.querySelectorAll("#featbox [data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act))), ($("#skipneed").onclick = () => (box.innerHTML = "")));
   if (r.open === "youtube") return work("YouTube");
   if (r.open === "tiktok-instagram") return socialScreen(); // RR-348 b

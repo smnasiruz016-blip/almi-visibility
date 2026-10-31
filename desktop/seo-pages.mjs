@@ -144,7 +144,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], subject = null, pagePlan = null }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], subject = null, pagePlan = null, cta = null }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -230,6 +230,9 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   built = built.map((b) => { const lc = meta.get(b.needId)?.lastChecked; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
   built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));
+  /* RR-351 (owner, 31 Oct 2026): EVERY draft ends with the client's own offer button — a page planned from the list carries it already; a
+   * page made from a search, or one the client edited without it, gets it before "Last updated" (the gates then read the page with it) */
+  if (cta?.label && cta?.href) built = built.map((b) => (/data-cta>/.test(b.html) ? b : { ...b, html: withCta(b.html, cta) }));
   const now = new Date(on).toISOString();
   /* RR-333 (buyer walk: ONE new article could never be published — "it links to no other page of the set" while it linked the buyer's own
    * Prices and Implants pages): the site's existing pages are link targets for the gates (their links IN to a new page come after publishing) */
@@ -250,6 +253,16 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
  * the organisation — FAQPage stays for understanding only); a page in another language says so (lang, direction).
  */
 const escH = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/** RR-351 · the offer button's row (the same markup richPage writes) */
+export const ctaRow = (cta) => `<p class="cta-row" data-cta><a class="cta" href="${escH(cta.href)}">${escH(cta.label)}</a></p>`;
+/** a page without the button gets it: before "Last updated", else before </main> or </body>, else at the end */
+export function withCta(html, cta) {
+  const row = ctaRow(cta), h = String(html ?? "");
+  if (/<p class="updated"/.test(h)) return h.replace(/<p class="updated"/, `${row}<p class="updated"`);
+  if (/<\/main>/.test(h)) return h.replace(/<\/main>/, `${row}</main>`);
+  if (/<\/body>/.test(h)) return h.replace(/<\/body>/, `${row}</body>`);
+  return `${h}${row}`;
+}
 const RTL = new Set(["ar", "ur"]);
 export function richPage(b, m, on) {
   const c = m?.content; if (!c) return b;
@@ -263,7 +276,7 @@ export function richPage(b, m, on) {
   const s = m.sample, sampleHtml = s ? `<section class="sample" data-sample><h2>${escH(s.title ?? "Practice sample")}</h2><p class="label" data-sample-label><strong>${escH(s.label)}</strong></p>${s.task ? `<p data-task>${escH(s.task)}</p>` : ""}${s.caseNotes?.length ? `<h3>Case notes</h3><ul data-case-notes>${s.caseNotes.map((x) => `<li>${escH(x)}</li>`).join("")}</ul>` : ""}${s.letter ? `<h3>A model letter</h3><div data-letter>${String(s.letter).split(/\n+/).map((x) => `<p>${escH(x)}</p>`).join("")}</div>` : ""}${s.card ? `<h3>The role-play card</h3><p data-card><strong>${escH(s.card.setting)}</strong>${s.card.role ? ` — ${escH(s.card.role)}` : ""}</p><ol>${(s.card.tasks ?? []).map((x) => `<li>${escH(x)}</li>`).join("")}</ol>` : ""}${s.script ? `<h3>The script (read it aloud, or ask a friend to)</h3><div data-script>${String(s.script).split(/\n+/).map((x) => `<p>${escH(x)}</p>`).join("")}</div>` : ""}${s.text ? `<h3>The text</h3><div data-text>${String(s.text).split(/\n+/).map((x) => `<p>${escH(x)}</p>`).join("")}</div>` : ""}${s.questions?.length ? `<h3>Questions</h3><ol data-questions>${s.questions.map((q) => `<li>${escH(q.q)}${q.options?.length ? `<ul>${q.options.map((o) => `<li>${escH(o)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ol><details><summary>The answers</summary><ol>${s.questions.map((q) => `<li>${escH(q.answer)}</li>`).join("")}</ol></details>` : ""}</section>` : "";
   /* RR-328 · a part of its own (re-marking on the results page; each of a country page's five parts): every line with its source and date */
   const secHtml = (c.sections ?? []).filter((s) => s.lines?.length).map((s) => `<section data-part="${escH(String(s.heading).toLowerCase().replace(/[^a-z0-9]+/g, "-"))}"><h2>${escH(s.heading)}</h2><ul>${s.lines.map((l) => `<li>${escH(l.text)}${l.note ? ` <em>(${escH(l.note)})</em>` : ""}${l.link ? ` <span class="citation">— <a href="${escH(l.link)}" rel="nofollow noopener">source</a>${l.on ? `, read ${escH(l.on)}` : ""}</span>` : ""}</li>`).join("")}</ul></section>`).join("");
-  const lower = [secHtml, sampleHtml, list("What to know", c.points), list("Steps", c.steps, "ol"), list("Checklist", c.checklist), c.tip ? `<section data-tip><h2>One useful tip</h2><p>${escH(c.tip)}</p></section>` : "", c.cta ? `<p class="cta-row" data-cta><a class="cta" href="${escH(c.cta.href)}">${escH(c.cta.label)}</a></p>` : "", `<p class="updated" data-last-updated="${escH(c.lastUpdated ?? on)}">Last updated ${escH(c.lastUpdated ?? on)}</p>`].join("");
+  const lower = [secHtml, sampleHtml, list("What to know", c.points), list("Steps", c.steps, "ol"), list("Checklist", c.checklist), c.tip ? `<section data-tip><h2>One useful tip</h2><p>${escH(c.tip)}</p></section>` : "", c.cta ? ctaRow(c.cta) : "", `<p class="updated" data-last-updated="${escH(c.lastUpdated ?? on)}">Last updated ${escH(c.lastUpdated ?? on)}</p>`].join("");
   const type = { subtest: "Article", topic: "Article", language: "Article", practice: "LearningResource" }[m.kind] ?? "WebPage";
   const ld = JSON.stringify({ "@context": "https://schema.org", "@type": type, headline: b.title, dateModified: c.lastUpdated ?? on, ...(m.about ? { about: { "@type": m.kind === "university" ? "CollegeOrUniversity" : "Organization", name: m.about } } : {}), ...(c.lang ? { inLanguage: c.lang } : {}) });
   let html = b.html.replace(/<\/h1>/, `</h1>${top}`).replace(/<\/main>|<\/body>/, (x) => `${lower}${x}`).replace(/<\/head>/, `<script type="application/ld+json">${ld}</script></head>`);

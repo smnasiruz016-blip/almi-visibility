@@ -180,6 +180,7 @@ test("D IN THE APP: the plan after the check; Do it for me creates the pages, pu
   try {
     const id = (await a.post("/api/products", { name: "Fixture Prep", site: base, goal: { grow: "website", hasWebsite: true } })).product.id;
     let O = await settle(a, id);
+    assert.equal((await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "Fixture Prep", site: base, what: "Fixture exam practice online.", ctaLabel: "Try the fixture free", ctaHref: `${base}/signup` } })).http, 200, "RR-351: no page without the client's own offer button");
     assert.ok(O.plan && O.willDo, "no plan after the check");
     assert.deepEqual(O.willDo.lines.map((l) => l.action), ["create-pages", "structure", "publish", "submit", "weekly"]);
     assert.ok(O.plan.thisWeek.length >= 1 && O.plan.thisWeek.every((i) => i.problem && i.solution), JSON.stringify(O.plan.thisWeek).slice(0, 300));

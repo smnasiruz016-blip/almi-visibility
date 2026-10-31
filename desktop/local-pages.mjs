@@ -59,7 +59,9 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
     /* RR-329 (rule R8): an AlmiOET record whose page the collector found gone is hidden until it is read again and confirmed */
     const fs = facts.filter((f) => f.country === c && !(cf?.gone ?? []).includes(f.link));
     /* RR-329 (rule R9): the owner's own facts — AlmiWorld's own checked information, shown first */
-    const own = (cf?.owner ?? []).filter((o) => o.value?.text).map((o) => ({ part: o.key.split("|")[2] ?? null, text: o.value.text, link: o.value.link ?? null, on: o.value.on ?? o.readOn ?? null }));
+    const own = (cf?.owner ?? []).filter((o) => o.value?.text).map((o) => ({ part: o.key.split("|")[2] ?? null, text: o.value.text, link: o.value.link ?? null, on: o.value.on ?? o.readOn ?? null, note: o.value.note ?? null }));
+    /* RR-351: the facts file's facts NOT proved on their official page — never their value, only "check the official page" and its link */
+    const checkOfficial = (cf?.checkOfficial ?? []).filter((x) => x.label && x.link);
     /* 1 · the fee in its own currency — the app's own rates first, then AlmiWorld's (each with its rate's source and date); the owner's own word first */
     const ownFee = own.find((o) => o.part === "fee")?.text ?? null;
     const feeLine = ownFee ?? (localShown(s.fee) ? s.fee : cf?.fee?.value?.local ? (feeShown(cf.fee.value) ?? cf.fee.value.line) : null);
@@ -89,7 +91,7 @@ export function localPages({ subject, reqCountries = [], venues = { countries: [
       ...questions.filter((q) => q.link && q.on && !q.aiWritten).map((q, i) => ({ claimId: `answer-${slug(c)}-${i + 1}`, fact: "answer", text: q.answer, link: q.link, readOn: q.on, source: `${subject} — its own page`, official: true, body: subject }))].filter((x) => x?.link && x.readOn);
     country.push({ kind: "country", key: `country|${c}`, country: c, keepWhole: true /* RR-328: the five-part rule replaces gate 2 */, title: `${subject} in ${c}: ${centres.venue ? "test centres" : "taking it at home"}, the fee${cur ? ` in ${cur}` : ""} and the steps`,
       venue: centres.venue, cities: mine.map((x) => ({ city: x.city, operator: x.operator, link: x.source?.url, on: x.checkedOn })), centres, fee: feeLine, currency: cur, feeLocal: feeLine, home: centres.venue ? null : centres.home, nearest: centres.nearest ?? [],
-      councils: whole.map((x) => ({ profession: x.profession, name: x.f.value.name, short: shortName(x.f.value.name), website: x.f.value.website, address: x.f.value.address, link: x.f.source, on: x.f.readOn })), rules, answered: questions, own,
+      councils: whole.map((x) => ({ profession: x.profession, name: x.f.value.name, short: shortName(x.f.value.name), website: x.f.value.website, address: x.f.value.address, link: x.f.source, on: x.f.readOn })), rules, answered: questions, own, checkOfficial,
       goodStanding: fs.filter((f) => f.fact === "goodStanding").map((f) => ({ profession: f.profession, text: f.text, link: f.link })), attestation: fs.find((f) => f.fact === "attestation") ?? null,
       destinations: dests, searches: kw.slice(0, 12), searchPeriod: kw.find((k) => k.period)?.period ?? null, whereTitle, claims, questions: kw.map((k) => tool(k, c)),
       why: `${c}: all five parts — the fee in ${cur ?? "its money"}, ${questions.length} question${questions.length === 1 ? "" : "s"} answered, ${centres.venue ? "a venue" : "at home with the nearest venues"}, ${whole.length} councils, ${rules.length} rule${rules.length === 1 ? "" : "s"} of its own` });
@@ -162,7 +164,9 @@ export function localContent(p, { subject, fit, cta }) {
       ...(p.destinations ?? []).map((d) => [`People in ${p.country} search for`, `${d.country} (${Number(d.volume).toLocaleString("en-US")} a month)`])];
     const sections = [
       /* RR-329 (rule R9): the owner's own facts first, as AlmiWorld's own checked information */
-      ...((p.own ?? []).length ? [{ heading: "AlmiWorld's own checks", lines: p.own.map((o) => line(o.text, o.link, o.on, "AlmiWorld's own checked information")) }] : []),
+      ...((p.own ?? []).length ? [{ heading: "AlmiWorld's own checks", lines: p.own.map((o) => line(o.text, o.link, o.on, o.note ?? "AlmiWorld's own checked information")) }] : []),
+      /* RR-351: what could not be proved on its official page — the reader is sent to that page, no value is printed */
+      ...((p.checkOfficial ?? []).length ? [{ heading: "Check on the official page", lines: p.checkOfficial.map((x) => line(`${x.label}: check the official page before you book or apply.`, x.link, x.on)) }] : []),
       { heading: `What people in ${p.country} ask`, lines: (p.answered ?? []).map((q) => line(`${q.question} — ${q.answer}`, q.link, q.on, q.aiWritten ? "AI-written from the official facts on this page" : null)) },
       { heading: "Test centres", lines: [p.venue ? line(`${subject}'s own pages name a venue in ${p.country}${p.cities?.length ? `: ${p.cities.map((x) => x.city).join(", ")}` : ""}.`, p.centres?.link, p.centres?.on) : line(`${p.home}. The nearest venues: ${(p.nearest ?? []).join(", ")}.`, p.centres?.link, p.centres?.on)] },
       { heading: `The councils in ${p.country}`, lines: (p.councils ?? []).map((c) => line(`${PEOPLE_WORD[c.profession] ?? c.profession}: ${c.name} — ${c.address} — ${c.website}`, c.link, c.on)) },

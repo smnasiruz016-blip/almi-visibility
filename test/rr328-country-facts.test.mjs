@@ -417,6 +417,7 @@ test("G · RR-328 (owner): re-marking searches go to the results page, which car
   assert.deepEqual(rt.sectionsIn.map((s) => s.heading), ["Re-marking"]); assert.deepEqual(rt.sectionsIn[0].lines.map((l) => l.text), ["a re-mark costs AU$120 per sub-test.", "a re-mark must be asked for within 72 hours of the results' release."]);
   assert.ok(rt.content.sections.length === 1 && rt.content.steps.some((s) => /re-mark/.test(s)));
   const MAIN = (await import("node:fs")).readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8");
-  assert.match(MAIN, /countryFacts: pread\(id, "country-facts\.json", null\)\?\.countries \?\? \{\}/, "the plan reads the country facts the app keeps");
+  /* RR-351: the same store, with the owner's facts file joined to it (desktop/facts-file.mjs) */
+  assert.match(MAIN, /countryFacts: withFactsFile\(id, pread\(id, "country-facts\.json", null\)\?\.countries \?\? \{\}\)/, "the plan reads the country facts the app keeps");
   assert.match(MAIN, /countryFactsForPlan\(\{ service: currentLicence\(\) \? kwService\(\) : null/, "asked with the plan's licence");
 });

@@ -398,6 +398,7 @@ test("D IN THE APP: Approve & Publish asks where the site is built the first tim
   try {
     const made = await a.post("/api/products", { name: "Fixture Prep", site: base, goal: { grow: "website", hasWebsite: true } }); const id = made.product.id;
     for (let i = 0; i < 100; i++) { const o = await a.get(`/api/products/${id}/overview`); if (!o.checking && o.card) break; await new Promise((r) => setTimeout(r, 200)); }
+    assert.equal((await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "Fixture Prep", site: base, what: "Fixture exam practice online.", ctaLabel: "Try the fixture free", ctaHref: `${base}/signup` } })).http, 200, "RR-351: no page without the client's own offer button");
     const GSC = { "Queries.csv": "Top queries,Clicks,Impressions,CTR,Position\nfixture exam practice online for nurses,3,40,7.5%,4.1\nspeaking test role plays nurses,1,20,5%,6\n", "Pages.csv": `Top pages,Clicks,Impressions,CTR,Position\n${base}/,4,61,6%,5\n`, "Chart.csv": "Date,Clicks,Impressions,CTR,Position\n2026-10-01,2,30,6%,5\n2026-10-02,2,31,6%,5\n" };
     const ex = await a.post(`/api/products/${id}/google/export`, { files: Object.entries(GSC).map(([name, t]) => ({ name, base64: Buffer.from(t).toString("base64") })) }); assert.equal(ex.http, 200, ex.refused);
     /* publishing automatic after the gates (the default) — but no site connected yet: nothing is published */

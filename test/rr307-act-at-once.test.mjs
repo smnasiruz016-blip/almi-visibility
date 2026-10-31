@@ -229,6 +229,9 @@ test("A1 + C + E · IN THE APP: a product is checked the moment it is added; the
     assert.equal(o.menu.question, "What would you like to do now?");
     const id = made.product.id;
     await a.post(`/api/products/${id}/google/export`, { files: [{ name: "export.zip", base64: zipOf(GSC).toString("base64") }] });
+    /* RR-351: a page is made only with the client's own offer button — refused (400, sent to Settings) without it, then every card runs */
+    assert.deepEqual([(await a.post(`/api/products/${id}/feature/seo-pages`, {})).needsCta], [true]);
+    assert.equal((await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "FixturePrep", site: a.siteBase, what: "Fixture exam practice.", ctaLabel: "Try FixturePrep free", ctaHref: `${a.siteBase}/signup` } })).http, 200);
     for (const f of FEATURES.map((x) => x.id)) {
       const r = await a.post(`/api/products/${id}/feature/${f}`, {});
       assert.equal(r.http, 200, f);

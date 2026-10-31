@@ -197,6 +197,8 @@ const fitWords = (parts, min = 40, max = 60) => {
 export const gradeSay = (g) => (!g ? null : new Set(SUBTESTS.map((s) => g[s.toLowerCase()])).size === 1 ? `${g.listening} in each sub-test` : SUBTESTS.map((s) => `${s} ${g[s.toLowerCase()]}`).join(", "));
 const poss = (w) => (/s$/.test(w) ? `${w}'` : `${w}'s`);
 const low = (x) => (x ? String(x).toLowerCase() : x);
+/* RR-351: the button's words are the client's offer ("Try free for 48 hours — then $12/month") — a step names the SITE, never the words */
+const hostOfCta = (cta) => { try { return new URL(cta.href).hostname.replace(/^www\./, ""); } catch { return "the site"; } };
 export function contentOf(p, { subject, fee = null, where = null, cta = null, on = null }) {
   const people = (p.professions ?? [p.profession]).filter(Boolean).map((x) => PEOPLE_WORD[x] ?? x);
   const feeLine = fee?.ok ? `${subject} costs ${fee.said ?? `${fee.currency} ${fee.amount}`} (${subject}'s own page, ${fee.checkedOn})` : null;
@@ -220,8 +222,8 @@ export function contentOf(p, { subject, fee = null, where = null, cta = null, on
     const f = p.facts ?? {}, req = (p.required ?? []).slice(0, 4).map((r) => `${r.short ?? r.body} ${r.grade}`).join(", ");
     answer = fitWords([`${subject} ${p.subtest} for ${people[0]}${f.minutes ? ` lasts about ${f.minutes} minutes` : ""}${f.parts ? `, in ${low(f.parts)} parts` : ""}${f.questions ? ` with ${f.questions} questions` : ""}${f.roleplays ? `, with ${low(f.roleplays)} role-plays${f.roleplayMinutes ? ` of ${f.roleplayMinutes} minutes` : ""}` : ""} (${subject}'s own page, ${f.on ?? on}).`, req ? `The ${p.subtest} grade regulators ask ${people[0]} for: ${req}.` : null, p.ai?.answer ?? null, `Practise with ${poss(people[0])} own case types before the test day.`]);
     table = [["Regulator", `${p.subtest} grade for ${people[0]}`], ...(p.required ?? []).map((r) => [`${r.body} (${r.country})`, r.grade])];
-    steps = [`Read how ${p.subtest} is marked on ${subject}'s own page.`, `Practise with ${poss(people[0])} case types.`, "Time yourself as on the test day.", `Take a full practice test${cta ? ` on ${cta.label}` : ""}.`];
-    checklist = p.ai?.checklist ?? [`Know the ${p.subtest} format`, "Learn the profession's common words", "Practise under time", "Check the grade your regulator asks for"];
+    steps = [`Read how ${p.subtest} is marked on ${subject}'s own page.`, `Practise with ${poss(people[0])} case types.`, "Time yourself as on the test day.", `Take a full practice test${cta ? ` on ${hostOfCta(cta)}` : ""}.`];
+checklist = p.ai?.checklist ?? [`Know the ${p.subtest} format`, "Learn the profession's common words", "Practise under time", "Check the grade your regulator asks for"];
     tip = p.ai?.tip ?? `Most marks in ${p.subtest} come from doing the task the way the assessors' criteria describe — read them before you practise.`;
   } else if (p.kind === "university") {
     const d = (p.destinations ?? [])[0], r0 = d?.regulators[0], who = r0 ? /\(([^)]+)\)$/.exec(r0.title)?.[1] ?? r0.title : null;
@@ -252,7 +254,7 @@ export function contentOf(p, { subject, fee = null, where = null, cta = null, on
     const who = people[0] ? ` for ${people[0]}` : "", req = (p.required ?? []).slice(0, 3).map((r) => `${r.short ?? r.body} ${r.grade}`).join(", ");
     answer = fitWords([facts[0] ? `${p.subtest ? `${subject} ${p.subtest}${who}` : `${subject}${who}`}: ${facts[0].replace(/\.$/, "")} (${subject}'s own page, ${p.lastChecked ?? on}).` : null, ...facts.slice(1, 3).map((t) => `${t.charAt(0).toUpperCase()}${t.slice(1)}`), req ? `Regulators ask ${people[0] ?? "candidates"} for ${p.subtest} ${req}.` : null, p.intent === "sample" ? `Below: a practice sample written by AlmiOET, not an official ${subject} paper.` : p.ai?.answer ?? null]);
     table = p.rows?.length ? [p.head ?? ["Item", "Detail"], ...p.rows] : p.required?.length ? [["Regulator", `${p.subtest} grade${who}`], ...p.required.map((r) => [`${r.body} (${r.country})`, r.grade])] : facts.length ? [["Fact", "Source"], ...(p.claims ?? []).filter((c) => c.fact).map((c) => [c.text, `${c.source}, ${c.readOn}`])] : [];
-    steps = p.ai?.steps ?? (p.intent === "sample" ? ["Set a timer to the test's time.", "Do the practice sample below without notes.", "Check it against the criteria above.", `Take a full practice test${cta ? ` on ${cta.label}` : ""}.`] : ["Read the criteria above.", "Pick one mistake to fix this week.", "Practise under time.", "Take a practice test."]);
+    steps = p.ai?.steps ?? (p.intent === "sample" ? ["Set a timer to the test's time.", "Do the practice sample below without notes.", "Check it against the criteria above.", `Take a full practice test${cta ? ` on ${hostOfCta(cta)}` : ""}.`] : ["Read the criteria above.", "Pick one mistake to fix this week.", "Practise under time.", "Take a practice test."]);
     checklist = p.ai?.checklist ?? ["A timer", "The criteria from the official page", "A quiet room", "A way to record or write your answer"];
     tip = p.ai?.tip ?? (p.subtest ? `In ${p.subtest}, read the assessors' criteria before you practise — marks follow the criteria, not length.` : "Practise one sub-test a day, and a full test every few weeks.");
   } else if (p.kind === "country" || p.kind === "countryprof" || p.kind === "city") {

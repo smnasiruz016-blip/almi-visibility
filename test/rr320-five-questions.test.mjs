@@ -351,6 +351,7 @@ test("IN THE APP · the owner's three questions → the five answers (Search Con
     await a.post("/api/company", { name: "X", site: base });
     const id = (await a.post("/api/products", { name: "XPrep", site: base })).product.id;
     let o; for (let i = 0; i < 200; i++) { o = await a.get(`/api/products/${id}/overview`); if (!o.checking && o.card) break; await new Promise((r) => setTimeout(r, 150)); }
+    { const c = await a.post(`/api/products/${id}/setup`, { id: "product", value: { name: "XPrep", site: base, what: "Practice for the XTEST.", ctaLabel: "Try XPrep free", ctaHref: `${base}/signup` } }); assert.equal(c.http, 200, `RR-351: no page without the client's own offer button — ${c.refused}`); }
     writeFileSync(join(a.dir, "products", id, "search-console.json"), JSON.stringify({ kind: "CONNECTED", on: ON, window: "2026-07-22 to 2026-10-20", site: "sc-domain:x.test", queries: [{ query: "xtest for nurses in ireland", clicks: 0, impressions: 3 }, { query: "xtest pakistan centre", clicks: 0, impressions: 2 }], byCountry: [{ query: "xtest for nurses in ireland", country: "irl", impressions: 3, clicks: 0 }, { query: "xtest pakistan centre", country: "pak", impressions: 2, clicks: 0 }] }));
     const u = await a.post(`/api/products/${id}/count/understand`, { text: OWNER.replace(/OET/g, "XTEST") });
     assert.match(u.line, /^You mean: people from origin country \(197\) → professions \(12\) in destination country \(9\)/);

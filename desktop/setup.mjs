@@ -76,12 +76,32 @@ export function webAddress(input) {
   try { const u = new URL(`https://${t}`); return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(u.hostname) ? `https://${t}` : null; } catch { return null; }
 }
 
+/*
+ * 🔴 RR-351 (owner, 31 Oct 2026) · THE CLIENT'S OWN OFFER BUTTON — its words and its link, set in Settings → Your product. Every page's call
+ * to act is this button; Visibility never makes one up, and with none set no page is made or published.
+ */
+export const NO_CTA = "Set your offer button first — Settings → Your product: the button's words (for example \"Try free for 48 hours\") and the page it opens on your site. Visibility makes and publishes no page without it.";
+export const CTA_MAX = 80;
+/** the product step's typed button (ctaLabel, ctaHref) → { cta } | { refused } | {} (none typed). The link is a full web address. */
+export function ctaFrom(v = {}) {
+  const label = String(v.ctaLabel ?? "").replace(/\s+/g, " ").trim(), href0 = String(v.ctaHref ?? "").trim();
+  if (!label && !href0) return {};
+  if (!label || !href0) return { refused: "Give the offer button both its words and its link — or leave both empty." };
+  if (label.length < 3 || label.length > CTA_MAX) return { refused: `The button's words: 3 to ${CTA_MAX} characters.` };
+  if (/[<>]/.test(label)) return { refused: "The button's words cannot hold < or >." };
+  const href = webAddress(href0);
+  if (!href || !/^https?:\/\/[^/]+\.[^/]+|^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(href)) return { refused: "The button's link: a full web address (for example https://yoursite.com/signup)." };
+  return { cta: { label, href } };
+}
+/** the button a product's pages carry (null when none is set) */
+export const ctaOfSetup = (setup = {}) => { const c = setup?.product?.cta; return c && typeof c.label === "string" && c.label.trim() && /^https?:\/\//i.test(String(c.href ?? "")) ? { label: c.label, href: c.href } : null; };
+
 /** Validate one setup answer — plain words when it is refused. */
 export function checkStep(id, v) {
   switch (id) {
     case "goal": return GROW.includes(v?.grow) && typeof v?.hasWebsite === "boolean" ? null : "Choose what you want to grow, and say whether this product has a website.";
     /* RR-307: the website is asked only when the product has one (a YouTube-only product may give its channel's address, or none) */
-    case "product": return v && v.name?.trim() && (v.site === undefined || v.site === "" || v.site === null || webAddress(v.site)) && v.what?.trim() ? null : "Give the product's name, its website if it has one (for example almiworld.com) and what it does.";
+    case "product": return v && v.name?.trim() && (v.site === undefined || v.site === "" || v.site === null || webAddress(v.site)) && v.what?.trim() ? (ctaFrom(v).refused ?? null) : "Give the product's name, its website if it has one (for example almiworld.com) and what it does.";
     case "searchData": return v?.skipped === true || [1, 2, 3].includes(Number(v?.option)) ? null : "Choose one — or Skip for now.";
     case "languages": { const c = chooseLanguages(v?.codes ?? []); return c.valid ? null : c.faults.join("; "); }
     case "articlesPerDay": { const s = articleSettings({ articlesPerDay: Number(v?.perDay) }); return s.valid ? null : s.faults.join("; "); }

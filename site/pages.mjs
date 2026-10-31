@@ -200,7 +200,7 @@ export const MARKETING = Object.freeze({
   pricingLine: "Real Google data. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed.",
   data: "Real Google data. No risky backlinks.",
 });
-const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout.";
+const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout — <a href='/help/promotion-code'>how to use a promotion code</a>.";
 /* RR-325 A: every footer links AlmiVisibility's own Privacy Policy and Terms of Service */
 const footerCols = () => footerColumns().map((c) => (c.title === "Legal & Contact" ? { ...c, links: [...c.links, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
 export function frame({ path, title, description, body, noindex = false, lite = false }) {
@@ -303,7 +303,7 @@ export const download = ({ setupAvailable = false, sales = false, storeUrl = nul
 <p class="lead">${storeUrl ? "Get it from the Microsoft Store: one click installs it, and the Store keeps it up to date." : "Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop."}</p>
 <div class="cta">${storeUrl ? `<a class="pill big" href="${esc(storeUrl)}" rel="noopener" data-store>Get it from the Microsoft Store</a>` : setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
 ${sales ? `<p class="small" data-update-line><b>${esc(DOWNLOAD.update.replace("download it here", "download it above"))}</b></p>${IMG.download}` : ""}
-<p class="small">Windows 10 or 11. Your data stays on your own computer.${storeUrl ? "</p>" : ` The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway”.</p>`}</div></section>
+<p class="small">Windows 10 or 11. Your data stays on your own computer.${storeUrl ? "</p>" : ` The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway” (<a href="/help/windows-protected-your-pc">step by step</a>).</p>`}</div></section>
 ${section("paper", `<h2>After you install</h2>${cardList([
   ["Add your product", "Your company, your product and its website."],
   ["Choose your plan", "Pay monthly by card. Your plan sets how many products you can add."],
@@ -320,6 +320,21 @@ const legalPage = (which, path, title, description, { preview = false, lite = fa
 };
 export const privacy = (o = {}) => legalPage("privacy", "/privacy", "Privacy Policy — AlmiVisibility", "How AlmiVisibility, the desktop app and almivisibility.almiworld.com, handles data.", o);
 export const terms = (o = {}) => legalPage("terms", "/terms", "Terms of Service — AlmiVisibility", "The terms of service of AlmiVisibility, made by AlmiWorld.", o);
+/*
+ * 🔴 RR-353 (owner, 31 Oct 2026) · TWO HELP GUIDES on the site — the same steps as the app's own Help (desktop/guides.mjs HELP_GUIDES):
+ * "How to use a promotion code" (Stripe's payment page: "Add promotion code" — site/billing.mjs allows promotion codes) and the blue
+ * "Windows protected your PC" window (Microsoft Defender SmartScreen: More info → Run anyway). Plain steps, no promise.
+ */
+export const HELP = Object.freeze({
+  "/help/promotion-code": { title: "How to use a promotion code — AlmiVisibility", h1: "How to use a promotion code", description: "Enter an AlmiWorld promotion code on the payment page before you pay: press Add promotion code, type the code, press Apply.",
+    intro: "A promotion code from AlmiWorld lowers the price of your plan. You type it on the payment page, before you pay.",
+    steps: ["Open the Pricing page and press Buy under the plan you want.", "The payment page opens (Stripe, our payment partner). Under the price, press “Add promotion code”.", "Type the code exactly as you got it and press Apply. The new price is shown at once. A code that does not work says so — check its spelling; only AlmiWorld's own codes work.", "Fill in your card and press Subscribe. The next page shows your licence key (it starts with av_) — copy it.", "In the AlmiVisibility app: All products → Your plan → paste the key → Save."] },
+  "/help/windows-protected-your-pc": { title: "“Windows protected your PC” — how to install AlmiVisibility", h1: "The blue “Windows protected your PC” window", description: "Windows may show “Windows protected your PC” when you open the AlmiVisibility installer. Press More info, then Run anyway.",
+    intro: "When you open the AlmiVisibility installer, Windows may show a blue window: “Windows protected your PC”. Windows shows it for a program it does not know yet — our installer is not yet signed with a code-signing certificate. It is not a virus warning.",
+    steps: ["Download the installer only from this site's Download page — never from another site.", "Open the downloaded file. If the blue window “Windows protected your PC” appears, press the small words “More info” under the text.", "The window now shows the program's name (AlmiVisibility Setup) and “Publisher: Unknown publisher”. Press “Run anyway”.", "Windows may then ask “Do you want to allow this app to make changes?” — press Yes. The installer opens; follow it. Your data stays on your own computer."] },
+});
+export const helpPage = (path, { sales = true } = {}) => { const h = HELP[path]; if (!h) return null;
+  return frame({ path, lite: sales ? "sales" : true, title: h.title, description: h.description, body: `<section class="page"><div class="wrap prose"><h1>${esc(h.h1)}</h1><p>${esc(h.intro)}</p><ol>${h.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol><p>Other help: ${Object.entries(HELP).filter(([p]) => p !== path).map(([p, x]) => `<a href="${p}">${esc(x.h1.replace(/[“”]/g, "\""))}</a>`).join(" · ")} · <a href="/download">Download</a> · <a href="/pricing">Pricing</a></p></div></section>` }); };
 export const notFound = (path, { lite = false } = {}) => frame({ path, lite, title: "Not found — AlmiVisibility", description: "This page does not exist.", noindex: true, body: `<section class="page"><div class="wrap"><h1>Page not found</h1><p><a class="pill" href="/">Home</a></p></div></section>` });
 
 /* ── RR-325 A · THE PUBLIC-LITE HOME: the free score FIRST; the keyword finder and the app "coming soon"; no download, price or buy ── */

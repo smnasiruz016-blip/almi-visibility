@@ -6,6 +6,7 @@
 import { chooseLanguages, LANGUAGES } from "../src/page/languages.mjs";
 import { articleSettings, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { AI_PROVIDERS } from "./secrets.mjs";
+import { socialFrom } from "./social-links.mjs"; // RR-353
 const AI_PROVIDER_IDS = AI_PROVIDERS.map((p) => p.id);
 
 export const GROW = Object.freeze(["website", "youtube", "shop", "several"]);
@@ -40,6 +41,8 @@ export const CHOICES = Object.freeze({
   ],
   searchData: [
     { value: 2, label: "Google Search Console", chooseIf: "your website is in Google Search Console (most sites are; it is free).", gives: "The real searches people make before they reach your pages.", cost: "Free.", needs: "To sign in to Google once — or its download file.", howTo: "Open search.google.com/search-console, pick your site, then Performance → Export → Download CSV. Or press \"Connect Google\" later on the product page." },
+    /* RR-353 (owner): Bing next to Google — Bing Webmaster Tools' own searches, through the client's own Bing key or Bing's download file */
+    { value: 4, label: "Bing Webmaster Tools", chooseIf: "your site is in Bing Webmaster Tools (free) — or you want Bing's searches too.", gives: "The real searches people make in Bing (and the AI search that reads Bing) before they reach your pages.", cost: "Free.", needs: "Your Bing key (made in Bing Webmaster Tools) — or its download file.", howTo: "Press \"Connect Bing\" on the product page (Search engines) — it shows where Bing keeps your key, step by step. Or: in Bing Webmaster Tools, Search Performance → Export, and add the file." },
     { value: 1, label: "A search service of your own", chooseIf: "you already pay a search-data service and have its key.", gives: "Wide search data: what people see for your topics.", cost: "You pay that service per search.", needs: "Your key from that service.", howTo: "Your search service's account page shows your key — copy it and paste it here." },
     { value: 3, label: "Your AI assistant's search", chooseIf: "you use an AI assistant account (Claude, ChatGPT, Gemini) for search.", gives: "How AI answers questions about your topics.", cost: "Your AI account's own price.", needs: "Your AI key (next steps).", howTo: "Connect your AI assistant in the step \"Your AI assistant\"." },
   ],
@@ -53,6 +56,7 @@ export const HOWTO = Object.freeze({
   anthropic: "How to get your Claude key: open console.anthropic.com → API Keys → Create key. Copy it and paste it here.",
   openai: "How to get your ChatGPT key: open platform.openai.com → API keys → Create new secret key. Copy it and paste it here.",
   gemini: "How to get your Gemini key: open aistudio.google.com → Get API key → Create key. Copy it and paste it here.",
+  bing: "Bing Webmaster Tools: open bing.com/webmasters (add your site, or press Import from Google Search Console) → Settings (the gear) → API access → API Key → Generate, copy it and paste it on the Bing screen. Or add Bing's download file: Search Performance → Export.",
   google: "Google Search Console: press \"Connect Google\", sign in to Google in your browser and allow \"view\" access; then pick your site. Or add its download file: Performance → Export → Download CSV.",
 });
 /** The choice marked "Recommended for you" for this client. */
@@ -101,8 +105,8 @@ export function checkStep(id, v) {
   switch (id) {
     case "goal": return GROW.includes(v?.grow) && typeof v?.hasWebsite === "boolean" ? null : "Choose what you want to grow, and say whether this product has a website.";
     /* RR-307: the website is asked only when the product has one (a YouTube-only product may give its channel's address, or none) */
-    case "product": return v && v.name?.trim() && (v.site === undefined || v.site === "" || v.site === null || webAddress(v.site)) && v.what?.trim() ? (ctaFrom(v).refused ?? null) : "Give the product's name, its website if it has one (for example almiworld.com) and what it does.";
-    case "searchData": return v?.skipped === true || [1, 2, 3].includes(Number(v?.option)) ? null : "Choose one — or Skip for now.";
+    case "product": return v && v.name?.trim() && (v.site === undefined || v.site === "" || v.site === null || webAddress(v.site)) && v.what?.trim() ? (ctaFrom(v).refused ?? socialFrom(v.social ?? {}).refused ?? null) : "Give the product's name, its website if it has one (for example almiworld.com) and what it does.";
+    case "searchData": return v?.skipped === true || [1, 2, 3, 4].includes(Number(v?.option)) ? null : "Choose one — or Skip for now.";
     case "languages": { const c = chooseLanguages(v?.codes ?? []); return c.valid ? null : c.faults.join("; "); }
     case "articlesPerDay": { const s = articleSettings({ articlesPerDay: Number(v?.perDay) }); return s.valid ? null : s.faults.join("; "); }
     case "publishMode": return Object.values(PUBLISH_MODE).includes(v?.mode) ? null : "Choose: automatically once every check passes, or show me first.";

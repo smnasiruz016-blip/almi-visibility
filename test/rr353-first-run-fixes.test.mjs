@@ -71,8 +71,9 @@ test("RR-353 · 2–6 · the screens: breadcrumb on every screen, Open/Settings 
   assert.ok(UI.includes('<div class="selfbox" hidden><b>Ready to use</b>'));
   assert.ok(UI.includes('const NOFIX = "Visibility cannot change a page that is already on your site — only your site\'s own editor can.'));
   /* 5 */
-  assert.ok(UI.includes('<button class="big" id="bigmk" type="button">Create SEO pages</button>'));
-  assert.ok(UI.indexOf("${bigSeo}<div id=\"scorebox\">") > 0, "the big button is on top of the product page");
+  /* RR-354 (owner: "one screen, one job"): the big button is now "Start" on "What do you want done?", Create SEO pages its first tick */
+  assert.ok(UI.includes('<p><button class="big" id="jobsgo" type="button">Start</button>'));
+  assert.ok(UI.indexOf("${summary}") < UI.indexOf("${jobsHtml}<div id=\"planbox\">"), "the job card comes right after the score");
   assert.ok(UI.includes('<button data-act="${esc(a.action)}">Add it now</button>'));
   /* 6 */
   assert.ok(UI.includes('<button id="dupopen">Open ${esc(r.duplicate.name)}</button>'));
@@ -89,7 +90,7 @@ test("RR-353 · 7 · our own data first: Create SEO pages needs only the website
   const none = seoPages({ site: { ok: true }, on: "2026-10-31T00:00:00Z" });
   assert.deepEqual([none.noDemand, none.drafts.length], [true, 0]);
   assert.match(none.notEnough[0], /AlmiWorld's own search data had none for it\. Add one more source below/);
-  for (const s of ["const ownItemsOf = (id) => [", "async function gatherOwnDemand(id) {", "const own = madePlanOf(id).pagePlan ? { lines: [] } : await gatherOwnDemand(id);", 'if (f === "seo-pages") { const x = await createPages(id);'])
+  for (const s of ["const ownItemsOf = (id) => [", "async function gatherOwnDemand(id) {", "own = handMade ? { lines: [] } : await gatherOwnDemand(id);" /* RR-354: a plan made by hand skips it; the exam plan reads it */, 'if (f === "seo-pages") { const x = await createPages(id);'])
     assert.ok(MAIN.includes(s), s);
   assert.equal((MAIN.match(/seoPages\(\{[^\n]*planned: plannedOf\(id\), own: ownItemsOf\(id\)/g) ?? []).length, 4, "every call that makes or re-judges the drafts reads the SAME searches (publishing finds the same draft)");
 });

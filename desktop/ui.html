@@ -69,7 +69,7 @@ button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#F
 .crumbs{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;margin-left:8px;font-size:14px;color:var(--muted)} .crumbs button{background:none;border:0;padding:2px 4px;color:var(--ink);text-decoration:underline;font-weight:600} .crumbs .here{color:var(--ink);font-weight:700}
 .pact{display:flex;gap:6px;flex-wrap:wrap;align-items:center} .pact button{padding:6px 14px;font-size:13px} .product .open{display:inline-block;margin-top:6px;color:var(--ink);font-weight:700}
 .bigact{background:#FFF1E6;border:2px solid var(--coral)} .bigact button.big{font-size:19px;padding:16px 30px}
-a.btnlink{display:inline-block;font-weight:600;padding:6px 14px;border-radius:999px;border:1px solid var(--coral);color:var(--ink);text-decoration:none;font-size:13px} .jobst{font-weight:600} .twochoice{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+a.btnlink{display:inline-block;font-weight:600;padding:6px 14px;border-radius:999px;border:1px solid var(--coral);color:var(--ink);text-decoration:none;font-size:13px} .jobst{font-weight:600} .plainsum{font-size:16px;margin:4px 0 10px} .report{border-top:1px solid var(--peach);margin-top:12px;padding-top:10px} .report h3{font-size:18px} .bigrow{margin-top:14px} details.more{margin-top:10px} details.more summary{cursor:pointer;color:var(--muted)} .twochoice{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 @media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
 @media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22} a{color:#9CC8FF} a:visited{color:#C9B3FF} textarea{background:#1E1A15;color:var(--cream);border-color:#3A2F22} .plan{background:#241D14} .okbar{background:#163323;color:#CFF2DD} .bigact,.warn{background:#241D14} .crumbs button,.crumbs .here{color:var(--cream)}}
 </style></head>
@@ -463,7 +463,8 @@ async function factsFileBox() {
     box.innerHTML = `<div class="card"><h3>Official facts files</h3><p class="meta">A file of facts read on their official pages — each with its page's address, the quote and the day it was checked. Only a fact whose quote and numbers were proved on its page goes on your pages; every other one shows only "check the official page" with its link.</p>
     <label>The file (or several files, .json)<input type="file" id="fffile" accept=".json,application/json" multiple></label><button id="ffup">Add</button> <span id="ffmsg" class="${cls}">${esc(msg)}</span>
     ${V.files.length ? `<ul>${V.files.map((f) => `<li><b>${esc(f.file)}</b> — ${f.verified} on pages, ${f.check} "check the official page" · ${esc(f.countries.join(", "))} · added ${esc(String(f.addedOn).slice(0, 10))}</li>`).join("")}</ul>` : `<p>No facts file added yet.</p>`}
-    ${V.notShown.length ? `<details><summary>Not shown with their value (${V.notShown.length}) — the page sends the reader to the official page</summary><ul>${V.notShown.map((x) => `<li>${esc(x.country)} · ${esc(x.label)} — ${esc(x.why ?? "")} <span class="src">(${esc(x.link)})</span></li>`).join("")}</ul></details>` : ""}</div>`;
+    <p class="bigrow"><button class="big" id="ffgo" type="button">Use these facts now — create pages</button></p>${V.notShown.length ? `<details><summary>Not shown with their value (${V.notShown.length}) — the page sends the reader to the official page</summary><ul>${V.notShown.map((x) => `<li>${esc(x.country)} · ${esc(x.label)} — ${esc(x.why ?? "")} <span class="src">(${esc(x.link)})</span></li>`).join("")}</ul></details>` : ""}</div>`;
+    $("#ffgo").onclick = () => openFeature("seo-pages");
     $("#ffup").onclick = async () => {
       const fs = [...$("#fffile").files]; if (!fs.length) return note($("#ffmsg"), "Choose the file first.", "err");
       const lines = []; let last = null, bad = false;
@@ -510,7 +511,7 @@ async function bingScreen() {
   $("#app").innerHTML = `<div class="card"><h2>Bing Webmaster Tools</h2>${B.last ? `<div class="okbar"><b>Connected ✓ — ${B.last.searches} search${B.last.searches === 1 ? "" : "es"} read</b> from Bing (${esc(B.last.on)}).</div>` : `<p><b>Not connected</b> — the searches people make in Bing come in here.</p>`}
   <ol>${B.howTo.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
   <label>Paste your Bing key here<input id="bk" type="password" autocomplete="off" spellcheck="false" placeholder="${B.keySaved ? "saved ✓ — paste a new one to replace it" : "It is kept safely on this computer"}"></label><button id="bgo">Connect Bing</button> <span id="bmsg"></span>
-  <h3 style="margin-top:14px">Or add Bing's download file</h3><label>The file (CSV)<input id="bf" type="file" accept=".csv,text/csv"></label><button class="ghost" id="bfup">Add Bing's download</button> <span id="bfmsg"></span></div>`;
+  <details class="more"><summary>More — add Bing's download file instead</summary><label>The file (CSV)<input id="bf" type="file" accept=".csv,text/csv"></label><button class="ghost" id="bfup">Add Bing's download</button> <span id="bfmsg"></span></details></div>`;
   $("#bgo").onclick = async () => { $("#bgo").disabled = true; note($("#bmsg"), "Reading your searches from Bing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/bing`, { key: $("#bk").value }); $("#bgo").disabled = false; note($("#bmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(bingScreen, 1500); };
   $("#bfup").onclick = async () => { const f = $("#bf").files?.[0]; if (!f) return note($("#bfmsg"), "Choose the file first.", "err"); const base64 = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(f); }); const r = await post(`/api/products/${encodeURIComponent(P)}/research/file`, { name: f.name, base64 }); note($("#bfmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
 }
@@ -711,7 +712,7 @@ async function work(tab) {
   const lists = { "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly };
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
   <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="eng">Search engines</button><button class="ghost" id="soc">Social media</button></nav>
-  <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button> <button class="ghost" id="ffile">Add official facts file</button></p><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
+  <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button></p><details class="more"><summary>More — for power users</summary><p class="meta">Visibility reads AlmiWorld's checked facts by itself. Add your own file only if you have one.</p><button class="ghost" id="ffile">Add official facts file</button></details><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
   $("#yts").onclick = youtubeSettings; $("#set").onclick = settings;
   if (tab === "Overview") await overview(); // RR-348: openFeature waits for the overview and its #featbox
@@ -800,9 +801,18 @@ async function overview() {
   /* RR-318 B7 (owner: "the confirmation was tiny at the bottom and the Connect card still showed"): connected → said at the TOP */
   const G = O.google, gscBar = G?.kind === "CONNECTED" ? `<div class="okbar" id="gscbar"><b>Connected ✓ — ${G.searches} search${G.searches === 1 ? "" : "es"} read</b> from Google Search Console (${esc(G.site)}, ${esc(G.window)}). <button class="ghost" id="gscpower">Positions and opportunities →</button></div>` : G?.kind === "EXPORT" ? `<div class="okbar" id="gscbar"><b>Search Console download added ✓ — ${G.searches} searches</b> (${esc(G.window)}).</div>` : "";
   const todo = O.todo.length ? `<h3>To-do</h3><ul>${O.todo.map((t) => `<li>${esc(t.what)} <button class="ghost" data-act="${esc(t.action)}">Add now</button></li>`).join("")}</ul>` : "";
-  /* RR-353 (owner): "Create SEO pages" is the most visible action on the product page — what is missing is said with a one-click way to add it */
-  const bigSeo = O.noWebsite ? "" : `<div class="card bigact" id="bigseo"><h3>Create SEO pages</h3><p class="meta">New pages that answer what people search about ${esc(S.product.name)} — from AlmiWorld's own search data and your official facts first, every fact with its source. Drafts first; nothing goes live without your choice.</p><button class="big" id="bigmk" type="button">Create SEO pages</button></div>`;
-  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}${bigSeo}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}<div id="planbox">${fix}</div>${todo}
+  /*
+   * 🔴 RR-354 (owner: "it should be simple and easy") · THE PRODUCT PAGE IS ONE FLOW: the score and a two-line summary → "What do you want
+   * done?" (the five jobs as ticks, the approval asked once) → ONE big Start → the short report with its ONE next step. Everything else is
+   * under "More".
+   */
+  const summary = c && !c.failed && !O.checking ? `<p class="plainsum" id="plainsum"><b>${c.youtubeOnly ? "Your channel" : "Your site"} scores ${esc(c.score ?? "—")} out of 100.</b> ${PL?.thisWeek?.length ? `The biggest gains now: ${esc(PL.thisWeek.slice(0, 2).map((i) => String(i.area).toLowerCase()).join(" and "))}.` : ""}</p>` : "";
+  const jobsHtml = O.noWebsite || !c || c.failed || O.checking ? "" : `<div class="card bigact" id="jobs"><h3>What do you want done?</h3><p class="meta">Tick what you want — Visibility does each job to the end by itself, and asks you only for what it cannot find.</p>
+    ${(O.jobs ?? []).map((j) => `<label class="check"><input type="checkbox" class="jobtick nodirty" value="${esc(j.id)}" ${j.id === "create-pages" || j.id === "submit" ? "checked" : ""}> <b>${esc(j.label)}</b> <span class="meta">— ${esc(j.does)}</span></label>`).join("")}
+    <h4 style="margin-top:10px">Before a page goes live</h4><label class="choice"><input type="radio" class="nodirty" name="appr" value="review" ${O.review ? "checked" : ""}> <b>Show me before publishing</b></label><label class="choice"><input type="radio" class="nodirty" name="appr" value="publish" ${O.review ? "" : "checked"}> <b>Publish for me</b> <span class="meta">— each page goes live once it passes every check</span></label>
+    <p><button class="big" id="jobsgo" type="button">Start</button> <span id="jobsmsg"></span></p><div id="jobrep">${O.report ? reportHtml(O.report) : ""}</div></div>`;
+  const more = `<details class="card more" id="more"><summary><b>More</b> — each job on its own, the page count, and the full plan</summary>${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}</details>`;
+  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${O.checking ? "" : `<p><button id="chk" class="${c ? "ghost" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
     <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
   if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
@@ -815,7 +825,8 @@ async function overview() {
   if ($("#plansave")) $("#plansave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/plan/save`, {}); note($("#planmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
   if ($("#planagain")) $("#planagain").onclick = async () => { note($("#planmsg"), "Making the plan again… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/plan`, {}); if (r.refused) return note($("#planmsg"), r.refused, "err"); overview(); };
   document.querySelectorAll("#ov [data-do]").forEach((b) => (b.onclick = () => doIt(b.dataset.do, b.parentElement.querySelector(".domsg") ?? b.nextElementSibling)));
-  if ($("#bigmk")) $("#bigmk").onclick = () => openFeature("seo-pages");
+  if ($("#jobsgo")) $("#jobsgo").onclick = startJobs; // RR-354
+  wireReport($("#jobrep"));
   if ($("#willgo")) $("#willgo").onclick = startTicked;
   document.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => ($(`#fx${b.dataset.how}`).innerHTML = `<p class="howto">${esc(c.fixFirst[+b.dataset.how].how)}</p>`)));
   document.querySelectorAll("[data-fix]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/fix`, { id: b.dataset.fix }); $(`#fx${b.dataset.i}`).innerHTML = pasteHtml(r.items ?? []) || `<p class="meta">${esc(r.refused ?? "Nothing to write for this one.")}</p>`; wireCopy($(`#fx${b.dataset.i}`)); }));
@@ -876,6 +887,37 @@ async function doIt(what, msg) {
   if (what === "submit") { note(msg, "Done — see each page below.", "ok"); const box = $("#dobox") ?? msg; box.innerHTML = `<ul>${r.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><table class="prices"><tr><th>Page</th><th>Google</th><th>Bing (IndexNow)</th></tr>${r.pages.map((p) => `<tr><td>${esc(p.title)}<div class="src">${esc(p.url)}</div></td><td>${esc(p.google)}</td><td>${esc(p.bing)}</td></tr>`).join("")}</table><p><button class="ghost" id="inxset">Set up IndexNow (Bing)</button></p>`; $("#inxset").onclick = indexNowScreen; return; }
   note(msg, r.line, r.ok === false ? "err" : "ok");
   if (what === "weekly" || what === "create-pages") setTimeout(() => { if ($("#ov")) overview(); }, 1500);
+}
+/* 🔴 RR-354 · Start: the ticked jobs, done to the end; then the short report and its ONE next step (never a dead end) */
+async function startJobs() {
+  const jobs = [...document.querySelectorAll("#jobs .jobtick")].filter((x) => x.checked).map((x) => x.value), approval = document.querySelector("#jobs input[name=appr]:checked")?.value ?? null;
+  if (!jobs.length) return note($("#jobsmsg"), "Tick at least one job.", "err");
+  $("#jobsgo").disabled = true; note($("#jobsmsg"), "Working — reading AlmiWorld's search data and checked facts, making and checking each page… (a minute or two)");
+  const r = await post(`/api/products/${encodeURIComponent(P)}/jobs`, { jobs, approval });
+  $("#jobsgo").disabled = false;
+  if (r.needsCta) return ($("#jobrep").innerHTML = `<div class="warn"><b>One thing first: your offer button.</b> ${esc(r.refused)} <button id="setcta">Set it now</button></div>`, ($("#setcta").onclick = () => act("settings")));
+  if (r.refused) return note($("#jobsmsg"), r.refused, "err");
+  note($("#jobsmsg"), "Done.", "ok");
+  $("#jobrep").innerHTML = reportHtml(r.report); wireReport($("#jobrep"));
+}
+const reportHtml = (R) => `<div class="report" id="report"><h3>${esc(R.headline)}</h3>
+  ${R.needOk?.length ? `<p><b>Waiting for your OK</b></p><ul>${R.needOk.map((x) => `<li>${esc(x.title)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul>` : ""}
+  ${R.needWork?.length ? `<p><b>Need work</b></p><ul>${R.needWork.map((x) => `<li>${esc(x.title)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul>` : ""}
+  ${R.lines?.length ? `<ul class="meta">${R.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
+  ${R.next ? `<p><button class="big" data-next="${esc(R.next.action)}">${esc(R.next.label)}</button> <span id="nextmsg"></span></p>` : ""}</div>`;
+function wireReport(root) {
+  root?.querySelectorAll?.("[data-next]").forEach((b) => (b.onclick = async () => {
+    const a = b.dataset.next;
+    if (a === "pages") return work("Pages and articles");
+    if (a === "publish-settings") return publishScreen();
+    if (a === "settings") return act("settings");
+    if (a === "seo-pages") return startJobs();
+    b.disabled = true; note($("#nextmsg"), a === "fix-all" ? "Making the pages again with the newest checked facts…" : "Checking each page again, then publishing…");
+    const r = await post(`/api/products/${encodeURIComponent(P)}/do`, a === "fix-all" ? { what: "create-pages" } : { what: "publish", approved: true });
+    if (r.open === "publish-settings") return publishScreen();
+    b.disabled = false; note($("#nextmsg"), r.refused ?? r.line ?? "Done.", r.refused ? "err" : "ok");
+    if (!r.refused) setTimeout(() => work("Pages and articles"), 1500);
+  }));
 }
 /* RR-353 · "Start the ticked jobs": the ticked jobs run one after the other, in the plan's order, each showing its own state */
 const JOB_ORDER = ["create-pages", "structure", "publish", "submit", "weekly"];
@@ -949,11 +991,12 @@ async function openFeature(f) {
     setTimeout(() => document.querySelectorAll("#featbox [data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act))), 0); // RR-353: never a dead end
     return (box.innerHTML = `<div class="card"><h3>Create SEO pages — the plan</h3><p class="meta">${r.autoPublished?.some((a) => a.ok) ? `${r.autoPublished.filter((a) => a.ok).length} published (your choice: automatically after the checks).` : "Drafts — nothing is published until your choice allows it."} Looks: ${esc(pg.design ?? "")}.</p>${(pg.notEnough ?? []).map((l) => `<p>${esc(l)}</p>`).join("")}
       ${(pg.sources ?? []).length ? `<p class="meta" id="pgsrc">Searches from: ${pg.sources.map(esc).join(" · ")}</p>` : ""}${(pg.add ?? []).length ? `<ul id="pgadd">${pg.add.map((a) => `<li>${esc(a.what)} <button data-act="${esc(a.action)}">Add it now</button></li>`).join("")}</ul>` : ""}
-      <h4>New pages (${by("NEW").length})</h4><ol>${pg.drafts.map((d) => `<li><b>${esc(d.title)}</b> <span class="meta">${esc(d.url)}</span> — ${d.pass ? `<span class="ok-i">passes all five checks</span>` : d.readyAsDraft ? `<span class="ok-i">ready as a draft</span> <span class="meta">(still to check once it is live: ${esc([...new Set(d.gates.flatMap((g) => g.afterPublishing))].join(", "))})</span>` : `<span class="warn-i">not ready</span>`}
-        <ul>${d.gates.map((g) => `<li class="meta">${g.pass || !g.failing.length ? "✓" : "!"} ${esc(g.words)}${g.failing.length ? ` — ${esc(g.failing.join("; "))}` : ""}</li>`).join("")}</ul>
+      ${pg.examPlan ? `<p id="pgkinds"><b>${pg.examPlan.counts.profession} profession pages, ${pg.examPlan.counts.country} country pages and ${pg.examPlan.counts.topic} topic pages planned.</b> ${pg.drafts.filter((d) => d.readyAsDraft).length} of ${pg.drafts.length} made are ✅ ready.</p>${pg.examPlan.skipped.length ? `<details><summary>Searches that make no page (${pg.examPlan.skipped.length})</summary><ul>${pg.examPlan.skipped.slice(0, 40).map((x) => `<li>${esc(x.text)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul></details>` : ""}${pg.examPlan.existing.length ? `<details><summary>Already answered by a page of yours (${pg.examPlan.existing.length})</summary><ul>${pg.examPlan.existing.slice(0, 40).map((x) => `<li>${esc(x.text)} → <span class="meta">${esc(x.page)}</span></li>`).join("")}</ul></details>` : ""}` : ""}
+      <h4>New pages (${by("NEW").length})</h4><ol>${pg.drafts.map((d) => `<li><b>${esc(d.title)}</b> — ${d.readyAsDraft ? `<span class="ok-i">✅ ready</span>` : `<span class="warn-i">⚠️ needs work</span> <span class="meta">${esc(d.why ?? "")}</span>`}
+        <details class="more"><summary>The five checks</summary><ul>${d.gates.map((g) => `<li class="meta">${g.pass || !g.failing.length ? "✓" : "!"} ${esc(g.words)}${g.failing.length ? ` — ${esc(g.failing.join("; "))}` : ""}</li>`).join("")}</ul></details>
         <div class="src">Searched: ${esc(pg.plan.find((x) => x.question === d.title)?.demand?.source ?? "")}</div> <a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(d.url)}" target="_blank">Read the draft</a></li>`).join("")}</ol>
       <h4>Improve your existing pages (${by("SECTION").length})</h4><ul>${by("SECTION").map((x) => `<li><b>${esc(x.question)}</b> — ${esc(x.why)}</li>`).join("") || "<li>None.</li>"}</ul>
-      <details><summary>Not made — no answer on your pages yet (${by("REFUSED").length})</summary><ul>${by("REFUSED").map((x) => `<li>${esc(x.question)} <span class="src">(${esc(x.demand?.source ?? "")})</span></li>`).join("")}</ul><p class="meta">Write the answer on your site, then press Create SEO pages again.</p></details></div>`);
+      <details><summary>Not made — no answer on your pages yet (${by("REFUSED").length})</summary><ul>${by("REFUSED").map((x) => `<li>${esc(x.question)} <span class="src">(${esc(x.demand?.source ?? "")})</span></li>`).join("")}</ul><p class="meta">Write the answer on your site, then press Create SEO pages again.</p></details>${pg.drafts.length ? `<p class="bigrow"><button class="big" id="pgnext" type="button">See the pages — publish or fix them</button></p>` : ""}</div>`, setTimeout(() => { if ($("#pgnext")) $("#pgnext").onclick = () => work("Pages and articles"); }, 0));
   }
   if (r.article) return todayCard(box, r.article); // RR-344 B
   /* RR-310 B6: posts from the newest videos — their own words, their links */
@@ -1014,14 +1057,25 @@ async function pagesBox(waitingOnly = false) {
   const live = (url) => X.records.find((r) => r.url === url && r.state === "LIVE");
   const drafts = waitingOnly ? X.drafts.filter((d) => d.readyAsDraft && !live(d.url)) : X.drafts;
   const where = X.target?.kind ? X.targets.find((t) => t.id === X.target.kind).label : null;
+  /* RR-354 (owner: "one line per page: ✅ ready or ⚠️ needs work with a one-line plain reason, and a Fix or Publish button; Fix all and
+   * Publish all ready at the bottom") */
+  const V = await get(`/api/products/${encodeURIComponent(P)}/pages-view`).catch(() => ({ rows: [] })), why = (url) => V.rows?.find((r) => r.url === url)?.why ?? "";
+  const nReady = drafts.filter((d) => d.readyAsDraft && !live(d.url)).length, nWork = drafts.filter((d) => !d.readyAsDraft).length;
   $("#pubbox").innerHTML = `<p class="meta">${where ? `Publishing to: <b>${esc(where)}</b>.` : "Not connected to your site yet — the first time you press Approve & Publish, Visibility asks where your site is built."} ${X.mode === "REVIEW_FIRST" ? "You chose to approve each page first." : "You chose: publish automatically after the five checks (only once your site is connected)."}</p>
-  ${drafts.length ? drafts.map((d) => { const L = live(d.url); return `<div class="draftrow"><b>${esc(d.title)}</b>${d.edited ? ` <span class="tag">edited by you</span>` : ""} <span class="meta">${esc(d.url)}</span><br>
-    ${d.readyAsDraft ? `<span class="ok-i">passes the five checks as a draft</span>` : `<span class="warn-i">not ready — a check failed: ${esc(d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `"${g.words}" (${g.failing.join("; ")})`).join(", "))}</span>`}${(d.warnings ?? []).length ? ` <span class="meta" data-links-warning>Warning: ${esc(d.warnings.join("; "))}</span>` : ""}
-    <p><a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(d.url)}" target="_blank">Read it</a>
-    ${L ? ` · <b class="ok">Published ✓</b> ${L.live ? `<a href="${esc(L.live)}" target="_blank">${esc(L.live)}</a>` : `saved in ${esc(L.saved ?? "")}`} <button class="ghost" data-undo="${esc(d.url)}">Undo — unpublish</button>`
-      : ` <button class="ghost" data-edit="${esc(d.url)}">Edit</button> <button data-pub="${esc(d.url)}" ${d.readyAsDraft ? "" : "disabled"}>Approve &amp; Publish</button>`}</p><div class="err" data-msg="${esc(d.url)}"></div></div>`; }).join("")
-    : `<p>${waitingOnly ? "Nothing waits for your approval." : "No drafts yet — press Create SEO pages."}</p>`}`;
+  ${V.blocked ? `<p class="warn">${esc(V.blocked)}</p>` : ""}
+  ${drafts.length ? drafts.map((d) => { const L = live(d.url); return `<div class="draftrow"><b>${esc(d.title)}</b>${d.edited ? ` <span class="tag">edited by you</span>` : ""} ${L ? `<b class="ok">Published ✓</b>` : d.readyAsDraft ? `<span class="ok-i">✅ ready</span>` : `<span class="warn-i">⚠️ needs work</span>`}
+    ${!d.readyAsDraft ? `<div class="meta" data-why>${esc(why(d.url))}</div>` : ""}
+    <p class="meta"><a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(d.url)}" target="_blank">Read it</a>
+    ${L ? ` · ${L.live ? `<a href="${esc(L.live)}" target="_blank">${esc(L.live)}</a>` : `saved in ${esc(L.saved ?? "")}`} <button class="ghost" data-undo="${esc(d.url)}">Undo — unpublish</button>`
+      : ` <button class="ghost" data-edit="${esc(d.url)}">Edit</button> ${d.readyAsDraft ? `<button data-pub="${esc(d.url)}">Approve &amp; Publish</button>` : `<button data-fixpage="${esc(d.url)}">Fix</button>`}`}</p><div class="err" data-msg="${esc(d.url)}"></div></div>`; }).join("")
+    : `<p>${waitingOnly ? "Nothing waits for your approval." : "No drafts yet — press Create SEO pages."}</p>`}
+  ${drafts.length ? `<p class="bigrow">${nWork ? `<button class="ghost" id="fixall">Fix all (${nWork})</button> ` : ""}${nReady ? `<button class="big" id="puball">Publish all ready (${nReady})</button>` : ""} <span id="allmsg"></span></p>` : ""}`;
   const msg = (url) => [...document.querySelectorAll("[data-msg]")].find((m) => m.dataset.msg === url);
+  /* Fix: the pages are made again with the collectors' newest facts, then checked again; the line says what changed */
+  const fixAll = async (box, url = null) => { note(box, "Making the pages again with the newest checked facts…"); const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what: "create-pages" }); if (r.refused) return note(box, r.refused, "err"); const W = await get(`/api/products/${encodeURIComponent(P)}/pages-view`); const row = url ? W.rows.find((x) => x.url === url) : null; await pagesBox(waitingOnly); note(url ? msg(url) ?? $("#allmsg") : $("#allmsg"), url ? (row?.ready ? "✅ Fixed — it is ready now." : `Still needs work: ${row?.why ?? "it was not made again"}`) : `${W.rows.filter((x) => x.ready).length} of ${W.rows.length} pages ready now.`, row?.ready || !url ? "ok" : "info"); };
+  document.querySelectorAll("[data-fixpage]").forEach((b) => (b.onclick = () => fixAll(msg(b.dataset.fixpage), b.dataset.fixpage)));
+  if ($("#fixall")) $("#fixall").onclick = () => fixAll($("#allmsg"));
+  if ($("#puball")) $("#puball").onclick = async () => { $("#puball").disabled = true; note($("#allmsg"), "Checking each page again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what: "publish", approved: true }); if (r.open === "publish-settings") return publishScreen(); note($("#allmsg"), r.refused ?? r.line, r.refused ? "err" : "ok"); setTimeout(() => pagesBox(waitingOnly), 1800); };
   document.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = async () => { b.disabled = true; note(msg(b.dataset.pub), "Checking the five gates again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: b.dataset.pub }); if (r.needsConnection) return publishScreen(b.dataset.pub); note(msg(b.dataset.pub), r.ok ? `${r.line} ${r.sitemap ?? ""} ${r.bing ?? ""}` : r.why ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); else b.disabled = false; }));
   document.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/publish/undo`, { url: b.dataset.undo }); note(msg(b.dataset.undo), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); }));
   document.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => editScreen(b.dataset.edit)));
@@ -1111,7 +1165,7 @@ async function googleScreen() {
   const status = g.kind === "CONNECTED" ? `<div class="okbar" id="gscbar"><b>Connected ✓ — ${g.searches} search${g.searches === 1 ? "" : "es"} read</b> from ${esc(g.site)} (${esc(g.window)}). <button class="ghost" id="gscpower">Positions and opportunities →</button></div>` : g.kind === "EXPORT" ? `<p class="ok">Search Console download added ✓ (${esc(g.window)})</p>` : `<p><b>Not connected</b> — connect now to bring in the real searches people make.</p>`;
   $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S.product.name)}</button></p><div class="card"><h2>Google Search Console</h2>${status}
     <h3>Sign in to Google</h3>${g.ready ? (g.signedIn ? `<p>Signed in ✓ — pick your site:</p><div id="sites"><p class="meta">Loading your sites…</p></div>` : `<p>You sign in yourself, in your browser. Visibility asks only to <b>view</b> your Search Console — unless you tick the box below.</p><label class="choice"><input type="checkbox" id="gsub" style="width:auto"> Also let Visibility tell Google about my new pages (it then submits your sitemap after each publish — Google asks for a wider permission for this; Visibility uses it for nothing else)</label><button id="connect">Connect Google</button>`) : `<p class="meta">Google sign-in is off — switch it on with the button "Google sign-in: switch it on" below. Meanwhile, add Search Console's download file below — it gives the same searches.</p>`}
-    <h3 style="margin-top:14px">Or add Search Console's download</h3><div class="howto">${esc(O.howTo.google)}</div><label>The download (the ZIP, or its CSV files)<input id="gf" type="file" accept=".zip,.csv" multiple></label><button id="gup">Add the download</button>
+    <details class="more"><summary>More — add Search Console's download file instead</summary><div class="howto">${esc(O.howTo.google)}</div><label>The download (the ZIP, or its CSV files)<input id="gf" type="file" accept=".zip,.csv" multiple></label><button id="gup">Add the download</button></details>
     <div class="err" id="err"></div>
     <p style="margin-top:16px"><button class="ghost" id="gsignon">Google sign-in: ${g.ready ? "on ✓ — change the client" : "switch it on"}</button> ${guideLink("google-client")}</p></div>`;
   wireGuides();

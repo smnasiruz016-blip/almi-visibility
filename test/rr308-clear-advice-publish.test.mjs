@@ -458,7 +458,10 @@ test("D IN THE APP: Approve & Publish asks where the site is built the first tim
     const ui = await screen(a.url);
     ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#pubbox"); await ui.api.pagesBox(false);
     const shown = ui.el("#pubbox").innerHTML;
-    for (const x of ["Publishing to: <b>WordPress</b>", "Published ✓", "Undo — unpublish", "Edit", "Approve &amp; Publish", "You chose to approve each page first."]) assert.ok(shown.includes(x), x);
+    for (const x of ["Publishing to: <b>WordPress</b>", "Published ✓", "Undo — unpublish", "Edit", "You chose to approve each page first."]) assert.ok(shown.includes(x), x);
+    /* RR-354 (owner: "a Fix or Publish button"): a ready page has Approve & Publish, a page that needs work has Fix — never a disabled button */
+    assert.ok(shown.includes("Approve &amp; Publish") || shown.includes(">Fix</button>"), "neither Publish nor Fix");
+    assert.ok(!/<button data-pub="[^"]*" disabled>/.test(shown));
   } finally { a.close(); s.close(); wp.close(); }
 });
 

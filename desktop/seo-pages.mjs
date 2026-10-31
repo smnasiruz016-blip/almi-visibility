@@ -212,7 +212,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
    * sentence that names that country; the official answers first */
   /* RR-333 (buyer walk: a card read "3 to"): a length of time is the whole span ("3 to 6 months") */
   const spanIn = (s) => (String(s).match(ANSWER_KINDS.duration) ?? [])[0];
-  const factIn = (c, where, kind = null) => { if (kind === "duration" && !c.official) { const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => (!where.length || countriesIn(x).some((w) => where.includes(w))) && spanIn(x)); if (s) return spanIn(s); }
+  /* RR-354: a checked fact of the exam plan carries its own card — its score, fee or "not accepted", taken from its own text, with its country */
+  const factIn = (c, where, kind = null) => { if (typeof c.card === "string" && c.card) return c.card; if (kind === "duration" && !c.official) { const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => (!where.length || countriesIn(x).some((w) => where.includes(w))) && spanIn(x)); if (s) return spanIn(s); }
     const r =c.official ? /the results it names with (\S+): ([^.]+)\.$/.exec(c.text) : null; if (r) return `${r[1]}: ${r[2]}`;
     /* RR-319 proof (8 of 13 drafts "no key-fact card"): an official answer's scores ("— Listening 350 · Reading 360 …"), its fee, or the
      * official page's own word that it is recognised there */

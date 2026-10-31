@@ -373,7 +373,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const download = storeUrlOf(env) ?? (httpsUrl(env[SITE_KEY_NAMES.setupUrl]) ? "/download/AlmiVisibility-Setup.exe" : "/download");
     return P.liteHome({ sales, download, scoreOn: Boolean(ticket), ticket, owner: owner(req), ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
   };
-  const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download"] : [])];
+  const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download", ...Object.keys(P.HELP)] : [])]; // RR-353: the help guides
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
   /* RR-331 · the one-line summary of the other collectors on each owner page (keywords today, first 15, questions, test dates, Search Console) */
   const summaryOf = async ({ all = null, first15 = null } = {}) => {
@@ -416,6 +416,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && sales && SITE_MEDIA[u.pathname]) return send(200, readFileSync(join(HERE, SITE_MEDIA[u.pathname].file)), SITE_MEDIA[u.pathname].type, { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && sales && P.HELP[u.pathname]) return send(200, P.helpPage(u.pathname)); // RR-353: the help guides
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter

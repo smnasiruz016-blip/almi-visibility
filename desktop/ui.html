@@ -63,12 +63,20 @@ button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#F
 .prices td,.prices th{padding:4px 8px;border-bottom:1px solid var(--peach);text-align:left;vertical-align:top;font-size:13px} .prices{border-collapse:collapse;width:100%}
 .draftrow{border-top:1px solid var(--peach);padding:10px 0} .editor{border:1px dashed var(--sunrise);border-radius:10px;padding:10px;min-height:120px;background:var(--white)}
 .backbar{max-width:860px;width:100%;box-sizing:border-box;margin:14px auto -8px;padding:0 16px} .backbar:empty{display:none}
+/* RR-353: the update bar, the breadcrumb, the product's actions, the big Create SEO pages button, the ticked jobs */
+.hdr{display:flex;align-items:center;gap:6px;flex-wrap:wrap} button.small{padding:5px 12px;font-size:13px}
+.updbar{max-width:860px;width:100%;box-sizing:border-box;margin:12px auto 0;padding:0 16px} .updbar:empty{display:none} .updbar .okbar{margin:0}
+.crumbs{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;margin-left:8px;font-size:14px;color:var(--muted)} .crumbs button{background:none;border:0;padding:2px 4px;color:var(--ink);text-decoration:underline;font-weight:600} .crumbs .here{color:var(--ink);font-weight:700}
+.pact{display:flex;gap:6px;flex-wrap:wrap;align-items:center} .pact button{padding:6px 14px;font-size:13px} .product .open{display:inline-block;margin-top:6px;color:var(--ink);font-weight:700}
+.bigact{background:#FFF1E6;border:2px solid var(--coral)} .bigact button.big{font-size:19px;padding:16px 30px}
+a.btnlink{display:inline-block;font-weight:600;padding:6px 14px;border-radius:999px;border:1px solid var(--coral);color:var(--ink);text-decoration:none;font-size:13px} .jobst{font-weight:600} .twochoice{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 @media (max-width:560px){header img.maker{height:36px} .company{flex-direction:column;align-items:flex-start}}
-@media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22} a{color:#9CC8FF} a:visited{color:#C9B3FF} textarea{background:#1E1A15;color:var(--cream);border-color:#3A2F22} .plan{background:#241D14} .okbar{background:#163323;color:#CFF2DD}}
+@media (prefers-color-scheme:dark){body{background:var(--night);color:var(--cream)} h1,h2,h3,label{color:var(--cream)} .card,.product,header{background:#1E1A15;border-color:#3A2F22} .meta,.ask,.steps,.company .site,.product .addr,header .lic{color:#E7D9C3} header .app{color:var(--cream)} input,select{background:#1E1A15;color:var(--cream);border-color:#3A2F22} a{color:#9CC8FF} a:visited{color:#C9B3FF} textarea{background:#1E1A15;color:var(--cream);border-color:#3A2F22} .plan{background:#241D14} .okbar{background:#163323;color:#CFF2DD} .bigact,.warn{background:#241D14} .crumbs button,.crumbs .here{color:var(--cream)}}
 </style></head>
 <body>
-<header><img class="maker" src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully"><span class="app">Visibility</span><span class="lic" id="lic"></span></header>
+<header><img class="maker" src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully"><span class="app">Visibility</span><span class="lic" id="lic"></span><span class="hdr"><button class="ghost small" id="helpbtn" type="button">Help</button> <button class="ghost small" id="updchk" type="button">Check for updates</button> <span class="meta" id="updmsg" role="status"></span></span></header>
 <div class="band"></div>
+<div id="updbar" class="updbar"></div>
 <div id="backbar" class="backbar"></div>
 <main id="app"></main>
 <footer>Made by <b>AlmiWorld</b> · live beautifully · <span id="ver"></span></footer>
@@ -135,7 +143,23 @@ async function here(name, args = []) {
   DIRTY = false; CUR = history.state;
   const bar = $("#backbar"); bar.innerHTML = CUR?.depth > 0 ? `<button class="ghost" id="navback" type="button">← Back</button>` : "";
   if ($("#navback")) $("#navback").onclick = () => history.back();
+  /* RR-353 (owner: "navigation on EVERY screen"): where you are — All products › the product › the screen — each part opens itself */
+  bar.innerHTML += crumbsHtml(name, args);
+  if ($("#crumbhome")) $("#crumbhome").onclick = () => home();
+  if ($("#crumbprod")) $("#crumbprod").onclick = () => work("Overview");
   return true;
+}
+/* the screen's own name in the breadcrumb (a product's screens sit under the product) */
+const SCREEN_NAMES = { setup: () => (S?.started ? "Settings" : "Setup"), publishScreen: () => "Publish settings", editScreen: () => "Edit a page", googleScreen: () => "Google Search Console", pageCountScreen: () => "How many pages", searchScreen: () => "Search Console: positions", youtubeSettings: () => "YouTube settings", enginesScreen: () => "Search engines", bingScreen: () => "Bing Webmaster Tools", socialLinksScreen: () => "Social media", planScreen: () => "Your plan", company: () => "Your company", addProduct: () => "Add a product", googleSignInScreen: () => "Google sign-in", helpScreen: () => "Help" };
+const PRODUCT_FREE = new Set(["home", "planScreen", "company", "addProduct", "googleSignInScreen", "helpScreen"]);
+function crumbsHtml(name, args = []) {
+  if (name === "home") return "";
+  const parts = [`<button type="button" id="crumbhome">All products</button>`];
+  const inProduct = P && S?.product && !PRODUCT_FREE.has(name);
+  const where = name === "work" ? String(args[0] ?? "Overview") : SCREEN_NAMES[name]?.() ?? null;
+  if (inProduct) parts.push(name === "work" && where === "Overview" ? `<span class="here">${esc(S.product.name)}</span>` : `<button type="button" id="crumbprod">${esc(S.product.name)}</button>`);
+  if (where && !(name === "work" && where === "Overview")) parts.push(`<span class="here">${esc(where)}</span>`);
+  return `<nav class="crumbs" aria-label="Where you are">${parts.join(" <span aria-hidden=\"true\">›</span> ")}</nav>`;
 }
 window.addEventListener("popstate", async (e) => {
   const s = e.state; if (!s?.name || !SCREENS[s.name]) return;
@@ -157,11 +181,13 @@ async function home() {
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
   $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
-  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div></button><div class="meta today" data-today="${esc(p.id)}"></div><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
+  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div><span class="open">Open →</span></button><div class="meta today" data-today="${esc(p.id)}"></div><div class="pact"><button type="button" data-open="${esc(p.id)}">Open</button><button class="ghost" type="button" data-settings="${esc(p.id)}">Settings</button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button> <button class="ghost" id="gsignon">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></p><div class="err" id="err"></div>
   <p class="meta" style="margin-top:8px"><label class="check"><input type="checkbox" id="notify"> Tell me with a Windows notification when today's article is ready (while Visibility is open)</label> · A daily or weekly e-mail summary — coming soon</p>
   <div class="card" style="margin-top:16px"><h2>${esc(M.question)}</h2><p class="tabline">Everything Visibility can do for you. Pick a card — Visibility asks which product it is for.</p>${cardsHtml(M.cards)}</div>`;
   document.querySelectorAll(".product").forEach((b) => (b.onclick = () => openProduct(b.dataset.id)));
+  document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => openProduct(b.dataset.open))); // RR-353: clear Open and Settings
+  document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = async () => { P = b.dataset.settings; await settings(); }));
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) return openProduct(H.products[0].id).then(() => openFeature(b.dataset.f)); /* RR-348: the product (S) loaded first — a card on the home with one product threw "reading product of null" */ $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
   $("#add").onclick = () => addProduct();
@@ -394,7 +420,9 @@ async function addProduct() {
     const grow = document.querySelector("input[name=grow]:checked")?.value, has = document.querySelector("input[name=hasweb]:checked")?.value;
     if (!grow || !has) return ($("#err").textContent = "Answer both questions — they decide which steps you see.");
     if (extra.site) $("#p2").value = extra.site;
-    const r = await post("/api/products", { name: $("#p1").value, site: has === "yes" ? $("#p2").value : "", goal: { grow, hasWebsite: has === "yes" }, saveAnyway: extra.saveAnyway === true });
+    const r = await post("/api/products", { name: $("#p1").value, site: has === "yes" ? $("#p2").value : "", goal: { grow, hasWebsite: has === "yes" }, saveAnyway: extra.saveAnyway === true, addAnyway: extra.addAnyway === true });
+    /* RR-353: the same website as a product already here — open that one, or add a second anyway */
+    if (r.duplicate) { $("#err").innerHTML = `${esc(r.refused)} <button id="dupopen">Open ${esc(r.duplicate.name)}</button> <button class="ghost" id="dupadd">Add a second one anyway</button>`; $("#dupopen").onclick = () => openProduct(r.duplicate.id); $("#dupadd").onclick = () => go({ ...extra, addAnyway: true }); return; }
     if (r.refused) return addressTrouble(r, go);
     P = r.product.id; S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = S.steps.findIndex((x) => x.id === "product"); setup();
   };
@@ -405,7 +433,7 @@ let KS = null; // the keys' status (never a key)
 const choiceList = (name, list, current, rec) => list.map((c) => `<label class="choice"><input type="radio" name="${name}" value="${esc(c.value)}" ${String(current ?? rec ?? "") === String(c.value) ? "checked" : ""}> <b>${esc(c.label)}</b> ${String(rec) === String(c.value) ? `<span class="rec">Recommended for you</span>` : ""}<div class="why">Choose this if ${esc(c.chooseIf)} You get: ${esc(c.gives)} Cost: ${esc(c.cost)} You need: ${esc(c.needs)}</div>${c.howTo ? `<div class="howto">How: ${esc(c.howTo)}</div>` : ""}</label>`).join("");
 const fields = {
   goal: () => `<h3>What do you want to grow?</h3>${choiceList("grow", S.choices.grow, S.setup.goal?.grow, null)}<h3 style="margin-top:10px">Do you have a website for this product?</h3><label class="choice"><input type="radio" name="hasweb" value="yes" ${S.setup.goal?.hasWebsite === true ? "checked" : ""}> Yes</label><label class="choice"><input type="radio" name="hasweb" value="no" ${S.setup.goal?.hasWebsite === false ? "checked" : ""}> No</label>`,
-  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for (keep its price and offer up to date: Visibility writes from it)<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label>${S.setup.goal?.hasWebsite === false ? "" : `<h3 style="margin-top:14px">Your offer button</h3><p class="meta">Every page Visibility makes ends with this button. No page is made or published without it.</p><label>The button's words<input id=f4 maxlength=80 placeholder="for example: Try free for 48 hours" value="${esc(S.setup.product?.cta?.label ?? "")}"></label><label>The page it opens (a full web address)<input id=f5 placeholder="https://yoursite.com/signup" value="${esc(S.setup.product?.cta?.href ?? "")}"></label>`}${S.almiworld ? `<h3 style="margin-top:14px">AlmiWorld's own product</h3><label class="check"><input type="checkbox" id=f6 ${S.realProject ? "checked" : ""}> This is a real project — publish its pages to its website and tell Google and Bing about them from here</label><p class="meta">Off: the plan and the drafts only, nothing is published or submitted. Its YouTube channel is never changed from here either way.</p>` : ""}`,
+  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for (keep its price and offer up to date: Visibility writes from it)<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label>${S.setup.goal?.hasWebsite === false ? "" : `<h3 style="margin-top:14px">Your offer button</h3><p class="meta">Every page Visibility makes ends with this button. No page is made or published without it.</p><label>The button's words<input id=f4 maxlength=80 placeholder="for example: Try free for 48 hours" value="${esc(S.setup.product?.cta?.label ?? "")}"></label><label>The page it opens (a full web address)<input id=f5 placeholder="https://yoursite.com/signup" value="${esc(S.setup.product?.cta?.href ?? "")}"></label>`}${socialFieldsHtml()}${S.almiworld ? `<h3 style="margin-top:14px">AlmiWorld's own product</h3><label class="check"><input type="checkbox" id=f6 ${S.realProject ? "checked" : ""}> This is a real project — publish its pages to its website and tell Google and Bing about them from here</label><p class="meta">Off: the plan and the drafts only, nothing is published or submitted. Its YouTube channel is never changed from here either way.</p>` : ""}`,
   searchData: () => `${choiceList("sd", S.choices.searchData, S.setup.searchData?.option, S.recommended.searchData)}<div id=sk>${keyBox("SEARCH_API_KEY", "Your search service key (for that choice)", KS.keys.SEARCH_API_KEY)}</div>`,
   languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${(S.setup.languages?.codes ?? ["en"]).includes(l.code) ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
   articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=${Number.isInteger(S.setup.articlesPerDay?.perDay) ? S.setup.articlesPerDay.perDay : S.recommended.articlesPerDay ?? 1}> <span class="rec">Recommended for you: 1 a day</span>`,
@@ -418,7 +446,7 @@ const fields = {
 };
 const value = (id) => ({
   goal: () => ({ grow: document.querySelector("input[name=grow]:checked")?.value, hasWebsite: document.querySelector("input[name=hasweb]:checked") ? document.querySelector("input[name=hasweb]:checked").value === "yes" : undefined }),
-  product: () => ({ name: $("#f1").value, site: $("#f2") ? $("#f2").value : "", what: $("#f3").value, ...($("#f4") ? { ctaLabel: $("#f4").value, ctaHref: $("#f5").value } : {}), ...($("#f6") ? { realProject: $("#f6").checked } : {}) }),
+  product: () => ({ name: $("#f1").value, site: $("#f2") ? $("#f2").value : "", what: $("#f3").value, ...($("#f4") ? { ctaLabel: $("#f4").value, ctaHref: $("#f5").value } : {}), ...($("#f6") ? { realProject: $("#f6").checked } : {}), social: socialValue() }),
   searchData: () => ({ option: Number(document.querySelector("input[name=sd]:checked")?.value) }),
   languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }), articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
   publishMode: () => ({ mode: document.querySelector("input[name=m]:checked")?.value }), aiConnection: () => ({ provider: $("#f1").value, key: $("#f2").value }),
@@ -444,6 +472,54 @@ async function factsFileBox() {
     };
   };
   show(await get(`/api/products/${encodeURIComponent(P)}/facts-file`));
+}
+/* ── RR-353 · the client's social media pages (asked in Setup → Your product, and on their own screen) ── */
+const SOCIAL_FIELDS = [["facebook", "Facebook Page", "https://facebook.com/yourpage"], ["linkedin", "LinkedIn", "https://linkedin.com/company/yourcompany"], ["instagram", "Instagram", "https://instagram.com/yourname"], ["tiktok", "TikTok", "https://tiktok.com/@yourname"], ["x", "X", "https://x.com/yourname"], ["youtube", "YouTube", "https://youtube.com/@yourchannel"]];
+const socialFieldsHtml = () => `<h3 style="margin-top:14px">Your social media pages (optional)</h3><p class="meta">Visibility writes a post for each new article — with Copy and an Open button for each page you give here.</p>${SOCIAL_FIELDS.map(([k, n, ph]) => `<label>${esc(n)}<input id="sl-${k}" placeholder="${esc(ph)}" value="${esc(S?.setup?.social?.[k] ?? "")}"></label>`).join("")}`;
+const socialValue = () => Object.fromEntries(SOCIAL_FIELDS.map(([k]) => [k, $(`#sl-${k}`)?.value ?? ""]));
+async function socialLinksScreen() {
+  if (!(await here("socialLinksScreen"))) return;
+  const X = await get(`/api/products/${encodeURIComponent(P)}/social-links`); S.setup.social = X.links;
+  $("#app").innerHTML = `<div class="card"><h2>Social media</h2>${socialFieldsHtml()}<p><button id="slsave">Save</button> <span id="slmsg"></span></p></div>
+  <div class="card"><h2>Posts for your newest page</h2><p class="meta">${esc(X.autoPost)}</p>${X.posts.length ? X.posts.map((p) => `<div class="opt"><b>${esc(p.name)}</b>${p.page ? ` <span class="meta">${esc(p.page)}</span>` : ""} ${copyBtn(p.text)} <a class="btnlink" href="${esc(p.open)}" target="_blank" rel="noopener">${esc(p.openLabel)}</a><div class="meta">${esc(p.how)}</div><div class="paste">${esc(p.text)}</div></div>`).join("") : `<p>No post yet — press Create SEO pages first; each new page gets its posts here.</p>`}</div>`;
+  wireCopy($("#app"));
+  $("#slsave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/social-links`, { links: socialValue() }); note($("#slmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) S.setup.social = r.links; };
+}
+/* ── RR-353 · SEARCH ENGINES: Google, Bing (IndexNow and Webmaster Tools), each published page — done, and what is next ── */
+async function enginesScreen() {
+  if (!(await here("enginesScreen"))) return;
+  const E = await get(`/api/products/${encodeURIComponent(P)}/search-engines`);
+  if (E.refused) return ($("#app").innerHTML = `<div class="card"><h2>Search engines</h2><p>${esc(E.refused)}</p></div>`);
+  const tick = (ok) => (ok ? `<span class="ok-i">✓</span>` : `<span class="warn-i">!</span>`);
+  $("#app").innerHTML = `<div class="card"><h2>Search engines</h2>${E.blocked ? `<p class="warn">${esc(E.blocked)}</p>` : ""}
+  <h3>${tick(E.google.canSubmit)} Google</h3><p>${esc(E.google.line)}</p><p><button class="ghost" id="engg">${E.google.connected ? "Google Search Console" : "Connect Google Search Console"}</button></p>
+  <h3>${tick(E.indexNow.verified)} Bing — IndexNow (new pages sent at once)</h3><p>${esc(E.indexNow.line)}</p>${E.indexNow.verified ? "" : `<ol>${E.indexNow.howTo.map((h) => `<li>${esc(h)}</li>`).join("")}</ol><p><b>The text of the file</b> ${copyBtn(E.indexNow.key)}</p><pre>${esc(E.indexNow.key)}</pre>`}<p><button class="ghost" id="enginx">Check my key file</button> <span id="enginxmsg"></span></p>
+  <h3>${tick(E.bing.done)} Bing Webmaster Tools — a one-time step</h3><ol>${E.bing.steps.map((h) => `<li>${esc(h)}</li>`).join("")}</ol><p>Your sitemap: <code>${esc(E.sitemap)}</code> ${copyBtn(E.sitemap)}</p>
+  <p><a class="btnlink" href="https://www.bing.com/webmasters" target="_blank" rel="noopener">Open Bing Webmaster Tools</a> <label class="check" style="display:inline-flex"><input type="checkbox" id="engbd" class="nodirty" ${E.bing.done ? "checked" : ""}> I have done this</label> <button class="ghost" id="engbing">${E.bing.connected ? "Bing searches: read again" : "Connect Bing (your searches)"}</button></p>
+  <h3>Your published pages</h3>${E.pages.length ? `<table class="prices"><tr><th>Page</th><th>Google</th><th>Bing</th></tr>${E.pages.map((p) => `<tr><td>${esc(p.title)}<div class="src">${esc(p.url)}</div></td><td>${esc(p.google)}</td><td>${esc(p.bing)}</td></tr>`).join("")}</table><p><button id="engsub">Submit them now</button> <span id="engsubmsg"></span></p>` : `<p class="meta">No page is published yet — publish a page first; it is sent to the search engines from here.</p>`}</div>`;
+  wireCopy($("#app"));
+  $("#engg").onclick = googleScreen; $("#engbing").onclick = bingScreen;
+  $("#engbd").onchange = async () => { await post(`/api/products/${encodeURIComponent(P)}/search-engines/bing-done`, { done: $("#engbd").checked }); };
+  $("#enginx").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/indexnow/check`, {}); note($("#enginxmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(enginesScreen, 1200); };
+  if ($("#engsub")) $("#engsub").onclick = async () => { note($("#engsubmsg"), "Sending…"); const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what: "submit" }); note($("#engsubmsg"), r.refused ?? (r.lines ?? []).join(" "), r.refused ? "err" : "ok"); if (!r.refused) setTimeout(enginesScreen, 1500); };
+}
+/* ── RR-353 · BING WEBMASTER TOOLS: the client's own key, or Bing's download file ── */
+async function bingScreen() {
+  if (!(await here("bingScreen"))) return;
+  const B = await get(`/api/products/${encodeURIComponent(P)}/bing`);
+  $("#app").innerHTML = `<div class="card"><h2>Bing Webmaster Tools</h2>${B.last ? `<div class="okbar"><b>Connected ✓ — ${B.last.searches} search${B.last.searches === 1 ? "" : "es"} read</b> from Bing (${esc(B.last.on)}).</div>` : `<p><b>Not connected</b> — the searches people make in Bing come in here.</p>`}
+  <ol>${B.howTo.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
+  <label>Paste your Bing key here<input id="bk" type="password" autocomplete="off" spellcheck="false" placeholder="${B.keySaved ? "saved ✓ — paste a new one to replace it" : "It is kept safely on this computer"}"></label><button id="bgo">Connect Bing</button> <span id="bmsg"></span>
+  <h3 style="margin-top:14px">Or add Bing's download file</h3><label>The file (CSV)<input id="bf" type="file" accept=".csv,text/csv"></label><button class="ghost" id="bfup">Add Bing's download</button> <span id="bfmsg"></span></div>`;
+  $("#bgo").onclick = async () => { $("#bgo").disabled = true; note($("#bmsg"), "Reading your searches from Bing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/bing`, { key: $("#bk").value }); $("#bgo").disabled = false; note($("#bmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(bingScreen, 1500); };
+  $("#bfup").onclick = async () => { const f = $("#bf").files?.[0]; if (!f) return note($("#bfmsg"), "Choose the file first.", "err"); const base64 = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(f); }); const r = await post(`/api/products/${encodeURIComponent(P)}/research/file`, { name: f.name, base64 }); note($("#bfmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
+}
+/* ── RR-353 · HELP: the guides, in the app (they open without the internet) ── */
+async function helpScreen() {
+  if (!(await here("helpScreen"))) return;
+  const G = await get("/api/guides");
+  $("#app").innerHTML = `<div class="card"><h2>Help</h2><p class="ask">Step-by-step guides — each opens in its own window, so you can read it while you work.</p><ul>${G.guides.map((g) => `<li><a href="/guide/${esc(g.id)}" data-guide="${esc(g.id)}" target="_blank" rel="noopener">${esc(g.title)}</a></li>`).join("")}</ul></div>`;
+  wireGuides();
 }
 /* RR-306 A2 / RR-307 E2: the product's Settings — the same steps, with the answers given, any time; and "Delete product" */
 async function settings() { S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = 0; setup(); }
@@ -634,7 +710,7 @@ async function work(tab) {
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
   const lists = { "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly };
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
-  <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="upd">Check for updates</button></nav>
+  <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="eng">Search engines</button><button class="ghost" id="soc">Social media</button></nav>
   <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button> <button class="ghost" id="ffile">Add official facts file</button></p><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
   $("#yts").onclick = youtubeSettings; $("#set").onclick = settings;
@@ -644,8 +720,38 @@ async function work(tab) {
   if ($("#pubset")) $("#pubset").onclick = publishScreen;
   if ($("#ffile")) $("#ffile").onclick = factsFileBox; // RR-351
   if ($("#mk")) $("#mk").onclick = () => openFeature("seo-pages"); if ($("#art")) $("#art").onclick = () => openFeature("articles"); if ($("#mr")) $("#mr").onclick = () => openFeature("monthly");
-  $("#upd").onclick = async () => { const r = await get("/api/update"); $("#u").innerHTML = `<p>${esc(r.line)}</p>${r.state === "AVAILABLE" ? "<button id=agree>Install the update</button>" : ""}`; if ($("#agree")) $("#agree").onclick = async () => { const x = await post("/api/update/install", { agree: true }); $("#u").innerHTML = `<p>${esc(x.line ?? x.refused)}</p>`; }; };
+  $("#eng").onclick = enginesScreen; $("#soc").onclick = socialLinksScreen; // RR-353
 }
+/*
+ * 🔴 RR-353 · UPDATES (owner, 31 Oct 2026: "1.15.5 was not picked up"). Visibility asks the update channel when it opens and every 4 hours;
+ * a newer version is a bar at the top of EVERY screen: "Update to X — Install" (one click; the client agrees by pressing it). The header's
+ * "Check for updates" always says what happened: Checking… → found / up to date / the reason it could not check.
+ */
+async function checkUpdates(byHand = false) {
+  const msg = $("#updmsg"), btn = $("#updchk");
+  if (byHand) { note(msg, "Checking for updates…"); btn.disabled = true; }
+  let r; try { r = await get("/api/update"); } catch { r = { state: "UNREACHABLE", line: "Could not check for updates — Visibility did not answer. Try again." }; }
+  btn.disabled = false;
+  const at = new Date().toTimeString().slice(0, 5);
+  if (r.state === "AVAILABLE") {
+    $("#updbar").innerHTML = `<div class="okbar" id="updnew"><b>A new version is ready: ${esc(r.version)}</b> (you have ${esc(r.current)}). It installs in a minute and Visibility opens again by itself — your products and data are kept. <button id="updgo" type="button">Update to ${esc(r.version)} — Install</button> <span id="updgomsg"></span></div>`;
+    $("#updgo").onclick = updateNow;
+    note(msg, `Version ${r.version} found (${at}).`, "ok");
+    return r;
+  }
+  if (r.state === "REFUSED") $("#updbar").innerHTML = `<div class="warn">${esc(r.line)}</div>`;
+  else if (!$("#updgo")) $("#updbar").innerHTML = "";
+  if (byHand || r.state === "REFUSED") note(msg, r.state === "UP_TO_DATE" ? `✓ ${r.line} (checked ${at})` : r.line, r.state === "UP_TO_DATE" ? "ok" : "err");
+  return r;
+}
+async function updateNow() {
+  const b = $("#updgo"); b.disabled = true; note($("#updgomsg"), "Downloading and checking the update… (about a minute)");
+  const x = await post("/api/update/install", { agree: true });
+  if (x.refused) { b.disabled = false; return note($("#updgomsg"), x.refused, "err"); }
+  $("#updbar").innerHTML = `<div class="okbar"><b>${esc(x.line)}</b></div>`;
+}
+const UPDATE_EVERY = 4 * 3600e3;
+function updateLoop() { setTimeout(async () => { try { await checkUpdates(false); } catch {} updateLoop(); }, UPDATE_EVERY); }
 /* RR-307 (owner, 22 Oct): a long check shows how far it is — what it reads now, N of M, about how long is left */
 function checkingHtml(p) {
   const pct = p && p.of ? Math.min(99, Math.round((p.done / p.of) * 100)) : 2;
@@ -671,7 +777,9 @@ async function overview() {
     ${ageDays >= 1 && !O.checking ? `<div class="warn" id="oldcheck">Your last check is ${ageDays === 1 ? "a day" : `${ageDays} days`} old — what you changed since is not in it. <button id="chk2">Check now</button></div>` : ""}` : `<p>No check yet.</p>`;
   /* RR-310 A2 + A3 + D: "What I will do for you", then "What to fix first" = the action plan's THIS WEEK, then the rest of the plan */
   const PL = O.plan, W = O.willDo;
-  const willHtml = W && !c?.failed ? `<div class="card will" id="willdo"><h3>What I will do for you</h3>${W.plain ? `<p class="warn">${esc(W.plain)}</p>` : ""}<ol>${W.lines.map((l) => `<li><b>${esc(l.text)}</b>${l.titles?.length ? `<ul>${l.titles.map((t) => `<li class="meta">${esc(t)}</li>`).join("")}</ul>` : ""}<div class="meta">Now: ${esc(l.status)}</div><button class="ghost" data-do="${esc(l.action)}">Do it for me</button> <span class="domsg"></span></li>`).join("")}</ol>
+  /* RR-353 (owner): tick one or more of the jobs, then ONE "Start the ticked jobs" — each job shows its own state as it runs */
+  const willHtml = W && !c?.failed ? `<div class="card will" id="willdo"><h3>What I will do for you</h3><p class="meta">Tick the jobs you want, then press "Start the ticked jobs" — or press "Do it for me" on one job.</p>${W.plain ? `<p class="warn">${esc(W.plain)}</p>` : ""}<ol>${W.lines.map((l) => `<li><label class="check"><input type="checkbox" class="willtick nodirty" value="${esc(l.action)}"> <b>${esc(l.text)}</b></label>${l.titles?.length ? `<ul>${l.titles.map((t) => `<li class="meta">${esc(t)}</li>`).join("")}</ul>` : ""}<div class="meta">Now: ${esc(l.status)}</div><button class="ghost" data-do="${esc(l.action)}">Do it for me</button> <span class="domsg jobst" data-job="${esc(l.action)}"></span></li>`).join("")}</ol>
+    <p><button id="willgo">Start the ticked jobs</button> <span id="willmsg"></span></p>
     ${W.more ? `<p class="meta">${esc(W.more)}</p>` : ""}<p class="meta"><b>${esc(W.honest)}</b></p>${O.since?.length ? `<details><summary>Done since the last check (${O.since.length})</summary><ul>${O.since.map((d) => `<li class="meta">${esc(d.on.slice(0, 16).replace("T", " "))} — ${esc(d.what)}</li>`).join("")}</ul></details>` : ""}<div id="dobox"></div></div>` : "";
   const fix = c?.failed ? "" : PL ? `<h3>What to fix first — this week</h3><p class="meta">${esc(PL.order)}</p>${PL.thisWeek.length ? PL.thisWeek.map(itemHtml).join("") : "<p>Nothing to fix was found in this check.</p>"}
     <p><button id="plansave">Save the action plan as a document</button> <button class="ghost" id="planagain">Make the plan again</button> <span id="planmsg"></span></p>
@@ -692,7 +800,9 @@ async function overview() {
   /* RR-318 B7 (owner: "the confirmation was tiny at the bottom and the Connect card still showed"): connected → said at the TOP */
   const G = O.google, gscBar = G?.kind === "CONNECTED" ? `<div class="okbar" id="gscbar"><b>Connected ✓ — ${G.searches} search${G.searches === 1 ? "" : "es"} read</b> from Google Search Console (${esc(G.site)}, ${esc(G.window)}). <button class="ghost" id="gscpower">Positions and opportunities →</button></div>` : G?.kind === "EXPORT" ? `<div class="okbar" id="gscbar"><b>Search Console download added ✓ — ${G.searches} searches</b> (${esc(G.window)}).</div>` : "";
   const todo = O.todo.length ? `<h3>To-do</h3><ul>${O.todo.map((t) => `<li>${esc(t.what)} <button class="ghost" data-act="${esc(t.action)}">Add now</button></li>`).join("")}</ul>` : "";
-  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}<div id="planbox">${fix}</div>${todo}
+  /* RR-353 (owner): "Create SEO pages" is the most visible action on the product page — what is missing is said with a one-click way to add it */
+  const bigSeo = O.noWebsite ? "" : `<div class="card bigact" id="bigseo"><h3>Create SEO pages</h3><p class="meta">New pages that answer what people search about ${esc(S.product.name)} — from AlmiWorld's own search data and your official facts first, every fact with its source. Drafts first; nothing goes live without your choice.</p><button class="big" id="bigmk" type="button">Create SEO pages</button></div>`;
+  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}${bigSeo}<div id="scorebox">${scoreHtml}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}<div id="planbox">${fix}</div>${todo}
     <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${cardsHtml(O.menu.cards, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
   if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
@@ -705,6 +815,8 @@ async function overview() {
   if ($("#plansave")) $("#plansave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/plan/save`, {}); note($("#planmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
   if ($("#planagain")) $("#planagain").onclick = async () => { note($("#planmsg"), "Making the plan again… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/plan`, {}); if (r.refused) return note($("#planmsg"), r.refused, "err"); overview(); };
   document.querySelectorAll("#ov [data-do]").forEach((b) => (b.onclick = () => doIt(b.dataset.do, b.parentElement.querySelector(".domsg") ?? b.nextElementSibling)));
+  if ($("#bigmk")) $("#bigmk").onclick = () => openFeature("seo-pages");
+  if ($("#willgo")) $("#willgo").onclick = startTicked;
   document.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => ($(`#fx${b.dataset.how}`).innerHTML = `<p class="howto">${esc(c.fixFirst[+b.dataset.how].how)}</p>`)));
   document.querySelectorAll("[data-fix]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/fix`, { id: b.dataset.fix }); $(`#fx${b.dataset.i}`).innerHTML = pasteHtml(r.items ?? []) || `<p class="meta">${esc(r.refused ?? "Nothing to write for this one.")}</p>`; wireCopy($(`#fx${b.dataset.i}`)); }));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => openFeature(b.dataset.f)));
@@ -729,10 +841,25 @@ function wireAIW(root = document) {
     wireCopy(box);
   }));
 }
+/*
+ * RR-353 (owner: "every problem offers two clear choices, plain words, no confusing mix"): "Fix it for me" does the job where Visibility can
+ * (it makes the pages); where only the client's own site editor can change a page, it says so in one plain line and opens the content.
+ * "Give me the content, I'll do it myself" opens the ready text, each piece with Copy.
+ */
 function itemHtml(i, k) {
+  const has = i.ready?.length > 0, does = i.fixForMe === "create-pages";
   return `<div class="item"><h4>${k + 1}. ${esc(i.area)}</h4><p><b>Problem:</b> ${esc(i.problem)}</p><p><b>Solution:</b> ${esc(i.solution)}</p>
-  ${i.ready?.length ? `<div><b>Ready to use</b>${i.ready.map(readyHtml).join("")}</div>` : ""}${i.note ? `<p class="meta">${esc(i.note)}</p>` : ""}${i.fixForMe ? `<p><button class="ghost" data-do="${esc(i.fixForMe)}">Fix it for me</button> <span class="domsg"></span></p>` : ""}</div>`;
+  ${i.note ? `<p class="meta">${esc(i.note)}</p>` : ""}<div class="twochoice">${does ? `<button data-do="create-pages">Fix it for me</button>` : `<button type="button" data-nofix="${has ? "1" : ""}">Fix it for me</button>`}${has ? `<button class="ghost" type="button" data-self>Give me the content, I'll do it myself</button>` : ""}</div><span class="domsg"></span>
+  ${has ? `<div class="selfbox" hidden><b>Ready to use</b>${i.ready.map(readyHtml).join("")}</div>` : ""}</div>`;
 }
+const NOFIX = "Visibility cannot change a page that is already on your site — only your site's own editor can. Every NEW page Visibility makes has this built in.";
+/* the two choices work in every box that shows a problem (the Overview, Do it for me, each check's own card) */
+document.addEventListener("click", (e) => {
+  const b = e.target?.closest?.("[data-self],[data-nofix]"); if (!b) return;
+  const item = b.closest(".item"), box = item?.querySelector(".selfbox"), msg = item?.querySelector(".domsg");
+  if (b.matches("[data-nofix]")) { note(msg, box ? `${NOFIX} The content is below — copy it into your site's editor.` : `${NOFIX} Follow the Solution above.`, "info"); if (box) { box.hidden = false; wireCopy(item); wireAIW(item); } return; }
+  if (box) { box.hidden = !box.hidden; b.textContent = box.hidden ? "Give me the content, I'll do it myself" : "Hide the content"; if (!box.hidden) { wireCopy(item); wireAIW(item); } }
+});
 /* a check's line: good / not measured as one line; a problem as the three parts */
 const lineHtml = (l) => (l.ok === false ? `<li class="probline">${itemHtml({ area: "", problem: l.problem ?? l.line, solution: l.solution ?? l.how ?? "", ready: l.ready ?? [], note: l.note }, -1).replace(/<h4>0\. <\/h4>/, "")}</li>`
   : `<li>${l.ok === true ? `<span class="ok-i">✓</span>` : `<span class="nm-i">–</span>`} ${esc(l.line)}</li>`);
@@ -749,6 +876,28 @@ async function doIt(what, msg) {
   if (what === "submit") { note(msg, "Done — see each page below.", "ok"); const box = $("#dobox") ?? msg; box.innerHTML = `<ul>${r.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><table class="prices"><tr><th>Page</th><th>Google</th><th>Bing (IndexNow)</th></tr>${r.pages.map((p) => `<tr><td>${esc(p.title)}<div class="src">${esc(p.url)}</div></td><td>${esc(p.google)}</td><td>${esc(p.bing)}</td></tr>`).join("")}</table><p><button class="ghost" id="inxset">Set up IndexNow (Bing)</button></p>`; $("#inxset").onclick = indexNowScreen; return; }
   note(msg, r.line, r.ok === false ? "err" : "ok");
   if (what === "weekly" || what === "create-pages") setTimeout(() => { if ($("#ov")) overview(); }, 1500);
+}
+/* RR-353 · "Start the ticked jobs": the ticked jobs run one after the other, in the plan's order, each showing its own state */
+const JOB_ORDER = ["create-pages", "structure", "publish", "submit", "weekly"];
+async function startTicked() {
+  const ticked = [...document.querySelectorAll("#willdo .willtick")].filter((x) => x.checked).map((x) => x.value).sort((a, b) => JOB_ORDER.indexOf(a) - JOB_ORDER.indexOf(b));
+  const msg = $("#willmsg");
+  if (!ticked.length) return note(msg, "Tick at least one job first.", "err");
+  $("#willgo").disabled = true; note(msg, `Working on ${ticked.length} job${ticked.length === 1 ? "" : "s"}…`);
+  const st = (job) => [...document.querySelectorAll("#willdo [data-job]")].find((x) => x.dataset.job === job);
+  for (const j of ticked) note(st(j), "Waiting…");
+  let done = 0;
+  for (const job of ticked) {
+    note(st(job), "Working…");
+    if (job === "youtube" || job === "social") { note(st(job), "Open it with Do it for me — it has its own screen.", "info"); continue; }
+    const r = await post(`/api/products/${encodeURIComponent(P)}/do`, { what: job, ...(job === "weekly" ? { on: true } : {}) });
+    const line = r.refused ?? r.line ?? (r.lines ? r.lines.join(" ") : r.open === "publish-settings" ? "First tell Visibility where your site is built — Publish settings." : r.open === "approvals" ? "They wait for your approval under Approvals." : "Done.");
+    const ok = !r.refused && r.ok !== false;
+    if (ok) done++;
+    note(st(job), ok ? `✓ ${line}` : line, ok ? "ok" : "err");
+  }
+  $("#willgo").disabled = false;
+  note(msg, `${done} of ${ticked.length} job${ticked.length === 1 ? "" : "s"} done — each job's line says what happened.`, done === ticked.length ? "ok" : "info");
 }
 /* D3 · IndexNow: the key file the client puts on their site, where, and the check; then each page's state */
 async function indexNowScreen() {
@@ -770,6 +919,10 @@ async function act(a) {
   if (a === "google" || a === "file") return googleScreen();
   if (a === "check") { post(`/api/products/${encodeURIComponent(P)}/check`, {}); return work("Overview"); }
   if (a === "seo-pages") return openFeature("seo-pages");
+  if (a === "bing") return bingScreen(); // RR-353
+  if (a === "facts") return factsFileBox();
+  if (a === "social") return socialLinksScreen();
+  if (a === "engines") return enginesScreen();
   S = await get(`/api/products/${encodeURIComponent(P)}/state`);
   const i = S.steps.findIndex((x) => x.id === (a === "ai" ? "aiConnection" : a === "settings" ? "product" : a));
   step = i < 0 ? 0 : i; setup();
@@ -793,7 +946,9 @@ async function openFeature(f) {
   if (r.found) return (box.innerHTML = `<div class="card"><h3>Keywords and questions</h3><p><b>${esc(r.found.line)}</b></p><h4>Questions people ask</h4><ul>${r.found.questions.slice(0, 80).map((q) => `<li>${esc(q.text)}<div class="src">From: ${esc(q.source)} · ${esc(q.on)}</div></li>`).join("") || "<li>None yet.</li>"}</ul><h4>Search phrases</h4><ul>${r.found.phrases.slice(0, 120).map((q) => `<li>${esc(q.text)}<div class="src">From: ${esc(q.source)}</div></li>`).join("") || "<li>None yet.</li>"}</ul>${r.found.missing.length ? `<h4>Not connected yet</h4><ul>${r.found.missing.map((m) => `<li>${esc(m.what)} — adds: ${esc(m.adds)}</li>`).join("")}</ul>` : ""}</div>`);
   if (r.pages) {
     const pg = r.pages, by = (k) => pg.plan.filter((x) => x.kind === k);
-    return (box.innerHTML = `<div class="card"><h3>Create SEO pages — the plan</h3><p class="meta">Drafts only — nothing is published or submitted. Looks: ${esc(pg.design ?? "")}.</p>${(pg.notEnough ?? []).map((l) => `<p>${esc(l)}</p>`).join("")}
+    setTimeout(() => document.querySelectorAll("#featbox [data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act))), 0); // RR-353: never a dead end
+    return (box.innerHTML = `<div class="card"><h3>Create SEO pages — the plan</h3><p class="meta">${r.autoPublished?.some((a) => a.ok) ? `${r.autoPublished.filter((a) => a.ok).length} published (your choice: automatically after the checks).` : "Drafts — nothing is published until your choice allows it."} Looks: ${esc(pg.design ?? "")}.</p>${(pg.notEnough ?? []).map((l) => `<p>${esc(l)}</p>`).join("")}
+      ${(pg.sources ?? []).length ? `<p class="meta" id="pgsrc">Searches from: ${pg.sources.map(esc).join(" · ")}</p>` : ""}${(pg.add ?? []).length ? `<ul id="pgadd">${pg.add.map((a) => `<li>${esc(a.what)} <button data-act="${esc(a.action)}">Add it now</button></li>`).join("")}</ul>` : ""}
       <h4>New pages (${by("NEW").length})</h4><ol>${pg.drafts.map((d) => `<li><b>${esc(d.title)}</b> <span class="meta">${esc(d.url)}</span> — ${d.pass ? `<span class="ok-i">passes all five checks</span>` : d.readyAsDraft ? `<span class="ok-i">ready as a draft</span> <span class="meta">(still to check once it is live: ${esc([...new Set(d.gates.flatMap((g) => g.afterPublishing))].join(", "))})</span>` : `<span class="warn-i">not ready</span>`}
         <ul>${d.gates.map((g) => `<li class="meta">${g.pass || !g.failing.length ? "✓" : "!"} ${esc(g.words)}${g.failing.length ? ` — ${esc(g.failing.join("; "))}` : ""}</li>`).join("")}</ul>
         <div class="src">Searched: ${esc(pg.plan.find((x) => x.question === d.title)?.demand?.source ?? "")}</div> <a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(d.url)}" target="_blank">Read the draft</a></li>`).join("")}</ol>
@@ -867,7 +1022,7 @@ async function pagesBox(waitingOnly = false) {
       : ` <button class="ghost" data-edit="${esc(d.url)}">Edit</button> <button data-pub="${esc(d.url)}" ${d.readyAsDraft ? "" : "disabled"}>Approve &amp; Publish</button>`}</p><div class="err" data-msg="${esc(d.url)}"></div></div>`; }).join("")
     : `<p>${waitingOnly ? "Nothing waits for your approval." : "No drafts yet — press Create SEO pages."}</p>`}`;
   const msg = (url) => [...document.querySelectorAll("[data-msg]")].find((m) => m.dataset.msg === url);
-  document.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = async () => { b.disabled = true; note(msg(b.dataset.pub), "Checking the five gates again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: b.dataset.pub }); if (r.needsConnection) return publishScreen(b.dataset.pub); note(msg(b.dataset.pub), r.ok ? `${r.line} ${r.sitemap ?? ""}` : r.why ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); else b.disabled = false; }));
+  document.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = async () => { b.disabled = true; note(msg(b.dataset.pub), "Checking the five gates again, then publishing…"); const r = await post(`/api/products/${encodeURIComponent(P)}/publish/draft`, { url: b.dataset.pub }); if (r.needsConnection) return publishScreen(b.dataset.pub); note(msg(b.dataset.pub), r.ok ? `${r.line} ${r.sitemap ?? ""} ${r.bing ?? ""}` : r.why ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); else b.disabled = false; }));
   document.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/publish/undo`, { url: b.dataset.undo }); note(msg(b.dataset.undo), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => pagesBox(waitingOnly), 1500); }));
   document.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => editScreen(b.dataset.edit)));
 }
@@ -1160,5 +1315,10 @@ else if (hash.startsWith("google=")) { P = decodeURIComponent(hash.slice(7)); ge
 else if (hash === "plan") { planScreen(); header(); }
 else if (hash.startsWith("youtube=")) { P = decodeURIComponent(hash.slice(8)); get(`/api/products/${encodeURIComponent(P)}/state`).then((st) => { S = st; youtubeSettings(); }); header(); }
 else home();
+/* RR-353: the new screens are steps in the history too; the header's Help and Check for updates on every screen; the update check on start */
+Object.assign(SCREENS, { enginesScreen, bingScreen, socialLinksScreen, helpScreen });
+$("#updchk").onclick = () => checkUpdates(true);
+$("#helpbtn").onclick = () => helpScreen();
+setTimeout(() => { checkUpdates(false).catch(() => {}); updateLoop(); }, 1500);
 </script>
 </body></html>

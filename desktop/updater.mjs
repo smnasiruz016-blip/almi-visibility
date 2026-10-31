@@ -17,13 +17,21 @@ export function verifyManifest(m, publicKeyPem) {
 }
 
 /** Ask the channel: { state: UP_TO_DATE | AVAILABLE | UNREACHABLE | REFUSED, manifest?, line } */
-export async function checkForUpdate({ channelUrl, current, publicKeyPem }) {
+/* RR-353 (owner, 31 Oct 2026: "update to 1.15.5 not picked up"): every answer says what happened — the reason when the channel could not be
+ * read (its HTTP status, a timeout, no internet), the version found — and never waits for ever (20 s). `fetchImpl` is handed in by tests */
+export async function checkForUpdate({ channelUrl, current, publicKeyPem, fetchImpl = fetch }) {
   let m;
-  try { const r = await fetch(new URL("manifest.json", channelUrl)); if (!r.ok) throw new Error(String(r.status)); m = await r.json(); }
-  catch { return { state: "UNREACHABLE", line: "The update channel could not be reached — Visibility keeps working on this version." }; }
+  try {
+    const r = await fetchImpl(new URL("manifest.json", channelUrl), { cache: "no-store", headers: { "cache-control": "no-cache" }, signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return { state: "UNREACHABLE", why: `the update channel answered ${r.status}`, line: `Could not check for updates — the update channel answered ${r.status}. Visibility keeps working on ${current}; try again later.` };
+    m = await r.json();
+  } catch (e) {
+    const why = e?.name === "TimeoutError" ? "no answer within 20 seconds" : e instanceof SyntaxError ? "the channel's answer could not be read" : "no internet connection, or the channel could not be reached";
+    return { state: "UNREACHABLE", why, line: `Could not check for updates — ${why}. Visibility keeps working on ${current}; try again later.` };
+  }
   if (!verifyManifest(m, publicKeyPem)) return { state: "REFUSED", line: "An update was offered, but its signature does not verify — it is refused and not downloaded." };
-  if (!newer(m.version, current)) return { state: "UP_TO_DATE", manifest: m, line: `Visibility ${current} is up to date.` };
-  return { state: "AVAILABLE", manifest: m, line: `Visibility ${m.version} is available (you have ${current}). It installs only when you agree; your data is kept.` };
+  if (!newer(m.version, current)) return { state: "UP_TO_DATE", version: m.version, line: `Visibility ${current} is up to date.` };
+  return { state: "AVAILABLE", manifest: m, version: m.version, line: `Visibility ${m.version} is available (you have ${current}). It installs only when you agree; your data is kept.` };
 }
 
 /** Download and verify the package into the data folder's updates/ (an existing file is verified, never overwritten). */

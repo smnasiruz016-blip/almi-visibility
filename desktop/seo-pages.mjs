@@ -93,11 +93,14 @@ export function designFromSite(site) {
 }
 
 /** The demand: each search or question once, with its strongest source (Search Console impressions first). */
-export function demandOf({ searchConsole = null, files = [], youtube = null, planned = [] }) {
+export function demandOf({ searchConsole = null, files = [], youtube = null, planned = [], own = [] }) {
   const out = new Map();
   /* RR-318 C5: the pages the client chose in "How many pages can I make?" — each confirmed by an official page */
   for (const p of planned) if (tokens(p.text).length >= 2) out.set(tokens(p.text).join(" "), { text: String(p.text).trim(), source: p.source, weight: 4 });
   const add = (text, source, weight) => { const k = tokens(text).join(" "); if (tokens(text).length < 2) return; const x = out.get(k); if (!x || x.weight < weight) out.set(k, { text: String(text).trim(), source, weight }); };
+  /* RR-353 (owner: "use OUR OWN data first"): AlmiVisibility's own searches for the product — AlmiWorld's keyword service and the keyword
+   * database, the client's search-data files (Keyword Planner, Bing Webmaster) — each with its own source; Search Console adds to them */
+  for (const o of own) add(o.text, o.source, Number.isFinite(o.weight) ? o.weight : 4);
   for (const q of searchConsole?.queries ?? []) add(q.query, `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} in search (${searchConsole.window})`, 10 + Math.log10(1 + q.impressions));
   for (const f of files) add(f.phrase, `your file ${f.file} (${f.on})`, 5 + Math.log10(1 + (f.impressions ?? 0)));
   for (const q of youtube?.questions ?? []) add(q.text, q.source, 3);
@@ -144,7 +147,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], subject = null, pagePlan = null, cta = null }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -163,8 +166,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     }
     return finish({ needs, meta });
   }
-  const demand = demandOf({ searchConsole, files, youtube, planned }).slice(0, max * 3);
-  if (!demand.length) return { plan: [], drafts: [], notEnough: ["No searches or questions are known for this product yet. Connect Google Search Console (or add its export file), add a search-data file, or confirm your YouTube channel — then press Create SEO pages again."] };
+  const demand = demandOf({ searchConsole, files, youtube, planned, own }).slice(0, max * 3);
+  if (!demand.length) return { plan: [], drafts: [], noDemand: true, notEnough: ["No searches or questions are known for this product yet — AlmiWorld's own search data had none for it. Add one more source below, then press Create SEO pages again."] };
   const needs = [], meta = new Map(), casing = casingOf(site);
   for (const d of demand) {
     const claims = [...officialFor(d.text), ...answersFromSite(d.text, site)].slice(0, 5);

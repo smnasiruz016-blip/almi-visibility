@@ -178,7 +178,7 @@ test("C1 · FIX IT FOR ME descriptions: WRITTEN from what the page gives (its he
   ];
   const items = fixForMe("meta-description", { ok: true, origin: "https://x.test", pages, design: {} });
   const all = items.flatMap((x) => x.options ?? []).map((o) => o.text);
-  assert.equal(items.find((x) => x.page.endsWith("/a")).options[0].text, "OET for nurses. Inside: what the test covers; how it is marked; what it costs.");
+  assert.equal(items.find((x) => x.page.endsWith("/a")).options[0].text, "OET for nurses. Read about what the test covers, how it is marked and what it costs."); // RR-352: one natural sentence
   const lead = pages.flatMap((p) => p.lead);
   for (const t of all) {
     assert.ok(t.length >= 70 && t.length <= 160, `${t.length}: ${t}`);

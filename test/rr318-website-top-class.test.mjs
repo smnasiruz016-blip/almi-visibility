@@ -76,7 +76,8 @@ const SITE = { ok: true, origin: "https://almioet.almiworld.com", readOn: `${ON}
 test("B1 · META DESCRIPTIONS are WRITTEN — what the reader gets on the page (its heading and what its sections cover) — complete, at most 160, never a body sentence lifted ('…anyone promising you a precise number from practice is guessing')", () => {
   const items = fixForMe("meta-description", SITE);
   const home = items.find((x) => x.page === "https://almioet.almiworld.com/");
-  assert.equal(home.options[0].text, "Practise the OET for healthcare with honest AI feedback. Inside: an honest estimate, not a fake score; the four OET sub-tests; all 12 healthcare professions.");
+  /* RR-352 (owner): one natural sentence — the slogan heading "An honest estimate, not a fake score" is not a topic */
+  assert.equal(home.options[0].text, "Practise the OET for healthcare with honest AI feedback. Read about the four OET sub-tests, all 12 healthcare professions and honest scoring on the real scale.");
   assert.equal(home.options[1].text, "OET practice on the real 0–500 scale with a grade of A, B, C+ or C per sub-test — see if you're Clear or Borderline before exam day.", "the present description kept to its complete sentences");
   const docs = items.find((x) => /oet-for-doctors/.test(x.page)).options;
   assert.equal(docs[0].text, "OET for Doctors 2026: Score, Fees & Writing Samples. 1 question answered, each with its official source — for example: What OET score do doctors need?");

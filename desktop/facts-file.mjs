@@ -17,7 +17,8 @@ export const FACTS_FILE = "facts-file.json";
 const PART_OF = { fee: "fee", rate: "fee", venues: "centres", rule: "rules" };
 const LABEL_OF = { fee: "The test fee", rate: "The exchange rate", venues: "Test centres", rule: "A rule of its own" };
 /* the file's profession words → the page plan's keys */
-const PROFESSION_OF = { "speech and language therapy": "speech pathology", "speech therapy": "speech pathology", "veterinary": "veterinary science", "dietetics and nutrition": "dietetics" };
+const PROFESSION_OF = { "speech and language therapy": "speech pathology", "speech therapy": "speech pathology", "speech language therapy": "speech pathology", "speech language pathology": "speech pathology", "veterinary": "veterinary science", "dietetics and nutrition": "dietetics",
+  "nursing midwifery": "nursing", "nursing and midwifery": "nursing", "midwifery": "nursing", "medical radiation technology": "radiography", "medical radiation practice": "radiography", "medical imaging": "radiography" };
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const https = (u) => { try { return new URL(String(u)).protocol === "https:"; } catch { return false; } };
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
@@ -41,7 +42,9 @@ function whyNot(f) {
 export function keyOf(key) {
   const k = String(key ?? "").trim().toLowerCase();
   const m = /^regulator:(.+)$/.exec(k);
-  if (m) { const p = PROFESSION_OF[m[1].trim()] ?? m[1].trim(); return { part: "councils", profession: CF_PROFESSIONS.includes(p) ? p : p, label: `The regulator for ${m[1].trim()}` }; }
+  /* RR-354 (owner's files: "occupational-therapy", "nursing-midwifery", "medical-radiation-technology" — 7 facts reached no profession):
+   * hyphens are spaces, and each profession's other names are its one name */
+  if (m) { const w = m[1].replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim(), p = PROFESSION_OF[w] ?? w; return { part: "councils", profession: p, label: `The regulator for ${w}` }; }
   return PART_OF[k] ? { part: PART_OF[k], profession: null, label: LABEL_OF[k] } : null;
 }
 
@@ -81,7 +84,8 @@ export function addFactsFile(store, read, { on }) {
   return { files };
 }
 /** every fact of the product's store, one per id (the newest file first) */
-export const factsOfStore = (store) => { const seen = new Set(); return [...(store?.files ?? [])].reverse().flatMap((x) => x.facts).filter((f) => !seen.has(f.id) && seen.add(f.id)); };
+/* RR-354: a fact's profession is read again from its key — a file added before the name fix keeps working without being added again */
+export const factsOfStore = (store) => { const seen = new Set(); return [...(store?.files ?? [])].reverse().flatMap((x) => x.facts).filter((f) => !seen.has(f.id) && seen.add(f.id)).map((f) => { const k = keyOf(f.key); return k?.part === "councils" && k.profession !== f.profession ? { ...f, profession: k.profession } : f; }); };
 
 /** VERIFIED facts as the app's official answers (desktop/main.mjs officialOf): country → claims, each with its page and the day it was checked */
 export function officialClaimsOf(store) {

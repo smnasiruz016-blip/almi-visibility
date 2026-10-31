@@ -171,7 +171,7 @@ export function fixForMe(id, site) {
 }
 
 /** B3 · "We found …": what Visibility gathered for this product, each with its source and date — and what is missing, with what it would add. */
-export function foundInfo({ site = null, youtube = null, files = [], searchConsole = null, keys = {}, on }) {
+export function foundInfo({ site = null, youtube = null, files = [], searchConsole = null, keys = {}, own = [], on }) {
   const day = String(on).slice(0, 10);
   /* RR-308 C3: the questions ALREADY ANSWERED on the client's pages are kept apart — "questions people ask" come only from search data and
    * research, each with its source */
@@ -182,6 +182,9 @@ export function foundInfo({ site = null, youtube = null, files = [], searchConso
   for (const f of files) (/\?$|^(how|what|why|which|where|when|who|can|is|does|do|kya|kaise)\b/i.test(f.phrase) ? questions : phrases).push({ text: f.phrase, source: `your file ${f.file}`, on: f.on, searched: f.impressions ? `${Number(f.impressions).toLocaleString("en-US")} (the figure in your file)` : null });
   for (const q of searchConsole?.queries ?? []) phrases.push({ text: q.query, source: `your Search Console (${searchConsole.window ?? "export"})`, on: searchConsole.on, searched: Number.isFinite(q.impressions) ? `shown ${Number(q.impressions).toLocaleString("en-US")} times in Google search` : null });
   for (const t of youtube?.terms ?? []) phrases.push({ text: t.phrase, source: t.from, on: day });
+  /* RR-354 (owner: "0 search phrases" was shown beside "keyword service on"): AlmiVisibility's own searches — the keyword service and the
+   * keyword database, the search-data files, Bing — are search phrases too, each with its source */
+  for (const o of own) phrases.push({ text: o.text, source: o.source, on: o.on ?? day });
   const uniq = (xs) => [...new Map(xs.map((x) => [x.text.toLowerCase(), x])).values()];
   const missing = [];
   if (!site?.ok) missing.push({ what: "Your website", adds: "Your pages, prices, facts and existing questions — the base of every page Visibility writes.", action: "settings" });

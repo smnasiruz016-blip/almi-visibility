@@ -19,7 +19,10 @@ import { licenceState, mayAddProduct, plansView, PLANS, planLimitLine, readOwner
 import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
 import { STEPS, checkStep, webAddress, stepsFor, CHOICES, HOWTO, recommended, ctaFrom, ctaOfSetup, NO_CTA } from "./setup.mjs";
-import { FACTS_FILE, readFactsFile, addFactsFile, officialClaimsOf, countryLinesOf, factsFileView } from "./facts-file.mjs"; // RR-351
+import { FACTS_FILE, readFactsFile, addFactsFile, officialClaimsOf, countryLinesOf, factsFileView, factsOfStore } from "./facts-file.mjs"; // RR-351
+import { examPlan, serviceFactsOf } from "./exam-plan.mjs"; // RR-354
+import { plainWhy, JOBS, jobReport, notMadeOf } from "./plain-words.mjs"; // RR-354
+import { CF_PRIORITY } from "./country-facts.mjs"; // RR-354
 import { bingQueries, bingPhrases, bingKeyName, BING_HOWTO, BING_SETUP_STEPS } from "./bing-webmaster.mjs"; // RR-353
 import { SOCIAL_NETWORKS, socialFrom, socialShare, AUTO_POST_LINE } from "./social-links.mjs"; // RR-353
 import { readSite, addressOpens } from "./site-read.mjs";
@@ -247,7 +250,7 @@ async function buildPlan(id) {
     const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
     const web = hasWebsite(s) && site?.ok ? site : null;
     const pages = web ? seoPages({ site: web, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) }) : null;
-    const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on });
+    const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), on });
     const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
     pwrite(id, "plan.json", plan);
     return plan;
@@ -266,7 +269,8 @@ const officialForPages = (id) => { const out = { ...officialOf(id) }; for (const
 /* RR-351: a country page's lines from the facts file — its VERIFIED facts first (as the owner's own checked lines), then "check the official page" */
 const withFactsFile = (id, cfs) => { const out = { ...cfs }; for (const [c, x] of Object.entries(countryLinesOf(pread(id, FACTS_FILE, null)))) out[c] = { ...(out[c] ?? { country: c }), owner: [...x.owner, ...(out[c]?.owner ?? [])], checkOfficial: x.checkOfficial }; return out; };
 /* RR-319: once the client made pages from "How many pages", THAT plan is the page list everywhere (one page per different answer) */
-const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null); return p?.length ? { pagePlan: p, max: p.length } : {}; };
+/* RR-354: else the exam plan Create SEO pages made by itself (auto-plan.json: profession pages, country pages, topics) — the same plan every call reads */
+const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null)?.length ? pread(id, "made-plan.json", null) : pread(id, "auto-plan.json", null)?.pages; return p?.length ? { pagePlan: p, max: p.length } : {}; };
 const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
 const plannedOf = (id) => pread(id, "planned.json", []);
 /* RR-353: a website's own name (no www., any path) — two products with the same one are the same site */
@@ -280,7 +284,7 @@ const sameSiteProduct = (site, exceptId = null) => { const h = hostOf(site); ret
  */
 const seedOf = (s) => aboutOf(s) ?? /\b(?!AI\b|USD\b|FAQ\b)([A-Z][A-Z0-9]{1,7})\b/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? s.product?.name ?? null;
 const ownItemsOf = (id) => [
-  ...phraseItems(id).filter((x) => x.text).map((x) => ({ text: x.text, source: x.source, weight: (x.weight ?? 4) + 2 + (Number.isFinite(Number(x.volume)) && Number(x.volume) > 0 ? Math.log10(1 + Number(x.volume)) : 0) })),
+  ...phraseItems(id).filter((x) => x.text).map((x) => ({ text: x.text, source: x.source, on: x.on ?? null, weight: (x.weight ?? 4) + 2 + (Number.isFinite(Number(x.volume)) && Number(x.volume) > 0 ? Math.log10(1 + Number(x.volume)) : 0) })),
   ...pread(id, "ai-research.json", []).map((x) => ({ text: x.text, source: x.source, weight: 1 })),
 ];
 /** before the drafts are made: AlmiWorld's keyword service asked for the product's subject (fresh answers are reused 30 days); then, only
@@ -288,6 +292,9 @@ const ownItemsOf = (id) => [
 async function gatherOwnDemand(id) {
   const s = store.read(id), subject = seedOf(s), lines = [];
   if (subject) { const svc = await serviceForPlan(id, subject).catch(() => ({ on: false, line: SERVICE_OFF_LINE })); lines.push(svc.line); }
+  /* RR-354 (owner: "the keyword, question and country-fact collectors connected automatically"): AlmiWorld's country facts for the main
+   * countries — asked once a day, kept in country-facts.json, read by the plan beside the owner's facts file */
+  if (examProduct(s, id)) { const cfx = await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: examCountriesOf(id) }).catch(() => ({ line: "AlmiWorld country facts: not reachable just now" })); lines.push(cfx.line); }
   const sc = searchConsoleOf(id);
   if (!ownItemsOf(id).length && !(sc?.queries ?? []).length && !plannedOf(id).length) {
     const ai = aiOf(s);
@@ -300,6 +307,21 @@ async function gatherOwnDemand(id) {
     }
   }
   return { lines, subject };
+}
+/*
+ * 🔴 RR-354 · AN EXAM-PREP PRODUCT'S OWN PLAN (owner: "profession pages and country pages, not only keyword pages"): a product whose subject
+ * has its built-in professions (AlmiWorld's OET) gets one page per profession and per main country, the searches joined to them — made by
+ * Create SEO pages itself, kept in auto-plan.json. A plan the client made in "How many pages" (made-plan.json) still comes first.
+ */
+const examProduct = (s, id) => Boolean(listOf(s, seedOf(s), id));
+const examCountriesOf = (id) => { const own = [...new Set(factsOfStore(pread(id, FACTS_FILE, null)).map((f) => f.country))]; return (own.length ? own : CF_PRIORITY).slice(0, 10); };
+function buildExamPlan(id) {
+  const s = store.read(id), sc = searchConsoleOf(id);
+  const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s) ?? "OET")).flat()];
+  const demand = [...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
+  const x = examPlan({ subject: seedOf(s) ?? "OET", professions: professionsOf(), countries: examCountriesOf(id), facts, demand, site: pread(id, "site-read.json") });
+  pwrite(id, "auto-plan.json", { on: new Date().toISOString(), ...x });
+  return x;
 }
 /** what to add when no search is known yet — each a one-click way (never a dead end) */
 const DEMAND_ADDS = Object.freeze([
@@ -572,7 +594,9 @@ function replan(id) {
 async function createPages(id) {
   const { s, site, sc, files, ctx } = contextOf(id);
   if (!ctaOf(s)) return { refused: NO_CTA, needsCta: true }; // RR-351
-  const own = madePlanOf(id).pagePlan ? { lines: [] } : await gatherOwnDemand(id); // RR-353: our own data first (read by ownItemsOf below)
+  /* RR-353: our own data first (read by ownItemsOf below); RR-354: an exam-prep product then gets its own plan (profession + country pages) */
+  const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
+  const exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;
   const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
   /* RR-318 B6: the countries the searches are about get their official answers first (read once; a country already read is kept) */
   const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
@@ -584,6 +608,7 @@ async function createPages(id) {
   if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
   /* RR-353: where the searches came from, said; nothing known → what to add, each with its one-click way */
   pages.sources = own.lines;
+  if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing };
   if (pages.noDemand) pages.add = DEMAND_ADDS.filter((a) => !(a.action === "google" && sc) && !(a.action === "ai" && aiOf(s)));
   return { pages, auto };
 }
@@ -763,7 +788,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -777,8 +802,8 @@ const server = createServer((req, res) => {
             if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) buildPlan(id).catch(() => {});
             const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
             const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
-            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
-              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
+            return send(200, { plan, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, /* RR-354: the ticked jobs, the approval asked once, the last report */ jobs: JOBS, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST, report: pread(id, "last-report.json"), weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
+              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
           }
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
           if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
@@ -793,6 +818,32 @@ const server = createServer((req, res) => {
             return send(200, { ok: true, file, line: `Saved ✓ — ${file}. Open it in your browser or in Word.` });
           }
           /* RR-310 D · "Do it for me", following the client's own publish choice; never published or submitted for AlmiWorld's own products */
+          /*
+           * 🔴 RR-354 (owner: "whatever the client picks, the app completes that job END TO END by itself") · THE TICKED JOBS: the approval
+           * choice (asked once), then each ticked job in order, then ONE short report — made, published, waiting for the OK, needing work (why).
+           */
+          if (r[2] === "jobs" && req.method === "POST") {
+            const v = json(), jobs = JOBS.map((j) => j.id).filter((j) => (Array.isArray(v.jobs) ? v.jobs : []).includes(j));
+            if (!jobs.length) return send(400, { refused: "Tick at least one job." });
+            if (v.approval === "review" || v.approval === "publish") { s.setup.publishMode = { mode: v.approval === "review" ? PUBLISH_MODE.REVIEW_FIRST : PUBLISH_MODE.AUTO_AFTER_GATES }; store.write(id, s); }
+            const lines = [], blocked = publishBlocked(s), on = new Date().toISOString();
+            if (jobs.includes("create-pages")) {
+              if (!ctx.hasSite || !site) lines.push("Pages: Visibility first needs to read your website — press Check my product now, then Start again.");
+              else { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${x.pages.drafts.length} page drafts${pub ? ` and published ${pub}` : ""}.`); }
+            }
+            if (jobs.includes("structure")) { const p = pread(id, "plan.json"), n = p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.ready?.length).length : 0; lines.push(`Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready to copy into your site (Overview → What to fix first). Visibility cannot change a page that is already on your site — only your site's own editor can.`); }
+            if (jobs.includes("submit")) { const x = await submitAll(id); lines.push(x.ok ? x.lines.join(" ") : `Google and Bing: ${x.why}`); }
+            if (jobs.includes("social")) { const n = Object.keys(s.setup?.social ?? {}).length; lines.push(n ? `Social posts: a post for each new page is ready for your ${n} social page${n === 1 ? "" : "s"} — open Social media, then Copy and Open.` : "Social posts: the posts are ready to copy — add your social pages once under Social media to get an Open button for each."); }
+            if (jobs.includes("reports")) { pwrite(id, "weekly.json", { ...pread(id, "weekly.json", {}), on: true }); lines.push("Reports: the weekly check is on; this month's report is under Monthly report."); }
+            const mode = store.read(id).setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES;
+            const rep = jobReport({ notMade: notMadeOf(pread(id, "pages.json")?.plan ?? []), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url), approval: mode === PUBLISH_MODE.REVIEW_FIRST ? "review" : "publish", connected: Boolean(pread(id, "publish.json")?.kind), blocked: blocked ? ALMIWORLD_NO : null, lines });
+            pwrite(id, "last-report.json", { on, jobs, ...rep });
+            return send(200, { ok: true, report: rep });
+          }
+          if (r[2] === "pages-view" && req.method === "GET") {
+            const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = pread(id, "pages.json")?.drafts ?? [];
+            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST });
+          }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);
             if (what === "create-pages") { if (!ctx.hasSite || !site) return send(400, { refused: "Check your website first — the pages are answered from it." }); const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length, pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"}${pub ? ` and published ${pub}` : ""}.`); return send(200, { ok: true, line: `${n} draft${n === 1 ? "" : "s"} made${pub ? `, ${pub} published` : ""} — read them under "Pages and articles".${aw ? ` ${ALMIWORLD_NO}` : ""}`, open: "pages" }); }
@@ -800,7 +851,7 @@ const server = createServer((req, res) => {
             if (what === "publish") {
               if (aw) return send(200, { ok: false, refused: ALMIWORLD_NO });
               if (!pread(id, "publish.json")?.kind) return send(200, { ok: false, open: "publish-settings", line: "First tell Visibility where your site is built." });
-              if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
+              if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.AUTO_AFTER_GATES) === PUBLISH_MODE.REVIEW_FIRST && json().approved !== true /* RR-354: "Publish all ready" is the client's OK */) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
               const live = new Set(pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url)), out = [];
               for (const d of (pread(id, "pages.json")?.drafts ?? []).filter((x) => x.readyAsDraft && !live.has(x.url))) out.push({ url: d.url, ...(await publishOne(id, d.url)) });
               if (out.some((x) => x.ok)) didIt(id, `Published ${out.filter((x) => x.ok).length} page(s).`);
@@ -867,7 +918,7 @@ const server = createServer((req, res) => {
             if (f === "geo") return send(200, { result: geoCheck(site) });
             if (f === "links") return send(200, { result: linksCheck(site) });
             if (f === "languages") return send(200, { result: languagesCheck(site, s.setup?.languages?.codes ?? []) });
-            if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, on: new Date().toISOString() }) });
+            if (f === "keywords") return send(200, { found: foundInfo({ site, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), on: new Date().toISOString() }) });
             if (f === "youtube") return send(200, { open: "youtube" });
             if (f === "tiktok-instagram") return send(200, { open: "tiktok-instagram" }); // RR-348 b
             if (f === "google") return send(200, { open: "google" });
@@ -877,7 +928,7 @@ const server = createServer((req, res) => {
             if (f === "seo-pages" || f === "articles") {
               if (!ctaOf(s)) return send(400, { refused: NO_CTA, needsCta: true }); // RR-351: no page is made without the client's own offer button
               /* RR-353: Create SEO pages = createPages (our own data first, the official answers read, auto-publish only where allowed) */
-              if (f === "seo-pages") { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); return send(200, { pages: { ...x.pages, drafts: x.pages.drafts.map(({ html, ...d }) => d) }, autoPublished: x.auto }); }
+              if (f === "seo-pages") { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); return send(200, { pages: { ...x.pages, drafts: x.pages.drafts.map(({ html, ...d }) => ({ ...d, why: plainWhy(d) })) }, autoPublished: x.auto }); } // RR-354: each not-ready page with its plain reason
               const pages = seoPages({ site, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */

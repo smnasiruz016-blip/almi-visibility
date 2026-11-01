@@ -131,7 +131,7 @@ test("RR-354 · 2 · the keyword database's searches are search phrases — neve
 });
 
 test("RR-354 · THE APP WIRING: the exam plan is made by Create SEO pages and read by every call; the jobs route; the simple screens", () => {
-  for (const s of [/* RR-356: let — rebuilt in a repair round */ 'let exam = handMade ? null : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();' /* RR-360: a product of any kind */, 'pread(id, "auto-plan.json", null)?.pages', 'if (r[2] === "jobs" && req.method === "POST") {', 'if (r[2] === "pages-view" && req.method === "GET") {',
+  for (const s of [/* RR-356: let — rebuilt in a repair round */ ': examProduct(s, id) ? buildExamPlan(id) : buildGeneric();' /* RR-360: a product of any kind; RR-361: an outside client's finished pages come first */, 'pread(id, "auto-plan.json", null)?.pages', 'if (r[2] === "jobs" && req.method === "POST") {', 'if (r[2] === "pages-view" && req.method === "GET") {',
     "countries: examCountriesOf(id) }", 'json().approved !== true'])
     assert.ok(MAIN.includes(s), s);
   for (const s of ["<h3>What do you want done?</h3>", '<b>Show me before publishing</b>', '<b>Publish for me</b>', 'async function startJobs() {', '<span class="ok-i">✅ ready</span>', '<span class="warn-i">⚠️ needs work</span>',

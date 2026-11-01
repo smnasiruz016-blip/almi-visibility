@@ -73,6 +73,8 @@ test("RR-357 · 1 + 2 · Search results data in ONE place: the client's own logi
   for (const s of ["dataforseo.com", "$1 free credit", "the smallest top-up is $50", "Test the connection", "Switch search results data on", "Spent today:", "What can cost you money", 'id="sdtab">Search results data</button>', 'id="sdset" type="button">Search results data (paid, your own DataForSEO account) →</button>', 'id="spendline"'])
     assert.ok(UI.includes(s), s);
   assert.ok(!UI.includes('id="serpon"') && !UI.includes('id="dfson"'), "ONE place only");
+  /* found in the built app: the money had lost its $ sign — every amount on the screen carries it */
+  for (const s of ["A search costs about <b>$${D.pricePerSearch}</b>", "(US$, at most $${D.maxDay})", "<b>Spent today:</b> $${D.spentToday.toFixed(4)}", "<b>this month:</b> $${D.spentMonth.toFixed(4)}"]) assert.ok(UI.includes(s), s);
 });
 
 test("RR-357 · 3 + 4 + 5 · navigation on Your products; never a second product for one website; the cards' real numbers", async () => {

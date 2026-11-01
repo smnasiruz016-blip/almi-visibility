@@ -70,7 +70,7 @@ const claimOf = (f, country = null, card = undefined) => ({ claimId: f.claimId ?
 const SHOWN = new Set(["confirmed", "approved", "edited", "owner"]);
 const sourced = (x) => /^https:\/\//.test(x?.source ?? "") && /^\d{4}-\d{2}-\d{2}/.test(x?.readOn ?? "") && SHOWN.has(x?.status ?? "confirmed");
 /** AlmiWorld's country facts (the service's packets: shown facts only) → checked lines per country, each with its page and date */
-export function serviceFactsOf(packets = {}, subject = "OET") {
+export function serviceFactsOf(packets = {}, subject = null /* RR-359: no default subject */) {
   const out = {};
   for (const [country, p] of Object.entries(packets ?? {})) {
     let n = 0;
@@ -151,7 +151,7 @@ export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.t
  * `facts` = the facts file's facts plus serviceFactsOf rows; `subjectFacts` = subjectFactsOf (the subject's own pages); `rates` = the one
  * exchange-rate service's day ({ date, rates: { PKR: … }, short, link }); `demand` = [{ text, source, weight }]; `site` = the client's site read.
  */
-export function examPlan({ subject = "OET", professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null }) {
+export function examPlan({ subject = null /* RR-359: no default subject */, professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null }) {
   /* a fact is used only when checked, sourced, dated — its notes taken out, a rate from a central bank (or any rate fact) never */
   const ok = usableFacts(facts);
   const cs = (countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, 10);

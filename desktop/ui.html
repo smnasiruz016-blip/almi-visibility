@@ -63,6 +63,7 @@ button.copy{padding:2px 10px;font-size:12px;margin-left:6px} .plan{background:#F
 .prices td,.prices th{padding:4px 8px;border-bottom:1px solid var(--peach);text-align:left;vertical-align:top;font-size:13px} .prices{border-collapse:collapse;width:100%}
 .draftrow{border-top:1px solid var(--peach);padding:10px 0} .editor{border:1px dashed var(--sunrise);border-radius:10px;padding:10px;min-height:120px;background:var(--white)}
 .backbar{max-width:860px;width:100%;box-sizing:border-box;margin:14px auto -8px;padding:0 16px} .backbar:empty{display:none}
+.purpose{margin:6px 0 0;font-size:14px;color:var(--muted)} .nextbar{max-width:860px;width:100%;box-sizing:border-box;margin:0 auto 24px;padding:0 16px} .nextbar:empty{display:none} .starthere ol{margin:6px 0 8px 20px;padding:0} .starthere li{margin:4px 0} /* RR-359 */
 /* RR-353: the update bar, the breadcrumb, the product's actions, the big Create SEO pages button, the ticked jobs */
 .hdr{display:flex;align-items:center;gap:6px;flex-wrap:wrap} button.small{padding:5px 12px;font-size:13px}
 .updbar{max-width:860px;width:100%;box-sizing:border-box;margin:12px auto 0;padding:0 16px} .updbar:empty{display:none} .updbar .okbar{margin:0}
@@ -79,6 +80,7 @@ a.btnlink{display:inline-block;font-weight:600;padding:6px 14px;border-radius:99
 <div id="updbar" class="updbar"></div>
 <div id="backbar" class="backbar"></div>
 <main id="app"></main>
+<div id="nextbar" class="nextbar"></div>
 <footer>Made by <b>AlmiWorld</b> · live beautifully · <span id="ver"></span></footer>
 <script>
 const $ = (s) => document.querySelector(s);
@@ -145,9 +147,52 @@ async function here(name, args = []) {
   if ($("#navback")) $("#navback").onclick = () => history.back();
   /* RR-353 (owner: "navigation on EVERY screen"): where you are — All products › the product › the screen — each part opens itself */
   bar.innerHTML += crumbsHtml(name, args);
+  guideBars(name, args); // RR-359: what this screen is for (top), its next step (bottom)
   if ($("#crumbhome")) $("#crumbhome").onclick = () => home();
   if ($("#crumbprod")) $("#crumbprod").onclick = () => work("Overview");
   return true;
+}
+/*
+ * 🔴 RR-359 (owner: "I did not know where to start"): the first screen has a START HERE card — the six steps of a run — and EVERY screen
+ * says in one line what it is for (at the top) and offers its next step (a button at the bottom).
+ */
+const START_STEPS = [["Open your product", "press its card below (or + Add a product)"], ["Overview", "it opens first: your score and what to fix"], ["Tick what you want", "under \"What do you want done?\""], ["Choose", "\"Show me before publishing\" or \"Publish for me\""], ["Press Start", "Visibility does each job to the end by itself"], ["Pages and articles", "press \"Read it\" on each page, then \"Approve & Publish\" — or \"Fix\""]];
+function startHereHtml(H) {
+  const first = H.products[0];
+  return `<div class="card starthere" id="starthere"><h2>Start here</h2><ol>${START_STEPS.map(([b, t]) => `<li><b>${esc(b)}</b> — ${esc(t)}.</li>`).join("")}</ol><p>${first ? `<button id="startopen" type="button" data-open="${esc(first.id)}">Step 1: open ${esc(first.name)} →</button>` : `<button id="startadd" type="button">Step 1: add your first product →</button>`}</p></div>`;
+}
+const OVERVIEW = { label: "Next: the Overview →", go: () => work("Overview") }, PAGES = { label: "Next: Pages and articles →", go: () => work("Pages and articles") }, PRODUCTS = { label: "Back to your products →", go: () => home() };
+const SCREEN_GUIDE = {
+  home: { line: "Your products — start with Start here below.", next: null },
+  "work:Overview": { line: "Your score, what to fix first, and the jobs Visibility does for you — tick them and press Start.", next: PAGES },
+  "work:Pages and articles": { line: "The pages Visibility made — Read it, then Approve & Publish, or Fix.", next: { label: "Back to the Overview →", go: () => work("Overview") } },
+  "work:Approvals": { line: "Pages waiting for your yes (you chose \"Show me before publishing\").", next: PAGES },
+  "work:YouTube": { line: "Advice for your channel and each video, and new video ideas.", next: OVERVIEW },
+  "work:Monthly report": { line: "The month in one report — bad news first.", next: OVERVIEW },
+  setup: { line: "Your product's details: its name, website, what it is about and your offer button.", next: OVERVIEW },
+  publishScreen: { line: "Where your pages are published — your site, connected once.", next: PAGES },
+  editScreen: { line: "Change a page's words before you publish it.", next: PAGES },
+  googleScreen: { line: "Connect Google Search Console — what people search to find you.", next: OVERVIEW },
+  pageCountScreen: { line: "How many useful pages this product can have — counted from official lists.", next: OVERVIEW },
+  searchScreen: { line: "Where your pages show in Google, from your Search Console.", next: OVERVIEW },
+  youtubeSettings: { line: "Your YouTube channel's settings.", next: { label: "Next: YouTube advice →", go: () => work("YouTube") } },
+  enginesScreen: { line: "Tell Google and Bing about your published pages.", next: OVERVIEW },
+  bingScreen: { line: "Connect Bing Webmaster Tools — what people search on Bing.", next: OVERVIEW },
+  socialLinksScreen: { line: "Your social media pages — linked from your pages.", next: OVERVIEW },
+  searchDataScreen: { line: "Google's results for each page, from your own DataForSEO account — its price, your caps and the test.", next: OVERVIEW },
+  planScreen: { line: "Your Visibility plan and licence key.", next: PRODUCTS },
+  company: { line: "Your company's name, website and logo.", next: PRODUCTS },
+  addProduct: { line: "Add a product: its name and website.", next: PRODUCTS },
+  googleSignInScreen: { line: "Sign in with Google once — for Search Console.", next: PRODUCTS },
+  helpScreen: { line: "Help — how each part of Visibility works.", next: PRODUCTS },
+};
+function guideBars(name, args = []) {
+  const g = SCREEN_GUIDE[name === "work" ? `work:${args[0] ?? "Overview"}` : name] ?? null, nb = $("#nextbar");
+  if (g?.line) $("#backbar").innerHTML += `<p class="purpose" data-purpose>${esc(g.line)}</p>`;
+  const next = g?.next && (P || g.next === PRODUCTS) ? g.next : g ? (name === "home" ? null : PRODUCTS) : null;
+  if (!nb) return;
+  nb.innerHTML = next ? `<p><button type="button" class="ghost" id="nextstep">${esc(next.label)}</button></p>` : "";
+  if ($("#nextstep")) $("#nextstep").onclick = () => next.go();
 }
 /* the screen's own name in the breadcrumb (a product's screens sit under the product) */
 const SCREEN_NAMES = { setup: () => (S?.started ? "Settings" : "Setup"), publishScreen: () => "Publish settings", editScreen: () => "Edit a page", googleScreen: () => "Google Search Console", pageCountScreen: () => "How many pages", searchScreen: () => "Search Console: positions", youtubeSettings: () => "YouTube settings", enginesScreen: () => "Search engines", bingScreen: () => "Bing Webmaster Tools", socialLinksScreen: () => "Social media", searchDataScreen: () => "Search results data", planScreen: () => "Your plan", company: () => "Your company", addProduct: () => "Add a product", googleSignInScreen: () => "Google sign-in", helpScreen: () => "Help" };
@@ -181,7 +226,7 @@ async function home() {
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
   /* RR-357 (owner: "the Your products screen has no navigation"): the same way around as every other screen — each product, add one, help, updates */
   const nav = `<nav id="homenav" class="pact"><b>Go to:</b> ${H.products.map((p) => `<button class="ghost" data-open="${esc(p.id)}" type="button">${esc(p.name)}</button>`).join("")}<button class="ghost" id="navadd" type="button" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button><button class="ghost" id="navhelp" type="button">Help</button><button class="ghost" id="navupd" type="button">Check for updates</button></nav>`;
-  $("#app").innerHTML = `${nav}<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
+  $("#app").innerHTML = `${nav}${startHereHtml(H)}<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
   <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta" data-counts>Pages: ${p.pages} made · ${p.improve ? `${p.improve} of yours to improve · ` : ""}${p.ready ?? 0} ready · ${p.published ?? 0} published · Articles: ${p.articles}</div>${p.sameSiteAs ? `<div class="warn" data-same>Same website as ${esc(p.sameSiteAs)} — keep one product per website: open ${esc(p.sameSiteAs)}, and delete this copy once you have checked it.</div>` : ""}<span class="open">Open →</span></button><div class="meta today" data-today="${esc(p.id)}"></div><div class="pact"><button type="button" data-open="${esc(p.id)}">Open</button><button class="ghost" type="button" data-settings="${esc(p.id)}">Settings</button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button> <button class="ghost" id="gsignon">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></p><div class="err" id="err"></div>
@@ -192,6 +237,7 @@ async function home() {
   document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = async () => { P = b.dataset.settings; await settings(); }));
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) return openProduct(H.products[0].id).then(() => openFeature(b.dataset.f)); /* RR-348: the product (S) loaded first — a card on the home with one product threw "reading product of null" */ $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
+  if ($("#startopen")) $("#startopen").onclick = () => openProduct($("#startopen").dataset.open); if ($("#startadd")) $("#startadd").onclick = () => addProduct(); // RR-359
   $("#add").onclick = () => addProduct(); $("#navadd").onclick = () => addProduct();
   $("#navhelp").onclick = () => helpScreen(); $("#navupd").onclick = () => checkUpdates(true);
   $("#plan").onclick = () => planScreen();
@@ -434,7 +480,7 @@ const savedAnswer = (id) => { const v = S.setup?.[id]; return v && v.skipped !==
 const choiceList = (name, list, current, rec) => list.map((c) => `<label class="choice"><input type="radio" name="${name}" value="${esc(c.value)}" ${String(current ?? rec ?? "") === String(c.value) ? "checked" : ""}> <b>${esc(c.label)}</b> ${String(rec) === String(c.value) ? `<span class="rec">Recommended for you</span>` : ""}<div class="why">Choose this if ${esc(c.chooseIf)} You get: ${esc(c.gives)} Cost: ${esc(c.cost)} You need: ${esc(c.needs)}</div>${c.howTo ? `<div class="howto">How: ${esc(c.howTo)}</div>` : ""}</label>`).join("");
 const fields = {
   goal: () => `<h3>What do you want to grow?</h3>${choiceList("grow", S.choices.grow, savedAnswer("goal")?.grow, null)}<h3 style="margin-top:10px">Do you have a website for this product?</h3><label class="choice"><input type="radio" name="hasweb" value="yes" ${savedAnswer("goal")?.hasWebsite === true ? "checked" : ""}> Yes</label><label class="choice"><input type="radio" name="hasweb" value="no" ${savedAnswer("goal")?.hasWebsite === false ? "checked" : ""}> No</label>`,
-  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for (keep its price and offer up to date: Visibility writes from it)<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label>${S.setup.goal?.hasWebsite === false ? "" : `<h3 style="margin-top:14px">Your offer button</h3><p class="meta">Every page Visibility makes ends with this button. No page is made or published without it.</p><label>The button's words<input id=f4 maxlength=80 placeholder="for example: Try free for 48 hours" value="${esc(S.setup.product?.cta?.label ?? "")}"></label><label>The page it opens (a full web address)<input id=f5 placeholder="https://yoursite.com/signup" value="${esc(S.setup.product?.cta?.href ?? "")}"></label>`}${socialFieldsHtml()}${S.almiworld ? `<h3 style="margin-top:14px">AlmiWorld's own product</h3><label class="check"><input type="checkbox" id=f6 ${S.realProject ? "checked" : ""}> This is a real project — publish its pages to its website and tell Google and Bing about them from here</label><p class="meta">Off: the plan and the drafts only, nothing is published or submitted. Its YouTube channel is never changed from here either way.</p>` : ""}`,
+  product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for (keep its price and offer up to date: Visibility writes from it)<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label><label>What it is about — the short name people search (for example OET, or wedding photography). Visibility makes this product's pages only about it.<input id=f7 maxlength=40 placeholder="for example: OET" value="${esc(S.setup.product?.subject ?? "")}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<h3 style="margin-top:14px">Your offer button</h3><p class="meta">Every page Visibility makes ends with this button. No page is made or published without it.</p><label>The button's words<input id=f4 maxlength=80 placeholder="for example: Try free for 48 hours" value="${esc(S.setup.product?.cta?.label ?? "")}"></label><label>The page it opens (a full web address)<input id=f5 placeholder="https://yoursite.com/signup" value="${esc(S.setup.product?.cta?.href ?? "")}"></label>`}${socialFieldsHtml()}${S.almiworld ? `<h3 style="margin-top:14px">AlmiWorld's own product</h3><label class="check"><input type="checkbox" id=f6 ${S.realProject ? "checked" : ""}> This is a real project — publish its pages to its website and tell Google and Bing about them from here</label><p class="meta">Off: the plan and the drafts only, nothing is published or submitted. Its YouTube channel is never changed from here either way.</p>` : ""}`,
   searchData: () => `${choiceList("sd", S.choices.searchData, S.setup.searchData?.option, S.recommended.searchData)}<div id=sk>${keyBox("SEARCH_API_KEY", "Your search service key (for that choice)", KS.keys.SEARCH_API_KEY)}</div>`,
   languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${(S.setup.languages?.codes ?? ["en"]).includes(l.code) ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
   articlesPerDay: () => `<input id=f1 type=number min=0 max=20 value=${Number.isInteger(S.setup.articlesPerDay?.perDay) ? S.setup.articlesPerDay.perDay : S.recommended.articlesPerDay ?? 1}> <span class="rec">Recommended for you: 1 a day</span>`,
@@ -447,7 +493,7 @@ const fields = {
 };
 const value = (id) => ({
   goal: () => ({ grow: document.querySelector("input[name=grow]:checked")?.value, hasWebsite: document.querySelector("input[name=hasweb]:checked") ? document.querySelector("input[name=hasweb]:checked").value === "yes" : undefined }),
-  product: () => ({ name: $("#f1").value, site: $("#f2") ? $("#f2").value : "", what: $("#f3").value, ...($("#f4") ? { ctaLabel: $("#f4").value, ctaHref: $("#f5").value } : {}), ...($("#f6") ? { realProject: $("#f6").checked } : {}), social: socialValue() }),
+  product: () => ({ name: $("#f1").value, site: $("#f2") ? $("#f2").value : "", what: $("#f3").value, ...($("#f7") ? { subject: $("#f7").value } : {}), ...($("#f4") ? { ctaLabel: $("#f4").value, ctaHref: $("#f5").value } : {}), ...($("#f6") ? { realProject: $("#f6").checked } : {}), social: socialValue() }),
   searchData: () => ({ option: Number(document.querySelector("input[name=sd]:checked")?.value) }),
   languages: () => ({ codes: [...document.querySelectorAll("input[type=checkbox]:checked")].map((x) => x.value) }), articlesPerDay: () => ({ perDay: Number($("#f1").value) }),
   publishMode: () => ({ mode: document.querySelector("input[name=m]:checked")?.value }), aiConnection: () => ({ provider: $("#f1").value, key: $("#f2").value }),
@@ -715,13 +761,13 @@ const TABS = {
  */
 async function searchDataScreen() {
   if (!(await here("searchDataScreen"))) return;
-  const D = await get("/api/search-data"), K = await get("/api/keys"), SP = await get("/api/spend");
+  const D = await get(`/api/search-data${P ? `?product=${encodeURIComponent(P)}` : ""}`), K = await get("/api/keys"), SP = await get("/api/spend");
   $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S?.product?.name ?? "All products")}</button></p><div class="card" id="sdcard"><h2>Search results data <span class="tag" id="sdstate">${D.on ? "on" : "off"}</span></h2>
   <p class="ask">Paid, from your own DataForSEO account. It lets Visibility read what Google shows for each page's question — the top 10 results (only to see what they cover, never copied), "People also ask", related searches, and Reddit and Quora questions as Google shows them. It also buys keyword volumes. It stays off until you switch it on.</p>
-  <h3>1 · Make your DataForSEO account</h3><ol class="meta"><li>Go to <b>dataforseo.com</b> and press <b>Try for free</b>. A new account gets <b>$1 free credit</b> for testing.</li><li>To use it after the free credit, you top up your account there — <b>the smallest top-up is $50</b>. Visibility never takes money; DataForSEO charges your account.</li><li>A search costs about <b>$${D.pricePerSearch}</b>.</li></ol>
-  <h3>2 · Your DataForSEO login and password for apps</h3><div class="howto" id="sdhow">${esc(D.howTo)}</div><p class="meta">They are kept in Windows' secure store on this computer and never shown again.</p>
-  ${keyBox("DATAFORSEO_LOGIN", "DataForSEO login (the account's e-mail)", K.keys.DATAFORSEO_LOGIN)}${keyBox("DATAFORSEO_PASSWORD", "DataForSEO password for apps", K.keys.DATAFORSEO_PASSWORD)}
-  <h3>3 · Test the connection</h3><p class="meta">One search, to check the login works. It shows what Google returned and what it cost (about $${D.pricePerSearch}).</p><p><button class="ghost" id="sdtest" ${D.keysSaved ? "" : "disabled"}>Test the connection</button> <span id="sdtestmsg"></span></p><div id="sdtop"></div><p class="meta">The test works while the switch is off — it is only a check, one search.</p>
+  <h3>1 · Make your DataForSEO account</h3><ol class="meta"><li>Go to <b>dataforseo.com</b> and press <b>Try for free</b>. A new account gets <b>$1 free credit</b> for testing.</li><li>To use it after the free credit, you top up your account there — <b>the smallest top-up is $50</b>. Visibility never takes money; DataForSEO charges your account.</li><li id="sdprice">A search costs <b>$${Number(D.pricePerSearch).toFixed(4)}</b> — ${esc(D.priceFrom ?? "DataForSEO's list price")}.</li>${D.estimate?.line ? `<li id="sdestimate">${esc(D.estimate.line)}</li>` : ""}</ol>
+  <h3>2 · Your DataForSEO login and password for apps — both from app.dataforseo.com/api-access</h3><div class="howto" id="sdhow">${esc(D.howTo)}</div><p class="meta">They are kept in Windows' secure store on this computer and never shown again.</p>
+  ${keyBox("DATAFORSEO_LOGIN", "DataForSEO login for apps — copy it from app.dataforseo.com/api-access (it is not your sign-in e-mail)", K.keys.DATAFORSEO_LOGIN)}${keyBox("DATAFORSEO_PASSWORD", "DataForSEO password for apps — from the same page (not the password you sign in with)", K.keys.DATAFORSEO_PASSWORD)}
+  <h3>3 · Test the connection</h3><p class="meta">One search, to check the login works. It shows what Google returned, what it cost, and the real price per search.</p><p><button class="ghost" id="sdtest" ${D.keysSaved ? "" : "disabled"}>Test the connection</button> <span id="sdtestmsg"></span></p><div id="sdtop"></div><p class="meta">The test works while the switch is off — it is only a check, one search.</p>
   <h3>4 · Switch it on, with your caps</h3>
   <label class="check"><input type="checkbox" id="sdon" ${D.on ? "checked" : ""} ${D.keysSaved ? "" : "disabled"}> Switch search results data on</label>
   <label>Most it may spend a day (US$, at most $${D.maxDay})<input id="sdday" type="number" min="0.01" max="${D.maxDay}" step="0.01" value="${D.capDay}"></label>
@@ -851,7 +897,7 @@ async function overview() {
    * under "More".
    */
   const summary = c && !c.failed && !O.checking ? `<p class="plainsum" id="plainsum"><b>${c.youtubeOnly ? "Your channel" : "Your site"} scores ${esc(c.score ?? "—")} out of 100.</b> ${PL?.thisWeek?.length ? `The biggest gains now: ${esc(gainsOf(PL.thisWeek))}.` : ""}</p>` : "";
-  const jobsHtml = O.noWebsite || !c || c.failed || O.checking ? "" : `<div class="card bigact" id="jobs"><h3>What do you want done?</h3><p class="meta">Tick what you want — Visibility does each job to the end by itself, and asks you only for what it cannot find.</p>
+  const jobsHtml = O.noWebsite || !c || c.failed || O.checking ? "" : `<div class="card bigact" id="jobs">${O.setAside ? `<div class="warn" id="setaside">${esc(O.setAside.line)}</div>` : ""}${O.noSubject ? `<div class="warn" id="nosubject"><b>What is this product about?</b> ${esc(O.noSubject)} <button id="setsubj2" type="button">Set it now</button></div>` : ""}<h3>What do you want done?</h3><p class="meta">Tick what you want — Visibility does each job to the end by itself, and asks you only for what it cannot find.</p>
     ${(O.jobs ?? []).map((j) => `<label class="check"><input type="checkbox" class="jobtick nodirty" value="${esc(j.id)}" ${j.id === "create-pages" || j.id === "submit" ? "checked" : ""}> <b>${esc(j.label)}</b> <span class="meta">— ${esc(j.does)}</span></label>`).join("")}
     <h4 style="margin-top:10px">Before a page goes live</h4><label class="choice"><input type="radio" class="nodirty" name="appr" value="review" ${O.review ? "checked" : ""}> <b>Show me before publishing</b></label><label class="choice"><input type="radio" class="nodirty" name="appr" value="publish" ${O.review ? "" : "checked"}> <b>Publish for me</b> <span class="meta">— each page goes live once it passes every check</span></label>
     <p><button class="big" id="jobsgo" type="button">Start</button> <span id="jobsmsg"></span></p><div id="jobrep">${O.report ? reportHtml(O.report) : ""}</div></div>`;
@@ -862,6 +908,7 @@ async function overview() {
   if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
   if ($("#fixaddr")) $("#fixaddr").onclick = () => act("settings");
   if ($("#pcbtn")) $("#pcbtn").onclick = pageCountScreen; // RR-318 C1: a clear button on every product
+  if ($("#setsubj2")) $("#setsubj2").onclick = () => act("settings"); // RR-359
   if (O.checking || O.remaking /* RR-358 */ || (O.planning && !O.plan)) setTimeout(() => { if ($("#scorebox") && P === pid) overview(); }, 2000);
   if ($("#chk")) $("#chk").onclick = async () => { $("#chk").disabled = true; await post(`/api/products/${encodeURIComponent(P)}/check`, {}); overview(); };
   if ($("#chk2")) $("#chk2").onclick = () => $("#chk").click();
@@ -948,6 +995,7 @@ async function startJobs() {
   const r = await post(`/api/products/${encodeURIComponent(P)}/jobs`, { jobs, approval });
   $("#jobsgo").disabled = false;
   if (r.needsCta) return ($("#jobrep").innerHTML = `<div class="warn"><b>One thing first: your offer button.</b> ${esc(r.refused)} <button id="setcta">Set it now</button></div>`, ($("#setcta").onclick = () => act("settings")));
+  if (r.needsSubject) return ($("#jobrep").innerHTML = `<div class="warn" data-needsubject><b>One thing first: what this product is about.</b> ${esc(r.refused)} <button id="setsubj">Set it now</button></div>`, ($("#setsubj").onclick = () => act("settings")));
   if (r.refused) return note($("#jobsmsg"), r.refused, "err");
   note($("#jobsmsg"), "Done.", "ok");
   $("#jobrep").innerHTML = reportHtml(r.report); wireReport($("#jobrep"));
@@ -1028,6 +1076,7 @@ async function openFeature(f) {
   const r = await post(`/api/products/${encodeURIComponent(P)}/feature/${f}`, {});
   /* RR-351: no offer button set → straight to Settings → Your product, where it is set */
   if (r.needsCta) return (box.innerHTML = `<div class="card"><h3>First, your offer button</h3><p>${esc(r.refused)}</p><button id="setcta">Set it now</button></div>`, ($("#setcta").onclick = () => act("settings")));
+  if (r.needsSubject) return (box.innerHTML = `<div class="card" data-needsubject><h3>First, what this product is about</h3><p>${esc(r.refused)}</p><button id="setsubj">Set it now</button></div>`, ($("#setsubj").onclick = () => act("settings")));
   if (r.needs) return (box.innerHTML = `<div class="card"><h3>First, Visibility needs:</h3><ul>${r.needs.map((n) => `<li>${esc(n.what)} <button data-act="${esc(n.action)}">Set it up now</button></li>`).join("")}</ul><button class="ghost" id="skipneed">Skip for now</button></div>`, document.querySelectorAll("#featbox [data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act))), ($("#skipneed").onclick = () => (box.innerHTML = "")));
   if (r.open === "youtube") return work("YouTube");
   if (r.open === "tiktok-instagram") return socialScreen(); // RR-348 b
@@ -1323,11 +1372,11 @@ async function pageCountScreen() {
   if (LP) {
     $("#app").innerHTML = `<div class="card"><h2>How many pages can I make for ${esc(S.product.name)}?</h2><p class="ask">Visibility answers the five questions first, counts the questions people ask, then makes one page per different answer — never thin, never duplicate.</p>
     ${C.almiworld ? `<p class="warn">AlmiWorld's own product: the pages are made as drafts only — nothing is published (owner's rule).</p>` : ""}
-    <h3>1 · What is your product about?</h3><label>Its short name, as people search it (for example OET)<input id="pcsub" maxlength="40" value="${esc(C.subject ?? "OET")}"></label><label>A longer description (optional)<textarea id="pcdesc">${esc(C.description ?? "")}</textarea></label><label>That subject's own official site (for example oet.com)<input id="pcsite" value="${esc(C.site ?? "")}" placeholder="oet.com"></label>
+    <h3>1 · What is your product about?</h3><label>Its short name, as people search it (for example OET)<input id="pcsub" maxlength="40" value="${esc(C.subject ?? "")}"></label><label>A longer description (optional)<textarea id="pcdesc">${esc(C.description ?? "")}</textarea></label><label>That subject's own official site (for example oet.com)<input id="pcsite" value="${esc(C.site ?? "")}" placeholder="oet.com"></label>
     <h3>2 · Which pages do you have in mind? (your own words)</h3><label>Your words are saved, and Visibility shows what it understood.<textarea id="pcwords">${esc(F?.text ?? "")}</textarea></label>
     <p><button class="alt" id="pcread">Read my words</button> <span class="meta">${C.aiConnected ? "Your AI reads them; Visibility checks every number is yours." : "Visibility reads them (connect your AI for a better reading)."}</span></p>
     <div id="pcunder">${F?.text ? understoodHtml(F) : ""}</div>
-    <h3>3 · The lists — used on their own, no tick needed</h3><ul class="meta" id="pclists"><li>The world's 197 countries (AlmiWorld's own list)</li>${C.builtIn?.professions ? `<li>${esc(C.subject ?? "OET")}'s ${C.builtIn.professions.n} professions — ${esc(C.builtIn.professions.source)}</li>` : ""}${C.builtIn?.universities ? `<li>AlmiStudy's ${C.builtIn.universities.n.toLocaleString("en-US")} universities — ${esc(C.builtIn.universities.source)}</li>` : ""}${C.builtIn?.recognising ? `<li>${esc(C.subject ?? "OET")}'s list of recognising organisations (${C.builtIn.recognising.n}) — ${esc(C.builtIn.recognising.source)}</li>` : ""}</ul>
+    <h3>3 · The lists — used on their own, no tick needed</h3><ul class="meta" id="pclists"><li>The world's 197 countries (AlmiWorld's own list)</li>${C.builtIn?.professions ? `<li>${esc(C.subject ?? "The subject")}'s ${C.builtIn.professions.n} professions — ${esc(C.builtIn.professions.source)}</li>` : ""}${C.builtIn?.universities ? `<li>AlmiStudy's ${C.builtIn.universities.n.toLocaleString("en-US")} universities — ${esc(C.builtIn.universities.source)}</li>` : ""}${C.builtIn?.recognising ? `<li>${esc(C.subject ?? "The subject")}'s list of recognising organisations (${C.builtIn.recognising.n}) — ${esc(C.builtIn.recognising.source)}</li>` : ""}</ul>
     <p><button id="pcgo">Count</button> <span id="pcmsg"></span></p><div class="err" id="err"></div></div>
     <div id="pcres">${C.running ? `<div class="card"><p><b>Working…</b> ${esc(C.progress?.stage ?? "Starting")}</p><div class="progress"><div style="width:40%"></div></div><p class="meta">Counting reads only ${esc(C.subject ?? "the subject")}'s own pages (one every 2 seconds, robots obeyed). Regulators' pages are read while pages are built. You can leave this screen.</p></div>` : ""}
     ${LL?.five && !C.running ? fiveHtml(LL.five) : ""}${listHtml()}</div>`;

@@ -52,12 +52,12 @@ test("RR-357 · 1 + 2 · Search results data in ONE place: the client's own logi
   try {
     const off = (await A.call("/api/search-data", null, "GET")).j;
     assert.deepEqual([off.on, off.capDay, off.keysSaved, off.spentToday], [false, 1, false, 0], "OFF by default, $1 a day");
-    assert.match(off.howTo, /Dashboard → "API Access"/);
+    assert.match(off.howTo, /app\.dataforseo\.com\/api-access/); // RR-359: the API login and password are on that page
     assert.match((await A.call("/api/search-data", { on: true })).j.refused, /Save your DataForSEO API login and API password first/);
     assert.match((await A.call("/api/search-data/test", {})).j.refused, /Save your DataForSEO API login and API password first/);
     for (const [k, v] of [["DATAFORSEO_LOGIN", "client@example.test"], ["DATAFORSEO_PASSWORD", "fixture-pass"]]) assert.equal((await A.call(`/api/keys/${k}`, { key: v })).status, 200);
     const t = await A.call("/api/search-data/test", { keyword: "fixture" });
-    assert.equal(t.j.ok, true, JSON.stringify(t.j)); assert.match(t.j.line, /^Connected ✓ — Google's results for "fixture" were read: 1 results, 1 "People also ask" questions\. This search cost \$0\.0020\.$/);
+    assert.equal(t.j.ok, true, JSON.stringify(t.j)); assert.match(t.j.line, /^Connected ✓ — Google's results for "fixture" were read: 1 results, 1 "People also ask" questions\. This search cost \$0\.0020\. The real price per search: \$0\.0020 — what DataForSEO charged you \(your last 1 search\)\.$/); // RR-359: the real price
     assert.ok(!JSON.stringify(t.j).includes("fixture-pass") && !JSON.stringify(t.j).includes("client@example.test"), "the login is never shown");
     assert.equal(t.j.spentToday, 0.002);
     assert.match((await A.call("/api/search-data", { capDay: 5 })).j.refused, /never more than \$1 a day/);
@@ -74,7 +74,7 @@ test("RR-357 · 1 + 2 · Search results data in ONE place: the client's own logi
     assert.ok(UI.includes(s), s);
   assert.ok(!UI.includes('id="serpon"') && !UI.includes('id="dfson"'), "ONE place only");
   /* found in the built app: the money had lost its $ sign — every amount on the screen carries it */
-  for (const s of ["A search costs about <b>$${D.pricePerSearch}</b>", "(US$, at most $${D.maxDay})", "<b>Spent today:</b> $${D.spentToday.toFixed(4)}", "<b>this month:</b> $${D.spentMonth.toFixed(4)}"]) assert.ok(UI.includes(s), s);
+  for (const s of ["A search costs <b>$${Number(D.pricePerSearch).toFixed(4)}</b> — ${esc(D.priceFrom ?? \"DataForSEO's list price\")}" /* RR-359: the real price */, "(US$, at most $${D.maxDay})", "<b>Spent today:</b> $${D.spentToday.toFixed(4)}", "<b>this month:</b> $${D.spentMonth.toFixed(4)}"]) assert.ok(UI.includes(s), s);
 });
 
 test("RR-357 · 3 + 4 + 5 · navigation on Your products; never a second product for one website; the cards' real numbers", async () => {

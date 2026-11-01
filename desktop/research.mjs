@@ -94,7 +94,7 @@ const standardPart = (t) => (/accepts? OET[.:]?\s*([\s\S]+)$/i.exec(String(t))?.
  * exam owner's list names for this profession (by its website) whose standard is one for all its boards (its words say so, or the same
  * scores stand for two or more of its professions). → the questions, each with { answer: [claims], how } where answered.
  */
-export function connectByMeaning({ questions, facts = [], prof, subject = "OET" }) {
+export function connectByMeaning({ questions, facts = [], prof, subject = null /* RR-359: no default subject */ }) {
   const people = PEOPLE_WORD[prof] ?? prof;
   for (const q of questions.filter((x) => x.kind === "score" && !x.answer)) {
     const here = facts.filter((f) => f.country === q.country && f.part === "councils" && f.verified !== false);
@@ -122,16 +122,27 @@ export function connectByMeaning({ questions, facts = [], prof, subject = "OET" 
  * 3 · SEARCH WHAT IS MISSING. Each open score question: its regulator's own page is read (then the other bodies the list names for it), with
  * the verbatim check; a page read in the last `keepDays` is not read again. `cache` = { get(url), set(url, value) }; `budget` = { left } — the regulators still to be read in this run, shared by every page (the rest are said: "not searched yet — next run"). → the questions, with what was searched and found.
  */
-export async function searchMissing({ questions, subject, reader, cache, budget = { left: 20 }, keepDays = 30, now = new Date().toISOString() }) {
+/*
+ * 🔴 RR-359 (owner's run: "What OET score does GMC in the United Kingdom ask of doctors?" stayed open, though the GMC's own page states it).
+ * Why: the one address read for it (the list's record) answered 403 — the GMC's security check — and nothing else was tried. Now each
+ * council's addresses are read (a refused read is tried again, official.mjs), and when they still give no score, `findPages(body)` — Google's
+ * results for the council and the subject, through the client's search-results account — names the council's OWN pages (its own website
+ * only), and those are read the same way. Nothing is taken from Google's text: the score stands on the council's page or the question stays open.
+ */
+export const sameSite = (a, b) => { const h = (u) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return null; } }; const x = h(a), y = h(b); if (!x || !y) return false; const tail = (t) => t.split(".").slice(-3).join("."); return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`) || (tail(x) === tail(y) && tail(x).split(".").length === 3 && /\.(gov|org|co|ac|govt|nhs)\.[a-z]{2}$|^[^.]+\.(gov|org|ac)\.[a-z]{2}$/.test(tail(x))); };
+export async function searchMissing({ questions, subject, reader, cache, budget = { left: 20 }, keepDays = 30, now = new Date().toISOString(), findPages = null, retryFailedHours = 1 }) {
+  /* RR-359 (owner's run: the GMC's page "answered 403" once — and that failure was kept 30 days, so no later run read it again): a page READ
+   * is kept `keepDays`; a read that FAILED is tried again after `retryFailedHours` (a read kept before RR-359 without its hour: at once) */
+  const stale = (got) => !got || (Date.parse(now) - Date.parse(got.on ?? 0)) / 864e5 > keepDays || (got.ok === false && (!got.at || (Date.parse(now) - Date.parse(got.at)) / 36e5 >= retryFailedHours));
   for (const q of questions.filter((x) => x.kind === "score" && !x.answer)) {
     for (const body of [q.regulator, ...q.also].filter(Boolean).slice(0, 2)) {
       const url = body.record?.officialUrl ?? body.website; if (!url) { q.searched.push({ url: null, body: body.name, found: false, why: "the exam owner's list gives no address for it" }); continue; }
       let got = cache.get(url);
-      if (!got || (Date.parse(now) - Date.parse(got.on ?? 0)) / 864e5 > keepDays) {
+      if (stale(got)) {
         if (budget.left <= 0) { q.searched.push({ url, body: body.name, found: false, why: "not searched yet — Visibility reads it on the next run" }); continue; }
         budget.left--;
         const r = await readRegulator({ page: { ...body, body: body.name, listId: body.id ?? body.name }, subject, reader }).catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 80), claims: [] }));
-        got = { on: String(now).slice(0, 10), ok: r.ok, url: r.url ?? url, why: r.why ?? null, scores: r.ok ? (r.claims ?? []).find((c) => c.fact === "scores") ?? null : null };
+        got = { on: String(now).slice(0, 10), at: String(now), ok: r.ok, url: r.url ?? url, why: r.why ?? null, scores: r.ok ? (r.claims ?? []).find((c) => c.fact === "scores") ?? null : null };
         cache.set(url, got);
       }
       /* a page that only says it accepts the exam answers no score question: the scores themselves must stand on it */
@@ -140,6 +151,25 @@ export async function searchMissing({ questions, subject, reader, cache, budget 
       /* accepted, but no score tied to a sub-test: said with its page linked, never a number — the question stays open */
       if (!hasScores && got.scores && !q.partial) q.partial = { text: `In ${place}: ${body.name} names ${subject} on its own page among the English tests it accepts; the page does not say which score is for which sub-test — see its page.`, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) };
       if (hasScores) { q.answer = [{ fact: { id: `read-${got.scores.claimId}`, text: got.scores.text, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) }, read: true, text: `In ${place}: ${got.scores.text}` }]; q.how = `read on ${body.name}'s own page`; q.partial = null; break; }
+    }
+    if (q.answer || !findPages) continue;
+    for (const body of [q.regulator, ...q.also].filter(Boolean).slice(0, 2)) {
+      const own = [body.record?.officialUrl, body.website].filter(Boolean), tried = new Set(q.searched.map((x) => x.url));
+      const found = ((await Promise.resolve(findPages(body)).catch(() => [])) ?? []).filter((u) => own.some((o) => sameSite(u, o)) && !tried.has(u)).slice(0, 2);
+      for (const url of found) {
+        let got = cache.get(url);
+        if (stale(got)) {
+          if (budget.left <= 0) { q.searched.push({ url, body: body.name, found: false, why: "found through Google's results; not read yet — Visibility reads it on the next run" }); continue; }
+          budget.left--;
+          const r = await readRegulator({ page: { ...body, body: body.name, listId: body.id ?? body.name, record: { ...(body.record ?? {}), officialUrl: url }, website: url }, subject, reader }).catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 80), claims: [] }));
+          got = { on: String(now).slice(0, 10), at: String(now), ok: r.ok, url: r.url ?? url, why: r.why ?? null, scores: r.ok ? (r.claims ?? []).find((c) => c.fact === "scores") ?? null : null, foundBy: "google" };
+          cache.set(url, got);
+        }
+        const hasScores = Boolean(got.scores) && scoresTied(got.scores.text), place = placeOf(q.country, body.name).label;
+        q.searched.push({ url: got.url ?? url, body: body.name, on: got.on, found: hasScores, how: "found through Google's results", why: hasScores ? null : got.why ?? `its page does not state the ${subject} scores` });
+        if (hasScores) { q.answer = [{ fact: { id: `read-${got.scores.claimId}`, text: got.scores.text, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) }, read: true, text: `In ${place}: ${got.scores.text}` }]; q.how = `read on ${body.name}'s own page (found through Google's results)`; q.partial = null; break; }
+      }
+      if (q.answer) break;
     }
   }
   return questions;

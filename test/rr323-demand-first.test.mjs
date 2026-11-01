@@ -66,7 +66,7 @@ test("3 · Google's ranges, never an exact number: 50 is 10–100, 5,000 is 1K�
 });
 
 test("3 + 5 + 6 · keywords → clusters: same meaning ONE cluster; brands, websites and logins set aside; not about the subject set aside; a profession the test does not cover said so; near me → Where to take", () => {
-  const c = clusterKeywords(items(), { regulators: regNames() });
+  const c = clusterKeywords(items(), { regulators: regNames(), subject: "OET" }); // RR-359: no default subject — the test's product is OET
   const of = (k) => c.clusters.find((x) => x.keywords.some((y) => y.text === k))?.key ?? null;
   assert.equal(new Set(["oet sample test", "sample oet exam", "oet practice exam"].map(of)).size, 1, "three ways of saying it, one cluster");
   assert.equal(of("oet writing sample for nurses"), of("oet case notes for nurses"), "a writing sample and case notes are one need");
@@ -74,8 +74,8 @@ test("3 + 5 + 6 · keywords → clusters: same meaning ONE cluster; brands, webs
   assert.equal(of("oet exam fees"), of("fees for oet exam")); assert.equal(of("oet center near me"), "where"); assert.equal(of("oet coaching near me"), "where");
   assert.deepEqual(c.setAside.brand.map((x) => x.name).sort(), ["benchmark oet writing", "e2 oet", "oet login", "oet official website"]);
   assert.deepEqual(c.setAside.notAbout.map((x) => x.name), ["english test for nurses"]); assert.match(c.setAside.unclear[0].why, /a profession OET does not test/);
-  assert.equal(classify("oet for usmle", { regulators: regNames() }).intent, "regulator", "USMLE is ECFMG's rule");
-  assert.equal(classify("english occupational test").cluster, "topic|format", "the name said backwards is still the subject");
+  assert.equal(classify("oet for usmle", { regulators: regNames(), subject: "OET" }).intent, "regulator", "USMLE is ECFMG's rule");
+  assert.equal(classify("english occupational test", { subject: "OET" }).cluster, "topic|format", "the name said backwards is still the subject");
   assert.equal(c.kept + c.setAside.brand.length + c.setAside.notAbout.length + c.setAside.unclear.length, KW.length, "every keyword accounted for");
 });
 

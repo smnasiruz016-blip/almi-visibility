@@ -12,6 +12,8 @@
  *     the engine's own (src/report/monthly-report.mjs).
  * Pure: everything is handed in.
  */
+import { recleanCoverage, coversByMeaning } from "./coverage.mjs"; // RR-359: only real subtopics, covered by meaning
+import { COUNTRIES as WORLD_COUNTRIES } from "./world.mjs";
 import { planNewPages, buildNewPages, gateInput } from "../src/page/one-builder.mjs";
 import { allGates, GATES } from "../src/page/page-gates.mjs";
 import { linksCheck, MIN_INTERNAL_LINKS } from "../src/page/joined-page.mjs";
@@ -315,9 +317,13 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const text = (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " ");
     /* intent completeness: the standard questions still open, and every coverage topic / second-search question the page does not cover */
     const open = (m.open ?? []).filter((x) => !missing.some((y) => x.endsWith(y)));
-    const coverage = [...(m.coverage ?? []).map((c) => c.topic ?? c), ...(m.second ?? []).map((s) => s.question ?? s)];
-    const uncovered = coverage.filter((c) => !covers(text, c));
-    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : []), ...(uncovered.length ? [`Not covered yet (what readers still search for): ${uncovered.join("; ")}.`] : []), ...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])];
+    /* 🔴 RR-359 (owner's first real run: menus, comments, forms, ads, brand claims, code and past years in "Not covered yet"): the coverage
+     * list and the second-search questions cleaned and merged again here (a list kept by an earlier run included), "covered" judged by
+     * meaning, and the ⚠️ names at most the few real subtopics still missing, in plain words */
+    const words = { title: d.title, now, names: WORLD_COUNTRIES, max: 8 };
+    const coverage = recleanCoverage([...(m.coverage ?? []), ...(m.second ?? []).map((x) => ({ topic: x.question ?? x, urls: [], paa: /people also ask/i.test(x.why ?? "") }))], words).map((c) => c.topic);
+    const uncovered = coverage.filter((c) => !coversByMeaning(text, c, { title: d.title }));
+    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : []), ...(uncovered.length ? [`Not covered yet — what readers also look for: ${uncovered.slice(0, 5).join("; ")}.`] : []), ...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])];
     /* fact integrity: a fact past its freshness window is never shown as current — the page is "review needed" */
     const fr = freshness(m.answers ?? [], now);
     const stale = fr.expired.length ? [`Review needed — ${fr.expired.length} fact${fr.expired.length === 1 ? " is" : "s are"} past its recheck date: ${fr.expired.slice(0, 3).map((x) => `"${x.text}" (checked ${x.on})`).join("; ")}.`] : [];

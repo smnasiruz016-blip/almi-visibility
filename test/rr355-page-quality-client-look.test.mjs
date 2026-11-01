@@ -203,6 +203,6 @@ test("RR-355 · bugs · in the app and on the screens", () => {
   /* the update: downloaded in the background, then ONE button */
   assert.ok(MAIN.includes("updateDownloading = downloadUpdate({") && UI.includes('<button id="updgo" type="button">Update ready — Restart</button>'));
   /* the two collectors a page needs, asked by Create SEO pages itself; the module is packed */
-  assert.ok(MAIN.includes("const sf = await subjectFactsFor(id, seedOf(s) ?? \"OET\"), rt = await oneRatesFor(id);"));
+  assert.ok(MAIN.includes("const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id);")); // RR-359: the product's own subject, never "OET" by default
   assert.ok(readFileSync(join(REPO, "desktop", "build.mjs"), "utf8").includes('"page-quality.mjs"'));
 });

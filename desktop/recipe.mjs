@@ -12,9 +12,10 @@
  * Pure, except where a function is handed a reader.
  */
 import { PEOPLE_WORD, inCountry } from "./recognition.mjs";
+import { cleanCoverage, coversByMeaning } from "./coverage.mjs"; // RR-359: only real subtopics; covered by meaning
 
 /* ── G0 · the real person, context and goal of a page's intent ── */
-export function personOf(page, { subject = "OET", product = null } = {}) {
+export function personOf(page, { subject = null /* RR-359: no default subject */, product = null } = {}) {
   const people = page.profession ? PEOPLE_WORD[page.profession] ?? page.profession : null;
   if (page.kind === "profession") return { person: `A trained ${people?.replace(/s$/, "")} who wants to work abroad`, context: `must show English for registration with a council in another country`, goal: `know which council asks which ${subject} score, and how the ${subject} for ${people} works` };
   if (page.kind === "country") return { person: `A healthcare professional in or from ${inCountry(page.country)}`, context: `is planning to take ${subject} there, or to register there`, goal: `know the fee in local money, where to take it, which council registers them and what is special to ${inCountry(page.country)}` };
@@ -30,7 +31,7 @@ export const UNIVERSE = Object.freeze({
   topic: (s, t) => [["first", `What is ${t}?`], ["time", `How long does it take?`], ["cost", `What does it cost?`], ["next", `How is it scored?`], ["actions", `How should I prepare?`], ["mistakes", `What mistakes lose marks?`], ["exceptions", `What is different on computer or at home?`]],
 });
 /** → [{ question, category, source, on, from }] — the universe for the page, then the questions people asked (its demand), each with its source */
-export function questionsOf(page, { subject = "OET", on = null, extra = [] } = {}) {
+export function questionsOf(page, { subject = null /* RR-359: no default subject */, on = null, extra = [] } = {}) {
   const people = page.profession ? PEOPLE_WORD[page.profession] ?? page.profession : null;
   const set = page.kind === "profession" ? UNIVERSE.profession(subject, people) : page.kind === "country" ? UNIVERSE.country(subject, inCountry(page.country)) : UNIVERSE.topic(subject, page.title);
   return [...set.map(([category, question]) => ({ question, category, source: "the recipe's question set for this kind of page", from: "recipe", on })),
@@ -50,19 +51,19 @@ export function clusterIntents(questions) {
 
 /* ── G5 · READ WHAT RANKS → THE COVERAGE LIST: from the top results' own headings (read with robots obeyed), the subtopics people find
  * answered — diagnostic only: never a sentence copied, never a fact taken. `results` = [{ url, title, headings: [..], tables, updated }] ── */
-export function coverageOf(results = []) {
-  const topics = new Map();
-  for (const r of results) for (const h of [...(r.headings ?? [])]) { const t = String(h).replace(/\s+/g, " ").trim(); if (t.length < 4 || t.length > 90) continue; const k = sig(t).join(" "); if (!k) continue; const x = topics.get(k) ?? { topic: t, seenOn: 0, urls: [] }; x.seenOn++; x.urls.push(r.url); topics.set(k, x); }
-  return [...topics.values()].filter((x) => x.seenOn >= 2 || results.length <= 2).sort((a, b) => b.seenOn - a.seenOn).slice(0, 25);
+export function coverageOf(results = [], opts = {}) {
+  /* 🔴 RR-359 (owner's first real run: menus, comments, forms, ads, code and past years in "Not covered yet"): desktop/coverage.mjs keeps only
+   * the topic's real subtopics — shown by two independent sites, or in "People also ask", or clearly a reader's question */
+  return cleanCoverage({ results, ...opts });
 }
 /* ── G6 · THE SECOND-SEARCH TEST: what would the reader still need to search after the best result? The questions people also ask that
  * the best result does not answer, and the coverage subtopics it lacks ── */
-export function secondSearch({ best = null, paa = [], coverage = [] }) {
-  const has = (q) => { const s = sig(q); const text = sig(`${best?.title ?? ""} ${(best?.headings ?? []).join(" ")} ${best?.text ?? ""}`); return s.filter((w) => text.includes(w)).length / Math.max(1, s.length) >= 0.8; };
+export function secondSearch({ best = null, paa = [], coverage = [], subject = null, title = "" }) {
+  const has = (q) => coversByMeaning(`${best?.title ?? ""} ${(best?.headings ?? []).join(" ")} ${best?.text ?? ""}`, q, { subject, title }); // RR-359: by meaning
   return [...paa.filter((q) => !has(q)).map((q) => ({ question: q, why: "people also ask it, and the best result does not answer it" })), ...coverage.filter((c) => !has(c.topic)).map((c) => ({ question: c.topic, why: `other top results cover it (${c.seenOn}), the best one does not` }))];
 }
 /** does our page cover a coverage topic or a second-search question? (its own headings and answers) */
-export const covers = (pageText, q) => { const s = sig(q); const t = new Set(sig(pageText)); return s.filter((w) => t.has(w)).length / Math.max(1, s.length) >= 0.7; };
+export const covers = (pageText, q, opts = {}) => coversByMeaning(pageText, q, opts); // RR-359: by meaning, never the exact words
 
 /* ── G8 · THE DECISION per intent ── */
 export const DECISIONS = Object.freeze(["KEEP", "IMPROVE", "ADD SECTION", "MERGE", "CREATE", "MONITOR", "NOINDEX", "REJECT"]);

@@ -35,7 +35,7 @@ async function standIn({ refuse = false } = {}) {
     let t = ""; q.on("data", (c) => (t += c)); q.on("end", () => {
       const k = JSON.parse(t)[0].keyword; asked.push(k); const base = `http://127.0.0.1:${srv.address().port}`;
       const items = / reddit$/.test(k) ? [{ type: "organic", url: "https://www.reddit.com/r/nursing/comments/1", title: "How hard is the OET for nurses really? : r/nursing" }]
-        : /^site:quora\.com /.test(k) ? [{ type: "organic", url: "https://www.quora.com/What-is-the-OET-pass-score", title: "What is the OET pass score for nurses? - Quora" }]
+        : / quora$/.test(k) ? [ /* RR-359: Quora as Google shows it for "<topic> quora" — no operator (DataForSEO charges 5× for one) */{ type: "organic", url: "https://www.quora.com/What-is-the-OET-pass-score", title: "What is the OET pass score for nurses? - Quora" }]
         : [{ type: "organic", url: `${base}/top1`, title: `${k} — a guide` }, { type: "organic", url: `${base}/top2`, title: `${k} — fees` }, { type: "people_also_ask", items: [{ title: `Is ${k} hard?` }] }, { type: "related_searches", items: [`${k} score`] }];
       r.writeHead(refuse ? 401 : 200, { "content-type": "application/json" });
       r.end(JSON.stringify(refuse ? DENIED : { status_code: 20000, tasks: [{ status_code: 20000, cost: 0.002, result: [{ items }] }] }));
@@ -81,7 +81,7 @@ test("RR-358 · 1 · Google's results for EVERY page on a real run — inside th
     assert.match(out.line, /^Google's results \(your DataForSEO account\): 1 search, \$0\.0000 — 0 of 29 pages read .* Stopped: DataForSEO did not accept your login and API password \(DataForSEO answered: "You are not authorized/);
     assert.ok(!JSON.stringify([ledger, out, pages]).includes(KEYS.password) && !JSON.stringify([ledger, out]).includes(KEYS.login), "the login is never kept or shown");
   } finally { R.close(); }
-  assert.match(plainSerpWhy(40100, "x"), /The API password is not the password you sign in with: in DataForSEO open "API Access", copy the API password, and save it again in Search results data → step 2\.$/);
+  assert.match(plainSerpWhy(40100, "x"), /Open app\.dataforseo\.com\/api-access: copy the "API login" shown there \(not your sign-in e-mail\) and the API password \(not your sign-in password — shown there for 24 hours after you register, later sent by e-mail or reset on that page\), and save both again in Search results data → step 2\.$/); // RR-359
   assert.match(plainSerpWhy(40210, "insufficient funds."), /^your DataForSEO balance is too low/);
   assert.deepEqual([readSerp(DENIED).code, readSerp(DENIED).stop], [40100, true]);
   /* wired: the run uses it for every page; the page's ⚠️ and its ledger line say what stopped it; the report carries the line */

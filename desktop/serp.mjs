@@ -9,6 +9,7 @@
  * Pure parts (the request, the answer read, the cap) are exported for the tests; the call is handed fetch.
  */
 import { coverageOf, secondSearch } from "./recipe.mjs"; // RR-358: G5 + G6 for every page
+import { COUNTRIES } from "./world.mjs"; // RR-359: a heading that is only a country's name is no subtopic
 export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/organic/live/advanced", pricePerSearch: 0.002, capPerDay: 1, depth: 10 });
 export const SERP_OFF = "Google's own results were not read — the search-results service is switched off (Settings → Search results data; about $0.002 a search, at most $1 a day). Visibility used every free source it may: its own search data, your Search Console, AlmiWorld's question collector and the official pages.";
 
@@ -31,7 +32,7 @@ export const serpTask = (keyword, { location = "United States", language = "en" 
 export const STOPS_EVERY_SEARCH = new Set([40100, 40104, 40200, 40201, 40203, 40204, 40207, 40210]);
 export function plainSerpWhy(code, message) {
   const said = message ? ` (DataForSEO answered: "${String(message).slice(0, 160)}")` : "";
-  if (code === 40100) return `DataForSEO did not accept your login and API password${said}. The API password is not the password you sign in with: in DataForSEO open "API Access", copy the API password, and save it again in Search results data → step 2.`;
+  if (code === 40100) return `DataForSEO did not accept your login and API password${said}. Open app.dataforseo.com/api-access: copy the "API login" shown there (not your sign-in e-mail) and the API password (not your sign-in password — shown there for 24 hours after you register, later sent by e-mail or reset on that page), and save both again in Search results data → step 2.`;
   if (code === 40104) return `DataForSEO asks you to verify your account first${said} — finish the verification in your DataForSEO account, then try again.`;
   if (code === 40200 || code === 40210) return `your DataForSEO balance is too low${said} — top up your DataForSEO account, then try again.`;
   if (code === 40203) return `your own cost limit in DataForSEO was reached${said} — raise it in DataForSEO (API settings) or wait for tomorrow.`;
@@ -39,6 +40,13 @@ export function plainSerpWhy(code, message) {
   if (code === 40202 || code === 40209) return `DataForSEO asked to slow down${said} — Visibility tries again on the next run.`;
   return `DataForSEO did not return the results${said || " (no answer)"}.`;
 }
+/*
+ * 🔴 RR-359 (owner's first real run: "Internal SE Server Error" on 4 pages, and each failed search booked at $0.002 or $0.01). A search that
+ * failed on DataForSEO's side — its server error, a time-out, "slow down", no answer — is tried again, at most RETRY.times more, with a pause
+ * that grows; a refusal that stops every search (the login, the account, the money, the cap) is never retried. A failed search costs $0.
+ */
+export const RETRY = Object.freeze({ times: 2, pauseMs: 3000 });
+export const tryAgain = (got) => !got.ok && !got.stop && !got.capped && !got.off && (got.code == null || got.code >= 50000 || [40101, 40202, 40209, 40501, 40502, 40503].includes(got.code) || /internal|server error|time ?out|timed out|try again|did not answer|temporar/i.test(`${got.message ?? ""} ${got.why ?? ""}`));
 /** DataForSEO's answer → { results: [{ url, title, snippet }], paa: [question], related: [search], cost } (status 20000 = ok) */
 export function readSerp(json) {
   const t = json?.tasks?.[0]; if (json?.status_code !== 20000 || t?.status_code !== 20000) { const code = Number(t?.status_code && t.status_code !== 20000 ? t.status_code : json?.status_code) || null, message = (t?.status_code && t.status_code !== 20000 ? t?.status_message : json?.status_message) ?? null; return { ok: false, code, message, stop: STOPS_EVERY_SEARCH.has(code), why: json && Object.keys(json).length ? plainSerpWhy(code, message) : "DataForSEO did not answer with results (the answer could not be read).", cost: Number(t?.cost ?? json?.cost ?? 0) || 0 }; }
@@ -57,18 +65,25 @@ export function communityQuestions(results = [], site) {
  * One search through the service, inside the cap. `settings` = { on }; `ledger` = { spent: [{ on, cost, q }], cache: { key: answer } } (kept by
  * the caller); `login`/`password` from the secure store. → readSerp's answer, or { ok:false, why } (switched off, the cap, no key).
  */
-export async function searchGoogle({ keyword, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), location, language, test = false }) {
+export async function searchGoogle({ keyword, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), location, language, test = false, retry = RETRY, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   if (settings.on !== true && !test) return { ok: false, off: true, why: SERP_OFF }; // "Test the connection" is the client's own click — inside the caps
   if (!login || !password) return { ok: false, stop: true, why: "your DataForSEO login is not saved on this computer (Search results data → step 2)" };
   const key = `${keyword}|${location ?? ""}|${language ?? ""}`; if (!test && ledger.serpCache?.[key]) return { ...ledger.serpCache[key], cached: true };
   const cap = Number(settings.capDay) > 0 ? Number(settings.capDay) : SERP.capPerDay, capMonth = Number(settings.capMonth) > 0 ? Number(settings.capMonth) : Infinity;
   const m = mayBuy(ledger, { now, cap, capMonth }); if (!m.ok) return { ok: false, stop: true, capped: true, why: `the cap is reached ($${m.spent.toFixed(4)} today of $${Math.min(cap, SERP.capPerDay)}, $${m.month.toFixed(4)} this month) — nothing more is bought until it resets` };
-  let r; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}` }, body: JSON.stringify(serpTask(keyword, { location, language })), signal: AbortSignal.timeout(30000) }); } catch { return { ok: false, why: "the search-results service did not answer" }; }
-  const got = readSerp(await r.json().catch(() => ({})));
-  /* RR-358: the cost DataForSEO charged (a refused search: nothing); a search that came back is at least the list price */
-  (ledger.spent ??= []).push({ on: now, cost: got.ok ? got.cost || SERP.pricePerSearch : got.cost, q: keyword, what: test ? "search results (connection test)" : "search results", ...(got.ok ? { ok: true } : { ok: false, code: got.code, why: got.why }) });
+  let got, tries = 0;
+  for (;;) {
+    tries++;
+    let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}` }, body: JSON.stringify(serpTask(keyword, { location, language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }
+    got = r ? readSerp(await r.json().catch(() => ({}))) : { ok: false, code: null, message: null, why: "the search-results service did not answer" };
+    /* RR-358: the cost DataForSEO charged; RR-359: a failed search is never booked as a cost — every search sent is in the ledger */
+    (ledger.spent ??= []).push({ on: tries > 1 ? new Date().toISOString() : now, cost: got.ok ? got.cost || SERP.pricePerSearch : 0, q: keyword, what: test ? "search results (connection test)" : "search results", ...(got.ok ? { ok: true } : { ok: false, code: got.code, why: got.why }), ...(tries > 1 ? { retry: tries - 1 } : {}) });
+    if (got.ok || !tryAgain(got) || tries > (retry?.times ?? 0)) break;
+    await sleep((retry?.pauseMs ?? 0) * tries);
+  }
+  if (!got.ok && tries > 1) got = { ...got, why: `${got.why} Tried ${tries} times, with a pause; nothing was charged.` };
   if (got.ok) (ledger.serpCache ??= {})[key] = got;
-  return got;
+  return { ...got, tries };
 }
 
 /**
@@ -78,24 +93,45 @@ export async function searchGoogle({ keyword, settings = {}, ledger, login, pass
  * `readHtml(url)` reads a top result's page (robots obeyed by the caller's reader). Mutates each page: questions, coverage, second,
  * topRead, serpWhy. → { searches, cost, read, of, reddit, quora, stopped, notes, line }
  */
-export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl }) {
+export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep }) {
   let reddit = 0, quora = 0, pagesRead = 0, stopped = null; const notes = [], spentBefore = (ledger.spent ?? []).length;
-  const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }); if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
+  const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, retry, ...(sleep ? { sleep } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
   for (const p of pages) {
     delete p.serpWhy;
     if (stopped) { p.serpWhy = stopped; continue; } // every page after a stop says why it was not searched
     const main = await ask(p.title); if (!main.ok) { p.serpWhy = main.why; notes.push(`${p.title}: ${main.why}`); continue; }
     pagesRead++;
-    const rq = communityQuestions((await ask(`${p.title} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(`site:quora.com ${p.title}`)).results ?? [], "quora.com");
+    const rq = communityQuestions((await ask(`${p.title} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(quoraSearch(p.title))).results ?? [], "quora.com");
     reddit += rq.length; quora += qq.length;
     const day = String(now).slice(0, 10), q = (text, src) => ({ question: text, source: src, on: day });
     p.questions = [...(p.questions ?? []), ...main.paa.map((t) => q(t, `Google "People also ask" (${day})`)), ...main.related.map((t) => q(t, `Google related searches (${day})`)), ...rq.map((t) => q(t, `a Reddit result as Google shows it (${day})`)), ...qq.map((t) => q(t, `a Quora result as Google shows it (${day})`))];
     /* the top results' own headings — read only to see what they cover; nothing is copied, no fact is taken */
     const tops = [];
     for (const r of main.results.slice(0, SERP.depth)) { if (/reddit\.com|quora\.com/.test(r.url)) continue; const h = await Promise.resolve(readHtml(r.url)).catch(() => null); if (!h) continue; tops.push({ url: r.url, title: r.title, headings: [...String(h).matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40), text: String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) }); }
-    p.coverage = coverageOf(tops); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage }); p.topRead = tops.map((r) => r.url);
+    /* RR-359: only the topic's real subtopics (desktop/coverage.mjs), judged with the page's own subject and title; covered by meaning */
+    const words = { subject, title: p.title, now, names: COUNTRIES };
+    p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url);
   }
-  const mine = (ledger.spent ?? []).slice(spentBefore), searches = mine.length /* every search sent is in the ledger, refused or not */, cost = mine.reduce((t, x) => t + (Number(x.cost) || 0), 0);
-  const line = `Google's results (your DataForSEO account): ${searches} search${searches === 1 ? "" : "es"}, $${cost.toFixed(4)} — ${pagesRead} of ${pages.length} pages read what ranks, "People also ask", related searches, Reddit and Quora as Google shows them.${stopped ? ` Stopped: ${stopped}` : notes.length ? ` Not read for ${notes.length}: ${notes[0]}` : ""}`;
-  return { searches, cost, read: pagesRead, of: pages.length, reddit, quora, stopped, notes, line };
+  const mine = (ledger.spent ?? []).slice(spentBefore), searches = mine.length /* every search sent is in the ledger, refused or not */, cost = mine.reduce((t, x) => t + (Number(x.cost) || 0), 0), retried = mine.filter((x) => x.retry).length, failed = mine.filter((x) => x.ok === false).length;
+  const line = `Google's results (your DataForSEO account): ${searches} search${searches === 1 ? "" : "es"}, $${cost.toFixed(4)} — ${pagesRead} of ${pages.length} pages read what ranks, "People also ask", related searches, Reddit and Quora as Google shows them.${retried ? ` ${retried} tried again after DataForSEO failed; ${failed} failed search${failed === 1 ? "" : "es"} charged nothing.` : ""}${stopped ? ` Stopped: ${stopped}` : notes.length ? ` Not read for ${notes.length}: ${notes[0]}` : ""}`;
+  return { searches, cost, retried, failed, read: pagesRead, of: pages.length, reddit, quora, stopped, notes, line };
+}
+
+/* RR-359 (owner: Quora as "site:quora.com …" cost $0.01 a search — DataForSEO charges five times for a search with an operator): Quora as
+ * Google shows it for "<topic> quora", the same plain price as every other search */
+export const quoraSearch = (title) => `${title} quora`;
+/*
+ * 🔴 RR-359 · THE REAL PRICE PER SEARCH (owner: the estimate said about $0.19, the run cost $0.40 for 88 searches): the price DataForSEO
+ * charged this account for its latest successful plain searches (the ledger), else its list price, said as such → { price, from, on }
+ */
+export function realPrice(ledger = {}) {
+  const paid = (ledger.spent ?? []).filter((x) => x.ok !== false && Number(x.cost) > 0 && !/^site:|\b(inurl|intitle|allintitle|allinurl):/i.test(String(x.q ?? ""))).slice(-20);
+  if (!paid.length) return { price: SERP.pricePerSearch, from: "DataForSEO's list price (no search of yours yet)", on: null };
+  const sorted = paid.map((x) => Number(x.cost)).sort((a, b) => a - b), price = sorted[Math.floor(sorted.length / 2)];
+  return { price, from: `what DataForSEO charged you (your last ${paid.length} search${paid.length === 1 ? "" : "es"})`, on: String(paid.at(-1).on).slice(0, 10) };
+}
+/** one run's searches and cost: 3 searches a page (the intent, Reddit, Quora), less the ones already kept → { pages, searches, cached, cost, line } */
+export function runEstimate({ titles = [], ledger = {}, price = realPrice(ledger).price } = {}) {
+  const kw = titles.flatMap((t) => [t, `${t} reddit`, quoraSearch(t)]), cached = kw.filter((k) => ledger.serpCache?.[`${k}||`]).length, searches = kw.length - cached, cost = searches * price;
+  return { pages: titles.length, searches, cached, price, cost, line: titles.length ? `One run for ${titles.length} page${titles.length === 1 ? "" : "s"}: ${searches} search${searches === 1 ? "" : "es"} × $${price.toFixed(4)} ≈ $${cost.toFixed(2)}${cached ? ` (${cached} already kept — free)` : ""}. A search DataForSEO fails is tried again and costs nothing.` : "One run: 3 searches a page (the question, Reddit, Quora) — the pages are known after the first Create SEO pages." };
 }

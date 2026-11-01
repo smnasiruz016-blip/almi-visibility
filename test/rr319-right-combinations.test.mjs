@@ -163,7 +163,7 @@ test("A · MAKE THESE PAGES: each planned page is its OWN draft — Ireland's tw
   assert.deepEqual(r.drafts.map((d) => [d.title.split(" | ")[0], five(d)]), [["OET for Nursing in Ireland", true], ["OET for Medicine in Ireland", true], ["OET for Australia", true]], "a draft with an official answer and no key-fact card (proof: 8 of 13 not ready)");
   assert.match(MAIN, /pwrite\(id, "made-plan\.json", pages\);/);
   /* RR-354: the plan made by hand first; else the exam plan Create SEO pages made itself (auto-plan.json) — one plan for every call */
-  assert.match(MAIN, /const madePlanOf = \(id\) => \{ const p = pread\(id, "made-plan\.json", null\)\?\.length \? pread\(id, "made-plan\.json", null\) : pread\(id, "auto-plan\.json", null\)\?\.pages; return p\?\.length \? \{ pagePlan: p, max: p\.length \} : \{\}; \};/);
+  assert.match(MAIN, /const madePlanOf = \(id\) => \{ const p = pread\(id, "made-plan\.json", null\)\?\.length \? pread\(id, "made-plan\.json", null\) : autoPlanOf\(id\)\?\.pages; return p\?\.length \? \{ pagePlan: p, max: p\.length \} : \{\}; \};/); // RR-359: the exam plan only for its own subject
   assert.equal((MAIN.match(/\.\.\.madePlanOf\(id\)/g) ?? []).length, 5 /* RR-356: + the repair round (v3 §15) */, "a page build that ignores the made plan merges it again");
 });
 

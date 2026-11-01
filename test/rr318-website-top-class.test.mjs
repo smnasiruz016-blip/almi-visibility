@@ -199,7 +199,7 @@ test("B6 · THE OFFICIAL READER: robots obeyed (a disallowed page is never read)
     assert.equal((await k("Canada")).kept, true);
     for (const c of ["Pakistan", "Brazil", "India", "Chad"]) assert.equal((await k(c)).kept, false, `${c} kept`);
     const r = await officialClaims({ country: "Ireland", subject: "XTEST", subjectName: "XTEST", kept: ie, reader: rd, bodyPages: [{ url: `${base}/board/english`, body: "Nursing Board of Ireland" }, { url: `${base}/board/other`, body: "Other Board" }, { url: `${base}/private/rules`, body: "Hidden Board" }] });
-    assert.deepEqual(r.claims.map((c) => c.text), ["XTEST's own page for Ireland says XTEST is recognised or accepted there, and names Nursing Board of Ireland, Irish Medical Board, Dental Council of Ireland.", "Nursing Board of Ireland names XTEST on its own page among the English tests it accepts — the results it names with XTEST: grade B, 350."]);
+    assert.deepEqual(r.claims.map((c) => c.text), ["XTEST's own page for Ireland says XTEST is recognised or accepted there, and names Nursing Board of Ireland, Irish Medical Board, Dental Council of Ireland.", "Nursing Board of Ireland names XTEST on its own page among the English tests it accepts — Listening B · Reading B · Writing B · Speaking B."] /* RR-359: "grade B in each sub-test" is B for each of the four */);
     assert.ok(r.claims.every((c) => c.official && c.readOn === ON && c.link.startsWith(base)));
     assert.deepEqual(r.notSaid.map((n) => n.line), [`The official page of Other Board, checked ${ON}, does not say this.`, `The official page of Hidden Board could not be read on ${ON} (its robots.txt asks us not to read it — not read).`]);
     assert.ok(!s.reads.includes("/private/rules"), "a page robots.txt disallows was read");

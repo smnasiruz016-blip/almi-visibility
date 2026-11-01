@@ -13,7 +13,7 @@
 import { CLIENT_AI_POLICY } from "../src/discovery/search-phrase-sources.mjs";
 
 export const BROWSER = Object.freeze({ cap: CLIENT_AI_POLICY.dailyCap, minPauseSeconds: CLIENT_AI_POLICY.minPauseSeconds, source: "CLIENT_AI_BROWSER_READ" });
-const ORDER = { "oet-list": 0, rate: 1, regulator: 2, format: 3 };
+const ORDER = { "oet-list": 0, rate: 1, regulator: 2, format: 3, coverage: 4 };
 
 /** the day's list: what is refused or browser-only, the most useful first, at most 30 */
 export function browserList({ regulators = [], rates = [], listPage = null, listOn = null, formats = [] }) {
@@ -33,7 +33,9 @@ export function browserInstruction(items) {
     "Before the first page, tell me (the client) you are starting. On a captcha, a \"verify you are human\" page or an \"unusual traffic\" page: STOP at once, tell me, and do not solve it or try again. Never sign in, never fill a form.",
     "For a page marked READ: copy its main text (not the menu) as you see it. For the page marked LIST: write each organisation as one line — its name, its country, its kind (regulator, employer, education …), its professions, and the grade it asks in Listening, Reading, Writing and Speaking. For a page marked SHAPE: say whether Google's first three results are a guide, a list or a table.",
     `Then give me one file, written exactly like this: { "source": "${BROWSER.source}", "date": "YYYY-MM-DD", "startedBy": { "who": "CLIENT", "record": "<how I started you>" }, "notice": { "text": "<what you told me>", "givenAt": "<ISO time>" }, "pages": [{ "url": "…", "readAt": "<ISO time>", "text": "<the page's main text>", "rows": [{ "name": "…", "country": "…", "kind": "…", "professions": ["…"], "listening": "B", "reading": "B", "writing": "C+", "speaking": "B" }], "shape": "guide or list or table" }], "stopped": null or { "reason": "CAPTCHA", "at": "<ISO time>", "toldClient": true } }`,
-    "The pages:", ...items.map((x, i) => `${i + 1}. ${x.kind === "oet-list" ? "LIST" : x.kind === "format" ? "SHAPE" : "READ"} ${x.url}  (${x.label})`)].join("\n");
+    /* RR-360 D · G5's free route: only addresses and headings come back — never a sentence of any page */
+    ...(items.some((x) => x.kind === "coverage") ? ["For a page marked COVER: it is a Google search. Open up to its first 10 results, one at a time, as a normal reader. For each, write only its address and its section headings, as \"rows\": [{ \"url\": \"…\", \"headings\": [\"…\"] }], and the questions under \"People also ask\" as \"paa\": [\"…\"]. Do NOT copy any sentence of any page."] : []),
+    "The pages:", ...items.map((x, i) => `${i + 1}. ${x.kind === "oet-list" ? "LIST" : x.kind === "format" ? "SHAPE" : x.kind === "coverage" ? "COVER" : "READ"} ${x.url}  (${x.label})`)].join("\n");
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -50,7 +52,7 @@ export function takeBrowserReads(hand, items) {
   if (times.some((t, i) => i && (t - times[i - 1]) / 1000 < BROWSER.minPauseSeconds)) refusedFor.push("TOO_FAST");
   if (refusedFor.length) return { ok: false, refusedFor, pages: [] };
   const on = new Map(items.map((x) => [x.url, x]));
-  const kept = pages.filter((p) => on.has(p.url)).map((p) => ({ ...on.get(p.url), date: hand.date, text: String(p.text ?? "").slice(0, 200000), rows: Array.isArray(p.rows) ? p.rows : [], shape: /^(guide|list|table)$/i.test(p.shape ?? "") ? p.shape.toLowerCase() : null }));
+  const kept = pages.filter((p) => on.has(p.url)).map((p) => ({ ...on.get(p.url), date: hand.date, text: String(p.text ?? "").slice(0, 200000), rows: Array.isArray(p.rows) ? p.rows : [], paa: Array.isArray(p.paa) ? p.paa : [], shape: /^(guide|list|table)$/i.test(p.shape ?? "") ? p.shape.toLowerCase() : null }));
   return { ok: true, pages: kept, notOnList: pages.filter((p) => !on.has(p.url)).map((p) => p.url), stopped: hand.stopped ?? null };
 }
 

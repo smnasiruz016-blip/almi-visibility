@@ -181,7 +181,8 @@ const SCREEN_GUIDE = {
   enginesScreen: { line: "Tell Google and Bing about your published pages.", next: OVERVIEW },
   bingScreen: { line: "Connect Bing Webmaster Tools — what people search on Bing.", next: OVERVIEW },
   socialLinksScreen: { line: "Your social media pages — linked from your pages.", next: OVERVIEW },
-  searchDataScreen: { line: "Google's results for each page, from your own DataForSEO account — its price, your caps and the test.", next: OVERVIEW },
+  searchDataScreen: { line: "Optional — Google's results from your own DataForSEO account, only if you want it. AlmiSEO Data and your own AI in your browser need no other service.", next: OVERVIEW },
+  almiSeoScreen: { line: "What AlmiWorld's own collectors hold for this product — no other service needed.", next: OVERVIEW },
   planScreen: { line: "Your Visibility plan and licence key.", next: PRODUCTS },
   company: { line: "Your company's name, website and logo.", next: PRODUCTS },
   addProduct: { line: "Add a product: its name and website.", next: PRODUCTS },
@@ -761,6 +762,24 @@ const TABS = {
  * Overview links it. Plain steps, the two keys saved in Windows' secure store (never shown), "Test the connection" (one search, its cost
  * shown), the switch, the caps (never more than $1 a day) and what was spent. The same switch serves the keyword data.
  */
+/* 🔴 RR-360 E · THE "ALMISEO DATA" PAGE: what AlmiWorld's collectors hold for this product, what arrived, when it was last read. Plain words; numbers only as measured */
+const countOr = (v) => (v === null || v === undefined ? "not known" : Number(v).toLocaleString("en-US"));
+const asCardHtml = (V) => !V ? "" : V.state !== "READ" ? `<div class="card" id="ascard"><h3>AlmiSEO Data</h3><p class="meta">${esc(V.line)}</p><button class="ghost" id="asopen" type="button">Open AlmiSEO Data</button></div>` : `<div class="card" id="ascard"><h3>AlmiSEO Data</h3><p>${esc(V.line)}</p>${V.review?.length ? `<div class="warn">${V.review.length} official fact${V.review.length === 1 ? "" : "s"} changed — review needed.</div>` : ""}<button class="ghost" id="asopen" type="button">Open AlmiSEO Data</button></div>`;
+async function almiSeoScreen() {
+  if (!(await here("almiSeoScreen"))) return;
+  const id = encodeURIComponent(P), { view: V, syncing } = await get(`/api/products/${id}/almiseo`), B = await get(`/api/products/${id}/almiseo/browser`).catch(() => ({ items: [] }));
+  const rows = V.state === "READ" ? [["Keywords", V.keywords.allowed ? countOr(V.keywords.count) : "not shared with outside clients", V.keywords.allowed ? "people's searches for your subject, with Google's monthly figures" : V.keywords.line], ["Question groups", countOr(V.questions.groups), `${countOr(V.questions.answered)} answered from an official page; ${countOr(V.questions.asked)} questions in the shared bank`], ["Countries with all their parts", `${countOr(V.countries.allParts)} of ${countOr(V.countries.held)}`, V.countries.list.slice(0, 20).join(", ") || "none yet"], ["Facts waiting for review", countOr(V.countries.waitingReview), "found, but not yet confirmed on an official page — they never reach a page"], ["Top pages read", countOr(V.topPages.read), `${countOr(V.topPages.lists)} saved coverage lists${V.topPages.on ? "" : " — this collector is off for now"}`], ["Planned pages", countOr(V.plan.pages), "ready by the rules: every part checked"]] : [];
+  $("#app").innerHTML = `<div class="card" id="asbox"><h2>AlmiSEO Data</h2><p class="ask">What AlmiWorld's own collectors hold for this product. It is included in your plan: you do not need DataForSEO or any other service.</p><p id="asline">${esc(V.line)}</p>
+    ${V.partial ? `<div class="warn">One part could not be read: ${esc(V.partial)}. What was read before is kept.</div>` : ""}${V.lastWhy ? `<p class="meta">The last try: ${esc(V.lastWhy)}${V.triedOn ? ` (${esc(String(V.triedOn).slice(0, 16).replace("T", " "))})` : ""}.</p>` : ""}
+    ${rows.length ? `<table class="prices" id="astable"><tr><th>What</th><th>How many</th><th></th></tr>${rows.map(([a, b, c]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td><td class="meta">${esc(c ?? "")}</td></tr>`).join("")}</table>
+    <h3>What arrived</h3><p class="meta" id="asarrived">Today: ${countOr(V.arrived.today.facts)} facts, ${countOr(V.arrived.today.keywords)} new keywords. This week: ${countOr(V.arrived.week.facts)} facts, ${countOr(V.arrived.week.keywords)} new keywords.</p>
+    <p class="meta" id="aslast">Last read: ${esc(String(V.readOn).slice(0, 16).replace("T", " "))}. The collectors last refreshed this subject: ${esc(V.lastRefresh ?? "not known")}.</p>` : ""}
+    ${V.review?.length ? `<h3>Review needed</h3><ul id="asreview">${V.review.map((r) => `<li>${esc(r.text)}: was "${esc(r.was)}", now "${esc(r.now)}" — <a href="${esc(r.link)}" target="_blank" rel="noopener">the official page</a>, read ${esc(r.on)}.</li>`).join("")}</ul>` : ""}
+    <p><button id="assync" type="button" ${syncing ? "disabled" : ""}>${syncing ? "Reading…" : "Read it now"}</button> <span id="asmsg"></span></p></div>
+    ${B.items?.length ? `<div class="card" id="asbrowser"><h3>Your own AI, in your own browser (free)</h3><p class="ask">${B.items.length} page${B.items.length === 1 ? " has" : "s have"} no saved list of Google's top results yet. Your own AI can read them in your own browser: only addresses and headings come back, never a page's words. You start it; it stops at any captcha.</p><details><summary>The instruction for your AI</summary><pre id="asins" style="white-space:pre-wrap">${esc(B.instruction)}</pre></details><label>The file your AI gave you<input type="file" id="asfile" accept=".json,application/json"></label><button class="ghost" id="asup" type="button">Add it</button> <span id="asupmsg"></span></div>` : ""}`;
+  $("#assync").onclick = async () => { const r = await post(`/api/products/${id}/almiseo/sync`, {}); if (r.refused) return note($("#asmsg"), r.refused, "err"); almiSeoScreen(); };
+  if ($("#asup")) $("#asup").onclick = async () => { const f = $("#asfile").files[0]; if (!f) return note($("#asupmsg"), "Choose the file your AI gave you.", "err"); const r = await post(`/api/products/${id}/almiseo/browser`, { base64: btoa(unescape(encodeURIComponent(await f.text()))) }); note($("#asupmsg"), r.refused ?? r.line, r.refused ? "err" : "ok"); };
+}
 async function searchDataScreen() {
   if (!(await here("searchDataScreen"))) return;
   const D = await get(`/api/search-data${P ? `?product=${encodeURIComponent(P)}` : ""}`), K = await get("/api/keys"), SP = await get("/api/spend");
@@ -791,7 +810,7 @@ async function work(tab) {
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
   const lists = { "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly };
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
-  <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="eng">Search engines</button><button class="ghost" id="soc">Social media</button><button class="ghost" id="sdtab">Search results data</button></nav>
+  <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="eng">Search engines</button><button class="ghost" id="soc">Social media</button><button class="ghost" id="astab">AlmiSEO Data</button><button class="ghost" id="sdtab">Search results data</button></nav>
   <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button></p><details class="more"><summary>More — for power users</summary><p class="meta">Visibility reads AlmiWorld's checked facts by itself. Add your own file only if you have one.</p><button class="ghost" id="ffile">Add official facts file</button></details><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
   $("#yts").onclick = youtubeSettings; $("#set").onclick = settings;
@@ -803,6 +822,7 @@ async function work(tab) {
   if ($("#mk")) $("#mk").onclick = () => openFeature("seo-pages"); if ($("#art")) $("#art").onclick = () => openFeature("articles"); if ($("#mr")) $("#mr").onclick = () => openFeature("monthly");
   $("#eng").onclick = enginesScreen; $("#soc").onclick = socialLinksScreen; // RR-353
   $("#sdtab").onclick = searchDataScreen; // RR-357
+  $("#astab").onclick = almiSeoScreen; // RR-360
 }
 /*
  * 🔴 RR-353 · UPDATES (owner, 31 Oct 2026: "1.15.5 was not picked up"). Visibility asks the update channel when it opens and every 4 hours;
@@ -904,7 +924,7 @@ async function overview() {
     <h4 style="margin-top:10px">Before a page goes live</h4><label class="choice"><input type="radio" class="nodirty" name="appr" value="review" ${O.review ? "checked" : ""}> <b>Show me before publishing</b></label><label class="choice"><input type="radio" class="nodirty" name="appr" value="publish" ${O.review ? "" : "checked"}> <b>Publish for me</b> <span class="meta">— each page goes live once it passes every check</span></label>
     <p><button class="big" id="jobsgo" type="button">Start</button> <span id="jobsmsg"></span></p><div id="jobrep">${O.report ? reportHtml(O.report) : ""}</div></div>`;
   const more = `<details class="card more" id="more"><summary><b>More</b> — each job on its own, the page count, and the full plan</summary>${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}</details>`;
-  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${O.checking ? "" : `<p><button id="chk" class="${c ? "ghost" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
+  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${asCardHtml(O.almiseo)}${O.checking ? "" : `<p><button id="chk" class="${c ? "ghost" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
     <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${(() => { /* RR-355 (owner: 17 cards at once): at most 2 recommended cards; the rest under More */ const top = [...O.menu.cards.filter((c) => c.recommended), ...O.menu.cards.filter((c) => !c.recommended)].slice(0, 2), rest = O.menu.cards.filter((c) => !top.includes(c)); return `${cardsHtml(top, { checking: O.checking })}${rest.length ? `<details class="card more" id="morecards"><summary><b>More</b> — everything else Visibility can do (${rest.length})</summary>${cardsHtml(rest, { checking: O.checking })}</details>` : ""}`; })()}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>${O.noWebsite ? "" : found}`;
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
   if ($("#gscpower")) $("#gscpower").onclick = searchScreen;
@@ -915,6 +935,7 @@ async function overview() {
   if ($("#chk")) $("#chk").onclick = async () => { $("#chk").disabled = true; await post(`/api/products/${encodeURIComponent(P)}/check`, {}); overview(); };
   if ($("#chk2")) $("#chk2").onclick = () => $("#chk").click();
   wireCopy($("#ov"));
+  if ($("#asopen")) $("#asopen").onclick = almiSeoScreen; // RR-360
   if ($("#plansave")) $("#plansave").onclick = async () => { const r = await post(`/api/products/${encodeURIComponent(P)}/plan/save`, {}); note($("#planmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
   if ($("#planagain")) $("#planagain").onclick = async () => { note($("#planmsg"), "Making the plan again… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/plan`, {}); if (r.refused) return note($("#planmsg"), r.refused, "err"); overview(); };
   document.querySelectorAll("#ov [data-do]").forEach((b) => (b.onclick = () => doIt(b.dataset.do, b.parentElement.querySelector(".domsg") ?? b.nextElementSibling)));

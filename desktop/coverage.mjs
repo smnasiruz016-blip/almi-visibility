@@ -94,7 +94,10 @@ export function cleanCoverage({ results = [], paa = [], subject = null, title = 
   for (const q of paa) add(q, null, "paa");
   for (const r of results) for (const h of r.headings ?? []) add(h, r.url, "heading");
   const kept = [], independent = new Set(results.map((r) => hostOf(r.url))).size;
+  /* 🔴 RR-360 (found on the owner's data: "What is the current OET exam fee in India?" on the New Zealand page): a topic naming another place than the page's is not this page's */
+  const lower = (s) => ` ${String(s).toLowerCase().replace(/[^a-z ]+/g, " ")} `, here = names.filter((n) => lower(title).includes(` ${String(n).toLowerCase()} `));
   for (const x of items) {
+    if (names.some((n) => !here.includes(n) && lower(x.topic).includes(` ${String(n).toLowerCase()} `))) { dropped?.push({ text: x.topic, why: "it is about another place than this page" }); continue; }
     const ok = x.paa || x.sites.size >= 2 || x.question;
     if (!ok) { dropped?.push({ text: x.topic, why: independent >= 2 ? "only one site shows it" : "only one top result was read, and it is no reader's question" }); continue; }
     kept.push({ topic: x.topic, seenOn: x.sites.size, sites: [...x.sites], urls: [...new Set(x.urls)], from: x.paa ? "people also ask" : x.sites.size >= 2 ? `${x.sites.size} top results` : "a reader's question" });

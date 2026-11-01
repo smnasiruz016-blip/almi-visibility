@@ -19,6 +19,9 @@ export function personOf(page, { subject = null /* RR-359: no default subject */
   const people = page.profession ? PEOPLE_WORD[page.profession] ?? page.profession : null;
   if (page.kind === "profession") return { person: `A trained ${people?.replace(/s$/, "")} who wants to work abroad`, context: `must show English for registration with a council in another country`, goal: `know which council asks which ${subject} score, and how the ${subject} for ${people} works` };
   if (page.kind === "country") return { person: `A healthcare professional in or from ${inCountry(page.country)}`, context: `is planning to take ${subject} there, or to register there`, goal: `know the fee in local money, where to take it, which council registers them and what is special to ${inCountry(page.country)}` };
+  /* RR-360 · the two kinds the collectors plan */
+  if (page.kind === "country-profession") return { person: `A trained ${people?.replace(/s$/, "")} in or from ${inCountry(page.country)}`, context: `needs the council that registers ${people} there, and what it asks`, goal: `know which council registers ${people} in ${inCountry(page.country)} and what ${subject} score applies` };
+  if (page.kind === "question") return { person: `Someone who asked this about ${subject}`, context: page.country ? `in ${inCountry(page.country)}` : "looking for a straight answer", goal: `get a sourced answer to "${page.title}"` };
   if (page.kind === "topic") return { person: `A ${subject} candidate`, context: `preparing for ${page.title}`, goal: `understand ${page.title} well enough to prepare and pass` };
   return { person: product?.who ?? "A visitor", context: product?.what ?? "looking for an answer", goal: `get a clear answer to "${page.title}"` };
 }
@@ -60,7 +63,9 @@ export function coverageOf(results = [], opts = {}) {
  * the best result does not answer, and the coverage subtopics it lacks ── */
 export function secondSearch({ best = null, paa = [], coverage = [], subject = null, title = "" }) {
   const has = (q) => coversByMeaning(`${best?.title ?? ""} ${(best?.headings ?? []).join(" ")} ${best?.text ?? ""}`, q, { subject, title }); // RR-359: by meaning
-  return [...paa.filter((q) => !has(q)).map((q) => ({ question: q, why: "people also ask it, and the best result does not answer it" })), ...coverage.filter((c) => !has(c.topic)).map((c) => ({ question: c.topic, why: `other top results cover it (${c.seenOn}), the best one does not` }))];
+  /* RR-360: one question once (Google's question is often also on the coverage list) */
+  const seen = new Set(), once = (x) => { const k = String(x.question).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); if (seen.has(k)) return false; seen.add(k); return true; };
+  return [...paa.filter((q) => !has(q)).map((q) => ({ question: q, why: "people also ask it, and the best result does not answer it" })), ...coverage.filter((c) => !has(c.topic)).map((c) => ({ question: c.topic, why: `other top results cover it (${c.seenOn}), the best one does not` }))].filter(once);
 }
 /** does our page cover a coverage topic or a second-search question? (its own headings and answers) */
 export const covers = (pageText, q, opts = {}) => coversByMeaning(pageText, q, opts); // RR-359: by meaning, never the exact words
@@ -81,7 +86,7 @@ export function decisionOf({ row, pack = null, measured = null }) {
 export function rightToExist({ page, questions, answered }) {
   const asked = questions.filter((q) => q.from !== "recipe"), sources = [...new Set(asked.map((q) => q.from))];
   const kind = asked.length ? "demand" : "opportunity";
-  const need = page.kind === "profession" ? `which council in each country asks which score of ${PEOPLE_WORD[page.profession] ?? page.profession}` : page.kind === "country" ? `the fee in local money, the centres, the councils and the rules of ${inCountry(page.country)}` : page.title;
+  const need = page.kind === "country-profession" ? `the council that registers ${PEOPLE_WORD[page.profession] ?? page.profession} in ${inCountry(page.country)}` : page.kind === "profession" ? `which council in each country asks which score of ${PEOPLE_WORD[page.profession] ?? page.profession}` : page.kind === "country" ? `the fee in local money, the centres, the councils and the rules of ${inCountry(page.country)}` : page.title;
   return { kind, sources, why: kind === "demand" ? `${asked.length} search${asked.length === 1 ? "" : "es"} people make (${sources.join(", ")}) ask for ${need}; ${answered} of its questions are answered with official sources no other page of this site gives.` : `No search names it yet, but the person needs ${need}, and its ${answered} checked answers differ from every other page — an opportunity page, built strong and watched.` };
 }
 

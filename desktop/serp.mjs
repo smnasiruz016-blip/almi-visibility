@@ -12,9 +12,10 @@ export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/goo
 export const SERP_OFF = "Google's own results were not read — the search-results service is switched off (Settings → Search results data; about $0.002 a search, at most $1 a day). Visibility used every free source it may: its own search data, your Search Console, AlmiWorld's question collector and the official pages.";
 
 /** the day's spend and whether one more search may be bought — never past the cap */
-export function mayBuy(ledger = { spent: [] }, { now = new Date().toISOString(), cap = SERP.capPerDay, price = SERP.pricePerSearch } = {}) {
-  const day = String(now).slice(0, 10), spent = (ledger.spent ?? []).filter((s) => String(s.on).startsWith(day)).reduce((t, s) => t + (Number(s.cost) || 0), 0);
-  return { ok: spent + price <= cap + 1e-9, spent, left: Math.max(0, cap - spent) };
+export function mayBuy(ledger = { spent: [] }, { now = new Date().toISOString(), cap = SERP.capPerDay, capMonth = Infinity, price = SERP.pricePerSearch } = {}) {
+  const sum = (p) => (ledger.spent ?? []).filter((s) => String(s.on).startsWith(p)).reduce((t, s) => t + (Number(s.cost) || 0), 0);
+  const spent = sum(String(now).slice(0, 10)), month = sum(String(now).slice(0, 7)), day = Math.min(cap, SERP.capPerDay); // R10: never more than $1 a day
+  return { ok: spent + price <= day + 1e-9 && month + price <= capMonth + 1e-9, spent, month, left: Math.max(0, day - spent) };
 }
 /** the request body (one task) for a search in a country and language */
 export const serpTask = (keyword, { location = "United States", language = "en" } = {}) => [{ keyword, location_name: location, language_code: language, depth: SERP.depth }];
@@ -36,14 +37,15 @@ export function communityQuestions(results = [], site) {
  * One search through the service, inside the cap. `settings` = { on }; `ledger` = { spent: [{ on, cost, q }], cache: { key: answer } } (kept by
  * the caller); `login`/`password` from the secure store. → readSerp's answer, or { ok:false, why } (switched off, the cap, no key).
  */
-export async function searchGoogle({ keyword, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), location, language }) {
-  if (settings.on !== true) return { ok: false, off: true, why: SERP_OFF };
+export async function searchGoogle({ keyword, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), location, language, test = false }) {
+  if (settings.on !== true && !test) return { ok: false, off: true, why: SERP_OFF }; // "Test the connection" is the client's own click — inside the caps
   if (!login || !password) return { ok: false, why: "the search-results service's login is not saved on this computer (Settings → Search results data)" };
-  const key = `${keyword}|${location ?? ""}|${language ?? ""}`; if (ledger.cache?.[key]) return { ...ledger.cache[key], cached: true };
-  const m = mayBuy(ledger, { now }); if (!m.ok) return { ok: false, why: `today's cap of $${SERP.capPerDay} is reached ($${m.spent.toFixed(4)} spent) — the rest is read tomorrow` };
+  const key = `${keyword}|${location ?? ""}|${language ?? ""}`; if (!test && ledger.serpCache?.[key]) return { ...ledger.serpCache[key], cached: true };
+  const cap = Number(settings.capDay) > 0 ? Number(settings.capDay) : SERP.capPerDay, capMonth = Number(settings.capMonth) > 0 ? Number(settings.capMonth) : Infinity;
+  const m = mayBuy(ledger, { now, cap, capMonth }); if (!m.ok) return { ok: false, why: `the cap is reached ($${m.spent.toFixed(4)} today of $${Math.min(cap, SERP.capPerDay)}, $${m.month.toFixed(4)} this month) — nothing more is bought until it resets` };
   let r; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}` }, body: JSON.stringify(serpTask(keyword, { location, language })), signal: AbortSignal.timeout(30000) }); } catch { return { ok: false, why: "the search-results service did not answer" }; }
   const got = readSerp(await r.json().catch(() => ({})));
-  (ledger.spent ??= []).push({ on: now, cost: got.cost || SERP.pricePerSearch, q: keyword });
-  if (got.ok) (ledger.cache ??= {})[key] = got;
+  (ledger.spent ??= []).push({ on: now, cost: got.cost || SERP.pricePerSearch, q: keyword, what: "search results" });
+  if (got.ok) (ledger.serpCache ??= {})[key] = got;
   return got;
 }

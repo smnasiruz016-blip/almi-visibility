@@ -390,9 +390,13 @@ function writePacks(id, drafts) {
  *   "site:quora.com <intent>") → questions people ask (never facts); the top results' own headings read (robots obeyed) → the coverage list;
  *   the second-search test → the questions the best result leaves open. With it OFF, nothing is bought and each ledger says so.
  */
-const serpSettings = (id) => pread(id, "serp.json", { on: false });
+/* 🔴 RR-357 (owner: "the switch only appears after pressing Count … and the app has NO place at all to enter the DataForSEO login and API
+ * password"): ONE app-wide setting for the client's own DataForSEO account — the same switch, caps and spend serve the search-results steps
+ * (G1/G5/G6) and the keyword data. OFF until the client switches it on; never more than $1 a day (R10); a month's cap too. */
+const searchData = () => { const d = CONFIG.dataForSeo ?? {}; return { on: d.on === true, capDay: Math.min(SERP.capPerDay, Number(d.capDay) > 0 ? Number(d.capDay) : SERP.capPerDay), capMonth: Number(d.capMonth) > 0 ? Math.min(31, Number(d.capMonth)) : 30 }; };
+const serpSettings = () => searchData();
 async function serpStep(id, plan) {
-  const st = serpSettings(id), ledger = pread(id, "serp-ledger.json", { spent: [], cache: {} }), on = new Date().toISOString();
+  const st = serpSettings(), ledger = dfsLedger(), on = new Date().toISOString();
   if (st.on !== true) return { on: false, why: SERP_OFF, searches: 0, reddit: 0, quora: 0 };
   const login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), rd = reader();
   let searches = 0, reddit = 0, quora = 0; const notes = [];
@@ -407,7 +411,7 @@ async function serpStep(id, plan) {
     const read = []; for (const r of main.results.slice(0, 10)) { if (/reddit\.com|quora\.com/.test(r.url)) continue; const h = await rd.raw(r.url, "text/html").catch(() => null); if (!h) continue; read.push({ url: r.url, title: r.title, headings: [...h.matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40), text: h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) }); }
     p.coverage = coverageOf(read); p.second = secondSearch({ best: read[0] ?? null, paa: main.paa, coverage: p.coverage }); p.topRead = read.map((r) => r.url);
   }
-  pwrite(id, "serp-ledger.json", ledger);
+  writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
   pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: plan.pages });
   return { on: true, searches, reddit, quora, notes };
 }
@@ -430,6 +434,24 @@ async function measuredAfter(id) {
   for (const r of sc?.pages ?? []) perPage[r.page ?? r.url] = { impressions: r.impressions ?? 0, clicks: r.clicks ?? 0 };
   return afterPublish({ live, perPage, improved: pread(id, "improved-once.json", {}) });
 }
+/* RR-357 · the Search results data screen's state, and THE ONE PICTURE OF WHAT CAN COST MONEY (owner: "what can cost money, its cap, and
+ * today's spend") — only the client's own accounts cost the client; AlmiWorld's own services are included in the plan */
+const spentDfs = () => { const l = dfsLedger(), now = new Date().toISOString(), sum = (p) => (l.spent ?? []).filter((x) => String(x.on).startsWith(p)).reduce((t, x) => t + (Number(x.cost) || 0), 0); return { day: sum(now.slice(0, 10)), month: sum(now.slice(0, 7)) }; };
+function searchDataView() {
+  const st = searchData(), sp = spentDfs(), keys = KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved;
+  return { howTo: HOWTO.dataForSeo, on: st.on, capDay: st.capDay, capMonth: st.capMonth, maxDay: SERP.capPerDay, keysSaved: keys, loginSaved: KEYS.status(DFS_KEYS.login).saved, passwordSaved: KEYS.status(DFS_KEYS.password).saved, spentToday: sp.day, spentMonth: sp.month, pricePerSearch: SERP.pricePerSearch,
+    line: st.on ? `On — spent today $${sp.day.toFixed(4)} of $${st.capDay}, this month $${sp.month.toFixed(4)} of $${st.capMonth}.` : keys ? "Off — your login is saved; switch it on when you want Google's results read." : "Off — nothing is bought. Add your DataForSEO login first." };
+}
+function spendView() {
+  const sd = searchDataView(), ai = LEDGER.month(), aiToday = LEDGER.today(), aiCap = Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD);
+  const rows = [
+    { what: "Search results data (your own DataForSEO account)", on: sd.on, cap: `$${sd.capDay} a day, $${sd.capMonth} a month`, today: `$${sd.spentToday.toFixed(4)}` },
+    { what: "Your AI (your own key)", on: true, cap: `$${aiCap} a month`, today: `$${(aiToday.usd ?? 0).toFixed(2)} (this month $${(ai.usd ?? 0).toFixed(2)})` },
+  ];
+  return { rows, line: `What can cost you money: ${rows.map((r) => `${r.what} — ${r.on ? "on" : "off"}, cap ${r.cap}, today ${r.today}`).join(" · ")}. Everything else is free or included in your plan.` };
+}
+/* RR-357 (owner: the cards said "Pages 0 · Articles 0" while 29 drafts existed): made, ready, published — from the product's own files */
+const cardCounts = (id) => { const d = pread(id, "pages.json", null)?.drafts ?? [], live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"); return { pages: d.length, ready: d.filter((x) => x.readyAsDraft).length, published: live.length, articles: pread(id, "articles.json", []).length }; };
 const examExtras = new Map(); // id → { subjectFacts, rates } of this run (createPages fills it before the plan is made)
 function buildExamPlan(id) {
   const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
@@ -550,7 +572,7 @@ const adsOf = () => googleAds({ keys: KEYS, settings: CONFIG.googleAds ?? {}, ..
 let ADS = null; const ads = () => (ADS ??= adsOf());
 const DFS_LEDGER_FILE = join(DATA, "dataforseo-ledger.json");
 const dfsLedger = () => { try { return JSON.parse(readFileSync(DFS_LEDGER_FILE, "utf8")); } catch { return emptyDfsLedger(); } };
-const dfsOf = () => dataForSeo({ keys: KEYS, settings: CONFIG.dataForSeo ?? {}, ledger: dfsLedger(), save: (l) => writeFileSync(DFS_LEDGER_FILE, JSON.stringify(l)), ...(CONFIG.dataForSeoTestBase ? { base: CONFIG.dataForSeoTestBase } : {}) });
+const dfsOf = () => dataForSeo({ keys: KEYS, settings: { ...searchData(), permission: true } /* RR-357: the client's OWN account — one switch */, ledger: dfsLedger(), save: (l) => writeFileSync(DFS_LEDGER_FILE, JSON.stringify(l)), ...(CONFIG.dataForSeoTestBase ? { base: CONFIG.dataForSeoTestBase } : {}) });
 function keywordView(id) {
   const db = keywordStore(id).load(), plan = pread(id, "page-count.json")?.plan ?? null, today = new Date().toISOString().slice(0, 10);
   const top = Object.values(db.keywords).map((k) => ({ k, c: currentOf(k) })).sort((a, b) => (b.c?.high ?? 0) - (a.c?.high ?? 0) || a.k.text.localeCompare(b.k.text)).slice(0, 25)
@@ -835,7 +857,7 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
-        return send(200, { version: VERSION, company: store.company(), products: products.map(productCard), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus() });
+        return send(200, { version: VERSION, company: store.company(), products: products.map((s) => ({ ...productCard(s), ...cardCounts(s.id), sameSiteAs: products.find((o) => o.id !== s.id && o.created < s.created && s.product.site && o.product.site && hostOf(o.product.site) === hostOf(s.product.site))?.product.name ?? null })), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus() });
       }
       /* RR-313 B1: ONE place to switch Google sign-in on (YouTube AND Search Console use the same client) — the client id is shown, the secret never */
       if (req.method === "GET" && u.pathname === "/api/google/client") return send(200, googleClientStatus());
@@ -852,11 +874,13 @@ const server = createServer((req, res) => {
         return send(200, { ok: true });
       }
       if (req.method === "POST" && u.pathname === "/api/products") {
+        const p = json();
+        /* RR-357: the website you already have a product for is said FIRST — with "open it" — whatever the plan */
+        { const w = p.site ? webAddress(p.site) : null, same = w ? sameSiteProduct(w) : null; if (same) return send(409, { refused: `You already have a product with this website: ${same.product.name} (${hostOf(w)}). Open it — one product per website keeps all your pages, settings and drafts together.`, duplicate: { id: same.id, name: same.product.name } }); }
         const st = await licenceNow();
         const count = store.list().length;
         const may = mayAddProduct(st, count);
         if (!may.ok) return send(403, { refused: limitLine(st, count), licence: st.line });
-        const p = json();
         /* RR-307 D1: the two plain questions come first — what to grow, and whether there is a website; the website is asked only then */
         const goal = p.goal ?? null;
         if (goal && checkStep("goal", goal)) return send(400, { refused: checkStep("goal", goal) });
@@ -864,8 +888,9 @@ const server = createServer((req, res) => {
         p.site = p.site ? webAddress(p.site) : null;
         if (!p.name?.trim() || (needsSite && !p.site)) return send(400, { refused: needsSite ? "Give the product's name and its website (for example shop.almiworld.com)." : "Give the product's name." });
         /* RR-353 (owner: a second "AlmiOET" was made by mistake): the same website as a product you already have → said, with "Open it" */
-        const same = p.site && p.addAnyway !== true ? sameSiteProduct(p.site) : null;
-        if (same) return send(409, { refused: `You already have a product with this website: ${same.product.name} (${hostOf(p.site)}). Open it instead — or add a second one anyway.`, duplicate: { id: same.id, name: same.product.name } });
+        /* RR-357 (owner: two "AlmiOET" products): a second product for a website you already have is never made — "open the one you have" */
+        const same = p.site ? sameSiteProduct(p.site) : null;
+        if (same) return send(409, { refused: `You already have a product with this website: ${same.product.name} (${hostOf(p.site)}). Open it — one product per website keeps all your pages, settings and drafts together.`, duplicate: { id: same.id, name: same.product.name } });
         if (p.site && p.saveAnyway !== true && !/youtube\.com/i.test(p.site)) { const o = await addressOpens(p.site, { allowLocal }); if (!o.ok) return send(400, { refused: `${o.why}${o.suggestion ? ` Did you mean ${o.suggestion}?` : ""}`, suggestion: o.suggestion ?? null, canSaveAnyway: true }); }
         const made = store.create({ name: p.name.trim(), site: p.site ? p.site.trim() : null });
         if (goal) { const st2 = store.read(made.id); st2.setup.goal = { grow: goal.grow, hasWebsite: goal.hasWebsite }; store.write(made.id, st2); }
@@ -881,9 +906,10 @@ const server = createServer((req, res) => {
         try { s = store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
         if (req.method === "GET" && m[2] === "state") return send(200, { id, checking: checking.has(id), product: s.product, almiworld: isAlmiWorld(s), realProject: s.setup?.realProject?.on === true, steps: stepsFor(s.setup), choices: CHOICES, howTo: HOWTO, recommended: Object.fromEntries(STEPS.map((x) => [x.id, recommended(x.id, s.setup)])), setup: s.setup, started: s.started, languages: LANGUAGES, articleSettings: settingsView(articleSettings({ articlesPerDay: s.setup.articlesPerDay?.perDay ?? 1, publishMode: s.setup.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */ })) });
         if (req.method === "POST" && m[2] === "setup") {
-          const st = await licenceNow();
-          if (!st.mayStartNewWork) return send(403, { refused: st.line });
           let { id: step, value } = json();
+          /* RR-357 (R1): the publish choice is the client's own preference — it is saved even with no plan (it starts no work) */
+          const st = await licenceNow();
+          if (!st.mayStartNewWork && step !== "publishMode") return send(403, { refused: st.line });
           if (step === "product" && value && webAddress(value.site)) value.site = webAddress(value.site);
           if (step === "product" && value && !value.site) value.site = s.setup?.goal?.hasWebsite === false ? (s.product?.site && /youtube\.com/i.test(s.product.site) ? s.product.site : null) : value.site;
           /* RR-307 E3: a changed website must really open (or "save anyway") */
@@ -923,7 +949,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing|improve-pack|serp)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing|improve-pack)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -992,11 +1018,6 @@ const server = createServer((req, res) => {
           /* RR-356 PART B · the content for an existing page, ready to paste (or added through the connection on Approve) */
           if (r[2] === "improve-pack" && req.method === "GET") { const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url") && x.improve); return d ? send(200, inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${d.title}</title></head><body><main><h1>Improve your page</h1><p>${d.improve.url}</p>${packOf(id, d).html || "<p>Your page already answers every question Visibility has for it.</p>"}</main></body></html>`, pread(id, "site-read.json")?.shell ?? null), "text/html; charset=utf-8") : send(404, { refused: "no improvement for this page" }); }
           /* RR-356 · the search-results switch: OFF by default, the client's own choice, at most $1 a day */
-          if (r[2] === "serp") {
-            if (req.method === "POST") { const on = json().on === true; pwrite(id, "serp.json", { on, capPerDay: SERP.capPerDay, on_changed: new Date().toISOString() }); }
-            const st = serpSettings(id), spent = (pread(id, "serp-ledger.json", { spent: [] }).spent ?? []).filter((x) => String(x.on).startsWith(new Date().toISOString().slice(0, 10))).reduce((t, x) => t + (Number(x.cost) || 0), 0);
-            return send(200, { on: st.on === true, cap: SERP.capPerDay, spentToday: spent, line: st.on ? `On — spent today $${spent.toFixed(4)} of $${SERP.capPerDay}.` : "Off — nothing is bought. Visibility uses every free source it may and says in each page's notes what it could not read." });
-          }
           if (r[2] === "pages-view" && req.method === "GET") {
             const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = pread(id, "pages.json")?.drafts ?? [];
             return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null, open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
@@ -1314,13 +1335,8 @@ const server = createServer((req, res) => {
           }
           if (r[2] === "keywords/service/usage" && req.method === "GET") { const u = await kwService().usage(); return send(200, { ok: u.ok, line: u.ok ? `${serviceOnLine(u)} (${usageLine(u)})` : `${SERVICE_OFF_LINE} (${u.why})` }); } // RR-327: "on — N searches left this month"
           /* RR-324 C: DataForSEO — OFF, "waiting for the provider's written permission", until the owner ticks it AND switches it on; caps first */
-          if (r[2] === "keywords/dfs" && req.method === "POST") {
-            const v = json(), d = { ...(CONFIG.dataForSeo ?? {}) };
-            if (v.permission !== undefined) d.permission = v.permission === true;
-            if (v.on !== undefined) d.on = v.on === true;
-            for (const k of ["capDay", "capMonth"]) if (v[k] !== undefined) { const n = Number(v[k]); if (!(n >= 0 && n <= 1000)) return send(400, { refused: "A cap is a number of US dollars, 0 to 1,000." }); d[k] = n; }
-            CONFIG.dataForSeo = d; saveConfig(); return send(200, { ok: true, ...dfsOf().status() });
-          }
+          /* RR-357: DataForSEO has ONE place — Search results data (its keys, its switch, its caps); no second switch here */
+          if (r[2] === "keywords/dfs" && req.method === "POST") return send(409, { refused: "DataForSEO is set in ONE place now: Search results data (its login, its switch and its caps).", open: "search-data", ...dfsOf().status() });
           if (r[2] === "keywords/dfs/volume" && req.method === "POST") {
             const v = json(), db0 = keywordStore(id).load(), words = Array.isArray(v.keywords) ? v.keywords : Object.values(db0.keywords).map((k) => k.text);
             const out = await dfsOf().volume(words, { location: v.location ?? null, language: v.language ?? null }); if (!out.ok && !out.rows?.length) return send(400, { refused: out.why });
@@ -1587,6 +1603,29 @@ const server = createServer((req, res) => {
         return send(200, { ok: true, line: st.line });
       }
       /* RR-306 A3: the client's keys — status only (never the key), save (pasted), remove */
+      /* 🔴 RR-357 · SEARCH RESULTS DATA — the client's own DataForSEO account: its state (never the login or password — only whether they are
+       * saved), the switch and the caps (a day at most $1 — R10), "Test the connection" (ONE search, the client's own click, inside the caps) */
+      if (u.pathname === "/api/search-data" && (req.method === "GET" || req.method === "POST")) {
+        if (req.method === "POST") {
+          const v = json(), d = { ...(CONFIG.dataForSeo ?? {}) };
+          if (v.on !== undefined) d.on = v.on === true;
+          if (v.capDay !== undefined) { const n = Number(v.capDay); if (!(n > 0 && n <= SERP.capPerDay)) return send(400, { refused: `The daily cap is between $0.01 and $${SERP.capPerDay} — never more than $${SERP.capPerDay} a day.` }); d.capDay = n; }
+          if (v.capMonth !== undefined) { const n = Number(v.capMonth); if (!(n > 0 && n <= 31)) return send(400, { refused: "The monthly cap is between $0.01 and $31." }); d.capMonth = n; }
+          if (d.on && !(KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved)) return send(400, { refused: "Save your DataForSEO API login and API password first (step 2), then switch it on." });
+          CONFIG.dataForSeo = d; saveConfig();
+        }
+        return send(200, searchDataView());
+      }
+      if (u.pathname === "/api/search-data/test" && req.method === "POST") {
+        const login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password);
+        if (!login || !password) return send(400, { refused: "Save your DataForSEO API login and API password first (step 2)." });
+        const ledger = dfsLedger(), q = String(json().keyword ?? "").trim() || "how to choose a dentist";
+        const r = await searchGoogle({ keyword: q, settings: searchData(), ledger, login, password, test: true, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
+        writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
+        const cost = (ledger.spent ?? []).at(-1)?.cost ?? 0;
+        return send(200, r.ok ? { ...searchDataView(), ok: true, line: `Connected ✓ — Google's results for "${q}" were read: ${r.results.length} results, ${r.paa.length} "People also ask" questions. This search cost $${Number(cost).toFixed(4)}.` } : { ...searchDataView(), ok: false, refused: `Not connected: ${r.why}` });
+      }
+      if (u.pathname === "/api/spend" && req.method === "GET") return send(200, spendView());
       if (req.method === "GET" && u.pathname === "/api/keys") return send(200, { where: KEYS.where, available: KEYS.available, keys: Object.fromEntries([...KEY_ALLOWED].map((n) => [n, KEYS.status(n)])), aiProviders: AI_PROVIDERS });
       { const k = /^\/api\/keys\/([A-Z][A-Z0-9_]{2,63})(\/remove)?$/.exec(u.pathname);
         if (k && req.method === "POST") {

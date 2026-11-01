@@ -240,11 +240,13 @@ test("IN THE APP · the client's file twice (the second adds nothing), the folde
     assert.deepEqual([k.summary.total, k.summary.files, k.picked.read], [6, 2, 0], "the screen opened again: nothing new to read");
     assert.notEqual(readFileSync(join(dir, "products", id, "keyword-db.json"), "utf8"), dbBytes);
     assert.deepEqual([k.ads.state, k.ads.line, k.ads.offLine], ["off", "Google Ads API: Test access; Basic access needed for keyword data.", "Switched off — nothing is sent to Google Ads."]);
-    assert.deepEqual([k.dfs.on, k.dfs.line], [false, "Switched off — waiting for the provider's written permission."]);
+    /* RR-357: the client's OWN DataForSEO account, set in ONE place (Search results data) — off until the client switches it on there */
+    assert.deepEqual([k.dfs.on, k.dfs.line], [false, "Switched off."]);
     const ap = await post(`/api/products/${id}/keywords/ads`, { access: "test", applied: ["explorer"] }); assert.equal(ap.line, "Google Ads API: Test access, Explorer under review; Basic access needed for keyword data.");
     assert.equal((await post(`/api/products/${id}/keywords/ads/start`, {})).http, 400); assert.match((await post(`/api/products/${id}/keywords/ads/ideas`, { seeds: "oet" })).refused, /switched off — nothing was sent/);
-    assert.match((await post(`/api/products/${id}/keywords/dfs/volume`, {})).refused, /waiting for the provider's written permission\. Nothing was bought\./);
-    assert.equal((await post(`/api/products/${id}/keywords/dfs`, { on: true })).line, "Switched off — waiting for the provider's written permission.", "the switch alone does not turn it on");
+    assert.match((await post(`/api/products/${id}/keywords/dfs/volume`, {})).refused, /Switched off\. Nothing was bought\./);
+    const second = await post(`/api/products/${id}/keywords/dfs`, { on: true }); assert.deepEqual([second.http, second.open, second.on], [409, "search-data", false], "no second switch: it points to Search results data");
+    assert.match((await post("/api/search-data", { on: true })).refused, /Save your DataForSEO API login and API password first/, "never on without the client's own login");
     assert.equal((await post(`/api/products/${id}/keywords/ads`, { customerId: "12" })).http, 400);
     assert.equal(existsSync(join(dir, "dataforseo-ledger.json")), false, "nothing bought, no ledger written");
     const keys = await get("/api/keys"); for (const n of [ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password]) assert.equal(keys.keys[n].saved, false, `${n} is a key the app stores by name`);
@@ -252,8 +254,9 @@ test("IN THE APP · the client's file twice (the second adds nothing), the folde
 });
 
 test("SCREEN · the keyword database's numbers, the folder, the 25 keywords with their ranges and trend; the two connectors with their OFF lines", () => {
-  for (const s of ["Your keyword database", "new today", "clusters", "pages they feed", "The page plan uses it at once — no extra click.", "Use this folder and read it now", "Read new files from it each time this screen opens", "Google's ranges, never exact", "Optional: your own Google Ads account — Keyword Planner's data, free", "AlmiWorld keyword service — included in your plan", "You need no Google account and no Google sign-in.", "Sign in to Google Ads yourself", "DataForSEO — paid, pay as you go", "Spending cap per day (US$)", "Spending cap per month (US$)", "I have DataForSEO's written permission to show their data to my customers", "A keyword already bought is never bought again"])
+  for (const s of ["Your keyword database", "new today", "clusters", "pages they feed", "The page plan uses it at once — no extra click.", "Use this folder and read it now", "Read new files from it each time this screen opens", "Google's ranges, never exact", "Optional: your own Google Ads account — Keyword Planner's data, free", "AlmiWorld keyword service — included in your plan", "You need no Google account and no Google sign-in.", "Sign in to Google Ads yourself", "DataForSEO — paid, your own account", "Search results data →"])
     assert.ok(UI.includes(s), s);
   assert.match(UI, /if \(\$\("#kwdb"\)\) keywordPanel\(P\);/); assert.match(UI, /name: f\.name, country: \$\("#sdcountry"\)\.value/);
-  assert.match(UI, /id="dfson" \$\{D\.settings\.on \? "checked" : ""\} \$\{D\.permission \? "" : "disabled"\}/, "DataForSEO cannot be switched on without the permission ticked");
+  /* RR-357: ONE place for DataForSEO — no second switch on this screen */
+  assert.ok(!UI.includes('id="dfson"') && !UI.includes('id="serpon"') && UI.includes('if ($("#sdgo")) $("#sdgo").onclick = searchDataScreen;'));
 });

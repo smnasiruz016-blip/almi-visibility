@@ -50,6 +50,12 @@ const SCORE = /grade\s+[abc]\+?\s*\(\d{3}\+?\)|\b[abc]\+?\s*\(\d{3}\+?\)|\b(?:mi
 export function cardOf(text, country = null) {
   const t = String(text ?? ""), at = (v) => (country ? `${country} — ${v}` : v);
   if (/\b(does not|doesn't|do not|not) accept\b/i.test(t)) return at("OET not accepted");
+  /* RR-357: "minimum 350 in Reading, Listening and Speaking; minimum 300 in Writing" is ONE card, every number with its sub-tests */
+  const groups = [...t.matchAll(/\b(\d{3})\+?\s+(?:or (?:above|higher)\s+)?in\s+((?:(?:Listening|Reading|Writing|Speaking)(?:\s*,\s*|\s+and\s+)?){1,4})/gi)].map((m) => `${(m[2].match(/Listening|Reading|Writing|Speaking/gi) ?? []).map((x) => x[0].toUpperCase()).join("/")} ${m[1]}`);
+  if (groups.length >= 2) return at(groups.join(" · "));
+  /* RR-357: "Writing C+ (300), the other three B (350)" is ONE card, both halves kept */
+  const odd = /\b(Listening|Reading|Writing|Speaking) ([ABC]\+?) \((\d{3})\), the other three ([ABC]\+?) \((\d{3})\)/.exec(t);
+  if (odd) return at(`${odd[1]} ${odd[2]} (${odd[3]}) · others ${odd[4]} (${odd[5]})`);
   /* RR-356: four scores stated together are one card — never "Listening 350" alone for a standard of four */
   const four = /listening\s+(\d{3})\+?,?\s+reading\s+(\d{3})\+?,?\s+writing\s+(\d{3})\+?,?\s+(?:and\s+)?speaking\s+(\d{3})/i.exec(t);
   if (four) return at(`L ${four[1]} · R ${four[2]} · W ${four[3]} · S ${four[4]}`);
@@ -168,10 +174,12 @@ export function examPlan({ subject = "OET", professions = [], countries = [], fa
      * answered from the checked facts, by meaning, or from its regulator's own page — the rest named as open questions */
     const qs = research[prof] ?? null;
     if (qs) { const w = qs.find((q) => q.kind === "writing"); if (w && writing.length) { w.answer = writing.map((f) => ({ fact: f })); w.how = `${subject}'s own Writing page`; w.searched = [{ body: `${subject}'s own Writing page`, on: String(searchedOn ?? "").slice(0, 10) || null, found: true }]; } }
-    const scoreClaims = qs ? qs.filter((q) => q.kind === "score" && q.answer).flatMap((q) => q.answer.map((a) => ({ claimId: a.connected ? `conn-${prof}-${q.country}`.replace(/\s+/g, "-") : a.fact.claimId ?? a.fact.id, card: cardOf(a.fact.text, q.country), text: plainScores(cleanFact(a.text)), link: a.fact.link, readOn: a.fact.readOn ?? a.fact.on, source: `${a.fact.source ?? hostOf(a.fact.link) ?? "its official page"} — its official page`, official: true })))
+    const scoreClaims = qs ? qs.filter((q) => q.kind === "score" && q.answer).flatMap((q) => q.answer.map((a) => ({ claimId: a.connected ? `conn-${prof}-${q.country}`.replace(/\s+/g, "-") : a.fact.claimId ?? a.fact.id, card: cardOf(a.fact.text, /^In (?:the )?(.+?)(?: \((?:state board|provincial college)\))?:/.exec(a.text)?.[1] ?? q.country) /* the place of the body that answered */, text: plainScores(cleanFact(a.text)), link: a.fact.link, readOn: a.fact.readOn ?? a.fact.on, source: `${a.fact.source ?? hostOf(a.fact.link) ?? "its official page"} — its official page`, official: true })))
       : fx.map((f) => claimOf(f, f.country));
     /* RR-356: each main destination its own question — its council, its score, its source and date */
-    const scoreItems = qs ? qs.filter((q) => q.kind === "score" && q.answer).map((q, i) => ({ part: `scores${i}`, question: q.question, claims: scoreClaims.filter((c) => c.text.startsWith(`In ${inCountry(q.country)}:`)) })).filter((it) => it.claims.length) : null;
+    const scoreItems = qs ? [...qs.filter((q) => q.kind === "score" && q.answer).map((q, i) => ({ part: `scores${i}`, question: q.question, claims: scoreClaims.filter((c) => c.text.startsWith(`In ${inCountry(q.country)}`)) })).filter((it) => it.claims.length),
+      /* RR-357: accepted there, but its page ties no score to a sub-test — said with its page linked, never a number; the question stays open */
+      ...qs.filter((q) => q.kind === "score" && !q.answer && q.partial).map((q, i) => ({ part: `scores${60 + i}`, question: q.question, claims: [{ claimId: `partial-${prof}-${q.country}`.replace(/\s+/g, "-"), card: null, text: q.partial.text, link: q.partial.link, readOn: q.partial.on, source: `${q.partial.source} — its official page`, official: true }] }))] : null;
     const items = [...(scoreItems ?? [{ part: "scores", question: `What ${subject} score does each council ask of ${peopleOf(prof)}?`, claims: scoreClaims }]),
       { part: "writing", question: `What is the ${subject} Writing letter for ${peopleOf(prof)}?`, claims: writing.map(fromSubject) },
       ...mineQ.map((f, i) => ({ part: `questions${i}`, question: f.question, claims: [claimOf(f, null, null)] })),

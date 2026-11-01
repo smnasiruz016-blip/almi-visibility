@@ -106,7 +106,7 @@ test("RR-348 c · ON THE SITE: the Creators tab (counts, on/off, add a niche, Co
     assert.equal(await store.creatorSettings(), null);
     let page = await (await fetch(base + "/owner/creators", { headers: { cookie } })).text();
     assert.match(page, /The first creator list is saved/); assert.deepEqual((await store.creatorSettings()).countries, DEFAULT_COUNTRIES);
-    assert.match(page, /<b>Creators<\/b><\/nav>/); assert.match(page, /data-creator-totals/);
+    assert.match(page, /<b>Creators<\/b> · <a href="\/owner\/almiseo">AlmiSEO Data<\/a><\/nav>/); assert.match(page, /data-creator-totals/);
     assert.match(page, /YOUTUBE_API_KEY not set/); assert.match(page, /ANTHROPIC_API_KEY set/);
     for (const c of DEFAULT_COUNTRIES) assert.ok(page.includes(`<span class="chip">${c} `), c);
     assert.match((await post("/owner/creators", { addNiche: "cricket" })).text, /Saved — both creator collectors follow it/);

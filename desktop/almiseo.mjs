@@ -56,6 +56,14 @@ export async function syncProduct({ client, subject, name = null, site = null, c
   const sum = await client.part("summary", subject);
   if (!sum.ok) { write(ALMISEO_FILE, { ...(kept ?? { subject }), subject, triedOn: now, lastWhy: sum.why }); return { ok: false, why: sum.why, line: kept?.readOn ? `AlmiSEO Data could not be read just now (${sum.why}) — what it gave on ${dayOf(kept.readOn)} is used.` : `AlmiSEO Data could not be read just now (${sum.why}).` }; }
   if (!sum.topic) { write(ALMISEO_FILE, { subject, readOn: now, topic: null, line: sum.line, registered: reg.ok ?? false, history: kept?.history ?? [] }); return { ok: true, empty: true, line: sum.line }; }
+  /* 🔴 OWNER'S RULING 2: an outside client's app is sent finished page content only: it asks for nothing else and keeps nothing else */
+  if (sum.outside) {
+    const kit = await client.part("pages", subject);
+    if (!kit.ok) { write(ALMISEO_FILE, { ...(kept ?? { subject }), subject, triedOn: now, lastWhy: kit.why }); return { ok: false, why: kit.why, line: `AlmiWorld's research could not be read just now (${kit.why}).` }; }
+    const n = (kit.plan ?? []).length, line = `AlmiWorld's research: ${n} page${n === 1 ? "" : "s"} ready to make for ${subject}.`;
+    write(ALMISEO_FILE, { subject, readOn: now, outside: true, topic: kit.topic ?? null, plan: kit.plan ?? [], countries: kit.countries ?? {}, counts: { pages: n }, line });
+    return { ok: true, outside: true, line, counts: { pages: n } };
+  }
   /* every page of every part — all the keywords, not a sample */
   const rows = []; let pages = 1, seen = sum.keywords?.allowed ? 0 : -1, kwFailed = null;
   if (sum.keywords?.allowed) for (let p = 0; p < Math.min(pages, SYNC.maxKeywordPages); p++) { const k = await client.part("keywords", subject, p); if (!k.ok) { kwFailed = k.why; break; } rows.push(...k.rows); pages = k.pages || 1; seen = k.total; }
@@ -73,7 +81,7 @@ export async function syncProduct({ client, subject, name = null, site = null, c
 export const heldFor = (file, subject) => (file && String(file.subject ?? "").toLowerCase() === String(subject ?? "").toLowerCase() ? file : null);
 
 /** ALL its keywords as demand; a question-type keyword is a question — each with its volume and where it came from */
-export const KEYWORD_SOURCE = "AlmiSEO Data (Google Ads Keyword Planner data)";
+export const KEYWORD_SOURCE = "AlmiSEO Data";
 export function keywordItems(file, subject) {
   const f = heldFor(file, subject); if (!f) return [];
   return (f.rows ?? []).map((r) => ({ text: r.k, source: KEYWORD_SOURCE, on: r.d ?? String(f.on).slice(0, 10), kind: r.q ? "question" : "search", volume: r.v ?? null, weight: (r.q ? 5 : 4) + (Number(r.v) > 0 ? Math.log10(1 + Number(r.v)) : 0) }));
@@ -153,11 +161,11 @@ export function genericPlanPages({ file, subject }) {
       for (const [part, facts] of Object.entries(P)) { if (part === "questions") continue; const claims = facts.filter(okFact).map((f, i) => { const t = f.value?.text ?? (f.value?.name ? `${f.value.name}${/^https?:/.test(f.value.website ?? "") ? ` — ${f.value.website}` : ""}` : null); return t ? claimFrom(`${part}-${r.country}-${i}`.replace(/\s+/g, "-"), t, f) : null; }).filter(Boolean); if (claims.length) items.push({ part, question: `${subject} in ${r.country}: ${PART_WORDS[part] ?? part}`, claims }); }
       qsOf(r.country).slice(0, 6).forEach((f, i) => items.push({ part: `questions${i}`, question: f.value.question, claims: [claimFrom(`q-${r.country}-${i}`.replace(/\s+/g, "-"), f.value.answer, f)] }));
       if (!items.length) { notBuilt.push({ title: r.title, why: "no checked answer here" }); continue; }
-      seen.add(k); pages.push({ kind: "country-facts", country: r.country, title: r.title, questions: qsOf(r.country).map((f) => ({ question: f.value.question, source: `AlmiSEO Data's question bank — asked by people in ${r.country}`, on: String(f.readOn).slice(0, 10) })), items, content: null, open: [], ledger: [] });
+      seen.add(k); pages.push({ kind: "country-facts", country: r.country, title: r.title, questions: qsOf(r.country).map((f) => ({ question: f.value.question, source: `AlmiWorld's question collector — ${r.country}`, on: String(f.readOn).slice(0, 10) })), items, content: null, open: [], ledger: [] });
     } else if (r.kind === "question") {
       const f = qsOf(r.country).find((x) => String(x.value.question).toLowerCase() === String(r.question).toLowerCase());
       if (!f) { notBuilt.push({ title: r.title, why: "its answer is not among the checked facts read here" }); continue; }
-      seen.add(k); pages.push({ kind: "question", country: r.country, title: r.title, questions: [{ question: r.question, source: `AlmiSEO Data's question bank — asked by people in ${r.country}`, on: String(f.readOn).slice(0, 10) }], items: [{ part: "questions0", question: r.question, claims: [claimFrom(`q-${k}`.replace(/[^a-z0-9]+/g, "-").slice(0, 60), f.value.answer, f)] }], content: null, open: [], ledger: [] });
+      seen.add(k); pages.push({ kind: "question", country: r.country, title: r.title, questions: [{ question: r.question, source: `AlmiWorld's question collector — ${r.country}`, on: String(f.readOn).slice(0, 10) }], items: [{ part: "questions0", question: r.question, claims: [claimFrom(`q-${k}`.replace(/[^a-z0-9]+/g, "-").slice(0, 60), f.value.answer, f)] }], content: null, open: [], ledger: [] });
     }
   }
   for (const p of pages) { p.claims = p.items[0].claims; p.lastChecked = p.items.flatMap((it) => it.claims.map((c) => c.readOn)).sort().at(-1) ?? null; p.weak = !p.questions.length; p.links = pages.filter((x) => x !== p && x.country === p.country).map((x) => x.title).slice(0, 8); }
@@ -174,6 +182,8 @@ export function almiSeoView(file, { subject = null, nowDay = dayOf(new Date()), 
   if (!subject) return { state: "NO_SUBJECT", line: "Tell Visibility what this product is about (Settings → Your product) — AlmiSEO Data is read for that subject only." };
   if (!planOk) return { state: "NO_PLAN", line: "Add your plan first (Your plan) — AlmiSEO Data comes with every plan." };
   const f = heldFor(file, subject);
+  /* RULING 2: an outside client sees the pages ready, nothing about what stands behind them */
+  if (f?.outside && f.readOn) return { state: "PAGES", subject, readOn: f.readOn, pages: f.counts?.pages ?? 0, line: `${f.line} Last read ${String(f.readOn).slice(0, 16).replace("T", " ")}.` };
   if (!f?.readOn) return { state: "NOT_READ", line: f?.lastWhy ? `AlmiSEO Data could not be read yet: ${f.lastWhy}` : "AlmiSEO Data has not been read yet — the app reads it by itself on start.", triedOn: f?.triedOn ?? null };
   if (!f.topic) return { state: "EMPTY", line: f.line, readOn: f.readOn };
   const s = f.summary ?? {}, h = f.history ?? [], c = f.counts ?? {}, base = h.filter((x) => x.on < nowDay), weekBase = h.find((x) => x.on >= dayOf(Date.parse(`${nowDay}T00:00:00Z`) - 7 * 864e5) && x.on < nowDay) ?? null, yesterday = base.at(-1) ?? null, diff = (b, k) => (b ? Math.max(0, (c[k] ?? 0) - (b[k] ?? 0)) : null);

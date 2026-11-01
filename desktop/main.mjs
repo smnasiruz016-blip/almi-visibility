@@ -1642,7 +1642,7 @@ const server = createServer((req, res) => {
         writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
         const cost = (ledger.spent ?? []).length > spentBefore ? (ledger.spent.at(-1)?.cost ?? 0) : 0; // RR-358: only THIS search's cost
         /* RR-358: the test shows what Google returned (the top results' titles); a refusal is DataForSEO's own reason, in plain words */
-        return send(200, r.ok ? { ...searchDataView(), ok: true, line: `Connected ✓ — Google's results for "${q}" were read: ${r.results.length} results, ${r.paa.length} "People also ask" questions. This search cost $${Number(cost).toFixed(4)}.`, top: r.results.slice(0, 10).map((x) => ({ title: x.title, url: x.url })), paa: r.paa.slice(0, 5) } : { ...searchDataView(), ok: false, refused: `Not connected — ${r.why} Nothing was charged for it${Number(cost) ? ` beyond $${Number(cost).toFixed(4)}` : ""}.` });
+        return send(200, r.ok ? { ...searchDataView(), ok: true, line: `Connected ✓ — Google's results for "${q}" were read: ${r.results.length} results, ${r.paa.length} "People also ask" questions. This search cost $${Number(cost).toFixed(4)}.`, top: r.results.slice(0, 10).map((x) => ({ title: x.title, url: x.url })), paa: r.paa.slice(0, 5) } : { ...searchDataView(), line: undefined, ok: false, refused: `Not connected — ${r.why} Nothing was charged for it${Number(cost) ? ` beyond $${Number(cost).toFixed(4)}` : ""}.` });
       }
       if (u.pathname === "/api/spend" && req.method === "GET") return send(200, spendView());
       if (req.method === "GET" && u.pathname === "/api/keys") return send(200, { where: KEYS.where, available: KEYS.available, keys: Object.fromEntries([...KEY_ALLOWED].map((n) => [n, KEYS.status(n)])), aiProviders: AI_PROVIDERS });

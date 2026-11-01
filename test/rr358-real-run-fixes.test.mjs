@@ -160,7 +160,7 @@ test("RR-358 · 4 + 5 · a plan older than its sources is made again (no \"Keywo
   writeFileSync(join(pd, "plan.json"), JSON.stringify({ on: old, thisWeek: [], rest: [], keywords: [], titles: { existing: [], new: [] }, make: [], social: [] }));
   writeFileSync(join(pd, "keyword-db.json"), JSON.stringify({ rows: [] })); // the keyword database came AFTER the plan (the owner's 20:23)
   utimesSync(join(pd, "plan.json"), new Date(old), new Date(old));
-  const serp = createServer((q, r) => { let t = ""; q.on("data", (c) => (t += c)); q.on("end", () => { const k = JSON.parse(t)[0].keyword; r.writeHead(200, { "content-type": "application/json" }); r.end(JSON.stringify({ status_code: 20000, tasks: [{ status_code: 20000, cost: 0.002, result: [{ items: [{ type: "organic", url: "https://a.example/1", title: `${k}: the first result` }, { type: "organic", url: "https://b.example/2", title: "The second result" }, { type: "people_also_ask", items: [{ title: "A question?" }] }] }] }] })); }); });
+  const serp = createServer((q, r) => { let t = ""; q.on("data", (c) => (t += c)); q.on("end", () => { const k = JSON.parse(t)[0].keyword; if (k === "refuse-me") { r.writeHead(401, { "content-type": "application/json" }); r.end(JSON.stringify(DENIED)); return; } r.writeHead(200, { "content-type": "application/json" }); r.end(JSON.stringify({ status_code: 20000, tasks: [{ status_code: 20000, cost: 0.002, result: [{ items: [{ type: "organic", url: "https://a.example/1", title: `${k}: the first result` }, { type: "organic", url: "https://b.example/2", title: "The second result" }, { type: "people_also_ask", items: [{ title: "A question?" }] }] }] }] })); }); });
   await new Promise((res) => serp.listen(0, "127.0.0.1", res));
   const kp = generateKeyPairSync("ed25519"); writeFileSync(join(dir, "licence-public.pem"), kp.publicKey.export({ type: "spki", format: "pem" }));
   writeFileSync(join(dir, "config.json"), JSON.stringify({ testSecretsInMemory: true, keysDir: dir, licenceUrl: "http://127.0.0.1:9/", updateChannelUrl: "http://127.0.0.1:9/", serpTestUrl: `http://127.0.0.1:${serp.address().port}/`, tourSeen: true }));
@@ -180,11 +180,14 @@ test("RR-358 · 4 + 5 · a plan older than its sources is made again (no \"Keywo
     const t = await call("/api/search-data/test", { product: a.id });
     assert.equal(t.ok, true, JSON.stringify(t)); assert.match(t.line, /^Connected ✓ — Google's results for "Fixture" were read: 2 results/);
     assert.deepEqual(t.top.map((x) => x.title), ["Fixture: the first result", "The second result"]);
+    /* found in the built app: a refused test showed the screen's own "Off — your login is saved" line in red — the refusal is the message, never that line */
+    const no = await call("/api/search-data/test", { keyword: "refuse-me" });
+    assert.deepEqual([no.ok, no.line], [false, undefined]); assert.match(no.refused, /^Not connected — DataForSEO did not accept your login and API password .* Nothing was charged for it.$/);
   } finally { p.kill(); serp.close(); await new Promise((r) => setTimeout(r, 300)); rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); }
   assert.ok(UI.includes('Keywords to use (${O.remaking ? "being made again with your newest search phrases…"'));
   assert.ok(UI.includes('const r = await post("/api/search-data/test", { product: P });') && UI.includes("<b>What Google showed (top ${r.top.length}):</b>"));
   assert.ok(UI.includes("The test works while the switch is off — it is only a check, one search."));
-  assert.ok(UI.includes('note($("#sdtestmsg"), r.line ?? r.refused, r.ok ? "ok" : "err")') && /\.msg-ok\{color:#1F6F43/.test(UI), "success in green");
+  assert.ok(UI.includes('note($("#sdtestmsg"), r.ok ? r.line : r.refused ?? "Not connected.", r.ok ? "ok" : "err")') && /\.msg-ok\{color:#1F6F43/.test(UI), "success in green");
 });
 
 test("RR-358 · 5 · a refused test is DataForSEO's own reason in plain words, and costs what DataForSEO charged", async () => {

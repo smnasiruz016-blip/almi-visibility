@@ -87,7 +87,7 @@ test("RR-357 · 3 + 4 + 5 · navigation on Your products; never a second product
     assert.deepEqual([dup.status, dup.j.duplicate?.name], [409, "Fixture"], "\"add anyway\" no longer adds a second one");
   } finally { await A.stop(); }
   assert.ok(UI.includes('<nav id="homenav" class="pact"><b>Go to:</b>') && UI.includes('id="navhelp"') && UI.includes('id="navupd"') && UI.includes('$("#navupd").onclick = () => checkUpdates(true);'));
-  assert.ok(UI.includes("Pages: ${p.pages} made · ${p.ready ?? 0} ready · ${p.published ?? 0} published · Articles: ${p.articles}") && !UI.includes("Pages ${p.pages} · Articles ${p.articles}"));
+  assert.ok(UI.includes("Pages: ${p.pages} made · ${p.improve ? `${p.improve} of yours to improve · ` : \"\"}${p.ready ?? 0} ready · ${p.published ?? 0} published · Articles: ${p.articles}") && !UI.includes("Pages ${p.pages} · Articles ${p.articles}"));
   assert.ok(!UI.includes("Add a second one anyway"));
 });
 

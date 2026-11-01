@@ -129,6 +129,25 @@ export function shellOf(html, url) {
 }
 
 /**
+ * 🔴 RR-358 (owner's real run on 1.15.10: all 29 pages "This page does not look like your site yet." — his site-read.json was made on
+ * 31 Oct by a version before RR-355, so it held no shell, and nothing read it again): the site's look, read again from its LIVE start
+ * page — one page. → { ok: true, shell, from } or { ok: false, why } in plain words: what was opened, what it answered, how to fix it.
+ */
+export async function readShell({ url, fetchImpl = fetch, allowLocal = false, resolve }) {
+  let start;
+  if (allowLocal) { try { start = new URL(url).href; } catch { return { ok: false, why: `"${url}" is not a web address — fix it in Settings → Your product.` }; } }
+  else { const t = await testableUrl(url, resolve ? { resolve } : {}); if (!t.ok) return { ok: false, why: `your home page ${url} could not be opened: ${t.why}` }; start = t.url; }
+  let res; try { res = await fetchImpl(start, { method: "GET", redirect: "follow", headers: { "User-Agent": USER_AGENT, Accept: "text/html" }, signal: AbortSignal.timeout(FULL.timeoutMs) }); }
+  catch (e) { return { ok: false, why: `your home page ${start} did not answer (${/timeout|abort/i.test(String(e?.name ?? e)) ? "no answer within 15 seconds" : "it could not be reached from this computer"}) — check that the site is up, then press Create SEO pages again.` }; }
+  if (!res.ok) return { ok: false, why: `your home page ${start} answered ${res.status} instead of the page — check that it opens in a browser, then press Create SEO pages again.` };
+  const html = Buffer.from(await res.arrayBuffer()).subarray(0, FULL.maxBytes).toString("utf8"), from = res.url || start;
+  const shell = shellOf(html, from);
+  if (shell) return { ok: true, shell, from };
+  const lack = [!/<header\b|<nav\b/i.test(html) && "a header or menu", !/<footer\b/i.test(html) && "a footer", !/<link\b[^>]*stylesheet|<style\b/i.test(html) && "a stylesheet"].filter(Boolean);
+  return { ok: false, why: `your home page ${from} was read, but it has no ${lack.join(", ") || "header, footer and styles"} in its HTML that Visibility can take (a site drawn only by JavaScript shows none) — connect WordPress or Shopify under Publish, and the pages are made inside your own theme.` };
+}
+
+/**
  * Read the site. Returns { ok, origin, readOn, pages:[readPage…], design, sitemap, robots, skipped, pageReads, securityReads, linkObs } —
  * pageReads/securityReads/linkObs are what the engine's own score (src/report/visibility-score.mjs) is made from; the caller does not keep
  * the HTML. `allowLocal` is for TESTS ONLY (a stand-in site on this computer).

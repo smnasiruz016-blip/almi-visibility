@@ -48,14 +48,15 @@ export const APPROVAL = Object.freeze({ review: "Show me before publishing", pub
  */
 export function jobReport({ drafts = [], live = [], approval = "review", connected = false, blocked = null, lines = [], notMade = [] }) {
   const isLive = new Set(live), made = drafts.length, ready = drafts.filter((d) => d.readyAsDraft), published = drafts.filter((d) => isLive.has(d.url)).length;
-  const waiting = ready.filter((d) => !isLive.has(d.url)), work = drafts.filter((d) => !d.readyAsDraft);
+  const waiting = ready.filter((d) => !isLive.has(d.url) && !d.improve), work = drafts.filter((d) => !d.readyAsDraft && !d.improve); // RR-358: an existing page is never a new page waiting or failing
   const needOk = waiting.map((d) => ({ title: d.title, url: d.url, why: blocked ? "This product is set to plan only — nothing is published from here." : approval === "review" ? "Ready — it waits for your OK." : !connected ? "Ready — but your site is not connected yet, so it could not be published." : "Ready — press Publish." }));
-  const needWork = [...work.map((d) => ({ title: d.title, url: d.url, why: plainWhy(d) })), ...notMade.filter((x) => /^Not made yet/.test(x.why))];
+  const unmade = notMade.filter((x) => /^Not made yet/.test(x.why)), needWork = [...work.map((d) => ({ title: d.title, url: d.url, why: plainWhy(d) })), ...unmade];
   /* RR-356 PART B: a topic the client already has a page for is "improve your existing page", never counted as a new page */
   const imp = drafts.filter((d) => d.improve).length, fresh = made - imp;
   const parts = imp ? [`${fresh} new page${fresh === 1 ? "" : "s"} made`, `${imp} of your existing pages to improve`, `${published} published`] : [`${made} page${made === 1 ? "" : "s"} made`, `${published} published`];
   if (needOk.length) parts.push(`${needOk.length} need${needOk.length === 1 ? "s" : ""} your OK`);
-  if (needWork.length) parts.push(`${needWork.length} need${needWork.length === 1 ? "s" : ""} work`);
+  if (work.length) parts.push(`${work.length} need${work.length === 1 ? "s" : ""} work`);
+  if (unmade.length) parts.push(`${unmade.length} not made yet`);
   const headline = `${parts.join(", ")}${needOk.length || needWork.length ? " — here is why." : "."}`;
   const next = blocked ? { label: "Open Settings", action: "settings" } : !made ? { label: "Create pages", action: "seo-pages" } : needOk.length && !connected ? { label: "Connect your site", action: "publish-settings" } : needOk.length ? { label: "Publish all ready", action: "publish-all" } : needWork.length ? { label: "Fix all", action: "fix-all" } : { label: "See the pages", action: "pages" };
   const topics = drafts.map((d) => ({ title: d.title, url: d.url, is: d.improve ? `improve your existing page ${d.improve.url}` : "new page" }));

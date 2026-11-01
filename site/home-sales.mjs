@@ -20,11 +20,11 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 export const HERO = Object.freeze({
   /* RR-350 COPY v2 (owner, 30 Oct 2026); was "Get found on Google, ChatGPT — and YouTube." */
   headline: "Stop Guessing. Start Getting Found.",
-  sub: "AI grows your website, YouTube, TikTok and Instagram — every single day, while you sleep. Pages, articles, keywords, hooks and captions. All for $30 a month.",
+  sub: "AI grows your website, YouTube, TikTok and Instagram — every single day, while you sleep. Pages, articles, hooks and captions. All for $30 a month.",
   score: "Get My Free Site Score", buy: "Buy Now — $30/month",
   /* the owner's third tick was "You approve every change"; on a website the client may choose automatic publishing after every check
    * passes (desktop publishMode AUTO_AFTER_GATES), so the true line is that the client chooses */
-  ticks: Object.freeze(["Real Google data", "No card, no email", "You choose what goes live"]),
+  ticks: Object.freeze(["Real research", "No card, no email", "You choose what goes live"]),
 });
 /* what each engine is to the app — the small line under its name */
 export const ENGINES = Object.freeze([
@@ -203,7 +203,7 @@ export const DAYS = Object.freeze({
   sub: "SEO agencies charge hundreds a month. AlmiVisibility does the daily work for $30.",
   plan: Object.freeze([
     ["Day 1", "Your site's score — out of 100, with what to fix first."],
-    ["Day 2", "Your keywords — real Google search volumes and the questions people ask."],
+    ["Day 2", "Your research — what people want to know about your product."],
     ["Day 3", "Your first article — a draft answered from your own pages, with its sources."],
     ["Day 4", "Better titles, descriptions, hashtags and video ideas for your YouTube channel."],
     ["Day 7", "Up to seven articles — one a day."],

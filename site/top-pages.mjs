@@ -8,14 +8,15 @@
  *     Its text is never saved, never reused, and nothing from it is ever a fact;
  *   · that makes the G5 coverage list and the G6 second-search questions, ready before any client runs.
  * OFF until the owner sets ALMISEO_TOP_PAGES_ON=1 and adds the account's login and password himself (names in site/almiseo.mjs ENV_NAMES).
- * Its own daily dollar cap: a search that could pass it is not sent.
+ * OWNER'S RULING 1: AlmiWorld's OWN products only, AlmiOET first; a TOTAL budget ($50), and a daily cap: a search that could pass either is not sent, and the run stops by itself.
  */
 import { randomBytes } from "node:crypto";
 import { SERP, serpTask, readSerp } from "../desktop/serp.mjs";
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
-import { ENV_NAMES, TOP_PAGES_CAPS, topPagesCaps, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS } from "./almiseo.mjs";
+import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS } from "./almiseo.mjs";
+import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 
 export const TOP_PAGES = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, maxHeadings: 40, location: "United States", language: "en" });
@@ -45,17 +46,18 @@ export function intentsOf({ topic, facts }) {
 }
 
 /** one run. → { ok, day, searches, cost, reads, lists, coverage, stoppedBy, why } */
-export async function runTopPages({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, now = () => Date.now(), budgetMs = TOP_PAGES.runBudgetMs, groups = [] }) {
+export async function runTopPages({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, now = () => Date.now(), budgetMs = TOP_PAGES.runBudgetMs, groups = [], queue = DEFAULT_QUEUE }) {
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (!topPagesConnected(env)) return { ok: false, day: today, why: `The top-pages collector is off (${ENV_NAMES.topPagesOn}, ${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}) — the owner's decision.` };
   if (kv) { const [locked] = await kv.run([["SET", "av:tp:lock", id, "NX", "EX", TOP_PAGES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another top-pages run is working — this one did nothing." }; }
-  const caps = topPagesCaps(env), spent = await seo.spend(today, "top-pages"), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
+  const caps = topPagesCaps(env), spent = await seo.spend(today, TOP_PAGES_JOB), readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
   const auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
   const reads0 = reader.requests();
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; };
+  let lastCost = 0;
   try {
-    const topics = (await allTopics({ seo, groups })).filter((t) => !t.paused && (t.jobs ?? LIVE_JOBS).includes("top-pages"));
-    useClientTemplates(topics.filter((t) => t.owner === "client"));
+    /* RULING 1: AlmiWorld's own products only, in the owner's queue order: AlmiOET first */
+    const rank = (t) => { const i = queue.products.indexOf(t.id); return i < 0 ? 1e6 : i; }, topics = (await allTopics({ seo, groups })).filter((t) => t.owner === "almiworld" && !t.paused && (t.jobs ?? LIVE_JOBS).includes("top-pages")).sort((a, b) => rank(a) - rank(b));
     const facts = await cf.facts();
     for (const topic of topics) {
       if (out.stoppedBy) break;
@@ -67,12 +69,17 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
         if (old && daysBetween(old.day, today) < TOP_PAGES_CAPS.refreshDays && covered.get(intent)?.day >= old.day) continue;
         let list = old && daysBetween(old.day, today) < TOP_PAGES_CAPS.refreshDays ? old : null;
         if (!list) {
-          if (spent.usd + out.cost + SERP.pricePerSearch > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
+          /* the next search may not cross the total, even by a cent: the dearest search this account has been charged ($0.01, RR-359) is held back for it */
+          const price = Math.max(SERP.pricePerSearch, lastCost);
+          if (budget0.spent + out.cost + Math.max(price, TOP_PAGES_CAPS.searchReserveUsd) > caps.budget + 1e-9) { stop("BUDGET", `The top-pages budget is spent ($${caps.budget} in total) — the collector has stopped by itself.`); break; }
+          if (spent.usd + out.cost + price > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
           let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify(serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }
           const got = r ? readSerp(await r.json().catch(() => ({}))) : { ok: false, why: "DataForSEO did not answer" };
           out.searches++;
           if (!got.ok) { if (got.stop) { stop("DATAFORSEO", got.why); break; } continue; }
-          const cost = got.cost || SERP.pricePerSearch; out.cost += cost;
+          const cost = got.cost || SERP.pricePerSearch; out.cost += cost; lastCost = cost;
+          /* booked at once: a run that dies later never forgets money spent */
+          await seo.addSpend(today, TOP_PAGES_JOB, { usd: cost, units: 1 });
           list = { topic: topic.id, intent, location: TOP_PAGES.location, language: TOP_PAGES.language, day: today, results: got.results.map((x) => ({ url: x.url, title: x.title })), paa: got.paa, related: got.related };
           await seo.putList(list); out.lists++;
         }
@@ -81,7 +88,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
         for (const u of urls) {
           let p = kept.get(u);
           if (!p || daysBetween(p.day, today) >= TOP_PAGES_CAPS.refreshDays) {
-            if (reader.requests() - reads0 + spent.units >= caps.reads) { stop("READS", `Today's ${caps.reads} page reads are used — tomorrow continues.`); break; }
+            if (reader.requests() - reads0 + readsToday >= caps.reads) { stop("READS", `Today's ${caps.reads} page reads are used — tomorrow continues.`); break; }
             const h = await Promise.resolve(reader.raw(u, "text/html")).catch(() => null);
             p = !h ? { url: u, day: today, ok: false, why: "it refused to be read (robots.txt, a security check or an error) — never gone around", structure: null } : walled(h) ? { url: u, day: today, ok: false, why: "behind a login or a paywall — left unread", structure: null } : { url: u, day: today, ok: true, why: null, structure: pageStructure(h, { now: new Date(now()).toISOString() }) };
             await seo.putPage(p);
@@ -96,8 +103,8 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
       }
     }
     out.reads = reader.requests() - reads0;
-    await seo.addSpend(today, "top-pages", { usd: out.cost, units: out.searches });
-    if (kv) await recordRun(kv, "top-pages", today, { progress: out.lists + out.coverage, code: out.stoppedBy === "TIME" || out.stoppedBy === "CAP" ? null : out.stoppedBy, why: out.why }).catch(() => null);
+    await seo.addSpend(today, TOP_PAGES_READS_JOB, { units: out.reads });
+    if (kv) await recordRun(kv, "top-pages", today, { progress: out.lists + out.coverage, code: ["TIME", "CAP", "BUDGET"].includes(out.stoppedBy) ? null : out.stoppedBy, why: out.why }).catch(() => null);
     return out;
   } finally { if (kv) try { const [held] = await kv.run([["GET", "av:tp:lock"]]); if (held === id) await kv.run([["DEL", "av:tp:lock"]]); } catch { /* it expires by itself */ } }
 }

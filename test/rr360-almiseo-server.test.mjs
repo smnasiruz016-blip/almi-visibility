@@ -14,9 +14,8 @@ import { createApp } from "../site/app.mjs";
 import { memoryStore } from "../site/kw-store.mjs";
 import { cfMemoryStore } from "../site/cf-store.mjs";
 import { seoMemoryStore, seoPgStore } from "../site/almiseo-store.mjs";
-import { almiSeoAnswer, parseTopicLine, topicForSubject, allTopics, ownTopics, registerClient, planLimits, DEFAULT_PLAN_LIMITS, clientTopicsToWork, queueWithClients, groupsForTopics, syncFindings, alertChanged, spendLedger, collectorPlan, counterTotal, keywordsAllowed, ENV_NAMES, KEYWORDS_OFF_LINE, questionBank, accountHash, LIVE_JOBS } from "../site/almiseo.mjs";
+import { almiSeoAnswer, parseTopicLine, topicForSubject, allTopics, ownTopics, registerClient, planLimits, DEFAULT_PLAN_LIMITS, clientTopicsToWork, queueWithClients, groupsForTopics, syncFindings, alertChanged, spendLedger, ENV_NAMES, questionBank, accountHash, LIVE_JOBS } from "../site/almiseo.mjs";
 import { runTopPages, pageStructure, walled, topPagesConnected, intentsOf } from "../site/top-pages.mjs";
-import { unitsOf } from "../site/kw-seeds.mjs";
 import { DEFAULT_QUEUE, orderWork } from "../site/queue.mjs";
 import { licenceBytes, OWNER } from "../desktop/licence.mjs";
 import { LICENCE_HEADER, licenceHeaderOf } from "../desktop/keyword-service.mjs";
@@ -95,19 +94,6 @@ test("A/F: ONE question bank — the groups answered and every stored question h
   assert.equal(b.groups[0].question, "How much does OET cost in Pakistan?"); assert.equal(b.groups[0].answerKind, "official");
   assert.deepEqual(b.asked.map((q) => q.text), ["can a nurse take oet twice?"]);
 });
-test("TERMS: an outside client gets no keyword from Google — not the words, not the volumes, not inside a question group; the rest it gets", async () => {
-  const w = await world(), env = {};
-  assert.equal(keywordsAllowed(OWNER_LIC, env), true); assert.equal(keywordsAllowed(CLIENT_LIC, env), false); assert.equal(keywordsAllowed(CLIENT_LIC, { [ENV_NAMES.keywordsForClients]: "1" }), true);
-  const k = await almiSeoAnswer({ part: "keywords", subject: "OET", lic: CLIENT_LIC, stores: w.stores, env, now });
-  assert.deepEqual(k.rows, []); assert.equal(k.total, 0); assert.equal(k.line, KEYWORDS_OFF_LINE);
-  const q = await almiSeoAnswer({ part: "questions", subject: "OET", lic: CLIENT_LIC, stores: w.stores, env, now });
-  assert.ok(q.groups.length); assert.ok(!JSON.stringify(q).includes("oet fee pakistan"), "a group's wordings are Google's words"); assert.ok(!("volume" in q.groups[0]));
-  const c = await almiSeoAnswer({ part: "countries", subject: "OET", lic: CLIENT_LIC, stores: w.stores, env, now });
-  assert.equal(c.countries.Pakistan.complete, true);
-  assert.ok(!JSON.stringify(c).includes("oet fee pakistan"), "the country packets carry no keyword from Google either");
-  const s = await almiSeoAnswer({ part: "summary", subject: "OET", lic: CLIENT_LIC, stores: w.stores, env, now });
-  assert.equal(s.keywords.allowed, false); assert.equal(s.keywords.total, 0);
-});
 test("B: a client's product starts the collectors on its subject, in the same queue; the same subject of two clients is ONE topic; never Google for it unless the switch is on", async () => {
   const seo = seoMemoryStore(), limits = await planLimits(seo);
   const r = await registerClient({ seo, subject: "Pet Insurance", name: "PetCo", seeds: ["vet cost"], lic: CLIENT_LIC, limits, at: AT });
@@ -122,9 +108,7 @@ test("B: a client's product starts the collectors on its subject, in the same qu
   assert.ok(q.products.indexOf(t.id) > q.products.indexOf("oet") && q.products.indexOf(t.id) < q.products.indexOf("cv"), "after AlmiOET and AlmiVisibility");
   const units = [{ id: "a", product: t.id, country: "Pakistan" }, { id: "b", product: "cv", country: "Pakistan" }, { id: "c", product: "oet", country: "Pakistan" }];
   assert.deepEqual(orderWork(units, { queue: q }).map((u) => u.id), ["c", "a", "b"]);
-  assert.deepEqual(groupsForTopics({ topics, work, clientsAllowed: false }), [], "no Google request for a client's subject while the switch is off");
-  const on = groupsForTopics({ topics, work, clientsAllowed: true }); assert.equal(on[0].key, t.id);
-  const us = unitsOf(on); assert.ok(us.length === 6 && us.every((u) => u.product === t.id), "All locations and its own five countries only");
+  assert.deepEqual(groupsForTopics({ topics }), [], "Google is never asked for a client's subject");
 });
 test("B: AlmiWorld's own product is never made a client's: the subject of a product of ours joins our topic, its intents only by the owner's licence", async () => {
   const seo = seoMemoryStore(), limits = await planLimits(seo);
@@ -189,7 +173,7 @@ test("F3: ONE spend ledger: the AI, top pages and research, each with its cap, f
   await cf.addSpend(DAY, { aiUsd: 1.25, reads: 10 }); await seo.addSpend(DAY, "top-pages", { usd: 0.02, units: 10 });
   const l = await spendLedger({ cf, seo, env: { COUNTRY_FACTS_AI_USD_PER_DAY: "5" }, now });
   assert.equal(l.jobs[0].today, 1.25); assert.match(l.jobs[0].cap, /^\$5 a day/);
-  assert.equal(l.jobs[1].today, 0.02); assert.match(l.jobs[1].cap, /^\$1 a day/); assert.equal(l.jobs[2].today, 0); assert.match(l.jobs[2].units, /not built yet/);
+  assert.equal(l.jobs[1].today, 0.02); assert.match(l.jobs[1].cap, /^\$50 in total, \$1 a day/); assert.equal(l.jobs[2].today, 0); assert.match(l.jobs[2].units, /not built yet/);
 });
 
 /* ── THE TOP-PAGES COLLECTOR ── a stand-in DataForSEO of its documented shape; no real paid search ── */
@@ -279,8 +263,8 @@ test("ROUTES: a licence is required; the app's own client reads a whole subject;
     assert.equal(files["almiseo.json"].countries.Pakistan.complete, true); assert.equal(files["almiseo.json"].summary.keywords.total, 3);
     assert.deepEqual((await allTopics({ seo: w.seo })).find((t) => t.id === "oet").intents, ["OET for Nurses"], "the plan's intents reached the collector");
     const c = {}; const r2 = await syncProduct({ client: almiSeoClient({ siteUrl: srv.url, signed: CLIENT_L }), subject: "OET", read: (n, d) => c[n] ?? d, write: (n, v) => { c[n] = JSON.parse(JSON.stringify(v)); }, now: AT });
-    assert.equal(r2.ok, true, r2.why); assert.equal(r2.counts.keywords, 0); assert.equal(c["almiseo.json"].keywordsAllowed, false);
-    assert.ok(!JSON.stringify(c).includes("oet fee pakistan") && !JSON.stringify(c).includes("how much is oet"), "not one of Google's keywords reaches an outside client");
+    assert.equal(r2.ok, true, r2.why); assert.equal(r2.outside, true); assert.equal(r2.counts.pages, 1); assert.equal(c["almiseo.json"].outside, true); assert.equal(c["almiseo-keywords.json"], undefined, "no keyword file on a client's computer");
+    assert.ok(!JSON.stringify(c).includes("oet fee pakistan") && !JSON.stringify(c).includes("how much is oet"), "not one keyword reaches an outside client");
     /* a client's new subject: registered, and the file says so */
     const d = {}; const r3 = await syncProduct({ client: almiSeoClient({ siteUrl: srv.url, signed: CLIENT_L }), subject: "Pet Insurance", name: "PetCo", read: (n, v) => d[n] ?? v, write: (n, v) => { d[n] = JSON.parse(JSON.stringify(v)); }, now: AT });
     assert.equal(r3.ok, true); assert.ok((await allTopics({ seo: w.seo })).some((t) => t.subject === "Pet Insurance"));

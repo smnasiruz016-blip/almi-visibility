@@ -15,7 +15,7 @@ const sales = { home: P.liteHome({ sales: true }), pricing: P.pricing({ sales: t
 test("RR-339 · pricing: the owner's heading and line; each plan says who it is for; the removed lines are gone everywhere", () => {
   const p = sales.pricing;
   assert.match(p, /<h1>Rank higher on Google\. Get found in ChatGPT\. One app, from \$30\.<\/h1>/);
-  assert.ok(p.includes("Real Google data. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed."));
+  assert.ok(p.includes("Real research. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed."));
   for (const [price, who] of [[30, "One website, shop or YouTube channel"], [40, "A small business with several products"], [60, "A growing business"], [80, "Agencies and big businesses"]]) assert.match(p, new RegExp(`\\$${price}<small> / month</small>[\\s\\S]*?<p class="note" data-for>${who}</p>`), who);
   for (const html of [...Object.values(sales), P.pricing(), P.home(), P.liteHome(), P.features(), P.download({ setupAvailable: true })]) {
     assert.doesNotMatch(html, /no free trial|Prices set by AlmiWorld|\$500/i);
@@ -26,7 +26,7 @@ test("RR-339 · pricing: the owner's heading and line; each plan says who it is 
 test("RR-339 · Every plan includes: each line stands on a card the app has today (a feature that does not work has no card)", () => {
   const ids = new Set(APP_FEATURES.map((f) => f.id)), card = (id) => APP_FEATURES.find((f) => f.id === id);
   const proof = {
-    "Site check": ids.has("check") && ids.has("links"), "Real Google keyword volumes": ids.has("keywords"), "The questions people ask": ids.has("keywords") && ids.has("aeo"),
+    "Site check": ids.has("check") && ids.has("links"), "The questions people ask": ids.has("keywords") && ids.has("aeo"),
     "Page and article plans": ids.has("seo-pages") && ids.has("articles"), "Your Google Search Console": ids.has("google") && ids.has("search-power"),
     "YouTube advice": ids.has("youtube"), "Send your finished pages to WordPress": /WordPress/.test(card("publish")?.does ?? ""), "Pages in 10 languages": LANGUAGES.length === 10 && ids.has("languages"),
     "Your data stays on your computer": true,
@@ -39,7 +39,7 @@ test("RR-339 · Every plan includes: each line stands on a card the app has toda
 
 test("RR-339 · images: a different one on every public page, each labelled, a wide and a phone drawing; none on privacy and terms", () => {
   assert.deepEqual(images(sales.pricing), ["img-pricing"]);
-  assert.deepEqual(images(sales.home), ["img-home", "img-score", "img-finder"]);
+  assert.deepEqual(images(sales.home), ["img-home", "img-score"]); // owner's ruling 4: the finder's picture is gone
   assert.deepEqual(images(sales.download), ["img-download"]);
   for (const page of [P.privacy({ lite: true }), P.terms({ lite: true })]) if (page) assert.deepEqual(images(page), []);
   const all = Object.values(IMG);
@@ -50,7 +50,7 @@ test("RR-339 · images: a different one on every public page, each labelled, a w
     assert.doesNotMatch(svg, /<script|<image|href=|c2pa/i, "an outside file, a script or the source file's metadata");
   }
   /* the pricing image is the owner's, word for word */
-  for (const w of ["How AlmiVisibility gets you found", "1. Check your site", "Score, links, security", "and what to fix first", "2. Real demand", "Google keyword volumes", "and the questions people ask", "3. Pages that answer", "Plans and drafts,", "every fact with a source", "4. Get found", "Rank higher on Google,", "get cited in AI answers", "Real Google data · No risky backlinks · Your data stays on your computer"]) assert.ok(IMG.pricing.includes(w), w);
+  for (const w of ["How AlmiVisibility gets you found", "1. Check your site", "Score, links, security", "and what to fix first", "2. Real demand", "What people want to know", "and the questions they ask", "3. Pages that answer", "Plans and drafts,", "every fact with a source", "4. Get found", "Rank higher on Google,", "get cited in AI answers", "Real research · No risky backlinks · Your data stays on your computer"]) assert.ok(IMG.pricing.includes(w), w);
   assert.match(P.pricing({ sales: true }), /@media \(max-width:640px\)\{\.flowimg \.wide\{display:none\}\.flowimg \.narrow\{display:block\}\}/);
   assert.match(flowImage({ id: "x", title: "T", label: "a label long enough here", foot: "a · b", steps: [{ icon: "key", title: "<b>", lines: ["&", "\""] }] }), /&lt;b&gt;[\s\S]*&amp;[\s\S]*&quot;/, "text is escaped");
 });

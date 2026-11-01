@@ -58,7 +58,7 @@ test("RR-338 · THE BUYER'S PATH on the sales site (local, Stripe and the router
     assert.ok(home.includes(MARKETING.headline) && home.includes(MARKETING.data), "the marketing lines");
     assert.ok(!/guarantee/i.test(home), "never 'guaranteed'");
     assert.ok(home.includes('href="/pricing"') && home.includes('href="/download"') && !home.includes('href="/features"') && !home.includes('href="/free-test"'), "the nav opens only pages this site has");
-    assert.ok(home.includes('id="score"') && home.includes('id="keywords"'), "the free score and the keyword finder stay");
+    assert.ok(home.includes('id="score"') && !home.includes('id="keywords"'), "the free score stays; no keyword finder for a visitor (owner's ruling 4)");
     const pricing = await fetch(`${a.base}/pricing`), pt = await pricing.text();
     assert.equal(pricing.status, 200);
     for (const p of ["$30", "$40", "$60", "$80"]) assert.ok(pt.includes(`${p}<small> / month`), p);

@@ -50,14 +50,14 @@ export const FLOW_CSS = ".flowimg{margin:28px auto 0;max-width:1100px}.flowimg s
 
 /* the five images. The PRICING one is the owner's own image (AlmiVisibility_pricing_flow.svg, 28 Oct 2026), word for word. */
 export const IMG = Object.freeze({
-  pricing: flowImage({ id: "img-pricing", label: "How AlmiVisibility gets you found: check your site, real demand, pages that answer, get found", title: "How AlmiVisibility gets you found", foot: "Real Google data · No risky backlinks · Your data stays on your computer", steps: [
+  pricing: flowImage({ id: "img-pricing", label: "How AlmiVisibility gets you found: check your site, real demand, pages that answer, get found", title: "How AlmiVisibility gets you found", foot: "Real research · No risky backlinks · Your data stays on your computer", steps: [
     { icon: "search", title: "1. Check your site", lines: ["Score, links, security", "and what to fix first"] },
-    { icon: "bars", title: "2. Real demand", lines: ["Google keyword volumes", "and the questions people ask"] },
+    { icon: "bars", title: "2. Real demand", lines: ["What people want to know", "and the questions they ask"] },
     { icon: "doc", title: "3. Pages that answer", lines: ["Plans and drafts,", "every fact with a source"] },
     { icon: "trend", title: "4. Get found", lines: ["Rank higher on Google,", "get cited in AI answers"] }] }),
   home: flowImage({ id: "img-home", label: "From your website to being found: your site today, what people search, pages that answer", title: "From your website to being found", foot: "Free score first · No card needed · Plans from $30 a month", steps: [
     { icon: "screen", title: "Your site today", lines: ["What search engines", "and AI assistants can read"] },
-    { icon: "question", title: "What people search", lines: ["Real questions and", "Google's own search figures"] },
+    { icon: "question", title: "What people search", lines: ["The real questions", "people want answered"] },
     { icon: "doc", title: "Pages that answer", lines: ["Drafts in your own design,", "each fact with its source"] }] }),
   score: flowImage({ id: "img-score", flow: false, highlight: false, label: "What the free score checks: technical basics, content, accessibility, links and security", title: "What the free score checks", foot: "Up to 10 public pages · robots.txt obeyed · Shown on screen, never stored", steps: [
     { icon: "gear", title: "Technical", lines: ["Canonical, language, mobile", "view and structured data"] },

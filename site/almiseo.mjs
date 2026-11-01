@@ -7,12 +7,9 @@
  *   · ONE findings store (source link + date, no repeats, "fact changed" → review needed + an e-mail to the owner);
  *   · ONE spend ledger and the per-plan monthly limits.
  *
- * 🔴 GOOGLE ADS TERMS (read 1 Nov 2026, support.google.com/adspolicy/answer/6169371): "Google prohibits third-party hosted interface, secondary
- * API, wrapper service, or MCP server, proxy endpoint, or any similar service that solely replicates, wraps, or re-exposes Google Ads programmatic
- * capabilities as an intermediate layer", and the RMF page: "If a Google Ads API Client provides any functionality related to
- * KeywordPlanIdeaService … it must fully implement the required Creation Functionality, Management Functionality and Reporting Functionality".
- * So keyword data from Google is OFF for outside clients (the words, the volumes, and asking Google for a client's subject) unless the owner
- * switches ALMISEO_KEYWORDS_FOR_CLIENTS=1 after Google's own answer. AlmiWorld's own use is not restricted by that policy.
+ * 🔴 OWNER'S RULING 2 (1 Nov 2026, after RR-360): OUTSIDE CLIENTS GET THE FINISHED PAGES ONLY. Never keywords, volumes, keyword lists, coverage lists or any raw
+ * data — they never even reach a client's computer. A client's licence is answered ONLY with page content: each question in OUR OWN words, each answer with its
+ * official page and day. AlmiWorld's own licence reads everything. Google is not asked for a client's subject (Google's Ads policy, read 1 Nov 2026).
  */
 import { createHash } from "node:crypto";
 import { PRODUCT_FACTS, FACT_PRODUCTS, templateOf, setClientTemplates } from "../desktop/product-facts.mjs";
@@ -25,13 +22,15 @@ import { DEFAULT_QUEUE, FIRST_15 } from "./queue.mjs";
 import { PLAN_LOCATIONS, normSeed, LOCATIONS } from "./kw-seeds.mjs";
 
 export const ALMISEO = Object.freeze({ keywordsPerPage: 5000, countriesPerPage: 40, clientCountries: 5, reviewParts: Object.freeze(["fee", "rules", "dates", "scores", "workRules", "workPermit", "admission", "minimumWage"]) });
-export const ENV_NAMES = Object.freeze({ keywordsForClients: "ALMISEO_KEYWORDS_FOR_CLIENTS", alertEmail: "ALMISEO_ALERT_EMAIL", topPagesOn: "ALMISEO_TOP_PAGES_ON", dfsLogin: "ALMISEO_DATAFORSEO_LOGIN", dfsPassword: "ALMISEO_DATAFORSEO_PASSWORD", topPagesUsd: "ALMISEO_TOP_PAGES_USD_PER_DAY", topPagesReads: "ALMISEO_TOP_PAGES_READS_PER_DAY" });
+export const ENV_NAMES = Object.freeze({ alertEmail: "ALMISEO_ALERT_EMAIL", topPagesOn: "ALMISEO_TOP_PAGES_ON", dfsLogin: "ALMISEO_DATAFORSEO_LOGIN", dfsPassword: "ALMISEO_DATAFORSEO_PASSWORD", topPagesUsd: "ALMISEO_TOP_PAGES_USD_PER_DAY", topPagesReads: "ALMISEO_TOP_PAGES_READS_PER_DAY", topPagesBudget: "ALMISEO_TOP_PAGES_BUDGET_USD" });
 export const JOBS = Object.freeze({ keywords: "keywords", questions: "questions", facts: "country facts", "top-pages": "top pages", market: "market needs (not built yet)", competitors: "similar apps (not built yet)", tools: "new tools (not built yet)" });
 export const LIVE_JOBS = Object.freeze(["keywords", "questions", "facts", "top-pages"]);
 /* the proposed limits (OWNER'S MONEY DECISION — a setting, changed on /owner/almiseo): what one client's collecting may cost AlmiWorld per month,
  * and how many countries each of its products gets: about a tenth of the plan's price */
 export const DEFAULT_PLAN_LIMITS = Object.freeze({ visibility_1: Object.freeze({ usdMonth: 3, countries: 5 }), visibility_5: Object.freeze({ usdMonth: 5, countries: 5 }), visibility_10: Object.freeze({ usdMonth: 8, countries: 10 }), visibility_unlimited: Object.freeze({ usdMonth: 12, countries: 15 }) });
-export const TOP_PAGES_CAPS = Object.freeze({ usdPerDay: 1, readsPerDay: 300, refreshDays: 30 });
+/* OWNER'S RULING 1: the $50 he topped up on AlmiWorld's own account is the TOTAL: the collector stops by itself when it is spent */
+export const TOP_PAGES_CAPS = Object.freeze({ usdPerDay: 1, readsPerDay: 300, refreshDays: 30, budgetUsd: 50, searchReserveUsd: 0.01 });
+export const TOP_PAGES_JOB = "top-pages", TOP_PAGES_READS_JOB = "top-pages-reads";
 export const RESEARCH_CAP = Object.freeze({ usdPerDay: 1, built: false });
 
 export const norm = (s) => normSeed(s);
@@ -105,9 +104,9 @@ export async function clientTopicsToWork({ seo, topics, today, limits }) {
 export const clientTemplate = (t) => ({ name: t.subject, kind: t.kind === "test" ? "test" : "service", subject: t.words, own: new RegExp(`\\b(?:${t.words.map(esc).join("|")})\\b`), sites: t.site ? [new URL(t.site).hostname.replace(/^www\./, "")] : [], parts: t.kind === "test" ? ["fee", "questions", "centres", "offices", "rules"] : ["questions"] });
 export const useClientTemplates = (topics) => setClientTemplates(Object.fromEntries(topics.map((t) => [t.id, clientTemplate(t)])));
 
-/** the owner's own topics always; a client's only under the switch (Google's terms) — each asked only in its own countries */
-export function groupsForTopics({ topics, work = [], clientsAllowed = false }) {
-  const isOwn = (t) => t.owner === "owner" && !t.paused && (t.jobs ?? []).includes("keywords"), list = [...topics.filter(isOwn), ...(clientsAllowed ? work.filter((t) => (t.jobs ?? []).includes("keywords")) : [])];
+/** the owner's own topics only: Google is never asked for a client's subject — each asked only in its own countries */
+export function groupsForTopics({ topics }) {
+  const isOwn = (t) => t.owner === "owner" && !t.paused && (t.jobs ?? []).includes("keywords"), list = topics.filter(isOwn);
   return list.map((t) => Object.freeze({ id: `product:${t.id}`, kind: "product", key: t.id, name: t.name, seeds: Object.freeze(t.seeds.slice(0, 20)), locations: Object.freeze(["ALL", ...(t.countries ?? []).map((c) => LOCATIONS.find((l) => l.name === c)?.code).filter(Boolean)]) }));
 }
 /** a client's topic stands in the SAME queue as AlmiWorld's products: after AlmiOET and AlmiVisibility (the owner may move any product) */
@@ -180,20 +179,51 @@ export async function syncFindings({ seo, cf, at }) {
 }
 
 /* ── ONE SPEND LEDGER ── the AI (cf_day, inside COUNTRY_FACTS_AI_USD_PER_DAY), top pages, research ── */
-export const topPagesCaps = (env = process.env) => ({ usd: Number(env[ENV_NAMES.topPagesUsd]) > 0 ? Number(env[ENV_NAMES.topPagesUsd]) : TOP_PAGES_CAPS.usdPerDay, reads: Number(env[ENV_NAMES.topPagesReads]) > 0 ? Math.floor(Number(env[ENV_NAMES.topPagesReads])) : TOP_PAGES_CAPS.readsPerDay });
+export const topPagesCaps = (env = process.env) => ({ budget: Number(env[ENV_NAMES.topPagesBudget]) > 0 ? Number(env[ENV_NAMES.topPagesBudget]) : TOP_PAGES_CAPS.budgetUsd, usd: Number(env[ENV_NAMES.topPagesUsd]) > 0 ? Number(env[ENV_NAMES.topPagesUsd]) : TOP_PAGES_CAPS.usdPerDay, reads: Number(env[ENV_NAMES.topPagesReads]) > 0 ? Math.floor(Number(env[ENV_NAMES.topPagesReads])) : TOP_PAGES_CAPS.readsPerDay });
+/** RULING 1: what the top-pages collector has spent in ALL its days, and the total → { spent, budget, left, line } */
+export async function topPagesBudget({ seo, env = process.env }) {
+  const b = topPagesCaps(env).budget, spent = Math.round((await seo.spendSince("2000-01-01")).filter((r) => r.job === TOP_PAGES_JOB).reduce((a, r) => a + r.usd, 0) * 1e4) / 1e4;
+  return { spent, budget: b, left: Math.max(0, b - spent), line: `DataForSEO: $${spent.toFixed(2)} spent / $${b}` };
+}
 export async function spendLedger({ cf, seo, env = process.env, now = () => Date.now() }) {
   const today = dayOf(now()), month = `${today.slice(0, 8)}01`, ai = cf ? await cf.spendSince(month) : [], rows = await seo.spendSince(month), sum = (xs, f) => Math.round(xs.reduce((a, x) => a + f(x), 0) * 1e4) / 1e4, of = (j) => rows.filter((r) => r.job === j), tp = topPagesCaps(env);
-  return { today, jobs: [
+  return { today, budget: await topPagesBudget({ seo, env }), jobs: [
     { job: "AI (questions, councils, rules, test dates)", cap: `$${capsOf(env).aiUsd} a day`, today: sum(ai.filter((x) => x.day === today), (x) => x.aiUsd), month: sum(ai, (x) => x.aiUsd), units: `${sum(ai.filter((x) => x.day === today), (x) => x.reads)} pages read today` },
-    { job: "Top pages (AlmiWorld's DataForSEO account)", cap: `$${tp.usd} a day, ${tp.reads} page reads`, today: sum(of("top-pages").filter((x) => x.day === today), (x) => x.usd), month: sum(of("top-pages"), (x) => x.usd), units: `${sum(of("top-pages").filter((x) => x.day === today), (x) => x.units)} searches today`, on: env[ENV_NAMES.topPagesOn] === "1" },
+    { job: "Top pages (AlmiWorld's DataForSEO account, its own products only)", cap: `$${tp.budget} in total, $${tp.usd} a day, ${tp.reads} page reads`, today: sum(of("top-pages").filter((x) => x.day === today), (x) => x.usd), month: sum(of("top-pages"), (x) => x.usd), units: `${sum(of("top-pages").filter((x) => x.day === today), (x) => x.units)} searches today`, on: env[ENV_NAMES.topPagesOn] === "1" },
     { job: "Research collector", cap: `$${RESEARCH_CAP.usdPerDay} a day`, today: 0, month: 0, units: "not built yet", on: false },
   ] };
 }
 
 /* ── THE APP'S ANSWER ── */
 /** may this licence see Google's keyword data? AlmiWorld's own licence: yes. An outside client: only after the owner's switch (the terms above) */
-export const keywordsAllowed = (lic, env) => Boolean(lic.owner) || env[ENV_NAMES.keywordsForClients] === "1";
-export const KEYWORDS_OFF_LINE = "Keyword data from Google is not shared with outside clients: Google's rules for its Ads data do not allow it. Your own Search Console, your own Keyword Planner file and your own questions are used instead.";
+export const keywordsAllowed = (lic) => Boolean(lic.owner);
+/* 🔴 RULING 2 · THE ONLY THINGS AN OUTSIDE CLIENT'S APP IS EVER SENT */
+export const CLIENT_PARTS = Object.freeze(["summary", "pages"]);
+export const NOT_FOR_CLIENTS = "This is not part of your plan: AlmiWorld's research reaches you as finished pages.";
+/* each question in OUR OWN words, by the need it asks about (never the words of a search) */
+const OWN_WORDS = Object.freeze({ fees: "How much does {S} cost in {C}?", dates: "When can people in {C} take {S}?", results: "When do {S} results come in {C}?", scores: "What {S} score do people in {C} need?", centres: "Where can I take {S} in {C}?", booking: "How do I book {S} in {C}?", validity: "How long does a {S} result last for people in {C}?", home: "Can people in {C} take {S} online or at home?", requirements: "What does {S} ask of people in {C}?", practice: "How can people in {C} practise for {S}?", preparation: "How should people in {C} prepare for {S}?", remark: "How do people in {C} ask for a {S} re-mark?" });
+export const ownWordsQuestion = (need, { subject, country }) => (OWN_WORDS[need] ?? "What should people in {C} know about {S}?").replace("{S}", subject).replace("{C}", country);
+const plainFact = (f, subject) => {
+  const base = { source: f.sourceUrl, readOn: f.readOn };
+  if (f.part === "fee") return f.value?.line ? { ...base, value: { text: f.value.line } } : null;
+  if (f.part === "centres") return f.value?.venue ? { ...base, value: { text: `${subject} can be taken at a test venue in ${f.country}.` } } : f.value?.home ? { ...base, value: { text: f.value.home } } : null;
+  if (f.value?.name) return { ...base, value: { name: f.value.name, website: f.value.website ?? null } };
+  const text = f.value?.rule ?? f.value?.text; return text ? { ...base, value: { text } } : null;
+};
+/** a client's finished page content for a subject: only official answers and checked facts, in the shape the app builds pages from; nothing else */
+export function clientPagesOf({ topic, facts, countries = DEFAULT_QUEUE.countries }) {
+  const subject = topic.subject, shown = facts.filter((f) => (f.product ?? "oet") === topic.id && SHOWN_STATUS.includes(f.status) && /^https:\/\//.test(f.sourceUrl ?? "") && /^\d{4}-\d{2}-\d{2}/.test(f.readOn ?? "")), rows = collectorPlan({ topic, facts }), out = {}, plan = [], asked = new Set();
+  const answered = (f) => f.part === "questions" && f.value?.answerKind === "official" && f.value?.answer;
+  for (const r of rows.filter((x) => x.kind === "country")) {
+    const parts = {};
+    for (const f of shown.filter((x) => x.country === r.country)) {
+      if (answered(f)) { const question = ownWordsQuestion(f.value.group, { subject, country: r.country }); if (asked.has(`${r.country}|${question}`)) continue; asked.add(`${r.country}|${question}`); (parts.questions ??= []).push({ source: f.sourceUrl, readOn: f.readOn, value: { question, answer: f.value.answer, answerKind: "official" } }); }
+      else if (f.part !== "questions") { const v = plainFact(f, subject); if (v) (parts[f.part] ??= []).push(v); }
+    }
+    out[r.country] = { country: r.country, parts }; plan.push({ kind: "country", country: r.country, title: r.title });
+  }
+  return { plan, countries: out };
+}
 /** the words a keyword must hold to be this topic's own (RR-359: never another product's keyword) */
 export const ownWordsPattern = (topic) => `\\m(?:${[...new Set(topic.words ?? [])].map(esc).join("|")})\\M`;
 
@@ -201,11 +231,18 @@ export const ownWordsPattern = (topic) => `\\m(?:${[...new Set(topic.words ?? []
 export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, stores, env = process.env, now = () => Date.now(), groups = [] }) {
   const { db, cf, seo } = stores, topics = await allTopics({ seo, groups }), topic = topicForSubject(subject, topics);
   const today = dayOf(now());
+  /* 🔴 RULING 2: an outside client is answered here and only here — finished page content and its count; no other part exists for it */
+  if (!lic.owner) {
+    if (!CLIENT_PARTS.includes(part)) return { ok: false, status: 403, why: NOT_FOR_CLIENTS };
+    if (!topic) return { ok: true, outside: true, subject, topic: null, pages: 0, line: "AlmiWorld's research on this subject has started. Your pages appear here when they are ready." };
+    useClientTemplates(topics.filter((t) => t.owner === "client"));
+    const kit = clientPagesOf({ topic, facts: cf ? await cf.facts() : [] }), who = { name: topic.owner === "client" ? topic.name : subject };
+    return part === "pages" ? { ok: true, outside: true, subject, topic: who, on: today, ...kit } : { ok: true, outside: true, subject, topic: who, on: today, pages: kit.plan.length };
+  }
   if (!topic) return { ok: true, subject, topic: null, line: `AlmiSEO Data holds nothing about "${subject}" yet — the collectors start on it when your product is added.` };
   useClientTemplates(topics.filter((t) => t.owner === "client"));
-  const allowed = keywordsAllowed(lic, env), base = { ok: true, subject, topic: { id: topic.id, name: topic.name, subject: topic.subject, owner: topic.owner, countries: topic.countries ?? [], jobs: topic.jobs }, keywordsAllowed: allowed, on: today };
+  const allowed = keywordsAllowed(lic), base = { ok: true, subject, topic: { id: topic.id, name: topic.name, subject: topic.subject, owner: topic.owner, countries: topic.countries ?? [], jobs: topic.jobs }, keywordsAllowed: allowed, on: today };
   if (part === "keywords") {
-    if (!allowed) return { ...base, rows: [], total: 0, page: 0, pages: 0, line: KEYWORDS_OFF_LINE };
     const r = db ? await db.topicKeywords({ groups: [`product:${topic.id}`], pattern: ownWordsPattern(topic), offset: page * ALMISEO.keywordsPerPage, limit: ALMISEO.keywordsPerPage }) : { rows: [], total: 0 };
     return { ...base, rows: r.rows.map((x) => ({ k: x.keyword, v: x.volume, l: x.places, d: x.last, ...(isQuestion(x.keyword) ? { q: 1 } : {}) })), total: r.total, week: r.week ?? 0, today: r.today ?? 0, page, pages: Math.ceil(r.total / ALMISEO.keywordsPerPage), source: "Google Ads Keyword Planner data, through AlmiWorld's keyword collector" };
   }
@@ -224,7 +261,7 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   const urls = [...new Set(lists.flatMap((l) => (l.results ?? []).map((r) => r.url)))], read = (await seo.pages(urls)).filter((p) => p.ok);
   const review = (await seo.findings({ topic: topic.id, changed: true })).map((f) => ({ text: f.text, was: f.was, now: f.value, link: f.sourceUrl, on: f.on, kind: f.kind }));
   const facts = mine.filter((f) => f.part !== "questions" && SHOWN_STATUS.includes(f.status)), week = daysBefore(today, 7), newOn = (d) => mine.filter((f) => String(f.at ?? "").slice(0, 10) >= d).length;
-  return { ...base, keywords: { total: kw.total, today: kw.today ?? 0, week: kw.week ?? 0, allowed, ...(allowed ? {} : { line: KEYWORDS_OFF_LINE }) }, questions: { groups: bank.groups.length, answered: bank.groups.filter((q) => q.answerKind === "official" && q.answer).length, asked: bank.asked.length },
+  return { ...base, keywords: { total: kw.total, today: kw.today ?? 0, week: kw.week ?? 0, allowed }, questions: { groups: bank.groups.length, answered: bank.groups.filter((q) => q.answerKind === "official" && q.answer).length, asked: bank.asked.length },
     countries: { held: order.length, allParts: order.filter((c) => done(topic.id, c)).length, waitingReview: mine.filter(waiting).length, facts: facts.length }, topPages: { lists: lists.length, read: read.length, coverageLists: coverage.length, on: env[ENV_NAMES.topPagesOn] === "1" }, plan: { pages: counterTotal(all, { topic }) }, arrived: { today: newOn(today), week: newOn(week) }, lastRefresh: mine.map((f) => String(f.at ?? "").slice(0, 10)).sort().at(-1) ?? null, review };
 }
 export { PLAN_LOCATIONS, CF_PROFESSIONS, councilFound };

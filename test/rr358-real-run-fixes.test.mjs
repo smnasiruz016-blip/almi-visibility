@@ -87,7 +87,7 @@ test("RR-358 · 1 · Google's results for EVERY page on a real run — inside th
   /* wired: the run uses it for every page; the page's ⚠️ and its ledger line say what stopped it; the report carries the line */
   assert.ok(MAIN.includes("const out = await searchPages({ pages: plan.pages,") && !MAIN.includes("plan.pages.slice(0, 30)"));
   assert.ok(SEO.includes("...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])"));
-  assert.ok(MAIN.includes("serp: serp?.on ? (p.serpWhy ? { read: [], line: `Google's results were not read for this page: ${p.serpWhy}` }"));
+  assert.ok(MAIN.includes("p.serpWhy ? `Google's results were not read for this page: ${p.serpWhy}` : routeLine(p)")); // RR-360: and the route that answered
   assert.ok(MAIN.includes("if (x.pages.serp?.line) lines.push(x.pages.serp.line);"));
 });
 

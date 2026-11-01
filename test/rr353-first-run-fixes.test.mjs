@@ -173,7 +173,8 @@ test("RR-353 · THE APP: Create SEO pages without Search Console; the same websi
     const dup = await call("/api/products", { name: "Fixture again", site: "www.fixture.invalid/pricing", goal: { grow: "website", hasWebsite: true }, saveAnyway: true });
     assert.deepEqual([dup.status, dup.j.duplicate], [409, { id, name: "Fixture" }]);
     assert.match(dup.j.refused, /^You already have a product with this website: Fixture \(fixture\.invalid\)/);
-    assert.equal((await call("/api/products", { name: "Fixture again", site: "https://fixture.invalid", goal: { grow: "website", hasWebsite: true }, saveAnyway: true, addAnyway: true })).status, 200);
+    /* RR-357 (owner: two "AlmiOET" products): never a second product for the same website, "add anyway" or not */
+    assert.equal((await call("/api/products", { name: "Fixture again", site: "https://fixture.invalid", goal: { grow: "website", hasWebsite: true }, saveAnyway: true, addAnyway: true })).status, 409);
     /* the update check: the reason, the version it runs */
     const u = await call("/api/update", null, "GET");
     assert.equal(u.j.state, "UNREACHABLE"); assert.match(u.j.line, /^Could not check for updates — /); assert.match(String(u.j.current), /^\d+\.\d+\.\d+/);

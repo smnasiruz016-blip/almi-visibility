@@ -150,7 +150,7 @@ async function here(name, args = []) {
   return true;
 }
 /* the screen's own name in the breadcrumb (a product's screens sit under the product) */
-const SCREEN_NAMES = { setup: () => (S?.started ? "Settings" : "Setup"), publishScreen: () => "Publish settings", editScreen: () => "Edit a page", googleScreen: () => "Google Search Console", pageCountScreen: () => "How many pages", searchScreen: () => "Search Console: positions", youtubeSettings: () => "YouTube settings", enginesScreen: () => "Search engines", bingScreen: () => "Bing Webmaster Tools", socialLinksScreen: () => "Social media", planScreen: () => "Your plan", company: () => "Your company", addProduct: () => "Add a product", googleSignInScreen: () => "Google sign-in", helpScreen: () => "Help" };
+const SCREEN_NAMES = { setup: () => (S?.started ? "Settings" : "Setup"), publishScreen: () => "Publish settings", editScreen: () => "Edit a page", googleScreen: () => "Google Search Console", pageCountScreen: () => "How many pages", searchScreen: () => "Search Console: positions", youtubeSettings: () => "YouTube settings", enginesScreen: () => "Search engines", bingScreen: () => "Bing Webmaster Tools", socialLinksScreen: () => "Social media", searchDataScreen: () => "Search results data", planScreen: () => "Your plan", company: () => "Your company", addProduct: () => "Add a product", googleSignInScreen: () => "Google sign-in", helpScreen: () => "Help" };
 const PRODUCT_FREE = new Set(["home", "planScreen", "company", "addProduct", "googleSignInScreen", "helpScreen"]);
 function crumbsHtml(name, args = []) {
   if (name === "home") return "";
@@ -179,9 +179,11 @@ async function home() {
   if (!H.company) return company();
   const M = await get("/api/menu");
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
-  $("#app").innerHTML = `<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
+  /* RR-357 (owner: "the Your products screen has no navigation"): the same way around as every other screen — each product, add one, help, updates */
+  const nav = `<nav id="homenav" class="pact"><b>Go to:</b> ${H.products.map((p) => `<button class="ghost" data-open="${esc(p.id)}" type="button">${esc(p.name)}</button>`).join("")}<button class="ghost" id="navadd" type="button" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button><button class="ghost" id="navhelp" type="button">Help</button><button class="ghost" id="navupd" type="button">Check for updates</button></nav>`;
+  $("#app").innerHTML = `${nav}<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="limit">${esc(H.limit)}</div>
-  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta">Pages ${p.pages} · Articles ${p.articles}</div><span class="open">Open →</span></button><div class="meta today" data-today="${esc(p.id)}"></div><div class="pact"><button type="button" data-open="${esc(p.id)}">Open</button><button class="ghost" type="button" data-settings="${esc(p.id)}">Settings</button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
+  <div class="products">${H.products.map((p) => `<div class="pbox"><button class="product" data-id="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr">${esc(p.site ?? "no website")}</div><span class="badge">${esc(p.state)}</span><div class="meta" data-counts>Pages: ${p.pages} made · ${p.ready ?? 0} ready · ${p.published ?? 0} published · Articles: ${p.articles}</div>${p.sameSiteAs ? `<div class="warn" data-same>Same website as ${esc(p.sameSiteAs)} — keep one product per website: open ${esc(p.sameSiteAs)}, and delete this copy once you have checked it.</div>` : ""}<span class="open">Open →</span></button><div class="meta today" data-today="${esc(p.id)}"></div><div class="pact"><button type="button" data-open="${esc(p.id)}">Open</button><button class="ghost" type="button" data-settings="${esc(p.id)}">Settings</button><button class="ghost del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></div></div>`).join("") || `<div class="meta">No product yet — add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ Add a product</button> <button class="ghost" id="plan">Your plan${H.accountSet ? "" : " — add your licence key"}</button> <button class="ghost" id="gsignon">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></p><div class="err" id="err"></div>
   <p class="meta" style="margin-top:8px"><label class="check"><input type="checkbox" id="notify"> Tell me with a Windows notification when today's article is ready (while Visibility is open)</label> · A daily or weekly e-mail summary — coming soon</p>
   <div class="card" style="margin-top:16px"><h2>${esc(M.question)}</h2><p class="tabline">Everything Visibility can do for you. Pick a card — Visibility asks which product it is for.</p>${cardsHtml(M.cards)}</div>`;
@@ -190,7 +192,8 @@ async function home() {
   document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = async () => { P = b.dataset.settings; await settings(); }));
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) return openProduct(H.products[0].id).then(() => openFeature(b.dataset.f)); /* RR-348: the product (S) loaded first — a card on the home with one product threw "reading product of null" */ $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
-  $("#add").onclick = () => addProduct();
+  $("#add").onclick = () => addProduct(); $("#navadd").onclick = () => addProduct();
+  $("#navhelp").onclick = () => helpScreen(); $("#navupd").onclick = () => checkUpdates(true);
   $("#plan").onclick = () => planScreen();
   $("#gsignon").onclick = () => googleSignInScreen(home);
   notifySwitch(); todayLines(H.products);
@@ -267,28 +270,16 @@ async function keywordPanel(P) {
     <label>Your Google Ads customer ID (10 digits) ${A.settings.customerIdSet ? "<span class=\"ok-i\">set ✓</span>" : ""}<input id="adscust" placeholder="123-456-7890"></label>
     <label class="check"><input type="checkbox" id="adson" ${A.on ? "checked" : ""}> Switch Google Ads on</label><button class="ghost" id="adssave">Save</button> ${A.on ? `<button class="ghost" id="adssign">Sign in to Google Ads yourself</button>` : ""} <span id="adsmsg"></span>
     <p class="meta">Its client secret is kept in Windows' secure store like your other keys (Settings → Keys: ${A.settings.secret ? "saved ✓" : "not saved"}).</p>
-    <h4>DataForSEO — paid, pay as you go <span class="tag" data-dfs-state>${D.on ? "on" : "off"}</span></h4>
-    <p data-dfs-line><b>${esc(D.line)}</b></p>
-    <p class="meta">About $0.06–0.09 for each 1,000 keywords' volume and about $0.13 for each 1,000 keyword ideas — a cap counts the highest price; what DataForSEO reports is what is added. A keyword already bought is never bought again (${D.cached} in the cache).</p>
-    <p class="meta" data-dfs-spent>Spent today ${esc("$" + D.spent.day.toFixed(4))} · this month ${esc("$" + D.spent.month.toFixed(4))}</p>
-    <label>Spending cap per day (US$)<input id="dfsday" type="number" min="0" step="0.01" value="${D.settings.capDay ?? ""}"></label><label>Spending cap per month (US$)<input id="dfsmonth" type="number" min="0" step="0.01" value="${D.settings.capMonth ?? ""}"></label>
-    <label class="check"><input type="checkbox" id="dfsperm" ${D.permission ? "checked" : ""}> I have DataForSEO's written permission to show their data to my customers</label>
-    <label class="check"><input type="checkbox" id="dfson" ${D.settings.on ? "checked" : ""} ${D.permission ? "" : "disabled"}> Switch DataForSEO on</label><button class="ghost" id="dfssave">Save</button> <span id="dfsmsg"></span>
-    <p class="meta">Its login and password are kept in Windows' secure store (Settings → Keys: ${D.keySaved ? "saved ✓" : "not saved"}).</p>
-    <h4>Search results data — paid, OFF until you switch it on <span class="tag" id="serpstate">off</span></h4>
-    <p class="meta">Lets Visibility read what Google shows for each page's question: the top 10 results (only to see what they cover — never copied), "People also ask", related searches, and Reddit and Quora questions as Google shows them. It uses your DataForSEO login. About $0.002 a search; never more than $1 a day.</p>
-    <label class="check"><input type="checkbox" id="serpon"> Switch search results data on (at most $1 a day)</label><button class="ghost" id="serpsave">Save</button> <span id="serpmsg"></span>`;
+    <h4>DataForSEO — paid, your own account <span class="tag" data-dfs-state>${D.on ? "on" : "off"}</span></h4>
+    <p class="meta" data-dfs-line>Keyword volumes and Google's results come from ONE place — its login, its switch and its caps: <button class="ghost" id="sdgo" type="button">Search results data →</button></p>`;
   $("#kwfolder").onclick = async () => { note($("#kwmsg"), "Reading the folder…"); const r = await post(url("keywords/folder"), { dir: $("#kwdir").value, auto: $("#kwauto").checked }); note($("#kwmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 1200); };
   $("#adssave").onclick = async () => { const v = { access: $("#adsacc").value, applied: [...document.querySelectorAll("[data-adsapplied]")].filter((x) => x.checked).map((x) => x.dataset.adsapplied), on: $("#adson").checked }; if ($("#adscid").value) v.clientId = $("#adscid").value.trim(); if ($("#adscust").value) v.customerId = $("#adscust").value.trim(); const r = await post(url("keywords/ads"), v); note($("#adsmsg"), r.refused ?? r.line, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 800); };
   /* RR-326 E: AlmiWorld's keyword service */
   if (K.service.plan) get(url("keywords/service/usage")).then((u) => { $("#svcusage").textContent = u.line ?? ""; }).catch(() => {});
   $("#svcgo").onclick = async () => { note($("#svcmsg"), "Asking AlmiWorld's keyword service…"); const r = await post(url("keywords/service"), { seeds: $("#svcseeds").value, location: $("#svcloc").value }); note($("#svcmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 1500); };
   if ($("#adssign")) $("#adssign").onclick = async () => { const r = await post(url("keywords/ads/start"), {}); note($("#adsmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
-  $("#dfssave").onclick = async () => { const r = await post(url("keywords/dfs"), { permission: $("#dfsperm").checked, on: $("#dfsperm").checked && $("#dfson").checked, capDay: $("#dfsday").value === "" ? undefined : Number($("#dfsday").value), capMonth: $("#dfsmonth").value === "" ? undefined : Number($("#dfsmonth").value) }); note($("#dfsmsg"), r.refused ?? r.line, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 800); };
-  /* RR-356 · the search-results switch (G1/G5): its state, and the client's own Save */
-  get(url("serp")).then((x) => { if ($("#serpon")) { $("#serpon").checked = x.on === true; $("#serpstate").textContent = x.on ? "on" : "off"; note($("#serpmsg"), x.line ?? ""); } }).catch(() => {});
-  $("#serpsave").onclick = async () => { const r = await post(url("serp"), { on: $("#serpon").checked }); $("#serpstate").textContent = r.on ? "on" : "off"; note($("#serpmsg"), r.line ?? r.refused, r.refused ? "err" : "ok"); };
-  $("#dfsperm").onchange = () => { $("#dfson").disabled = !$("#dfsperm").checked; if (!$("#dfsperm").checked) $("#dfson").checked = false; };
+  /* RR-357: DataForSEO lives in ONE place */
+  if ($("#sdgo")) $("#sdgo").onclick = searchDataScreen;
 }
 function note(el, text, kind = "info") { if (!el) return; el.classList.remove("err", "msg-ok", "msg-info", "meta"); el.classList.add(kind === "ok" ? "msg-ok" : kind === "err" ? "err" : "msg-info"); el.textContent = text; }
 /* the cards, from the app's own feature list: what it does, what you get, time or cost, what it needs; recommended first */
@@ -428,7 +419,7 @@ async function addProduct() {
     if (extra.site) $("#p2").value = extra.site;
     const r = await post("/api/products", { name: $("#p1").value, site: has === "yes" ? $("#p2").value : "", goal: { grow, hasWebsite: has === "yes" }, saveAnyway: extra.saveAnyway === true, addAnyway: extra.addAnyway === true });
     /* RR-353: the same website as a product already here — open that one, or add a second anyway */
-    if (r.duplicate) { $("#err").innerHTML = `${esc(r.refused)} <button id="dupopen">Open ${esc(r.duplicate.name)}</button> <button class="ghost" id="dupadd">Add a second one anyway</button>`; $("#dupopen").onclick = () => openProduct(r.duplicate.id); $("#dupadd").onclick = () => go({ ...extra, addAnyway: true }); return; }
+    if (r.duplicate) { $("#err").innerHTML = `${esc(r.refused)} <button id="dupopen">Open ${esc(r.duplicate.name)}</button> `; $("#dupopen").onclick = () => openProduct(r.duplicate.id); return; }
     if (r.refused) return addressTrouble(r, go);
     P = r.product.id; S = await get(`/api/products/${encodeURIComponent(P)}/state`); step = S.steps.findIndex((x) => x.id === "product"); setup();
   };
@@ -436,9 +427,13 @@ async function addProduct() {
 }
 /* ── one product's own work ── */
 let KS = null; // the keys' status (never a key)
+/* RR-357 (owner: "Settings on a set-up product shows 'What do you want to grow?' with nothing selected"): every step shows the client's saved
+ * answer; an answer never saved on its own is taken from what the product already shows (a website → "My website"; a website and a channel →
+ * "Several of these") — Settings is for changing, never re-doing */
+const savedAnswer = (id) => { const v = S.setup?.[id]; return v && v.skipped !== true ? v : id === "goal" && S.started ? { grow: S.product?.site && S.setup?.youtube?.handle ? "several" : S.product?.site ? "website" : "youtube", hasWebsite: Boolean(S.product?.site), inferred: true } : null; };
 const choiceList = (name, list, current, rec) => list.map((c) => `<label class="choice"><input type="radio" name="${name}" value="${esc(c.value)}" ${String(current ?? rec ?? "") === String(c.value) ? "checked" : ""}> <b>${esc(c.label)}</b> ${String(rec) === String(c.value) ? `<span class="rec">Recommended for you</span>` : ""}<div class="why">Choose this if ${esc(c.chooseIf)} You get: ${esc(c.gives)} Cost: ${esc(c.cost)} You need: ${esc(c.needs)}</div>${c.howTo ? `<div class="howto">How: ${esc(c.howTo)}</div>` : ""}</label>`).join("");
 const fields = {
-  goal: () => `<h3>What do you want to grow?</h3>${choiceList("grow", S.choices.grow, S.setup.goal?.grow, null)}<h3 style="margin-top:10px">Do you have a website for this product?</h3><label class="choice"><input type="radio" name="hasweb" value="yes" ${S.setup.goal?.hasWebsite === true ? "checked" : ""}> Yes</label><label class="choice"><input type="radio" name="hasweb" value="no" ${S.setup.goal?.hasWebsite === false ? "checked" : ""}> No</label>`,
+  goal: () => `<h3>What do you want to grow?</h3>${choiceList("grow", S.choices.grow, savedAnswer("goal")?.grow, null)}<h3 style="margin-top:10px">Do you have a website for this product?</h3><label class="choice"><input type="radio" name="hasweb" value="yes" ${savedAnswer("goal")?.hasWebsite === true ? "checked" : ""}> Yes</label><label class="choice"><input type="radio" name="hasweb" value="no" ${savedAnswer("goal")?.hasWebsite === false ? "checked" : ""}> No</label>`,
   product: () => `<label>Name<input id=f1 value="${esc(S.setup.product?.name ?? S.product.name)}"></label>${S.setup.goal?.hasWebsite === false ? "" : `<label>Its website<input id=f2 value="${esc(S.setup.product?.site ?? S.product.site ?? "")}"></label>`}<label>What it does — in your own words, who it is for (keep its price and offer up to date: Visibility writes from it)<textarea id=f3>${esc(S.setup.product?.what ?? "")}</textarea></label>${S.setup.goal?.hasWebsite === false ? "" : `<h3 style="margin-top:14px">Your offer button</h3><p class="meta">Every page Visibility makes ends with this button. No page is made or published without it.</p><label>The button's words<input id=f4 maxlength=80 placeholder="for example: Try free for 48 hours" value="${esc(S.setup.product?.cta?.label ?? "")}"></label><label>The page it opens (a full web address)<input id=f5 placeholder="https://yoursite.com/signup" value="${esc(S.setup.product?.cta?.href ?? "")}"></label>`}${socialFieldsHtml()}${S.almiworld ? `<h3 style="margin-top:14px">AlmiWorld's own product</h3><label class="check"><input type="checkbox" id=f6 ${S.realProject ? "checked" : ""}> This is a real project — publish its pages to its website and tell Google and Bing about them from here</label><p class="meta">Off: the plan and the drafts only, nothing is published or submitted. Its YouTube channel is never changed from here either way.</p>` : ""}`,
   searchData: () => `${choiceList("sd", S.choices.searchData, S.setup.searchData?.option, S.recommended.searchData)}<div id=sk>${keyBox("SEARCH_API_KEY", "Your search service key (for that choice)", KS.keys.SEARCH_API_KEY)}</div>`,
   languages: () => S.languages.map((l) => `<label><input type=checkbox style="width:auto" value=${l.code} ${(S.setup.languages?.codes ?? ["en"]).includes(l.code) ? "checked" : ""}> ${l.name}${l.dir === "rtl" ? " (right-to-left)" : ""}</label>`).join(""),
@@ -533,13 +528,14 @@ async function settings() { S = await get(`/api/products/${encodeURIComponent(P)
 async function setup() {
   if (!(await here("setup"))) return;
   KS = await get("/api/keys");
-  const st = S.steps[step];
+  const st = S.steps[step], SP = S.started ? await get("/api/spend").catch(() => null) : null;
   const skipped = S.setup[st.id]?.skipped === true;
   const pct = Math.round((step / Math.max(1, S.steps.length - 1)) * 100);
-  $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ ${S.started ? esc(S.product.name) : "All products"}</button></p><div class="card"><div class="steps">${esc(S.product.name)} · ${S.started ? "Settings · " : ""}step ${step + 1} of ${S.steps.length}${skipped ? " · skipped for now" : ""}</div><div class="progress"><div style="width:${pct}%"></div></div><h2>${esc(st.id === "start" ? "" : st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
+  $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ ${S.started ? esc(S.product.name) : "All products"}</button></p>${SP ? `<div class="card" id="spendcard"><p class="meta" id="spendline">${esc(SP.line)}</p><p><button class="ghost" id="sdset" type="button">Search results data (paid, your own DataForSEO account) →</button></p></div>` : ""}<div class="card">${S.started && savedAnswer(st.id) ? `<p class="ok-i" id="saved">✓ Your saved answer is selected below — change it, or press Next.</p>` : ""}<div class="steps">${esc(S.product.name)} · ${S.started ? "Settings · " : ""}step ${step + 1} of ${S.steps.length}${skipped ? " · skipped for now" : ""}</div><div class="progress"><div style="width:${pct}%"></div></div><h2>${esc(st.id === "start" ? "" : st.title)}</h2><p class="ask">${esc(st.ask)}</p>${fields[st.id]()}
   <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${step ? "<button class=ghost id=back>← Back</button>" : ""}<button id=next class="${st.id === "start" ? "big" : ""}">${st.id === "start" ? (S.checking ? "See the check in progress" : S.started ? "Save" : "Check my product now") : "Next →"}</button>${st.optional ? "<button class=ghost id=skip>Skip for now — add later</button>" : ""}</div><div class=err id=err></div>
   ${S.started && step === 0 ? `<div style="margin-top:22px;border-top:1px solid var(--peach);padding-top:12px"><button class="ghost" id="del">Delete this product</button><div id="delask"></div></div>` : ""}</div>`;
   $("#home").onclick = () => (S.started ? work("Overview") : home()); if ($("#back")) $("#back").onclick = () => { step--; setup(); };
+  if ($("#sdset")) $("#sdset").onclick = searchDataScreen; // RR-357
   if (st.id === "searchData") { wireKeyBoxes(); const show = () => ($("#sk").style.display = document.querySelector("input[name=sd]:checked")?.value === "1" ? "" : "none"); document.querySelectorAll("input[name=sd]").forEach((r) => (r.onchange = show)); show(); }
   if (st.id === "aiConnection") { const show = () => { const p = KS.aiProviders.find((x) => x.id === $("#f1").value); const k = KS.keys[p.keyName]; $("#aist").innerHTML = k?.saved ? `Your ${esc(p.name)} key: <span class="ok">saved ✓ (ends …${esc(k.ends)})</span> — paste a new one to replace it.` : "No key saved for this assistant yet."; $("#aihow").textContent = S.howTo[p.id] ?? ""; $("#aiguide").innerHTML = guideLink(GUIDE_FOR[p.id]); wireGuides(); }; $("#f1").onchange = show; show(); }
   wireGuides();
@@ -712,12 +708,40 @@ const TABS = {
   YouTube: "Advice for your channel and every video, and new video ideas — each with where it came from.",
   "Monthly report": "The month in one report — bad news first.",
 };
+/*
+ * 🔴 RR-357 · SEARCH RESULTS DATA (paid, your own DataForSEO account) — ONE place: the product's Settings and its tabs lead here, the
+ * Overview links it. Plain steps, the two keys saved in Windows' secure store (never shown), "Test the connection" (one search, its cost
+ * shown), the switch, the caps (never more than $1 a day) and what was spent. The same switch serves the keyword data.
+ */
+async function searchDataScreen() {
+  if (!(await here("searchDataScreen"))) return;
+  const D = await get("/api/search-data"), K = await get("/api/keys"), SP = await get("/api/spend");
+  $("#app").innerHTML = `<p><button class="ghost" id="back">⌂ ${esc(S?.product?.name ?? "All products")}</button></p><div class="card" id="sdcard"><h2>Search results data <span class="tag" id="sdstate">${D.on ? "on" : "off"}</span></h2>
+  <p class="ask">Paid, from your own DataForSEO account. It lets Visibility read what Google shows for each page's question — the top 10 results (only to see what they cover, never copied), "People also ask", related searches, and Reddit and Quora questions as Google shows them. It also buys keyword volumes. It stays off until you switch it on.</p>
+  <h3>1 · Make your DataForSEO account</h3><ol class="meta"><li>Go to <b>dataforseo.com</b> and press <b>Try for free</b>. A new account gets <b>$1 free credit</b> for testing.</li><li>To use it after the free credit, you top up your account there — <b>the smallest top-up is $50</b>. Visibility never takes money; DataForSEO charges your account.</li><li>A search costs about <b>$${D.pricePerSearch}</b>.</li></ol>
+  <h3>2 · Your DataForSEO login and password for apps</h3><div class="howto" id="sdhow">${esc(D.howTo)}</div><p class="meta">They are kept in Windows' secure store on this computer and never shown again.</p>
+  ${keyBox("DATAFORSEO_LOGIN", "DataForSEO login (the account's e-mail)", K.keys.DATAFORSEO_LOGIN)}${keyBox("DATAFORSEO_PASSWORD", "DataForSEO password for apps", K.keys.DATAFORSEO_PASSWORD)}
+  <h3>3 · Test the connection</h3><p class="meta">One search, to check the login works. It shows what Google returned and what it cost (about $${D.pricePerSearch}).</p><p><button class="ghost" id="sdtest" ${D.keysSaved ? "" : "disabled"}>Test the connection</button> <span id="sdtestmsg"></span></p>
+  <h3>4 · Switch it on, with your caps</h3>
+  <label class="check"><input type="checkbox" id="sdon" ${D.on ? "checked" : ""} ${D.keysSaved ? "" : "disabled"}> Switch search results data on</label>
+  <label>Most it may spend a day (US$, at most $${D.maxDay})<input id="sdday" type="number" min="0.01" max="${D.maxDay}" step="0.01" value="${D.capDay}"></label>
+  <label>Most it may spend a month (US$)<input id="sdmonth" type="number" min="0.01" max="31" step="0.01" value="${D.capMonth}"></label>
+  <p><button class="big" id="sdsave">Save</button> <span id="sdmsg"></span></p>
+  <p class="meta" id="sdspent"><b>Spent today:</b> $${D.spentToday.toFixed(4)} · <b>this month:</b> $${D.spentMonth.toFixed(4)}</p>
+  <p class="meta" id="sdline">${esc(D.line)}</p>
+  <h3>What can cost you money</h3><ul class="meta" id="spendlist">${SP.rows.map((r) => `<li><b>${esc(r.what)}</b> — ${r.on ? "on" : "off"} · cap ${esc(r.cap)} · today ${esc(r.today)}</li>`).join("")}<li>Everything else Visibility does is free or included in your plan.</li></ul>
+  <p style="margin-top:14px"><button class="ghost" id="sdnext">${S?.product ? "Back to the Overview →" : "All products →"}</button></p></div>`;
+  wireKeyBoxes(() => searchDataScreen());
+  $("#back").onclick = () => (S?.product ? work("Overview") : home()); $("#sdnext").onclick = $("#back").onclick;
+  $("#sdtest").onclick = async () => { $("#sdtest").disabled = true; note($("#sdtestmsg"), "Asking DataForSEO — one search…"); const r = await post("/api/search-data/test", { keyword: S?.product?.name ? `${S.product.name}` : "" }); $("#sdtest").disabled = false; note($("#sdtestmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
+  $("#sdsave").onclick = async () => { const r = await post("/api/search-data", { on: $("#sdon").checked, capDay: Number($("#sdday").value), capMonth: Number($("#sdmonth").value) }); if (r.refused) return note($("#sdmsg"), r.refused, "err"); $("#sdstate").textContent = r.on ? "on" : "off"; note($("#sdmsg"), `Saved — ${r.line}`, "ok"); };
+}
 async function work(tab) {
   if (!(await here("work", [tab]))) return;
   const v = await get(`/api/products/${encodeURIComponent(P)}/views`);
   const lists = { "Pages and articles": v.preview, Approvals: v.approvals, "Monthly report": v.monthly };
   $("#app").innerHTML = `<p><button class="ghost" id="home">⌂ All products</button></p><h1>${esc(S.product.name)}</h1><div class="meta" style="margin-bottom:12px">${esc(S.product.site ?? "no website")}</div>
-  <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="eng">Search engines</button><button class="ghost" id="soc">Social media</button></nav>
+  <nav>${Object.keys(TABS).map((t) => `<button class="${t === tab ? "" : "ghost"}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}<button class="ghost" id="set">Settings</button><button class="ghost" id="yts">YouTube settings</button><button class="ghost" id="eng">Search engines</button><button class="ghost" id="soc">Social media</button><button class="ghost" id="sdtab">Search results data</button></nav>
   <div class="card"><h2>${esc(tab)}</h2><p class="tabline">${esc(TABS[tab])}</p>${tab === "Overview" ? `<div id="ov"></div>` : tab === "YouTube" ? `<div id="ytbox"></div>` : tab === "Monthly report" ? `<div id="featbox"></div><button id="mr">Make this month's report now</button>` : tab === "Pages and articles" || tab === "Approvals" ? `<div id="pubbox"></div><p><button id="mk">Create SEO pages</button> <button class="ghost" id="art">Today's article</button> <button class="ghost" id="pubset">Publish settings</button></p><details class="more"><summary>More — for power users</summary><p class="meta">Visibility reads AlmiWorld's checked facts by itself. Add your own file only if you have one.</p><button class="ghost" id="ffile">Add official facts file</button></details><div id="featbox"></div>` : `<ul>${lists[tab].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`}<div id="u"></div></div>`;
   $("#home").onclick = home; document.querySelectorAll("nav button[data-t]").forEach((b) => (b.onclick = () => work(b.dataset.t)));
   $("#yts").onclick = youtubeSettings; $("#set").onclick = settings;
@@ -728,6 +752,7 @@ async function work(tab) {
   if ($("#ffile")) $("#ffile").onclick = factsFileBox; // RR-351
   if ($("#mk")) $("#mk").onclick = () => openFeature("seo-pages"); if ($("#art")) $("#art").onclick = () => openFeature("articles"); if ($("#mr")) $("#mr").onclick = () => openFeature("monthly");
   $("#eng").onclick = enginesScreen; $("#soc").onclick = socialLinksScreen; // RR-353
+  $("#sdtab").onclick = searchDataScreen; // RR-357
 }
 /*
  * 🔴 RR-353 · UPDATES (owner, 31 Oct 2026: "1.15.5 was not picked up"). Visibility asks the update channel when it opens and every 4 hours;
@@ -843,6 +868,8 @@ async function overview() {
   if ($("#planagain")) $("#planagain").onclick = async () => { note($("#planmsg"), "Making the plan again… (up to a minute)"); const r = await post(`/api/products/${encodeURIComponent(P)}/plan`, {}); if (r.refused) return note($("#planmsg"), r.refused, "err"); overview(); };
   document.querySelectorAll("#ov [data-do]").forEach((b) => (b.onclick = () => doIt(b.dataset.do, b.parentElement.querySelector(".domsg") ?? b.nextElementSibling)));
   if ($("#jobsgo")) $("#jobsgo").onclick = startJobs; // RR-354
+  /* RR-357 (R1): the choice is SAVED the moment it is picked — never only when Start is pressed — and every screen follows it */
+  document.querySelectorAll("#jobs input[name=appr]").forEach((r) => (r.onchange = async () => { const x = await post(`/api/products/${encodeURIComponent(P)}/setup`, { id: "publishMode", value: { mode: r.value === "review" ? "REVIEW_FIRST" : "AUTO_AFTER_GATES" } }); note($("#jobsmsg"), x.refused ?? (r.value === "review" ? "Saved: Show me before publishing — pages and articles wait for your OK." : "Saved: Publish for me — pages and articles go out once every check passes."), x.refused ? "err" : "ok"); }));
   wireReport($("#jobrep"));
   if ($("#willgo")) $("#willgo").onclick = startTicked;
   document.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => ($(`#fx${b.dataset.how}`).innerHTML = `<p class="howto">${esc(c.fixFirst[+b.dataset.how].how)}</p>`)));

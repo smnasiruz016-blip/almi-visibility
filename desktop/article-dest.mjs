@@ -19,7 +19,10 @@ export const ARTICLE_DEST = Object.freeze({
 export const EMAIL_SUMMARY = Object.freeze({ state: "coming soon", line: "A daily or weekly e-mail summary — coming soon: the app does not send e-mail yet." });
 
 /** the product's choice: its own, else read from its publishing setting (the app before RR-344) */
-export const destOf = (saved, publishMode) => (ARTICLE_DEST[saved?.go] ? saved.go : publishMode === PUBLISH_MODE.AUTO_AFTER_GATES ? "site-auto" : "site-approve");
+/* RR-357 (owner: "the card says it is published by itself while the client chose Show me before publishing"): an article on the client's own
+ * site follows the SAME choice as the pages (R1) — the publish choice decides between "after I approve it" and "automatically"; a file, posts or
+ * drafts only stay what the client chose */
+export const destOf = (saved, publishMode) => (ARTICLE_DEST[saved?.go] && !/^site-/.test(saved.go) ? saved.go : publishMode === PUBLISH_MODE.AUTO_AFTER_GATES ? "site-auto" : "site-approve");
 
 /** what stops a publish under the client's choice (null = it may go) */
 export const publishRefusal = (go) => (ARTICLE_DEST[go]?.publishes === false ? `You chose "${ARTICLE_DEST[go].label}" — nothing is published. Change it under "Where should your articles go?".` : null);

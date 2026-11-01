@@ -193,6 +193,8 @@ export function subtestResults(text, subject) {
       const vals = [...t.slice(i + subject.length, i + subject.length + 220).matchAll(/([ABC]\+?)\s*\(?\s*(\d{3})?\s*(or above|[-–]\s*\d{3})?\s*\)?/g)].filter((m) => m[1]).slice(0, 4);
       if (new Set(order).size === 4 && vals.length === 4) order.forEach((s, k) => { const v = vals[k]; set[s] = [v[1], v[2] ? `(${v[2]}${v[3] ? (/above/.test(v[3]) ? " or above" : `–${v[3].replace(/[-–\s]/g, "")}`) : ""})` : null].filter(Boolean).join(" "); });
     }
+    /* RR-357 · "a minimum of 350 in Listening, Reading and Speaking and 300 in Writing": each number with the sub-tests the SAME phrase names */
+    if (!SUBTESTS.every((s) => set[s])) for (const m of win.matchAll(/\b(\d{3})\+?\s+(?:or (?:above|higher)\s+)?(?:in|for)\s+((?:(?:Listening|Reading|Writing|Speaking)(?:\s*,\s*|\s+and\s+)?){1,4})/g)) for (const sub of m[2].match(/Listening|Reading|Writing|Speaking/g) ?? []) if (!set[sub]) set[sub] = m[1];
     if (SUBTESTS.every((s) => set[s])) { const line = SUBTESTS.map((s) => `${s} ${set[s]}`).join(" · "); if (!sets.includes(line)) sets.push(line); }
   }
   return sets;

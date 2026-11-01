@@ -44,6 +44,23 @@ const PROF_NAME = { nursing: /nurs|midwi/i, medicine: /medical|medicine|physicia
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
 const rank = (r, prof) => (r.record?.officialUrl ? 3 : 0) + (PROF_NAME[prof]?.test(r.name) ? 2 : 0) + (/healthcare regulator/i.test(r.kind ?? "") ? 1 : 0) - (/directory|registry|aide/i.test(r.name) ? 3 : 0);
 
+/* 🔴 RR-357 (owner: "United States: Alabama Board of Nursing … 340, 320, 350, 360 names numbers without saying which sub-test each belongs to,
+ * and one state is not the whole country") · A SCORE IS SHOWN ONLY TIED TO ITS SUB-TEST, as the official page states it ("Listening 350",
+ * "B in each", "1400 total"); a page that gives numbers without saying which is which shows NO number — its page is linked, the question stays
+ * open. A state or provincial board is said as such: "United States — Alabama (state board)". */
+export const TIED = /\b(?:listening|reading|writing|speaking)\b[^.;]{0,24}?(?:\b[ABC]\+?(?![\w+])|\b\d{3}\b)|\b[ABC]\+?(?:\s*\(\d{3}\+?\))?\s+in\s+(?:each|all|three)\b|\b(?:in|for)\s+each\b[^.;]{0,40}\b\d{3}\b|\b\d{3,4}\s+total\b|\b(?:at least|minimum)\s+(?:grade\s+)?[ABC]\+?\s+(?:in|for)\s+(?:each|all)\b|\bgrade\s+[ABC]\+?(?:\s*\(\d{3}\+?\))?\s+in\s+(?:each|all)\b|\b[AB]\s+or\s+B\b|\b(?:minimum |at least )?(?:grade )?[ABC]\+?\s+(?:in|for)\s+(?:listening|reading|writing|speaking)\b|\b\d{3}\+?\s+(?:or (?:above|higher)\s+)?(?:in|for)\s+(?:listening|reading|writing|speaking)\b/i;
+export const UNTIED = /\bthe results it names with\b/i;
+/** does a line state its scores tied to their sub-tests? (a line with no score at all is not a score answer either) */
+export const scoresTied = (text) => TIED.test(String(text ?? "")) && !UNTIED.test(String(text ?? ""));
+const US_STATES = ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"];
+const CA_PROVINCES = ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Northwest Territories", "Nunavut", "Yukon"];
+/** where a body's rule holds: the whole country, or one state / province of it → { label, part } */
+export function placeOf(country, bodyName) {
+  const n = String(bodyName ?? ""), find = (xs) => xs.filter((x) => new RegExp(`\\b${x}\\b`, "i").test(n)).sort((a, b) => b.length - a.length)[0] ?? null;
+  const part = country === "United States" ? find(US_STATES) : country === "Canada" ? find(CA_PROVINCES) : null;
+  return part ? { part, label: `${inCountry(country)} — ${part} (${country === "United States" ? "state board" : "provincial college"})` } : { part: null, label: inCountry(country) };
+}
+
 /**
  * 1 · THE DESTINATIONS of a profession: each country where the exam owner's own list names a health regulator that accepts the exam for it,
  * with that country's best-placed regulator for it (its own record first) and, beside it, the bodies whose one standard may cover it.
@@ -60,7 +77,9 @@ export function destinationsFor(prof, list = [], { max = 10 } = {}) {
 /** 1 · a profession page's question list: one score question per destination, and its Writing task */
 export function professionQuestions({ subject, prof, destinations }) {
   const people = PEOPLE_WORD[prof] ?? prof;
-  return [...destinations.map((d) => ({ id: `score:${d.country}`, kind: "score", country: d.country, regulator: d.regulator, also: d.also ?? [], question: `What ${subject} score does ${d.regulator.short ?? d.regulator.name} in ${inCountry(d.country)} ask of ${people}?`, answer: null, how: null, searched: [] })),
+  /* a country whose boards are its states' or provinces' own (the United States, Canada): the question is about such a board, and each answer
+   * names its own state or province — never one state's rule for the whole country */
+  return [...destinations.map((d) => { const pl = placeOf(d.country, d.regulator.name), kind = d.country === "United States" ? "a state board" : "a provincial college"; return { id: `score:${d.country}`, kind: "score", country: d.country, place: pl.label, regulator: d.regulator, also: d.also ?? [], question: pl.part ? `What ${subject} score does ${kind} in ${inCountry(d.country)} ask of ${people}?` : `What ${subject} score does ${d.regulator.short ?? d.regulator.name} in ${inCountry(d.country)} ask of ${people}?`, answer: null, partial: null, how: null, searched: [] }; }),
     { id: "writing", kind: "writing", question: `What is the ${subject} Writing task for ${people}?`, answer: null, how: null, searched: [] }];
 }
 
@@ -79,7 +98,8 @@ export function connectByMeaning({ questions, facts = [], prof, subject = "OET" 
   const people = PEOPLE_WORD[prof] ?? prof;
   for (const q of questions.filter((x) => x.kind === "score" && !x.answer)) {
     const here = facts.filter((f) => f.country === q.country && f.part === "councils" && f.verified !== false);
-    const own = here.filter((f) => f.profession === prof);
+    /* a fact whose numbers are not tied to their sub-tests answers nothing (RR-357) — one with no number at all ("does not accept") does */
+    const own = here.filter((f) => f.profession === prof && (scoresTied(f.text) || !/\b\d{3}\b/.test(f.text)));
     if (own.length) { q.answer = own.map((f) => ({ fact: f, text: `In ${inCountry(q.country)}: ${f.text}` })); q.how = "already in Visibility's checked facts"; continue; }
     /* the bodies the list names for this profession here, and the hosts of their sites */
     const bodies = [q.regulator, ...q.also].filter(Boolean), hosts = new Set(bodies.flatMap((b) => [hostOf(b.website), hostOf(b.record?.officialUrl)]).filter(Boolean));
@@ -115,9 +135,11 @@ export async function searchMissing({ questions, subject, reader, cache, budget 
         cache.set(url, got);
       }
       /* a page that only says it accepts the exam answers no score question: the scores themselves must stand on it */
-      const hasScores = Boolean(got.scores) && /\b\d{3}\b|\bgrade [ABC]\+?\b|\b(?:listening|reading|writing|speaking)\s+[ABC]\+?\b|\b[ABC]\+? (?:in|for) (?:each|all)\b/i.test(got.scores.text);
-      q.searched.push({ url: got.url ?? url, body: body.name, on: got.on, found: hasScores, why: hasScores ? null : got.scores ? `its page says it accepts ${subject} but states no scores` : got.why ?? `its page does not state the ${subject} scores` });
-      if (hasScores) { q.answer = [{ fact: { id: `read-${got.scores.claimId}`, text: got.scores.text, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) }, read: true, text: `In ${inCountry(q.country)}: ${got.scores.text}` }]; q.how = `read on ${body.name}'s own page`; break; }
+      const hasScores = Boolean(got.scores) && scoresTied(got.scores.text), place = placeOf(q.country, body.name).label;
+      q.searched.push({ url: got.url ?? url, body: body.name, on: got.on, found: hasScores, why: hasScores ? null : got.scores ? (UNTIED.test(got.scores.text) ? `its page gives numbers without saying which sub-test each is for — no number is shown` : `its page says it accepts ${subject} but states no scores`) : got.why ?? `its page does not state the ${subject} scores` });
+      /* accepted, but no score tied to a sub-test: said with its page linked, never a number — the question stays open */
+      if (!hasScores && got.scores && !q.partial) q.partial = { text: `In ${place}: ${body.name} names ${subject} on its own page among the English tests it accepts; the page does not say which score is for which sub-test — see its page.`, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) };
+      if (hasScores) { q.answer = [{ fact: { id: `read-${got.scores.claimId}`, text: got.scores.text, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) }, read: true, text: `In ${place}: ${got.scores.text}` }]; q.how = `read on ${body.name}'s own page`; q.partial = null; break; }
     }
   }
   return questions;

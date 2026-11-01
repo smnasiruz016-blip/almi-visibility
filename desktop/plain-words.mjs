@@ -22,7 +22,7 @@ const RULES = [
 export function plainWhy(draft) {
   if (!draft || draft.readyAsDraft) return null;
   /* RR-355: the sixth check ("good to read") and "looks like your site" already speak in plain words — their own line first */
-  const own = (draft.gates ?? []).filter((g) => !g.pass && (g.words === "good to read" || g.words === "looks like your site")).flatMap((g) => g.failing ?? []);
+  const own = (draft.gates ?? []).filter((g) => !g.pass && /* RR-357: the recipe's own checks speak plain words too — the open questions are named, never "one of the five checks" */ ["good to read", "looks like your site", "answers its whole intent", "every fact sourced and fresh", "not a duplicate"].includes(g.words)).flatMap((g) => g.failing ?? []);
   if (own.length) return own[0];
   const fails = (draft.gates ?? []).filter((g) => !g.pass).flatMap((g) => g.failing ?? []);
   for (const [re, line] of RULES) if (fails.some((f) => re.test(f))) return line;

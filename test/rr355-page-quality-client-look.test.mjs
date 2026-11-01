@@ -33,14 +33,16 @@ const ON = "2026-10-31";
 const pageHtml = ({ title, cards = [], items = [] }) => `<!doctype html><html><head><title>${title}</title></head><body><main><section class="hero"><h1>${title}</h1></section>`
   + `<section><h2>Key facts</h2><ul class="cards">${cards.map((v, i) => `<li class="card" data-claim-id="c${i}"><span class="k">${title}</span><span class="v">${v}</span><a class="src" href="https://oet.example/">Source: oet.example</a></li>`).join("")}</ul></section>`
   + `<section><h2>Questions and answers</h2>${items.map(([id, q, answers]) => `<details data-need-id="${id}"><summary>${q}</summary>${answers.map((a, j) => `<p data-claim-id="${id}-${j}">${a} <a class="src" href="https://oet.example/">Source: oet.example</a><span class="src"> · checked ${ON}</span></p>`).join("")}</details>`).join("")}</section></main></body></html>`;
-const LONG = "It gives the reader the facts they need, in plain words, with the page it came from and the day it was checked.";
+let longN = 0; /* RR-356: each answer its own sentence (a sentence said twice is filler) */
+const LONG_TEXT = "it gives the reader the facts they need, in plain words, with the page it came from and the day it was checked.";
+const L = () => `Note ${++longN}: ${LONG_TEXT}`;
 const READING = {
   title: "OET Reading", cards: ["60 minutes", "42 marks"],
   items: [
-    ["r--a", "How long is OET Reading?", [`OET's own page: Reading takes 60 minutes, in three parts, with 42 questions in all. ${LONG}`]],
-    ["r--b", "How is OET Reading built?", [`OET's own page: Reading has 42 marks — Part A 20, Part B 6, Part C 16. ${LONG}`]],
-    ["r--c", "What score is grade B in OET Reading?", [`OET's own page: grade B in Reading is typically at least 30 marks. ${LONG}`]],
-    ["r--d", "How often should I take an OET Reading practice test?", [`OET's own page recommends one practice test every 2–3 weeks for Reading. ${LONG}`]],
+    ["r--a", "How long is OET Reading?", [`OET's own page: Reading takes 60 minutes, in three parts, with 42 questions in all. ${L()}`]],
+    ["r--b", "How is OET Reading built?", [`OET's own page: Reading has 42 marks — Part A 20, Part B 6, Part C 16. ${L()}`]],
+    ["r--c", "What score is grade B in OET Reading?", [`OET's own page: grade B in Reading is typically at least 30 marks. ${L()}`]],
+    ["r--d", "How often should I take an OET Reading practice test?", [`OET's own page recommends one practice test every 2–3 weeks for Reading. ${L()}`]],
   ],
 };
 const T = topicOf({ title: "OET Reading", kind: "topic", people: PEOPLE_WORD });
@@ -49,29 +51,29 @@ const checks = (html, t = T) => goodToRead(html, t).problems.map((p) => p.check)
 test("RR-355 · Rule 2 · the sixth check: a good page passes; each of a–f turns RED on a page that breaks only it", () => {
   assert.deepEqual(goodToRead(pageHtml(READING), T), { pass: true, problems: [] }, "a good Reading page");
   /* a) on topic — the owner's own example: a Reading page showing Ireland's Listening score */
-  const a = { ...READING, items: [...READING.items, ["r--e", "What does Ireland ask?", [`Ireland — Listening 350 for pharmacists, in one sitting, for two years. ${LONG}`]]] };
+  const a = { ...READING, items: [...READING.items, ["r--e", "What does Ireland ask?", [`Ireland — Listening 350 for pharmacists, in one sitting, for two years. ${L()}`]]] };
   assert.deepEqual(checks(pageHtml(a)), ["a"]);
   assert.match(goodToRead(pageHtml(a), T).problems[0].line, /^Off topic: .*it is about Listening, not Reading/);
   /* b) a broken or doubled card — "0 to", "AUD 1", "2026, OET", one card twice */
   for (const bad of ["0 to", "AUD 1", "2026, OET"]) assert.deepEqual(checks(pageHtml({ ...READING, cards: [bad] })), ["b"], bad);
   assert.deepEqual(checks(pageHtml({ ...READING, cards: ["60 minutes", "60 minutes"] })), ["b"]);
   /* c) an internal note — the owner's own example */
-  const c = { ...READING, items: [...READING.items, ["r--e", "What score is grade B in OET Reading?", [`OET's own page: grade B in Reading is typically at least 30 marks; the October M2M page is blocked by Cloudflare. ${LONG}`]]] };
+  const c = { ...READING, items: [...READING.items, ["r--e", "What score is grade B in OET Reading?", [`OET's own page: grade B in Reading is typically at least 30 marks; the October M2M page is blocked by Cloudflare. ${L()}`]]] };
   assert.deepEqual(checks(pageHtml(c)), ["c"]);
   /* d) one value per thing — two PKR amounts (the owner's own: 114,277 and 114,090) */
-  const pk = (lines) => pageHtml({ title: "OET in Pakistan", cards: ["PKR ≈ 114,277 (AUD 587 official fee · approximate)"], items: [["p--fee", "How much does OET cost in Pakistan?", lines], ["p--q0", "Can I take OET in Pakistan?", [`Yes, at a test venue in Pakistan. ${LONG}`]], ["p--centres", "Where can I take OET in Pakistan?", [`OET has three test venues in Pakistan. ${LONG}`]], ["p--councils", "Which council registers nurses in Pakistan?", [`The Pakistan Nursing and Midwifery Council registers nurses in Pakistan. ${LONG}`]]] });
+  const pk = (lines) => pageHtml({ title: "OET in Pakistan", cards: ["PKR ≈ 114,277 (AUD 587 official fee · approximate)"], items: [["p--fee", "How much does OET cost in Pakistan?", lines], ["p--q0", "Can I take OET in Pakistan?", [`Yes, at a test venue in Pakistan. ${L()}`]], ["p--centres", "Where can I take OET in Pakistan?", [`OET has three test venues in Pakistan. ${L()}`]], ["p--councils", "Which council registers nurses in Pakistan?", [`The Pakistan Nursing and Midwifery Council registers nurses in Pakistan. ${L()}`]]] });
   const PKT = topicOf({ title: "OET in Pakistan: fee, centres and councils", kind: "country", country: "Pakistan", people: PEOPLE_WORD });
-  assert.deepEqual(checks(pk([`The full test costs AUD 587. In Pakistan that is about PKR 114,277. ${LONG}`]), PKT), []);
-  assert.deepEqual(checks(pk([`The full test costs AUD 587 — about 114,277 PKR. ${LONG}`, `OET costs AUD 587 — about 114,090 PKR in Pakistan. ${LONG}`]), PKT), ["d"]);
+  assert.deepEqual(checks(pk([`The full test costs AUD 587. In Pakistan that is about PKR 114,277. ${L()}`]), PKT), []);
+  assert.deepEqual(checks(pk([`The full test costs AUD 587 — about 114,277 PKR. ${L()}`, `OET costs AUD 587 — about 114,090 PKR in Pakistan. ${L()}`]), PKT), ["d"]);
   assert.ok(centralBankLink("https://www.sbp.org.pk/ecodata/rates/m2m/M2M-Current.asp") && !centralBankLink("https://www.exchangerate-api.com"), "never a central bank's rate");
-  /* e) too thin — one question answered */
-  assert.deepEqual(checks(pageHtml({ ...READING, items: READING.items.slice(0, 1) })), ["e"]);
-  /* two long answers are still too few: the count is its own rule, not only the words */
-  const two = { ...READING, items: READING.items.slice(0, 2).map(([id, q, [a]]) => [id, q, [`${a} ${LONG} ${LONG} ${LONG}`]]) };
-  assert.deepEqual(checks(pageHtml(two)), ["e"]); assert.match(goodToRead(pageHtml(two), T).problems[0].line, /it answers 2 questions; a page needs at least 3/);
-  assert.match(goodToRead(pageHtml({ ...READING, items: READING.items.slice(0, 1) }), T).problems[0].line, /^Too thin — needs more/);
+  /* e) RR-356 R7 (owner: no fixed word or answer minimum — completeness is judged against the coverage list): one short, complete answer is
+   * no failure here; an EMPTY page and FILLER (the same sentence twice to look deeper) are */
+  assert.deepEqual(checks(pageHtml({ ...READING, items: READING.items.slice(0, 1) })), [], "one question answered is not 'thin' by a count");
+  assert.deepEqual(checks(pageHtml({ ...READING, items: [] })), ["e"]); assert.match(goodToRead(pageHtml({ ...READING, items: [] }), T).problems[0].line, /^Empty — it answers no question yet\.$/);
+  const two = { ...READING, items: READING.items.slice(0, 2).map(([id, q, [a]]) => [id, q, [`${a} The same sentence is here to look deeper than it is.`]]) };
+  assert.deepEqual(checks(pageHtml(two)), ["e"], "the same sentence twice is filler"); assert.match(goodToRead(pageHtml(two), T).problems[0].line, /^Filler — the same sentence twice/);
   /* f) plain English — machine words, or one sentence far too long */
-  assert.deepEqual(checks(pageHtml({ ...READING, items: [...READING.items, ["r--e", "What score is grade B in OET Reading?", [`Grade B is undefined for Reading in this release. ${LONG}`]]] })), ["f"]);
+  assert.deepEqual(checks(pageHtml({ ...READING, items: [...READING.items, ["r--e", "What score is grade B in OET Reading?", [`Grade B is undefined for Reading in this release. ${L()}`]]] })), ["f"]);
   assert.deepEqual(checks(pageHtml({ ...READING, items: [...READING.items, ["r--e", "What score is grade B in OET Reading?", [`${"the reader reads the long text and then ".repeat(8)}gets grade B in Reading.`]]] })), ["f"]);
   /* the plain reason the client reads is the check's own line */
   assert.equal(plainWhy({ readyAsDraft: false, gates: [{ gate: "F", words: "good to read", pass: false, failing: ["Too thin — needs more: it answers 1 question; a page needs at least 3 real answers."] }] }), "Too thin — needs more: it answers 1 question; a page needs at least 3 real answers.");

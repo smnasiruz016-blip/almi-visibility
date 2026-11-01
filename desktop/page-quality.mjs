@@ -22,11 +22,22 @@ export const MIN_ANSWERED = 3;
 export const MIN_ANSWER_WORDS = 120;
 
 /* c) a research note, a blocked-page note, a source debate — words a reader of the page should never see */
-export const NOTE = /\bblocked by\b|\bcloudflare\b|\bcaptcha\b|\bin this file\b|\bthis file\b|\bthe one that matters\b|\bM2M\b|\brevaluation rate\b|\bthe (?:fetched|cached) page\b|\bas printed\b|\bthis is dated\b|\bcheck the current\b|\bnot (?:yet )?(?:read|fetched|verified)\b|\bcould not (?:be )?(?:read|fetched|opened|verified)\b|\bstates? no [A-Z]{3}\b|\bstate no [A-Z]{3}\b|\bno [A-Z]{3} (?:price|fee) on\b|\bdoes NOT state\b|\bnumbersMissing\b|\bverdict\b|\bquote not found\b|\bTODO\b|\bFIXME\b|\bper the (?:file|research)\b|\b(?:the )?latest [A-Z]{3} figure\b|\bpage is (?:down|blocked|gone)\b|\bHTTP (?:403|404|500)\b|\bpages? also show\b|\bthe file (?:says|lists|gives)\b/i;
+export const NOTE = /\bblocked by\b|\bcloudflare\b|\bcaptcha\b|\bin this file\b|\bthis file\b|\bthe one that matters\b|\bM2M\b|\brevaluation rate\b|\bthe (?:fetched|cached) page\b|\bas printed\b|\bthis is dated\b|\bcheck the current\b|\bnot (?:yet )?(?:read|fetched|verified)\b|\bcould not (?:be )?(?:read|fetched|opened|verified)\b|\bstates? no [A-Z]{3}\b|\bstate no [A-Z]{3}\b|\bno [A-Z]{3} (?:price|fee) on\b|\bdoes NOT state\b|\bnumbersMissing\b|\bverdict\b|\bquote not found\b|\bTODO\b|\bFIXME\b|\bper the (?:file|research)\b|\b(?:the )?latest [A-Z]{3} figure\b|\bpage is (?:down|blocked|gone)\b|\bHTTP (?:403|404|500)\b|\bpages? also show\b|\bit names no (?:list|date|price)\b|\bthe file (?:says|lists|gives)\b/i;
 /* d) a central bank's page: never the source of a rate on a page (owner: the same ONE exchange-rate service for every page) */
 export const CENTRAL_BANK = /(?:^|\.)(?:sbp\.org\.pk|centralbank\.go\.ke|centralbank\.ae|bot\.go\.tz|qcb\.gov\.qa|sama\.gov\.sa|rba\.gov\.au|bankofengland\.co\.uk|rbi\.org\.in|bsp\.gov\.ph|cbn\.gov\.ng|ecb\.europa\.eu|rbnz\.govt\.nz|mas\.gov\.sg|federalreserve\.gov|bankofcanada\.ca|cbe\.org\.eg|bb\.org\.bd|nrb\.org\.np|cbsl\.gov\.lk)$/i;
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
 export const centralBankLink = (u) => CENTRAL_BANK.test(hostOf(u));
+
+/* RR-356 (owner: "say it plainly — Writing C+ (300), the other three B (350)"): "Grade B in three components and C+ in one (table: Listening B,
+ * Reading B, Writing C+, Speaking B)" → "Writing C+ (300), the other three B (350)" — each grade with its own score on OET's 0–500 scale */
+const GRADE_SCORE = { A: 450, B: 350, "C+": 300, C: 200 };
+export function plainScores(text) {
+  return String(text ?? "").replace(/(?:minimum |at least )?grade ([ABC]\+?)(?: \((\d{3})\))? in three (?:components|sub-tests|sections) and ([ABC]\+?)(?: \((\d{3})\))? in (?:one|any one)(?: \(table: ([^)]*)\))?/i, (m, g1, s1, g2, s2, table) => {
+    const odd = table ? [...table.matchAll(/(Listening|Reading|Writing|Speaking) ([ABC]\+?)/g)].find((x) => x[2] === g2)?.[1] ?? null : null;
+    const low = `${g2} (${s2 ?? GRADE_SCORE[g2]})`, high = `${g1} (${s1 ?? GRADE_SCORE[g1]})`;
+    return odd ? `${odd} ${low}, the other three ${high}` : `${high} in three sub-tests and ${low} in one`;
+  });
+}
 
 /** a fact's text with its notes taken out: a sentence (or a bracket) that is a note goes; what is left is the fact. "" when nothing is left */
 export function cleanFact(text) {
@@ -120,8 +131,12 @@ export function goodToRead(html, topic) {
   /* e) enough real help */
   const answered = p.items.filter((i) => i.answers.length).length + p.parts.filter((x) => x.lines.length && /question/.test(x.part)).length;
   const answerWords = words([p.top, ...p.items.flatMap((i) => i.answers), ...p.parts.flatMap((x) => x.lines)].join(" ")).length;
-  if (answered < MIN_ANSWERED) add("e", `Too thin — needs more: it answers ${answered} question${answered === 1 ? "" : "s"}; a page needs at least ${MIN_ANSWERED} real answers.`);
-  else if (answerWords < MIN_ANSWER_WORDS) add("e", `Too thin — needs more: its answers hold ${answerWords} words; a page needs at least ${MIN_ANSWER_WORDS} words of real help.`);
+  /* R7 (owner, after v3 §14): NO fixed word or answer minimum — whether the intent is answered is the completeness check (desktop/seo-pages.mjs);
+   * here only an empty page, or FILLER (the same sentence said twice to look deeper), fails */
+  const said = new Map(); for (const s of lines.flatMap((l) => l.split(/(?<=[.!?])\s+/)).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
+  const filler = [...said].find(([, n]) => n > 1)?.[0];
+  if (!answered) add("e", "Empty — it answers no question yet.");
+  else if (filler) add("e", `Filler — the same sentence twice: "${filler.slice(0, 70)}".`);
   /* f) plain English */
   const sentences = lines.flatMap((l) => l.split(/(?<=[.!?])\s+/)).filter((s) => words(s).length);
   const long = sentences.find((s) => words(s).length > 55), avg = sentences.length ? sentences.reduce((n, s) => n + words(s).length, 0) / sentences.length : 0;

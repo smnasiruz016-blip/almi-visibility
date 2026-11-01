@@ -184,6 +184,38 @@ export async function fixExisting({ target, key, url, kind, text, framework = fa
   return { ok: false, why: "Not possible through this connection." };
 }
 
+/*
+ * 🔴 RR-356 PART B · AN EXISTING PAGE IMPROVED THROUGH THE SITE'S OWN CONNECTION: the improvement pack's section (desktop/improve.mjs) is
+ * added to the page — GitHub: the page's own HTML file (before its </main>, else before its footer); WordPress: the page's own content. A
+ * page written in code (a framework's page, a Shopify theme) cannot be changed this way: Visibility gives the content to paste instead.
+ */
+export const improveVia = (target) => target?.kind === "github" || target?.kind === "wordpress";
+export const withSection = (html, section) => { const h = String(html ?? ""); if (h.includes("data-improve-for")) return h.replace(/<section class="av-page" data-improve-for="[^"]*">[\s\S]*?<\/section>/, section); return /<\/main>/i.test(h) ? h.replace(/<\/main>/i, `${section}</main>`) : /<footer\b/i.test(h) ? h.replace(/<footer\b/i, `${section}<footer`) : /<\/body>/i.test(h) ? h.replace(/<\/body>/i, `${section}</body>`) : `${h}${section}`; };
+export async function improveExisting({ target, key, url, section, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  if (!improveVia(target)) return { ok: false, why: "Your site's connection cannot change an existing page — copy the content Visibility made for it (Get the content)." };
+  if (!section) return { ok: false, why: "Your page already answers every question Visibility has for it — nothing to add." };
+  const call = async (u, init) => { if (!keyMayGo(target, u, { allowLocal })) return { ok: false, why: "Refused: the key may go only to your own site's address." }; let r; try { r = await fetchImpl(u, { ...init, signal: AbortSignal.timeout(20000) }); } catch { return { ok: false, why: "Your site did not answer — nothing was changed." }; } const body = await r.json().catch(() => ({})); return r.ok ? { ok: true, body } : { ok: false, status: r.status, body, why: refusedWhy(target, r.status, body).replace("Nothing was published.", "Nothing was changed.") }; };
+  const path = (() => { try { return new URL(url).pathname.replace(/^\/+|\/+$/g, ""); } catch { return null; } })(); if (path === null) return { ok: false, why: "Not a page address." };
+  if (target.kind === "github") {
+    const api = testBase ?? "https://api.github.com", gh = { authorization: `Bearer ${key}`, accept: "application/vnd.github+json", "user-agent": "AlmiVisibility" };
+    for (const p of path ? [`${path}/index.html`, `${path}.html`, `public/${path}/index.html`, `public/${path}.html`] : ["index.html", "public/index.html"]) {
+      const got = await call(`${api}/repos/${target.repo}/contents/${p}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh });
+      if (!got.ok) { if (got.status === 404) continue; return got; }
+      if (!got.body?.content || !got.body.sha) continue;
+      const next = withSection(Buffer.from(got.body.content, "base64").toString("utf8"), section);
+      const put = await call(`${api}/repos/${target.repo}/contents/${p}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `Improve ${path || "home"} (AlmiVisibility)`, content: Buffer.from(next).toString("base64"), branch: target.branch, sha: got.body.sha }) });
+      return put.ok ? { ok: true, line: `Improved on your site: ${url} (in ${p}) — it goes live with your site's next deploy.` } : put;
+    }
+    return { ok: false, why: `Visibility found no file for ${url} in ${target.repo} — the page is made by your site's code. Copy the content Visibility made for it (Get the content).` };
+  }
+  const base = testBase ?? new URL(target.site).origin, auth = { authorization: `Basic ${Buffer.from(`${target.user}:${key}`).toString("base64")}` };
+  const slug = path.split("/").pop(); if (!slug) return { ok: false, why: "Your home page is changed in WordPress itself — copy the content (Get the content)." };
+  const found = await call(`${base}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&context=edit`, { method: "GET", headers: auth }); if (!found.ok) return found;
+  const pg = Array.isArray(found.body) ? found.body[0] : null; if (!pg?.id) return { ok: false, why: `WordPress has no page at ${url} — copy the content (Get the content).` };
+  const up = await call(`${base}/wp-json/wp/v2/pages/${pg.id}`, { method: "POST", headers: { "content-type": "application/json", ...auth }, body: JSON.stringify({ content: withSection(pg.content?.raw ?? pg.content?.rendered ?? "", section) }) });
+  return up.ok ? { ok: true, line: `Improved on your site: ${url}.` } : up;
+}
+
 /** Undo ONE publish (the record made by publishDraft). */
 export async function unpublish({ record, target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
   const go = async (url, init) => { if (!keyMayGo(target, url, { allowLocal })) return { ok: false, why: "Refused: the key may go only to your own site's address." }; try { const r = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(20000) }); return r.ok ? { ok: true } : { ok: false, why: `Your site answered with an error (${r.status}) — nothing was changed.` }; } catch { return { ok: false, why: "Your site did not answer — nothing was changed." }; } };

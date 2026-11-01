@@ -164,7 +164,7 @@ test("A · MAKE THESE PAGES: each planned page is its OWN draft — Ireland's tw
   assert.match(MAIN, /pwrite\(id, "made-plan\.json", pages\);/);
   /* RR-354: the plan made by hand first; else the exam plan Create SEO pages made itself (auto-plan.json) — one plan for every call */
   assert.match(MAIN, /const madePlanOf = \(id\) => \{ const p = pread\(id, "made-plan\.json", null\)\?\.length \? pread\(id, "made-plan\.json", null\) : pread\(id, "auto-plan\.json", null\)\?\.pages; return p\?\.length \? \{ pagePlan: p, max: p\.length \} : \{\}; \};/);
-  assert.equal((MAIN.match(/\.\.\.madePlanOf\(id\)/g) ?? []).length, 4, "a page build that ignores the made plan merges it again");
+  assert.equal((MAIN.match(/\.\.\.madePlanOf\(id\)/g) ?? []).length, 5 /* RR-356: + the repair round (v3 §15) */, "a page build that ignores the made plan merges it again");
 });
 
 /* ══ C3/C4 · the official reader ══ */

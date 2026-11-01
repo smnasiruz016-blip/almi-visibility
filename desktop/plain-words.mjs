@@ -30,7 +30,7 @@ export function plainWhy(draft) {
 }
 
 /** a planned page that was not made as a page of its own (the planner's REFUSED / SECTION rows) → [{ title, why }] in plain words */
-export const notMadeOf = (plan = []) => plan.filter((r) => r.kind === "REFUSED" || r.kind === "SECTION").map((r) => ({ title: r.question, why: r.kind === "REFUSED" ? "Not made yet — there is no checked fact or answer for it so far." : `Not made as a new page — ${/^https?:\/\//.test(r.into ?? "") ? `your page ${r.into}` : "another page"} already covers it.` }));
+export const notMadeOf = (plan = []) => plan.filter((r) => r.kind === "REFUSED" || r.kind === "SECTION").map((r) => ({ title: r.question, why: r.kind === "REFUSED" ? "Not made yet — Visibility is still looking for its official answer; once found, it goes onto the page it belongs to — never a thin page of its own." : `Not made as a new page — ${/^https?:\/\//.test(r.into ?? "") ? `your page ${r.into}` : "another page"} already covers it.` }));
 
 /** the jobs the client ticks — in the client's words, each with what Visibility does for it */
 export const JOBS = Object.freeze([
@@ -51,10 +51,13 @@ export function jobReport({ drafts = [], live = [], approval = "review", connect
   const waiting = ready.filter((d) => !isLive.has(d.url)), work = drafts.filter((d) => !d.readyAsDraft);
   const needOk = waiting.map((d) => ({ title: d.title, url: d.url, why: blocked ? "This product is set to plan only — nothing is published from here." : approval === "review" ? "Ready — it waits for your OK." : !connected ? "Ready — but your site is not connected yet, so it could not be published." : "Ready — press Publish." }));
   const needWork = [...work.map((d) => ({ title: d.title, url: d.url, why: plainWhy(d) })), ...notMade.filter((x) => /^Not made yet/.test(x.why))];
-  const parts = [`${made} page${made === 1 ? "" : "s"} made`, `${published} published`];
+  /* RR-356 PART B: a topic the client already has a page for is "improve your existing page", never counted as a new page */
+  const imp = drafts.filter((d) => d.improve).length, fresh = made - imp;
+  const parts = imp ? [`${fresh} new page${fresh === 1 ? "" : "s"} made`, `${imp} of your existing pages to improve`, `${published} published`] : [`${made} page${made === 1 ? "" : "s"} made`, `${published} published`];
   if (needOk.length) parts.push(`${needOk.length} need${needOk.length === 1 ? "s" : ""} your OK`);
   if (needWork.length) parts.push(`${needWork.length} need${needWork.length === 1 ? "s" : ""} work`);
   const headline = `${parts.join(", ")}${needOk.length || needWork.length ? " — here is why." : "."}`;
   const next = blocked ? { label: "Open Settings", action: "settings" } : !made ? { label: "Create pages", action: "seo-pages" } : needOk.length && !connected ? { label: "Connect your site", action: "publish-settings" } : needOk.length ? { label: "Publish all ready", action: "publish-all" } : needWork.length ? { label: "Fix all", action: "fix-all" } : { label: "See the pages", action: "pages" };
-  return { headline, needOk, needWork, next, lines };
+  const topics = drafts.map((d) => ({ title: d.title, url: d.url, is: d.improve ? `improve your existing page ${d.improve.url}` : "new page" }));
+  return { headline, needOk, needWork, next, lines, topics };
 }

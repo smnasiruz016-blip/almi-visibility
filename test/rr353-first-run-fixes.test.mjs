@@ -93,7 +93,7 @@ test("RR-353 · 7 · our own data first: Create SEO pages needs only the website
   assert.match(none.notEnough[0], /AlmiWorld's own search data had none for it\. Add one more source below/);
   for (const s of ["const ownItemsOf = (id) => [", "async function gatherOwnDemand(id) {", "own = handMade ? { lines: [] } : await gatherOwnDemand(id);" /* RR-354: a plan made by hand skips it; the exam plan reads it */, 'if (f === "seo-pages") { const x = await createPages(id);'])
     assert.ok(MAIN.includes(s), s);
-  assert.equal((MAIN.match(/seoPages\(\{[^\n]*planned: plannedOf\(id\), own: ownItemsOf\(id\)/g) ?? []).length, 4, "every call that makes or re-judges the drafts reads the SAME searches (publishing finds the same draft)");
+  assert.equal((MAIN.match(/seoPages\(\{[^\n]*planned: plannedOf\(id\), own: ownItemsOf\(id\)/g) ?? []).length, 5 /* RR-356: + the repair round (v3 §15) */, "every call that makes or re-judges the drafts reads the SAME searches (publishing finds the same draft)");
 });
 
 test("RR-353 · 8 · Bing Webmaster Tools: in Setup step 4; Bing's rows read once per search, each with its own source; a refused key is said", async () => {

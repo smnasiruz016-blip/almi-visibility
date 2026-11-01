@@ -38,7 +38,7 @@ const SITE = { ok: true, origin: "https://prep.example", readOn: `${ON}T00:00:00
 
 test("RR-354 · 4 · the exam plan: one page per profession, one per main country, searches joined to the page they are about", () => {
   const x = examPlan({ subject: "OET", professions: PROFS, countries: ["United Kingdom", "Ireland", "Pakistan"], facts: FACTS, demand: DEMAND, site: SITE });
-  assert.deepEqual(x.counts, { profession: 12, country: 3, topic: 3 });
+  assert.deepEqual(x.counts, { profession: 12, country: 3, topic: 3, improve: 0 }); // RR-356: no page of the client's covers these
   const nurses = x.pages.find((p) => p.title === "OET for Nurses");
   assert.deepEqual(nurses.questions.map((q) => q.question), ["oet for nurses", "oet nursing requirements"], "a profession search joins the profession's page — never a country page");
   assert.deepEqual(nurses.claims.map((c) => c.text.slice(0, 26)), ["In the United Kingdom: NMC", "In Ireland: NMBI accepts O"]);
@@ -97,10 +97,11 @@ test("RR-354 · 2 + 4 · the drafts: every exam-plan page carries a checked card
   const nurses = out.drafts.find((d) => d.title === "OET for Nurses");
   assert.match(nurses.html, /United Kingdom — B \(350\+\)/, "the card is the fact's own score with its country");
   /* RR-355: the FIVE checks pass here; good to read and the site's look are judged in test/rr355-page-quality-client-look.test.mjs */
-  assert.equal(nurses.gates.filter((g) => g.gate !== "F" && g.gate !== "G").every((g) => g.pass || g.failing.length === 0), true, JSON.stringify(nurses.gates.filter((g) => !g.pass)));
+  /* RR-356: the five checks A–E (the recipe's own checks — completeness, freshness, duplication — are judged in rr356) */
+  assert.equal(nurses.gates.filter((g) => "ABCDE".includes(g.gate)).every((g) => g.pass || g.failing.length === 0), true, JSON.stringify(nurses.gates.filter((g) => !g.pass)));
   /* a page with no checked fact and no answer is never made — the report says so in plain words */
   assert.equal(out.drafts.find((d) => d.title === "OET for Podiatrists"), undefined);
-  assert.deepEqual(notMadeOf(out.plan).find((x) => x.title === "OET for Podiatrists"), { title: "OET for Podiatrists", why: "Not made yet — there is no checked fact or answer for it so far." });
+  assert.deepEqual(notMadeOf(out.plan).find((x) => x.title === "OET for Podiatrists"), { title: "OET for Podiatrists", why: "Not made yet — Visibility is still looking for its official answer; once found, it goes onto the page it belongs to — never a thin page of its own." } /* RR-356 R3: never "it cannot be built" */);
   assert.equal(plainWhy({ readyAsDraft: false, gates: [{ pass: false, failing: ["no key-fact card with its source and checked date"] }] }), "This page needs one checked fact — none of the checked facts fits it yet. Visibility adds one as soon as its collectors have it.");
   for (const d of out.drafts) assert.doesNotMatch(d.html.replace(/<script[\s\S]*?<\/script>/g, ""), /\bguarantee/i);
   assert.equal(plainWhy({ readyAsDraft: true }), null);
@@ -130,7 +131,7 @@ test("RR-354 · 2 · the keyword database's searches are search phrases — neve
 });
 
 test("RR-354 · THE APP WIRING: the exam plan is made by Create SEO pages and read by every call; the jobs route; the simple screens", () => {
-  for (const s of ['const exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;', 'pread(id, "auto-plan.json", null)?.pages', 'if (r[2] === "jobs" && req.method === "POST") {', 'if (r[2] === "pages-view" && req.method === "GET") {',
+  for (const s of [/* RR-356: let — rebuilt in a repair round */ 'let exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;', 'pread(id, "auto-plan.json", null)?.pages', 'if (r[2] === "jobs" && req.method === "POST") {', 'if (r[2] === "pages-view" && req.method === "GET") {',
     "countries: examCountriesOf(id) }", 'json().approved !== true'])
     assert.ok(MAIN.includes(s), s);
   for (const s of ["<h3>What do you want done?</h3>", '<b>Show me before publishing</b>', '<b>Publish for me</b>', 'async function startJobs() {', '<span class="ok-i">✅ ready</span>', '<span class="warn-i">⚠️ needs work</span>',

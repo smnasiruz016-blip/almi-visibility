@@ -27,6 +27,7 @@ import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 import { goodToRead, topicOf as pageTopicOf, offTopic, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
 import { PEOPLE_WORD } from "./recognition.mjs";
+import { duplicationReview, freshness, covers } from "./recipe.mjs"; // RR-356 the recipe
 
 /*
  * RR-318 B4 · THE SAMENESS GATE (owner: "OET Requirements for Ireland" and "OET Score for Ireland" were two pages for ONE need; Google calls
@@ -183,7 +184,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim())).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` })), { q: p.title, heading: `What else should I know about ${p.title}?`, max: 3 }];
         let fromSite = 0; for (const { q, heading, max = 2 } of asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
         const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
-        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic });
+        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], second: p.second ?? [] }); // RR-356: its research and its existing page
         needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
         continue;
       }
@@ -303,17 +304,36 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const gated = built.length ? allGates(built.map((b) => gateInput(b)), { guidance: GUIDANCE, on: String(on).slice(0, 10), site: { robotsTxt: site.robotsTxt ?? null, sitemapUrls: site.sitemapUrls ?? null, extraPages: siteLinkPages }, cost }) : [];
   const drafts = built.map((b, i) => ({ url: b.url, title: b.title, html: b.html, pass: gated[i].pass, gates: Object.entries(gated[i].gates).map(([k, g]) => ({ gate: k, words: GATE_WORDS[g.gate] ?? g.gate, pass: g.pass, failing: (g.checks ?? []).filter((c) => c.result === "FAIL" && !AFTER_PUBLISHING.test(c.name)).map((c) => `${c.name}${c.reason ? ` — ${c.reason}` : ""}`), afterPublishing: (g.checks ?? []).filter((c) => c.result !== "PASS" && (AFTER_PUBLISHING.test(c.name) || c.result === "NOT MEASURED")).map((c) => c.name) })) }));
   drafts.forEach((d, i) => { const r = linksGate(d.html, d.url, built.filter((x) => x.url !== d.url).map((x) => x.url), siteRelated(built[i].title)); if (r.block) { const c = d.gates.find((g) => g.gate === "C"); if (c) { c.pass = false; c.failing.push(r.block); d.pass = false; } } d.warnings = r.warning ? [r.warning] : []; });
-  /* 🔴 RR-355 · THE SIXTH CHECK, "GOOD TO READ" (desktop/page-quality.mjs), and LOOKS LIKE YOUR SITE: a page that fails either never gets ✅ */
+  /* 🔴 THE CHECKS (v3 §13 + RR-355, with the owner's rulings R3 and R7): a page is ✅ only when every one passes; else ⚠️ names what is missing.
+   *   good to read (RR-355 Rule 2, its fixed minimums removed by R7) · looks like your site (Rule 1) · INTENT COMPLETENESS (the coverage list
+   *   that applies to this intent — its standard questions, what the top results cover, the second-search questions — no filler) ·
+   *   FACT INTEGRITY (every fee, date, score and rule with its source and FRESH: G14) · DUPLICATION (G15: overlap above 40% → a meaning review) */
+  const dup = duplicationReview(drafts.map((d, i) => ({ url: d.url, title: d.title, intent: d.title, text: (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " "), facts: (meta.get(built[i].needId)?.answers ?? []).map((c) => c.claimId) })));
   drafts.forEach((d, i) => {
     const m = meta.get(built[i].needId) ?? {}, topic = m.topic ?? pageTopicOf({ title: d.title, kind: m.kind ?? null, people: PEOPLE_WORD });
     const q = goodToRead(d.html, topic), missing = partsMissing(d.html, m.kind, { localCurrency: m.localCurrency });
-    const failing = [...q.problems.map((x) => x.line), ...(missing.length ? [`Missing: ${missing.join("; ")}.`] : [])];
-    d.gates.push({ gate: QUALITY_GATE, words: "good to read", pass: !failing.length, failing, afterPublishing: [] });
-    const look = looksLikeSite(d.html, { target });
-    d.gates.push({ gate: LOOK_GATE, words: "looks like your site", pass: look.pass, failing: look.pass ? [] : [look.why], afterPublishing: [] });
-    if (failing.length || !look.pass) d.pass = false;
+    const text = (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " ");
+    /* intent completeness: the standard questions still open, and every coverage topic / second-search question the page does not cover */
+    const open = (m.open ?? []).filter((x) => !missing.some((y) => x.endsWith(y)));
+    const coverage = [...(m.coverage ?? []).map((c) => c.topic ?? c), ...(m.second ?? []).map((s) => s.question ?? s)];
+    const uncovered = coverage.filter((c) => !covers(text, c));
+    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : []), ...(uncovered.length ? [`Not covered yet (what readers still search for): ${uncovered.join("; ")}.`] : [])];
+    /* fact integrity: a fact past its freshness window is never shown as current — the page is "review needed" */
+    const fr = freshness(m.answers ?? [], now);
+    const stale = fr.expired.length ? [`Review needed — ${fr.expired.length} fact${fr.expired.length === 1 ? " is" : "s are"} past its recheck date: ${fr.expired.slice(0, 3).map((x) => `"${x.text}" (checked ${x.on})`).join("; ")}.`] : [];
+    const dr = dup.get(d.url) ?? { verdict: "distinct" };
+    d.ledger = m.ledger ?? null; d.open = m.open ?? []; if (m.improve) d.improve = m.improve;
+    d.recipe = { coverage, covered: coverage.filter((c) => !uncovered.includes(c)), uncovered, freshness: fr, duplication: dr };
+    const push = (gate, words, failing) => { d.gates.push({ gate, words, pass: !failing.length, failing, afterPublishing: [] }); if (failing.length) d.pass = false; };
+    push(QUALITY_GATE, "good to read", q.problems.map((x) => x.line));
+    const look = looksLikeSite(d.html, { target }); push(LOOK_GATE, "looks like your site", look.pass ? [] : [look.why]);
+    push("H", "answers its whole intent", incomplete);
+    push("I", "every fact sourced and fresh", stale);
+    push("J", "not a duplicate", dr.verdict === "duplicate" ? [`A duplicate: ${dr.why} — its questions belong inside that page.`] : []);
   });
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
+  /* RR-356 PART B: a planned page the client already has is IMPROVED, never made twice — its row says so, with the existing page */
+  for (const r of rows) { const d = drafts.find((x) => x.title === r.question); if (d?.improve) { r.kind = "IMPROVE"; r.into = d.improve.url; r.why = `Improve your existing page ${d.improve.url} — Visibility gives the content it lacks (or adds it through your site's connection).`; } }
   return { plan: rows, drafts, design: site.shell ? "your site's own look — its header, footer and styles" : design ? "your site's own look" : "a plain look (your site's colours and menu could not all be read)", madeOn: now, notEnough: drafts.length ? [] : ["No new page is needed from what is known today — the plan below says which existing pages to improve, and what answers are missing."] };
   }
 }

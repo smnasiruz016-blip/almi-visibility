@@ -20,7 +20,8 @@ import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
 import { STEPS, checkStep, webAddress, stepsFor, CHOICES, HOWTO, recommended, ctaFrom, ctaOfSetup, NO_CTA } from "./setup.mjs";
 import { FACTS_FILE, readFactsFile, addFactsFile, officialClaimsOf, countryLinesOf, factsFileView, factsOfStore } from "./facts-file.mjs"; // RR-351
-import { examPlan, serviceFactsOf } from "./exam-plan.mjs"; // RR-354
+import { examPlan, serviceFactsOf, usableFacts } from "./exam-plan.mjs"; // RR-354
+import { destinationsFor, professionQuestions, connectByMeaning, searchMissing } from "./research.mjs"; // RR-356
 import { plainWhy, JOBS, jobReport, notMadeOf } from "./plain-words.mjs"; // RR-354
 import { CF_PRIORITY } from "./country-facts.mjs"; // RR-354
 import { bingQueries, bingPhrases, bingKeyName, BING_HOWTO, BING_SETUP_STEPS } from "./bing-webmaster.mjs"; // RR-353
@@ -28,10 +29,13 @@ import { SOCIAL_NETWORKS, socialFrom, socialShare, AUTO_POST_LINE } from "./soci
 import { readSite, addressOpens, USER_AGENT } from "./site-read.mjs";
 import { scoreCard, foundInfo, fixForMe } from "./product-check.mjs";
 import { googleConnect, importExport } from "./google-connect.mjs";
-import { seoPages, articleOfDay, socialFor, monthReport } from "./seo-pages.mjs";
+import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./seo-pages.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting } from "./publish.mjs";
+import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
+import { improvePack } from "./improve.mjs"; // RR-356
+import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
+import { searchGoogle, communityQuestions, SERP_OFF, SERP } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
 import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
@@ -206,6 +210,13 @@ async function publishOne(id, url) {
   if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true, why: `Not published — the page has no offer button. ${NO_CTA}` };
   if (!d.readyAsDraft) return { ok: false, gates: d.gates, why: `Not published — a check failed right before publishing: ${d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `${g.words}: ${g.failing.join("; ")}`).join(" · ")}` };
   if ((pread(id, "published.json", [])).some((x) => x.url === url && x.state === "LIVE")) return { ok: false, why: "This page is already published." };
+  /* RR-356 PART B: a topic the client already has a page for is IMPROVED on that page — never published as a second page */
+  if (d.improve) {
+    const pack = packOf(id, d), keyName = TARGETS.find((x) => x.id === conn.kind)?.keyName;
+    const r = await improveExisting({ target: conn, key: keyName ? KEYS.get(publishKeyName(conn.kind, id)) : null, url: d.improve.url, section: pack.html, allowLocal, testBase: CONFIG.testPublishBase ?? null });
+    if (r.ok) { pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => x.url !== url), { url, state: "LIVE", live: d.improve.url, improved: true, on: new Date().toISOString() }]); didIt(id, `Improved your page ${d.improve.url}.`); }
+    return r.ok ? { ok: true, line: r.line, improved: d.improve.url } : { ok: false, why: r.why, pack: `/api/products/${encodeURIComponent(id)}/improve-pack?url=${encodeURIComponent(url)}` };
+  }
   const t = conn, keyNeeded = TARGETS.find((x) => x.id === t.kind).keyName;
   const out = await publishDraft({ draft: d, target: t, key: keyNeeded ? KEYS.get(publishKeyName(t.kind, id)) : null, downloadsDir: downloadsFor(id), allowLocal, testBase: CONFIG.testPublishBase ?? null });
   if (!out.ok) return out;
@@ -346,12 +357,85 @@ async function oneRatesFor(id) {
 /* a site built by a framework (Next.js: its pages' titles are written in code) — its files are not plain pages a fix can be written into */
 const siteFramework = (id) => /\/_next\/|__NEXT_DATA__|\/_nuxt\/|data-reactroot/.test(String(pread(id, "site-read.json")?.shell?.head ?? ""));
 const fixViaOf = (id, s) => { const t = pread(id, "publish.json"); return t?.kind && !publishBlocked(s) ? ["title", "meta-description"].filter((k) => fixVia(t, k, { framework: siteFramework(id) })) : []; };
+/*
+ * 🔴 RR-356 · THE RESEARCH ENGINE, run by Create SEO pages before the plan is made (desktop/research.mjs): for each profession, the question
+ * list (one score question per country the exam owner's list names a regulator in), the facts already checked connected by meaning, then
+ * the regulators' own pages read for what is still open — at most RESEARCH_READS regulators a run (the rest on the next run), each page kept
+ * 30 days in research-reads.json. The questions, their answers and where Visibility searched are kept in research.json (the ledger).
+ */
+const RESEARCH_READS = 6;
+async function examResearch(id, subject) {
+  const s = store.read(id), list = listOf(s, subject, id)?.items ?? [];
+  const facts = usableFacts([...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, subject)).flat()]);
+  const reads = pread(id, "research-reads.json", {}), cache = { get: (u) => reads[u] ?? null, set: (u, v) => { reads[u] = v; } };
+  const out = {}, budget = { left: CONFIG.testOffline === true ? 0 : Number.isInteger(CONFIG.testResearchReads) ? CONFIG.testResearchReads : RESEARCH_READS }, rd = budget.left > 0 ? reader() : null;
+  for (const prof of professionsOf()) { const qs = professionQuestions({ subject, prof, destinations: destinationsFor(prof, list) }); connectByMeaning({ questions: qs, facts, prof, subject }); out[prof] = qs; }
+  for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget }).catch(() => null);
+  pwrite(id, "research-reads.json", reads);
+  pwrite(id, "research.json", { on: new Date().toISOString(), questions: out });
+  return out;
+}
+/* RR-356 PART B · the improvement pack of a draft whose topic the client already has a page for (desktop/improve.mjs) */
+const packOf = (id, d) => improvePack({ draft: d, existing: (pread(id, "site-read.json")?.pages ?? []).find((p) => p.url === d.improve?.url) ?? { url: d.improve?.url } });
+function writePacks(id, drafts) {
+  const site = pread(id, "site-read.json"), out = [];
+  for (const d of drafts.filter((x) => x.improve)) { const p = packOf(id, d), slug = String(d.improve.url).replace(/^https?:\/\/[^/]+\/?/, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "home";
+    pwrite(id, `improve-${slug}.json`, { on: new Date().toISOString(), ...p, page: inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${p.title}</title></head><body><main><h1>Improve: ${p.title}</h1><p>For your page ${p.url}</p>${p.html || "<p>Nothing to add.</p>"}</main></body></html>`, site?.shell ?? null) }); out.push({ title: d.title, url: d.improve.url, add: p.add.length, slug }); }
+  return out;
+}
+/*
+ * 🔴 RR-356 · THE RECIPE'S STEPS RUN BY CREATE SEO PAGES (desktop/recipe.mjs, desktop/serp.mjs):
+ *   G1/G5/G6 — with the client's search-results switch ON (Settings → Search results data; OFF by default, at most $1 a day): for each page's
+ *   intent, Google's top 10, "People also ask", related searches, and Reddit / Quora AS GOOGLE SHOWS THEM ("<intent> reddit",
+ *   "site:quora.com <intent>") → questions people ask (never facts); the top results' own headings read (robots obeyed) → the coverage list;
+ *   the second-search test → the questions the best result leaves open. With it OFF, nothing is bought and each ledger says so.
+ */
+const serpSettings = (id) => pread(id, "serp.json", { on: false });
+async function serpStep(id, plan) {
+  const st = serpSettings(id), ledger = pread(id, "serp-ledger.json", { spent: [], cache: {} }), on = new Date().toISOString();
+  if (st.on !== true) return { on: false, why: SERP_OFF, searches: 0, reddit: 0, quora: 0 };
+  const login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), rd = reader();
+  let searches = 0, reddit = 0, quora = 0; const notes = [];
+  for (const p of plan.pages.slice(0, 30)) {
+    const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings: st, ledger, login, password, now: on }); if (!r.cached && (r.ok || r.cost)) searches++; return r; };
+    const main = await ask(p.title); if (!main.ok) { notes.push(`${p.title}: ${main.why}`); if (/cap|login/.test(main.why ?? "")) break; continue; }
+    const rq = communityQuestions((await ask(`${p.title} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(`site:quora.com ${p.title}`)).results ?? [], "quora.com");
+    reddit += rq.length; quora += qq.length;
+    const day = on.slice(0, 10), q = (text, src) => ({ question: text, source: src, on: day });
+    p.questions = [...(p.questions ?? []), ...main.paa.map((t) => q(t, `Google "People also ask" (${day})`)), ...main.related.map((t) => q(t, `Google related searches (${day})`)), ...rq.map((t) => q(t, `a Reddit result as Google shows it (${day})`)), ...qq.map((t) => q(t, `a Quora result as Google shows it (${day})`))];
+    /* the top results' own headings — read only to see what they cover; nothing is copied, no fact is taken */
+    const read = []; for (const r of main.results.slice(0, 10)) { if (/reddit\.com|quora\.com/.test(r.url)) continue; const h = await rd.raw(r.url, "text/html").catch(() => null); if (!h) continue; read.push({ url: r.url, title: r.title, headings: [...h.matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40), text: h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) }); }
+    p.coverage = coverageOf(read); p.second = secondSearch({ best: read[0] ?? null, paa: main.paa, coverage: p.coverage }); p.topRead = read.map((r) => r.url);
+  }
+  pwrite(id, "serp-ledger.json", ledger);
+  pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: plan.pages });
+  return { on: true, searches, reddit, quora, notes };
+}
+/* ── G0, G2, G4, G8, G9 into each draft's ledger; G20 the verdicts after publishing ── */
+function recipeLedger(id, pages, serp, rounds) {
+  const s = store.read(id), subject = seedOf(s) ?? s.product?.name ?? "", plan = pread(id, "auto-plan.json", null)?.pages ?? [];
+  for (const d of pages.drafts ?? []) {
+    const p = plan.find((x) => x.title === d.title) ?? { kind: "topic", title: d.title, questions: [] }, row = (pages.plan ?? []).find((r) => r.question === d.title) ?? { kind: "NEW" };
+    const qs = questionsOf(p, { subject, on: String(pages.madeOn ?? "").slice(0, 10) }), answered = (d.html.match(/<details data-need-id/g) ?? []).length;
+    const pack = d.improve ? packOf(id, d) : null;
+    d.recipe = { ...(d.recipe ?? {}), ...personOf(p, { subject }), intents: clusterIntents(qs).map((c) => ({ intent: c.intent, wordings: c.wordings.length })), questions: qs.map((q) => ({ question: q.question, from: q.from, source: q.source })),
+      fromReddit: qs.filter((q) => q.from === "reddit").length, fromQuora: qs.filter((q) => q.from === "quora").length,
+      serp: serp?.on ? { read: p.topRead ?? [], line: `${(p.topRead ?? []).length} top results read for what they cover (never copied, no fact taken)` } : { read: [], line: serp?.why ?? SERP_OFF },
+      decision: decisionOf({ row, pack }), right: rightToExist({ page: p, questions: qs, answered }), rounds };
+  }
+  return pages;
+}
+async function measuredAfter(id) {
+  const live = pread(id, "published.json", []).filter((r) => r.state === "LIVE"), sc = searchConsoleOf(id), perPage = {};
+  for (const r of sc?.pages ?? []) perPage[r.page ?? r.url] = { impressions: r.impressions ?? 0, clicks: r.clicks ?? 0 };
+  return afterPublish({ live, perPage, improved: pread(id, "improved-once.json", {}) });
+}
 const examExtras = new Map(); // id → { subjectFacts, rates } of this run (createPages fills it before the plan is made)
 function buildExamPlan(id) {
   const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
   const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s) ?? "OET")).flat()];
   const demand = [...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
-  const x = examPlan({ subject: seedOf(s) ?? "OET", professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, demand, site: pread(id, "site-read.json") });
+  const x = examPlan({ subject: seedOf(s) ?? "OET", professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: ex.research ?? pread(id, "research.json", null)?.questions ?? {}, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json") });
   pwrite(id, "auto-plan.json", { on: new Date().toISOString(), ...x });
   return x;
 }
@@ -628,17 +712,33 @@ async function createPages(id) {
   if (!ctaOf(s)) return { refused: NO_CTA, needsCta: true }; // RR-351
   /* RR-353: our own data first (read by ownItemsOf below); RR-354: an exam-prep product then gets its own plan (profession + country pages) */
   const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
-  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s) ?? "OET"), rt = await oneRatesFor(id); examExtras.set(id, { subjectFacts: sf.facts, rates: rt }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
-  const exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;
+  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s) ?? "OET"), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s) ?? "OET"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
+  let exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;
+  const serp = exam ? await serpStep(id, exam).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })) : null;
   const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
   /* RR-318 B6: the countries the searches are about get their official answers first (read once; a country already read is kept) */
   const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
   if (want.length && s.setup?.official?.site) await refreshOfficial(id, want.slice(0, 12)).catch(() => null);
   const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+  /* v3 §15 · AT MOST TWO REPAIR ROUNDS: while pages still fail, Visibility searches the official pages again for what is missing and builds
+   * again; a round that removes no named failure stops early; after two, each page shows its exact blocker */
+  let rounds = 0;
+  const failures = (p) => p.drafts.reduce((n, d) => n + d.gates.filter((g) => !g.pass).reduce((m, g) => m + g.failing.length, 0), 0);
+  while (exam && rounds < 2 && failures(pages) > 0 && CONFIG.testOffline !== true) {
+    const before = failures(pages), prev = pread(id, "auto-plan.json", {}).pages ?? [];
+    const r2 = await examResearch(id, seedOf(s) ?? "OET"); examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
+    /* what the search step found stays with each page through a repair round */
+    if (serp?.on) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions }); } pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: exam.pages }); }
+    const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+    if (failures(again) >= before) break;
+    Object.assign(pages, again);
+  }
+  recipeLedger(id, pages, serp, rounds);
   pwrite(id, "pages.json", pages);
+  pages.improved = writePacks(id, pages.drafts); // RR-356 PART B
   /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
   let auto = null;
-  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+  if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
   /* RR-353: where the searches came from, said; nothing known → what to add, each with its one-click way */
   pages.sources = own.lines;
   if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing };
@@ -823,7 +923,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing|improve-pack|serp)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -864,12 +964,14 @@ const server = createServer((req, res) => {
             const lines = [], blocked = publishBlocked(s), on = new Date().toISOString();
             if (jobs.includes("create-pages")) {
               if (!ctx.hasSite || !site) lines.push("Pages: Visibility first needs to read your website — press Check my product now, then Start again.");
-              else { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${x.pages.drafts.length} page drafts${pub ? ` and published ${pub}` : ""}.`); }
+              else { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${x.pages.drafts.length} page drafts${pub ? ` and published ${pub}` : ""}.`); if (x.pages.improved?.length) lines.push(`Your existing pages: ${x.pages.improved.length} improved instead of made twice — ${x.pages.improved.map((p) => `${p.url} (${p.add} new question${p.add === 1 ? "" : "s"})`).join(", ")}. Each one's content is under Pages and articles → Get the content.`); }
             }
             if (jobs.includes("structure")) { const p = pread(id, "plan.json"), n = p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.ready?.length).length : 0; const via = fixViaOf(id, s); lines.push(via.length ? `Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready — Visibility can make the ${via.map((k) => (k === "title" ? "titles" : "descriptions")).join(" and ")} through your site's connection (Overview → What to fix first → Fix it for me); the rest are ready to copy.` : `Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready to copy into your site's own editor (Overview → What to fix first → Give me the content) — your site is built in a way Visibility's connection cannot change by itself.`); }
             if (jobs.includes("submit")) { const x = await submitAll(id); lines.push(x.ok ? x.lines.join(" ") : `Google and Bing: ${x.why}`); }
             if (jobs.includes("social")) { const n = Object.keys(s.setup?.social ?? {}).length; lines.push(n ? `Social posts: a post for each new page is ready for your ${n} social page${n === 1 ? "" : "s"} — open Social media, then Copy and Open.` : "Social posts: the posts are ready to copy — add your social pages once under Social media to get an Open button for each."); }
-            if (jobs.includes("reports")) { pwrite(id, "weekly.json", { ...pread(id, "weekly.json", {}), on: true }); lines.push("Reports: the weekly check is on; this month's report is under Monthly report."); }
+            if (jobs.includes("reports")) { pwrite(id, "weekly.json", { ...pread(id, "weekly.json", {}), on: true }); lines.push("Reports: the weekly check is on; this month's report is under Monthly report.");
+              /* G20 · after publishing: no verdict before 28 days; weak → improved once; MERGE / NOINDEX only proposed, with your OK */
+              const after = await measuredAfter(id).catch(() => []); if (after.length) lines.push(`After publishing: ${after.map((a) => `${a.url} — ${a.line}`).join(" · ")}`); }
             const mode = store.read(id).setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */;
             const rep = jobReport({ notMade: notMadeOf(pread(id, "pages.json")?.plan ?? []), drafts: pread(id, "pages.json")?.drafts ?? [], live: pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url), approval: mode === PUBLISH_MODE.REVIEW_FIRST ? "review" : "publish", connected: Boolean(pread(id, "publish.json")?.kind), blocked: blocked ? ALMIWORLD_NO : null, lines });
             pwrite(id, "last-report.json", { on, jobs, ...rep });
@@ -887,9 +989,17 @@ const server = createServer((req, res) => {
             didIt(id, `Fixed through the connection: ${lines.filter((l) => /^Fixed/.test(l)).length} of ${perPage.size} pages (${item.id}).`);
             return send(200, { ok: true, lines });
           }
+          /* RR-356 PART B · the content for an existing page, ready to paste (or added through the connection on Approve) */
+          if (r[2] === "improve-pack" && req.method === "GET") { const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url") && x.improve); return d ? send(200, inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${d.title}</title></head><body><main><h1>Improve your page</h1><p>${d.improve.url}</p>${packOf(id, d).html || "<p>Your page already answers every question Visibility has for it.</p>"}</main></body></html>`, pread(id, "site-read.json")?.shell ?? null), "text/html; charset=utf-8") : send(404, { refused: "no improvement for this page" }); }
+          /* RR-356 · the search-results switch: OFF by default, the client's own choice, at most $1 a day */
+          if (r[2] === "serp") {
+            if (req.method === "POST") { const on = json().on === true; pwrite(id, "serp.json", { on, capPerDay: SERP.capPerDay, on_changed: new Date().toISOString() }); }
+            const st = serpSettings(id), spent = (pread(id, "serp-ledger.json", { spent: [] }).spent ?? []).filter((x) => String(x.on).startsWith(new Date().toISOString().slice(0, 10))).reduce((t, x) => t + (Number(x.cost) || 0), 0);
+            return send(200, { on: st.on === true, cap: SERP.capPerDay, spentToday: spent, line: st.on ? `On — spent today $${spent.toFixed(4)} of $${SERP.capPerDay}.` : "Off — nothing is bought. Visibility uses every free source it may and says in each page's notes what it could not read." });
+          }
           if (r[2] === "pages-view" && req.method === "GET") {
             const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = pread(id, "pages.json")?.drafts ?? [];
-            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
+            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null, open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
           }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);
@@ -900,7 +1010,7 @@ const server = createServer((req, res) => {
               if (!pread(id, "publish.json")?.kind) return send(200, { ok: false, open: "publish-settings", line: "First tell Visibility where your site is built." });
               if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST && json().approved !== true /* RR-354: "Publish all ready" is the client's OK */) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
               const live = new Set(pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url)), out = [];
-              for (const d of (pread(id, "pages.json")?.drafts ?? []).filter((x) => x.readyAsDraft && !live.has(x.url))) out.push({ url: d.url, ...(await publishOne(id, d.url)) });
+              for (const d of (pread(id, "pages.json")?.drafts ?? []).filter((x) => x.readyAsDraft && !live.has(x.url)).slice(0, BATCH) /* G19: a small batch at a time */) out.push({ url: d.url, ...(await publishOne(id, d.url)) });
               if (out.some((x) => x.ok)) didIt(id, `Published ${out.filter((x) => x.ok).length} page(s).`);
               return send(200, { ok: true, line: out.length ? out.map((x) => (x.ok ? x.line : `${x.url}: ${x.why}`)).join(" · ") : "Nothing new to publish — make pages first (line 1)." });
             }
@@ -980,7 +1090,7 @@ const server = createServer((req, res) => {
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
               let auto = null;
-              if (f === "seo-pages" && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft)) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+              if (f === "seo-pages" && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
               if (f === "seo-pages") return send(200, { pages: { ...pages, drafts: pages.drafts.map(({ html, ...d }) => d) }, autoPublished: auto });
               const made = pread(id, "articles.json", []);
               const a = articleOfDay({ pages, earlier: made.map((x) => x.url), day: new Date().toISOString().slice(0, 10) });

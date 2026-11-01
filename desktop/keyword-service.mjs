@@ -31,10 +31,24 @@ export const PLAN_REUSE_DAYS = 30;
  * (keyword-db.mjs localKeywordStore), `merge` = keyword-db's mergeObservations, `source` = its SOURCES.service. The subject for all locations,
  * then per country; a location asked within PLAN_REUSE_DAYS is not asked again. → { on, asked, reused, line, source, why? }
  */
+/*
+ * 🔴 RR-359 (owner's run: the product "almiworld youtube" made OET pages — its subject had been guessed as "OET", and AlmiWorld's keyword
+ * service was asked for OET into ITS keyword database). Each answer is kept under the subject it was asked for (in its name: AlmiWorld
+ * keyword service — "OET", …); a product reads only the answers for its OWN subject — another subject's are set aside, never deleted.
+ */
+export const askedSubjectOf = (file) => file?.subject ?? /^AlmiWorld keyword service — "([^"]+)"/.exec(file?.name ?? "")?.[1] ?? null;
+export function ownDb(db, subject) {
+  const mine = String(subject ?? "").trim().toLowerCase();
+  const foreign = new Set(Object.entries(db?.files ?? {}).filter(([, x]) => { const a = askedSubjectOf(x); return a != null && String(a).trim().toLowerCase() !== mine; }).map(([k]) => k));
+  if (!foreign.size) return db;
+  const keywords = {};
+  for (const [k, kw] of Object.entries(db.keywords ?? {})) { const files = (kw.files ?? []).filter((x) => !foreign.has(x)); if (files.length || !(kw.files ?? []).length) keywords[k] = { ...kw, files }; }
+  return { ...db, keywords, files: Object.fromEntries(Object.entries(db.files).filter(([k]) => !foreign.has(k))), setAside: { files: foreign.size, keywords: Object.keys(db.keywords ?? {}).length - Object.keys(keywords).length, subjects: [...new Set([...foreign].map((k) => askedSubjectOf(db.files[k])))] } };
+}
 export async function collectForPlan({ service, store, merge, fileIdOf, source, subject, today = new Date().toISOString().slice(0, 10) }) {
   if (!service) return { on: false, asked: 0, reused: 0, line: "AlmiWorld keyword service: add your plan (Your plan) to use it — until then the plan uses your own data; no number is invented." };
   let db = store.load();
-  const isPlan = (f) => f.source === source && /^AlmiWorld keyword service — "/.test(f.name ?? "");
+  const isPlan = (f) => f.source === source && /^AlmiWorld keyword service — "/.test(f.name ?? "") && String(askedSubjectOf(f)).toLowerCase() === String(subject).toLowerCase(); // RR-359: the SAME subject's answers only
   const fresh = Object.values(db.files ?? {}).filter((f) => isPlan(f) && (Date.parse(today) - Date.parse(f.on)) / 864e5 <= PLAN_REUSE_DAYS);
   const skip = SERVICE_LOCATIONS.filter((l) => fresh.some((f) => f.location === l.name)).map((l) => l.code);
   const out = await service.forPlan({ seeds: [String(subject).toLowerCase()], skip });

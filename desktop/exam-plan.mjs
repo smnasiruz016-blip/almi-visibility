@@ -70,7 +70,7 @@ const claimOf = (f, country = null, card = undefined) => ({ claimId: f.claimId ?
 const SHOWN = new Set(["confirmed", "approved", "edited", "owner"]);
 const sourced = (x) => /^https:\/\//.test(x?.source ?? "") && /^\d{4}-\d{2}-\d{2}/.test(x?.readOn ?? "") && SHOWN.has(x?.status ?? "confirmed");
 /** AlmiWorld's country facts (the service's packets: shown facts only) → checked lines per country, each with its page and date */
-export function serviceFactsOf(packets = {}, subject = "OET") {
+export function serviceFactsOf(packets = {}, subject = null /* RR-359: no default subject */) {
   const out = {};
   for (const [country, p] of Object.entries(packets ?? {})) {
     let n = 0;
@@ -151,11 +151,14 @@ export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.t
  * `facts` = the facts file's facts plus serviceFactsOf rows; `subjectFacts` = subjectFactsOf (the subject's own pages); `rates` = the one
  * exchange-rate service's day ({ date, rates: { PKR: … }, short, link }); `demand` = [{ text, source, weight }]; `site` = the client's site read.
  */
-export function examPlan({ subject = "OET", professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null }) {
+/* 🔴 RR-360 · `collector` = AlmiSEO Data's page plan ("ready by the rules"), merged here without duplicates (G8): its country pages join the country pages; a country × profession page and a question page are made where their checked answers are here. `maxCountries`: AlmiSEO Data names every country with all its parts. A page keeps at most PAGE_QUESTIONS searches in its ledger, the most searched first, and counts the rest (all the keywords are read; none is dropped from the count) */
+export const PAGE_QUESTIONS = 60;
+export function examPlan({ subject = null /* RR-359: no default subject */, professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null, collector = [], maxCountries = 10 }) {
   /* a fact is used only when checked, sourced, dated — its notes taken out, a rate from a central bank (or any rate fact) never */
   const ok = usableFacts(facts);
-  const cs = (countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, 10);
-  const skipped = [], existing = [];
+  const cs = [...new Set([...(countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, maxCountries), ...collector.filter((r) => r.kind === "country").map((r) => r.country)])];
+  const join = (page, q) => { page.asked = (page.asked ?? 0) + 1; if (page.questions.length < PAGE_QUESTIONS) page.questions.push(q); };
+  const skipped = [], existing = []; let skippedMore = 0;
   const scoreFacts = (f) => f.part === "councils" && f.profession; // a destination regulator's score (the facts file)
   /* PROFESSION pages: the score each council asks (by country) · the Writing letter · its own questions (joined below) */
   /* the questions every candidate shares, answered from the subject's own pages and the official fee */
@@ -213,15 +216,15 @@ export function examPlan({ subject = "OET", professions = [], countries = [], fa
   /* each search joins the page it is about; the rest are topics, one page per need */
   const topics = new Map(), sitePages = (site?.pages ?? []).map((p) => ({ url: p.url, need: needOf([p.h1, p.title].filter(Boolean).join(" "), subject) }));
   for (const d of [...demand].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))) {
-    const why = skipWhy(d.text); if (why) { skipped.push({ text: d.text, why }); continue; }
+    const why = skipWhy(d.text); if (why) { if (skipped.length < 300) skipped.push({ text: d.text, why }); skippedMore++; continue; }
     const prof = professionIn(d.text), where = countriesIn(d.text).filter((c) => cs.includes(c));
-    if (prof && profPages.some((p) => p.profession === prof)) { profPages.find((p) => p.profession === prof).questions.push({ question: d.text, source: d.source }); continue; }
-    if (where.length) { countryPages.find((p) => p.country === where[0]).questions.push({ question: d.text, source: d.source }); continue; }
-    const need = needOf(d.text, subject); if (!need && topics.has("")) { topics.get("").questions.push({ question: d.text, source: d.source }); continue; }
-    const own = need && sitePages.find((p) => p.need === need); if (own) { existing.push({ text: d.text, page: own.url }); continue; }
+    if (prof && profPages.some((p) => p.profession === prof)) { join(profPages.find((p) => p.profession === prof), { question: d.text, source: d.source }); continue; }
+    if (where.length) { join(countryPages.find((p) => p.country === where[0]), { question: d.text, source: d.source }); continue; }
+    const need = needOf(d.text, subject); if (!need && topics.has("")) { join(topics.get(""), { question: d.text, source: d.source }); continue; }
+    const own = need && sitePages.find((p) => p.need === need); if (own) { if (existing.length < 300) existing.push({ text: d.text, page: own.url }); continue; }
     const tk = topicKeyOf(need, d.text), mapKey = SUBTESTS.includes(tk) ? `sub:${tk}` : need;
     const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, title: need ? title(d.text) : `What is ${subject}? The test, its fee and the scores asked`, questions: [], source: d.source };
-    if (topics.has(mapKey)) t.questions.push({ question: d.text, source: d.source }); topics.set(mapKey, t);
+    if (topics.has(mapKey)) join(t, { question: d.text, source: d.source }); topics.set(mapKey, t);
   }
   /* a TOPIC page: the subject's own facts about its topic only; two topics never carry the same facts (a page with another's facts competes) */
   const used = new Set(), chosen = [...topics.values()].slice(0, maxTopics), itemsOf = new Map();
@@ -240,7 +243,30 @@ export function examPlan({ subject = "OET", professions = [], countries = [], fa
     if (t.key === "fee" || t.key === "what") { const f = ok.find((x) => x.part === "fee" && /oet\.com/.test(x.link) && /AU\$|AUD/.test(x.text)); if (f) items.unshift({ part: "fee", question: `How much does ${subject} cost?`, claims: [claimOf(f, null)] }); }
     return { kind: "topic", topic: t.key, title: t.title, questions: t.questions, items, source: t.source };
   });
-  const pages = [...profPages, ...countryPages, ...topicPages];
+  /* 🔴 RR-360 · THE COLLECTORS' PLAN, without duplicates (G8): one page per country × profession whose council is checked here; one page per question
+   * whose official answer is here (the same question from two countries is one page; a need a topic page already answers stays there). A row
+   * with no checked answer here makes no page: it is counted, with why — never padded */
+  const cpPages = [], qPages = [], notBuilt = [], seenQ = new Set(topicPages.map((t) => needOf(t.title, subject)));
+  for (const r of collector) {
+    if (r.kind === "country-profession") {
+      const mine = ok.filter((f) => f.country === r.country), council = mine.filter((f) => f.part === "home-council" && f.profession === r.profession), scores = mine.filter((f) => scoreFacts(f) && f.profession === r.profession);
+      if (!council.length) { notBuilt.push({ title: r.title, why: "its council is not among the checked facts read here" }); continue; }
+      const lf = (() => { const fs = mine.filter((f) => f.part === "fee"), src = fs.find((f) => f.official) ?? fs[0]; return src?.official ? localFee({ official: src.official, country: r.country, rates }) : null; })();
+      cpPages.push({ kind: "country-profession", country: r.country, profession: r.profession, title: `${subject} for ${title(peopleOf(r.profession))} in ${inCountry(r.country)}`, questions: [], items: [
+        { part: "councils", question: `Which council registers ${peopleOf(r.profession)} in ${inCountry(r.country)}?`, claims: council.map((f) => claimOf(f, null, null)) },
+        ...(scores.length ? [{ part: "scores", question: `What ${subject} score does it ask?`, claims: sameStandard(scores).map((f) => claimOf(f, null, cardOf(f.text, null))) }] : []),
+        ...(lf ? [{ part: "fee", question: `How much does ${subject} cost in ${inCountry(r.country)}?`, claims: [{ claimId: `fee-${r.country}-${r.profession}`.replace(/\s+/g, "-"), card: lf.card, text: lf.line, link: mine.find((f) => f.part === "fee").link, readOn: mine.find((f) => f.part === "fee").on, source: `${hostOf(mine.find((f) => f.part === "fee").link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true }] }] : []),
+      ], localCurrency: lf?.currency ?? null, content: null });
+    } else if (r.kind === "question") {
+      const key = needOf(r.question, subject), f = ok.find((x) => x.part === "questions" && x.country === r.country && String(x.question).toLowerCase() === String(r.question).toLowerCase());
+      if (!f) { notBuilt.push({ title: r.title, why: "its answer is not among the checked facts read here" }); continue; }
+      if (seenQ.has(key)) continue;
+      seenQ.add(key);
+      qPages.push({ kind: "question", country: r.country, title: asAsked(r.question) ?? title(r.question), questions: [{ question: r.question, source: `AlmiSEO Data's question bank — asked by people in ${inCountry(r.country)}`, on: f.on }], items: [{ part: "questions0", question: asAsked(r.question) ?? title(r.question), claims: [claimOf(f, null)] }], content: null }); // its card: a piece of its own checked answer, when the answer holds one
+    }
+  }
+  const pages = [...profPages, ...countryPages, ...topicPages, ...cpPages, ...qPages];
+  for (const p of [...cpPages, ...qPages]) { p.links = countryPages.filter((c) => c.country === p.country).map((c) => c.title); p.open = []; p.ledger = []; }
   /* the pages link each other: a profession page its country pages, a country page its profession pages, a topic page the hubs */
   for (const p of profPages) p.links = countryPages.map((c) => c.title);
   for (const p of countryPages) p.links = profPages.filter((x) => x.items.some((it) => it.claims.some((c) => c.text.startsWith(`In ${inCountry(p.country)}:`)))).map((x) => x.title).concat(topicPages.slice(0, 2).map((x) => x.title));
@@ -267,5 +293,7 @@ export function examPlan({ subject = "OET", professions = [], countries = [], fa
   const own = (site?.pages ?? []).filter((x) => x.url && x.url.replace(/\/$/, "") !== String(site?.origin ?? "").replace(/\/$/, "")).map((x) => { const t = `${x.title ?? ""} ${x.h1 ?? ""}`; return { url: x.url, title: x.h1 || x.title || x.url, country: countriesIn(t)[0] ?? null, profession: professionIn(t) }; });
   for (const p of countryPages) { const e = own.find((x) => x.country === p.country); if (e) p.improve = { url: e.url, title: e.title }; }
   for (const p of profPages) { const e = own.find((x) => !x.country && x.profession === p.profession); if (e) p.improve = { url: e.url, title: e.title }; }
-  return { pages, skipped, existing, counts: { profession: profPages.length, country: countryPages.length, topic: topicPages.length, improve: pages.filter((p) => p.improve).length } };
+  /* RR-360: the country × profession page the client already has is improved too (G8), never a second page */
+  for (const p of cpPages) { const e = own.find((x) => x.country === p.country && x.profession === p.profession); if (e) p.improve = { url: e.url, title: e.title }; }
+  return { pages, skipped, skippedTotal: skippedMore, existing, notBuilt, counts: { profession: profPages.length, country: countryPages.length, topic: topicPages.length, countryProfession: cpPages.length, question: qPages.length, improve: pages.filter((p) => p.improve).length } };
 }

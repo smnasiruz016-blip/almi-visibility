@@ -12,6 +12,8 @@
  *     the engine's own (src/report/monthly-report.mjs).
  * Pure: everything is handed in.
  */
+import { recleanCoverage, coversByMeaning } from "./coverage.mjs"; // RR-359: only real subtopics, covered by meaning
+import { COUNTRIES as WORLD_COUNTRIES } from "./world.mjs";
 import { planNewPages, buildNewPages, gateInput } from "../src/page/one-builder.mjs";
 import { allGates, GATES } from "../src/page/page-gates.mjs";
 import { linksCheck, MIN_INTERNAL_LINKS } from "../src/page/joined-page.mjs";
@@ -151,7 +153,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null, coverageFor = null, reviewFor = null /* RR-360 */ }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -182,7 +184,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         const whole = (c) => /[.!?]$/.test(c.text) && !/^(yes|no)\b/i.test(c.text) && c.text.split(/\s+/).length >= 8 && (usedSite.get(c.text) ?? 0) < 3;
         /* the page's own title is asked of the site too ("OET for Nurses" → its pages about nurses), under "What else should I know about …?" */
         const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim())).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` })), { q: p.title, heading: `What else should I know about ${p.title}?`, max: 3 }];
-        let fromSite = 0; for (const { q, heading, max = 2 } of asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
+        /* RR-360 (found on the owner's data: an Australian board's rule, read from the client's own pages, on "OET for Dentists in Ireland"): a page the collectors planned for one country says only its own checked facts */
+        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === "country-profession" || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
         const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
         meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [] }); // RR-356: its research and its existing page
         needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
@@ -315,12 +318,18 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const text = (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " ");
     /* intent completeness: the standard questions still open, and every coverage topic / second-search question the page does not cover */
     const open = (m.open ?? []).filter((x) => !missing.some((y) => x.endsWith(y)));
-    const coverage = [...(m.coverage ?? []).map((c) => c.topic ?? c), ...(m.second ?? []).map((s) => s.question ?? s)];
-    const uncovered = coverage.filter((c) => !covers(text, c));
-    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : []), ...(uncovered.length ? [`Not covered yet (what readers still search for): ${uncovered.join("; ")}.`] : []), ...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])];
+    /* 🔴 RR-359 (owner's first real run: menus, comments, forms, ads, brand claims, code and past years in "Not covered yet"): the coverage
+     * list and the second-search questions cleaned and merged again here (a list kept by an earlier run included), "covered" judged by
+     * meaning, and the ⚠️ names at most the few real subtopics still missing, in plain words */
+    /* RR-360 D · a page outside an exam plan: its coverage by the same order of routes (saved · your AI in your browser · your paid service) */
+    { const cv = coverageFor?.(d.title); if (cv) { m.coverage = cv.coverage ?? []; m.second = cv.second ?? []; } }
+    const words = { title: d.title, now, names: WORLD_COUNTRIES, max: 8 };
+    const coverage = recleanCoverage([...(m.coverage ?? []), ...(m.second ?? []).map((x) => ({ topic: x.question ?? x, urls: [], paa: /people also ask/i.test(x.why ?? "") }))], words).map((c) => c.topic);
+    const uncovered = coverage.filter((c) => !coversByMeaning(text, c, { title: d.title }));
+    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : []), ...(uncovered.length ? [`Not covered yet — what readers also look for: ${uncovered.slice(0, 5).join("; ")}.`] : []), ...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])];
     /* fact integrity: a fact past its freshness window is never shown as current — the page is "review needed" */
     const fr = freshness(m.answers ?? [], now);
-    const stale = fr.expired.length ? [`Review needed — ${fr.expired.length} fact${fr.expired.length === 1 ? " is" : "s are"} past its recheck date: ${fr.expired.slice(0, 3).map((x) => `"${x.text}" (checked ${x.on})`).join("; ")}.`] : [];
+    const stale = [...(fr.expired.length ? [`Review needed — ${fr.expired.length} fact${fr.expired.length === 1 ? " is" : "s are"} past its recheck date: ${fr.expired.slice(0, 3).map((x) => `"${x.text}" (checked ${x.on})`).join("; ")}.`] : []), ...(reviewFor?.(m) ?? []) /* RR-360 F: an official fee, date, score or rule AlmiSEO Data found changed */];
     const dr = dup.get(d.url) ?? { verdict: "distinct" };
     d.ledger = m.ledger ?? null; d.open = m.open ?? []; if (m.improve) d.improve = m.improve;
     d.recipe = { coverage, covered: coverage.filter((c) => !uncovered.includes(c)), uncovered, freshness: fr, duplication: dr };

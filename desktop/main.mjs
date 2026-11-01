@@ -35,7 +35,7 @@ import { productStore, productCard } from "./products.mjs";
 import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
-import { searchGoogle, searchPages, SERP_OFF, SERP } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
+import { searchGoogle, searchPages, SERP_OFF, SERP, realPrice, runEstimate, RETRY } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
 import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
@@ -47,7 +47,7 @@ import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name �
 import { youtubeSignin, SIGNIN_ADDS } from "./youtube-signin.mjs";
 import { guidePage, guideList } from "./guides.mjs";
 import { aiLedger, askCoach, DEFAULT_CAP_USD } from "./ai-coach.mjs";
-import { actionPlan, willDo, planDocument, isAlmiWorld, publishBlocked, subjectOf } from "./action-plan.mjs";
+import { actionPlan, willDo, planDocument, isAlmiWorld, publishBlocked, subjectOf, productSubject, NO_SUBJECT } from "./action-plan.mjs";
 import { plainYouTubeWhy } from "../src/video/youtube.mjs"; // RR-313 A3
 import { writeWebWithAI, webMaterial, suggestOfficialPages, KINDS as WEB_KINDS, understandFormulaAI, researchQuestionsAI, figureLeadAI } from "./web-ai.mjs"; // RR-318 A
 import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
@@ -67,7 +67,8 @@ import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.m
 import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
-import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan, countryFactsForPlan } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
+import { genericPlanPages, almiSeoClient, syncProduct, heldFor, keywordItems, questionItems, coverageRoutes, routeLine, coverageItems, coverageFromBrowser, reviewLinesFor, almiSeoView, ALMISEO_FILE, ALMISEO_KEYWORDS, BROWSER_COVERAGE, SYNC, ROUTES } from "./almiseo.mjs"; // RR-360 AlmiSEO Data
+import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan, countryFactsForPlan, ownDb } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
 import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
 import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
@@ -207,7 +208,7 @@ async function publishOne(id, url) {
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
   if (!site) return { ok: false, why: "Check your product first — the gates need your site's latest read." };
-  const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+  const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
   const d = again.drafts.find((x) => x.url === url);
   if (!d) return { ok: false, why: "This draft is out of date — what Visibility knows changed since it was made. Press Create SEO pages again." };
   if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true, why: `Not published — the page has no offer button. ${NO_CTA}` };
@@ -263,7 +264,7 @@ async function buildPlan(id) {
     if (ctx.youtubeConfirmed && ctx.youtubeKey) { try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
     const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
     const web = hasWebsite(s) && site?.ok ? site : null;
-    const pages = web ? seoPages({ site: web, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) }) : null;
+    const pages = web ? seoPages({ site: web, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) }) : null;
     const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on });
     const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
     pwrite(id, "plan.json", plan);
@@ -274,7 +275,7 @@ async function buildPlan(id) {
 }
 /** RR-358: the plan's sources — the keyword database, the search-data files, the pages, the research — newer than the plan itself */
 const planTried = new Map();
-const PLAN_SOURCES = ["keyword-db.json", "search-data-files.json", "pages.json", "research.json", "ai-research.json"];
+const PLAN_SOURCES = ["keyword-db.json", "search-data-files.json", "pages.json", "research.json", "ai-research.json", "almiseo.json"];
 const planStale = (id, plan) => { const t = Date.parse(plan?.on ?? ""); if (!Number.isFinite(t)) return false; return PLAN_SOURCES.some((n) => { try { return statSync(pfile(id, n)).mtimeMs > t + 2000; } catch { return false; } }); };
 const weeklyOf = (id) => { const w = pread(id, "weekly.json", {}), c = pread(id, "check.json"); const last = c?.on ?? null; return { on: w.on !== false, last, next: last ? new Date(Date.parse(last) + 7 * 864e5).toISOString() : null }; };
 const willDoOf = (id, plan) => { const s = store.read(id), sc = searchConsoleOf(id), inx = pread(id, "indexnow.json");
@@ -288,7 +289,9 @@ const officialForPages = (id) => { const out = { ...officialOf(id) }; for (const
 const withFactsFile = (id, cfs) => { const out = { ...cfs }; for (const [c, x] of Object.entries(countryLinesOf(pread(id, FACTS_FILE, null)))) out[c] = { ...(out[c] ?? { country: c }), owner: [...x.owner, ...(out[c]?.owner ?? [])], checkOfficial: x.checkOfficial }; return out; };
 /* RR-319: once the client made pages from "How many pages", THAT plan is the page list everywhere (one page per different answer) */
 /* RR-354: else the exam plan Create SEO pages made by itself (auto-plan.json: profession pages, country pages, topics) — the same plan every call reads */
-const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null)?.length ? pread(id, "made-plan.json", null) : pread(id, "auto-plan.json", null)?.pages; return p?.length ? { pagePlan: p, max: p.length } : {}; };
+/* RR-359: the exam plan only for the subject it was made for (a plan made under another subject — or under a guessed one — is not this product's) */
+const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
+const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null)?.length ? pread(id, "made-plan.json", null) : autoPlanOf(id)?.pages; return p?.length ? { pagePlan: p, max: p.length } : {}; };
 const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
 const plannedOf = (id) => pread(id, "planned.json", []);
 /* RR-353: a website's own name (no www., any path) — two products with the same one are the same site */
@@ -300,21 +303,55 @@ const sameSiteProduct = (site, exceptId = null) => { const h = hostOf(site); ret
  * search-data files (Keyword Planner, Bing Webmaster, Bing's own connection) — then Search Console, and the client's AI research only when
  * nothing else knew a search. Every call that makes the drafts reads the SAME list (publishing judges a draft made from the same data).
  */
-const seedOf = (s) => aboutOf(s) ?? /\b(?!AI\b|USD\b|FAQ\b)([A-Z][A-Z0-9]{1,7})\b/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? s.product?.name ?? null;
+/* 🔴 RR-359 (owner's run: "almiworld youtube" made OET pages — the first capital-letter word of its description was taken as its subject):
+ * the product's OWN subject (action-plan.mjs productSubject) — none → Create SEO pages asks for it */
+const seedOf = (s) => productSubject(s);
 /* RR-355: the questions AlmiWorld's question collector found for the product (kept with the country facts) — each with its page and day */
-const askedOf = (id) => Object.values(pread(id, "country-facts.json", null)?.countries ?? {}).flatMap((p) => p?.questions ?? []).filter((q) => q?.value?.question && /^https:\/\//.test(q.source ?? "")).map((q) => ({ text: q.value.question, source: `AlmiWorld's question collector (answered from ${q.source})`, on: String(q.readOn ?? "").slice(0, 10) || null }));
-const ownItemsOf = (id) => [
-  ...phraseItems(id).filter((x) => x.text).map((x) => ({ text: x.text, source: x.source, on: x.on ?? null, weight: (x.weight ?? 4) + 2 + (Number.isFinite(Number(x.volume)) && Number(x.volume) > 0 ? Math.log10(1 + Number(x.volume)) : 0) })),
-  ...pread(id, "ai-research.json", []).map((x) => ({ text: x.text, source: x.source, weight: 1 })),
-];
+const askedOf = (id) => (!examProduct(store.read(id), id) ? [] /* RR-359: collected for the exam's subject only */ : Object.values(pread(id, "country-facts.json", null)?.countries ?? {})).flatMap((p) => p?.questions ?? []).filter((q) => q?.value?.question && /^https:\/\//.test(q.source ?? "")).map((q) => ({ text: q.value.question, source: `AlmiWorld's question collector (answered from ${q.source})`, on: String(q.readOn ?? "").slice(0, 10) || null }));
+/* 🔴 RR-360 · ALMISEO DATA FIRST (owner's ruling R13): the product's keywords and question groups, read from AlmiWorld's collectors for its OWN subject (desktop/almiseo.mjs) — each search once. A big file is read once per change */
+const memoFile = new Map();
+const preadMemo = (id, name) => { const f = pfile(id, name); let t = null; try { t = statSync(f).mtimeMs; } catch { return null; } const k = `${id}|${name}`, m = memoFile.get(k); if (m?.t === t) return m.v; const v = pread(id, name, null); memoFile.set(k, { t, v }); return v; };
+const seoFileOf = (id) => heldFor(preadMemo(id, ALMISEO_FILE), seedOf(store.read(id)));
+const ownItemsOf = (id) => {
+  const subject = seedOf(store.read(id)), seen = new Set(), once = (x) => { const k = keyOf(x.text); if (!k || seen.has(k)) return false; seen.add(k); return true; };
+  return [
+    ...phraseItems(id).filter((x) => x.text).map((x) => ({ text: x.text, source: x.source, on: x.on ?? null, weight: (x.weight ?? 4) + 2 + (Number.isFinite(Number(x.volume)) && Number(x.volume) > 0 ? Math.log10(1 + Number(x.volume)) : 0) })).filter(once),
+    ...questionItems(preadMemo(id, ALMISEO_FILE), subject).filter(once),
+    ...keywordItems(preadMemo(id, ALMISEO_KEYWORDS), subject).filter(once),
+    ...pread(id, "ai-research.json", []).map((x) => ({ text: x.text, source: x.source, weight: 1 })).filter(once),
+  ];
+};
+/* every call that makes the drafts judges them by the same data: the coverage a page without a plan was given, and the facts AlmiSEO Data found changed */
+const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}); return { coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)) }; };
+/* 🔴 OWNER'S RULING 2: a licence that is not AlmiWorld's own gets finished pages only */
+const outsideClient = () => { const l = currentLicence(); return Boolean(l) && !isOwnerLicence(l.licence); };
+const seoClient = () => almiSeoClient({ siteUrl: CONFIG.keywordServiceUrl ?? LICENCE_URL, signed: currentLicence() });
+const seoSyncing = new Map();
+/** one read of AlmiSEO Data for one product (at most one at a time); an exam product's country facts land where its plan reads them */
+function syncAlmiSeo(id) {
+  if (seoSyncing.has(id)) return seoSyncing.get(id);
+  const run = (async () => {
+    const s = store.read(id), subject = seedOf(s); if (!subject || !currentLicence()) return { ok: false, why: !subject ? "no subject" : "no plan" };
+    const r = await syncProduct({ client: seoClient(), subject, name: s.product?.name ?? null, site: s.setup?.official?.site ?? null, intents: (pread(id, "auto-plan.json", null)?.pages ?? []).map((p) => p.title), read: (n, d) => pread(id, n, d), write: (n, v) => pwrite(id, n, v) });
+    if (r.ok && !r.empty && !r.outside && examProduct(s, id)) { const f = pread(id, ALMISEO_FILE, null); if (Object.keys(f?.countries ?? {}).length) pwrite(id, "country-facts.json", { on: String(f.readOn).slice(0, 10), countries: f.countries, from: "AlmiSEO Data" }); }
+    return r;
+  })().catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 120) })).finally(() => seoSyncing.delete(id));
+  seoSyncing.set(id, run); return run;
+}
+const seoFresh = (id) => { const f = seoFileOf(id); return Boolean(f?.readOn) && (Date.now() - Date.parse(f.readOn)) / 36e5 < SYNC.beforeRunHours; };
 /** before the drafts are made: AlmiWorld's keyword service asked for the product's subject (fresh answers are reused 30 days); then, only
  *  when no search is known at all, the client's own AI researches the questions (said as research, never as searches) → { lines } */
 async function gatherOwnDemand(id) {
   const s = store.read(id), subject = seedOf(s), lines = [];
-  if (subject) { const svc = await serviceForPlan(id, subject).catch(() => ({ on: false, line: SERVICE_OFF_LINE })); lines.push(svc.line); }
+  /* RR-360: AlmiSEO Data first — read within the last hours, or read now. The old one-word search stays only for a server that does not answer it yet */
+  const seo = !subject || !currentLicence() ? null : seoFresh(id) ? { ok: true, line: seoFileOf(id)?.outside ? seoFileOf(id).line : seoFileOf(id)?.counts ? `AlmiSEO Data: ${seoFileOf(id).counts.keywords.toLocaleString("en-US")} keywords, ${seoFileOf(id).counts.questions} question groups, ${seoFileOf(id).counts.countries} countries, ${seoFileOf(id).counts.plan} planned pages (read ${String(seoFileOf(id).readOn).slice(0, 10)})` : null } : await syncAlmiSeo(id);
+  if (seo?.line) lines.push(seo.line);
+  const seoRead = seo?.ok === true;
+  /* RULING 2: the old keyword route is AlmiWorld's own */
+  if (subject && !seoRead && !outsideClient()) { const svc = await serviceForPlan(id, subject).catch(() => ({ on: false, line: SERVICE_OFF_LINE })); lines.push(svc.line); }
   /* RR-354 (owner: "the keyword, question and country-fact collectors connected automatically"): AlmiWorld's country facts for the main
    * countries — asked once a day, kept in country-facts.json, read by the plan beside the owner's facts file */
-  if (examProduct(s, id)) { const cfx = await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: examCountriesOf(id) }).catch(() => ({ line: "AlmiWorld country facts: not reachable just now" })); lines.push(cfx.line); }
+  if (examProduct(s, id) && !seoRead && !outsideClient()) { const cfx = await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: examCountriesOf(id) }).catch(() => ({ line: "AlmiWorld country facts: not reachable just now" })); lines.push(cfx.line); }
   const sc = searchConsoleOf(id);
   if (!ownItemsOf(id).length && !(sc?.queries ?? []).length && !plannedOf(id).length) {
     const ai = aiOf(s);
@@ -334,7 +371,8 @@ async function gatherOwnDemand(id) {
  * Create SEO pages itself, kept in auto-plan.json. A plan the client made in "How many pages" (made-plan.json) still comes first.
  */
 const examProduct = (s, id) => Boolean(listOf(s, seedOf(s), id));
-const examCountriesOf = (id) => { const own = [...new Set(factsOfStore(pread(id, FACTS_FILE, null)).map((f) => f.country))]; return (own.length ? own : CF_PRIORITY).slice(0, 10); };
+/* RR-360: + every country AlmiSEO Data holds with all its parts (it was the first 10 only) */
+const examCountriesOf = (id) => { const own = [...new Set(factsOfStore(pread(id, FACTS_FILE, null)).map((f) => f.country))], all = Object.values(seoFileOf(id)?.countries ?? {}).filter((p) => p.complete).map((p) => p.country); return [...new Set([...(own.length ? own : all.length ? [] : CF_PRIORITY).slice(0, 10), ...all])]; };
 /*
  * 🔴 RR-355 · THE TWO MORE COLLECTORS A PAGE OF AN EXAM-PREP PRODUCT NEEDS, asked by Create SEO pages itself (the client never uploads them):
  *   · the subject's OWN pages about each sub-test, booking, results and scores (desktop/subject-facts.mjs) — read once a week, kept in
@@ -377,7 +415,11 @@ async function examResearch(id, subject) {
   const reads = pread(id, "research-reads.json", {}), cache = { get: (u) => reads[u] ?? null, set: (u, v) => { reads[u] = v; } };
   const out = {}, budget = { left: CONFIG.testOffline === true ? 0 : Number.isInteger(CONFIG.testResearchReads) ? CONFIG.testResearchReads : RESEARCH_READS }, rd = budget.left > 0 ? reader() : null;
   for (const prof of professionsOf()) { const qs = professionQuestions({ subject, prof, destinations: destinationsFor(prof, list) }); connectByMeaning({ questions: qs, facts, prof, subject }); out[prof] = qs; }
-  for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget }).catch(() => null);
+  /* RR-359: with the client's search-results switch on, Google's results name each council's own page (its own website only; cached) */
+  const st = serpSettings(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), ledger = st.on === true && login && password ? dfsLedger() : null;
+  const findPages = ledger ? async (body) => { const r = await searchGoogle({ keyword: `${body.short ?? body.name} ${subject} English language requirement`, settings: st, ledger, login, password, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) }); return r.ok ? r.results.map((x) => x.url) : []; } : null;
+  for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages }).catch(() => null);
+  if (ledger) writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
   pwrite(id, "research-reads.json", reads);
   pwrite(id, "research.json", { on: new Date().toISOString(), questions: out });
   return out;
@@ -406,21 +448,22 @@ async function serpStep(id, plan) {
   const st = serpSettings(), ledger = dfsLedger(), on = new Date().toISOString();
   if (st.on !== true) return { on: false, why: SERP_OFF, searches: 0, reddit: 0, quora: 0 };
   const login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), rd = reader();
-  const out = await searchPages({ pages: plan.pages, ledger, settings: st, login, password, now: on, readHtml: (u) => rd.raw(u, "text/html"), ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
+  const out = await searchPages({ pages: plan.pages, ledger, settings: st, login, password, now: on, subject: seedOf(store.read(id)), retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, readHtml: (u) => rd.raw(u, "text/html"), ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
   writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
   pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: plan.pages });
   return { on: true, ...out };
 }
 /* ── G0, G2, G4, G8, G9 into each draft's ledger; G20 the verdicts after publishing ── */
-function recipeLedger(id, pages, serp, rounds) {
+function recipeLedger(id, pages, serp, rounds, generic = null) {
   const s = store.read(id), subject = seedOf(s) ?? s.product?.name ?? "", plan = pread(id, "auto-plan.json", null)?.pages ?? [];
   for (const d of pages.drafts ?? []) {
-    const p = plan.find((x) => x.title === d.title) ?? { kind: "topic", title: d.title, questions: [] }, row = (pages.plan ?? []).find((r) => r.question === d.title) ?? { kind: "NEW" };
+    const p = plan.find((x) => x.title === d.title) ?? generic?.find((x) => x.title === d.title) ?? { kind: "topic", title: d.title, questions: [] }, row = (pages.plan ?? []).find((r) => r.question === d.title) ?? { kind: "NEW" };
     const qs = questionsOf(p, { subject, on: String(pages.madeOn ?? "").slice(0, 10) }), answered = (d.html.match(/<details data-need-id/g) ?? []).length;
     const pack = d.improve ? packOf(id, d) : null;
     d.recipe = { ...(d.recipe ?? {}), ...personOf(p, { subject }), intents: clusterIntents(qs).map((c) => ({ intent: c.intent, wordings: c.wordings.length })), questions: qs.map((q) => ({ question: q.question, from: q.from, source: q.source })),
       fromReddit: qs.filter((q) => q.from === "reddit").length, fromQuora: qs.filter((q) => q.from === "quora").length,
-      serp: serp?.on ? (p.serpWhy ? { read: [], line: `Google's results were not read for this page: ${p.serpWhy}` } : { read: p.topRead ?? [], line: `${(p.topRead ?? []).length} top results read for what they cover (never copied, no fact taken)` }) : { read: [], line: serp?.why ?? SERP_OFF },
+      serp: { route: p.coverageRoute ?? ROUTES.none, on: p.coverageOn ?? null, read: p.topRead ?? [], line: p.coverageRoute && p.coverageRoute !== ROUTES.none ? routeLine(p) : p.serpWhy ? `Google's results were not read for this page: ${p.serpWhy}` : routeLine(p) },
+      almiseo: (() => { const f = seoFileOf(id); return f?.counts && !f.outside ? { read: f.readOn, keywords: f.counts.keywords, questions: f.counts.questions, country: p.country && f.countries?.[p.country] ? { complete: f.countries[p.country].complete, missing: f.countries[p.country].missing ?? [] } : null } : null; })(), askedTotal: p.asked ?? (p.questions ?? []).length,
       decision: decisionOf({ row, pack }), right: rightToExist({ page: p, questions: qs, answered }), rounds };
   }
   return pages;
@@ -433,9 +476,11 @@ async function measuredAfter(id) {
 /* RR-357 · the Search results data screen's state, and THE ONE PICTURE OF WHAT CAN COST MONEY (owner: "what can cost money, its cap, and
  * today's spend") — only the client's own accounts cost the client; AlmiWorld's own services are included in the plan */
 const spentDfs = () => { const l = dfsLedger(), now = new Date().toISOString(), sum = (p) => (l.spent ?? []).filter((x) => String(x.on).startsWith(p)).reduce((t, x) => t + (Number(x.cost) || 0), 0); return { day: sum(now.slice(0, 10)), month: sum(now.slice(0, 7)) }; };
-function searchDataView() {
+function searchDataView(productId = null) {
   const st = searchData(), sp = spentDfs(), keys = KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved;
-  return { howTo: HOWTO.dataForSeo, on: st.on, capDay: st.capDay, capMonth: st.capMonth, maxDay: SERP.capPerDay, keysSaved: keys, loginSaved: KEYS.status(DFS_KEYS.login).saved, passwordSaved: KEYS.status(DFS_KEYS.password).saved, spentToday: sp.day, spentMonth: sp.month, pricePerSearch: SERP.pricePerSearch,
+  /* 🔴 RR-359 (owner: the estimate said about $0.19, the run cost $0.40): the price DataForSEO really charged, and one run of THIS product */
+  const l = dfsLedger(), price = realPrice(l), titles = (() => { try { return productId ? (autoPlanOf(String(productId))?.pages ?? []).map((p) => p.title) : []; } catch { return []; } })(), estimate = runEstimate({ titles, ledger: l, price: price.price });
+  return { howTo: HOWTO.dataForSeo, on: st.on, capDay: st.capDay, capMonth: st.capMonth, maxDay: SERP.capPerDay, keysSaved: keys, loginSaved: KEYS.status(DFS_KEYS.login).saved, passwordSaved: KEYS.status(DFS_KEYS.password).saved, spentToday: sp.day, spentMonth: sp.month, pricePerSearch: price.price, priceFrom: price.from, priceOn: price.on, estimate,
     line: st.on ? `On — spent today $${sp.day.toFixed(4)} of $${st.capDay}, this month $${sp.month.toFixed(4)} of $${st.capMonth}.` : keys ? "Off — your login is saved; switch it on when you want Google's results read." : "Off — nothing is bought. Add your DataForSEO login first." };
 }
 function spendView() {
@@ -452,10 +497,10 @@ const cardCounts = (id) => { const all = pread(id, "pages.json", null)?.drafts ?
 const examExtras = new Map(); // id → { subjectFacts, rates } of this run (createPages fills it before the plan is made)
 function buildExamPlan(id) {
   const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
-  const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s) ?? "OET")).flat()];
+  const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s))).flat()];
   const demand = [...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
-  const x = examPlan({ subject: seedOf(s) ?? "OET", professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: ex.research ?? pread(id, "research.json", null)?.questions ?? {}, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json") });
-  pwrite(id, "auto-plan.json", { on: new Date().toISOString(), ...x });
+  const x = examPlan({ subject: seedOf(s), professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: ex.research ?? pread(id, "research.json", null)?.questions ?? {}, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json"), collector: seoFileOf(id)?.plan ?? [], maxCountries: 200 });
+  pwrite(id, "auto-plan.json", { on: new Date().toISOString(), subject: seedOf(s) /* RR-359 */, ...x });
   return x;
 }
 /** what to add when no search is known yet — each a one-click way (never a dead end) */
@@ -483,7 +528,7 @@ const aiOf = (s) => { const c = s.setup?.aiConnection, p = AI_PROVIDERS.find((x)
 const reader = () => officialReader({ allowLocal, on: new Date().toISOString(), ...(Number.isInteger(CONFIG.testOfficialPaceMs) ? { paceMs: CONFIG.testOfficialPaceMs } : {}) });
 /* what the product is about, and the official site of that (e.g. "OET", oet.com) — the client says it once in "How many pages"; a short
  * name in brackets in the product's own description is offered first */
-const aboutOf = (s) => s.setup?.official?.subject ?? /\(([A-Z][A-Z0-9]{1,9})\)/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? null;
+const aboutOf = (s) => (String(s.setup?.product?.subject ?? "").trim() || null) ?? s.setup?.official?.subject ?? /\(([A-Z][A-Z0-9]{1,9})\)/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? null;
 /** the official answers for the countries the searches are about: the subject's own page for each, and each body's own page — read here */
 async function refreshOfficial(id, countries) {
   const s = store.read(id), o = s.setup?.official; if (!o?.subject || !o?.site) return { ok: false, why: "Tell Visibility what your product is about and that subject's official site (How many pages can I make? → step 1) — new pages are answered from the official bodies." };
@@ -508,11 +553,12 @@ async function researchFor({ id, s, sc, subject, subjectSite, rd, res }) {
   const items = [], sources = [];
   /* RR-327 · AlmiWorld's keyword service FIRST (the plan's licence decides): the subject for all locations and per country, into the ONE keyword
    * database (phraseItems below reads it) — unreachable: said plainly, and the plan goes on with the client's own data, never an invented number */
-  const svc = await serviceForPlan(id, subject).catch(() => ({ on: false, asked: 0, line: SERVICE_OFF_LINE }));
-  sources.push({ kind: "AlmiWorld keyword service", n: svc.asked ?? 0, on: Boolean(svc.on), line: svc.on ? `${svc.line} · ${svc.source} · ${svc.asked} searches now${svc.reused ? `, ${svc.reused} still fresh (asked within ${PLAN_REUSE_DAYS} days)` : ""}` : svc.line, ...(svc.why ? { why: svc.why } : {}) });
+  /* RULING 2: AlmiWorld's keyword route and its raw country data are not an outside client's */
+  const svc = outsideClient() ? { on: false, asked: 0, line: null } : await serviceForPlan(id, subject).catch(() => ({ on: false, asked: 0, line: SERVICE_OFF_LINE }));
+  if (!outsideClient()) sources.push({ kind: "AlmiWorld keyword service", n: svc.asked ?? 0, on: Boolean(svc.on), line: svc.on ? `${svc.line} · ${svc.source} · ${svc.asked} searches now${svc.reused ? `, ${svc.reused} still fresh (asked within ${PLAN_REUSE_DAYS} days)` : ""}` : svc.line, ...(svc.why ? { why: svc.why } : {}) });
   /* RR-328 C · AlmiWorld's country facts (the same licence): the five parts of every country, read on their own official pages — once a day */
-  const cfx = await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: COUNTRIES }).catch(() => ({ on: false, countries: {}, line: "AlmiWorld country facts: not reachable just now" }));
-  sources.push({ kind: "AlmiWorld country facts", n: Object.values(cfx.countries ?? {}).filter((x) => x.complete).length, on: Boolean(cfx.on), line: cfx.line });
+  const cfx = outsideClient() ? { on: false, countries: {}, line: null } : await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: COUNTRIES }).catch(() => ({ on: false, countries: {}, line: "AlmiWorld country facts: not reachable just now" }));
+  if (!outsideClient()) sources.push({ kind: "AlmiWorld country facts", n: Object.values(cfx.countries ?? {}).filter((x) => x.complete).length, on: Boolean(cfx.on), line: cfx.line });
   const scq = (sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, on: sc.on ?? null, kind: "search", weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }));
   items.push(...scq); sources.push({ kind: "Search Console", n: scq.length, line: sc ? `${scq.length} searches from your Search Console (${sc.window})` : "Search Console is not connected" });
   const yt = s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, ytq = (yt?.state === "READY" ? yt.questions ?? [] : []).map((q) => ({ text: q.text, source: q.source, on: null, kind: "youtube", weight: 3 }));
@@ -542,7 +588,7 @@ const mergePhrases = (held, more) => { const key = (p) => `${p.kind}|${String(p.
 /* RR-324 A: the Keyword Planner keywords come from the ONE keyword database (each once, its current range); a search-data phrase read
  * before the database existed still counts until the database holds the same keyword */
 const keywordStore = (id) => localKeywordStore({ read: (n, d) => pread(id, n, d), write: (n, v) => pwrite(id, n, v) });
-const phraseItems = (id) => { const db = keywordStore(id).load(), held = new Set(Object.keys(db.keywords));
+const phraseItems = (id) => { const db = ownDb(keywordStore(id).load(), seedOf(store.read(id))) /* RR-359: its own subject's answers only */, held = new Set(Object.keys(db.keywords));
   return [...pread(id, "phrases.json", []).filter((p) => !(p.kind === "tool" && held.has(keyOf(p.text)))).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 })),
     ...itemsOf(db).map((x) => ({ ...x, on: x.date }))]; };
 /**
@@ -571,12 +617,12 @@ const DFS_LEDGER_FILE = join(DATA, "dataforseo-ledger.json");
 const dfsLedger = () => { try { return JSON.parse(readFileSync(DFS_LEDGER_FILE, "utf8")); } catch { return emptyDfsLedger(); } };
 const dfsOf = () => dataForSeo({ keys: KEYS, settings: { ...searchData(), permission: true } /* RR-357: the client's OWN account — one switch */, ledger: dfsLedger(), save: (l) => writeFileSync(DFS_LEDGER_FILE, JSON.stringify(l)), ...(CONFIG.dataForSeoTestBase ? { base: CONFIG.dataForSeoTestBase } : {}) });
 function keywordView(id) {
-  const db = keywordStore(id).load(), plan = pread(id, "page-count.json")?.plan ?? null, today = new Date().toISOString().slice(0, 10);
+  const db = ownDb(keywordStore(id).load(), seedOf(store.read(id))) /* RR-359 */, plan = pread(id, "page-count.json")?.plan ?? null, today = new Date().toISOString().slice(0, 10);
   const top = Object.values(db.keywords).map((k) => ({ k, c: currentOf(k) })).sort((a, b) => (b.c?.high ?? 0) - (a.c?.high ?? 0) || a.k.text.localeCompare(b.k.text)).slice(0, 25)
     .map(({ k, c }) => { const t = trendOf(k); return { text: k.text, range: c?.label ?? null, period: c?.period ?? null, location: c?.location ?? null, source: c?.source ?? null, firstSeen: k.firstSeen, lastSeen: k.lastSeen, seen: t.points.length, direction: t.direction, change3m: t.change3m, yoy: t.yoy }; });
   const dfsSet = CONFIG.dataForSeo ?? {};
   return { summary: summaryOf(db, { today, plan }), folder: keywordFolder(), top, store: "this computer (the product's folder) — ready to move to AlmiWorld's own keyword service later",
-    service: { plan: Boolean(currentLicence()), locations: SERVICE_LOCATIONS.map(({ code, name }) => ({ code, name })) }, // RR-326 E
+    service: { outside: outsideClient(), plan: Boolean(currentLicence()), locations: SERVICE_LOCATIONS.map(({ code, name }) => ({ code, name })) }, // RR-326 E
     ads: { ...ads().status(), settings: { access: CONFIG.googleAds?.access ?? "test", applied: CONFIG.googleAds?.applied ?? [], clientIdSet: Boolean(CONFIG.googleAds?.clientId), customerIdSet: Boolean(CONFIG.googleAds?.customerId), secret: KEYS.status(ADS_KEYS.secret).saved } },
     dfs: { ...dfsOf().status(), settings: { on: dfsSet.on === true, capDay: dfsSet.capDay ?? null, capMonth: dfsSet.capMonth ?? null, prices: DFS_PRICES }, keySaved: KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved } };
 }
@@ -711,7 +757,7 @@ async function readRegulatorFor(id, page, rd) {
   const leads = Object.values(pread(id, "official-sources.json", {})).flat(), host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
   const lead = leads.find((l) => host(l.url) && [page.record?.officialUrl, page.website].some((u) => host(u) === host(l.url)));
   const p = lead && !page.record?.officialUrl ? { ...page, record: { ...(page.record ?? {}), officialUrl: lead.url } } : page;
-  const r = await readRegulator({ page: p, subject: "OET", reader: rd }).catch((e) => ({ ok: false, url: page.website, on: rd.on, why: `could not be read (${String(e?.message ?? e).slice(0, 80)})`, claims: [] }));
+  const r = await readRegulator({ page: p, subject: seedOf(store.read(id)), reader: rd }).catch((e) => ({ ok: false, url: page.website, on: rd.on, why: `could not be read (${String(e?.message ?? e).slice(0, 80)})`, claims: [] }));
   const all = pread(id, "regulator-reads.json", {}); all[page.listId] = { ...r, body: page.body, title: page.title }; pwrite(id, "regulator-reads.json", all);
   return r;
 }
@@ -737,44 +783,76 @@ async function ensureLook(id) {
   return next;
 }
 /** Create SEO pages: the drafts (kept in pages.json); published at once only when the client chose "automatically after the gates" */
+/*
+ * 🔴 RR-359 · DRAFTS AND A PLAN MADE FOR ANOTHER SUBJECT ARE NOT THIS PRODUCT'S (owner's run: "almiworld youtube" holds 32 OET drafts).
+ * They are moved aside — pages-set-aside-<day>.json, auto-plan-set-aside-<day>.json, never deleted — and the Overview says so once.
+ */
+function setAsideForeign(id) {
+  const s = store.read(id), mine = String(seedOf(s) ?? "").toLowerCase(), pg = pread(id, "pages.json", null), ap = pread(id, "auto-plan.json", null), day = new Date().toISOString().slice(0, 10), moved = [];
+  const foreignPlan = ap?.pages?.length && (ap.subject != null ? String(ap.subject).toLowerCase() !== mine : !examProduct(s, id));
+  /* drafts kept before RR-359 carry no subject: they are another subject's when they are that set-aside plan's pages (the owner's 20 OET drafts) */
+  const foreignPages = pg?.drafts?.length && (pg.subject != null ? String(pg.subject).toLowerCase() !== mine : (Boolean(pg.examPlan) && !examProduct(s, id)) || (foreignPlan && pg.drafts.some((d) => ap.pages.some((x) => x.title === d.title))));
+  const stamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-"), files = [];
+  if (foreignPages) { const n = `pages-set-aside-${stamp}.json`; renameSync(pfile(id, "pages.json"), pfile(id, n)); moved.push(`${pg.drafts.length} page drafts`); files.push(n); }
+  if (foreignPlan) { const n = `auto-plan-set-aside-${stamp}.json`; renameSync(pfile(id, "auto-plan.json"), pfile(id, n)); moved.push(`a plan of ${ap.pages.length} pages`); files.push(n); }
+  if (moved.length) { const was = pg?.subject ?? ap?.subject ?? null; pwrite(id, "set-aside.json", { on: new Date().toISOString(), what: moved, files, was, line: `Set aside: ${moved.join(" and ")} made earlier for "${was ?? "another subject"}" — not this product's subject${seedOf(s) ? ` ("${seedOf(s)}")` : ""}. Nothing was deleted: they are in the product's folder (${files.join(", ")}). Press Start to make this product's own pages.` }); replan(id); }
+  return moved;
+}
 async function createPages(id) {
   await ensureLook(id);
   const { s, site, sc, files, ctx } = contextOf(id);
   if (!ctaOf(s)) return { refused: NO_CTA, needsCta: true }; // RR-351
+  if (!seedOf(s)) return { refused: NO_SUBJECT, needsSubject: true }; // RR-359: its own subject, asked — never another product's, never a default
+  setAsideForeign(id);
   /* RR-353: our own data first (read by ownItemsOf below); RR-354: an exam-prep product then gets its own plan (profession + country pages) */
+  const councilFrom = (dfsLedger().spent ?? []).length; // RR-359: the searches of this run start here
   const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
-  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s) ?? "OET"), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s) ?? "OET"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
-  let exam = !handMade && examProduct(s, id) ? buildExamPlan(id) : null;
-  const serp = exam ? await serpStep(id, exam).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })) : null;
+  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s)); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
+  /* RR-360 B: a product of any kind: what AlmiSEO Data planned for its subject (desktop/almiseo.mjs genericPlanPages) */
+  const buildGeneric = () => { const f = seoFileOf(id), x = f?.plan?.length ? genericPlanPages({ file: f, subject: seedOf(s) }) : null; if (!x?.pages.length) return null; pwrite(id, "auto-plan.json", { on: new Date().toISOString(), subject: seedOf(s), fromAlmiSeo: true, ...x }); return x; };
+  let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
+  /* 🔴 RR-360 D · G5's order for every intent: saved in AlmiSEO Data → your own AI in your own browser → your own paid service, only if you switched it on */
+  const routeOf = (list) => coverageRoutes({ pages: list, file: seoFileOf(id), browser: pread(id, BROWSER_COVERAGE, {}), paidOn: serpSettings().on === true, paid: (left) => serpStep(id, { pages: left }).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })) });
+  const routes = exam ? await routeOf(exam.pages) : null, serp = exam ? { ...(routes.paid ?? { on: false }), routes: routes.counts, routesLine: routes.line, why: routes.paid?.why ?? routes.line } : null;
+  if (exam) pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: exam.pages });
   const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
   /* RR-318 B6: the countries the searches are about get their official answers first (read once; a country already read is kept) */
   const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
   if (want.length && s.setup?.official?.site) await refreshOfficial(id, want.slice(0, 12)).catch(() => null);
-  const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+  const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
   /* v3 §15 · AT MOST TWO REPAIR ROUNDS: while pages still fail, Visibility searches the official pages again for what is missing and builds
    * again; a round that removes no named failure stops early; after two, each page shows its exact blocker */
   let rounds = 0;
   const failures = (p) => p.drafts.reduce((n, d) => n + d.gates.filter((g) => !g.pass).reduce((m, g) => m + g.failing.length, 0), 0);
-  while (exam && rounds < 2 && failures(pages) > 0 && CONFIG.testOffline !== true) {
+  while (exam && examProduct(s, id) && !seoFileOf(id)?.outside && rounds < 2 && failures(pages) > 0 && CONFIG.testOffline !== true) {
     const before = failures(pages), prev = pread(id, "auto-plan.json", {}).pages ?? [];
-    const r2 = await examResearch(id, seedOf(s) ?? "OET"); examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
+    const r2 = await examResearch(id, seedOf(s)); examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
     /* what the search step found stays with each page through a repair round */
-    if (serp?.on) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy }); } pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: exam.pages }); }
-    const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+    if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn }); } pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: exam.pages }); }
+    const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
     if (failures(again) >= before) break;
     Object.assign(pages, again);
   }
-  recipeLedger(id, pages, serp, rounds);
+  /* RR-360 D: a product with no exam plan — its drafts' intents go by the same order, and its pages are judged again with what they answered */
+  let genericPages = null, genericRoutes = null;
+  if (!exam) { /* drafts from its own demand */ genericPages = pages.drafts.map((d) => ({ kind: "topic", title: d.title })); genericRoutes = await routeOf(genericPages); const byTitle = new Map(genericPages.filter((p) => p.coverageRoute !== ROUTES.none).map((p) => [p.title, p])); pwrite(id, "generic-coverage.json", Object.fromEntries([...byTitle].map(([t, p]) => [t, { coverage: p.coverage, second: p.second }]))); if (byTitle.size) Object.assign(pages, seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) })); }
+  recipeLedger(id, pages, serp ?? (genericRoutes ? { on: false, routes: genericRoutes.counts, routesLine: genericRoutes.line } : null), rounds, genericPages);
+  pages.subject = seedOf(s); // RR-359: the drafts say which subject they were made for
   pwrite(id, "pages.json", pages);
+  if (existsSync(pfile(id, "set-aside.json"))) rmSync(pfile(id, "set-aside.json")); // its own pages are made now
   pages.improved = writePacks(id, pages.drafts); // RR-356 PART B
   /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
   let auto = null;
   if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
   /* RR-353: where the searches came from, said; nothing known → what to add, each with its one-click way */
   pages.sources = own.lines;
-  if (serp) pages.serp = { on: serp.on, line: serp.on ? serp.line : serp.why, searches: serp.searches ?? 0, cost: serp.cost ?? 0, stopped: serp.stopped ?? null };
-  if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing };
+  /* RR-359: the councils' own pages found through Google's results are searches too — counted, and their cost, in the run's line */
+  if (serp?.on) { const cs = (dfsLedger().spent ?? []).slice(councilFrom).filter((x) => / English language requirement$/.test(x.q ?? "")); if (cs.length) { const c = cs.reduce((t, x) => t + (Number(x.cost) || 0), 0); serp.line += ` The councils' own pages, found through Google's results: ${cs.length} more search${cs.length === 1 ? "" : "es"}, $${c.toFixed(4)} (all searches this run: ${(serp.searches ?? 0) + cs.length}, $${((serp.cost ?? 0) + c).toFixed(4)}).`; serp.searches = (serp.searches ?? 0) + cs.length; serp.cost = (serp.cost ?? 0) + c; } }
+  if (serp) pages.serp = { on: serp.on, line: [serp.routesLine, serp.on ? serp.line : null].filter(Boolean).join(" "), searches: serp.searches ?? 0, cost: serp.cost ?? 0, stopped: serp.stopped ?? null, routes: serp.routes ?? null };
+  else if (genericRoutes) pages.serp = { on: false, line: genericRoutes.line, searches: genericRoutes.paid?.searches ?? 0, cost: genericRoutes.paid?.cost ?? 0, stopped: genericRoutes.paid?.stopped ?? null, routes: genericRoutes.counts };
+  if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing, notBuilt: exam.notBuilt ?? [] };
   if (pages.noDemand) pages.add = DEMAND_ADDS.filter((a) => !(a.action === "google" && sc) && !(a.action === "ai" && aiOf(s)));
+  pwrite(id, "pages.json", pages); // RR-360: what the run says about its sources and routes stays with the drafts
   /* RR-355 (owner: "Keywords to use (0)" and "Articles to make (0)" beside 529 search phrases): the plan is made again from the same data */
   await buildPlan(id).catch(() => null);
   return { pages, auto };
@@ -846,6 +924,9 @@ async function weeklyRound() {
   }
 }
 setTimeout(() => { weeklyRound(); setInterval(weeklyRound, 3600e3).unref(); }, Number.isInteger(CONFIG.weeklyFirstMs) ? CONFIG.weeklyFirstMs : 5 * 60e3).unref();
+/* 🔴 RR-360 A3 · AlmiSEO Data is read on start and on a schedule, for every product (the page says when it was last read) */
+const syncAll = async () => { if (CONFIG.testOffline === true || !currentLicence()) return; for (const p of store.list()) { try { await syncAlmiSeo(p.id); } catch { /* the page says it could not be read */ } } };
+if (CONFIG.almiSeoSync !== false) setTimeout(() => { syncAll(); setInterval(syncAll, SYNC.everyHours * 3600e3).unref(); }, Number.isInteger(CONFIG.almiSeoFirstMs) ? CONFIG.almiSeoFirstMs : SYNC.firstMs).unref();
 
 const server = createServer((req, res) => {
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
@@ -934,6 +1015,8 @@ const server = createServer((req, res) => {
           if (step === "product" && value && "realProject" in value) { if (isAlmiWorld(s)) s.setup.realProject = { on: value.realProject === true, markedOn: new Date().toISOString() }; delete value.realProject; }
           /* RR-353: the client's social media pages — kept apart from the product's words (checked above: each on its own network's site) */
           if (step === "product" && value && "social" in value) { s.setup.social = socialFrom(value.social ?? {}).links ?? {}; delete value.social; }
+          /* RR-359: "What it is about" — the product's own subject, short (e.g. OET); empty = none (Create SEO pages then asks) */
+          if (step === "product" && value) { if ("subject" in value) { const t = String(value.subject ?? "").trim(); if (t && subjectProblem(t)) return send(400, { refused: subjectProblem(t) }); if (t) value.subject = t; else delete value.subject; } else if (s.setup?.product?.subject) value.subject = s.setup.product.subject; }
           if (step === "product" && value) { const typed = "ctaLabel" in value || "ctaHref" in value, c = ctaFrom(value); delete value.ctaLabel; delete value.ctaHref; if (typed ? c.cta : s.setup?.product?.cta) value.cta = typed ? c.cta : s.setup.product.cta; }
           /* RR-306 A3: a pasted key goes to Windows' secure store; the product's setup keeps only which key it uses */
           const keep = (name, key) => { if (!String(key ?? "").trim()) return null; const r = KEYS.set(name, key); return r.ok ? null : r.why; };
@@ -959,7 +1042,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing|improve-pack)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
+      { const r = /^\/api\/products\/([^/]+)\/(overview|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing|improve-pack|almiseo|almiseo\/sync|almiseo\/browser)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -969,6 +1052,7 @@ const server = createServer((req, res) => {
             const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
             /* RR-310: the plan (made after every check; a product checked before RR-310 gets it made now, once), what Visibility will do,
              * the YouTube-only view of an older card, the weekly state and what was done since the last check */
+            setAsideForeign(id); // RR-359: another subject's drafts never show as this product's
             const plan = pread(id, "plan.json");
             if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) buildPlan(id).catch(() => {});
             /* 🔴 RR-358 (owner: "Keywords to use (0)" beside 529 search phrases — his plan was made at the 31 Oct 18:40 check, his keyword
@@ -978,8 +1062,8 @@ const server = createServer((req, res) => {
             if (remaking && !planning.has(id)) { planTried.set(id, Date.now()); buildPlan(id).catch(() => {}); }
             const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
             const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
-            return send(200, { plan, remaking, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, /* RR-354: the ticked jobs, the approval asked once, the last report */ jobs: JOBS, fixVia: fixViaOf(id, s), review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST, report: pread(id, "last-report.json"), weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
-              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: HOWTO });
+            return send(200, { almiseo: almiSeoView(preadMemo(id, ALMISEO_FILE), { subject: seedOf(s), planOk: Boolean(currentLicence()) }), subject: seedOf(s), noSubject: seedOf(s) ? null : NO_SUBJECT, setAside: pread(id, "set-aside.json", null), plan, remaking, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, /* RR-354: the ticked jobs, the approval asked once, the last report */ jobs: JOBS, fixVia: fixViaOf(id, s), review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST, report: pread(id, "last-report.json"), weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,
+              checking: checking.has(id), progress: progressOf(id), card, found: foundInfo({ site, youtube: yt?.state === "READY" ? yt : null, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on: new Date().toISOString() }), menu: menuFor(ctx), todo: todoOf(id), google: { ...GOOGLE.status(), site: sc?.site ?? null, kind: sc?.kind ?? null, window: sc?.window ?? null, searches: sc?.queries?.length ?? 0, on: sc?.on ?? null }, howTo: outsideClient() ? Object.fromEntries(Object.entries(HOWTO).filter(([k]) => k !== "dataForSeo")) /* its own screen carries it (ruling 5) */ : HOWTO });
           }
           /* RR-307 (22 Oct): the check runs on; the screen follows its progress on the Overview (a running check is never started twice) */
           if (r[2] === "check" && req.method === "POST") { const already = checking.has(id); checkProduct(id).catch(() => {}); return send(200, { ok: true, started: !already, running: true, progress: progressOf(id) }); }
@@ -1005,7 +1089,7 @@ const server = createServer((req, res) => {
             const lines = [], blocked = publishBlocked(s), on = new Date().toISOString();
             if (jobs.includes("create-pages")) {
               if (!ctx.hasSite || !site) lines.push("Pages: Visibility first needs to read your website — press Check my product now, then Start again.");
-              else { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${x.pages.drafts.length} page drafts${pub ? ` and published ${pub}` : ""}.`); if (x.pages.improved?.length) lines.push(`Your existing pages: ${x.pages.improved.length} improved instead of made twice — ${x.pages.improved.map((p) => `${p.url} (${p.add} new question${p.add === 1 ? "" : "s"})`).join(", ")}. Each one's content is under Pages and articles → Get the content.`); if (x.pages.serp?.line) lines.push(x.pages.serp.line); /* RR-358: how many Google searches the run made, their cost, what stopped it */ }
+              else { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: x.needsCta === true, needsSubject: x.needsSubject === true }); const pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${x.pages.drafts.length} page drafts${pub ? ` and published ${pub}` : ""}.`); if (x.pages.improved?.length) lines.push(`Your existing pages: ${x.pages.improved.length} improved instead of made twice — ${x.pages.improved.map((p) => `${p.url} (${p.add} new question${p.add === 1 ? "" : "s"})`).join(", ")}. Each one's content is under Pages and articles → Get the content.`); if (x.pages.serp?.line) lines.push(x.pages.serp.line); /* RR-358: how many Google searches the run made, their cost, what stopped it */ }
             }
             if (jobs.includes("structure")) { const p = pread(id, "plan.json"), n = p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.ready?.length).length : 0; const via = fixViaOf(id, s); lines.push(via.length ? `Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready — Visibility can make the ${via.map((k) => (k === "title" ? "titles" : "descriptions")).join(" and ")} through your site's connection (Overview → What to fix first → Fix it for me); the rest are ready to copy.` : `Fix existing pages: ${n} change${n === 1 ? "" : "s"} ready to copy into your site's own editor (Overview → What to fix first → Give me the content) — your site is built in a way Visibility's connection cannot change by itself.`); }
             if (jobs.includes("submit")) { const x = await submitAll(id); lines.push(x.ok ? x.lines.join(" ") : `Google and Bing: ${x.why}`); }
@@ -1039,7 +1123,7 @@ const server = createServer((req, res) => {
           }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);
-            if (what === "create-pages") { if (!ctx.hasSite || !site) return send(400, { refused: "Check your website first — the pages are answered from it." }); const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length, pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"}${pub ? ` and published ${pub}` : ""}.`); return send(200, { ok: true, line: `${n} draft${n === 1 ? "" : "s"} made${pub ? `, ${pub} published` : ""} — read them under "Pages and articles".${aw ? ` ${ALMIWORLD_NO}` : ""}`, open: "pages" }); }
+            if (what === "create-pages") { if (!ctx.hasSite || !site) return send(400, { refused: "Check your website first — the pages are answered from it." }); const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: x.needsCta === true, needsSubject: x.needsSubject === true }); const n = x.pages.drafts.filter((d) => d.readyAsDraft).length, pub = (x.auto ?? []).filter((a) => a.ok).length; didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"}${pub ? ` and published ${pub}` : ""}.`); return send(200, { ok: true, line: `${n} draft${n === 1 ? "" : "s"} made${pub ? `, ${pub} published` : ""} — read them under "Pages and articles".${aw ? ` ${ALMIWORLD_NO}` : ""}`, open: "pages" }); }
             if (what === "structure") { const p = pread(id, "plan.json"); return send(200, { ok: true, items: p ? [...p.thisWeek, ...p.rest].filter((i) => i.fixForMe === "structure" || i.id === "ai:faq") : [], line: "New pages have the structure built in. For your existing pages, here it is ready to paste:" }); }
             if (what === "publish") {
               if (aw) return send(200, { ok: false, refused: ALMIWORLD_NO });
@@ -1068,6 +1152,17 @@ const server = createServer((req, res) => {
             return send(200, { ok: true, searches: ph.length, line: `${out.line} They are used when Visibility plans your pages, each marked "from Bing".` });
           }
           /* RR-353 · the "Search engines" panel: Google, Bing (IndexNow + Webmaster Tools) and each published page — what is done and what is next */
+          /* RR-360 E · the AlmiSEO Data page (numbers only as measured), "Read it now", and G5's free route: the client's own AI in the client's own browser */
+          if (r[2] === "almiseo" && req.method === "GET") return send(200, { view: almiSeoView(pread(id, ALMISEO_FILE, null), { subject: seedOf(s), planOk: Boolean(currentLicence()) }), syncing: seoSyncing.has(id) });
+          if (r[2] === "almiseo/sync" && req.method === "POST") { const x = await syncAlmiSeo(id); return send(x.ok ? 200 : 400, x.ok ? { ok: true, line: x.line, view: almiSeoView(pread(id, ALMISEO_FILE, null), { subject: seedOf(s), planOk: Boolean(currentLicence()) }) } : { refused: x.line ?? `AlmiSEO Data could not be read just now: ${x.why}` }); }
+          if (r[2] === "almiseo/browser" && req.method === "GET") { const items = coverageItems((pread(id, "auto-plan.json", null)?.pages ?? []).filter((p) => (p.coverageRoute ?? ROUTES.none) === ROUTES.none).map((p) => ({ ...p, coverageRoute: ROUTES.none }))); return send(200, { items, instruction: items.length ? browserInstruction(items) : null }); }
+          if (r[2] === "almiseo/browser" && req.method === "POST") {
+            let hand; try { hand = JSON.parse(Buffer.from(String(json().base64 ?? ""), "base64").toString("utf8")); } catch { return send(400, { refused: "That is not the file your AI gave you after its reading." }); }
+            const items = coverageItems((pread(id, "auto-plan.json", null)?.pages ?? []).map((p) => ({ ...p, coverageRoute: ROUTES.none })), { max: 500 }), t = takeBrowserReads(hand, items);
+            if (!t.ok) return send(400, { refused: `Refused — ${t.refusedFor.join(", ")}. Nothing from this file is kept.` });
+            const got = coverageFromBrowser(t.pages, { subject: seedOf(s) }); pwrite(id, BROWSER_COVERAGE, { ...pread(id, BROWSER_COVERAGE, {}), ...got });
+            return send(200, { ok: true, line: `${Object.keys(got).length} page${Object.keys(got).length === 1 ? "" : "s"}: what Google's top results cover is kept (addresses and headings only). The next run uses it.` });
+          }
           if (r[2] === "search-engines" && req.method === "GET") {
             if (!ctx.hasSite) return send(400, { refused: "Search engines need a website." });
             const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx);
@@ -1121,8 +1216,8 @@ const server = createServer((req, res) => {
             if (f === "seo-pages" || f === "articles") {
               if (!ctaOf(s)) return send(400, { refused: NO_CTA, needsCta: true }); // RR-351: no page is made without the client's own offer button
               /* RR-353: Create SEO pages = createPages (our own data first, the official answers read, auto-publish only where allowed) */
-              if (f === "seo-pages") { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true }); return send(200, { pages: { ...x.pages, drafts: x.pages.drafts.map(({ html, ...d }) => ({ ...d, why: plainWhy(d) })) }, autoPublished: x.auto }); } // RR-354: each not-ready page with its plain reason
-              const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) });
+              if (f === "seo-pages") { const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: x.needsCta === true, needsSubject: x.needsSubject === true }); return send(200, { pages: { ...x.pages, drafts: x.pages.drafts.map(({ html, ...d }) => ({ ...d, why: plainWhy(d) })) }, autoPublished: x.auto }); } // RR-354: each not-ready page with its plain reason
+              const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
               let auto = null;
@@ -1180,7 +1275,7 @@ const server = createServer((req, res) => {
             const fromList = lastC?.list && lastC.plan; // RR-321: the countries and professions of the list's count
             const browser = aboutOf(s) ? browserSearchList({ subject: aboutOf(s), countries: fromList ? lastC.plan.tables.regulator.rows[1].kept.map((k) => k.name) : (lastC?.result?.dims?.countries?.kept ?? []).map((k) => k.name), origins: (lastC?.byCountry ?? []).map((c) => c.country).filter((c) => !/^other/.test(c)), professions: fromList ? professionsOf() : lastC?.result?.dims?.roles?.professions ?? [], own: pread(id, "research-own.json", []) }) : null;
             const usedToday = runs.filter((x) => x.date === today && x.verdict === "ACCEPTED").reduce((n, x) => n + (x.searchesUsed ?? 0), 0);
-            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions"), recognising: bi("recognising") } : null, listPath: Boolean(listOf(s, aboutOf(s) ?? "OET")), aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: lastC?.list && lastC.plan ? { ...lastC, plan: { ...lastC.plan, kinds: undefined } } /* RR-321 proof: the screen shows the tables; the pages' bodies (MBs) stay in the file */ : lastC, make: pread(id, "make.json"), preview: pread(id, "preview.json"), updates: pread(id, "updates.json", []).slice(-30), almiworld: aw,
+            return send(200, { browser: browser ? { ...browser, usedToday } : null, runs: runs.slice(-5), dimensions: DIMENSIONS, howto: LIST_HOWTO, worldLists: WORLD_LISTS, builtIn: aw ? { roles: bi("roles"), universities: bi("universities"), subjects: bi("subjects"), professions: bi("professions"), recognising: bi("recognising") } : null, listPath: Boolean(listOf(s, aboutOf(s))), aiConnected: Boolean(aiOf(s)), running: counting.has(id), progress: countProgress.get(id) ?? null, subject: aboutOf(s), description: s.setup?.official?.description ?? "", site: s.setup?.official?.site ?? "", formula: pread(id, "formula.json"), last: lastC?.list && lastC.plan ? { ...lastC, plan: { ...lastC.plan, kinds: undefined } } /* RR-321 proof: the screen shows the tables; the pages' bodies (MBs) stay in the file */ : lastC, make: pread(id, "make.json"), preview: pread(id, "preview.json"), updates: pread(id, "updates.json", []).slice(-30), almiworld: aw,
               /* RR-322: the client's AI browser list, the light check and confirmation running, the index report */
               browserRead: (() => { const b = browserListFor(id); return b ? { ...b, instruction: browserInstruction(b.items) } : null; })(), light: busy.get(`${id}|light`) ?? null, confirming: busy.get(`${id}|confirm`) ?? null, indexReport: pread(id, "index-report.json") });
           }
@@ -1339,6 +1434,7 @@ const server = createServer((req, res) => {
             if (!m.alreadyRead) { st.save(m.db); replan(id); } return send(200, { ok: true, line: m.line });
           }
           /* RR-326 E: AlmiWorld's keyword service — the plan's licence decides; no Google account, no Google sign-in for the client */
+          if (r[2] === "keywords/service" && req.method === "POST" && outsideClient()) return send(403, { refused: "This is not part of your plan: AlmiWorld's research reaches you as finished pages." }); // RULING 2
           if (r[2] === "keywords/service" && req.method === "POST") {
             const v = json(), seeds = (Array.isArray(v.seeds) ? v.seeds : String(v.seeds ?? "").split(/[,\n]/)).map((x) => String(x).trim()).filter(Boolean).slice(0, 20);
             if (!seeds.length) return send(400, { refused: "Type at least one word." });
@@ -1455,7 +1551,7 @@ const server = createServer((req, res) => {
             if (!ctaOf(s)) return send(400, { refused: NO_CTA, needsCta: true }); // RR-351
             pwrite(id, "planned.json", pages.map((p) => ({ text: p.title, source: `How many pages (${p.kind}${p.weak ? ", an opportunity page — no search yet" : `, answers ${p.questions.length} question${p.questions.length === 1 ? "" : "s"}`})` })));
             pwrite(id, "made-plan.json", pages);
-            const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: true });
+            const x = await createPages(id); if (x.refused) return send(400, { refused: x.refused, needsCta: x.needsCta === true, needsSubject: x.needsSubject === true });
             const n = x.pages.drafts.filter((d) => d.readyAsDraft).length;
             didIt(id, `Made ${n} page draft${n === 1 ? "" : "s"} from "How many pages" (the first batch: ${pages.length} of ${all.length} planned).`);
             return send(200, { ok: true, line: `${n} of the first batch's ${pages.length} page${pages.length === 1 ? "" : "s"} made as drafts (${all.length} planned in all) — read them under "Pages and articles". A page that is not ready lacks an official fact with its source and date (it says which). The next batch comes when your Search Console shows Google showing these.${publishBlocked(s) ? ` ${ALMIWORLD_NO}` : ""}`, drafts: n, planned: pages.length, all: all.length });
@@ -1629,7 +1725,7 @@ const server = createServer((req, res) => {
           if (d.on && !(KEYS.status(DFS_KEYS.login).saved && KEYS.status(DFS_KEYS.password).saved)) return send(400, { refused: "Save your DataForSEO API login and API password first (step 2), then switch it on." });
           CONFIG.dataForSeo = d; saveConfig();
         }
-        return send(200, searchDataView());
+        return send(200, searchDataView(u.searchParams.get("product")));
       }
       if (u.pathname === "/api/search-data/test" && req.method === "POST") {
         const login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password);
@@ -1638,11 +1734,11 @@ const server = createServer((req, res) => {
         /* RR-358 (the owner's four tests searched "almiworld youtube" from AlmiOET — the screen sent a name kept from another product): the OPEN product's own subject */
         const ps = (() => { try { return v.product ? store.read(String(v.product)) : null; } catch { return null; } })();
         const q = String(v.keyword ?? "").trim() || (ps ? `${seedOf(ps) ?? ps.product?.name ?? ""}`.trim() : "") || "how to choose a dentist";
-        const r = await searchGoogle({ keyword: q, settings: searchData(), ledger, login, password, test: true, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
+        const r = await searchGoogle({ keyword: q, settings: searchData(), ledger, login, password, test: true, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
         writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
         const cost = (ledger.spent ?? []).length > spentBefore ? (ledger.spent.at(-1)?.cost ?? 0) : 0; // RR-358: only THIS search's cost
         /* RR-358: the test shows what Google returned (the top results' titles); a refusal is DataForSEO's own reason, in plain words */
-        return send(200, r.ok ? { ...searchDataView(), ok: true, line: `Connected ✓ — Google's results for "${q}" were read: ${r.results.length} results, ${r.paa.length} "People also ask" questions. This search cost $${Number(cost).toFixed(4)}.`, top: r.results.slice(0, 10).map((x) => ({ title: x.title, url: x.url })), paa: r.paa.slice(0, 5) } : { ...searchDataView(), line: undefined, ok: false, refused: `Not connected — ${r.why} Nothing was charged for it${Number(cost) ? ` beyond $${Number(cost).toFixed(4)}` : ""}.` });
+        return send(200, r.ok ? { ...searchDataView(), ok: true, line: `Connected ✓ — Google's results for "${q}" were read: ${r.results.length} results, ${r.paa.length} "People also ask" questions. This search cost $${Number(cost).toFixed(4)}${r.tries > 1 ? ` (DataForSEO failed ${r.tries - 1} time${r.tries === 2 ? "" : "s"} first — tried again; a failed try costs nothing)` : ""}. The real price per search: $${realPrice(ledger).price.toFixed(4)} — ${realPrice(ledger).from}.`, top: r.results.slice(0, 10).map((x) => ({ title: x.title, url: x.url })), paa: r.paa.slice(0, 5) } : { ...searchDataView(), line: undefined, ok: false, refused: `Not connected — ${r.why} Nothing was charged for it${Number(cost) ? ` beyond $${Number(cost).toFixed(4)}` : ""}.` });
       }
       if (u.pathname === "/api/spend" && req.method === "GET") return send(200, spendView());
       if (req.method === "GET" && u.pathname === "/api/keys") return send(200, { where: KEYS.where, available: KEYS.available, keys: Object.fromEntries([...KEY_ALLOWED].map((n) => [n, KEYS.status(n)])), aiProviders: AI_PROVIDERS });

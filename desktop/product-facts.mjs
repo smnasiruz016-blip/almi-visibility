@@ -65,9 +65,13 @@ export const PRODUCT_FACTS = Object.freeze({
 });
 /* the products Country Facts collects, in no particular order (the queue orders them — site/queue.mjs) */
 export const FACT_PRODUCTS = Object.freeze(Object.keys(PRODUCT_FACTS));
-export const partsOfProduct = (p) => PRODUCT_FACTS[p]?.parts ?? [];
+/* 🔴 RR-360 B · a client's product joins the collectors under its own topic (site/almiseo.mjs): its template is set for the run, the same shape */
+let CLIENT_TEMPLATES = Object.freeze({});
+export const setClientTemplates = (t) => { CLIENT_TEMPLATES = Object.freeze({ ...t }); };
+export const templateOf = (p) => PRODUCT_FACTS[p] ?? CLIENT_TEMPLATES[p] ?? null;
+export const partsOfProduct = (p) => templateOf(p)?.parts ?? [];
 /** the AI-searched parts of a product other than AlmiOET (the questions come from the keyword database; the currency is known) */
 export const searchedParts = (p) => partsOfProduct(p).filter((k) => ["quote", "body"].includes(PART_INFO[k]?.kind));
 export const bodyParts = (p) => partsOfProduct(p).filter((k) => PART_INFO[k]?.kind === "body");
 /** an official site of the product's test owner */
-export const ownerSite = (p, host) => (PRODUCT_FACTS[p]?.sites ?? []).some((s) => host === s || String(host).endsWith(`.${s}`));
+export const ownerSite = (p, host) => (templateOf(p)?.sites ?? []).some((s) => host === s || String(host).endsWith(`.${s}`));

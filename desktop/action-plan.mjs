@@ -176,6 +176,26 @@ export function socialFromVideo(v, channel = {}) {
  * for what the product does ("AlmiWorld (almiworld.com) — a family of online products …" → "AlmiWorld's products"): the name it opens
  * with, as the client wrote it; "'s products" when it is a family of products or tools. Without such a name: "your product".
  */
+/*
+ * 🔴 RR-359 · A PRODUCT'S OWN SUBJECT (owner's run: "almiworld youtube" made OET pages — the first capital-letter word of its description,
+ * "AlmiWorld … a family of online products …: OET, IELTS, PTE …", was taken as its subject). The subject is, in order:
+ *   the one the client set (Settings → Your product → "What it is about", or How many pages) · a short name the description sets in
+ *   brackets ("… (OET)") · a short capital-letter name in the description that the product's OWN name or website also carries (AlmiOET,
+ *   almioet.almiworld.com → OET) · its own name when written as a name ("Smile Dental"; RR-313 C3 — "almiworld youtube" is a label,
+ *   not a name). Else none — and Create SEO pages asks for it. Never another product's subject, never a default.
+ */
+export function productSubject(s) {
+  const set = String(s?.setup?.product?.subject ?? s?.setup?.official?.subject ?? "").trim(); if (set) return set;
+  const what = String(s?.setup?.product?.what ?? "");
+  const paren = /\(([A-Z][A-Z0-9]{1,9})\)/.exec(what)?.[1]; if (paren) return paren;
+  let host = ""; try { host = new URL(s?.product?.site ?? s?.setup?.product?.site ?? "").hostname; } catch {}
+  const own = `${s?.product?.name ?? ""} ${s?.setup?.product?.name ?? ""} ${host}`.toLowerCase();
+  for (const m of what.matchAll(/\b(?!AI\b|USD\b|FAQ\b|CV\b|UK\b|US\b|USA\b|UAE\b|EU\b)([A-Z][A-Z0-9]{1,7})\b/g)) { const w = m[1].toLowerCase(); if (w.length >= 3 ? own.includes(w) : new RegExp(`(^|[^a-z])${w}([^a-z]|$)`).test(own)) return m[1]; }
+  /* its own name, when it is written as a name ("Fixture Prep", "Smile Dental") — a raw lower-case label ("almiworld youtube") never is */
+  const name = String(s?.product?.name ?? s?.setup?.product?.name ?? "").trim();
+  return /^\s*\p{Lu}[\p{L}\p{N}&'-]*(\s+\p{Lu}[\p{L}\p{N}&'-]*){0,3}\s*$/u.test(name) ? name : null;
+}
+export const NO_SUBJECT = "First, say what this product is about — the short name people search, for example OET or wedding photography. Visibility makes its pages only about its own subject. Set it in Settings → Your product → \"What it is about\".";
 export function subjectOf({ what = "", name = "" } = {}) {
   /* a name written as a name (every word capitalised, "Fixture Prep") is the subject when the description opens with none; a raw, lower-case
    * label ("almiworld youtube") never is */

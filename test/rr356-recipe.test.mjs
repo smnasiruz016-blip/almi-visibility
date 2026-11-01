@@ -12,8 +12,8 @@ const ON = "2026-11-01";
 const NURSES = { kind: "profession", profession: "nursing", title: "OET for Nurses", questions: [{ question: "oet score for nurses uk", source: "AlmiWorld keyword service" }, { question: "Is OET accepted for nurses in Australia?", source: "a Reddit result as Google shows it (2026-11-01)" }] };
 
 test("RR-356 · G0 + G1–G2 + G4 · the person, the question universe with every source, same-intent wordings clustered", () => {
-  assert.deepEqual(personOf(NURSES), { person: "A trained nurse who wants to work abroad", context: "must show English for registration with a council in another country", goal: "know which council asks which OET score, and how the OET for nurses works" });
-  const qs = questionsOf(NURSES, { on: ON });
+  assert.deepEqual(personOf(NURSES, { subject: "OET" } /* RR-359: no default subject */), { person: "A trained nurse who wants to work abroad", context: "must show English for registration with a council in another country", goal: "know which council asks which OET score, and how the OET for nurses works" });
+  const qs = questionsOf(NURSES, { on: ON, subject: "OET" });
   for (const c of ["first", "eligibility", "cost", "time", "exceptions", "next", "actions", "documents", "mistakes"]) assert.ok(qs.some((q) => q.category === c), c);
   assert.deepEqual(qs.filter((q) => q.category === "asked").map((q) => [q.from, q.source]), [["search", "AlmiWorld keyword service"], ["reddit", "a Reddit result as Google shows it (2026-11-01)"]], "each question keeps its source");
   const cl = clusterIntents([{ question: "oet fee for nurses" }, { question: "OET fees for nurses" }, { question: "oet result time" }]);
@@ -67,7 +67,7 @@ test("RR-356 · G8 + G9 · the decision per intent; why this URL deserves to exi
   assert.equal(decisionOf({ row: { kind: "REFUSED", why: "no answer yet" } }), "MONITOR");
   assert.equal(decisionOf({ row: { kind: "REFUSED", why: "people searching this want another website" } }), "REJECT");
   assert.equal(decisionOf({ row: { kind: "NEW" }, measured: { verdict: "NOINDEX" } }), "NOINDEX");
-  const demand = rightToExist({ page: NURSES, questions: questionsOf(NURSES), answered: 5 }), opp = rightToExist({ page: { ...NURSES, questions: [] }, questions: questionsOf({ ...NURSES, questions: [] }), answered: 5 });
+  const demand = rightToExist({ page: NURSES, questions: questionsOf(NURSES, { subject: "OET" }), answered: 5 }), opp = rightToExist({ page: { ...NURSES, questions: [] }, questions: questionsOf({ ...NURSES, questions: [] }), answered: 5 });
   assert.equal(demand.kind, "demand"); assert.match(demand.why, /^2 searches people make \(search, reddit\)/);
   assert.equal(opp.kind, "opportunity"); assert.match(opp.why, /an opportunity page, built strong and watched/);
 });
@@ -98,7 +98,7 @@ test("RR-356 · the checks in the drafts: intent completeness against the covera
   const plan = [{ kind: "topic", title: "How long does teeth whitening take", items: [{ part: "topic", question: "How long does teeth whitening take?", claims: [{ claimId: "c1", text: "Teeth whitening takes 60 to 90 minutes at the clinic.", link: "https://c.example/whitening", readOn: "2026-10-30", source: "c.example", official: true }] }], coverage: [{ topic: "Does whitening hurt" }], second: [] }];
   const d = seoPages({ site, on: `${ON}T10:00:00Z`, pagePlan: plan }).drafts[0];
   const H = d.gates.find((g) => g.gate === "H"), I = d.gates.find((g) => g.gate === "I");
-  assert.match(H.failing.join(" "), /Not covered yet \(what readers still search for\): Does whitening hurt\./);
+  assert.match(H.failing.join(" "), /Not covered yet — what readers also look for: Does whitening hurt\./ /* RR-359: plain words, at most 5 */);
   assert.equal(I.pass, true);
   const old = seoPages({ site, on: `${ON}T10:00:00Z`, pagePlan: [{ ...plan[0], coverage: [], items: [{ ...plan[0].items[0], claims: [{ ...plan[0].items[0].claims[0], readOn: "2025-09-01" }] /* a length of time: a stable fact, a year at most */ }] }] }).drafts[0];
   assert.match(old.gates.find((g) => g.gate === "I").failing.join(" "), /^Review needed — 1 fact is past its recheck date/);

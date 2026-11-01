@@ -21,7 +21,7 @@ import { namesOf, slugOf, originsIn } from "./world.mjs";
 import { pdfText, isPdf, PDF_TEXT } from "../src/facts/pdf-text.mjs";
 
 export const OFFICIAL = Object.freeze({ paceMs: 2000, timeoutMs: 15000, maxBytes: 3_000_000, maxPages: 40 });
-const decode = (s) => String(s ?? "").replace(/&#x([0-9a-f]{1,6});/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d{1,7});/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ");
+const decode = (s) => String(s ?? "").replace(/&#x([0-9a-f]{1,6});/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d{1,7});/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/&[lr]squo;/g, "'").replace(/&[lr]dquo;/g, '"').replace(/&ndash;/g, "–").replace(/&mdash;/g, "—"); // RR-359: the GMC writes grade &lsquo;B&rsquo;
 /** a page's own readable text: no scripts, no menus, no footer */
 export const pageText = (html) => decode(String(html ?? "").replace(/<(head|script|style|noscript|nav|footer|header)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 const one = (re, h) => { const m = re.exec(h); return m ? decode(m[1].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() : null; };
@@ -33,7 +33,7 @@ const day = (d) => String(d ?? "").slice(0, 10);
  * A reader for official pages, paced and robots-obedient. `read(url)` → { ok, url, title, h1, text, checkedOn } or { ok:false, why }.
  * `allowLocal` is for TESTS ONLY (a stand-in official site on this computer).
  */
-export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(), paceMs = OFFICIAL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), allowLocal = false, resolve } = {}) {
+export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(), paceMs = OFFICIAL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), allowLocal = false, resolve, retries = 2, retryPauseMs = paceMs === 0 ? 0 : 2500 } = {}) {
   let last = 0, count = 0;
   const pace = async () => { const wait = last + paceMs - Date.now(); if (wait > 0) await sleep(wait); last = Date.now(); };
   /* RR-321 A2: Google's robots rule (RFC 9309) — a 4xx robots.txt lets the site be read; a 5xx or no answer: not now, again next run */
@@ -49,7 +49,11 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
       const a = await allowedUrl(url); if (!a.ok) return { ok: false, url, why: a.why, checkedOn: day(on) };
       const r = await robots.check(a.u.href);
       if (!r.allowed) return { ok: false, url, why: r.state === "UNKNOWN" ? `its robots.txt could not be read (${r.reason}) — not read now${r.retryLater ? ", tried again on the next run" : ""}` : "its robots.txt asks us not to read it — not read", robots: r.state, retryLater: Boolean(r.retryLater), checkedOn: day(on) };
-      const res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf");
+      /* 🔴 RR-359 (owner's run: the GMC's own OET page "answered 403" — its security check refuses some reads and lets the next through): a
+       * page that answered 403, 429 or 5xx, or did not answer, is read again — at most `retries` more times, a pause between, the SAME reader
+       * name (never another one, never around the check); still refused → said, and it goes on the client's browser list as before */
+      let res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf");
+      for (let k = 1; k <= retries && (res.failed || res.status === 403 || res.status === 429 || res.status >= 500); k++) { await sleep(retryPauseMs * k); res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf"); }
       if (res.failed) return { ok: false, url, why: `could not be read (${res.failed})`, checkedOn: day(on) };
       if (!res.ok) return { ok: false, url, why: `the page answered ${res.status}`, checkedOn: day(on) };
       const type = res.headers.get("content-type") ?? "", final = res.finalUrl ?? a.u.href;
@@ -193,6 +197,10 @@ export function subtestResults(text, subject) {
       const vals = [...t.slice(i + subject.length, i + subject.length + 220).matchAll(/([ABC]\+?)\s*\(?\s*(\d{3})?\s*(or above|[-–]\s*\d{3})?\s*\)?/g)].filter((m) => m[1]).slice(0, 4);
       if (new Set(order).size === 4 && vals.length === 4) order.forEach((s, k) => { const v = vals[k]; set[s] = [v[1], v[2] ? `(${v[2]}${v[3] ? (/above/.test(v[3]) ? " or above" : `–${v[3].replace(/[-–\s]/g, "")}`) : ""})` : null].filter(Boolean).join(" "); });
     }
+    /* 🔴 RR-359 (owner's run: "What OET score does GMC … ask of doctors?" stayed open; the GMC's own page says "at least a grade 'B' in each
+     * testing area (speaking, listening, reading and writing)"): ONE grade or score said for EACH sub-test is that grade for all four */
+    if (!SUBTESTS.every((s) => set[s])) { const each = /\b(?:grade\s*['"]?([ABC]\+?)['"]?|([ABC]\+?)\s+grade|(\d{3}))\s*(?:or (?:above|higher|better)\s*)?(?:in|for|on|across)\s+(?:each|every|all)\s+(?:of\s+the\s+)?(?:four\s+)?(?:testing\s+areas?|sub-?tests?|components?|sections?|skills?|areas?|modules?|parts?|papers?|language skills?)\b/i.exec(win.replace(/[‘’]/g, "'"));
+      if (each) { const v = each[1] ?? each[2] ?? each[3]; for (const sub of SUBTESTS) if (!set[sub]) set[sub] = v; } }
     /* RR-357 · "a minimum of 350 in Listening, Reading and Speaking and 300 in Writing": each number with the sub-tests the SAME phrase names */
     if (!SUBTESTS.every((s) => set[s])) for (const m of win.matchAll(/\b(\d{3})\+?\s+(?:or (?:above|higher)\s+)?(?:in|for)\s+((?:(?:Listening|Reading|Writing|Speaking)(?:\s*,\s*|\s+and\s+)?){1,4})/g)) for (const sub of m[2].match(/Listening|Reading|Writing|Speaking/g) ?? []) if (!set[sub]) set[sub] = m[1];
     if (SUBTESTS.every((s) => set[s])) { const line = SUBTESTS.map((s) => `${s} ${set[s]}`).join(" · "); if (!sets.includes(line)) sets.push(line); }

@@ -53,7 +53,8 @@ export const CHOICES = Object.freeze({
 });
 export const HOWTO = Object.freeze({
   /* RR-357: DataForSEO's own names for the two keys, as its dashboard shows them (a provider's button names stay in the how-to) */
-  dataForSeo: "In DataForSEO, open your Dashboard → \"API Access\". Your \"API login\" is the e-mail of your DataForSEO account; your \"API password\" is shown on that page (it is not the password you sign in with). Copy each one and paste it below.",
+  /* 🔴 RR-359 (owner: "the API login is NOT the e-mail"): DataForSEO's "API login" and "API password" are both on app.dataforseo.com/api-access */
+  dataForSeo: "Open app.dataforseo.com/api-access (DataForSEO → API Access). Copy the \"API login\" shown there exactly — it is not your sign-in e-mail. Then the \"API password\": DataForSEO shows it on that page for 24 hours after you register; after that it is sent to you by e-mail, or you reset it on that same page. It is not the password you sign in with. Paste each one below.",
   youtube: "How to get a YouTube key (free, 5 minutes): open console.cloud.google.com → create a project → \"APIs & Services\" → Library → turn on \"YouTube Data API v3\" → Credentials → Create credentials → API key. Copy the key and paste it here.",
   anthropic: "How to get your Claude key: open console.anthropic.com → API Keys → Create key. Copy it and paste it here.",
   openai: "How to get your ChatGPT key: open platform.openai.com → API keys → Create new secret key. Copy it and paste it here.",

@@ -55,7 +55,7 @@ const profOf = (t) => PROFESSION_WORD.find(([re]) => re.test(t))?.[1] ?? null;
  * one keyword → { set: null | "brand" | "not-about" | "unclear", why } or { cluster, intent, subtest, profession, regulator, country }
  * `regulators`: [{ key, title, names: [lowercase names/short names] }] — a keyword naming one is that regulator's demand
  */
-export function classify(keyword, { regulators = [], subject = "OET" } = {}) {
+export function classify(keyword, { regulators = [], subject = null /* RR-359: no default subject */ } = {}) {
   const t = norm(keyword);
   if (!t) return { set: "not-about", why: "empty" };
   if (NAV.test(t)) return { set: "brand", why: NAV_SITE.test(t) ? "a website or a forum people go to — not our page" : "a school's, a teacher's or a business's own name — not our page" };
@@ -89,7 +89,7 @@ export function classify(keyword, { regulators = [], subject = "OET" } = {}) {
  * → { keywords, setAside: { brand, notAbout, unclear }, clusters: [{ key, intent, subtest, profession, regulator, country, keywords:
  *   [{ text, range }], demand, top }], line }
  */
-export function clusterKeywords(items, { regulators = [], subject = "OET" } = {}) {
+export function clusterKeywords(items, { regulators = [], subject = null /* RR-359: no default subject */ } = {}) {
   const setAside = { brand: [], notAbout: [], unclear: [] }, by = new Map();
   for (const it of items) {
     const text = String(it.text ?? "").trim(); if (!text) continue;

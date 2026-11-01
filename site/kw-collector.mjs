@@ -57,7 +57,7 @@ export function keepRows(rows, { top = COLLECTOR.keepTop, questions = COLLECTOR.
 }
 
 /** one run. → { ok, day, saved, keywords, duplicates, skipped, ops, stoppedBy, why, left, plan, sizeMb } */
-export async function runCollector({ store, ads, kv, now = () => Date.now(), budgetMs = COLLECTOR.runBudgetMs, queue = DEFAULT_QUEUE, limitMb = COLLECTOR.storageLimitMb }) {
+export async function runCollector({ store, ads, kv, now = () => Date.now(), budgetMs = COLLECTOR.runBudgetMs, queue = DEFAULT_QUEUE, limitMb = COLLECTOR.storageLimitMb, moreGroups = [] /* RR-360 B: the topics that are not one of the 24 products */ }) {
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   const [locked] = await kv.run([["SET", "av:collector:lock", id, "NX", "EX", COLLECTOR.lockSeconds]]);
   if (locked !== "OK") return { ok: false, day: today, why: "Another collector run is working — this one did nothing." };
@@ -75,7 +75,7 @@ export async function runCollector({ store, ads, kv, now = () => Date.now(), bud
         if (!packed && !pr.fetchKeywords && !pr.observations) break;
       } catch { out.tidied.error = "The clean-up could not run just now."; break; }
     }
-    const { groups } = await currentGroups(store);
+    const { groups: listed } = await currentGroups(store), groups = [...listed, ...moreGroups];
     const units = unitsOf(groups), fetched = await store.fetchedSince(daysBefore(today, 61));
     const p = plan(units, fetched, today, { queue }), todo = out.stoppedBy ? [] : p.due;
     let i = 0;

@@ -7,7 +7,7 @@
  */
 export const HEALTH = Object.freeze({ failDays: 3, keepDays: 21 });
 /* RR-333 B4 (autonomy 10 Nov – 7 Jan): EVERY collector has its red line — the test dates and the Search Console reader too */
-export const COLLECTORS = Object.freeze({ keywords: "The keyword collector", facts: "The country-facts collector", dates: "The test-dates collector", gsc: "The Search Console reader" });
+export const COLLECTORS = Object.freeze({ keywords: "The keyword collector", facts: "The country-facts collector", dates: "The test-dates collector", gsc: "The Search Console reader", "top-pages": "The top-pages collector" });
 /* the fix for each reason, in the owner's words (names of settings only, never a value) */
 export const FIX = Object.freeze({
   NOT_CONNECTED: "Google is not connected: run the sign-in script in the deploy folder again (node owner-google-sign-in.mjs), then redeploy.",

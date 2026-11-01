@@ -46,6 +46,9 @@ import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, withMeaning } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
 import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
+import { seoPgStore } from "./almiseo-store.mjs"; // RR-360 AlmiSEO Data
+import { almiSeoAnswer, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, syncFindings, alertChanged, keywordsAllowed, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
+import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -107,11 +110,11 @@ export const modeOf = (env = process.env, mode = null) => { const m = mode ?? en
 export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage", "/v1/licence"] }); // RR-342: the licence check, key in the body
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null } = {}) {
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null } = {}) {
   const m = modeOf(env, mode);
-  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch, creatorAi, ytFetch });
+  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
-  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi, creatorAi, ytFetch,
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch,
     salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
@@ -304,7 +307,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null }) { // RR-348 c: creatorAi, ytFetch (tests)
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null }) { // RR-348 c: creatorAi, ytFetch (tests)
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
@@ -318,8 +321,15 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   /* RR-329 A: both collectors follow the owner's queue (his order from /owner, else the default) */
   /* RR-330: an official site that leaves out a certificate of its chain is read as a browser reads it (chain-fetch.mjs) — verification kept */
   const cfFetch = chainFetch(fetchImpl, { allowed: async (url) => (await testableUrl(url, resolve ? { resolve } : {})).ok });
-  const cfRun = async (o = {}) => runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv), youtubeFetch: fetchImpl, ...o });
-  const kwRun = async (o = {}) => runCollector({ store: db, ads, kv, now, queue: await queueNow(kv), limitMb: storageLimitOf(env), ...o });
+  /* RR-360 · ALMISEO DATA (site/almiseo.mjs): its own store; every client's topic joins BOTH collectors' one queue, inside the same AI cap and its plan's month */
+  const seo = seoStore ?? (dbUrlOf(env) ? seoPgStore({ url: dbUrlOf(env) }) : null), seoStores = () => ({ db, cf, seo });
+  const seoGroups = async () => { try { return db ? (await currentGroups(db)).groups : []; } catch { return []; } };
+  const clientWork = async () => { if (!seo) return { topics: [], work: [], limits: {} }; const today = new Date(now()).toISOString().slice(0, 10), limits = await planLimits(seo), topics = await allTopics({ seo, groups: await seoGroups() }), work = await clientTopicsToWork({ seo, topics, today, limits }); useClientTemplates(topics.filter((t) => t.owner === "client")); return { topics, work, limits, today }; };
+  const seoAfterFacts = async () => { if (!seo || !cf) return null; try { const n = await syncFindings({ seo, cf, at: new Date(now()).toISOString() }); const a = await alertChanged({ seo, env, send: (m) => sendEmail({ ...m, env, fetchImpl: emailFetch ?? fetch }), now }); return { ...n, alert: a }; } catch { return null; } };
+  const cfRun = async (o = {}) => { const { work } = await clientWork(), q = await queueNow(kv), out = await runCountryFacts({ store: cf, kwStore: db, kv, env, reader: cfReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: queueWithClients(q, work), youtubeFetch: fetchImpl, products: [...FACT_PRODUCTS, ...work.map((t) => t.id)], countriesOf: (p) => work.find((t) => t.id === p)?.countries ?? null, ...o });
+    if (seo && out.byProduct) for (const t of work) if (out.byProduct[t.id] > 0) await seo.addAccountSpend(new Date(now()).toISOString().slice(0, 7), t.payer, out.byProduct[t.id]);
+    out.almiseo = await seoAfterFacts(); return out; };
+  const kwRun = async (o = {}) => { const { topics, work } = await clientWork(), q = await queueNow(kv); return runCollector({ store: db, ads, kv, now, queue: queueWithClients(q, work), limitMb: storageLimitOf(env), moreGroups: groupsForTopics({ topics, work, clientsAllowed: env[SEO_ENV.keywordsForClients] === "1" }), ...o }); };
   /* RR-348 c · the creator research (site/creators.mjs) — in the keyword cron's time that is left, and on the owner's "Collect now" */
   const crSettings = async () => { try { return settingsOf(db?.creatorSettings ? await db.creatorSettings() : null); } catch { return settingsOf(null); } };
   const crRun = async (o = {}) => runCreatorResearch({ store: db, kv, env, now, fetchImpl: ytFetch ?? fetchImpl, ...(creatorAi ? { ai: creatorAi } : {}), settings: await crSettings(), ...o });
@@ -494,7 +504,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         /* RR-343 (owner, 29 Oct: /owner/collect said "Page not found") · a button's own address opened again — a refresh, a typed or a
          * remembered address — goes back to a page, never to "Page not found" (the buttons themselves POST) */
         const BACK = { "/owner/creators/collect": "/owner/creators", "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries",
-          "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles", "/owner/articles/publish": "/owner/articles" };
+          "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles", "/owner/articles/publish": "/owner/articles", "/owner/almiseo/topic": "/owner/almiseo", "/owner/almiseo/pause": "/owner/almiseo", "/owner/almiseo/remove": "/owner/almiseo", "/owner/almiseo/settled": "/owner/almiseo", "/owner/almiseo/limits": "/owner/almiseo" };
         if (req.method === "GET" && BACK[u.pathname]) return send(303, "", "text/plain", { ...priv, location: BACK[u.pathname] });
         if (req.method === "POST" && u.pathname === "/owner/seeds") {
           if (!db) return send(503, await ownerPage({ message: "The keyword database is not connected." }), undefined, priv);
@@ -591,6 +601,20 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           }
           if (req.method === "POST" && u.pathname === "/owner/articles/publish") return send(200, await page(await publish(String(form().id ?? ""))), undefined, priv);
         }
+        /* RR-360 F · the owner's AlmiSEO Data page: the ONE topic list (a topic or an app idea in one line), the spend ledger and caps, what changed, the plans' limits */
+        if (u.pathname.startsWith("/owner/almiseo")) {
+          if (!seo) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — AlmiSEO Data needs it." }), undefined, priv);
+          const page = async (message = null) => P.ownerAlmiSeo({ topics: await allTopics({ seo, groups: await seoGroups() }), ledger: await spendLedger({ cf, seo, env, now }), changed: await seo.findings({ changed: true }), limits: await planLimits(seo), fields: PLAN_LIMIT_FIELDS, topPagesOn: topPagesConnected(env), names: SEO_ENV, envSet: Object.fromEntries(Object.values(SEO_ENV).map((n) => [n, Boolean(env[n])])), message });
+          const at = new Date(now()).toISOString();
+          if (req.method === "GET") return send(200, await page(), undefined, priv);
+          const f = form();
+          if (u.pathname === "/owner/almiseo/topic") { const p = parseTopicLine(f.line); if (!p.ok) return send(400, await page(p.why), undefined, priv); await seo.putTopic(p.topic, { at }); return send(200, await page(`Added: ${p.topic.name} — the collectors start on its next run.`), undefined, priv); }
+          if (u.pathname === "/owner/almiseo/pause") { const t = (await allTopics({ seo, groups: await seoGroups() })).find((x) => x.id === f.id); if (!t) return send(400, await page("No such topic. Nothing was changed."), undefined, priv); await seo.putTopic({ ...t, paused: !t.paused }, { at }); return send(200, await page(`${t.name}: ${t.paused ? "running again" : "paused"}.`), undefined, priv); }
+          if (u.pathname === "/owner/almiseo/remove") { const t = (await allTopics({ seo, groups: await seoGroups() })).find((x) => x.id === f.id); if (!t || t.owner === "almiworld") return send(400, await page("Only a topic you added can be removed (a product can be paused). Nothing was changed."), undefined, priv); await seo.delTopic(t.id); return send(200, await page(`Removed: ${t.name}. What it collected stays.`), undefined, priv); }
+          if (u.pathname === "/owner/almiseo/settled") { const r = await seo.settleReview(String(f.id ?? "")); return send(r.ok ? 200 : 400, await page(r.ok ? "Reviewed: the flag is down." : "No such finding."), undefined, priv); }
+          if (u.pathname === "/owner/almiseo/limits") { const cur = await planLimits(seo), next = {}; for (const id of Object.keys(cur)) { const usd = Number(f[`${id}_usd`]), cs = Number(f[`${id}_countries`]); if (!(usd >= 0) || !(cs >= 1) || !Number.isInteger(cs)) return send(400, await page("Each plan needs dollars (0 or more) and countries (1 or more). Nothing was saved."), undefined, priv); next[id] = { usdMonth: usd, countries: cs }; } await seo.setSetting("plan-limits", next, { at }); return send(200, await page("The plans' limits are saved."), undefined, priv); }
+          return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
+        }
         /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
         if (u.pathname.startsWith("/owner/countries")) {
           if (!cf) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — country facts need it." }), undefined, priv);
@@ -657,6 +681,19 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const d = niche ? await creatorFor({ store: db, platform, niche, location: String(u.searchParams.get("country") ?? "").toUpperCase() || null }) : null;
         return json(200, { ok: true, niche, data: d });
       }
+      /* 🔴 RR-360 · ALMISEO DATA FOR THE APP: GET /v1/almiseo?subject=&part=&page= (read only, its own subject only, never counted against the keyword searches) and
+       * POST /v1/almiseo/topic (a client's product: the collectors start on its subject). The licence decides; an outside client gets no keyword data from Google (site/almiseo.mjs) */
+      if (u.pathname === "/v1/almiseo" || u.pathname === "/v1/almiseo/topic") {
+        const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
+        if (!seo) return json(503, { ok: false, why: "AlmiSEO Data is not connected yet." });
+        const lic = checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: sales });
+        if (!lic.ok) return json(lic.status, { ok: false, why: lic.why });
+        if (req.method === "POST" && u.pathname === "/v1/almiseo/topic") { const v = form(); const r = await registerClient({ seo, subject: v.subject, name: v.name, seeds: v.seeds, site: v.site, countries: Array.isArray(v.countries) ? v.countries : [], intents: v.intents, lic, limits: await planLimits(seo), groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : 400, r.ok ? { ok: true, started: Boolean(r.started), joined: Boolean(r.joined), topic: r.topic.id, keywordsAllowed: keywordsAllowed(lic, env) } : r); }
+        if (req.method !== "GET" || u.pathname !== "/v1/almiseo") return json(405, { ok: false, why: "Not here." });
+        const part = String(u.searchParams.get("part") ?? "summary"), subject = String(u.searchParams.get("subject") ?? "").slice(0, 80);
+        if (!["summary", "keywords", "questions", "countries", "plan", "coverage"].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });
+        return json(200, await almiSeoAnswer({ part, subject, page: Math.max(0, Number(u.searchParams.get("page")) || 0), lic, stores: seoStores(), env, now, groups: await seoGroups() }));
+      }
       /* RR-326 E · the app's keyword service — the licence decides; while sales are not open, the owner's licence only */
       if (u.pathname === "/v1/keywords" || u.pathname === "/v1/keywords/usage") {
         const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
@@ -698,6 +735,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!cf) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
         const r = u.pathname === "/cron/test-dates" ? await runTestDates({ store: cf, kv, env, reader: cfReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), ...(cfAi ? { ai: cfAi } : {}), now, queue: await queueNow(kv) })
           : await runSearchConsole({ env, kv, kwStore: db, cfStore: cf, fetchImpl: gscFetch ?? fetchImpl, now });
+        if (u.pathname === "/cron/test-dates") await seoAfterFacts(); // RR-360 F: a changed date raises its flag
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       /* RR-349 · the creator research's own cron slot (hourly, tools/bundle-site.mjs CR_CRONS) — Vercel Cron only; 250 s of the function's 300 */
@@ -705,6 +743,12 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!kv || !db) return send(200, JSON.stringify({ ok: false, why: "The store or the database is not connected." }), "application/json", { "cache-control": "no-store" });
         return send(200, JSON.stringify(await crRun({ budgetMs: 230000 })), "application/json", { "cache-control": "no-store" });
+      }
+      /* RR-360 C · the top-pages collector — Vercel Cron only; off until the owner's own switch and account (site/top-pages.mjs) */
+      if (req.method === "GET" && u.pathname === "/cron/top-pages") {
+        if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!seo || !cf) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
+        return send(200, JSON.stringify(await runTopPages({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), fetchImpl: tpFetch ?? fetchImpl, now, groups: await seoGroups() })), "application/json", { "cache-control": "no-store" });
       }
       /* RR-326 B · the daily collector — Vercel Cron only (its Authorization header carries CRON_SECRET) */
       if (req.method === "GET" && u.pathname === "/cron/keywords") {

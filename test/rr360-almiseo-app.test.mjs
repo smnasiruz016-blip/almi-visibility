@@ -42,10 +42,15 @@ test("A: a failed read keeps the last one, says so; a list cut short never repla
   const r2 = await syncProduct({ client: cut, subject: "OET", read: m.read, write: m.write, now: "2026-11-03T10:00:00.000Z" });
   assert.equal(r2.ok, true); assert.equal(m.f[ALMISEO_KEYWORDS].rows.length, 3, "the whole list stays"); assert.match(m.f[ALMISEO_FILE].partial, /second page failed/); assert.equal(r2.counts.keywords, 3);
 });
-test("A: an outside client's read asks no keyword at all", async () => {
-  const m = mem(), c = client({ summary: { ok: true, topic: { id: "oet", name: "AlmiOET", subject: "OET" }, keywords: { total: 0, allowed: false, line: "Keyword data from Google is not shared with outside clients" }, questions: {}, countries: {}, topPages: {}, arrived: {}, review: [] } });
-  await syncProduct({ client: c, subject: "OET", read: m.read, write: m.write, now: AT });
-  assert.equal(c.calls.filter((x) => x[0] === "keywords").length, 0); assert.deepEqual(m.f[ALMISEO_KEYWORDS].rows, []); assert.equal(m.f[ALMISEO_FILE].keywordsAllowed, false);
+test("RULING 2: an outside client's read asks for page content only, and keeps nothing else on its computer; its screen says pages only", async () => {
+  const m = mem(), calls = [], client = { register: async () => ({ ok: true }), part: async (p) => { calls.push(p); return p === "summary" ? { ok: true, outside: true, subject: "OET", topic: { name: "OET" }, pages: 1 } : p === "pages" ? { ok: true, outside: true, topic: { name: "OET" }, plan: [{ kind: "country", country: "Pakistan", title: "OET in Pakistan" }], countries: { Pakistan: { country: "Pakistan", parts: { fee: [{ source: "https://www.oet.com/x", readOn: DAY, value: { text: "AUD 587." } }] } } } } : { ok: false, why: "refused" }; } };
+  const r = await syncProduct({ client, subject: "OET", read: m.read, write: m.write, now: AT });
+  assert.deepEqual(calls, ["summary", "pages"], "nothing else is asked"); assert.equal(r.outside, true); assert.equal(r.counts.pages, 1); assert.equal(m.f[ALMISEO_KEYWORDS], undefined);
+  const v = almiSeoView(m.f[ALMISEO_FILE], { subject: "OET", nowDay: DAY }); assert.equal(v.state, "PAGES"); assert.equal(v.pages, 1); assert.match(v.line, /1 page ready to make for OET/);
+  assert.deepEqual(Object.keys(v).sort(), ["line", "pages", "readOn", "state", "subject"], "no count of keywords, questions, coverage or top pages");
+  assert.deepEqual(genericPlanPages({ file: m.f[ALMISEO_FILE], subject: "OET" }).pages.map((p) => p.title), ["OET in Pakistan"]);
+  assert.match(MAIN, /const outsideClient = \(\) =>/); assert.match(MAIN, /r\[2\] === "keywords\/service" && req\.method === "POST" && outsideClient\(\)\) return send\(403/);
+  assert.match(UI, /K\.service\.outside \? "" : `<h4>AlmiWorld keyword service/, "its keyword panel is not shown");
 });
 test("RR-359 stays: another subject's file is never read", async () => {
   const m = mem(); await syncProduct({ client: client(), subject: "OET", read: m.read, write: m.write, now: AT });
@@ -162,7 +167,7 @@ test("E: the page's numbers are only what was measured; what arrived, last read;
 });
 test("E + A3: the screen is in the product's menu and on the Overview; sync on start and on a schedule; never a word sending the client to buy", () => {
   assert.match(UI, /id="astab">AlmiSEO Data<\/button>/); assert.match(UI, /\$\("#astab"\)\.onclick = almiSeoScreen/); assert.match(UI, /\$\{asCardHtml\(O\.almiseo\)\}/);
-  assert.match(UI, /you do not need DataForSEO or any other service/); assert.match(UI, /Last read:/); assert.match(UI, /What arrived/);
+  assert.match(UI, /you need no other service/); assert.match(UI, /Last read:/); assert.match(UI, /What arrived/);
   assert.match(MAIN, /setTimeout\(\(\) => \{ syncAll\(\); setInterval\(syncAll, SYNC\.everyHours \* 3600e3\)/);
   assert.match(MAIN, /r\[2\] === "almiseo" && req\.method === "GET"/); assert.match(MAIN, /r\[2\] === "almiseo\/sync"/); assert.match(MAIN, /r\[2\] === "almiseo\/browser" && req\.method === "POST"/);
 });

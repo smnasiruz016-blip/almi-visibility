@@ -182,7 +182,7 @@ const SCREEN_GUIDE = {
   bingScreen: { line: "Connect Bing Webmaster Tools — what people search on Bing.", next: OVERVIEW },
   socialLinksScreen: { line: "Your social media pages — linked from your pages.", next: OVERVIEW },
   searchDataScreen: { line: "Optional — Google's results from your own DataForSEO account, only if you want it. AlmiSEO Data and your own AI in your browser need no other service.", next: OVERVIEW },
-  almiSeoScreen: { line: "What AlmiWorld's own collectors hold for this product — no other service needed.", next: OVERVIEW },
+  almiSeoScreen: { line: "AlmiWorld's own research for this product — no other service needed.", next: OVERVIEW },
   planScreen: { line: "Your Visibility plan and licence key.", next: PRODUCTS },
   company: { line: "Your company's name, website and logo.", next: PRODUCTS },
   addProduct: { line: "Add a product: its name and website.", next: PRODUCTS },
@@ -304,11 +304,11 @@ async function keywordPanel(P) {
     ${K.top.length ? `<details><summary class="meta">The 25 keywords with the most searches (Google's ranges, never exact)</summary><table class="kw-table"><tr><th>Keyword</th><th>Searches a month</th><th>Period</th><th>Location</th><th>Source</th><th>First seen</th><th>Last seen</th><th>Trend</th></tr>${K.top.map((k) => `<tr><td>${esc(k.text)}</td><td>${esc(k.range ?? "—")}</td><td>${esc(k.period ?? "—")}</td><td>${esc(k.location)}</td><td>${esc(k.source)}</td><td>${esc(k.firstSeen)}</td><td>${esc(k.lastSeen)}</td><td>${arrow(k.direction)}${k.change3m ? ` <span class="meta">3 months ${esc(k.change3m)}</span>` : ""}</td></tr>`).join("")}</table></details>` : ""}
     <label>The folder your Keyword Planner files are in (keyword-planner-*.csv or "Keyword Stats …")<input id="kwdir" value="${esc(K.folder?.dir ?? "")}" placeholder="for example C:\\Users\\you\\OneDrive\\Desktop\\Visibility lists"></label>
     <label class="check"><input type="checkbox" id="kwauto" ${K.folder?.auto !== false ? "checked" : ""}> Read new files from it each time this screen opens</label><button class="ghost" id="kwfolder">Use this folder and read it now</button> <span id="kwmsg"></span>
-    <h4>AlmiWorld keyword service — included in your plan</h4>
+    ${K.service.outside ? "" : `<h4>AlmiWorld keyword service — included in your plan</h4>
     <p class="meta">Keyword ideas and Google's monthly search volumes (Google Ads Keyword Planner data), from AlmiWorld's own keyword database. You need no Google account and no Google sign-in.</p>
     <p class="meta" id="svcusage" data-svc-usage>${K.service.plan ? "Reading this month's searches…" : "Add your plan first (Your plan) — the keyword service checks it."}</p>
     <label>Words to look up (up to 20, separated by commas)<input id="svcseeds" placeholder="for example oet, oet exam"></label>
-    <label>Country<select id="svcloc">${K.service.locations.map((l) => `<option value="${esc(l.code)}">${esc(l.name)}</option>`).join("")}</select></label><button class="ghost" id="svcgo">Get keyword ideas</button> <span id="svcmsg"></span>
+    <label>Country<select id="svcloc">${K.service.locations.map((l) => `<option value="${esc(l.code)}">${esc(l.name)}</option>`).join("")}</select></label><button class="ghost" id="svcgo">Get keyword ideas</button> <span id="svcmsg"></span>`}
     <h4>Optional: your own Google Ads account — Keyword Planner's data, free <span class="tag" data-ads-state>${esc(A.state)}</span></h4>
     <p class="meta">Only if you want your own account's data — the keyword service above needs none of it. Off until you switch it on.</p>
     <p data-ads-line><b>${esc(A.line)}</b></p>${A.offLine ? `<p class="meta" data-ads-off>${esc(A.offLine)}</p>` : ""}
@@ -324,8 +324,8 @@ async function keywordPanel(P) {
   $("#kwfolder").onclick = async () => { note($("#kwmsg"), "Reading the folder…"); const r = await post(url("keywords/folder"), { dir: $("#kwdir").value, auto: $("#kwauto").checked }); note($("#kwmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 1200); };
   $("#adssave").onclick = async () => { const v = { access: $("#adsacc").value, applied: [...document.querySelectorAll("[data-adsapplied]")].filter((x) => x.checked).map((x) => x.dataset.adsapplied), on: $("#adson").checked }; if ($("#adscid").value) v.clientId = $("#adscid").value.trim(); if ($("#adscust").value) v.customerId = $("#adscust").value.trim(); const r = await post(url("keywords/ads"), v); note($("#adsmsg"), r.refused ?? r.line, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 800); };
   /* RR-326 E: AlmiWorld's keyword service */
-  if (K.service.plan) get(url("keywords/service/usage")).then((u) => { $("#svcusage").textContent = u.line ?? ""; }).catch(() => {});
-  $("#svcgo").onclick = async () => { note($("#svcmsg"), "Asking AlmiWorld's keyword service…"); const r = await post(url("keywords/service"), { seeds: $("#svcseeds").value, location: $("#svcloc").value }); note($("#svcmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 1500); };
+  if (K.service.plan && !K.service.outside) get(url("keywords/service/usage")).then((u) => { $("#svcusage").textContent = u.line ?? ""; }).catch(() => {});
+  if ($("#svcgo")) $("#svcgo").onclick = async () => { note($("#svcmsg"), "Asking AlmiWorld's keyword service…"); const r = await post(url("keywords/service"), { seeds: $("#svcseeds").value, location: $("#svcloc").value }); note($("#svcmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); if (r.ok) setTimeout(() => keywordPanel(P), 1500); };
   if ($("#adssign")) $("#adssign").onclick = async () => { const r = await post(url("keywords/ads/start"), {}); note($("#adsmsg"), r.line ?? r.refused, r.ok ? "ok" : "err"); };
   /* RR-357: DataForSEO lives in ONE place */
   if ($("#sdgo")) $("#sdgo").onclick = searchDataScreen;
@@ -769,7 +769,7 @@ async function almiSeoScreen() {
   if (!(await here("almiSeoScreen"))) return;
   const id = encodeURIComponent(P), { view: V, syncing } = await get(`/api/products/${id}/almiseo`), B = await get(`/api/products/${id}/almiseo/browser`).catch(() => ({ items: [] }));
   const rows = V.state === "READ" ? [["Keywords", V.keywords.allowed ? countOr(V.keywords.count) : "not shared with outside clients", V.keywords.allowed ? "people's searches for your subject, with Google's monthly figures" : V.keywords.line], ["Question groups", countOr(V.questions.groups), `${countOr(V.questions.answered)} answered from an official page; ${countOr(V.questions.asked)} questions in the shared bank`], ["Countries with all their parts", `${countOr(V.countries.allParts)} of ${countOr(V.countries.held)}`, V.countries.list.slice(0, 20).join(", ") || "none yet"], ["Facts waiting for review", countOr(V.countries.waitingReview), "found, but not yet confirmed on an official page — they never reach a page"], ["Top pages read", countOr(V.topPages.read), `${countOr(V.topPages.lists)} saved coverage lists${V.topPages.on ? "" : " — this collector is off for now"}`], ["Planned pages", countOr(V.plan.pages), "ready by the rules: every part checked"]] : [];
-  $("#app").innerHTML = `<div class="card" id="asbox"><h2>AlmiSEO Data</h2><p class="ask">What AlmiWorld's own collectors hold for this product. It is included in your plan: you do not need DataForSEO or any other service.</p><p id="asline">${esc(V.line)}</p>
+  $("#app").innerHTML = `<div class="card" id="asbox"><h2>AlmiSEO Data</h2><p class="ask">${V.state === "PAGES" ? "Finished pages from AlmiWorld's own research." : "What AlmiWorld's own collectors hold for this product."} It is included in your plan: you need no other service.</p><p id="asline">${esc(V.line)}</p>
     ${V.partial ? `<div class="warn">One part could not be read: ${esc(V.partial)}. What was read before is kept.</div>` : ""}${V.lastWhy ? `<p class="meta">The last try: ${esc(V.lastWhy)}${V.triedOn ? ` (${esc(String(V.triedOn).slice(0, 16).replace("T", " "))})` : ""}.</p>` : ""}
     ${rows.length ? `<table class="prices" id="astable"><tr><th>What</th><th>How many</th><th></th></tr>${rows.map(([a, b, c]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td><td class="meta">${esc(c ?? "")}</td></tr>`).join("")}</table>
     <h3>What arrived</h3><p class="meta" id="asarrived">Today: ${countOr(V.arrived.today.facts)} facts, ${countOr(V.arrived.today.keywords)} new keywords. This week: ${countOr(V.arrived.week.facts)} facts, ${countOr(V.arrived.week.keywords)} new keywords.</p>

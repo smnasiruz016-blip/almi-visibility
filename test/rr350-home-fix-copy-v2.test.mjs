@@ -60,7 +60,7 @@ const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t", title: { on: 
 test("RR-350 · COPY v2: the hero, its buttons and ticks; the video band; above the plans; the day plan; the last band; the footnote", () => {
   assert.ok(home.includes("<h1>Stop Guessing. Start Getting Found.</h1>") && home.includes(`<p class="lead">${HERO.sub}</p>`));
   assert.ok(home.includes(">Get My Free Site Score</a>") && home.includes(">Buy Now — $30/month</a>"));
-  assert.match(home, /<p class="sh-ticks" data-ticks><span>✓ Real Google data<\/span><span>✓ No card, no email<\/span><span>✓ You choose what goes live<\/span><\/p>/);
+  assert.match(home, /<p class="sh-ticks" data-ticks><span>✓ Real research<\/span><span>✓ No card, no email<\/span><span>✓ You choose what goes live<\/span><\/p>/);
   assert.ok(!home.includes("You approve every change</span>"), "a client may choose automatic publishing — the hero never says they approve every change");
   assert.ok(home.includes(`<h2>${YT.heading}</h2>`) && YT.sub.startsWith("Hooks that stop the scroll.") && home.includes('href="#title-check">Check My Title Free →</a>'));
   assert.ok(home.includes(`<h2 id="plans">${PLANS_BAND.heading}</h2><p class="sub">${PLANS_BAND.sub}</p>`));

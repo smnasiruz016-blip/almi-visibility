@@ -158,6 +158,16 @@ export function pgStore({ url, Pool = null, max = 3 }) {
     },
     /** RR-333 D · the keywords collected for some groups (a product, our Search Console), each with its newest figure per location */
     async groupKeywords(groups) { await ensure(); return (await q("SELECT gk.keyword, gk.location, o.avg_monthly_searches::text AS volume, gk.grp FROM kw_group_keyword gk LEFT JOIN LATERAL (SELECT avg_monthly_searches FROM kw_observation x WHERE x.keyword = gk.keyword AND x.location = gk.location ORDER BY x.day DESC LIMIT 1) o ON true WHERE gk.grp = ANY($1::text[])", [groups])).map((r) => ({ keyword: r.keyword, location: r.location, volume: r.volume === null ? null : Number(r.volume), group: r.grp })); },
+    /** RR-360 A · ALL of a topic's keywords by relevance: those holding its own words, the most searched first (All locations' figure, else the
+     *  largest), never another product's; limit 0 = the counts only. → { total, today, week, rows: [{ keyword, volume, places, last }] } */
+    async topicKeywords({ groups, pattern, offset = 0, limit = 5000, day = new Date().toISOString().slice(0, 10) }) {
+      await ensure();
+      const week = new Date(Date.parse(`${day}T00:00:00Z`) - 7 * 864e5).toISOString().slice(0, 10);
+      const [c] = await q("WITH k AS (SELECT keyword, max(first_day) AS first FROM (SELECT keyword, min(last_day) AS first_day FROM kw_group_keyword WHERE grp = ANY($1::text[]) AND keyword ~ $2 GROUP BY keyword) x GROUP BY keyword) SELECT count(*)::int AS total, count(*) FILTER (WHERE first >= $3)::int AS today, count(*) FILTER (WHERE first >= $4)::int AS week FROM k", [groups, pattern, day, week]);
+      if (!limit) return { total: c.total, today: c.today, week: c.week, rows: [] };
+      const rows = await q("WITH k AS (SELECT keyword, count(DISTINCT location)::int AS places, max(last_day)::text AS last FROM kw_group_keyword WHERE grp = ANY($1::text[]) AND keyword ~ $2 GROUP BY keyword) SELECT k.keyword, k.places, k.last, COALESCE((SELECT x.avg_monthly_searches FROM kw_observation x WHERE x.keyword = k.keyword AND x.location = 'ALL' ORDER BY x.day DESC LIMIT 1), (SELECT max(x.avg_monthly_searches) FROM kw_observation x WHERE x.keyword = k.keyword))::text AS volume FROM k ORDER BY (COALESCE((SELECT x.avg_monthly_searches FROM kw_observation x WHERE x.keyword = k.keyword AND x.location = 'ALL' ORDER BY x.day DESC LIMIT 1), (SELECT max(x.avg_monthly_searches) FROM kw_observation x WHERE x.keyword = k.keyword))) DESC NULLS LAST, k.keyword LIMIT $3 OFFSET $4", [groups, pattern, limit, offset]);
+      return { total: c.total, today: c.today, week: c.week, rows: rows.map((r) => ({ keyword: r.keyword, volume: r.volume === null ? null : Number(r.volume), places: r.places, last: r.last })) };
+    },
     /** RR-333 · what takes the room: the biggest tables (their own size with indexes), in MB — for /owner */
     async tableSizes() { await ensure(); return (await q("SELECT relname AS name, round(pg_total_relation_size(relid) / 1048576.0, 1)::float8 AS mb, n_live_tup::bigint AS rows FROM pg_catalog.pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 8")).map((r) => ({ name: r.name, mb: Number(r.mb), rows: Number(r.rows) })); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
@@ -247,6 +257,16 @@ export function memoryStore({ sizeMb = null } = {}) {
     /* the tests hand a size in (a number, or a function of what is held) */
     async groupKeywords(groups) { return [...gk.values()].filter((x) => groups.includes(x.grp)).map((x) => { let best = null; for (const o of obs.values()) if (o.keyword === x.keyword && o.location === x.location && (!best || o.day > best.day)) best = o; return { keyword: x.keyword, location: x.location, volume: best?.volume ?? null, group: x.grp }; }); },
     async sizeMb() { return typeof sizeMb === "function" ? sizeMb({ observations: obs.size, fetches: fetches.size }) : sizeMb; },
+    /* RR-360 A · the same contract as on Postgres (\m…\M, Postgres' word ends, become the regular expression's own) */
+    async topicKeywords({ groups, pattern, offset = 0, limit = 5000, day = new Date().toISOString().slice(0, 10) }) {
+      const re = new RegExp(String(pattern).replace(/\\m/g, "(?<![\\p{L}\\p{N}])").replace(/\\M/g, "(?![\\p{L}\\p{N}])"), "u"), week = new Date(Date.parse(`${day}T00:00:00Z`) - 7 * 864e5).toISOString().slice(0, 10), by = new Map();
+      for (const x of gk.values()) if (groups.includes(x.grp) && re.test(x.keyword)) { const o = by.get(x.keyword) ?? { keyword: x.keyword, places: new Set(), last: x.last, first: x.last }; o.places.add(x.location); if (x.last > o.last) o.last = x.last; if (x.last < o.first) o.first = x.last; by.set(x.keyword, o); }
+      const volumeOf = (k) => { let all = null, max = null; for (const o of obs.values()) if (o.keyword === k) { if (o.location === "ALL" && (!all || o.day > all.day)) all = o; if (o.volume !== null && (max === null || o.volume > max)) max = o.volume; } return all?.volume ?? max; };
+      const list = [...by.values()], total = list.length, today = list.filter((x) => x.first >= day).length, wk = list.filter((x) => x.first >= week).length;
+      if (!limit) return { total, today, week: wk, rows: [] };
+      const rows = list.map((x) => ({ keyword: x.keyword, volume: volumeOf(x.keyword), places: x.places.size, last: x.last })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.keyword.localeCompare(b.keyword)).slice(offset, offset + limit);
+      return { total, today, week: wk, rows };
+    },
     async counts(day) {
       const o = [...obs.values()], d = (xs) => new Set(xs).size;
       const groups = [...new Set([...gk.values()].map((x) => x.grp))].sort().map((g) => { const xs = [...gk.values()].filter((x) => x.grp === g); return { grp: g, keywords: d(xs.map((x) => x.keyword)), today: d(xs.filter((x) => x.last === day).map((x) => x.keyword)), locations: d(xs.map((x) => x.location)), last: xs.map((x) => x.last).sort().at(-1) }; });

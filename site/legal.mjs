@@ -76,7 +76,16 @@ export function renderLegal(page, { preview = false } = {}) {
 }
 
 /** the generated file (tools/legal-from-docx.mjs); missing → no page published */
+/* 🔴 OWNER'S RULING 3 + 4 (1 Nov 2026): the website does not say where AlmiWorld's data comes from, and the keyword finder is gone. The generated file stays exactly as his Word file
+ * made it (its sha256 is pinned); these sentences are changed when the page is shown, until his Word file says the same. The app's own optional connections to a client's OWN account stay named. */
+export const OWNER_RULING_LEGAL = Object.freeze([
+  ["Keyword searches: when you use the free keyword finder on our website, or AlmiWorld’s keyword service in the app, the words you search are sent to AlmiWorld. We store the searched words and the keyword results, never together with personal data, so the service gets faster and better for everyone. Search volumes come from Google Ads Keyword Planner, through AlmiWorld’s own Google Ads account.", "Research: AlmiWorld researches what people want to know about a subject and uses it to help make your pages. It never holds your personal data together with that research."],
+  ["Google Ads (Keyword Planner)", "Google Ads, only if you connect your own account"],
+  ["Keyword ideas and search volume ranges", "What your own account shows you"],
+  ["Google (YouTube, Search Console, Google Ads keyword data)", "Google (YouTube, Search Console, your own Google Ads account)"],
+]);
+export const withOwnerRulings = (v) => { if (typeof v === "string") return OWNER_RULING_LEGAL.reduce((t, [a, b]) => t.split(a).join(b), v); if (Array.isArray(v)) return v.map(withOwnerRulings); if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === "source" ? x : withOwnerRulings(x)])); return v; };
 export function loadLegal(url = new URL("./legal.generated.json", import.meta.url)) {
   /* RR-326 F (26 Oct): the owner's Word file now holds the keyword-search words itself — nothing is added here any more */
-  try { return JSON.parse(readFileSync(url, "utf8")); } catch { return { source: null, terms: null, privacy: null }; }
+  try { return withOwnerRulings(JSON.parse(readFileSync(url, "utf8"))); } catch { return { source: null, terms: null, privacy: null }; }
 }

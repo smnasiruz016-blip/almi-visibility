@@ -18,7 +18,7 @@ const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t" });
 
 test("RR-347 · the hero: the owner's headline and line, Buy now and the free score stay, six engines on one hub, the trademark line", () => {
   assert.match(home, /<h1>Stop Guessing\. Start Getting Found\.<\/h1>/); // RR-350 COPY v2
-  assert.ok(home.includes("AI grows your website, YouTube, TikTok and Instagram — every single day, while you sleep. Pages, articles, keywords, hooks and captions. All for $30 a month."));
+  assert.ok(home.includes("AI grows your website, YouTube, TikTok and Instagram — every single day, while you sleep. Pages, articles, hooks and captions. All for $30 a month."));
   assert.match(home, /<div class="cta"><a class="pill big" href="#score">Get My Free Site Score<\/a><a class="pill big alt" href="\/pricing" data-buy>/); // RR-350 COPY v2
   const map = home.slice(home.indexOf("data-ai-map"), home.indexOf(TRADEMARKS) + TRADEMARKS.length);
   assert.deepEqual([...map.matchAll(/<li class="ai-node">.*?<b[^>]*>([^<]+)<\/b>/g)].map((m) => m[1]), ["ChatGPT", "Google", "Gemini", "Claude", "Perplexity", "YouTube", "TikTok", "Instagram"]); // RR-348: TikTok and Instagram joined

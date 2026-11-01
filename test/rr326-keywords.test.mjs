@@ -28,7 +28,7 @@ import { runCollector, plan, COLLECTOR } from "../site/kw-collector.mjs";
 import { findKeywords, finderQuery, groupOf, csvOf, SOURCE_LINE, FINDER } from "../site/kw-finder.mjs";
 import { isOwner, ownerCookie, OWNER_RULES } from "../site/owner.mjs";
 import { kvStore } from "../site/limits.mjs";
-import { loadLegal } from "../site/legal.mjs";
+import { loadLegal, withOwnerRulings } from "../site/legal.mjs";
 import { adsStatus } from "../desktop/google-ads.mjs";
 import { main as signIn, clientFromFile, cleanPath } from "../site/owner-google-sign-in.mjs";
 import { CRONS, VERCEL_JSON_LITE, LITE_DEPENDENCIES, siteFiles } from "../tools/bundle-site.mjs";
@@ -195,7 +195,7 @@ test("B · the collector STOPS in plain words: our daily cap (given back, never 
 /* the public-lite app with every stand-in */
 async function site({ env = FULL_ENV, clock = clockAt("2026-10-26T10:00:00Z"), kv = null, google = null, store = memoryStore(), mode = "public-lite" } = {}) {
   const K = kv ?? fakeKv(clock), G = google ?? fakeGoogle(clock);
-  const app = createApp({ mode, env, kvFetch: K.fetchImpl, adsFetch: G.fetchImpl, kwStore: store, now: clock.now, sleep: clock.sleep, resolve: async () => [{ address: "93.184.216.34" }] });
+  const app = createApp({ finderPublicForOldTests: true /* the owner's ruling 4 closed it to visitors (test/rr361); its own working stays tested */, mode, env, kvFetch: K.fetchImpl, adsFetch: G.fetchImpl, kwStore: store, now: clock.now, sleep: clock.sleep, resolve: async () => [{ address: "93.184.216.34" }] });
   const srv = createServer(app); await new Promise((r) => srv.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${srv.address().port}`;
   const req = (p, { method = "GET", form = null, ip = "203.0.113.9", cookie = null, headers = {} } = {}) => fetch(base + p, { method, redirect: "manual", headers: { "x-real-ip": ip, ...(form ? { "content-type": "application/x-www-form-urlencoded" } : {}), ...(cookie ? { cookie } : {}), ...headers }, body: form ? new URLSearchParams(form) : undefined }).then(async (r) => ({ status: r.status, text: await r.text(), headers: r.headers }));
@@ -517,11 +517,12 @@ test("E · the app: switched on with Basic access, its line says \"Google Ads: B
 
 test("F · the privacy page is the owner's 26 Oct Word file exactly — his keyword-search words from his file, nothing added by the site", () => {
   const L = loadLegal(), words = (b) => (b.runs ?? []).map((r) => r.text).join(""), file = JSON.parse(readFileSync(join(REPO, "site/legal.generated.json"), "utf8"));
-  assert.deepEqual(L, file, "the page is the generated file, with nothing added");
+  assert.deepEqual(L, withOwnerRulings(file), "the page is the generated file, with only the owner's ruling 3 + 4 changes"); // RR-361: until his Word file says the same
   assert.ok(L.privacy.some((b) => words(b) === "Last updated: 26 October 2026"));
-  const kw = L.privacy.filter((b) => words(b).startsWith("Keyword searches: "));
+  /* the Word file's own sentence stands in the generated file; the page shows the owner's ruling 3 + 4 words until his file says the same */
+  const kw = file.privacy.filter((b) => words(b).startsWith("Keyword searches: "));
   assert.equal(kw.length, 1); assert.equal(kw[0].kind, "li");
-  assert.match(words(kw[0]), /Search volumes come from Google Ads Keyword Planner, through AlmiWorld’s own Google Ads account\.$/);
+  assert.equal(L.privacy.filter((b) => words(b).startsWith("Keyword searches: ")).length, 0); assert.equal(L.privacy.filter((b) => words(b).startsWith("Research: AlmiWorld researches")).length, 1);
   assert.equal(L.privacy.filter((b) => words(b).startsWith("Free keyword finder: ")).length, 0, "the old added paragraph is gone");
   assert.doesNotMatch(P.privacy({ lite: true }) ?? "", /Free keyword finder: the words you search/);
 });
@@ -615,7 +616,7 @@ test("D · the bundle: the database driver pinned, eight daily crons, 300 s, the
   try {
     const r = spawnSync(process.execPath, [join(REPO, "tools", "bundle-site.mjs"), "--public-lite", out], { encoding: "utf8" }); assert.equal(r.status, 0, r.stderr);
     const vj = JSON.parse(readFileSync(join(out, "vercel.json"), "utf8")), pj = JSON.parse(readFileSync(join(out, "package.json"), "utf8"));
-    assert.equal(vj.crons.filter((c) => c.path === "/cron/keywords").length, 8); assert.equal(vj.crons.length, 31, "RR-328 B: + four country-facts runs; RR-331: + two test-dates runs and one Search Console check; RR-349: + sixteen hourly creator runs"); assert.ok(vj.crons.every((c) => ["/cron/keywords", "/cron/country-facts", "/cron/test-dates", "/cron/search-console", "/cron/creators"].includes(c.path) && /^\d+ \d+ \* \* \*$/.test(c.schedule))); assert.equal(vj.functions["api/index.mjs"].maxDuration, 300);
+    assert.equal(vj.crons.filter((c) => c.path === "/cron/keywords").length, 8); assert.equal(vj.crons.length, 35, "RR-328 B: + four country-facts runs; RR-331: + two test-dates runs and one Search Console check; RR-349: + sixteen hourly creator runs; RR-360: + four top-pages runs"); assert.ok(vj.crons.every((c) => ["/cron/keywords", "/cron/country-facts", "/cron/test-dates", "/cron/search-console", "/cron/creators", "/cron/top-pages"].includes(c.path) && /^\d+ \d+ \* \* \*$/.test(c.schedule))); assert.equal(vj.functions["api/index.mjs"].maxDuration, 300);
     assert.deepEqual(pj.dependencies, { pg: "8.23.1" }); assert.ok(existsSync(join(out, "owner-google-sign-in.mjs"))); assert.ok(existsSync(join(out, "desktop", "ads-wire.mjs")));
     assert.ok(!existsSync(join(out, "desktop", "keyword-db.mjs")), "the app's keyword database is not the site's");
     const engine = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")); assert.equal(engine.dependencies, undefined, "the engine itself installs nothing");

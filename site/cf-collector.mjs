@@ -27,7 +27,7 @@ import { randomBytes } from "node:crypto";
 import { COUNTRIES, neighboursOf } from "../desktop/world.mjs";
 import { CF_PROFESSIONS, NAME_TYPES, nameTypeOf, councilFound, officialSite, blockedSource, SITE_ABROAD, nameOnPage, addressOnPage, quoteOnPage, numbersOf, hostOf, governmentHost, SHOWN_STATUS, refuseBlocked } from "../desktop/country-facts.mjs";
 import { ownerCouncilsOf, OWNER_COUNCILS } from "../desktop/owner-councils.mjs"; // RR-333; RR-343 the re-check
-import { PRODUCT_FACTS, PART_INFO, FACT_PRODUCTS, searchedParts, bodyParts, ownerSite } from "../desktop/product-facts.mjs";
+import { PRODUCT_FACTS, PART_INFO, FACT_PRODUCTS, searchedParts, bodyParts, ownerSite, templateOf } from "../desktop/product-facts.mjs";
 import { feeOf } from "../desktop/fee.mjs";
 import { readRates, feeInCurrency, CURRENCY_OF, localShown as localFee, feeShown } from "../desktop/rates.mjs";
 import { venueCountries } from "../desktop/venues.mjs";
@@ -82,12 +82,12 @@ export const finishedIn = (tasks) => (product, country) => tasksOf(product).ever
 export const costKey = (p) => `av:cf:cost:${p}`;
 
 /** one run. → { ok, day, saved, unconfirmed, kept, done: ["Pakistan · councils", …], searching, finished, stoppedBy, why, aiUsd, reads, searches } */
-export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS, youtube = null, youtubeFetch = fetch }) {
+export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS, youtube = null, youtubeFetch = fetch, countriesOf = null /* RR-360 B: a client topic has its own countries */ }) {
   const start = now(), today = dayOf(start), at = () => new Date(now()).toISOString(), id = randomBytes(8).toString("hex");
   reader = refuseBlocked(reader); // RR-333 C: the owner's blocked private sites are never read
   if (kv) { const [locked] = await kv.run([["SET", "av:cf:lock", id, "NX", "EX", CF_COLLECTOR.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another country-facts run is working — this one did nothing." }; }
   const caps = capsOf(env), spent = await store.spend(today), r0 = reader.requests(), tasks = await store.tasks();
-  const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], finished: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null, templates: {} };
+  const out = { ok: true, day: today, saved: 0, unconfirmed: 0, kept: 0, done: [], searching: [], finished: [], stoppedBy: null, why: null, aiUsd: 0, reads: 0, searches: 0, aiError: null, templates: {}, byProduct: {} /* RR-360 B: what each product cost in this run — a client's goes against its plan's month */ };
   /* RR-334 (owner: test and tune the templates) · per template: questions asked, web searches, results confirmed on an official page */
   const tpl = (name) => (out.templates[name] ??= { asks: 0, searches: 0, found: 0, guidance: 0 });
   const foundBy = (f) => (f.part === "councils" ? "councils" : f.part === "rules" ? "rules" : f.part === "questions" ? (f.value?.answerKind === "official" && f.aiWritten ? "answers" : f.value?.answerKind === "guidance" ? "answers:guidance" : null) : f.product && f.product !== "oet" && f.proposedBy === "ai" ? "facts" : null);
@@ -223,7 +223,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
     }
     /* ── 3 · per (product, country), in the queue's order: the front first, a background task (another country, a daily re-search) every 4th ── */
     const units = [];
-    for (const p of products) for (const c of list) {
+    for (const p of products) for (const c of countriesOf?.(p) ?? list) {
       const ts = tasksOf(p).filter((t) => due(c, t)); if (!ts.length) continue;
       const background = finished(p, c) && ts.every((t) => tasks.get(`${c}|${t}`)?.state === "searching");
       units.push({ id: `${p}|${c}`, product: p, country: c, tasks: ts, background });
@@ -363,12 +363,13 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
         }
       } else await productOf(u);
       /* the country's AI cost, for the owner's ETA (only a country tried in full counts) */
+      out.byProduct[u.product] = (out.byProduct[u.product] ?? 0) + (out.aiUsd - before);
       if (!wasFinished && finished(u.product, u.country)) { out.finished.push(`${u.product}|${u.country}`); (costs[u.product] ??= []).push({ usd: out.aiUsd - before, reads: reader.requests() - readsBefore }); }
     }
 
     /* ── RR-329 B · one (product, country) of every other product: its questions, then its other parts in ONE AI question ── */
     async function productOf(u) {
-      const p = u.product, c = u.country, T = PRODUCT_FACTS[p], key = (part, n) => `${p}:${part}|${c}|${n}`;
+      const p = u.product, c = u.country, T = templateOf(p), key = (part, n) => `${p}:${part}|${c}|${n}`;
       const mine = async () => (await store.facts({ country: c })).filter((f) => f.product === p && SHOWN_STATUS.includes(f.status));
       /* RR-334 (owner: every collector by the same rules) · REPLACES RR-329's "keyword groups answered from the country's facts": the
        * questions people really ask (keywords, Search Console, the owner's), grouped by meaning and answered from an official page, checked

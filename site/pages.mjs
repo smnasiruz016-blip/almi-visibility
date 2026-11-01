@@ -40,7 +40,6 @@ export const PLANS = Object.freeze([
  * list — a feature that does not work has no card). A line that needs the client's own connection says so. */
 export const INCLUDES = Object.freeze([
   "Site check: a score, broken links, security basics and what to fix first",
-  "Real Google keyword volumes (Google Ads data)",
   "The questions people ask about your product",
   "Page and article plans, and drafts with their sources",
   "Your Google Search Console searches (with your own Google sign-in)",
@@ -129,7 +128,7 @@ section.band{padding:64px 0} section.paper{background:var(--white);border-top:1p
 @media (max-width:1023px){.rows{display:none} .menu{display:block}}
 @media (max-width:820px){.hero .grid2{grid-template-columns:1fr;gap:36px} .hero{padding:40px 0 56px} .fcols{grid-template-columns:1fr} .admin{flex-direction:column} .admin nav{flex:none;width:100%;display:flex;flex-wrap:wrap}}
 @media (max-width:480px){.wrap{padding:0 16px} .brand img{height:32px} .brand .name{font-size:17px} .gaugebox{grid-template-columns:1fr} .scorecard{padding:18px} section.band{padding:48px 0}}
-/* RR-325: the owner's legal pages, the keyword finder and the honeypot */
+/* RR-325: the owner's legal pages and the honeypot */
 table.legal{width:100%;border-collapse:collapse;font-size:15px;background:var(--white)} table.legal th,table.legal td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--peach);vertical-align:top} table.legal th{color:var(--ink)}
 .prose ul{padding-left:22px} .prose li{margin:4px 0} mark.fill{background:#FDE68A;color:#1A1A2E;padding:0 4px;border-radius:4px;font-weight:700}
 .soon{display:inline-block;border-radius:999px;background:var(--sunrise);color:#1A1A2E;padding:2px 12px;font-size:13px;font-weight:700;margin-left:8px;vertical-align:middle}
@@ -140,7 +139,7 @@ table.legal{width:100%;border-collapse:collapse;font-size:15px;background:var(--
 @keyframes run{from{left:-35%}to{left:100%}} @keyframes sweep{from{stroke-dasharray:4 100}to{stroke-dasharray:100 100}} @keyframes fill{from{stroke-dasharray:0 100}}
 .live.real .gauge path.val{animation:fill 1.2s ease-out} .live.busy .gauge path.val{animation:sweep 1.1s ease-in-out infinite alternate} .live.busy .areas,.live.busy .gaugebox+.fine{opacity:.45}
 .testform button[disabled]{opacity:.7;cursor:progress}
-/* RR-326: the keyword finder and the owner's page */
+/* RR-326: the owner's page */
 .kwcard{max-width:760px;margin:24px auto 0;background:var(--white);border:1px solid var(--peach);border-radius:18px;padding:22px} .kwcard .testform{border-top:0;margin-top:0;padding-top:0}
 .kwresult table.t{table-layout:fixed} .kwresult table.t th:first-child{width:68%} .kwresult table.t td{overflow-wrap:anywhere}
 .kwrow{display:grid;grid-template-columns:2fr 1fr;gap:12px} .kwform select{width:100%;padding:12px;border:1px solid var(--peach);border-radius:12px;background:var(--cream);color:var(--text);font:inherit}
@@ -197,8 +196,8 @@ const SALES_NAV = [["/", "Home"], ["/#score", "Free score"], ["/pricing", "Prici
 export const MARKETING = Object.freeze({
   headline: HERO.headline, // RR-347 (owner, 29 Oct 2026): YouTube at the top; was "Rank higher on Google — and get recommended by ChatGPT"
   pricingHeading: "Rank higher on Google. Get found in ChatGPT. One app, from $30.",
-  pricingLine: "Real Google data. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed.",
-  data: "Real Google data. No risky backlinks.",
+  pricingLine: "Real research. No risky backlinks. Every plan has every feature — just pick how many products. Try the free site score first, no card needed.",
+  data: "Real research. No risky backlinks.",
 });
 const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout — <a href='/help/promotion-code'>how to use a promotion code</a>.";
 /* RR-325 A: every footer links AlmiVisibility's own Privacy Policy and Terms of Service */
@@ -338,7 +337,6 @@ export const helpPage = (path, { sales = true } = {}) => { const h = HELP[path];
 export const notFound = (path, { lite = false } = {}) => frame({ path, lite, title: "Not found — AlmiVisibility", description: "This page does not exist.", noindex: true, body: `<section class="page"><div class="wrap"><h1>Page not found</h1><p><a class="pill" href="/">Home</a></p></div></section>` });
 
 /* ── RR-325 A · THE PUBLIC-LITE HOME: the free score FIRST; the keyword finder and the app "coming soon"; no download, price or buy ── */
-export const KEYWORD_FINDER_LINE = "It will find what people search for about your product, with search volumes from Google Keyword Planner data.";
 export const APP_LINE = "AlmiVisibility is a Windows app that makes your website, products and YouTube channel easier to find on Google and in AI answers. It finds the questions your customers really ask, builds the pages that answer them in your own design — every fact with its source and the date it was checked — and keeps them up to date.";
 /* RR-325 (owner, 25 Oct) · the security headers in plain words (their rules: config/security/live-header-baseline.mjs) */
 const HEADER_WORDS = Object.freeze({ "strict-transport-security": "Browsers are told to use https only (Strict-Transport-Security, at least six months)", "x-content-type-options": "Files are not guessed as another type (X-Content-Type-Options: nosniff)", "clickjacking (an enforced CSP frame-ancestors, or X-Frame-Options DENY or SAMEORIGIN)": "Other sites cannot show this page inside theirs (frame-ancestors or X-Frame-Options)", "referrer-policy": "Other sites are not sent the full address the visitor came from (Referrer-Policy)" });
@@ -352,7 +350,7 @@ export const COPY_JS = `document.addEventListener("click", function (e) { var b 
 export const SCORE_JS = `(function () {
   /* RR-326: the keyword finder's button, once */
   var k = document.querySelector("form.kwform");
-  if (k) k.addEventListener("submit", function () { var kb = k.querySelector('button[type="submit"]'); if (kb) { kb.disabled = true; kb.textContent = "Finding keywords…"; } });
+  if (k) k.addEventListener("submit", function () { var kb = k.querySelector('button[type="submit"]'); if (kb) { kb.disabled = true; kb.textContent = "Working…"; } });
   var f = document.querySelector('form.testform[action="/score"]'); if (!f) return;
   var card = document.getElementById("score"), meter = document.getElementById("meter"), b = f.querySelector('button[type="submit"]'), timer = null;
   var num = card && card.querySelector(".gauge .num"), was = num ? num.innerHTML : "", label = b ? b.textContent : "";
@@ -396,7 +394,7 @@ ${scoreOn && ticket ? form : off}</div>`;
 }
 export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, download = "/download" } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
   title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
-  description: sales ? `One app grows your website and your YouTube channel: pages, articles, keywords, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+  description: sales ? `One app grows your website and your YouTube channel: pages, articles, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
    * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
   body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}
@@ -409,7 +407,7 @@ ${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, pe
 <p class="small">${esc(NO_PROMISE)}</p></div>
 <div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>`}
 ${result ? resultDetail(result, left) : ""}
-${section("paper", finderSection(finder, owner) + (sales ? IMG.finder : ""))}
+${section("paper", finderSection(finder, owner) + (sales && owner ? IMG.finder : ""))}
 ${sales ? section("", `<h2 id="app">The AlmiVisibility app</h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`) + section("paper", `<h2 id="plans">${esc(PLANS_BAND.heading)}</h2><p class="sub">${esc(PLANS_BAND.sub)}</p>${priceCards(true)}<p class="center" style="margin-top:16px"><a class="pill ghost" href="/download">Download for Windows</a></p>`) + faqSection()
     : section("", `<h2 id="app">AlmiVisibility app<span class="soon">Coming soon</span></h2><p class="sub">${esc(APP_LINE)}</p>${cardList(FEATURES)}`)}
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul><p class="made">Made by <a href="https://almiworld.com/">AlmiWorld</a> · live beautifully</p>`)}
@@ -420,7 +418,9 @@ ${sales ? `${finalCta(BUY_NOW.href)}<div class="wrap"><p class="fine footnote" d
 const n = (v) => (v === null || v === undefined ? '<span class="nmtext">no figure from Google</span>' : Number(v).toLocaleString("en-US"));
 const locOptions = (sel) => LOCATIONS.map((l) => `<option value="${l.code}"${l.code === sel ? " selected" : ""}>${esc(l.name)}</option>`).join("");
 export function finderSection(f = {}, owner = false) {
-  if (!f.on && !f.result && !f.error) return `<h2 id="keywords">Free keyword finder<span class="soon">Coming soon</span></h2><p class="sub">${esc(KEYWORD_FINDER_LINE)}</p>`;
+  /* 🔴 OWNER'S RULING 4: a visitor sees the free score, never keyword data */
+  if (!owner) return `<h2 id="next-step">See where your site stands</h2><p class="sub">The free site score shows what to fix first: broken links, security basics and how easy your pages are to find.</p><p><a class="pill" href="/#score">Get my free site score</a></p>`;
+  if (!f.on && !f.result && !f.error) return `<h2 id="keywords">Free keyword finder<span class="soon">Coming soon</span></h2><p class="sub">Not connected just now.</p>`;
   const v = f.values ?? {}, r = f.result;
   const formHtml = f.on ? `<form class="testform kwform" method="post" action="/keywords#keywords"><input type="hidden" name="ticket" value="${esc(f.ticket)}">
 <div class="hp" aria-hidden="true"><label>Leave this empty <input name="homepage" tabindex="-1" autocomplete="off"></label></div>
@@ -507,8 +507,20 @@ function queueHtml(q, names, moved) {
 /* RR-331 · the owner's two pages, one menu; each shows the other collectors in one line */
 export function ownerMenu(here, s = null) {
   const item = (k, href, name) => (k === here ? `<b>${name}</b>` : `<a href="${href}">${name}</a>`);
-  const line = s ? `<p class="fine">Keywords today ${Number(s.keywordsToday ?? 0).toLocaleString("en-US")} · first 15 countries ${s.first15 ?? "—"}% done · question groups ${s.questionGroups ?? 0} · test dates found for ${s.datesFound ?? 0} test × country${s.gsc ? ` · Search Console: ${esc(s.gsc)}` : ""}</p>` : "";
-  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")} · ${item("creators", "/owner/creators", "Creators")}</nav>${line}`;
+  const line = s ? `<p class="fine">Keywords today ${Number(s.keywordsToday ?? 0).toLocaleString("en-US")} · first 15 countries ${s.first15 ?? "—"}% done · question groups ${s.questionGroups ?? 0} · test dates found for ${s.datesFound ?? 0} test × country${s.gsc ? ` · Search Console: ${esc(s.gsc)}` : ""}${s.dataForSeo ? ` · ${esc(s.dataForSeo)}` : ""}</p>` : "";
+  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")} · ${item("creators", "/owner/creators", "Creators")} · ${item("almiseo", "/owner/almiseo", "AlmiSEO Data")}</nav>${line}`;
+}
+
+/* 🔴 RR-360 F · the owner's AlmiSEO Data page: the ONE topic list (a topic or an app idea in one line), the ONE spend ledger, what changed (review needed), the plans' monthly limits, which settings are set (names only, never a value) */
+export function ownerAlmiSeo({ topics = [], ledger = { jobs: [] }, changed = [], limits = {}, fields = [], topPagesOn = false, budget = null, names = {}, envSet = {}, message = null } = {}) {
+  const money = (v) => `$${Number(v ?? 0).toFixed(2)}`;
+  const row = (t) => `<tr><td><b>${esc(t.name)}</b>${t.paused ? " <span class=\"fine\">paused</span>" : ""}<div class="fine">${esc(t.owner === "almiworld" ? "AlmiWorld's product" : t.owner === "client" ? `a client's product (${(t.clients ?? []).length} client${(t.clients ?? []).length === 1 ? "" : "s"})` : "your own topic")}</div></td><td>${esc((t.seeds ?? []).slice(0, 6).join(", "))}${(t.seeds ?? []).length > 6 ? " …" : ""}</td><td>${t.countries?.length ? esc(t.countries.join(", ")) : "every country, in the queue's order"}</td><td>${esc((t.languages ?? []).join(", "))}</td><td>${esc((t.jobs ?? []).join(", "))}</td><td><form method="post" action="/owner/almiseo/pause" class="inline"><input type="hidden" name="id" value="${esc(t.id)}"><button class="pill ghost" type="submit">${t.paused ? "Run again" : "Pause"}</button></form>${t.owner === "almiworld" ? "" : ` <form method="post" action="/owner/almiseo/remove" class="inline"><input type="hidden" name="id" value="${esc(t.id)}"><button class="pill ghost" type="submit">Remove</button></form>`}</td></tr>`;
+  return ownerFrame("AlmiSEO Data — owner", `<h1>AlmiSEO Data</h1>${ownerMenu("almiseo")}${message ? `<p class="note">${esc(message)}</p>` : ""}
+<h2>What changed — review needed (${changed.length})</h2>${changed.length ? `<div class="tablewrap"><table class="t"><tr><th>Product</th><th>Fact</th><th>Was</th><th>Now</th><th>Source, read on</th><th></th></tr>${changed.map((f) => `<tr><td>${esc(f.topic)}</td><td>${esc(f.text)}</td><td>${esc(f.was ?? "")}</td><td>${esc(f.value)}</td><td><a href="${esc(f.sourceUrl)}" rel="noopener">its page</a>, ${esc(f.on)}</td><td><form method="post" action="/owner/almiseo/settled" class="inline"><input type="hidden" name="id" value="${esc(f.id)}"><button class="pill ghost" type="submit">Reviewed</button></form></td></tr>`).join("")}</table></div>` : "<p>No fee, date, score or rule has changed.</p>"}
+<h2>Spend — every collector, one ledger</h2>${budget ? `<p class="note" id="dfsbudget"><b>${esc(budget.line)}</b>${budget.left < 0.002 ? " — spent: the collector has stopped by itself." : ` — it stops by itself at $${budget.budget}.`}</p>` : ""}<div class="tablewrap"><table class="t"><tr><th>Collector</th><th>Cap</th><th>Today</th><th>This month</th><th></th></tr>${(ledger.jobs ?? []).map((j) => `<tr><td>${esc(j.job)}</td><td>${esc(j.cap)}</td><td>${money(j.today)}</td><td>${money(j.month)}</td><td class="fine">${esc(j.units ?? "")}${j.on === false ? " · off" : ""}</td></tr>`).join("")}</table></div>
+<h2>The topic list (${topics.length}) — every collector reads this</h2><form method="post" action="/owner/almiseo/topic" class="row"><label>Add a topic or an app idea, one line <input name="line" maxlength="400" size="60" placeholder="Pet insurance | pet insurance, vet cost | Pakistan, India | keywords, questions"></label><button class="pill" type="submit">Add</button></form><p class="fine">Name | seed, seed | countries | jobs. Only the name and a seed are needed; research starts on the next run.</p><div class="tablewrap"><table class="t"><tr><th>Topic</th><th>Seed words</th><th>Countries</th><th>Languages</th><th>Jobs</th><th></th></tr>${topics.map(row).join("")}</table></div>
+<h2>The plans' monthly limits (your money decision)</h2><form method="post" action="/owner/almiseo/limits"><div class="tablewrap"><table class="t"><tr><th>Plan</th><th>What one client's collecting may cost a month ($)</th><th>Countries per product</th></tr>${fields.map((p) => `<tr><td>${esc(p.words)}</td><td><input name="${esc(p.id)}_usd" value="${esc(limits[p.id]?.usdMonth ?? 0)}" size="6"></td><td><input name="${esc(p.id)}_countries" value="${esc(limits[p.id]?.countries ?? 1)}" size="4"></td></tr>`).join("")}</table></div><button class="pill" type="submit">Save the limits</button></form>
+<h2>Settings in Vercel (names only)</h2><ul>${Object.values(names).map((n) => `<li>${esc(n)}: ${envSet[n] ? "set" : "not set"}</li>`).join("")}</ul><p class="fine">The top-pages collector is ${topPagesOn ? "on, for AlmiWorld's own products only" : "off"}. Outside clients get finished pages only.</p>`);
 }
 
 /* RR-348 c · the owner's Creators tab: what the creator collectors hold per platform, niche and country; "Collect now"; each platform on or

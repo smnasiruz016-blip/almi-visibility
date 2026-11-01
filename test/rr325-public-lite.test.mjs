@@ -73,9 +73,9 @@ test("A · the home page: the free score FIRST, then the keyword finder and the 
   try {
     const h = (await a.get("/")).text;
     const at = (s) => h.indexOf(s);
-    assert.ok(at("<h1>Get the score of your site</h1>") > 0 && at("<h1>Get the score of your site</h1>") < at('name="url"') && at('name="url"') < at("Free keyword finder") && at("Free keyword finder") < at("AlmiVisibility app<span class=\"soon\">Coming soon"), "the order: the score, the finder, the app");
+    assert.ok(at("<h1>Get the score of your site</h1>") > 0 && at("<h1>Get the score of your site</h1>") < at('name="url"') && at('name="url"') < at("See where your site stands") && at("See where your site stands") < at("AlmiVisibility app<span class=\"soon\">Coming soon"), "the order: the score, its next step, the app"); // owner's ruling 4: no finder for a visitor
     assert.equal((h.match(/<h1\b/g) ?? []).length, 1);
-    assert.match(h, /Free keyword finder<span class="soon">Coming soon<\/span><\/h2><p class="sub">It will find what people search for about your product, with search volumes from Google Keyword Planner data\.<\/p>/);
+    assert.doesNotMatch(h, /keyword finder|search volumes|Keyword Planner/i); // owner's rulings 3 + 4
     assert.doesNotMatch(h.slice(at("Free keyword finder"), at('id="app"')), /<input|<button|<form/, "the finder has no input or button yet");
     for (const code of ["EN", "ES", "DE", "IT", "FR", "PT", "AR", "UR", "HI", "ZH"]) assert.match(h, new RegExp(`\\(${code}\\)`));
     assert.match(h, /Made by <a href="https:\/\/almiworld\.com\/">AlmiWorld<\/a>/);

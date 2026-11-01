@@ -101,7 +101,10 @@ test("RR-359 · 1 · a product's OWN subject — never guessed from a list of ot
   } finally { p.kill(); await new Promise((r) => setTimeout(r, 300)); rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); }
   /* the screens: the field, the ask, the set-aside line */
   assert.ok(UI.includes('<input id=f7 maxlength=40 placeholder="for example: OET" value="${esc(S.setup.product?.subject ?? "")}">') && UI.includes('...($("#f7") ? { subject: $("#f7").value } : {})'));
-  assert.ok(UI.includes("if (r.needsSubject) return ($(\"#jobrep\").innerHTML") && UI.includes('<div class="warn" id="nosubject">') && UI.includes('<div class="warn" id="setaside">'));
+  /* the built app (1.15.12): "Set it now" opened Settings at step 1 — the subject was steps away; it opens "Your product" with the field ready */
+  assert.ok(UI.includes('const askSubject = async () => { await settings("product"); $("#f7")?.focus();') && UI.includes("step = Math.max(0, at ? S.steps.findIndex((x) => x.id === at) : 0); await setup();"));
+  assert.equal((UI.match(/onclick = \(\) => askSubject\(\)/g) ?? []).length, 3, "every \"Set it now\" for the subject");
+  assert.ok(UI.includes("if (r.needsSubject) return ($(\"#jobrep\").innerHTML") &&UI.includes('<div class="warn" id="nosubject">') && UI.includes('<div class="warn" id="setaside">'));
 });
 
 test("RR-359 · 2 · G5's coverage list holds ONLY the topic's real subtopics and questions; covered by meaning; the ⚠️ names a few, in plain words", () => {

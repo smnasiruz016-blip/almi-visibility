@@ -30,6 +30,7 @@ test("1.1 own-site paragraphs: beta-g's seven pairs: the wrong paragraph leaves 
 });
 test("1.1 the question's own words must stand in the answer: what the final pages still showed", () => {
   for (const [q, a] of [["What is the fee for rescheduling an OET Test?", "OET publishes the price of the full test in Australian dollars."], ["Which country accepts C+ in OET?", "OET accepts a valid passport or a valid national ID."], ["Where to see OET result?", "OET sets no validity period itself: each body that recognises the test decides how long a result is accepted."], ["Which is better, OET or IELTS?", "OET publishes its own table comparing OET scores with IELTS bands."]]) assert.equal(ownSiteAnswer(q, a, opt), null, q);
+  assert.equal(ownSiteAnswer("How much does OET cost and how long is it?", "OET costs AU$587 in all.", opt), null, "half of what was asked is not an answer");
   assert.equal(ownSiteAnswer("Is the OET valid for 3 years?", "A pass in the English test is valid for two years.", opt), "A pass in the English test is valid for two years.", "a real answer stays");
 });
 test("1.1 a paragraph is split: the statement that answers stands alone, the rest goes; a statement that does answer stays", () => {
@@ -50,6 +51,11 @@ test("1.1 + 1.2 in the page: no \"What else should I know\" question; a site's p
   const d = seoPages({ site, on: `${ON}T00:00:00Z`, pagePlan: plan, max: 1, subject: "OET", cta: { label: "Go", href: "https://client.example.org/go" } }).drafts[0];
   assert.ok(!/What else should I know/.test(d.html), "a card must answer its own question: $587 had none to answer");
   assert.ok(!/NMC accepts grade B/.test(d.html), "the rest of the paragraph stays off this question");
+});
+
+test("1.1 the other road onto a page: a question people ask gets only what answers it", () => {
+  assert.match(readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"), /answersFromSite\(q, site, 2\)\.flatMap\(\(c\) => \{ const text = ownSiteAnswer\(q, c\.text/);
+  assert.match(readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"), /x\.text = ownSiteAnswer\(x\.q, x\.text/);
 });
 
 test("1.2 a card that loses the body shows the sentence: 1400 total; minimum 350", () => {

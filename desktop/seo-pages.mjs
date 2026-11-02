@@ -249,12 +249,13 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     for (const x of pairs) {
       if (extra.length >= 5 || normQ(x.q) === normQ(n.question)) continue;
       if (n.claims.some((c) => c.text === x.text)) continue;
+      x.text = ownSiteAnswer(x.q, x.text, { subject, bodies }); if (!x.text) continue;
       extra.push({ needId: `${n.needId}--q${extra.length + 1}`, question: asQuestion(x.q, casing), claims: [{ claimId: `site-${createHash("sha256").update(`${x.link}|${x.text}`).digest("hex").slice(0, 16)}`, text: x.text, link: x.link, readOn: day, source: new URL(x.link).hostname }] });
     }
     const used = new Set([...n.claims, ...extra.flatMap((e) => e.claims)].map((c) => c.text));
     for (const q of meta.get(n.needId)?.alsoAsked ?? []) {
       if (extra.length >= 5) break;
-      const a = answersFromSite(q, site, 2).filter((c) => !used.has(c.text)); if (!a.length) continue;
+      const a = answersFromSite(q, site, 2).flatMap((c) => { const text = ownSiteAnswer(q, c.text, { subject, bodies }); return text ? [{ ...c, text }] : []; }).filter((c) => !used.has(c.text)); if (!a.length) continue;
       for (const c of a) used.add(c.text);
       extra.push({ needId: `${n.needId}--q${extra.length + 1}`, question: asQuestion(q, casing), claims: a });
     }

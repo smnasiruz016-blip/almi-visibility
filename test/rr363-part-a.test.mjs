@@ -41,6 +41,7 @@ test("A2: nothing removed, only moved: Home holds the score's details, What to d
   assert.match(UI, /areasHtml\(c\)/, "Technical, Content and the rest, with what to fix in each");
 });
 test("A2: the Data tab holds What Visibility found, Add more sources, Keywords, Titles and Articles; More keeps its buttons", () => {
+  assert.ok(UI.includes("${foundHtml(OV)}${planListsHtml(OV)}"), "drawn on the Data tab, not only written");
   const data = UI.slice(UI.indexOf("function foundHtml(O)"), UI.indexOf("async function searchDataScreen()"));
   for (const x of ["What Visibility found", "Questions answered on your pages", "Questions people ask", "Search phrases", "Prices on your pages", "Add more sources", 'id="kw"', 'id="tt"', 'id="mkl"', 'id="dataextra"', "Read it now"]) assert.ok(data.includes(x), x);
   for (const id of ["yts", "eng", "soc", "sdtab"]) assert.ok(UI.includes(`<button class="ghost" id="${id}">`), id);

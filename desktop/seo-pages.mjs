@@ -28,7 +28,7 @@ import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
-import { summaryFault, fitCard, fitParts, answerFitWhy } from "./truth-checks.mjs"; // RR-363: R15
+import { summaryFault, fitCard, fitParts, answerFitWhy, cardFaultOf } from "./truth-checks.mjs"; // RR-363: R15
 import { blocksOfHtml, blocksCompared } from "./blocks.mjs"; // RR-363: R15
 import { readPage } from "./page-quality.mjs";
 import { shortCard } from "./exam-plan.mjs";
@@ -345,7 +345,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const dr = dup.get(d.url) ?? { verdict: "distinct" };
     /* 🔴 RR-363 · R15's checks read the page itself: every card keeps its fact; every answer fits its question. And the year the top pages put in their title, when they do */
     const seen = readPage(d.html), byNeed = new Map(keyFacts.filter((k) => !k.needId || k.needId === built[i].needId).map((k) => [String(k.value), k.text]));
-    const cardFaults = seen.cards.flatMap((c) => { const why = byNeed.has(c.value) ? summaryFault(c.value, byNeed.get(c.value)) : null; return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
+    const cardFaults = seen.cards.flatMap((c) => { const why = cardFaultOf(c.value, byNeed.get(c.value), [...byNeed.values()]); return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
     const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
     if (m.blueprint?.year && !/\b20\d\d\b/.test(d.title)) { const y = String(on).slice(0, 4); d.html = d.html.replace(/(<title\b[^>]*>)([\s\S]*?)(<\/title>)/i, `$1$2 ${y}$3`).replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, `$1$2 ${y}$3`); }
     const compared = blocksCompared(m.blueprint, blocksOfHtml(d.html));

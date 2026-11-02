@@ -22,8 +22,8 @@ import { professionIn } from "./page-plan.mjs";
 import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
-import { fitCard } from "./truth-checks.mjs"; // RR-363: R15
 import { viewsOf } from "./subject-demand.mjs"; // RR-363
+import { fitCard } from "./truth-checks.mjs"; // RR-363: R15
 import { oldWording } from "./subject-facts.mjs"; // RR-363
 import { KIND, TYPE_OF_KIND, STANDING, unclearWhy, clearQuestion, askedHere, itemForAsked, coreMissingOfPlan, ownClaims, mergeWhy } from "./page-types.mjs"; // RR-362: R3, R5, R6
 
@@ -124,8 +124,7 @@ function topicItems(key, subjectFacts, subject) {
   const keys = TOPIC_FACTS[key] ?? [], items = new Map();
   for (const k of keys) { const f = subjectFacts?.[k]; if (!f?.text || !/^https?:\/\//.test(f.link ?? "")) continue; const q = askOf(k, subject, SUBTESTS.includes(key) ? key : null);
     (items.get(q) ?? items.set(q, { part: "topic", question: q, claims: [] }).get(q)).claims.push(fromSubject(f)); }
-  /* RR-363 (item 22): what most people read comes first */
-  return [...items.values()].sort((a, b) => viewsOf(b.question, subject) - viewsOf(a.question, subject));
+  return [...items.values()];
 }
 
 /* the fee in a country's money: the official fee, and the amount by the ONE exchange-rate service (its name and day beside it) */

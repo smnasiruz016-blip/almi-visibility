@@ -27,6 +27,12 @@ export function summaryFault(card, text) {
   const here = countriesIn(c), there = countriesIn(t); if (here.length && there.length && !here.some((x) => there.includes(x))) return `it names ${here[0]}, the fact is about ${there[0]}`;
   return null;
 }
+/** a card as the page shows it: judged by its own fact; a card nobody planned (an edit) by the facts that hold its number */
+export function cardFaultOf(value, planned, texts = []) {
+  if (planned) return summaryFault(value, planned);
+  const nums = String(value).match(/\d[\d,.]*/g) ?? [], whys = texts.filter((t) => nums.some((n) => String(t).includes(n))).map((t) => summaryFault(value, t));
+  return whys.length && whys.every(Boolean) ? whys[0] : null;
+}
 /* the fact's own sentence, without the "X's own page:" lead-in: never cut */
 export const wholeFact = (text) => String(text ?? "").replace(/^[^:]{0,40}own page:\s*/i, "").replace(/^In [^:]{2,40}:\s*/, (m) => m).trim();
 /** a short form that keeps the fact's meaning, or the whole sentence */

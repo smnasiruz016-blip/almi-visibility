@@ -8,11 +8,12 @@ export const HELP_VIEWS = Object.freeze({
   ]) }),
 });
 const STOP = new Set(["how", "do", "does", "i", "my", "can", "what", "the", "a", "an", "and", "or", "it", "for", "of", "in", "is", "to", "test", "take"]);
-const wordsOf = (t, subject) => new Set(String(t).toLowerCase().replace(/[^a-z ]+/g, " ").split(" ").map((w) => w.replace(/s$/, "")).filter((w) => w.length > 1 && !STOP.has(w) && w !== String(subject).toLowerCase()));
-/** the views behind a question: the help-centre row it says the same as; 0 when none */
+const wordsOf = (t, subject) => new Set(String(t).toLowerCase().replace(/[^a-z ]+/g, " ").split(" ").filter((w) => !STOP.has(w)).map((w) => w.replace(/s$/, "")).filter((w) => w.length > 1 && w !== String(subject).toLowerCase())); /* the small words go before the plural: "does" is not "doe" */
+/** the views behind a question: the help-centre row it says the same as (one holds the other's words, or they share two and most of them; "cost" alone is no match); 0 when none */
 export function viewsOf(question, subject) {
   const rows = HELP_VIEWS[subject]?.rows ?? [], q = wordsOf(question, subject); if (!q.size) return 0;
-  let best = 0; for (const [t, v] of rows) { const w = wordsOf(t, subject), both = [...w].filter((x) => q.has(x)).length; if (both && both / Math.min(w.size, q.size) >= 0.6 && v > best) best = v; }
+  let best = 0;
+  for (const [t, v] of rows) { const w = wordsOf(t, subject), both = [...w].filter((x) => q.has(x)).length, holds = both === Math.min(w.size, q.size); if (both && (holds || (both >= 2 && both / Math.min(w.size, q.size) >= 0.6)) && v > best) best = v; }
   return best;
 }
 /** the help centre's questions as demand evidence (G1) */

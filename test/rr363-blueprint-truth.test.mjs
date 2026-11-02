@@ -66,6 +66,8 @@ test("a page failing a truth check is never ready: the gates read the page itsel
   assert.match(gate(bad, "L").failing.join(" "), /is not answered by/); assert.equal(bad.readyAsDraft, false);
   /* the card itself */
   const d = out(page({ items: [{ part: "topic", question: "When do bookings close?", claims: [{ claimId: "c", card: "7 days", text: "Bookings close 7 days before the test date.", link: SRC, readOn: ON, source: "s", official: true }] }] }));
+  const cut = seoPages({ site, on: NOW, pagePlan: [page({ items: [{ part: "topic", question: "When do bookings close?", claims: [{ claimId: "c", card: "7 days", text: "Bookings close 7 days before the test date.", link: SRC, readOn: ON, source: "s", official: true }] }] })], max: 1, subject: "TESTX", cta: { label: "Go", href: "https://client.example.org/go" }, overrides: { [d.url]: d.html.replace(/<span class="v">Bookings close 7 days before the test date\.<\/span>/, '<span class="v">7 days</span>') } }).drafts[0];
+  assert.match(gate(cut, "K").failing.join(" "), /The card "7 days" changes the fact/, "an edit that shortens a card is caught"); assert.equal(cut.readyAsDraft, false);
   assert.deepEqual(gate(d, "K").failing, []); assert.ok(!/<span class="v">7 days/.test(d.html), "the short form is gone"); assert.ok(d.truth.cards.some((x) => x.card === "7 days"), "said what changed");
 });
 
@@ -147,7 +149,17 @@ test("the year goes in the title only when the top pages put it there", () => {
 
 test("real demand ranks a page's questions: what most people read comes first", () => {
   assert.equal(viewsOf("How do I see my OET results?", "OET"), 420000); assert.equal(viewsOf("What ID can I use for the OET test?", "OET"), 155000); assert.equal(viewsOf("Is the sky blue?", "OET"), 0); assert.equal(viewsOf("anything", "NoSuchSubject"), 0);
+  assert.equal(viewsOf("What does changing a OET booking cost?", "OET"), 0, "sharing the word cost is not saying the same");
   assert.match(helpDemand("OET")[0].source, /420K/); assert.deepEqual(helpDemand("Other"), []);
+  /* a country page's own questions: nine asked, eight stand, most-read first */
+  const q = (question, i) => ({ id: `q${i}`, country: "Ireland", part: "questions", verified: true, question, text: `In Ireland: answer number ${i} about this.`, link: SRC, on: ON });
+  const asked = ["Is parking free at the centre?", "Is there a cafe near the centre?", "Can I bring water?", "Is the centre open on Sunday?", "Is there a lift?", "Can I bring a friend?", "Is there a bus?", "Can I eat there?", "How do I see my OET results?"].map(q);
+  const fee = { id: "f", country: "Ireland", part: "fee", verified: true, official: "AUD 500", text: "OET costs AUD 500 here.", link: SRC, on: ON };
+  const home = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [fee, ...asked], subjectFacts: subjectFactsOf(pages, "OET"), demand: [], site }).pages.find((x) => x.kind === "country");
+  assert.equal(home.items.find((it) => /^questions/.test(it.part)).question, "How do I see my OET results?", "the most-read question is first, not cut as the ninth");
+  const titles = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: subjectFactsOf(pages, "OET"), demand: [{ text: "oet schedule", source: "keywords", weight: 8.5 }, { text: "oet booking", source: "keywords", weight: 8.4 }, ...helpDemand("OET")], site }).pages.filter((x) => x.kind === "topic").map((x) => x.title);
+  assert.match(titles[0], /See My OET Results/i, titles.join(" | "));
+  assert.match(readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), /const demand = \[\.\.\.helpDemand\(seedOf\(s\)\),/, "the app feeds them in");
 });
 
 const serpAnswer = { status_code: 20000, tasks: [{ status_code: 20000, cost: 0.002, result: [{ items: [{ type: "organic", url: "https://www.google.com/goto?url=abc", breadcrumb: "https://oet.com › test › book-a-test", title: "A" }, { type: "organic", url: "https://google.com/goto?url=xyz", title: "No breadcrumb" }, { type: "organic", url: "https://b.example.org/p", title: "B" }] }] }] };
@@ -198,3 +210,16 @@ test("the booking page keeps its page when a schedule search asks for the same f
   const titles = [["testx schedule", "testx booking"], ["testx booking", "testx schedule"]].map((texts) => examPlan({ subject: "TESTX", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: familyFacts, demand: texts.map((text, i) => ({ text, source: "keywords", weight: 100 - i })), site }).pages.filter((x) => x.kind === "topic").map((x) => x.title).join(" | "));
   for (const t of titles) assert.match(t, /booking/i, t);
 });
+
+test("summary = fact: a score beside a price: the price is not a lost score", () => {
+  assert.equal(summaryFault("B (350+)", "You need B (350+). The test costs AUD 587."), null);
+});
+test("answer fits question: the other profession's answer leaves; a need the answer never meets leaves", () => {
+  assert.match(answerFitWhy("What OET score do nurses need?", "Doctors need 350 in each sub-test.", { subject: "OET" }), /it asks about/);
+  assert.match(answerFitWhy("How much does OET cost?", "OET has four sub-tests.", { subject: "OET" }), /something else/);
+});
+test("the old wording is refused at the door: a page that still says 12 days fills no fact", () => {
+  const f = subjectFactsOf([{ ok: true, url: "https://oet.com/test/book-a-test", checkedOn: ON, text: "Results are released from 12 days after the test date for all other regions." }], "OET");
+  assert.equal(f.resultsPaper, undefined);
+});
+

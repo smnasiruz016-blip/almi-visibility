@@ -35,7 +35,7 @@ import { productStore, productCard } from "./products.mjs";
 import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
-import { searchGoogle, searchPages, SERP_OFF, SERP, realPrice, runEstimate, RETRY } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
+import { searchGoogle, searchPages, SERP_OFF, SERP, realPrice, runEstimate, RETRY, notForReading } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
 import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
@@ -70,6 +70,7 @@ import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { genericPlanPages, almiSeoClient, syncProduct, heldFor, keywordItems, questionItems, coverageRoutes, routeLine, coverageItems, coverageFromBrowser, reviewLinesFor, almiSeoView, searchedLists, searchCounts, ALMISEO_FILE, ALMISEO_KEYWORDS, BROWSER_COVERAGE, SYNC, ROUTES } from "./almiseo.mjs"; // RR-360 AlmiSEO Data
 import { spawn } from "node:child_process"; // RR-362: the watcher
 import { helpDemand } from "./subject-demand.mjs"; // RR-363
+import { competitorsFrom, sitemapUrlsOf, pagesTheyHave, KEEP_DAYS as COMPETITOR_KEEP_DAYS } from "./competitors.mjs"; // item 34c
 import { jobBoard, LONG_SECONDS } from "./jobs.mjs"; // RR-362
 import { nextStepOf, checksDue, TOP_JOBS, MORE_JOBS } from "./next-step.mjs"; // RR-362
 import { windowsToast } from "./notify.mjs"; // RR-362
@@ -333,7 +334,7 @@ const ownItemsOf = (id) => {
 /* every call that makes the drafts judges them by the same data: the coverage a page without a plan was given, and the facts AlmiSEO Data found changed */
 /* RR-363: which country a regulator's name means (the truth check: an answer about the right place) */
 const bodiesOf = (id) => { const seen = new Map(); for (const qs of Object.values(pread(id, "research.json", null)?.questions ?? {})) for (const q of qs) for (const b of [q.regulator, ...(q.also ?? [])].filter(Boolean)) if (b.country && !seen.has(b.name)) seen.set(b.name, { names: [b.short, b.name].filter((n) => n && n.length >= 3), country: b.country }); return [...seen.values()]; };
-const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}); return { bodies: bodiesOf(id), coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)) }; };
+const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}); return { bodies: bodiesOf(id), fitSubject: seedOf(store.read(id)), coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)) }; };
 /* 🔴 OWNER'S RULING 2: a licence that is not AlmiWorld's own gets finished pages only */
 const outsideClient = () => { const l = currentLicence(); return Boolean(l) && !isOwnerLicence(l.licence); };
 /* 🔴 RR-362 item 14 (R13): each search this run made goes to AlmiSEO Data, so the server and every later run reuse it. A failed send is said in the count; the search stays kept here */
@@ -472,6 +473,16 @@ const serpSettings = () => searchData();
 /* RR-362 items 14 + 17: several pages side by side (each site still read politely), a search kept is reused free even with the switch off, a top page's headings read once a month */
 const SERP_SIDE_BY_SIDE = 6;
 const hasKeptSearch = (pages) => { const c = dfsLedger().serpCache ?? {}; return pages.some((p) => c[`${p.title}||`]); };
+/* item 34c: what the sites beside us have pages on and we do not; kept a month, free */
+async function competitorStep(id, plan) {
+  if (CONFIG.testOffline === true) return pread(id, "competitors.json", null);
+  const was = pread(id, "competitors.json", null), now = new Date().toISOString(), s = store.read(id), subject = seedOf(s), cache = dfsLedger().serpCache ?? {}; if (!subject) return was;
+  const ranked = plan.pages.flatMap((p) => (cache[`${p.title}||`]?.results ?? []).map((r) => r.url)).filter((u) => !notForReading(u)), official = plan.pages.flatMap((p) => (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => c.official).map((c) => c.link))), hosts = competitorsFrom(ranked, { exclude: [s.product?.site, ...new Set(official)] });
+  const fresh = was && (Date.parse(now) - Date.parse(was.on)) / 864e5 <= COMPETITOR_KEEP_DAYS && hosts.every((h) => was.hosts.includes(h)); const rd = reader(), read = (u, a) => rd.raw(u, a);
+  const sites = fresh ? was.sites : await Promise.all(hosts.map(async (host) => ({ host, urls: await sitemapUrlsOf(host, read).catch(() => []) })));
+  const out = { on: fresh ? was.on : now, hosts, sites, list: pagesTheyHave({ sites, subject, ours: [...plan.pages.map((p) => p.title), ...(plan.merged ?? []).map((m) => m.title)] }) };
+  pwrite(id, "competitors.json", out); return out;
+}
 async function serpStep(id, plan, onPage = null) {
   const st = serpSettings(), ledger = dfsLedger(), on = new Date().toISOString();
   if (st.on !== true && !hasKeptSearch(plan.pages)) return { on: false, why: SERP_OFF, searches: 0, reddit: 0, quora: 0 };
@@ -915,7 +926,7 @@ async function makePages(id, key) {
   const counts = searchCounts({ routes: serp?.routes ?? genericRoutes?.counts ?? null, paid: routes?.paid ?? genericRoutes?.paid ?? null, saved: savedCount, later: pages.drafts.filter((d) => d.checkLater).length });
   if (serp) pages.serp = { on: serp.on, line: counts.line, counts, detail: [serp.routesLine, serp.on ? serp.line : null].filter(Boolean).join(" "), searches: serp.searches ?? 0, cost: serp.cost ?? 0, stopped: serp.stopped ?? null, routes: serp.routes ?? null };
   else if (genericRoutes) pages.serp = { on: false, line: counts.line, counts, detail: genericRoutes.line, searches: genericRoutes.paid?.searches ?? 0, cost: genericRoutes.paid?.cost ?? 0, stopped: genericRoutes.paid?.stopped ?? null, routes: genericRoutes.counts };
-  if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing, notBuilt: exam.notBuilt ?? [], merged: exam.merged ?? [] };
+  if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing, notBuilt: exam.notBuilt ?? [], merged: exam.merged ?? [], theyHave: (await competitorStep(id, exam).catch(() => null))?.list ?? [] };
   /* RR-362 item 13: pages not read yet are read tomorrow, by the app itself */
   { const later = pages.drafts.filter((d) => d.checkLater).map((d) => d.title); pwrite(id, "pending-checks.json", { day: new Date().toISOString().slice(0, 10), titles: later, switchOn: serpSettings().on === true }); }
   clock.mark("the rest"); pages.timing = clock.done(); pwrite(id, "run-timing.json", { on: new Date().toISOString(), ...pages.timing });
@@ -1211,7 +1222,7 @@ const server = createServer((req, res) => {
           if (r[2] === "improve-pack" && req.method === "GET") { const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url") && x.improve); return d ? send(200, inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${d.title}</title></head><body><main><h1>Improve your page</h1><p>${d.improve.url}</p>${packOf(id, d).html || "<p>Your page already answers every question Visibility has for it.</p>"}</main></body></html>`, pread(id, "site-read.json")?.shell ?? null), "text/html; charset=utf-8") : send(404, { refused: "no improvement for this page" }); }
           /* RR-356 · the search-results switch: OFF by default, the client's own choice, at most $1 a day */
           /* RR-362: what the plan merged, and the pages checked later: said once, in plain words */
-          if (r[2] === "plan-summary" && req.method === "GET") { const pg = pread(id, "pages.json", null), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
+          if (r[2] === "plan-summary" && req.method === "GET") { const pg = pread(id, "pages.json", null), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
           if (r[2] === "pages-view" && req.method === "GET") {
             const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = pread(id, "pages.json")?.drafts ?? [];
             return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null, open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });

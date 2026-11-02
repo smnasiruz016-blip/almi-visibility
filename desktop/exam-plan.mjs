@@ -23,7 +23,7 @@ import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
 import { viewsOf } from "./subject-demand.mjs"; // RR-363
-import { fitCard } from "./truth-checks.mjs"; // RR-363: R15
+import { fitCard, staleNews } from "./truth-checks.mjs"; // RR-363: R15
 import { oldWording } from "./subject-facts.mjs"; // RR-363
 import { KIND, TYPE_OF_KIND, STANDING, unclearWhy, clearQuestion, askedHere, itemForAsked, coreMissingOfPlan, ownClaims, mergeWhy } from "./page-types.mjs"; // RR-362: R3, R5, R6
 
@@ -138,6 +138,17 @@ export function localFee({ official, country, rates }) {
     line: `The full test costs AUD ${aud} (the official fee). In ${inCountry(country)} that is about ${cur} ${shown} — converted with ${rates.short}'s rate of ${rates.date} (1 AUD = ${rate} ${cur}). It is approximate: you pay the official fee in AUD.` };
 }
 
+/* 🔴 R12 (beta-g: "USD ≈ 413" while OET's own page says US$455): a price the official source states in the country's own money is THE price, never converted. Only that country's own money counts ("US$455 applies only in the US" fixes nothing for the Philippines) */
+const MONEY_MARK = Object.freeze({ USD: "US\\$|USD", GBP: "£|GBP", EUR: "€|EUR", NZD: "NZ\\$|NZD", CAD: "CA\\$|CAD", SGD: "S\\$|SGD", INR: "₹|INR", PKR: "PKR", AED: "AED", SAR: "SAR", PHP: "₱|PHP", NGN: "₦|NGN" });
+export function officialLocalPrice({ facts = [], country, aud = null, subject }) {
+  const cur = CURRENCY_OF[country]; if (!cur || cur === "AUD") return null;
+  const re = new RegExp(`(?<![A-Za-z])(?:${MONEY_MARK[cur] ?? cur})\\s?(\\d[\\d,]*)([^.;)]*)`);
+  for (const f of facts) { if (f.part !== "fee") continue; const said = String(f.quote ?? f.text ?? ""); if (/estimate|≈|about|convert|approximate|\bbank\b|\brate\b/i.test(said)) continue; const m = re.exec(said); if (!m) continue;
+    const amount = Number(m[1].replace(/,/g, "")), scope = m[2].replace(/\s+/g, " ").trim().replace(/^applies only\b.*$/i, ""), shown = `${cur} ${amount.toLocaleString("en-US")}`;
+    return { currency: cur, aud, amount, official: true, fact: f, scope, card: `${shown}${scope ? ` ${scope}` : ""} — ${subject}'s own price`, line: `${subject}'s own price in ${inCountry(country)} is ${shown}${scope ? ` ${scope}` : ""}.${aud ? ` Any other way of taking it costs AUD ${aud}.` : ""}` }; }
+  return null;
+}
+
 /* RR-356 (never filler): boards of one body that state the very same standard ("Medical Board of Australia (via Ahpra). Accepts OET. Tests on/after
  * …", nine times) are ONE line naming each board — the standard said once, its source the first board's page */
 export function sameStandard(facts) {
@@ -148,7 +159,7 @@ export function sameStandard(facts) {
 }
 /** the facts a page may use: checked, sourced, dated; never a rate fact or a central bank's page (the page converts the fee itself, with the
  *  ONE rate service); each fact's notes taken out, and a fact left with nothing to say dropped */
-export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.text && !oldWording(f.text) /* RR-363 */ && /^https?:\/\//.test(f.link ?? "") && /^\d{4}-\d{2}-\d{2}/.test(f.on ?? "") && String(f.key ?? "").toLowerCase() !== "rate" && !centralBankLink(f.link))
+export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.text && !oldWording(f.text) /* RR-363 */ && !staleNews(f.text) /* R12 */ && /^https?:\/\//.test(f.link ?? "") && /^\d{4}-\d{2}-\d{2}/.test(f.on ?? "") && String(f.key ?? "").toLowerCase() !== "rate" && !centralBankLink(f.link))
   .map((f) => ({ ...f, text: plainScores(cleanFact(f.text)) })).filter((f) => f.text.length >= 12);
 
 /**
@@ -264,19 +275,19 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const mine = ok.filter((f) => f.country === c), feeFacts = mine.filter((f) => f.part === "fee");
     const officialOf = (f) => f.official ?? (/(?:AU\$|AUD\s?\$?|A\$)\s?(\d{3,4})/.exec(f.text) ? `AUD ${/(?:AU\$|AUD\s?\$?|A\$)\s?(\d{3,4})/.exec(f.text)[1]}` : null);
     const feeSrc = feeFacts.find((f) => /oet\.com/.test(f.link) && officialOf(f)) ?? feeFacts.find(officialOf);
-    const lf = feeSrc ? localFee({ official: officialOf(feeSrc), country: c, rates }) : null;
-    const feeClaim = lf ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: feeSrc.link, readOn: feeSrc.on, source: `${hostOf(feeSrc.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true } : null;
+    const converted = feeSrc ? localFee({ official: officialOf(feeSrc), country: c, rates }) : null, ownPrice = officialLocalPrice({ facts: ok, country: c, aud: converted?.aud ?? null, subject }), lf = ownPrice ?? converted;
+    const feeClaim = ownPrice ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: ownPrice.fact.link, readOn: ownPrice.fact.on, source: `${hostOf(ownPrice.fact.link)} — its own price`, official: true } : lf ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: feeSrc.link, readOn: feeSrc.on, source: `${hostOf(feeSrc.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true } : null;
     const other = [subjectFacts?.changeFee, subjectFacts?.remarkFee].filter((f) => f?.text).map((f) => ({ ...fromSubject(f), card: null }));
     const items = [
       { part: "fee", question: `How much does ${subject} cost in ${inCountry(c)}?`, claims: feeClaim ? [feeClaim, ...other] : [] },
       /* RR-362 item 19: only clear questions on this page's topic; a question the collectors planned a page for stands here (R3), first */
       ...mine.filter((f) => f.part === "questions" && asAsked(f.question) && clearQuestion(f.question, { place: c })).sort((a, b) => plannedQ.has(String(b.question).toLowerCase()) - plannedQ.has(String(a.question).toLowerCase()) || viewsOf(b.question, subject) - viewsOf(a.question, subject)).slice(0, 8).map((f, i) => ({ part: `questions${i}`, question: asAsked(f.question), claims: [claimOf(f, null, null)] })),
-      { part: "centres", question: `Where can I take ${subject} in ${inCountry(c)}?`, claims: (() => { const all = mine.filter((f) => f.part === "centres"), named = all.filter((f) => !f.fromCollector); return (named.length ? named : all).map((f) => claimOf(f, null, null)); })() /* the collector's general "can be taken at a venue" only when nothing names the venues */ },
+      { part: "centres", question: `Where can I take ${subject} in ${inCountry(c)}?`, claims: (() => { const all = mine.filter((f) => f.part === "centres"), named = all.filter((f) => !f.fromCollector); const held = (named.length ? named : all).map((f) => claimOf(f, null, null)); return !held.length && subjectFacts?.bookFind?.text && facts.some((f) => f.country === c && f.part === "centres" && staleNews(f.text)) ? [{ ...fromSubject(subjectFacts.bookFind), card: null }] /* R12: old news left: the official finder */ : held; })() /* the collector's general "can be taken at a venue" only when nothing names the venues */ },
       { part: "councils", question: `Which council registers each profession in ${inCountry(c)}?`, claims: mine.filter((f) => f.part === "home-council").slice(0, 12).map((f) => claimOf(f, null, null)) },
       { part: "rules", question: `What rules are special to ${inCountry(c)}?`, claims: [...new Map(mine.filter((f) => f.part === "rules").map((f) => [f.text, f])).values()].slice(0, 6).map((f) => claimOf(f, null, null)) },
       { part: "scores", question: `What ${subject} score do the councils in ${inCountry(c)} ask?`, claims: sameStandard(mine.filter(scoreFacts)).map((f) => claimOf(f, null, cardOf(f.text, null))) },
     ].filter((it) => it.part === "fee" || it.claims.length);
-    const table = lf && lf.currency !== "AUD" ? [["What you pay for", "Official fee", `About in ${lf.currency}`], ["The full test (all four sub-tests)", `AUD ${lf.aud}`, `${lf.currency} ${lf.amount.toLocaleString("en-US")}`]] : null;
+    const table = ownPrice ? [["What you pay for", "Official price"], [ownPrice.scope ? ownPrice.scope.replace(/^for\s+/i, "") : "The full test", `${ownPrice.currency} ${ownPrice.amount.toLocaleString("en-US")}`], ...(ownPrice.aud ? [["Any other way of taking it", `AUD ${ownPrice.aud}`]] : [])] : lf && lf.currency !== "AUD" ? [["What you pay for", "Official fee", `About in ${lf.currency}`], ["The full test (all four sub-tests)", `AUD ${lf.aud}`, `${lf.currency} ${lf.amount.toLocaleString("en-US")}`]] : null;
     return { kind: "country", country: c, title: `${subject} in ${inCountry(c)}: fee, centres and councils`, questions: mine.filter((f) => f.part === "questions" && f.question).map((f) => ({ question: f.question, source: `AlmiWorld's question collector — asked by people in ${inCountry(c)}`, on: f.on })) /* RR-356 G1: their questions are demand evidence */, items, localCurrency: lf?.currency ?? CURRENCY_OF[c] ?? null, content: table ? { table, lastUpdated: rates?.date ?? null } : null };
   });
   /* each search joins the page it is about; the rest are topics, one page per need */

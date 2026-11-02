@@ -71,8 +71,8 @@ test("RR-354 · 5 · the searches that make no page, the need a search asks, and
   assert.equal(needOf("OET Examination", "OET"), needOf("oet english test", "OET"));
   assert.equal(needOf("oet practise test", "OET"), needOf("OET mock test", "OET"));
   assert.equal(needOf("oet register", "OET"), needOf("oet booking", "OET"));
-  assert.equal(cardOf("NMBI accepts OET (Nursing): Grade B (350) in three components", "Ireland"), "Ireland — Grade B (350)");
-  assert.equal(cardOf("Board accepts OET: minimum B pass (or score of 350) in each", "New Zealand"), "New Zealand — score of 350");
+  assert.equal(cardOf("NMBI accepts OET (Nursing): Grade B (350) in three components", "Ireland"), "NMBI accepts OET (Nursing): Grade B (350) in three components", "RR-364: a short form that loses the body shows the sentence");
+  assert.equal(cardOf("Board accepts OET: minimum B pass (or score of 350) in each", "New Zealand"), "Board accepts OET: minimum B pass (or score of 350) in each");
   assert.equal(cardOf("GOC does NOT accept OET.", "United Kingdom"), "United Kingdom — OET not accepted");
   assert.equal(cardOf("AUD 587 for the full OET"), "AUD 587");
   assert.equal(cardOf("Bring your passport."), null, "no number in the fact — no card is typed in");

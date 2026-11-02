@@ -16,5 +16,8 @@ export function viewsOf(question, subject) {
   for (const [t, v] of rows) { const w = wordsOf(t, subject), both = [...w].filter((x) => q.has(x)).length, holds = both === Math.min(w.size, q.size); if (both && (holds || (both >= 2 && both / Math.min(w.size, q.size) >= 0.6)) && v > best) best = v; }
   return best;
 }
+/* item 34b: what to ask Google's autocomplete in each country: data per category, in the wording people there type ("oet kya hai"), never per client */
+export const LOCAL_WORDING = Object.freeze({ exam: Object.freeze({ all: Object.freeze(["{S} {c}", "{S} fees in {c}", "how to book {S} in {c}"]), Pakistan: Object.freeze(["{S} kya hai", "{S} ki fees"]), India: Object.freeze(["{S} kya hai", "{S} ki fees"]), Bangladesh: Object.freeze(["{S} ki"]), Nepal: Object.freeze(["{S} ke ho"]), Philippines: Object.freeze(["{S} magkano"]) }) });
+export const localSeeds = (subject, country, category = "exam") => { const w = LOCAL_WORDING[category]; if (!w) return []; return [...(w[country] ?? []), ...w.all].map((x) => x.replace("{S}", String(subject).toLowerCase()).replace("{c}", String(country).toLowerCase())); };
 /** the help centre's questions as demand evidence (G1) */
 export const helpDemand = (subject) => (HELP_VIEWS[subject]?.rows ?? []).filter((r) => r[2]).map(([t, v, topic]) => ({ text: t.replace("{S}", subject), source: `${HELP_VIEWS[subject].source}: ${Math.round(v / 1000)}K`, weight: 8 + Math.log10(v), ranks: topic }));

@@ -132,7 +132,7 @@ test("B1 · EVERY SCREEN is a step in the window's history: each screen function
   assert.match(UI, /Object\.assign\(SCREENS, \{ home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen, pageCountScreen, searchScreen \}\);/);
   assert.match(UI, /bar\.innerHTML = CUR\?\.depth > 0 \? `<button class="ghost" id="navback" type="button">← Back<\/button>` : "";/);
   assert.match(UI, /\$\("#navback"\)\.onclick = \(\) => history\.back\(\);/);
-  assert.match(UI, /<div id="backbar" class="backbar"><\/div>\n<main id="app"><\/main>/);
+  assert.match(UI, /<div id="backbar" class="backbar"><\/div>\n<div id="prodbar" class="updbar"><\/div>\n<main id="app"><\/main>/); /* RR-364: the tab bar on every product screen */
   /* the step-by-step flows have Next → */
   assert.match(UI, /"Next →"\}<\/button>/); assert.match(UI, /<button class=ghost id=back>← Back<\/button>/);
   assert.match(UI, /<button id="tgsave">Save — Next →<\/button>/); /* RR-355 (owner: the button says Save, never "Save and publish") */ assert.match(UI, /Next → Sign in for YouTube/);

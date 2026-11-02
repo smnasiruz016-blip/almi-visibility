@@ -12,6 +12,8 @@ import { coverageOf, secondSearch } from "./recipe.mjs"; // RR-358: G5 + G6 for 
 import { COUNTRIES } from "./world.mjs"; // RR-359: a heading that is only a country's name is no subtopic
 import { blocksOfHtml, blueprintOf } from "./blocks.mjs"; // RR-363: R15
 import { coreOf } from "./page-types.mjs";
+import { meaningOf } from "./coverage.mjs";
+import { localSeeds } from "./subject-demand.mjs";
 import { STANDARD } from "./research.mjs";
 export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/organic/live/advanced", pricePerSearch: 0.002, capPerDay: 1, depth: 10 });
 export const SERP_OFF = "Google's own results were not read — the search-results service is switched off (Settings → Search results data; about $0.002 a search, at most $1 a day). Visibility used every free source it may: its own search data, your Search Console, AlmiWorld's question collector and the official pages.";
@@ -62,6 +64,29 @@ export function readSerp(json) {
     related: items.filter((i) => i.type === "related_searches").flatMap((i) => i.items ?? []).map((x) => (typeof x === "string" ? x : x?.title)).filter(Boolean) };
 }
 /* RR-362 (found in the crash hunt: Google's own redirect links among the results were being read): a result on Google's own site, Reddit or Quora is never opened */
+/* 🔴 item 34b: Google's autocomplete in a country, through the same service, ledger and caps; a kept answer is reused free */
+export const AUTOCOMPLETE = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/autocomplete/live/advanced" });
+export const readAutocomplete = (json) => { const t = json?.tasks?.[0]; if (json?.status_code !== 20000 || t?.status_code !== 20000) return { ok: false, why: t?.status_message ?? json?.status_message ?? "no answer" }; return { ok: true, cost: Number(t.cost) || 0, phrases: (t.result?.[0]?.items ?? []).filter((i) => i.type === "autocomplete" && i.suggestion).map((i) => String(i.suggestion).trim()) }; };
+export async function autocompleteIn({ keyword, country, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString() }) {
+  const key = `auto|${keyword}|${country}`, kept = ledger.serpCache?.[key];
+  if (kept && (!kept.at || (Date.parse(now) - Date.parse(kept.at)) / 864e5 <= KEEP_SEARCH_DAYS)) return { ...kept, cached: true };
+  if (settings.on !== true) return { ok: false, off: true };
+  if (!login || !password) return { ok: false, stop: true, why: "your DataForSEO login is not saved on this computer" };
+  const cap = Number(settings.capDay) > 0 ? Number(settings.capDay) : SERP.capPerDay, capMonth = Number(settings.capMonth) > 0 ? Number(settings.capMonth) : Infinity, m = mayBuy(ledger, { now, cap, capMonth, price: SERP.pricePerSearch }); if (!m.ok) return { ok: false, stop: true, capped: true, why: `the cap is reached ($${m.spent.toFixed(4)} today)` };
+  let got = { ok: false, why: "the service did not answer" };
+  try { const r = await fetchImpl(AUTOCOMPLETE.url, { method: "POST", headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}` }, body: JSON.stringify([{ keyword, location_name: country, language_code: "en" }]) }); got = readAutocomplete(await r.json().catch(() => ({}))); } catch { /* said below */ }
+  (ledger.spent ??= []).push({ on: now, cost: got.ok ? got.cost || SERP.pricePerSearch : 0, q: keyword, what: "autocomplete" });
+  if (got.ok) (ledger.serpCache ??= {})[key] = { ...got, at: now };
+  return got;
+}
+/* item 29: a country page's questions, most typed there first; a question people there type in the same words takes their wording */
+export function rankByLocal(items = [], phrases = [], subject = null) {
+  const sets = phrases.map((p, rank) => ({ p, rank, w: new Set(meaningOf(p, { drop: [subject] })) })).filter((x) => x.w.size);
+  const best = (q) => { const m = meaningOf(q, { drop: [subject] }); let top = null; for (const x of sets) { const both = m.filter((w) => x.w.has(w)).length; if (both && both / Math.max(m.length, 1) > 0.5 && (!top || x.rank < top.rank)) top = x; } return top; };
+  const slots = items.map((it, i) => (/^questions\d*$/.test(it.part) ? i : -1)).filter((i) => i >= 0), asks = slots.map((i) => items[i]).map((it, n) => ({ it, n, hit: best(it.question) })).sort((a, b) => (a.hit?.rank ?? 1e9) - (b.hit?.rank ?? 1e9) || a.n - b.n);
+  const out = [...items]; slots.forEach((i, n) => { const { it, hit } = asks[n], same = hit && [...hit.w].sort().join() === meaningOf(it.question, { drop: [subject] }).join() && /^(how|what|why|which|where|when|who|is|are|can|does|do)\b/i.test(hit.p); out[i] = same ? { ...it, question: `${hit.p.charAt(0).toUpperCase()}${hit.p.slice(1).replace(/[?.]*$/, "")}?`, localWording: true } : it; });
+  return out;
+}
 export const notForReading = (u) => /^https?:\/\/(?:[^/]*\.)?(?:google\.[a-z.]+|reddit\.com|quora\.com)(?:[/:?#]|$)/i.test(String(u));
 /** R4: a Reddit or Quora result, as Google shows it → a question in people's words (its title, or a question in its snippet) — never a fact */
 export function communityQuestions(results = [], site) {
@@ -116,7 +141,8 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     if (stopped) { p.serpWhy = stopped; return; } // every page after a stop says why it was not searched
     onPage?.(p, "search");
     const main = await ask(p.title); if (!main.ok) { p.serpWhy = main.why; notes.push(`${p.title}: ${main.why}`); return; }
-    pagesRead++; p.paa = main.paa; p.related = main.related;
+    if (p.kind === "country" && p.country && subject) { const said = []; for (const keyword of localSeeds(subject, p.country, p.category ?? "exam")) { const a = await autocompleteIn({ keyword, country: p.country, settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }); if (a.stop && !stopped) stopped = a.why; if (a.ok) said.push(...a.phrases); } if (said.length) { p.localAsked = [...new Set(said)]; p.items = rankByLocal(p.items ?? [], p.localAsked, subject); } }
+    pagesRead++; p.paa = main.paa; p.related = [...new Set([...main.related, ...(p.localAsked ?? [])])];
     const rq = communityQuestions((await ask(`${p.title} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(quoraSearch(p.title))).results ?? [], "quora.com");
     reddit += rq.length; quora += qq.length;
     const day = String(now).slice(0, 10), q = (text, src) => ({ question: text, source: src, on: day });

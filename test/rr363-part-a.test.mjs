@@ -35,7 +35,7 @@ test("A1: the screen is never empty while Home loads; making the plan no longer 
 
 test("A2: nothing removed, only moved: Home holds the score's details, What to do now, the ticks, the approval choice, Start, the last run, What to fix first, To-do and the plan's buttons, none of it folded away", () => {
   const home = UI.slice(UI.indexOf('$("#ov").innerHTML = `'), UI.indexOf('<div id="featbox"></div>`;'));
-  for (const x of ["${scoreHtml}", "${whatNowHtml(NEXT)}", "${scoreMore}", "${jobsHtml}", "${fix}", "${todo}", "${more}"]) assert.ok(home.includes(x), x);
+  for (const x of ["${scoreHtml}", "${whatNowHtml(NEXT, O.google)}", "${scoreMore}", "${jobsHtml}", "${fix}", "${todo}", "${more}"]) assert.ok(home.includes(x), x);
   assert.ok(!home.includes("See everything else"), "nothing behind a fold");
   for (const x of ['<h3>What do you want done?</h3>', 'name="appr" value="review"', 'name="appr" value="publish"', 'id="jobsgo"', 'id="jobrep"', "What to fix first — this week", 'id="plansave"', 'id="planagain"', '>To-do<']) assert.ok(UI.includes(x), x);
   assert.match(UI, /areasHtml\(c\)/, "Technical, Content and the rest, with what to fix in each");
@@ -67,7 +67,7 @@ test("A5: a Guide button in the top bar of every screen; every screen has its gu
 });
 
 test("A6: no empty box on the Pages tab: a page made before the types has nothing to say there, so the box is not drawn", () => {
-  assert.match(UI, /const planLine = PS\?\.counts && \(Object\.values\(TYPE_LABEL\)\.some\(\(x\) => x\.pages\) \|\| PS\.later \|\| PS\.merged\.length\) \?/);
+  assert.match(UI, /const planLine = PS\?\.counts && \(Object\.values\(TYPE_LABEL\)\.some\(\(x\) => x\.pages\) \|\| PS\.later \|\| PS\.merged\.length \|\| PS\.theyHave\?\.length\) \?/);
 });
 
 test("A7: never \"one of the five checks\": the failed check is named", () => {

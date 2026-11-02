@@ -67,9 +67,9 @@ test("item 2: \"Start here\" only the first time; + New product; item 3: the 17 
 
 test("item 4: four tabs: Home, Pages, Data, Settings; the rest under More; Home is the score and one box with ONE button", () => {
   assert.match(UI, /MAIN_TABS = \["Overview", "Pages and articles"\], TAB_WORDS = \{ Overview: "Home", "Pages and articles": "Pages" \}/);
-  assert.match(UI, /id="astab">Data<\/button><button class="ghost" id="set">Settings<\/button><details class="moretabs" id="moretabs"><summary>More<\/summary>/);
+  assert.match(UI, /id="astab">Data<\/button><button class="\$\{tab === "Settings" \? "" : "ghost"\}" id="set">Settings<\/button><details class="moretabs" id="moretabs"><summary>More<\/summary>/);
   assert.ok(UI.includes('<h3>What to do now</h3>')); assert.equal((/const whatNowHtml = [^\n]*/.exec(UI)[0].match(/<button/g) ?? []).length, 1, "ONE button");
-  assert.ok(UI.indexOf("${whatNowHtml(NEXT)}") < UI.indexOf("${scoreMore}"), "the box before the long list");
+  assert.ok(UI.indexOf("${whatNowHtml(NEXT, O.google)}") < UI.indexOf("${scoreMore}"), "the box before the long list");
   assert.ok(UI.includes("$(\"#app\").innerHTML = `${nav}${firstTime"), "the top menu is drawn: every button the screen wires exists");
 });
 

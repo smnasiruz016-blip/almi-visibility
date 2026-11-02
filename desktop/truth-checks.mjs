@@ -26,6 +26,7 @@ export function summaryFault(card, text) {
   const lostGrade = gradesIn(t).filter((g) => /\+/.test(g) && !c.includes(g)); if (lostGrade.length && /\b[ABC]\+?\b|\d{3}/.test(c)) return `it leaves out ${lostGrade.join(", ")}`;
   if (BARE_TIME.test(c) && TIME_RULE.test(t)) return "a time alone: the fact says which way it runs (before, after, within)";
   const here = countriesIn(c), there = countriesIn(t); if (here.length && there.length && !here.some((x) => there.includes(x))) return `it names ${here[0]}, the fact is about ${there[0]}`;
+  const body = bodyIn(t), name = body?.replace(/^The\s+/i, "").split(/[\s(,]+/)[0]; if (name && SCOREISH.test(c) && !c.toLowerCase().includes(name.toLowerCase())) return `it shows a score but not that it is ${body}'s`;
   return null;
 }
 /** a card as the page shows it: judged by its own fact; a card nobody planned (an edit) by the facts that hold its number */
@@ -35,6 +36,9 @@ export function cardFaultOf(value, planned, texts = []) {
   return whys.length && whys.every(Boolean) ? whys[0] : null;
 }
 /* the fact's own sentence, without the "X's own page:" lead-in: never cut */
+/* R12: a score or total that has lost whose it is ("1400 total", "minimum 350": HCPC, Ahpra). The first name the fact gives is the body */
+const bodyIn = (t) => /^(?:[^:]{0,40}own page:\s*)?(?:In [^:]{2,40}:\s*)?([A-Z][^.:;]{1,70}?)\s+(?:\([^)]*\)\s*)?(?:accepts?|asks?|requires?|wants?)\b/.exec(String(t))?.[1] ?? null;
+const SCOREISH = /\b[1-5]\d{2,3}\b|\b[ABC]\+?\s*\(/;
 export const wholeFact = (text) => { const t = String(text ?? "").replace(/^[^:]{0,40}own page:\s*/i, "").trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
 /** a short form that keeps the fact's meaning, or the whole sentence */
 export const fitCard = (card, text) => (summaryFault(card, text) ? wholeFact(text) : card);
@@ -50,6 +54,7 @@ const placesOf = (t, bodies) => distinct([...countriesIn(t), ...bodies.filter((b
  */
 export function answerFitWhy(question, answer, { subject = null, bodies = [], loose = false } = {}) {
   const q = String(question ?? ""), a = String(answer ?? "");
+  if (staleNews(a)) return "it is old news, not the current answer";
   if (oldWording(a)) return "it gives an old figure the official page has replaced"; /* Part D: whatever page it came from, the client's own too */
   const qp = placesOf(q, bodies), ap = placesOf(a, bodies); if (qp.length && ap.length && !ap.some((x) => qp.includes(x))) return `it asks about ${qp[0]}, the answer is about ${ap[0]}`;
   const prof = professionIn(q), other = professionIn(a); if (prof && other && prof !== other) return `it asks about ${prof}, the answer is about ${other}`;
@@ -63,12 +68,23 @@ export function answerFitWhy(question, answer, { subject = null, bodies = [], lo
   const nouns = want.filter((w) => !["time", "long", "take", "way", "much", "know"].includes(w)); if (ASKS_TIME.test(q) && nouns.length && !nouns.some((w) => have.has(w))) return "it gives a time, but not of what was asked";
   return null;
 }
+/* R12 (beta-g, 2 Nov 2026): a paragraph of the client's own site was written for its own page, not for this question: "Is the OET valid for 3 years?" got Ahpra's scores. It is split into single statements; each stands only under the question it answers, holding most of that question's words; what fits nowhere goes */
+export const sentencesOf = (t) => String(t ?? "").split(/(?<=[.!?])\s+(?=["'(]?[A-Z0-9])/).map((s) => s.trim()).filter(Boolean);
+const holdsMost = (q, s, subject) => { const want = meaningOf(q, { drop: [subject] }), have = new Set(meaningOf(s, { drop: [subject] })); return !want.length || want.filter((w) => have.has(w)).length / want.length > 0.5; };
+/** the client's own paragraph → only its statements that answer this question, or null */
+export function ownSiteAnswer(question, text, { subject = null, bodies = [] } = {}) { return sentencesOf(text).filter((s) => !answerFitWhy(question, s, { subject, bodies }) && holdsMost(question, s, subject)).join(" ") || null; }
+const hostIs = (u, host) => { try { return Boolean(host) && new URL(u).hostname.replace(/^www\./, "") === host; } catch { return false; } };
+/* R12: news from years ago is never the current answer ("OET's Feb 2020 Liverpool venue announcement") */
+export function staleNews(text, now = new Date()) {
+  const t = String(text ?? ""), years = [...t.matchAll(/\b(19|20)\d\d\b/g)].map((m) => Number(m[0])); if (!years.length) return false;
+  return Math.max(...years) <= now.getUTCFullYear() - 2 && /\b(announce\w*|press release|news|launch\w*|new venue|recently opened|opened)\b/i.test(t);
+}
 const WATCHED = /^(questions|topic|main)\d*$/;
 /** the parts a page shows, each line that fits its own question kept → { parts, removed: [{ question, line, why }], dropped: [question] }. A question left with nothing goes */
-export function fitParts(parts, { subject = null, bodies = [] } = {}) {
+export function fitParts(parts, { subject = null, bodies = [], ownHost = null } = {}) {
   const removed = [], dropped = [], out = [];
   for (const it of parts) {
-    const loose = !WATCHED.test(String(it.part)), kept = (it.claims ?? []).filter((c) => { const why = answerFitWhy(it.question, c.text, { subject, bodies, loose }); if (why) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why }); return !why; });
+    const loose = !WATCHED.test(String(it.part)), kept = (it.claims ?? []).flatMap((c) => { if (hostIs(c.link, ownHost)) { const text = ownSiteAnswer(it.question, c.text, { subject, bodies }); if (text !== c.text) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; } const why = answerFitWhy(it.question, c.text, { subject, bodies, loose }); if (why) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why }); return why ? [] : [c]; });
     if (kept.length) out.push({ ...it, claims: kept }); else if ((it.claims ?? []).length) dropped.push(it.question);
   }
   return { parts: out, removed, dropped };

@@ -1000,7 +1000,12 @@ async function continueChecks() {
 /* 🔴 RR-363 A3 (found on the owner's PC: his launcher dated from 1 Nov: an update replaces the app folder and never the launcher, so "/same-window" never reached him): the package carries the launcher; the app puts it in place. A file in use is tried again */
 function refreshLauncher() {
   const from = join(HERE, "..", "launcher", "AlmiVisibility.exe"), to = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(from) || !existsSync(to)) return true;
-  try { if (readFileSync(from).equals(readFileSync(to))) return true; copyFileSync(from, to); return true; } catch { return false; }
+  try { if (readFileSync(from).equals(readFileSync(to))) return true; copyFileSync(from, to); reopenWindowIfNone(); return true; } catch { return false; }
+}
+/* RR-363 A3: the update that brings the new launcher still ran the OLD one: it closes the window and opens another at once, and Windows may give that one to the window that is closing: no window at all (seen on a copy of the owner's install). No screen asking for anything = no window: the new launcher opens it. Once, on this one update. */
+let screenSeenAt = 0;
+function reopenWindowIfNone() {
+  setTimeout(() => { if (Date.now() - screenSeenAt < 15000) return; try { spawn(join(INSTALL, "AlmiVisibility.exe"), Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [], { detached: true, stdio: "ignore" }).on("error", () => {}).unref(); } catch { /* the shortcut still opens it */ } }, 20000).unref();
 }
 { let tries = 0; const again = () => { if (!refreshLauncher() && ++tries < 24) setTimeout(again, 5000).unref(); }; again(); } // the old launcher is still ending when the new app starts
 /* RR-362: the app started again in the middle of a run: it goes on at once */
@@ -1012,6 +1017,7 @@ const syncAll = async () => { if (CONFIG.testOffline === true || !currentLicence
 if (CONFIG.almiSeoSync !== false) setTimeout(() => { syncAll(); setInterval(syncAll, SYNC.everyHours * 3600e3).unref(); }, Number.isInteger(CONFIG.almiSeoFirstMs) ? CONFIG.almiSeoFirstMs : SYNC.firstMs).unref();
 
 const server = createServer((req, res) => {
+  if (String(req.url).startsWith("/api/")) screenSeenAt = Date.now();
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
   let body = "";
   req.on("data", (c) => { body += c; if (body.length > 6_000_000) req.destroy(); });

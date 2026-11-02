@@ -82,6 +82,9 @@ test("A3: the update carries the launcher: an old launcher is replaced by the ne
   assert.match(BUILD, /join\(stage, "launcher", "AlmiVisibility\.exe"\)/); assert.match(MAIN, /function refreshLauncher\(\)/); assert.match(MAIN, /join\(HERE, "\.\.", "launcher", "AlmiVisibility\.exe"\)/);
   assert.match(UI, /if \(J\.version !== APP_VERSION\) return location\.reload\(\);/); assert.match(MAIN, /send\(200, \{ version: VERSION, jobs: BOARD\.list\(\) \}\)/);
 });
+test("A3: the one update that still runs the old launcher: when no screen asks for anything after it, the new launcher opens the window", () => {
+  assert.match(MAIN, /copyFileSync\(from, to\); reopenWindowIfNone\(\);/); assert.match(MAIN, /if \(Date\.now\(\) - screenSeenAt < 15000\) return; try \{ spawn\(join\(INSTALL, "AlmiVisibility\.exe"\)/); assert.match(MAIN, /startsWith\("\/api\/"\)\) screenSeenAt = Date\.now\(\);/);
+});
 test("A3, for real: with an old launcher in place the new app replaces it; a launcher in use is tried again", { skip: WINDOWS_ONLY, timeout: 120000 }, async () => {
   const root = mkdtempSync(join(tmpdir(), "rr363-lau-")), install = join(root, "install"), app = join(install, "app"), data = join(root, "data"); mkdirSync(join(app, "desktop"), { recursive: true }); mkdirSync(join(app, "launcher"), { recursive: true }); mkdirSync(data);
   writeFileSync(join(install, "AlmiVisibility.exe"), "the old launcher"); writeFileSync(join(app, "launcher", "AlmiVisibility.exe"), "the new launcher");

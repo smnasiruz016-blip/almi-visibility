@@ -24,7 +24,7 @@ test("summary = fact: the owner's two cases, and a short form that keeps everyth
   assert.equal(summaryFault("L 350 · R 360 · W 350 · S 360", "Tests on/after 23 Apr 2026: Listening 350, Reading 360, Writing 350, Speaking 360."), null);
   assert.equal(summaryFault("AUD 587 — the official fee", "The full test costs AUD 587 — the official fee."), null);
   assert.match(summaryFault("Ireland — B (350)", "In Australia the regulator asks B (350) in each."), /names Ireland/);
-  assert.equal(fitCard("7 days", "OET's own page: bookings close 7 days before the test date."), "bookings close 7 days before the test date.", "the whole sentence instead");
+  assert.equal(fitCard("7 days", "OET's own page: bookings close 7 days before the test date."), "Bookings close 7 days before the test date.", "the whole sentence instead");
   assert.equal(wholeFact("OET's own page: x y."), "X y.", "a card is a sentence: it starts with a capital");
 });
 

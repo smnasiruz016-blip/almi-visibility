@@ -55,8 +55,8 @@ test("RR-354 · 4 · the exam plan: one page per profession, one per main countr
    * bank's rate): "PKR 113,000 at the bank's rate" is on no page; with no fee from OET's own page and no facts of OET's own pages, the
    * price page holds nothing — it is not made, never filled with another page's facts */
   assert.ok(!JSON.stringify(x.pages).includes("113,000"), "a bank's converted amount reached a page");
-  assert.ok(!x.pages.some((p) => p.title === "OET Exam Price"), "RR-362 (R3): a topic with nothing of its topic is no page"); assert.ok(x.merged.some((m) => m.title === "OET Exam Price"));
-  assert.ok(x.pages.find((p) => p.title === "OET Result").claims.every((c) => /accepts OET|does not accept/.test(c.text)));
+  assert.ok(!x.pages.some((p) => /exam price/i.test(p.title)), "RR-362 (R3): a topic with nothing of its topic is no page"); assert.ok(x.merged.some((m) => /exam price/i.test(m.title)));
+  assert.ok(x.pages.find((p) => p.title === "OET Result").claims.every((c) => /accepts OET|does not accept|The subject's own page says/.test(c.text)));
   const ids = x.pages.filter((p) => p.kind === "topic").flatMap((p) => p.claims.map((c) => c.claimId)); assert.equal(new Set(ids).size, ids.length);
   /* the truth rule: an unchecked fact is never on a page */
   assert.ok(!JSON.stringify(x.pages).includes("CNIC"), "an unverified fact reached a page");

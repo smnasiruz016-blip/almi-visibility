@@ -25,7 +25,7 @@ export const STANDARD = Object.freeze({
       Listening: ["format", "timing", "marks", "grade B", "how to prepare"], Reading: ["format", "timing", "marks", "grade B", "how to prepare"],
       Writing: ["timing", "length", "grade B", "how to prepare"], Speaking: ["format", "timing", "grade B", "how to prepare"],
       fee: ["the fee", "other fees"], result: ["when results come", "how it is scored"], book: ["how to book", "when bookings close"],
-      date: ["when bookings close", "how far ahead"], online: ["taking it on computer", "taking it at home"], what: ["the parts", "how it is scored", "the fee"],
+      date: ["when bookings close", "when results come out"], online: ["taking it on computer", "taking it at home"], what: ["the parts", "how it is scored", "the fee"],
     }),
   }),
   general: Object.freeze({ page: Object.freeze([["what", "what it is"], ["cost", "what it costs"], ["how", "how it works"], ["who", "who it is for"]]) }),
@@ -35,8 +35,8 @@ export const TOPIC_ANSWERS = Object.freeze({
   format: (t) => [`${t.toLowerCase()}Glance`, `${t.toLowerCase()}Marks`, "speakingRoleplay"], timing: (t) => [`${t.toLowerCase()}Glance`, "readingPartA", "writingMinutes", "speakingRoleplay"],
   marks: (t) => [`${t.toLowerCase()}Marks`], "grade B": (t) => [`${t.toLowerCase()}B`, `${t.toLowerCase()}GradeB`], "how to prepare": () => ["practiceEvery"], length: () => ["writingWords"],
   "the fee": () => ["fee"], "other fees": () => ["changeFee", "remarkFee"], "when results come": () => ["resultsComputer", "resultsPaper", "results95"], "how it is scored": () => ["scale", "gradeB"],
-  "how to book": () => ["bookAhead", "bookPaperCloses"], "when bookings close": () => ["bookPaperCloses", "bookComputerCloses"], "how far ahead": () => ["bookAhead"],
-  "taking it on computer": () => ["speakingOtherDay", "bookComputerCloses", "resultsComputer"], "taking it at home": () => ["bookAhead"], "the parts": () => ["listeningGlance", "readingGlance", "writingGlance", "speakingGlance"],
+  "how to book": () => ["bookFind", "bookPaperCloses"], "when bookings close": () => ["bookPaperCloses", "bookComputerCloses"], "when results come out": () => ["resultsPaper", "resultsComputer"],
+  "taking it on computer": () => ["speakingOtherDay", "bookComputerCloses", "resultsComputer"], "taking it at home": () => ["bookComputerCloses"], "the parts": () => ["listeningGlance", "readingGlance", "writingGlance", "speakingGlance"],
 });
 
 /* the main countries people go to (the owner's list) — first; then every other country where the exam owner's list names a regulator */

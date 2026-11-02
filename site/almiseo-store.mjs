@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS seo_setting (id text PRIMARY KEY, data jsonb NOT NULL
 CREATE TABLE IF NOT EXISTS tp_list (topic text NOT NULL, intent text NOT NULL, location text NOT NULL, language text NOT NULL, day date NOT NULL, results jsonb NOT NULL, paa jsonb NOT NULL, related jsonb NOT NULL, PRIMARY KEY (topic, intent, location, language));
 CREATE TABLE IF NOT EXISTS tp_page (url text PRIMARY KEY, day date NOT NULL, ok boolean NOT NULL, why text, structure jsonb);
 CREATE TABLE IF NOT EXISTS tp_coverage (topic text NOT NULL, intent text NOT NULL, day date NOT NULL, coverage jsonb NOT NULL, second jsonb NOT NULL, read jsonb NOT NULL, PRIMARY KEY (topic, intent));
+ALTER TABLE tp_coverage ADD COLUMN IF NOT EXISTS blueprint jsonb;
 `;
 const copy = (o) => (o === undefined ? o : JSON.parse(JSON.stringify(o)));
 const needFinding = (f) => { if (!f?.sourceUrl) throw new Error("a finding needs a source link"); if (!f?.on) throw new Error("a finding needs its date"); for (const k of ["id", "topic", "job", "kind", "text", "value"]) if (!f?.[k]) throw new Error(`a finding needs its ${k}`); if (!/^https?:\/\//.test(f.sourceUrl)) throw new Error("a finding needs a source link"); if (!/^\d{4}-\d{2}-\d{2}$/.test(f.on)) throw new Error("a finding needs its date"); };
@@ -60,8 +61,8 @@ export function seoPgStore({ url, Pool = null, max = 3 }) {
     async lists(topic) { await ensure(); return (await q("SELECT topic, intent, location, language, day::text AS day, results, paa, related FROM tp_list WHERE topic = $1", [topic])); },
     async putPage(p) { await ensure(); await q("INSERT INTO tp_page (url, day, ok, why, structure) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (url) DO UPDATE SET day = EXCLUDED.day, ok = EXCLUDED.ok, why = EXCLUDED.why, structure = EXCLUDED.structure", [p.url, p.day, p.ok, p.why ?? null, p.structure ? JSON.stringify(p.structure) : null]); },
     async pages(urls) { await ensure(); if (!urls.length) return []; return (await q("SELECT url, day::text AS day, ok, why, structure FROM tp_page WHERE url = ANY($1::text[])", [urls])); },
-    async putCoverage(c) { await ensure(); await q("INSERT INTO tp_coverage (topic, intent, day, coverage, second, read) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (topic, intent) DO UPDATE SET day = EXCLUDED.day, coverage = EXCLUDED.coverage, second = EXCLUDED.second, read = EXCLUDED.read", [c.topic, c.intent, c.day, JSON.stringify(c.coverage), JSON.stringify(c.second), JSON.stringify(c.read)]); },
-    async coverage(topic) { await ensure(); return (await q("SELECT topic, intent, day::text AS day, coverage, second, read FROM tp_coverage WHERE topic = $1 ORDER BY intent", [topic])); },
+    async putCoverage(c) { await ensure(); await q("INSERT INTO tp_coverage (topic, intent, day, coverage, second, read, blueprint) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (topic, intent) DO UPDATE SET day = EXCLUDED.day, coverage = EXCLUDED.coverage, second = EXCLUDED.second, read = EXCLUDED.read, blueprint = EXCLUDED.blueprint", [c.topic, c.intent, c.day, JSON.stringify(c.coverage), JSON.stringify(c.second), JSON.stringify(c.read), c.blueprint ? JSON.stringify(c.blueprint) : null]); },
+    async coverage(topic) { await ensure(); return (await q("SELECT topic, intent, day::text AS day, coverage, second, read, blueprint FROM tp_coverage WHERE topic = $1 ORDER BY intent", [topic])); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }

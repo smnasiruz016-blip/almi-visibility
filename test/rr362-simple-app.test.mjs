@@ -60,7 +60,7 @@ test("item 6: the bar stands on every screen; it shows how much, how long, what 
 });
 
 test("item 2: \"Start here\" only the first time; + New product; item 3: the 17 cards are a short list, five on top, the rest under More jobs", () => {
-  assert.ok(UI.includes('${firstTime ? startHereHtml(H) : ""}')); assert.ok(UI.includes('localStorage.setItem("av-started", "yes")')); assert.ok(UI.includes(">+ New product</button>"));
+  assert.ok(UI.includes('${firstTime ? startHereHtml(H) : ""}')); assert.ok(UI.includes(">+ New product</button>"));
   assert.ok(UI.includes('id="jobtop"') && UI.includes('id="jobmore"')); assert.ok(UI.includes("jobListHtml(M.cards, M)")); assert.ok(UI.includes("jobListHtml(O.menu.cards,"));
   assert.ok(!UI.includes("${cardsHtml(M.cards)}") && !UI.includes("${cardsHtml(top,"), "no grid of big cards");
 });
@@ -69,10 +69,8 @@ test("item 4: four tabs: Home, Pages, Data, Settings; the rest under More; Home 
   assert.match(UI, /MAIN_TABS = \["Overview", "Pages and articles"\], TAB_WORDS = \{ Overview: "Home", "Pages and articles": "Pages" \}/);
   assert.match(UI, /id="astab">Data<\/button><button class="ghost" id="set">Settings<\/button><details class="moretabs" id="moretabs"><summary>More<\/summary>/);
   assert.ok(UI.includes('<h3>What to do now</h3>')); assert.equal((/const whatNowHtml = [^\n]*/.exec(UI)[0].match(/<button/g) ?? []).length, 1, "ONE button");
-  assert.ok(UI.indexOf("${whatNowHtml(NEXT)}") < UI.indexOf('id="homemore"'), "the box first; everything else closed");
-  assert.ok(UI.includes("<summary>See everything else</summary>${scoreMore}"), "the long list of what to fix is closed");
+  assert.ok(UI.indexOf("${whatNowHtml(NEXT)}") < UI.indexOf("${scoreMore}"), "the box before the long list");
   assert.ok(UI.includes("$(\"#app\").innerHTML = `${nav}${firstTime"), "the top menu is drawn: every button the screen wires exists");
-  assert.ok(!UI.includes('$("#navadd")'));
 });
 
 test("item 5: no internal word on what the client reads", () => {

@@ -240,7 +240,7 @@ test("D IN THE APP: the plan after the check; Do it for me creates the pages, pu
     /* the screen: What I will do for you, What to fix first = the plan, Problem / Solution / Ready to use */
     const ui = await screen(a.url); ui.api.set(id, await ui.api.get(`/api/products/${id}/state`)); ui.el("#ov"); await ui.api.overview();
     const shown = ui.el("#ov").innerHTML;
-    for (const x of ["What I will do for you", "Do it for me", "What to fix first — this week", "<b>Problem:</b>", "<b>Solution:</b>", "Ready to use", "Save the action plan as a document", "Keywords to use", HONEST]) assert.ok(shown.includes(x), x);
+    for (const x of ["What I will do for you", "Do it for me", "What to fix first — this week", "<b>Problem:</b>", "<b>Solution:</b>", "Ready to use", "Save the action plan as a document", HONEST /* RR-363 A2: Keywords to use stands on the Data tab */]) assert.ok(shown.includes(x), x);
     /* AlmiWorld's own product: shown, never published or submitted */
     const aw = (await a.post("/api/products", { name: "almiworld youtube", goal: { grow: "youtube", hasWebsite: false } })).product.id;
     await a.post(`/api/products/${aw}/youtube`, { handle: "@Almiworld-world" });

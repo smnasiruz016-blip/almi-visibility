@@ -22,11 +22,13 @@ const RULES = [
 export function plainWhy(draft) {
   if (!draft || draft.readyAsDraft) return null;
   /* RR-355: the sixth check ("good to read") and "looks like your site" already speak in plain words — their own line first */
-  const own = (draft.gates ?? []).filter((g) => !g.pass && /* RR-357: the recipe's own checks speak plain words too — the open questions are named, never "one of the five checks" */ ["good to read", "looks like your site", "answers its core questions", "every fact sourced and fresh", "not a duplicate"].includes(g.words)).flatMap((g) => g.failing ?? []);
+  const own = (draft.gates ?? []).filter((g) => !g.pass && /* RR-357: the recipe's own checks speak plain words too — the open questions are named, never "one of the five checks" */ ["good to read", "looks like your site", "answers its core questions", "short forms keep the fact", "each answer fits its question", "every fact sourced and fresh", "not a duplicate"].includes(g.words)).flatMap((g) => g.failing ?? []);
   if (own.length) return own[0];
   const fails = (draft.gates ?? []).filter((g) => !g.pass).flatMap((g) => g.failing ?? []);
   for (const [re, line] of RULES) if (fails.some((f) => re.test(f))) return line;
-  return fails.length ? "One of the five checks did not pass yet — press Fix and Visibility tries again with its newest data." : "It is not ready yet.";
+  /* 🔴 RR-363 A7: the failed check is named, in its own plain words: never "one of the checks" */
+  const failed = (draft.gates ?? []).find((g) => !g.pass && (g.failing ?? []).length);
+  return failed ? `It still needs: ${failed.words}. ${String(failed.failing[0]).replace(/^[^—]*—\s*/, "")}.`.replace(/\.\.$/, ".") : "It is not ready yet.";
 }
 
 /** a planned page that was not made as a page of its own (the planner's REFUSED / SECTION rows) → [{ title, why }] in plain words */

@@ -14,11 +14,13 @@ import { randomBytes } from "node:crypto";
 import { SERP, serpTask, readSerp, notForReading } from "../desktop/serp.mjs";
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
+import { blocksOfHtml, blueprintOf } from "../desktop/blocks.mjs"; // RR-363: R15
 import { COUNTRIES } from "../desktop/world.mjs";
 import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS, clientTopicsToWork, planLimits } from "./almiseo.mjs";
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 
+const PRODUCT_CATEGORY = Object.freeze({ oet: "exam", prep: "exam", pte: "exam", toefl: "exam", det: "exam", celpip: "exam" });
 export const TOP_PAGES = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, maxHeadings: 40, location: "United States", language: "en" });
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
@@ -34,7 +36,7 @@ export function pageStructure(html, { now = new Date().toISOString() } = {}) {
   const headings = [...new Set(heads)].filter((h) => { const w = junkWhy(h, { now, names: COUNTRIES }); if (w) dropped.push(w); return !w; }).slice(0, TOP_PAGES.maxHeadings);
   const words = main.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean).length;
   const date = /<meta[^>]+(?:article:modified_time|article:published_time|og:updated_time|name=["']date["'])[^>]*content=["'](\d{4}-\d{2}-\d{2})/i.exec(clean)?.[1] ?? /<time[^>]+datetime=["'](\d{4}-\d{2}-\d{2})/i.exec(clean)?.[1] ?? null;
-  return { headings, questions: headings.filter((h) => QUESTION.test(h) || h.endsWith("?")), tables: (main.match(/<table\b/gi) ?? []).length, lists: (main.match(/<(?:ul|ol)\b/gi) ?? []).length, words, date, droppedHeadings: dropped.length };
+  return { headings, questions: headings.filter((h) => QUESTION.test(h) || h.endsWith("?")), tables: (main.match(/<table\b/gi) ?? []).length, lists: (main.match(/<(?:ul|ol)\b/gi) ?? []).length, words, date, droppedHeadings: dropped.length, blocks: blocksOfHtml(html) };
 }
 /** a paywall or a sign-in wall is left unread: nothing behind it is taken */
 export const walled = (html) => /<(?:input)[^>]+type=["']password["']/i.test(String(html ?? "")) || /\b(subscribe to (?:continue|read)|sign in to (?:continue|read)|log in to (?:continue|read)|this content is for (?:members|subscribers)|premium members only)\b/i.test(String(html ?? ""));
@@ -96,13 +98,13 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
             p = !h ? { url: u, day: today, ok: false, why: "it refused to be read (robots.txt, a security check or an error) — never gone around", structure: null } : walled(h) ? { url: u, day: today, ok: false, why: "behind a login or a paywall — left unread", structure: null } : { url: u, day: today, ok: true, why: null, structure: pageStructure(h, { now: new Date(now()).toISOString() }) };
             await seo.putPage(p);
           }
-          if (p.ok && p.structure) tops.push({ url: u, title: list.results.find((x) => x.url === u)?.title ?? "", headings: p.structure.headings, text: "" });
+          if (p.ok && p.structure) tops.push({ url: u, rank: list.results.findIndex((x) => x.url === u) + 1, blocks: p.structure.blocks ?? null, title: list.results.find((x) => x.url === u)?.title ?? "", headings: p.structure.headings, text: "" });
         }
         if (out.stoppedBy) break;
         const iso = new Date(now()).toISOString(), words = { subject: topic.subject, title: intent, now: iso, names: COUNTRIES }, coverage = cleanCoverage({ results: tops, paa: list.paa, ...words });
         /* G6: judged from the best result's own headings (its text is never kept) */
         const second = secondSearch({ best: tops[0] ?? null, paa: list.paa, coverage, subject: topic.subject, title: intent });
-        await seo.putCoverage({ topic: topic.id, intent, day: list.day, coverage, second, read: tops.map((t) => t.url) }); out.coverage++;
+        await seo.putCoverage({ topic: topic.id, intent, day: list.day, coverage, second, read: tops.map((t) => t.url), blueprint: blueprintOf({ tops, category: PRODUCT_CATEGORY[topic.id] ?? "general", on: list.day }) }); out.coverage++;
       }
     }
     out.reads = reader.requests() - reads0;

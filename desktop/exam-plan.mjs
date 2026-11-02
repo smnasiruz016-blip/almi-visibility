@@ -22,6 +22,9 @@ import { professionIn } from "./page-plan.mjs";
 import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
+import { fitCard } from "./truth-checks.mjs"; // RR-363: R15
+import { viewsOf } from "./subject-demand.mjs"; // RR-363
+import { oldWording } from "./subject-facts.mjs"; // RR-363
 import { KIND, TYPE_OF_KIND, STANDING, unclearWhy, clearQuestion, askedHere, itemForAsked, coreMissingOfPlan, ownClaims, mergeWhy } from "./page-types.mjs"; // RR-362: R3, R5, R6
 
 const STOP = new Set(["the", "a", "an", "for", "of", "in", "to", "and", "or", "is", "what", "how", "my", "your", "with", "on", "at", "about", "do", "does", "i", "you"]);
@@ -48,7 +51,9 @@ const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); 
  * count ("22 cities") — with its country; none when its text holds none (never a number typed in) */
 const PRICE = /(?:AUD|A\$|AU\$|US\$|USD|GBP|£|EUR|€|PKR|INR|NGN|PHP|SGD|AED|NZD|Rs\.?)\s?\$?\s?\d[\d,]*(?:\.\d+)?/;
 const SCORE = /grade\s+[abc]\+?\s*\(\d{3}\+?\)|\b[abc]\+?\s*\(\d{3}\+?\)|\b(?:minimum|at least|score of|min\.?)\s+(?:a\s+)?(?:grade\s+)?[abc]?\+?\s*\(?\d{3}\+?\)?|\b(?:listening|reading|writing|speaking)\s+\d{3}\b|\b\d{4} total\b/i;
-export function cardOf(text, country = null) {
+/* RR-363 (R15: summary = fact): whatever short form is found, it keeps the fact's meaning, or the card is the whole sentence */
+export const cardOf = (text, country = null) => { const v = shortCard(text, country); return v ? fitCard(v, text) : v; };
+export function shortCard(text, country = null) {
   const t = String(text ?? ""), at = (v) => (country ? `${country} — ${v}` : v);
   if (/\b(does not|doesn't|do not|not) accept\b/i.test(t)) return at("OET not accepted");
   /* RR-357: "minimum 350 in Reading, Listening and Speaking; minimum 300 in Writing" is ONE card, every number with its sub-tests */
@@ -90,8 +95,8 @@ export function serviceFactsOf(packets = {}, subject = null /* RR-359: no defaul
 /* the subject's own facts (desktop/subject-facts.mjs) a topic is answered with, each fact under the question it answers */
 /* {S} the subject, {T} the sub-test of the page (empty on another page) */
 const ASK = Object.freeze({
-  bookPaperCloses: "When do {S} bookings close?", bookComputerCloses: "When do {S} bookings close?", bookAhead: "How far ahead can I book {S}?", changeFee: "What does changing a {S} booking cost?",
-  resultsComputer: "When do {S} results come?", resultsPaper: "When do {S} results come?", results95: "When do {S} results come?", resultsIndia: "When do {S} results come?", resultsPhilippines: "When do {S} results come?",
+  bookPaperCloses: "When do {S} bookings close?", bookComputerCloses: "When do {S} bookings close?", changeFee: "What does changing a {S} booking cost?",
+  resultsComputer: "When do {S} results come?", resultsPaper: "When do {S} results come?", results95: "When do {S} results come?", resultsIndia: "When do {S} results come?",
   scale: "How is {S} {T} scored?", gradeB: "What is grade B in {S}?", benchmarkIelts: "How does {S} compare with IELTS?", practiceEvery: "How often should I take a {S} {T} practice test?",
   listeningMarks: "How is {S} Listening built?", listeningB: "What score is grade B in {S} Listening?", readingMarks: "How is {S} Reading built?", readingPartA: "How is {S} Reading built?", readingB: "What score is grade B in {S} Reading?",
   writingWords: "How long is the {S} Writing task?", writingMinutes: "How long is the {S} Writing task?", writingGradeB: "What is grade B in {S} Writing?", writingTask: "What is the {S} Writing task?",
@@ -106,9 +111,9 @@ const asAsked = (q) => { const t = String(q ?? "").trim().replace(/\s+/g, " "); 
 const TOPIC_FACTS = Object.freeze({
   Listening: ["listeningGlance", "listeningMarks", "listeningB", "scale", "practiceEvery"], Reading: ["readingGlance", "readingMarks", "readingPartA", "readingB", "scale", "practiceEvery"],
   Writing: ["writingGlance", "writingWords", "writingMinutes", "writingGradeB", "practiceEvery"], Speaking: ["speakingGlance", "speakingRoleplay", "speakingGradeB", "speakingOtherDay", "practiceEvery"],
-  fee: ["changeFee", "remarkFee", "bookAhead"], result: ["resultsComputer", "results95", "resultsPaper", "resultsIndia", "resultsPhilippines", "scale", "gradeB", "remarkHours"],
-  book: ["bookPaperCloses", "bookComputerCloses", "bookAhead", "changeFee"], date: ["bookPaperCloses", "bookComputerCloses", "bookAhead", "resultsPaper"],
-  online: ["bookAhead", "speakingOtherDay", "resultsComputer", "bookComputerCloses"], practice: ["practiceEvery", "gradeB", "writingWords", "readingPartA"],
+  fee: ["changeFee", "remarkFee"], result: ["resultsComputer", "results95", "resultsPaper", "resultsIndia", "scale", "gradeB", "remarkHours"],
+  book: ["bookPaperCloses", "bookComputerCloses", "changeFee"], date: ["bookPaperCloses", "bookComputerCloses", "resultsPaper", "resultsComputer"],
+  online: ["speakingOtherDay", "resultsComputer", "results95", "bookComputerCloses"], practice: ["practiceEvery", "gradeB", "writingWords", "readingPartA"],
   vs: ["benchmarkIelts", "scale", "gradeB"], what: ["scale", "listeningGlance", "readingGlance", "writingGlance", "speakingGlance", "gradeB", "resultsComputer"],
 });
 const topicKeyOf = (need, text) => { const w = new Set(String(need).split(" ")); const sub = SUBTESTS.find((s) => new RegExp(`\\b${s}\\b`, "i").test(text)); if (sub) return sub;
@@ -119,7 +124,8 @@ function topicItems(key, subjectFacts, subject) {
   const keys = TOPIC_FACTS[key] ?? [], items = new Map();
   for (const k of keys) { const f = subjectFacts?.[k]; if (!f?.text || !/^https?:\/\//.test(f.link ?? "")) continue; const q = askOf(k, subject, SUBTESTS.includes(key) ? key : null);
     (items.get(q) ?? items.set(q, { part: "topic", question: q, claims: [] }).get(q)).claims.push(fromSubject(f)); }
-  return [...items.values()];
+  /* RR-363 (item 22): what most people read comes first */
+  return [...items.values()].sort((a, b) => viewsOf(b.question, subject) - viewsOf(a.question, subject));
 }
 
 /* the fee in a country's money: the official fee, and the amount by the ONE exchange-rate service (its name and day beside it) */
@@ -143,7 +149,7 @@ export function sameStandard(facts) {
 }
 /** the facts a page may use: checked, sourced, dated; never a rate fact or a central bank's page (the page converts the fee itself, with the
  *  ONE rate service); each fact's notes taken out, and a fact left with nothing to say dropped */
-export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.text && /^https?:\/\//.test(f.link ?? "") && /^\d{4}-\d{2}-\d{2}/.test(f.on ?? "") && String(f.key ?? "").toLowerCase() !== "rate" && !centralBankLink(f.link))
+export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.text && !oldWording(f.text) /* RR-363 */ && /^https?:\/\//.test(f.link ?? "") && /^\d{4}-\d{2}-\d{2}/.test(f.on ?? "") && String(f.key ?? "").toLowerCase() !== "rate" && !centralBankLink(f.link))
   .map((f) => ({ ...f, text: plainScores(cleanFact(f.text)) })).filter((f) => f.text.length >= 12);
 
 /**
@@ -154,6 +160,27 @@ export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.t
  */
 /* 🔴 RR-360 · `collector` = AlmiSEO Data's page plan ("ready by the rules"), merged here without duplicates (G8): its country pages join the country pages; a country × profession page and a question page are made where their checked answers are here. `maxCountries`: AlmiSEO Data names every country with all its parts. A page keeps at most PAGE_QUESTIONS searches in its ledger, the most searched first, and counts the rest (all the keywords are read; none is dropped from the count) */
 export const PAGE_QUESTIONS = 60;
+/*
+ * 🔴 RR-363 (R15; the owner's reading of Google's top pages) · THE BLOCKS OF A PAGE FAMILY, from our checked facts only: a topic bar shared by the family, a box to choose your country or profession, the official finder and booking
+ * link, tabs per option (paper / computer), numbered steps split by option, practical tips, headings that open their own page, many countries as fold-out sections. A block with no checked fact behind it is left out, never padded.
+ */
+function familyBlocks({ subject, f = {}, countryPages, profPages, topics, pages }) {
+  const fact = (k) => f?.[k] ?? null, say = (x) => String(x.text).replace(/^[^:]{0,40}own page:\s*/i, ""), src = (x) => ({ text: say(x), link: x.link, on: x.readOn }), facts = (ks) => ks.map(fact).filter(Boolean), up = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const official = fact("bookPaperCloses")?.link ?? null, finder = official ? { label: `Find a test on ${subject}'s own booking page`, href: official } : null;
+  const shared = { bar: topics.slice(0, 8).map((t) => t.title), chooser: { groups: [{ label: "Choose your country", links: countryPages.map((p) => ({ text: p.country, title: p.title })) }, { label: "Choose your profession", links: profPages.map((p) => ({ text: p.title.replace(`${subject} for `, ""), title: p.title })) }], finder }, official: official ? { label: `Book on ${subject}'s own site`, href: official } : null };
+  for (const p of pages) p.content = { ...(p.content ?? {}), ...shared };
+  const OPTIONS = [["On paper at a venue", { "Bookings close": "bookPaperCloses", Results: "resultsPaper", "Results in India and the Philippines": "resultsIndia" }], ["On computer or at home", { "Bookings close": "bookComputerCloses", Results: "resultsComputer", "Most results": "results95" }]];
+  const tabs = OPTIONS.map(([label, rows]) => ({ label, rows: Object.entries(rows).filter(([, k]) => fact(k)).map(([what, k]) => ({ what, ...src(fact(k)) })) })).filter((x) => x.rows.length);
+  const steps = [["On paper at a venue", ["bookFind", "bookPaper"]], ["On computer or at home", ["bookFind", "bookComputer"]]].map(([label, ks]) => ({ label, steps: facts(ks).map(src) })).filter((x) => x.steps.length >= 2), tips = facts(["tipCard", "tipMinutes", "tipSpam"]).map(src);
+  for (const t of topics) {
+    if (["book", "date", "result", "online"].includes(t.topic) && tabs.length) t.content.tabs = tabs;
+    if (t.topic === "book") { if (steps.length) t.content.stepsBy = steps; if (tips.length) t.content.tips = tips; }
+    if (t.topic === "what") t.content.hub = topics.filter((x) => x !== t).map((x) => ({ title: x.title, line: x.items[0]?.question ?? null }));
+    if (t.topic === "fee") t.content.foldouts = countryPages.map((c) => ({ label: c.country, title: c.title, lines: c.items.filter((i) => ["fee", "centres"].includes(i.part)).flatMap((i) => i.claims.slice(0, 1)).map((x) => ({ text: up(String(x.text)), link: x.link, on: x.readOn })) })).filter((x) => x.lines.length);
+  }
+  /* each profession page opens what its country pages say about it: one level deeper */
+  for (const p of profPages) p.content.hub = countryPages.filter((c) => c.items.some((i) => i.part === "councils" && i.claims.some((x) => professionIn(x.text) === p.profession))).slice(0, 8).map((c) => ({ title: c.title, line: `Who registers ${peopleOf(p.profession)} in ${inCountry(c.country)}, the fee in local money and the centres.` }));
+}
 const isLocal = (p) => p.kind === KIND.destination || p.kind === KIND.origin;
 const countsOf = (pages, merged) => ({ profession: pages.filter((p) => p.kind === KIND.profession).length, country: pages.filter((p) => p.kind === KIND.country).length, topic: pages.filter((p) => p.kind === KIND.topic).length, destination: pages.filter((p) => p.kind === KIND.destination).length, origin: pages.filter((p) => p.kind === KIND.origin).length, merged: merged.length, improve: pages.filter((p) => p.improve).length });
 /* R3: a merged page's facts go into the country page and the profession page: a council, a fee or a good-standing rule to the country; a score or a test rule to the profession, beside that country's score. Its questions stand on the profession page */
@@ -244,7 +271,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const items = [
       { part: "fee", question: `How much does ${subject} cost in ${inCountry(c)}?`, claims: feeClaim ? [feeClaim, ...other] : [] },
       /* RR-362 item 19: only clear questions on this page's topic; a question the collectors planned a page for stands here (R3), first */
-      ...mine.filter((f) => f.part === "questions" && asAsked(f.question) && clearQuestion(f.question, { place: c })).sort((a, b) => plannedQ.has(String(b.question).toLowerCase()) - plannedQ.has(String(a.question).toLowerCase())).slice(0, 8).map((f, i) => ({ part: `questions${i}`, question: asAsked(f.question), claims: [claimOf(f, null, null)] })),
+      ...mine.filter((f) => f.part === "questions" && asAsked(f.question) && clearQuestion(f.question, { place: c })).sort((a, b) => plannedQ.has(String(b.question).toLowerCase()) - plannedQ.has(String(a.question).toLowerCase()) || viewsOf(b.question, subject) - viewsOf(a.question, subject)).slice(0, 8).map((f, i) => ({ part: `questions${i}`, question: asAsked(f.question), claims: [claimOf(f, null, null)] })),
       { part: "centres", question: `Where can I take ${subject} in ${inCountry(c)}?`, claims: (() => { const all = mine.filter((f) => f.part === "centres"), named = all.filter((f) => !f.fromCollector); return (named.length ? named : all).map((f) => claimOf(f, null, null)); })() /* the collector's general "can be taken at a venue" only when nothing names the venues */ },
       { part: "councils", question: `Which council registers each profession in ${inCountry(c)}?`, claims: mine.filter((f) => f.part === "home-council").slice(0, 12).map((f) => claimOf(f, null, null)) },
       { part: "rules", question: `What rules are special to ${inCountry(c)}?`, claims: [...new Map(mine.filter((f) => f.part === "rules").map((f) => [f.text, f])).values()].slice(0, 6).map((f) => claimOf(f, null, null)) },
@@ -281,7 +308,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   const topicPages = chosen.map((t) => {
     const items = itemsOf.get(t);
     /* the fee topic: the official fee, from the checked facts (its own currency) */
-    if (t.key === "fee" || t.key === "what") { const f = ok.find((x) => x.part === "fee" && /oet\.com/.test(x.link) && /AU\$|AUD/.test(x.text)); if (f) items.unshift({ part: "fee", question: `How much does ${subject} cost?`, claims: [claimOf(f, null)] }); }
+    if (t.key === "fee" || t.key === "what") { const f = ok.find((x) => x.part === "fee" && /oet\.com/.test(x.link) && /AU\$|AUD/.test(x.text)); if (f) items[t.key === "fee" ? "unshift" : "push"]({ part: "fee", question: `How much does ${subject} cost?`, claims: [{ ...claimOf(f, null), claimId: `${f.id ?? f.claimId}-${t.key}` /* RR-363: the fee page and the general page are two pages: the planner must not read one fact as one page */ }] }); }
     return { kind: "topic", topic: t.key, title: t.title, questions: t.questions, items, source: t.source };
   });
   /* 🔴 RR-362 (recipe R3; beta-g, 2 Nov 2026: "OET for Nurses in Australia" and "OET for Doctors in Egypt" had two questions each) · THE COLLECTORS' PLAN, BY TYPE:
@@ -358,6 +385,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   for (const p of localPages) { const e = own.find((x) => x.country === p.country && x.profession === p.profession); if (e) p.improve = { url: e.url, title: e.title }; }
   /* 🔴 RR-362 item 16 (owner's run: /guides/oet-pakistan twice, "13 new questions" then "1 new question"): ONE improve entry per existing page — the bigger page keeps it; a smaller page gives it its facts (R3) */
   for (const p of pages) p.category = "exam"; // its core questions and what it may be about are an exam's
+  familyBlocks({ subject, f: subjectFacts, countryPages, profPages, topics: realTopics, pages });
   const byUrl = new Map();
   for (const p of pages.filter((x) => x.improve)) { const had = byUrl.get(p.improve.url); if (!had) { byUrl.set(p.improve.url, p); continue; } const [keep, drop] = isLocal(had) && !isLocal(p) ? [p, had] : [had, p]; byUrl.set(p.improve.url, keep); delete drop.improve; }
   /* R3 before the searches: a C or D page that cannot be whole, whatever a search finds, costs no search */

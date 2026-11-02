@@ -167,7 +167,7 @@ test("E: the page's numbers are only what was measured; what arrived, last read;
   assert.equal(almiSeoView(null, { subject: "OET", planOk: false }).state, "NO_PLAN"); assert.equal(almiSeoView(null, { subject: null }).state, "NO_SUBJECT");
 });
 test("E + A3: the screen is in the product's menu and on the Overview; sync on start and on a schedule; never a word sending the client to buy", () => {
-  assert.match(UI, /id="astab">Data<\/button>/); assert.match(UI, /\$\("#astab"\)\.onclick = almiSeoScreen/); assert.match(UI, /\$\{asCardHtml\(O\.almiseo\)\}/);
+  assert.match(UI, /id="astab">Data<\/button>/); assert.match(UI, /\$\("#astab"\)\.onclick = almiSeoScreen/); /* RR-363: its summary stands on the Data tab */
   assert.match(UI, /you need no other service/); assert.match(UI, /Last read:/); assert.match(UI, /What arrived/);
   assert.match(MAIN, /setTimeout\(\(\) => \{ syncAll\(\); setInterval\(syncAll, SYNC\.everyHours \* 3600e3\)/);
   assert.match(MAIN, /r\[2\] === "almiseo" && req\.method === "GET"/); assert.match(MAIN, /r\[2\] === "almiseo\/sync"/); assert.match(MAIN, /r\[2\] === "almiseo\/browser" && req\.method === "POST"/);

@@ -117,7 +117,7 @@ export async function coverageRoutes({ pages, file, browser = {}, paidOn = false
   for (const p of pages) {
     const s = savedListFor(p, file), b = browser?.[p.title] ?? null;
     /* RR-362: what people asked comes with a saved list too (a page needs the questions as much as a paid search would bring them) */
-    if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on, questions: [...(p.questions ?? []), ...(s.asked ?? []).filter((q) => !(p.questions ?? []).some((x) => (x.question ?? x) === q)).map((question) => ({ question, source: `what people search (${s.on})`, on: s.on }))] }); delete p.serpWhy; n.saved++; continue; }
+    if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on, blueprint: s.blueprint ?? null /* RR-363 */, questions: [...(p.questions ?? []), ...(s.asked ?? []).filter((q) => !(p.questions ?? []).some((x) => (x.question ?? x) === q)).map((question) => ({ question, source: `what people search (${s.on})`, on: s.on }))] }); delete p.serpWhy; n.saved++; continue; }
     if (b) { Object.assign(p, { coverage: b.coverage ?? [], second: b.second ?? [], topRead: b.read ?? [], coverageRoute: ROUTES.browser, coverageOn: b.on }); delete p.serpWhy; n.browser++; continue; }
     left.push(p);
   }
@@ -131,7 +131,7 @@ export async function coverageRoutes({ pages, file, browser = {}, paidOn = false
  * Only what a search gave: addresses, topics, questions. → the lists to send
  */
 const planRowTitle = (page, file) => { const kind = page.kind === KIND.destination || page.kind === KIND.origin ? "country-profession" : page.kind; return (file?.plan ?? []).find((p) => p.kind === kind && (p.country ?? null) === (page.country ?? null) && (p.profession ?? null) === (page.profession ?? null) && kind !== "question")?.title ?? null; };
-export const searchedLists = (pages, file) => pages.filter((p) => p.coverageRoute === ROUTES.paid && p.searchedOn).map((p) => ({ intent: planRowTitle(p, file) ?? p.title, on: p.searchedOn, read: p.topRead ?? [], paa: p.paa ?? [], related: p.related ?? [], coverage: (p.coverage ?? []).map((c) => c.topic ?? c), second: (p.second ?? []).map((x) => x.question ?? x) }));
+export const searchedLists = (pages, file) => pages.filter((p) => p.coverageRoute === ROUTES.paid && p.searchedOn).map((p) => ({ intent: planRowTitle(p, file) ?? p.title, on: p.searchedOn, read: p.topRead ?? [], paa: p.paa ?? [], related: p.related ?? [], coverage: (p.coverage ?? []).map((c) => c.topic ?? c), second: (p.second ?? []).map((x) => x.question ?? x), blueprint: p.blueprint ?? null }));
 /** the run's one line: saved · reused · bought (R13), and what is left for tomorrow */
 export function searchCounts({ routes, paid = null, saved = 0, later: laterPages = null }) {
   const reused = (routes?.saved ?? 0) + (routes?.browser ?? 0) + (paid?.reused ?? 0), bought = paid?.bought ?? 0, cost = paid?.cost ?? 0, later = laterPages ?? routes?.none ?? 0;

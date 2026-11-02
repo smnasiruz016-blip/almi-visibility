@@ -16,6 +16,7 @@ import { PRODUCT_FACTS, FACT_PRODUCTS, templateOf, setClientTemplates } from "..
 import { PLANS } from "../desktop/licence.mjs";
 import { doneIn, pageCounts, countryPacket, CF_PROFESSIONS, councilFound, SHOWN_STATUS, productPartsOf, stillWaiting, isQuestion } from "../desktop/country-facts.mjs";
 import { recleanCoverage } from "../desktop/coverage.mjs";
+import { cleanBlueprint } from "../desktop/blocks.mjs"; // RR-363: R15, structure only
 import { COUNTRIES } from "../desktop/world.mjs";
 import { PRODUCT_NAMES } from "./owner-status.mjs";
 import { capsOf } from "./cf-collector.mjs";
@@ -109,7 +110,7 @@ export async function saveFromApp({ seo, subject, lists = [], lic, groups = [], 
     if (held.get(intent)?.day >= day) { kept++; continue; }
     const read = (Array.isArray(l.read) ? l.read : []).filter((u) => /^https:\/\//.test(u)).slice(0, SAVED_LISTS.results), coverage = recleanCoverage(strings(l.coverage, SAVED_LISTS.topics).map((t) => ({ topic: t, urls: read })), { subject: topic.subject, title: intent, now: at });
     await seo.putList({ topic: topic.id, intent, location, language, day, results: read.map((url) => ({ url, title: "" })), paa: strings(l.paa, SAVED_LISTS.questions), related: strings(l.related, SAVED_LISTS.questions) });
-    await seo.putCoverage({ topic: topic.id, intent, day, coverage, second: strings(l.second, SAVED_LISTS.questions).map((question) => ({ question, why: "people ask it, and the best result does not answer it" })), read }); saved++;
+    await seo.putCoverage({ topic: topic.id, intent, day, coverage, second: strings(l.second, SAVED_LISTS.questions).map((question) => ({ question, why: "people ask it, and the best result does not answer it" })), read, blueprint: cleanBlueprint(l.blueprint) }); saved++;
   }
   return { ok: true, saved, kept };
 }
@@ -273,7 +274,7 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   const all = cf ? await cf.facts() : [], mine = all.filter((f) => (f.product ?? "oet") === topic.id);
   if (part === "questions") return { ...base, ...(cf ? await questionBank({ cf, topic, keywords: allowed }) : { groups: [], asked: [] }) };
   if (part === "plan") return { ...base, pages: collectorPlan({ topic, facts: all }), counter: counterTotal(all, { topic }) };
-  if (part === "coverage") { const raw = new Map((await seo.lists(topic.id)).map((l) => [l.intent, [...(l.paa ?? []), ...(l.related ?? [])]])); return { ...base, lists: (await seo.coverage(topic.id)).map((c) => ({ intent: c.intent, on: c.day, coverage: c.coverage, second: c.second, read: c.read, asked: raw.get(c.intent) ?? [] })) }; }
+  if (part === "coverage") { const raw = new Map((await seo.lists(topic.id)).map((l) => [l.intent, [...(l.paa ?? []), ...(l.related ?? [])]])); return { ...base, lists: (await seo.coverage(topic.id)).map((c) => ({ intent: c.intent, on: c.day, coverage: c.coverage, second: c.second, read: c.read, asked: raw.get(c.intent) ?? [], blueprint: c.blueprint ?? null })) }; }
   const held = [...new Set(mine.map((f) => f.country))].filter((c) => COUNTRIES.includes(c)), order = DEFAULT_QUEUE.countries.filter((c) => held.includes(c));
   if (part === "countries") {
     const shownFacts = all.filter((f) => SHOWN_STATUS.includes(f.status) && (f.product ?? "oet") === topic.id), slice = order.slice(page * ALMISEO.countriesPerPage, (page + 1) * ALMISEO.countriesPerPage);

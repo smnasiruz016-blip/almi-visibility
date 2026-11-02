@@ -18,6 +18,8 @@ import { MARKETING } from "../site/pages.mjs";
 import { licenceState } from "../desktop/licence.mjs";
 import { FUNCTION_SALES } from "../tools/bundle-site.mjs";
 import { makeRelease, nextSteps, SETUP_NAME } from "../site/owner-release.mjs";
+import { fingerprintOf } from "../desktop/production-keys.mjs";
+import { tinyZip } from "./helpers/tiny-zip.mjs";
 import { verifyManifest } from "../desktop/updater.mjs";
 
 const ROUTER = "fake-router-secret-for-this-test-only";
@@ -118,19 +120,22 @@ test("RR-338 · the owner's release tool: three files, a manifest signed AND ver
   const root = mkdtempSync(join(tmpdir(), "rr338rel-")), from = join(root, "built"), k = join(root, "keys"), out = join(root, "release");
   try {
     mkdirSync(from); mkdirSync(k);
-    writeFileSync(join(from, "AlmiVisibility-Setup-1.15.0.exe"), "setup-bytes"); writeFileSync(join(from, "AlmiVisibility-1.15.0.zip"), "zip-bytes");
     const u = generateKeyPairSync("ed25519"), upub = u.publicKey.export({ type: "spki", format: "pem" }), upriv = u.privateKey.export({ type: "pkcs8", format: "pem" });
+    /* RR-365b: the tool now reads the keys inside the package, so a real (tiny) package with a throwaway key, and that key expected */
+    const pack = tinyZip({ "desktop/keys/licence-public.pem": upub, "desktop/keys/update-public.pem": upub }), expected = { "licence-public.pem": fingerprintOf(upub), "update-public.pem": fingerprintOf(upub) };
+    writeFileSync(join(from, "AlmiVisibility-Setup-1.15.0.exe"), Buffer.concat([Buffer.from("setup-bytes"), pack])); writeFileSync(join(from, "AlmiVisibility-1.15.0.zip"), pack);
     writeFileSync(join(k, "update-private.pem"), upriv); writeFileSync(join(k, "update-public.pem"), upub);
-    const r = makeRelease({ from, keys: k, out });
+    const r = makeRelease({ from, keys: k, out, expected });
     assert.deepEqual([r.ok, r.version, r.files], [true, "1.15.0", [SETUP_NAME, "AlmiVisibility-1.15.0.zip", "manifest.json"]]);
     const m = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
     assert.equal(m.package, "packages/AlmiVisibility-1.15.0.zip");
     assert.ok(verifyManifest(m, upub));
     for (const f of r.files) assert.ok(!readFileSync(join(out, f), "latin1").includes("PRIVATE KEY"), f);
-    assert.match(makeRelease({ from, keys: k, out }).why, /not empty/);
+    assert.match(makeRelease({ from, keys: k, out, expected }).why, /not empty/);
     const other = generateKeyPairSync("ed25519");
     writeFileSync(join(k, "update-public.pem"), other.publicKey.export({ type: "spki", format: "pem" }));
-    assert.match(makeRelease({ from, keys: k, out: join(root, "r2") }).why, /not a pair/);
+    assert.match(makeRelease({ from, keys: k, out: join(root, "r2"), expected }).why, /not the production key/, "RR-365b: another public key is now stopped by its fingerprint");
+    assert.match(makeRelease({ from, keys: k, out: join(root, "r2"), expected: { ...expected, "update-public.pem": fingerprintOf(other.publicKey.export({ type: "spki", format: "pem" })) } }).why, /not the production key/, "and the package's own key must match too");
     assert.ok(!existsSync(join(root, "r2")), "a refused release writes nothing");
     const steps = nextSteps({ version: "1.15.0", out, owner: "someone" }).join("\n");
     assert.match(steps, /VISIBILITY_SETUP_URL = https:\/\/github\.com\/someone\/almivisibility-releases\/releases\/latest\/download\/AlmiVisibility-Setup\.exe/);

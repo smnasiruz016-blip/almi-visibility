@@ -7,6 +7,7 @@
  *   · licence-private.pem → its whole text goes into Vercel as LICENCE_SIGNING_KEY (by you).
  *   · update-private.pem  → stays with you; it signs each update's manifest.
  *   · the two -public.pem files → give the FOLDER to the Setup build (node desktop/build.mjs --keys=<folder>); the build copies only them.
+ *   · RR-365b: new real keys also change the fingerprints in desktop/production-keys.mjs, or the build refuses them.
  */
 import { generateKeyPairSync } from "node:crypto";
 import { mkdirSync, writeFileSync, existsSync, readdirSync } from "node:fs";

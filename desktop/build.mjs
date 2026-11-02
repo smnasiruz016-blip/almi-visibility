@@ -6,19 +6,27 @@
  * holds signing.json (desktop/sign.mjs — no secret in it); without it the Setup is UNSIGNED, so Windows shows an "unknown publisher" warning.
  *   node desktop/build.mjs --version=1.0.0 --out=<dir> --keys=<dir holding licence-public.pem and update-public.pem>
  * Writes only under --out; an existing output file is never overwritten (the build refuses).
+ * 🔴 RR-365b: a build is REAL unless it says otherwise, and a REAL build refuses any key that is not the production one (desktop/production-keys.mjs), by
+ * fingerprint, before it writes anything. A proof build says --test-keys: its files are named ...-TEST-KEYS, it refuses a REAL or RELEASE folder, and the release tool cannot take it.
  */
-import { cpSync, mkdirSync, existsSync, writeFileSync, copyFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, mkdirSync, existsSync, writeFileSync, copyFileSync, rmSync, statSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { compileSetup } from "./installer-compile.mjs";
 import { readSigning, signFile } from "./sign.mjs"; // RR-342
+import { keysFolderFault, packageKeysFault } from "./production-keys.mjs"; // RR-365b
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? null;
 const VERSION = arg("version"), OUT = arg("out"), KEYS = arg("keys");
 if (!/^\d+\.\d+\.\d+$/.test(VERSION ?? "") || !OUT || !KEYS) { console.error("usage: node desktop/build.mjs --version=1.0.0 --out=<dir> --keys=<dir>"); process.exit(1); }
-const setupExe = join(OUT, `AlmiVisibility-Setup-${VERSION}.exe`), packageZip = join(OUT, `AlmiVisibility-${VERSION}.zip`);
+/* 🔴 RR-365b: nothing is written before this */
+const TEST_KEYS = process.argv.includes("--test-keys");
+if (TEST_KEYS && /(REAL|RELEASE)/.test(resolve(OUT))) { console.error("REFUSED — a --test-keys build never goes into a REAL or RELEASE folder"); process.exit(4); }
+if (!TEST_KEYS) { const fault = keysFolderFault(KEYS); if (fault) { console.error(`REFUSED — a REAL build carries only the production keys: ${fault}. Nothing was built. A proof build says --test-keys.`); process.exit(4); } }
+const MARK = TEST_KEYS ? "-TEST-KEYS" : "";
+const setupExe = join(OUT, `AlmiVisibility-Setup-${VERSION}${MARK}.exe`), packageZip = join(OUT, `AlmiVisibility-${VERSION}${MARK}.zip`);
 for (const f of [setupExe, packageZip]) if (existsSync(f)) { console.error(`REFUSED — ${f} exists; a build never overwrites a file`); process.exit(2); }
 const stage = join(OUT, `stage-${VERSION}`);
 rmSync(stage, { recursive: true, force: true });
@@ -43,6 +51,8 @@ const ps = (cmd) => execFileSync("powershell.exe", ["-NoProfile", "-NonInteracti
   ps(`Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory('${join(tmp, "p")}', '${join(tmp, "p.zip")}', [IO.Compression.CompressionLevel]::Fastest, $false)`);
   mkdirSync(join(stage, "launcher"), { recursive: true }); compileSetup({ repo: REPO, out: join(stage, "launcher", "AlmiVisibility.exe"), payloadZip: join(tmp, "p.zip"), versionFile: join(tmp, "v.txt") }); rmSync(tmp, { recursive: true, force: true }); }
 ps(`Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory('${stage}', '${packageZip}', [IO.Compression.CompressionLevel]::Optimal, $false)`);
+/* RR-365b: and once more on what was really packed: the package is what the app will verify with */
+if (!TEST_KEYS) { const fault = packageKeysFault(readFileSync(packageZip), packageZip); if (fault) { rmSync(packageZip, { force: true }); rmSync(stage, { recursive: true, force: true }); console.error(`REFUSED — ${fault}. The package was removed.`); process.exit(4); } }
 writeFileSync(join(OUT, `version-${VERSION}.txt`), VERSION);
 compileSetup({ repo: REPO, out: setupExe, payloadZip: packageZip, versionFile: join(OUT, `version-${VERSION}.txt`) }); /* RR-305: the one compile step, shared with the installer test */
 rmSync(stage, { recursive: true, force: true });

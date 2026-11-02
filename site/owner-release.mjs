@@ -9,6 +9,8 @@
  *   · manifest.json — the update's version, package and sha256, signed with update-private.pem.
  * The private key is read inside this process only. It is never printed, copied or written anywhere.
  * The tool prints the file names and the next steps; it never uploads anything.
+ * 🔴 RR-365b: it refuses a package that does not carry the production keys, a Setup that does not hold that package, and a keys folder with another
+ * update key, all before the private key is read. There is no option to skip this.
  */
 import { readFileSync, writeFileSync, copyFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -16,12 +18,13 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { manifestFor } from "../services/update-channel/channel.mjs";
 import { verifyManifest } from "../desktop/updater.mjs";
+import { PRODUCTION_KEYS, keysFolderFault, packageKeysFault } from "../desktop/production-keys.mjs"; // RR-365b
 
 export const SETUP_NAME = "AlmiVisibility-Setup.exe";
 export const RELEASES_REPO = "almivisibility-releases";
 
 /** Make the release folder. Returns { ok, version, files } or { ok: false, why }; never a key. */
-export function makeRelease({ from, keys, out }) {
+export function makeRelease({ from, keys, out, expected = PRODUCTION_KEYS /* tests only; the command line cannot set it */ }) {
   if (!from || !keys || !out) return { ok: false, why: "give --from, --keys and --out" };
   const exe = existsSync(from) ? readdirSync(from).find((f) => /^AlmiVisibility-Setup-\d+\.\d+\.\d+\.exe$/.test(f)) : null;
   if (!exe) return { ok: false, why: `no AlmiVisibility-Setup-<version>.exe in ${from}` };
@@ -29,6 +32,10 @@ export function makeRelease({ from, keys, out }) {
   if (!existsSync(join(from, zip))) return { ok: false, why: `${zip} is not beside the Setup in ${from}` };
   for (const k of ["update-private.pem", "update-public.pem"]) if (!existsSync(join(keys, k))) return { ok: false, why: `${k} is not in the keys folder` };
   if (existsSync(out) && readdirSync(out).length) return { ok: false, why: `${out} is not empty — the tool never overwrites a file` };
+  /* 🔴 RR-365b: what clients would install is checked first: 1.15.18 passed every step of this tool with a proof's key inside its package */
+  const packed = readFileSync(join(from, zip)), fault = packageKeysFault(packed, zip, expected) ?? keysFolderFault(keys, { "update-public.pem": expected["update-public.pem"] });
+  if (fault) return { ok: false, why: `this is not a release for clients: ${fault}` };
+  if (!readFileSync(join(from, exe)).includes(packed)) return { ok: false, why: `${exe} does not hold ${zip} — the two come from different builds` };
   const privateKeyPem = readFileSync(join(keys, "update-private.pem"), "utf8");
   const manifest = manifestFor({ version, packageFile: join(from, zip), privateKeyPem });
   /* the app checks with the PUBLIC key it ships; a manifest that would not verify is never written */

@@ -120,7 +120,7 @@ test("RR-357 · 8 · a score is shown only tied to its sub-test; a page that doe
   assert.equal(q[0].partial.text, "In the United States — Alabama (state board): Alabama Board of Nursing names OET on its own page among the English tests it accepts; the page does not say which score is for which sub-test — see its page.");
   assert.ok(!/\b3[2-6]0\b/.test(q[0].partial.text) && q[0].partial.link === "https://abn.example/x");
   assert.equal(cardOf("Nursing Council of New Zealand accepts OET: minimum 350 in Reading, Listening and Speaking; minimum 300 in Writing.", "New Zealand"), "Nursing Council of New Zealand accepts OET: minimum 350 in Reading, Listening and Speaking; minimum 300 in Writing.", "RR-364: the body stays");
-  assert.equal(cardOf("NMBI accepts OET (Nursing): Writing C+ (300), the other three B (350).", "Ireland"), "Ireland — Writing C+ (300) · others B (350)");
+  assert.equal(cardOf("NMBI accepts OET (Nursing): Writing C+ (300), the other three B (350).", "Ireland"), "NMBI accepts OET (Nursing): Writing C+ (300), the other three B (350).");
   /* the Pages screen names the open questions (found in the built app: it said "one of the five checks") */
   assert.equal(plainWhy({ readyAsDraft: false, gates: [{ gate: "H", words: "answers its core questions", pass: false, failing: ["Open questions: What OET score does a state board in the United States ask of nurses?."] }] }), "Open questions: What OET score does a state board in the United States ask of nurses?.");
 });

@@ -28,6 +28,10 @@ import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
+import { summaryFault, fitCard, fitParts, answerFitWhy, cardFaultOf } from "./truth-checks.mjs"; // RR-363: R15
+import { blocksOfHtml, blocksCompared } from "./blocks.mjs"; // RR-363: R15
+import { readPage } from "./page-quality.mjs";
+import { shortCard } from "./exam-plan.mjs";
 import { goodToRead, topicOf as pageTopicOf, offTopic, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
 import { PEOPLE_WORD } from "./recognition.mjs";
 import { duplicationReview, freshness, covers } from "./recipe.mjs"; // RR-356 the recipe
@@ -154,7 +158,7 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null, coverageFor = null, reviewFor = null /* RR-360 */ }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null, coverageFor = null, reviewFor = null /* RR-360 */, bodies = [] /* RR-363 */ }) {
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -177,7 +181,9 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         const same = (a, b, loose = true) => { if (a.text === b.text) return true; if (!loose) return false; const x = sig(a.text), y = sig(b.text); return Boolean(nums(a.text)) && nums(a.text) === nums(b.text) && hostOf(a.link) === hostOf(b.link) || [...x].filter((w) => y.has(w)).length / Math.max(1, Math.min(x.size, y.size)) >= 0.85; };
         const loose = (part) => !/^(councils|scores|fee)$/.test(String(part));
         const clean = (cs, part = "site") => cs.map((c) => ({ ...c, text: cleanFact(c.text) })).filter((c) => c.text.length >= 12 && !offTopic(c.text, topic)).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
-        const parts = p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length);
+        /* 🔴 RR-363 (R15: answer fits question): a line that does not answer its own question leaves it; a question left with nothing goes */
+        const fit = fitParts(p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { subject, bodies });
+        const parts = fit.parts;
         const kept = parts.flatMap((it) => it.claims);
         /* the client's own pages answer the questions people ask about it — a real question only (never a bare search wording as a heading), a
          * whole answer only (never a lone "No." whose question is not shown, never a page title), each site line on three pages at most */
@@ -186,9 +192,9 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         /* the page's own title is asked of the site too ("OET for Nurses" → its pages about nurses), under "What else should I know about …?" */
         const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim()) && clearQuestion(x, { place: p.kind === KIND.topic ? null : p.country ?? null }) /* RR-362 item 19 */).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` })), { q: p.title, heading: `What else should I know about ${p.title}?`, max: 3 }];
         /* RR-360 (found on the owner's data: an Australian board's rule, read from the client's own pages, on "OET for Dentists in Ireland"): a page the collectors planned for one country says only its own checked facts */
-        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === KIND.destination || p.kind === KIND.origin || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length || parts.some((it) => String(it.question).toLowerCase() === heading.toLowerCase()) /* RR-362: one question once */) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
+        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === KIND.destination || p.kind === KIND.origin || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !answerFitWhy(heading, c.text, { subject, bodies })).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length || parts.some((it) => String(it.question).toLowerCase() === heading.toLowerCase()) /* RR-362: one question once */) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
         const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
-        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [], asked: p.askedHeads ?? [], route: p.coverageRoute ?? null, category: p.category ?? null }); // RR-356: its research and its existing page
+        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [], asked: p.askedHeads ?? [], route: p.coverageRoute ?? null, category: p.category ?? null, blueprint: p.blueprint ?? null, fit, unreadTops: p.unreadTops ?? 0 }); // RR-356: its research and its existing page
         needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
         continue;
       }
@@ -278,8 +284,9 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     if (c.official) { const m = / — ([^—]+)\.$/.exec(c.text); if (m && /\d|grade|Listening [ABC]/i.test(m[1])) return m[1].trim(); if (/is recognised or accepted there/.test(c.text)) return "recognised or accepted there"; } /* the card's words stand IN the sourced sentence */ const s = String(c.text).split(/(?<=[.!?])\s+/).find((x) => !where.length || countriesIn(x).some((w) => where.includes(w))); return s ? valueIn(s) : null; };
   /* RR-355: a page of several parts takes its cards from each part in order (the country's fee first), never a broken or doubled one */
   const cardKey = (v) => String(v ?? "").replace(/^[A-Za-z ]+ — /, "").trim().toLowerCase();
+  const changedCards = {};
   const keyFacts = news.flatMap((p) => { const where = destinationsIn(p.need.question), kind = answerKindOf(p.need.question), parts = p.need.extraItems ? [p.need, ...p.need.extraItems] : [p.need];
-    return parts.flatMap((n) => n.claims).map((c) => ({ claimId: c.claimId, ...(p.need.extraItems ? { needId: p.needId } : {}), value: typeof c.card === "string" ? c.card : c.card === null ? null : factIn(c, where, kind) /* a planned part's card is its own (null: none) */ })).filter((k) => k.value && !brokenCard(k.value)).filter((k, i, all) => all.findIndex((x) => cardKey(x.value) === cardKey(k.value)) === i) /* RR-333: one card per value ("60 minutes" twice) */.slice(0, p.need.extraItems ? 3 : 2); });
+    return parts.flatMap((n) => n.claims).map((c) => { const short = typeof c.card === "string" ? c.card : c.card === null ? null : factIn(c, where, kind) /* a planned part's card is its own (null: none) */, value = short ? fitCard(short, c.text) : short; /* RR-363: R15: summary = fact */ const was = typeof c.card === "string" ? shortCard(c.text) : short; if (was && value && value !== was && String(value).length > String(was).length + 8 && summaryFault(was, c.text)) (changedCards[p.needId] ??= []).push({ card: was, became: value }); return { claimId: c.claimId, text: c.text, ...(p.need.extraItems ? { needId: p.needId } : {}), value }; }).filter((k) => k.value && !brokenCard(k.value)).filter((k, i, all) => all.findIndex((x) => cardKey(x.value) === cardKey(k.value)) === i) /* RR-333: one card per value ("60 minutes" twice) */.slice(0, p.need.extraItems ? 3 : 2); });
   /* RR-321 E3: a planned page links the pages its plan names (a university page its regulator pages; a regulator page "Where to take" and
    * the topic pages); E4: it shows when its sources were last checked */
   /* the proof: a preview of two pages linked pages outside the set ("links to no other page of the set") — a link goes to a page that is
@@ -291,7 +298,9 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const siteRelated = siteRelatedPages(site);
   const withSite = (np) => { const seen = new Set(); return [...(relatedFor ? relatedFor(np) : news.filter((x) => x.needId !== np.needId).map((x) => ({ href: `${base}${x.path}`, label: x.need.title ?? x.need.question }))), ...siteRelated(np.need.title ?? np.need.question)].filter((l) => l.href && !seen.has(l.href) && seen.add(l.href)).slice(0, 8); };
   let built = news.length ? buildNewPages({ plan: news, keyFacts, design, stamp: `Draft made by AlmiVisibility on ${String(on).slice(0, 10)} — not published`, on: String(on).slice(0, 10), site: site.origin, relatedFor: withSite }) : [];
-  built = built.map((b) => richPage(b, meta.get(b.needId), String(on).slice(0, 10)));
+  /* RR-363: a block links a page built with it, by its title */
+  const hrefOf = (t) => (built0.has(t) ? `${base}${built0.get(t).path}` : null);
+  built = built.map((b) => richPage(b, meta.get(b.needId), String(on).slice(0, 10), hrefOf));
   built = built.map((b) => { const lc = meta.get(b.needId)?.lastChecked; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
   built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));
@@ -334,6 +343,13 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const fr = freshness(m.answers ?? [], now);
     const stale = [...(fr.expired.length ? [`Review needed — ${fr.expired.length} fact${fr.expired.length === 1 ? " is" : "s are"} past its recheck date: ${fr.expired.slice(0, 3).map((x) => `"${x.text}" (checked ${x.on})`).join("; ")}.`] : []), ...(reviewFor?.(m) ?? []) /* RR-360 F: an official fee, date, score or rule AlmiSEO Data found changed */];
     const dr = dup.get(d.url) ?? { verdict: "distinct" };
+    /* 🔴 RR-363 · R15's checks read the page itself: every card keeps its fact; every answer fits its question. And the year the top pages put in their title, when they do */
+    const seen = readPage(d.html), byNeed = new Map(keyFacts.filter((k) => !k.needId || k.needId === built[i].needId).map((k) => [String(k.value), k.text]));
+    const cardFaults = seen.cards.flatMap((c) => { const why = cardFaultOf(c.value, byNeed.get(c.value), [...byNeed.values()]); return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
+    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
+    if (m.blueprint?.year && !/\b20\d\d\b/.test(d.title)) { const y = String(on).slice(0, 4); d.html = d.html.replace(/(<title\b[^>]*>)([\s\S]*?)(<\/title>)/i, `$1$2 ${y}$3`).replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, `$1$2 ${y}$3`); }
+    const compared = blocksCompared(m.blueprint, blocksOfHtml(d.html));
+    d.truth = { cards: changedCards[built[i].needId] ?? [], removed: m.fit?.removed ?? [], dropped: m.fit?.dropped ?? [] }; d.blocks = { ...compared, blueprint: m.blueprint ?? null, unreadTops: m.unreadTops ?? 0 };
     d.ledger = m.ledger ?? null; d.open = m.open ?? []; if (m.improve) d.improve = m.improve;
     d.recipe = { coverage, covered: coverage.filter((c) => !uncovered.includes(c)), uncovered, freshness: fr, duplication: dr };
     const push = (gate, words, failing) => { d.gates.push({ gate, words, pass: !failing.length, failing, afterPublishing: [] }); if (failing.length) d.pass = false; };
@@ -341,6 +357,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const look = looksLikeSite(d.html, { target }); push(LOOK_GATE, "looks like your site", look.pass ? [] : [site.lookWhy ? `${look.why} Why: ${site.lookWhy}` /* RR-358: the reason, plainly */ : look.why]);
     push("H", "answers its core questions", incomplete);
     push("I", "every fact sourced and fresh", stale);
+    push("K", "short forms keep the fact", cardFaults);
+    push("L", "each answer fits its question", unfit);
     push("J", "not a duplicate", dr.verdict === "duplicate" ? [`A duplicate: ${dr.why} — its questions belong inside that page.`] : []);
   });
   for (const d of drafts) d.readyAsDraft = d.gates.every((g) => g.pass || g.failing.length === 0);
@@ -398,22 +416,39 @@ export function inSiteLook(html, shell) {
   return `<!doctype html>\n<html lang="${lang}"${dir ? ` dir="${dir}"` : ""}${shell.htmlClass ? ` class="${shell.htmlClass}"` : ""}><head>${keep}<meta name="av-site-style" data-site-style content="${escH(shell.from)}">${shell.head}</head><body${shell.bodyClass ? ` class="${shell.bodyClass}"` : ""}>\n${stamps[0] ?? ""}${tagWith(shell.header, "data-site-shell")}\n<main class="av-page"><style data-av-content>${CONTENT_CSS}</style>${content}</main>\n${tagWith(shell.footer, "data-site-shell")}\n</body></html>\n`;
 }
 const RTL = new Set(["ar", "ur"]);
-export function richPage(b, m, on) {
+/* 🔴 RR-363 · THE BLOCKS (R15), no script needed: a page may go on any site. Each line with its source and day */
+const BLOCK_CSS = ".av-bar{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.9rem;margin:0 0 14px}.av-choose details{display:inline-block;margin:0 10px 10px 0;vertical-align:top}.av-choose summary{cursor:pointer;font-weight:600;padding:8px 14px;border:1px solid rgba(127,127,127,.4);border-radius:10px}.av-choose ul{columns:2;margin:8px 0;max-width:560px}.av-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.av-tabs input{position:absolute;opacity:0}.av-tabs label{order:1;padding:8px 14px;border:1px solid rgba(127,127,127,.4);border-radius:10px 10px 0 0;cursor:pointer}.av-tabs input:checked+label{font-weight:700;border-bottom-width:3px}.av-tabs .panel{order:2;width:100%;display:none}.av-tabs input:checked+label+.panel{display:block}";
+const srcLine = (x) => (x.link ? ` <span class="citation">— <a href="${escH(x.link)}" rel="nofollow noopener">source</a>${x.on ? `, read ${escH(x.on)}` : ""}</span>` : "");
+export function blocksHtml(c, hrefOf = () => null) {
+  const go = (title, text = title) => { const h = hrefOf(title); return h ? `<a href="${escH(h)}">${escH(text)}</a>` : null; };
+  const bar = (c.bar ?? []).map((t) => go(t)).filter(Boolean), choose = (c.chooser?.groups ?? []).map((g) => ({ label: g.label, links: g.links.map((l) => go(l.title, l.text)).filter(Boolean) })).filter((g) => g.links.length), finder = c.chooser?.finder;
+  const top = bar.length >= 2 ? `<nav class="av-bar" data-topic-bar aria-label="Topics">${bar.join("")}</nav>` : "";
+  const chooser = choose.length || finder ? `<section class="av-choose" data-chooser><h2>Find your page</h2>${choose.map((g) => `<details><summary>${escH(g.label)}</summary><ul>${g.links.map((l) => `<li>${l}</li>`).join("")}</ul></details>`).join("")}${finder ? `<p><a href="${escH(finder.href)}" rel="nofollow noopener" data-finder>${escH(finder.label)}</a></p>` : ""}</section>` : "";
+  const tabs = c.tabs?.length ? `<section data-tabs><h2>Paper or computer</h2><div class="av-tabs">${c.tabs.map((t, i) => `<input type="radio" name="av-tab" id="av-tab${i}"${i ? "" : " checked"}><label for="av-tab${i}">${escH(t.label)}</label><div class="panel"><table><thead><tr><th>What</th><th>${escH(t.label)}</th></tr></thead><tbody>${t.rows.map((r) => `<tr><td>${escH(r.what)}</td><td>${escH(r.text)}${srcLine(r)}</td></tr>`).join("")}</tbody></table></div>`).join("")}</div></section>` : "";
+  const steps = c.stepsBy?.length ? `<section data-steps><h2>How to do it, step by step</h2>${c.stepsBy.map((s) => `<h3>${escH(s.label)}</h3><ol>${s.steps.map((x) => `<li>${escH(x.text)}${srcLine(x)}</li>`).join("")}</ol>`).join("")}</section>` : "";
+  const tips = c.tips?.length ? `<section data-tips><h2>Practical tips</h2><ul>${c.tips.map((x) => `<li>${escH(x.text)}${srcLine(x)}</li>`).join("")}</ul></section>` : "";
+  const hub = (c.hub ?? []).map((h) => ({ a: go(h.title), line: h.line })).filter((h) => h.a), hubs = hub.length ? `<section data-hub><h2>Go deeper</h2>${hub.map((h) => `<h3>${h.a}</h3>${h.line ? `<p>${escH(h.line)}</p>` : ""}`).join("")}</section>` : "";
+  const folds = c.foldouts?.length ? `<section data-foldouts><h2>Country by country</h2>${c.foldouts.map((f) => `<details data-foldout><summary>${escH(f.label)}</summary><ul>${f.lines.map((x) => `<li>${escH(x.text)}${srcLine(x)}</li>`).join("")}</ul>${go(f.title) ? `<p>${go(f.title, `All about ${f.label}`)}</p>` : ""}</details>`).join("")}</section>` : "";
+  const official = c.official ? `<p class="cta-row" data-official><a href="${escH(c.official.href)}" rel="nofollow noopener">${escH(c.official.label)}</a></p>` : "";
+  return { top, middle: [chooser, tabs, steps, tips, folds, hubs].join(""), official, css: top || chooser || tabs ? `<style data-av-blocks>${BLOCK_CSS}</style>` : "" };
+}
+export function richPage(b, m, on, hrefOf = () => null) {
   const c = m?.content; if (!c) return b;
+  const B = blocksHtml(c, hrefOf);
   const table = c.table?.length > 1 ? `<table class="key" data-key-table><thead><tr>${c.table[0].map((h) => `<th>${escH(h)}</th>`).join("")}</tr></thead><tbody>${c.table.slice(1).map((r) => `<tr>${r.map((x) => `<td>${escH(x)}</td>`).join("")}</tr>`).join("")}</tbody></table>` : "";
   /* the proof found 20 of 25 drafts "no direct answer near the top": the answer under the title carried no source, so the gate read past it.
    * The answer now cites the page's first sourced, dated claim — its source and date shown beside it, as every claim on the page */
   const src = (m.answers ?? []).find((x) => x.claimId && x.link && /^\d{4}-\d{2}-\d{2}$/.test(x.readOn ?? ""));
-  const top = `${c.answer ? `<p class="answer" data-answer${src ? ` data-claim-id="${escH(src.claimId)}"` : ""}>${escH(c.answer)}</p>${src ? `<p class="citation">Source: <a href="${escH(src.link)}" rel="nofollow noopener">${escH(src.source ?? src.body ?? "its official page")}</a> — read ${escH(src.readOn)}</p>` : ""}` : ""}${table}`;
+  const top = `${B.css}${c.answer ? `<p class="answer" data-answer${src ? ` data-claim-id="${escH(src.claimId)}"` : ""}>${escH(c.answer)}</p>${src ? `<p class="citation">Source: <a href="${escH(src.link)}" rel="nofollow noopener">${escH(src.source ?? src.body ?? "its official page")}</a> — read ${escH(src.readOn)}</p>` : ""}` : ""}${table}`;
   const list = (h, xs, tag = "ul") => (xs?.length ? `<section data-${h.toLowerCase().replace(/\W+/g, "-")}><h2>${escH(h)}</h2><${tag}>${xs.map((x) => `<li>${escH(x)}</li>`).join("")}</${tag}></section>` : "");
   /* RR-323 · the ORIGINAL practice sample (only one that passed its check), its label first — never presented as an official paper */
   const s = m.sample, sampleHtml = s ? `<section class="sample" data-sample><h2>${escH(s.title ?? "Practice sample")}</h2><p class="label" data-sample-label><strong>${escH(s.label)}</strong></p>${s.task ? `<p data-task>${escH(s.task)}</p>` : ""}${s.caseNotes?.length ? `<h3>Case notes</h3><ul data-case-notes>${s.caseNotes.map((x) => `<li>${escH(x)}</li>`).join("")}</ul>` : ""}${s.letter ? `<h3>A model letter</h3><div data-letter>${String(s.letter).split(/\n+/).map((x) => `<p>${escH(x)}</p>`).join("")}</div>` : ""}${s.card ? `<h3>The role-play card</h3><p data-card><strong>${escH(s.card.setting)}</strong>${s.card.role ? ` — ${escH(s.card.role)}` : ""}</p><ol>${(s.card.tasks ?? []).map((x) => `<li>${escH(x)}</li>`).join("")}</ol>` : ""}${s.script ? `<h3>The script (read it aloud, or ask a friend to)</h3><div data-script>${String(s.script).split(/\n+/).map((x) => `<p>${escH(x)}</p>`).join("")}</div>` : ""}${s.text ? `<h3>The text</h3><div data-text>${String(s.text).split(/\n+/).map((x) => `<p>${escH(x)}</p>`).join("")}</div>` : ""}${s.questions?.length ? `<h3>Questions</h3><ol data-questions>${s.questions.map((q) => `<li>${escH(q.q)}${q.options?.length ? `<ul>${q.options.map((o) => `<li>${escH(o)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ol><details><summary>The answers</summary><ol>${s.questions.map((q) => `<li>${escH(q.answer)}</li>`).join("")}</ol></details>` : ""}</section>` : "";
   /* RR-328 · a part of its own (re-marking on the results page; each of a country page's five parts): every line with its source and date */
   const secHtml = (c.sections ?? []).filter((s) => s.lines?.length).map((s) => `<section data-part="${escH(String(s.heading).toLowerCase().replace(/[^a-z0-9]+/g, "-"))}"><h2>${escH(s.heading)}</h2><ul>${s.lines.map((l) => `<li>${escH(l.text)}${l.note ? ` <em>(${escH(l.note)})</em>` : ""}${l.link ? ` <span class="citation">— <a href="${escH(l.link)}" rel="nofollow noopener">source</a>${l.on ? `, read ${escH(l.on)}` : ""}</span>` : ""}</li>`).join("")}</ul></section>`).join("");
-  const lower = [secHtml, sampleHtml, list("What to know", c.points), list("Steps", c.steps, "ol"), list("Checklist", c.checklist), c.tip ? `<section data-tip><h2>One useful tip</h2><p>${escH(c.tip)}</p></section>` : "", c.cta ? ctaRow(c.cta) : "", `<p class="updated" data-last-updated="${escH(c.lastUpdated ?? on)}">Last updated ${escH(c.lastUpdated ?? on)}</p>`].join("");
+  const lower = [B.middle, secHtml, sampleHtml, list("What to know", c.points), list("Steps", c.steps, "ol"), list("Checklist", c.checklist), c.tip ? `<section data-tip><h2>One useful tip</h2><p>${escH(c.tip)}</p></section>` : "", c.cta ? ctaRow(c.cta) : "", B.official, `<p class="updated" data-last-updated="${escH(c.lastUpdated ?? on)}">Last updated ${escH(c.lastUpdated ?? on)}</p>`].join("");
   const type = { subtest: "Article", topic: "Article", language: "Article", practice: "LearningResource" }[m.kind] ?? "WebPage";
   const ld = JSON.stringify({ "@context": "https://schema.org", "@type": type, headline: b.title, dateModified: c.lastUpdated ?? on, ...(m.about ? { about: { "@type": m.kind === "university" ? "CollegeOrUniversity" : "Organization", name: m.about } } : {}), ...(c.lang ? { inLanguage: c.lang } : {}) });
-  let html = b.html.replace(/<\/h1>/, `</h1>${top}`).replace(/<\/main>|<\/body>/, (x) => `${lower}${x}`).replace(/<\/head>/, `<script type="application/ld+json">${ld}</script></head>`);
+  let html = b.html.replace(/<h1\b/, `${B.top}$&`).replace(/<\/h1>/, `</h1>${top}`).replace(/<\/main>|<\/body>/, (x) => `${lower}${x}`).replace(/<\/head>/, `<script type="application/ld+json">${ld}</script></head>`);
   if (c.lang) html = html.replace(/<html lang="[^"]*"/, `<html lang="${c.lang}"${RTL.has(c.lang) ? ' dir="rtl"' : ""}`);
   return { ...b, html };
 }

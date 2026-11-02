@@ -10,6 +10,9 @@
  */
 import { coverageOf, secondSearch } from "./recipe.mjs"; // RR-358: G5 + G6 for every page
 import { COUNTRIES } from "./world.mjs"; // RR-359: a heading that is only a country's name is no subtopic
+import { blocksOfHtml, blueprintOf } from "./blocks.mjs"; // RR-363: R15
+import { coreOf } from "./page-types.mjs";
+import { STANDARD } from "./research.mjs";
 export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/organic/live/advanced", pricePerSearch: 0.002, capPerDay: 1, depth: 10 });
 export const SERP_OFF = "Google's own results were not read — the search-results service is switched off (Settings → Search results data; about $0.002 a search, at most $1 a day). Visibility used every free source it may: its own search data, your Search Console, AlmiWorld's question collector and the official pages.";
 
@@ -47,12 +50,14 @@ export function plainSerpWhy(code, message) {
  */
 export const RETRY = Object.freeze({ times: 2, pauseMs: 3000 });
 export const tryAgain = (got) => !got.ok && !got.stop && !got.capped && !got.off && (got.code == null || got.code >= 50000 || [40101, 40202, 40209, 40501, 40502, 40503].includes(got.code) || /internal|server error|time ?out|timed out|try again|did not answer|temporar/i.test(`${got.message ?? ""} ${got.why ?? ""}`));
+/* RR-363 (found in the owner's saved results: 846 of 1,220 addresses were Google's own redirect links, never opened): the page's own address, from the result's breadcrumb; none: the redirect stays, and is left unread */
+const realUrl = (i) => { if (!/^https?:\/\/(?:[^/]*\.)?google\./i.test(i.url)) return i.url; const b = String(i.breadcrumb ?? "").split(/\s*›\s*/).map((x) => x.trim()).filter(Boolean); return /^https?:\/\/[^\s/]+\.[a-z]/i.test(b[0] ?? "") && b.every((x, k) => k === 0 || /^[\w%.~-]+$/.test(x)) ? b.join("/").replace(/([^:])\/\//g, "$1/") : i.url; };
 /** DataForSEO's answer → { results: [{ url, title, snippet }], paa: [question], related: [search], cost } (status 20000 = ok) */
 export function readSerp(json) {
   const t = json?.tasks?.[0]; if (json?.status_code !== 20000 || t?.status_code !== 20000) { const code = Number(t?.status_code && t.status_code !== 20000 ? t.status_code : json?.status_code) || null, message = (t?.status_code && t.status_code !== 20000 ? t?.status_message : json?.status_message) ?? null; return { ok: false, code, message, stop: STOPS_EVERY_SEARCH.has(code), why: json && Object.keys(json).length ? plainSerpWhy(code, message) : "DataForSEO did not answer with results (the answer could not be read).", cost: Number(t?.cost ?? json?.cost ?? 0) || 0 }; }
   const items = t.result?.[0]?.items ?? [];
   return { ok: true, cost: Number(t.cost ?? 0) || 0,
-    results: items.filter((i) => i.type === "organic" && i.url).slice(0, SERP.depth).map((i) => ({ url: i.url, title: i.title ?? "", snippet: i.description ?? "" })),
+    results: items.filter((i) => i.type === "organic" && i.url).slice(0, SERP.depth).map((i, n) => ({ url: realUrl(i), rank: n + 1, title: i.title ?? "", snippet: i.description ?? "" })),
     paa: items.filter((i) => i.type === "people_also_ask").flatMap((i) => (i.items ?? []).map((x) => x.title)).filter(Boolean),
     related: items.filter((i) => i.type === "related_searches").flatMap((i) => i.items ?? []).map((x) => (typeof x === "string" ? x : x?.title)).filter(Boolean) };
 }
@@ -102,7 +107,7 @@ export async function searchGoogle({ keyword, settings = {}, ledger, login, pass
  * topRead, serpWhy. → { searches, cost, read, of, reddit, quora, stopped, notes, line }
  */
 /* RR-362 items 14 + 17: `concurrency` pages side by side (each site is still read politely, desktop/official.mjs), `topCache` = { get(url), set(url, value) }: a top page's headings kept a month, never read twice; `onPage`: the progress bar */
-export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep, concurrency = 1, topCache = null, onPage = null }) {
+export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep, concurrency = 1, topCache = null, onPage = null, officialPageOf = null }) {
   let reddit = 0, quora = 0, pagesRead = 0, stopped = null, reused = 0, topsReused = 0; const reading = new Map(), notes = [], spentBefore = (ledger.spent ?? []).length;
   const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, retry, ...(sleep ? { sleep } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (r.cached) reused++; if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
   const headingsOf = (h) => [...String(h).matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40);
@@ -117,16 +122,20 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     const day = String(now).slice(0, 10), q = (text, src) => ({ question: text, source: src, on: day });
     p.questions = [...(p.questions ?? []), ...main.paa.map((t) => q(t, `Google "People also ask" (${day})`)), ...main.related.map((t) => q(t, `Google related searches (${day})`)), ...rq.map((t) => q(t, `a Reddit result as Google shows it (${day})`)), ...qq.map((t) => q(t, `a Quora result as Google shows it (${day})`))];
     /* the top results' own headings — read only to see what they cover; nothing is copied, no fact is taken */
-    const tops = (await Promise.all(main.results.slice(0, SERP.depth).filter((r) => !notForReading(r.url)).map(async (r) => {
-      const was = topCache?.get(r.url); if (was && (Date.parse(now) - Date.parse(was.on ?? 0)) / 864e5 <= KEEP_SEARCH_DAYS) { topsReused++; return was.headings ? { url: r.url, title: r.title, headings: was.headings, text: "" } : null; }
+    const results = main.results.slice(0, SERP.depth).map((r, n) => ({ ...r, rank: r.rank ?? n + 1 })), own = officialPageOf?.(p);
+    /* the subject's own page on this topic is read beside them (free, and Google's first result more often than not), said as such */
+    const toRead = [...results.filter((r) => !notForReading(r.url)), ...(own && !results.some((r) => r.url === own) ? [{ url: own, title: "", rank: null, official: true }] : [])];
+    const tops = (await Promise.all(toRead.map(async (r) => {
+      const was = topCache?.get(r.url); if (was && (was.blocks || !was.headings) /* RR-363: a read from before blocks is read again */ && (Date.parse(now) - Date.parse(was.on ?? 0)) / 864e5 <= KEEP_SEARCH_DAYS) { topsReused++; return was.headings ? { url: r.url, rank: r.rank ?? null, official: r.official, title: r.title, headings: was.headings, blocks: was.blocks, text: "" } : null; }
       /* the same page wanted by two pages side by side is read once */
       if (!reading.has(r.url)) reading.set(r.url, Promise.resolve(readHtml(r.url)).catch(() => null));
-      const h = await reading.get(r.url); topCache?.set(r.url, { on: String(now).slice(0, 10), headings: h ? headingsOf(h) : null }); if (!h) return null;
-      return { url: r.url, title: r.title, headings: headingsOf(h), text: String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) };
+      const h = await reading.get(r.url); const blocks = h ? blocksOfHtml(h, { title: r.title || null }) : null; topCache?.set(r.url, { on: String(now).slice(0, 10), headings: h ? headingsOf(h) : null, blocks }); if (!h) return null;
+      return { url: r.url, rank: r.rank ?? null, official: r.official, title: r.title, blocks, headings: headingsOf(h), text: String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) };
     }))).filter(Boolean);
     /* RR-359: only the topic's real subtopics (desktop/coverage.mjs), judged with the page's own subject and title; covered by meaning */
     const words = { subject, title: p.title, now, names: COUNTRIES };
     p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url); p.searchedOn = String(now).slice(0, 10);
+    p.blueprint = blueprintOf({ tops: tops.map((x) => ({ url: x.url, rank: x.rank, official: x.official, blocks: x.blocks })), core: coreOf(p.kind) ?? Object.fromEntries((STANDARD[p.category ?? "exam"]?.topic?.[p.topic] ?? []).map((n) => [n, n])) /* a topic page: its standard questions */, category: p.category ?? "general", on: p.searchedOn }); p.unreadTops = results.filter((r) => notForReading(r.url)).length;
   };
   /* in order, at most `concurrency` at a time; a stop is seen by every page not started yet */
   let at = 0; await Promise.all(Array.from({ length: Math.max(1, concurrency) }, async () => { while (at < pages.length) { const p = pages[at++]; await onePage(p); onPage?.(p, "done"); } }));

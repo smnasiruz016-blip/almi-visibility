@@ -20,7 +20,7 @@ const PROMO = /\bprepares? you\b|\bhelps? you (?:to )?(?:pass|prepare|succeed|ac
 const CALL = /^(?:want|wish|looking|ready|interested) (?:to|for|in)\b.*(?:more|started|today|now)|\bwant to know more\b|\bmust[- ](?:read|see|watch)\b|\bknow more\b|\blearn more\b|\bread (?:also|next)\b|\bsee also\b|\bdon'?t miss\b|\bget started\b|\bcontact (?:us|our)\b/i;
 /* RR-362 item 15: what a page of an exam can be about: the subject itself, or one of these needs (never another field: an eye test, a salary, computer science) */
 const EXAM_NEED = /\b(?:writing|reading|listening|speaking|letter|role-?plays?|sub-?tests?|candidate|retake|resit)\b|\b(?:on|by|at) (?:computer|paper|home)\b/i;
-const NEED_GROUPS = new Set(["cost", "date", "book", "score", "valid", "place", "time", "prepare", "accept", "format", "eligible", "hard"]);
+export const NEED_GROUPS = new Set(["cost", "date", "book", "score", "valid", "place", "time", "prepare", "accept", "format", "eligible", "hard"]);
 const CODE = /['"`{}<>;=]|\+\s*['"]|\$\{|\bescapeHtml\b|\bfunction\b|\bundefined\b|\bnull\b|\bvar\b|\bconst\b|&[a-z]+;|\\[nrt]/i;
 const COMMENT = /\b(says|said|wrote|replied)\s*:?\s*$|\bat \d{1,2}:\d{2}\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(st|nd|rd|th)?,?\s+\d{4}\b|\b\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?,?\s+\d{4}\b|\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b|\b(posted|updated|published) (on|by)\b|\bby admin\b|\bminutes? read\b|\bmin read\b/i;
 /* the words that make a heading a topic — a short all-capitalised heading without one is a name (a place, a person, a company) */

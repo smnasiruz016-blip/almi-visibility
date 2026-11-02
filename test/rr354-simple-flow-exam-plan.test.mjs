@@ -96,7 +96,7 @@ test("RR-354 · 2 + 4 · the drafts: every exam-plan page carries a checked card
   const x = examPlan({ subject: "OET", professions: ["nursing", "podiatry"], countries: ["United Kingdom", "Pakistan"], facts: FACTS, demand: DEMAND.slice(0, 3), site });
   const out = seoPages({ site, on: `${ON}T00:00:00Z`, pagePlan: x.pages, max: x.pages.length, subject: "OET", cta: { label: "Try free", href: "https://prep.example/signup" } });
   const nurses = out.drafts.find((d) => d.title === "OET for Nurses");
-  assert.match(nurses.html, /United Kingdom — B \(350\+\)/, "the card is the fact's own score with its country");
+  assert.ok(!/<span class="v">United Kingdom — B \(350\+\)/.test(nurses.html), "RR-363: never a card that loses Writing C+ (300+)"); assert.match(nurses.html, /<span class="v">[^<]*Writing C\+ \(300\+\)/, "the whole fact");
   /* RR-355: the FIVE checks pass here; good to read and the site's look are judged in test/rr355-page-quality-client-look.test.mjs */
   /* RR-356: the five checks A–E (the recipe's own checks — completeness, freshness, duplication — are judged in rr356) */
   assert.equal(nurses.gates.filter((g) => "ABCDE".includes(g.gate)).every((g) => g.pass || g.failing.length === 0), true, JSON.stringify(nurses.gates.filter((g) => !g.pass)));

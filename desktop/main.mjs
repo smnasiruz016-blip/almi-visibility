@@ -11,7 +11,7 @@
  */
 import { createServer } from "node:http";
 import { browserOpener, STRIPE_BILLING_ORIGIN } from "./open-browser.mjs"; // RR-314 A1
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync, readdirSync, statSync, copyFileSync } from "node:fs";
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -63,12 +63,13 @@ import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
 import { regulatorPagesOf } from "./recognition.mjs"; // RR-322 A2
 import { subtestFactsOf } from "./pseo.mjs"; // RR-322 B5
 import { lightCheck, teachesHealth, professionsOfFields, professionsInName } from "./universities.mjs"; // RR-322 A1
-import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR } from "./subject-facts.mjs"; // RR-323
+import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR , SUBJECT_EXTRA_PAGES, oldWording } from "./subject-facts.mjs"; // RR-323
 import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { genericPlanPages, almiSeoClient, syncProduct, heldFor, keywordItems, questionItems, coverageRoutes, routeLine, coverageItems, coverageFromBrowser, reviewLinesFor, almiSeoView, searchedLists, searchCounts, ALMISEO_FILE, ALMISEO_KEYWORDS, BROWSER_COVERAGE, SYNC, ROUTES } from "./almiseo.mjs"; // RR-360 AlmiSEO Data
 import { spawn } from "node:child_process"; // RR-362: the watcher
+import { helpDemand } from "./subject-demand.mjs"; // RR-363
 import { jobBoard, LONG_SECONDS } from "./jobs.mjs"; // RR-362
 import { nextStepOf, checksDue, TOP_JOBS, MORE_JOBS } from "./next-step.mjs"; // RR-362
 import { windowsToast } from "./notify.mjs"; // RR-362
@@ -330,7 +331,9 @@ const ownItemsOf = (id) => {
   ];
 };
 /* every call that makes the drafts judges them by the same data: the coverage a page without a plan was given, and the facts AlmiSEO Data found changed */
-const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}); return { coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)) }; };
+/* RR-363: which country a regulator's name means (the truth check: an answer about the right place) */
+const bodiesOf = (id) => { const seen = new Map(); for (const qs of Object.values(pread(id, "research.json", null)?.questions ?? {})) for (const q of qs) for (const b of [q.regulator, ...(q.also ?? [])].filter(Boolean)) if (b.country && !seen.has(b.name)) seen.set(b.name, { names: [b.short, b.name].filter((n) => n && n.length >= 3), country: b.country }); return [...seen.values()]; };
+const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}); return { bodies: bodiesOf(id), coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)) }; };
 /* 🔴 OWNER'S RULING 2: a licence that is not AlmiWorld's own gets finished pages only */
 const outsideClient = () => { const l = currentLicence(); return Boolean(l) && !isOwnerLicence(l.licence); };
 /* 🔴 RR-362 item 14 (R13): each search this run made goes to AlmiSEO Data, so the server and every later run reuse it. A failed send is said in the count; the search stays kept here */
@@ -397,13 +400,13 @@ const examCountriesOf = (id) => { const own = [...new Set(factsOfStore(pread(id,
  */
 async function subjectFactsFor(id, subject) {
   const kept = pread(id, "subject-facts.json", null), site = store.read(id).setup?.official?.site ?? (/^oet$/i.test(String(subject)) ? "https://oet.com" : null);
-  if (!site || CONFIG.testOffline === true) return { facts: kept?.facts ?? {}, line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
-  if (kept?.on && kept.v === 355 && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
+  if (!site || CONFIG.testOffline === true) return { facts: Object.fromEntries(Object.entries(kept?.facts ?? {}).filter(([, x]) => !oldWording(x?.text))), line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
+  if (kept?.on && kept.v === 363 /* RR-363: booking and results read again from the booking page */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
   try {
     const rd = reader(), urls = ((await rd.sitemapOf(site)).urls ?? []).filter((u) => SUBJECT_FACT_PAGES.test(String(u).replace(/\/$/, ""))).slice(0, 16), pages = [];
-    for (const u of urls) pages.push(await rd.read(u));
+    for (const u of [...urls, ...(SUBJECT_EXTRA_PAGES[subject] ?? [])]) pages.push(await rd.read(u));
     const facts = subjectFactsOf(pages, subject);
-    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 355, on: new Date().toISOString(), site, facts });
+    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 363, on: new Date().toISOString(), site, facts });
     return { facts: Object.keys(facts).length ? facts : kept?.facts ?? {}, line: `${subject}'s own pages: ${Object.keys(facts).length} facts read from ${pages.filter((p) => p.ok).length} pages` };
   } catch (e) { return { facts: kept?.facts ?? {}, line: `${subject}'s own pages could not be read just now` }; }
 }
@@ -473,7 +476,7 @@ async function serpStep(id, plan, onPage = null) {
   const st = serpSettings(), ledger = dfsLedger(), on = new Date().toISOString();
   if (st.on !== true && !hasKeptSearch(plan.pages)) return { on: false, why: SERP_OFF, searches: 0, reddit: 0, quora: 0 };
   const login = st.on === true ? KEYS.get(DFS_KEYS.login) : null, password = st.on === true ? KEYS.get(DFS_KEYS.password) : null, rd = reader(), tops = pread(id, "top-reads.json", {});
-  const out = await searchPages({ pages: plan.pages, ledger, settings: st, login, password, now: on, subject: seedOf(store.read(id)), retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, readHtml: (u) => rd.raw(u, "text/html"), concurrency: Number.isInteger(CONFIG.testSerpSideBySide) ? CONFIG.testSerpSideBySide : SERP_SIDE_BY_SIDE, topCache: { get: (u) => tops[u] ?? null, set: (u, v) => { tops[u] = v; } }, onPage, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
+  const out = await searchPages({ pages: plan.pages, ledger, settings: st, login, password, now: on, subject: seedOf(store.read(id)), retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, readHtml: (u) => rd.raw(u, "text/html"), officialPageOf: (p) => (p.items ?? []).flatMap((it) => it.claims ?? []).find((c) => c.official && /^https?:/.test(c.link ?? "") && hostOf(c.link) === hostOf(store.read(id).setup?.official?.site ?? "https://oet.com"))?.link ?? null, concurrency: Number.isInteger(CONFIG.testSerpSideBySide) ? CONFIG.testSerpSideBySide : SERP_SIDE_BY_SIDE, topCache: { get: (u) => tops[u] ?? null, set: (u, v) => { tops[u] = v; } }, onPage, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
   writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); pwrite(id, "top-reads.json", tops);
   pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: plan.pages });
   return { on: true, ...out };
@@ -489,7 +492,7 @@ function recipeLedger(id, pages, serp, rounds, generic = null) {
       fromReddit: qs.filter((q) => q.from === "reddit").length, fromQuora: qs.filter((q) => q.from === "quora").length,
       serp: { route: p.coverageRoute ?? ROUTES.none, on: p.coverageOn ?? null, read: p.topRead ?? [], line: p.coverageRoute && p.coverageRoute !== ROUTES.none ? routeLine(p) : p.serpWhy ? `Google's results were not read for this page: ${p.serpWhy}` : routeLine(p) },
       almiseo: (() => { const f = seoFileOf(id); return f?.counts && !f.outside ? { read: f.readOn, keywords: f.counts.keywords, questions: f.counts.questions, country: p.country && f.countries?.[p.country] ? { complete: f.countries[p.country].complete, missing: f.countries[p.country].missing ?? [] } : null } : null; })(), askedTotal: p.asked ?? (p.questions ?? []).length,
-      decision: decisionOf({ row, pack }), right: rightToExist({ page: p, questions: qs, answered }), rounds };
+      decision: decisionOf({ row, pack }), right: rightToExist({ page: p, questions: qs, answered }), rounds, blocks: d.blocks ?? null, truth: d.truth ?? null };
   }
   return pages;
 }
@@ -528,7 +531,7 @@ const savePlan = (id, x) => { const { bigger, ...keep } = x; pwrite(id, "auto-pl
 function buildExamPlan(id) {
   const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
   const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s))).flat()];
-  const demand = [...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
+  const demand = [...helpDemand(seedOf(s)), ...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
   const x = examPlan({ subject: seedOf(s), professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: ex.research ?? pread(id, "research.json", null)?.questions ?? {}, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json"), collector: seoFileOf(id)?.plan ?? [], maxCountries: 200 });
   savePlan(id, x);
   return x;
@@ -994,6 +997,17 @@ async function continueChecks() {
   /* RR-362: a run the app was stopped in (the computer turned off, the app crashed, an update) goes on by itself, what it already read kept */
   for (const p of store.list()) { try { const pending = pread(p.id, "pending-checks.json", null); if (!making.has(p.id) && (existsSync(pfile(p.id, "run-in-progress.json")) || checksDue(pending, { today, running: false }))) await createPages(p.id); } catch { /* tried again next hour */ } }
 }
+/* 🔴 RR-363 A3 (found on the owner's PC: his launcher dated from 1 Nov: an update replaces the app folder and never the launcher, so "/same-window" never reached him): the package carries the launcher; the app puts it in place. A file in use is tried again */
+function refreshLauncher() {
+  const from = join(HERE, "..", "launcher", "AlmiVisibility.exe"), to = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(from) || !existsSync(to)) return true;
+  try { if (readFileSync(from).equals(readFileSync(to))) return true; copyFileSync(from, to); reopenWindowIfNone(); return true; } catch { return false; }
+}
+/* RR-363 A3: the update that brings the new launcher still ran the OLD one: it closes the window and opens another at once, and Windows may give that one to the window that is closing: no window at all (seen on a copy of the owner's install). No screen asking for anything = no window: the new launcher opens it. Once, on this one update. */
+let screenSeenAt = 0;
+function reopenWindowIfNone() {
+  setTimeout(() => { if (Date.now() - screenSeenAt < 15000) return; try { spawn(join(INSTALL, "AlmiVisibility.exe"), Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [], { detached: true, stdio: "ignore" }).on("error", () => {}).unref(); } catch { /* the shortcut still opens it */ } }, 20000).unref();
+}
+{ let tries = 0; const again = () => { if (!refreshLauncher() && ++tries < 24) setTimeout(again, 5000).unref(); }; again(); } // the old launcher is still ending when the new app starts
 /* RR-362: the app started again in the middle of a run: it goes on at once */
 rmSync(STOP_FILE(), { force: true });
 setTimeout(() => { for (const p of store.list()) if (existsSync(pfile(p.id, "run-in-progress.json")) && !making.has(p.id)) createPages(p.id).catch(() => {}); }, 3000).unref();
@@ -1003,6 +1017,7 @@ const syncAll = async () => { if (CONFIG.testOffline === true || !currentLicence
 if (CONFIG.almiSeoSync !== false) setTimeout(() => { syncAll(); setInterval(syncAll, SYNC.everyHours * 3600e3).unref(); }, Number.isInteger(CONFIG.almiSeoFirstMs) ? CONFIG.almiSeoFirstMs : SYNC.firstMs).unref();
 
 const server = createServer((req, res) => {
+  if (String(req.url).startsWith("/api/")) screenSeenAt = Date.now();
   const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
   let body = "";
   req.on("data", (c) => { body += c; if (body.length > 6_000_000) req.destroy(); });
@@ -1020,7 +1035,7 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/company-logo") { const c = store.company(); const f = c?.logoFile ? join(DATA, c.logoFile) : null; return f && existsSync(f) ? send(200, readFileSync(f), "image/png") : send(404, { refused: "no company logo" }); }
       /* the home screen: the company, its products, the plan limit */
       /* RR-362 item 6: every wait, for the bar on every screen */
-      if (req.method === "GET" && u.pathname === "/api/jobs") return send(200, { jobs: BOARD.list() });
+      if (req.method === "GET" && u.pathname === "/api/jobs") return send(200, { version: VERSION, jobs: BOARD.list() });
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
@@ -1131,12 +1146,13 @@ const server = createServer((req, res) => {
              * the YouTube-only view of an older card, the weekly state and what was done since the last check */
             setAsideForeign(id); // RR-359: another subject's drafts never show as this product's
             const plan = pread(id, "plan.json");
-            if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) buildPlan(id).catch(() => {});
+            /* 🔴 RR-363 A1: making the plan takes long and holds the app: Home answers first (the owner saw "only a heading" for 24 s) */
+            if (!plan && ctx.check && !checking.has(id) && !planning.has(id)) setImmediate(() => buildPlan(id).catch(() => {}));
             /* 🔴 RR-358 (owner: "Keywords to use (0)" beside 529 search phrases — his plan was made at the 31 Oct 18:40 check, his keyword
              * database came at 20:23, and the plan was made again only at the end of a page run): a plan older than what it is made from is
              * made again now, and the screen says so meanwhile */
             const remaking = Boolean(plan && ctx.check && !checking.has(id) && (planning.has(id) || (planStale(id, plan) && Date.now() - (planTried.get(id) ?? 0) > 600000 /* once in 10 minutes, never a loop */)));
-            if (remaking && !planning.has(id)) { planTried.set(id, Date.now()); buildPlan(id).catch(() => {}); }
+            if (remaking && !planning.has(id)) { planTried.set(id, Date.now()); setImmediate(() => buildPlan(id).catch(() => {})); }
             const c0 = ctx.check, card = c0 && ctx.noWebsite && !c0.youtubeOnly && !c0.failed ? { ...c0, youtubeOnly: true, score: c0.youtube?.score ?? null, gauge: c0.youtube?.gauge ?? "Not measured", word: c0.youtube?.word ?? "Not measured", areas: c0.areas.filter((a) => a.area === "YouTube") } : c0;
             const since = pread(id, "done.json", []).filter((d) => !c0?.on || d.on >= c0.on).slice(-8);
             return send(200, { almiseo: almiSeoView(preadMemo(id, ALMISEO_FILE), { subject: seedOf(s), planOk: Boolean(currentLicence()) }), subject: seedOf(s), noSubject: seedOf(s) ? null : NO_SUBJECT, setAside: pread(id, "set-aside.json", null), plan, remaking, planning: planning.has(id) || (!plan && Boolean(ctx.check)), willDo: plan ? willDoOf(id, plan) : null, /* RR-354: the ticked jobs, the approval asked once, the last report */ jobs: JOBS, fixVia: fixViaOf(id, s), review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST, report: pread(id, "last-report.json"), weekly: weeklyOf(id), since, almiworld: publishBlocked(s), noWebsite: ctx.noWebsite,

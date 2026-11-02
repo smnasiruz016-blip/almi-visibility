@@ -94,14 +94,15 @@ test("the app stopping loses nothing: a run in progress is remembered and goes o
   assert.match(UI, /id="appdown">Visibility stopped working just now/);
 });
 
-test("the watcher: while a run is not finished it starts the app again; never after the run ended or the app was asked to stop", { timeout: 60000 }, async () => {
-  const dir = mkdtempSync(join(tmpdir(), "rr362-dog-")), marker = join(dir, "run"), stop = join(dir, "stop"), out = join(dir, "started.txt"), launcher = join(dir, "launcher.cmd"); writeFileSync(launcher, `@echo started>"${out}"\r\n`); writeFileSync(marker, "{}");
+test("the watcher: while a run is not finished it starts the app again; never after the run ended or the app was asked to stop", { timeout: 120000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), "rr362-dog-")), marker = join(dir, "run"), stop = join(dir, "stop"), out = join(dir, "started.txt"), fake = join(dir, "fake.cjs"); writeFileSync(fake, `require("node:fs").writeFileSync(${JSON.stringify(out)}, "started");`); writeFileSync(marker, "{}");
   const dead = spawn(process.execPath, ["-e", ""], { stdio: "ignore" }); await new Promise((r) => dead.on("exit", r));
-  const go = (m) => new Promise((res) => { const c = spawn(process.execPath, [join(REPO, "desktop", "watchdog.mjs"), String(dead.pid), m, stop, process.platform === "win32" ? launcher : "/bin/true"], { stdio: "ignore" }); c.on("exit", res); });
+  const go = (m) => new Promise((res) => { const c = spawn(process.execPath, [join(REPO, "desktop", "watchdog.mjs"), String(dead.pid), m, stop, process.execPath, fake], { stdio: "ignore" }); c.on("exit", res); });
   try {
     await go(join(dir, "no-such-marker")); assert.ok(!existsSync(out), "the run ended: nothing started");
     writeFileSync(stop, "x"); await go(marker); assert.ok(!existsSync(out), "asked to stop: nothing started"); rmSync(stop);
-    assert.match(readFileSync(join(REPO, "desktop", "watchdog.mjs"), "utf8"), /\/nowindow/); assert.match(MAIN, /askedToStop\(\);\n\s+const r = installUpdate/); assert.match(MAIN, /"\/api\/quit"\) \{ askedToStop\(\);/); assert.match(MAIN, /startWatchdog\(id\);/);
+    await go(marker); for (let i = 0; i < 30 && !existsSync(out); i++) await new Promise((r) => setTimeout(r, 100)); assert.ok(existsSync(out), "the app is gone, the run is not finished: started again");
+    assert.match(MAIN, /launcher, "\/nowindow"/); assert.match(MAIN, /askedToStop\(\);\n\s+const r = installUpdate/); assert.match(MAIN, /"\/api\/quit"\) \{ askedToStop\(\);/); assert.match(MAIN, /startWatchdog\(id\);/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

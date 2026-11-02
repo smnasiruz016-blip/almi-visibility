@@ -835,7 +835,7 @@ function setAsideForeign(id) {
 /* 🔴 RR-362 items 6 + 10: a run is on the board from its first step to its last, once per product (a second press joins the first), and it logs where its time goes (run-timing.json) */
 const making = new Map(), STOP_FILE = () => join(DATA, "app-asked-to-stop");
 /* if the app is gone in the middle of a run, a small process starts it again (desktop/watchdog.mjs); only an installed app */
-function startWatchdog(id) { const launcher = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(launcher)) return; try { const c = spawn(process.execPath, [join(HERE, "watchdog.mjs"), String(process.pid), pfile(id, "run-in-progress.json"), STOP_FILE(), launcher, ...(Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [])], { detached: true, stdio: "ignore", windowsHide: true }); c.on("error", () => {}); c.unref(); } catch { /* the next open goes on with the run */ } }
+function startWatchdog(id) { const launcher = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(launcher)) return; try { const c = spawn(process.execPath, [join(HERE, "watchdog.mjs"), String(process.pid), pfile(id, "run-in-progress.json"), STOP_FILE(), launcher, "/nowindow", ...(Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [])], { detached: true, stdio: "ignore", windowsHide: true }); c.on("error", () => {}); c.unref(); } catch { /* the next open goes on with the run */ } }
 const askedToStop = () => { try { writeFileSync(STOP_FILE(), new Date().toISOString()); } catch { /* the watcher's grace time covers it */ } };
 function createPages(id) {
   if (making.has(id)) return making.get(id);

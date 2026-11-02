@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync, mkdtempSync, mkdirSync, cpSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { summaryFault, ownSiteAnswer, fitParts, staleNews, sentencesOf } from "../desktop/truth-checks.mjs";
+import { bodyOfUnknownPlace, summaryFault, ownSiteAnswer, fitParts, staleNews, sentencesOf } from "../desktop/truth-checks.mjs";
 import { examPlan, officialLocalPrice, usableFacts } from "../desktop/exam-plan.mjs";
 import { seoPages } from "../desktop/seo-pages.mjs";
 import { autocompleteIn, readAutocomplete, rankByLocal, searchPages, AUTOCOMPLETE } from "../desktop/serp.mjs";
@@ -30,6 +30,10 @@ test("1.1 own-site paragraphs: beta-g's seven pairs: the wrong paragraph leaves 
 });
 test("1.1 the question's own words must stand in the answer: what the final pages still showed", () => {
   for (const [q, a] of [["What is the fee for rescheduling an OET Test?", "OET publishes the price of the full test in Australian dollars."], ["Which country accepts C+ in OET?", "OET accepts a valid passport or a valid national ID."], ["Where to see OET result?", "OET sets no validity period itself: each body that recognises the test decides how long a result is accepted."], ["Which is better, OET or IELTS?", "OET publishes its own table comparing OET scores with IELTS bands."]]) assert.equal(ownSiteAnswer(q, a, opt), null, q);
+  assert.equal(ownSiteAnswer("What is OET Exam?", "The Veterinary Council of Ireland accepts an OET certificate with grade B or above.", opt), null, "no word to check against");
+  assert.equal(ownSiteAnswer("What grade is 300 in OET?", "Each sub-test is scored from 0 to 500 and mapped to a grade.", opt), null); assert.ok(ownSiteAnswer("What grade is 300 in OET?", "A score of 300 is grade C+ in OET.", opt));
+  assert.equal(bodyOfUnknownPlace("The Optometrists and Dispensing Opticians Board asks for 350.", "India"), true); assert.equal(bodyOfUnknownPlace("The Indian Nursing Council in India asks for 350.", "India"), false); assert.equal(bodyOfUnknownPlace("Results come within 48 hours.", "India"), false);
+  assert.match(readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"), /p\.kind === KIND\.country && bodyOfUnknownPlace\(text, p\.country\)/);
   assert.equal(ownSiteAnswer("How much does OET cost and how long is it?", "OET costs AU$587 in all.", opt), null, "half of what was asked is not an answer");
   assert.equal(ownSiteAnswer("Is the OET valid for 3 years?", "A pass in the English test is valid for two years.", opt), "A pass in the English test is valid for two years.", "a real answer stays");
 });

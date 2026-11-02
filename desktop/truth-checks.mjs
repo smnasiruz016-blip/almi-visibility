@@ -71,10 +71,13 @@ export function answerFitWhy(question, answer, { subject = null, bodies = [], lo
 /* R12 (beta-g, 2 Nov 2026): a paragraph of the client's own site was written for its own page, not for this question: "Is the OET valid for 3 years?" got Ahpra's scores. It is split into single statements; each stands only under the question it answers, holding most of that question's words; what fits nowhere goes */
 export const sentencesOf = (t) => String(t ?? "").split(/(?<=[.!?])\s+(?=["'(]?[A-Z0-9])/).map((s) => s.trim()).filter(Boolean);
 const SAME_THING = (t) => String(t).replace(/\b(?:rescheduling|reschedule|moving|move|changing|change|defer|deferring)\b/gi, "reschedule");
-const holdsMost = (q, s, subject) => { const want = meaningOf(SAME_THING(q), { drop: [subject] }), have = new Set(meaningOf(SAME_THING(s), { drop: [subject] })); if (!want.length) return true;
+const holdsMost = (q, s, subject) => { const want = meaningOf(SAME_THING(q), { drop: [subject] }), have = new Set(meaningOf(SAME_THING(s), { drop: [subject] })); if (!want.length) return false; /* "What is OET Exam?": no word to check against: a site line about a council cannot be shown to answer it */
+  if ((String(q).match(/\b\d{3,}\b/g) ?? []).some((n) => !String(s).includes(n))) return false; /* "What grade is 300?" must say 300 */
   /* the question's own words must stand in the answer ("reschedule", "better", "C+"); a general word ("cost", "accept") alone says nothing: a price never answers the fee for rescheduling. One may be missing of three or more */
   const own = want.filter((w) => !NEED_GROUPS.has(w)), lost = own.filter((w) => !have.has(w)).length; if (lost > (own.length >= 3 ? 1 : 0)) return false;
   return want.filter((w) => have.has(w)).length / want.length > 0.5; };
+/* item 29: a site line about a regulator that names no country is not known to be this country's ("The Optometrists … Board" on the India page) */
+export const bodyOfUnknownPlace = (text, country) => /\b(?:Board|Council|College|Authority|Registry)\b/.test(String(text)) && !countriesIn(text).includes(country);
 /** the client's own paragraph → only its statements that answer this question, or null */
 export function ownSiteAnswer(question, text, { subject = null, bodies = [] } = {}) { return sentencesOf(text).filter((s) => !answerFitWhy(question, s, { subject, bodies }) && holdsMost(question, s, subject)).join(" ") || null; }
 const hostIs = (u, host) => { try { return Boolean(host) && new URL(u).hostname.replace(/^www\./, "") === host; } catch { return false; } };

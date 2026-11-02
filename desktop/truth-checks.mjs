@@ -7,6 +7,7 @@
  */
 import { countriesIn } from "./world.mjs";
 import { meaningOf, NEED_GROUPS } from "./coverage.mjs";
+import { oldWording } from "./subject-facts.mjs";
 import { professionIn } from "./page-plan.mjs";
 
 const SUBTESTS = ["Listening", "Reading", "Writing", "Speaking"];
@@ -49,6 +50,7 @@ const placesOf = (t, bodies) => distinct([...countriesIn(t), ...bodies.filter((b
  */
 export function answerFitWhy(question, answer, { subject = null, bodies = [], loose = false } = {}) {
   const q = String(question ?? ""), a = String(answer ?? "");
+  if (oldWording(a)) return "it gives an old figure the official page has replaced"; /* Part D: whatever page it came from, the client's own too */
   const qp = placesOf(q, bodies), ap = placesOf(a, bodies); if (qp.length && ap.length && !ap.some((x) => qp.includes(x))) return `it asks about ${qp[0]}, the answer is about ${ap[0]}`;
   const prof = professionIn(q), other = professionIn(a); if (prof && other && prof !== other) return `it asks about ${prof}, the answer is about ${other}`;
   const sq = SUBTESTS.filter((s) => nameIn(q, s)), sa = SUBTESTS.filter((s) => new RegExp(`(?<![\\p{L}])${s}(?![\\p{L}])`, "u").test(a)); if (sq.length && sa.length && !sa.some((s) => sq.includes(s))) return `it asks about ${sq[0]}, the answer is about ${sa[0]}`;

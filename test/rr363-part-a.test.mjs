@@ -52,6 +52,8 @@ test("A2: the last run stays one line, its long lists one click away (Home was 1
   for (const x of ["Waiting for your OK (${R.needOk.length})", "Need work (${R.needWork.length})"]) assert.ok(UI.includes(`<details class="replist"><summary><b>${x}</b></summary>`), x);
 });
 
+test("the progress bar stays in sight wherever Start was pressed", () => { assert.match(UI, /#jobbar\{position:sticky;top:0/); });
+
 test("A4: the first screen's Go to bar is back: each product, + New product, Help, Check for updates", () => {
   assert.match(UI, /<nav id="homenav" class="pact"><b>Go to:<\/b>/); assert.ok(UI.includes('innerHTML = `${nav}${firstTime')); for (const x of ['$("#navadd").onclick', '$("#navhelp").onclick', '$("#navupd").onclick']) assert.ok(UI.includes(x), x);
 });

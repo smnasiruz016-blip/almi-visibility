@@ -294,9 +294,11 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, title: need ? title(d.text) : `What is ${subject}? The test, its fee and the scores asked`, questions: [], source: d.source };
     if (topics.has(mapKey)) join(t, { question: d.text, source: d.source }); topics.set(mapKey, t);
   }
+  /* RR-363 (R3): "oet result", "oet result today", "latest oet result": one need, one page: the others' searches stand on the first (the most-searched) */
+  const oneForEachKey = () => { const first = new Map(), out = []; for (const t of topics.values()) { const had = t.key ? first.get(t.key) : null; if (had) { for (const q of t.questions) join(had, q); continue; } if (t.key) first.set(t.key, t); out.push(t); } return out; };
   const hasFacts = (t) => Number(t.key === "what" || topicItems(t.key, subjectFacts, subject).length > 0 || t.key === "fee");
   /* a TOPIC page: the subject's own facts about its topic only; two topics never carry the same facts (a page with another's facts competes) */
-  const used = new Set(), chosen = [...topics.values()].sort((a, b) => hasFacts(b) - hasFacts(a) || (rankOf[b.key] ?? 0) - (rankOf[a.key] ?? 0)).slice(0, maxTopics) /* RR-363: a topic we can say nothing about takes no place */, itemsOf = new Map();
+  const used = new Set(), chosen = oneForEachKey().sort((a, b) => hasFacts(b) - hasFacts(a) || (rankOf[b.key] ?? 0) - (rankOf[a.key] ?? 0)).slice(0, maxTopics) /* RR-363: a topic we can say nothing about takes no place */, itemsOf = new Map();
   /* a sub-test page owns its sub-test's facts: the sub-test topics choose first, the general topics after */
   /* RR-363: booking before dates: the booking facts are its own, a schedule page may stand on the rest */
   const FIRST = (k) => (SUBTESTS.includes(k) ? 2 : k === "book" ? 1 : 0);

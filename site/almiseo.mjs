@@ -14,7 +14,8 @@
 import { createHash } from "node:crypto";
 import { PRODUCT_FACTS, FACT_PRODUCTS, templateOf, setClientTemplates } from "../desktop/product-facts.mjs";
 import { PLANS } from "../desktop/licence.mjs";
-import { doneIn, pageCounts, countryPacket, CF_PROFESSIONS, councilFound, SHOWN_STATUS, productPartsOf, waiting, isQuestion } from "../desktop/country-facts.mjs";
+import { doneIn, pageCounts, countryPacket, CF_PROFESSIONS, councilFound, SHOWN_STATUS, productPartsOf, stillWaiting, isQuestion } from "../desktop/country-facts.mjs";
+import { recleanCoverage } from "../desktop/coverage.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
 import { PRODUCT_NAMES } from "./owner-status.mjs";
 import { capsOf } from "./cf-collector.mjs";
@@ -22,7 +23,7 @@ import { DEFAULT_QUEUE, FIRST_15 } from "./queue.mjs";
 import { PLAN_LOCATIONS, normSeed, LOCATIONS } from "./kw-seeds.mjs";
 
 export const ALMISEO = Object.freeze({ keywordsPerPage: 5000, countriesPerPage: 40, clientCountries: 5, reviewParts: Object.freeze(["fee", "rules", "dates", "scores", "workRules", "workPermit", "admission", "minimumWage"]) });
-export const ENV_NAMES = Object.freeze({ alertEmail: "ALMISEO_ALERT_EMAIL", topPagesOn: "ALMISEO_TOP_PAGES_ON", dfsLogin: "ALMISEO_DATAFORSEO_LOGIN", dfsPassword: "ALMISEO_DATAFORSEO_PASSWORD", topPagesUsd: "ALMISEO_TOP_PAGES_USD_PER_DAY", topPagesReads: "ALMISEO_TOP_PAGES_READS_PER_DAY", topPagesBudget: "ALMISEO_TOP_PAGES_BUDGET_USD" });
+export const ENV_NAMES = Object.freeze({ alertEmail: "ALMISEO_ALERT_EMAIL", topPagesOn: "ALMISEO_TOP_PAGES_ON", dfsLogin: "ALMISEO_DATAFORSEO_LOGIN", dfsPassword: "ALMISEO_DATAFORSEO_PASSWORD", topPagesUsd: "ALMISEO_TOP_PAGES_USD_PER_DAY", topPagesReads: "ALMISEO_TOP_PAGES_READS_PER_DAY", topPagesBudget: "ALMISEO_TOP_PAGES_BUDGET_USD", topPagesClients: "ALMISEO_TOP_PAGES_FOR_CLIENTS" });
 export const JOBS = Object.freeze({ keywords: "keywords", questions: "questions", facts: "country facts", "top-pages": "top pages", market: "market needs (not built yet)", competitors: "similar apps (not built yet)", tools: "new tools (not built yet)" });
 export const LIVE_JOBS = Object.freeze(["keywords", "questions", "facts", "top-pages"]);
 /* the proposed limits (OWNER'S MONEY DECISION — a setting, changed on /owner/almiseo): what one client's collecting may cost AlmiWorld per month,
@@ -43,13 +44,15 @@ const esc = (w) => String(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /* ── ONE TOPIC LIST ── */
 /* AlmiVisibility has keywords and questions and no country template; every other product has its own */
 const VIS = Object.freeze({ id: "visibility", name: "AlmiVisibility", subject: "AlmiVisibility", words: Object.freeze(["seo", "keyword research", "website audit", "ai search", "almivisibility"]) });
+/* RR-362 item 8: almiworld.com itself is a topic, third in the order */
+const WORLD = Object.freeze({ id: "almiworld", name: "AlmiWorld", subject: "AlmiWorld", site: "https://almiworld.com", words: Object.freeze(["almiworld", "almiworld.com"]) });
 const FALLBACK_TEMPLATE = Object.freeze({ parts: Object.freeze(["questions"]) });
 const tplOf = (id) => templateOf(id) ?? FALLBACK_TEMPLATE;
 /** AlmiWorld's own products as topics (their subject words and seeds from the seed list the owner keeps) */
 export function ownTopics(groups = []) {
   const seedsOf = (p, d) => groups.find((g) => g.kind === "product" && g.key === p)?.seeds ?? d;
   return [...FACT_PRODUCTS.map((p) => ({ id: p, name: PRODUCT_NAMES[p] ?? p, subject: PRODUCT_FACTS[p].name, words: PRODUCT_FACTS[p].subject, seeds: seedsOf(p, PRODUCT_FACTS[p].subject), countries: [], languages: ["en"], jobs: [...LIVE_JOBS], owner: "almiworld", paused: false })),
-    { ...VIS, words: [...VIS.words], seeds: seedsOf(VIS.id, [...VIS.words]), countries: [], languages: ["en"], jobs: ["keywords", "questions", "top-pages"], owner: "almiworld", paused: false }];
+    ...[VIS, WORLD].map((t) => ({ ...t, words: [...t.words], seeds: seedsOf(t.id, [...t.words]), countries: [], languages: ["en"], jobs: ["keywords", "questions", "top-pages"], owner: "almiworld", paused: false }))];
 }
 /** the owner's one line: Name | seed, seed | countries (or empty for the first 15) | jobs (or empty for all that are built) */
 export function parseTopicLine(line) {
@@ -88,6 +91,27 @@ export async function registerClient({ seo, subject, name = null, seeds = [], si
   if (t.clients.includes(who)) { if (wanted.length && JSON.stringify(t.intents ?? []) !== JSON.stringify(wanted)) await seo.putTopic({ ...t, intents: wanted }, { at }); return { ok: true, topic: t, joined: false }; }
   await seo.putTopic({ ...t, clients: [...t.clients, who], planOf: { ...(t.planOf ?? {}), [who]: lic.plan }, intents: wanted }, { at });
   return { ok: true, topic: t, joined: Boolean(found), started: !found };
+}
+
+/*
+ * 🔴 RR-362 item 14 (owner's run: "0 saved in AlmiSEO Data"; R13: "each result is saved once and reused") · WHAT THE APP SEARCHED IS SAVED HERE, so the server collector and every later run reuse it:
+ * the app and the server never pay twice for one search. Only a topic this licence belongs to; only a list newer than the one held; only addresses, headings' topics and questions (a page's text never
+ * arrives, nothing here is a fact); a client's lists stay behind ruling 2: they are never sent to any client. → { saved, kept }
+ */
+export const SAVED_LISTS = Object.freeze({ perCall: 60, results: 10, questions: 20, topics: 12 });
+export async function saveFromApp({ seo, subject, lists = [], lic, groups = [], at, location = "United States", language = "en" }) {
+  const topic = topicForSubject(subject, await allTopics({ seo, groups })); if (!topic) return { ok: false, status: 404, why: "No such subject here yet." };
+  if (!lic.owner && !(topic.owner === "client" && (topic.clients ?? []).includes(accountHash(lic.account)))) return { ok: false, status: 403, why: "That subject is not yours." };
+  const held = new Map((await seo.lists(topic.id)).map((l) => [l.intent, l])), today = dayOf(at), strings = (xs, n) => (Array.isArray(xs) ? xs : []).map((x) => String(x?.topic ?? x?.question ?? x ?? "").trim().slice(0, 200)).filter(Boolean).slice(0, n);
+  let saved = 0, kept = 0;
+  for (const l of (Array.isArray(lists) ? lists : []).slice(0, SAVED_LISTS.perCall)) {
+    const intent = String(l?.intent ?? "").trim().slice(0, 160), day = /^\d{4}-\d{2}-\d{2}$/.test(l?.on ?? "") && l.on <= today ? l.on : today; if (!intent) continue;
+    if (held.get(intent)?.day >= day) { kept++; continue; }
+    const read = (Array.isArray(l.read) ? l.read : []).filter((u) => /^https:\/\//.test(u)).slice(0, SAVED_LISTS.results), coverage = recleanCoverage(strings(l.coverage, SAVED_LISTS.topics).map((t) => ({ topic: t, urls: read })), { subject: topic.subject, title: intent, now: at });
+    await seo.putList({ topic: topic.id, intent, location, language, day, results: read.map((url) => ({ url, title: "" })), paa: strings(l.paa, SAVED_LISTS.questions), related: strings(l.related, SAVED_LISTS.questions) });
+    await seo.putCoverage({ topic: topic.id, intent, day, coverage, second: strings(l.second, SAVED_LISTS.questions).map((question) => ({ question, why: "people ask it, and the best result does not answer it" })), read }); saved++;
+  }
+  return { ok: true, saved, kept };
 }
 
 /* ── THE PLAN LIMITS ── */
@@ -249,11 +273,11 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   const all = cf ? await cf.facts() : [], mine = all.filter((f) => (f.product ?? "oet") === topic.id);
   if (part === "questions") return { ...base, ...(cf ? await questionBank({ cf, topic, keywords: allowed }) : { groups: [], asked: [] }) };
   if (part === "plan") return { ...base, pages: collectorPlan({ topic, facts: all }), counter: counterTotal(all, { topic }) };
-  if (part === "coverage") return { ...base, lists: (await seo.coverage(topic.id)).map((c) => ({ intent: c.intent, on: c.day, coverage: c.coverage, second: c.second, read: c.read })) };
+  if (part === "coverage") { const raw = new Map((await seo.lists(topic.id)).map((l) => [l.intent, [...(l.paa ?? []), ...(l.related ?? [])]])); return { ...base, lists: (await seo.coverage(topic.id)).map((c) => ({ intent: c.intent, on: c.day, coverage: c.coverage, second: c.second, read: c.read, asked: raw.get(c.intent) ?? [] })) }; }
   const held = [...new Set(mine.map((f) => f.country))].filter((c) => COUNTRIES.includes(c)), order = DEFAULT_QUEUE.countries.filter((c) => held.includes(c));
   if (part === "countries") {
     const shownFacts = all.filter((f) => SHOWN_STATUS.includes(f.status) && (f.product ?? "oet") === topic.id), slice = order.slice(page * ALMISEO.countriesPerPage, (page + 1) * ALMISEO.countriesPerPage);
-    return { ...base, page, pages: Math.ceil(order.length / ALMISEO.countriesPerPage), countries: Object.fromEntries(slice.map((c) => [c, { ...packetFor(anyPacket(topic, c, shownFacts), allowed), waitingReview: mine.filter((f) => f.country === c && waiting(f)).length }])), source: "AlmiSEO Data's country facts — each fact read on its own official page" };
+    return { ...base, page, pages: Math.ceil(order.length / ALMISEO.countriesPerPage), countries: Object.fromEntries(slice.map((c) => [c, { ...packetFor(anyPacket(topic, c, shownFacts), allowed), waitingReview: stillWaiting(mine.filter((f) => f.country === c)).length }])), source: "AlmiSEO Data's country facts — each fact read on its own official page" };
   }
   /* summary: what it holds, in numbers measured from the stores */
   const kw = allowed && db ? await db.topicKeywords({ groups: [`product:${topic.id}`], pattern: ownWordsPattern(topic), offset: 0, limit: 0 }) : { total: 0, week: 0, today: 0 };
@@ -262,6 +286,6 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   const review = (await seo.findings({ topic: topic.id, changed: true })).map((f) => ({ text: f.text, was: f.was, now: f.value, link: f.sourceUrl, on: f.on, kind: f.kind }));
   const facts = mine.filter((f) => f.part !== "questions" && SHOWN_STATUS.includes(f.status)), week = daysBefore(today, 7), newOn = (d) => mine.filter((f) => String(f.at ?? "").slice(0, 10) >= d).length;
   return { ...base, keywords: { total: kw.total, today: kw.today ?? 0, week: kw.week ?? 0, allowed }, questions: { groups: bank.groups.length, answered: bank.groups.filter((q) => q.answerKind === "official" && q.answer).length, asked: bank.asked.length },
-    countries: { held: order.length, allParts: order.filter((c) => done(topic.id, c)).length, waitingReview: mine.filter(waiting).length, facts: facts.length }, topPages: { lists: lists.length, read: read.length, coverageLists: coverage.length, on: env[ENV_NAMES.topPagesOn] === "1" }, plan: { pages: counterTotal(all, { topic }) }, arrived: { today: newOn(today), week: newOn(week) }, lastRefresh: mine.map((f) => String(f.at ?? "").slice(0, 10)).sort().at(-1) ?? null, review };
+    countries: { held: order.length, allParts: order.filter((c) => done(topic.id, c)).length, waitingReview: stillWaiting(mine).length, facts: facts.length }, topPages: { lists: lists.length, read: read.length, coverageLists: coverage.length, on: env[ENV_NAMES.topPagesOn] === "1" }, plan: { pages: counterTotal(all, { topic }) }, arrived: { today: newOn(today), week: newOn(week) }, lastRefresh: mine.map((f) => String(f.at ?? "").slice(0, 10)).sort().at(-1) ?? null, review };
 }
 export { PLAN_LOCATIONS, CF_PROFESSIONS, councilFound };

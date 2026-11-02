@@ -86,8 +86,8 @@ test("RR-357 · 3 + 4 + 5 · navigation on Your products; never a second product
     const dup = await A.call("/api/products", { name: "Again", site: "https://fixture.invalid", goal: { grow: "website", hasWebsite: true }, saveAnyway: true, addAnyway: true });
     assert.deepEqual([dup.status, dup.j.duplicate?.name], [409, "Fixture"], "\"add anyway\" no longer adds a second one");
   } finally { await A.stop(); }
-  assert.ok(UI.includes('<nav id="homenav" class="pact"><b>Go to:</b>') && UI.includes('id="navhelp"') && UI.includes('id="navupd"') && UI.includes('$("#navupd").onclick = () => checkUpdates(true);'));
-  assert.ok(UI.includes("Pages: ${p.pages} made · ${p.improve ? `${p.improve} of yours to improve · ` : \"\"}${p.ready ?? 0} ready · ${p.published ?? 0} published · Articles: ${p.articles}") && !UI.includes("Pages ${p.pages} · Articles ${p.articles}"));
+  assert.ok(UI.includes('<nav id="homenav" class="pact">') && UI.includes('id="navhelp"') && UI.includes('id="navupd"') && UI.includes('$("#navupd").onclick = () => checkUpdates(true);'));
+  assert.ok(UI.includes("data-status>${esc(p.next?.status ?? \"\")}") && !UI.includes("Pages ${p.pages} · Articles ${p.articles}")); /* RR-362 item 2: one status line */
   assert.ok(!UI.includes("Add a second one anyway"));
 });
 
@@ -122,5 +122,5 @@ test("RR-357 · 8 · a score is shown only tied to its sub-test; a page that doe
   assert.equal(cardOf("Nursing Council of New Zealand accepts OET: minimum 350 in Reading, Listening and Speaking; minimum 300 in Writing.", "New Zealand"), "New Zealand — R/L/S 350 · W 300");
   assert.equal(cardOf("NMBI accepts OET (Nursing): Writing C+ (300), the other three B (350).", "Ireland"), "Ireland — Writing C+ (300) · others B (350)");
   /* the Pages screen names the open questions (found in the built app: it said "one of the five checks") */
-  assert.equal(plainWhy({ readyAsDraft: false, gates: [{ gate: "H", words: "answers its whole intent", pass: false, failing: ["Open questions: What OET score does a state board in the United States ask of nurses?."] }] }), "Open questions: What OET score does a state board in the United States ask of nurses?.");
+  assert.equal(plainWhy({ readyAsDraft: false, gates: [{ gate: "H", words: "answers its core questions", pass: false, failing: ["Open questions: What OET score does a state board in the United States ask of nurses?."] }] }), "Open questions: What OET score does a state board in the United States ask of nurses?.");
 });

@@ -445,7 +445,7 @@ ${r.rows.length ? r.groups.map((g) => `<h4>${esc(g.name)} <span class="note">(${
 }
 
 /* ── RR-326 B + D · THE OWNER'S PAGE (owner only; noindex) ── */
-const ownerFrame = (title, inner) => frame({ path: "/owner", lite: true, noindex: true, title: `${title} — AlmiVisibility`, description: "Private.", body: `<section class="page"><div class="wrap prose owner">${inner}</div></section>` });
+export const ownerFrame = (title, inner) => frame({ path: "/owner", lite: true, noindex: true, title: `${title} — AlmiVisibility`, description: "Private.", body: `<section class="page"><div class="wrap prose owner">${inner}</div></section>` });
 /* RR-326 fix: why the owner's page is off — names the setting, never a value */
 const OWNER_OFF = Object.freeze({
   missing: "OWNER_ACCESS_KEY is not set for Production in Vercel (Settings → Environment Variables), or the site was not deployed again after it was added.",
@@ -508,7 +508,7 @@ function queueHtml(q, names, moved) {
 export function ownerMenu(here, s = null) {
   const item = (k, href, name) => (k === here ? `<b>${name}</b>` : `<a href="${href}">${name}</a>`);
   const line = s ? `<p class="fine">Keywords today ${Number(s.keywordsToday ?? 0).toLocaleString("en-US")} · first 15 countries ${s.first15 ?? "—"}% done · question groups ${s.questionGroups ?? 0} · test dates found for ${s.datesFound ?? 0} test × country${s.gsc ? ` · Search Console: ${esc(s.gsc)}` : ""}${s.dataForSeo ? ` · ${esc(s.dataForSeo)}` : ""}</p>` : "";
-  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("articles", "/owner/articles", "Articles")} · ${item("creators", "/owner/creators", "Creators")} · ${item("almiseo", "/owner/almiseo", "AlmiSEO Data")}</nav>${line}`;
+  return `<nav class="row" aria-label="Owner pages">${item("keywords", "/owner", "Keywords")} · ${item("countries", "/owner/countries", "Countries")} · ${item("review", "/owner/review", "Review facts")} · ${item("articles", "/owner/articles", "Articles")} · ${item("creators", "/owner/creators", "Creators")} · ${item("almiseo", "/owner/almiseo", "AlmiSEO Data")}</nav>${line}`;
 }
 
 /* 🔴 RR-360 F · the owner's AlmiSEO Data page: the ONE topic list (a topic or an app idea in one line), the ONE spend ledger, what changed (review needed), the plans' monthly limits, which settings are set (names only, never a value) */
@@ -648,6 +648,8 @@ ${dbOn ? `<details${imported ? " open" : ""}><summary>Keyword Planner files</sum
 /* ── RR-328 B · the owner's Country Facts: the coverage grid (five parts per country, a council per profession), each fact with its source,
  * and his word on it (approve, edit, reject — his edit wins). An unconfirmed fact is listed here for him, never shown on a page. ── */
 const PART_SHORT = { fee: "Fee", questions: "Questions", centres: "Centres", councils: "Councils", rules: "Rule" };
+export const PART_SHORT_NAMES = PART_SHORT;
+export const factLineOf = (f) => factLine(f); // RR-362
 const factLine = (f) => {
   const v = f.value ?? {};
   if (f.status === "owner") return `${v.text ?? ""}${v.link ? ` · ${v.link}` : ""}`; // RR-329: the owner's own words first, whatever part
@@ -661,6 +663,7 @@ const factLine = (f) => {
   if (v.text) return `${v.text}${v.quote ? ` — the page says: “${v.quote}”` : ""}`;
   return JSON.stringify(v);
 };
+export const editFieldsOf = (f) => editFields(f); // RR-362: the tick list's Edit
 const editFields = (f) => {
   const v = f.value ?? {}, inp = (n, label, val) => `<label>${label} <input name="${n}" value="${esc(val ?? "")}" style="width:100%"></label>`;
   if ((f.product ?? "oet") !== "oet" && f.part !== "questions") return `${v.name !== undefined ? `${inp("name", "Name", v.name)}${inp("website", "Official website", v.website)}` : ""}<label>What it says <textarea name="text" rows="2" style="width:100%">${esc(v.text ?? "")}</textarea></label>`;

@@ -37,8 +37,9 @@ const DEMAND = ["oet for nurses", "oet nursing requirements", "oet pakistan fee"
 const SITE = { ok: true, origin: "https://prep.example", readOn: `${ON}T00:00:00Z`, pages: [{ url: "https://prep.example/practice", title: "OET Practice Test | Prep", h1: "OET Practice Test", qa: [], facts: [] }] };
 
 test("RR-354 · 4 · the exam plan: one page per profession, one per main country, searches joined to the page they are about", () => {
-  const x = examPlan({ subject: "OET", professions: PROFS, countries: ["United Kingdom", "Ireland", "Pakistan"], facts: FACTS, demand: DEMAND, site: SITE });
-  assert.deepEqual(x.counts, { profession: 12, country: 3, topic: 3, countryProfession: 0, question: 0, improve: 0 }); // RR-356: no page of the client's covers these
+  const one = (k) => [k, { claimId: k, text: `The subject's own page says this about ${k} and stands behind it.`, link: "https://oet.com/x", readOn: "2026-10-30" }];
+  const x = examPlan({ subject: "OET", professions: PROFS, countries: ["United Kingdom", "Ireland", "Pakistan"], facts: FACTS, demand: DEMAND, site: SITE, subjectFacts: Object.fromEntries(["scale", "gradeB", "resultsComputer", "listeningGlance", "practiceEvery", "benchmarkIelts", "resultsPaper", "bookPaperCloses", "writingWords", "readingGlance", "speakingGlance", "writingGlance"].map(one)) /* RR-362 (R3): a topic page has facts of its topic */ });
+  assert.deepEqual(x.counts, { profession: 12, country: 3, topic: 2, destination: 0, origin: 0, merged: 1, improve: 0 }); // RR-356: no page of the client's covers these
   const nurses = x.pages.find((p) => p.title === "OET for Nurses");
   assert.deepEqual(nurses.questions.map((q) => q.question), ["oet for nurses", "oet nursing requirements"], "a profession search joins the profession's page — never a country page");
   assert.deepEqual(nurses.claims.map((c) => c.text.slice(0, 26)), ["In the United Kingdom: NMC", "In Ireland: NMBI accepts O"]);
@@ -54,7 +55,7 @@ test("RR-354 · 4 · the exam plan: one page per profession, one per main countr
    * bank's rate): "PKR 113,000 at the bank's rate" is on no page; with no fee from OET's own page and no facts of OET's own pages, the
    * price page holds nothing — it is not made, never filled with another page's facts */
   assert.ok(!JSON.stringify(x.pages).includes("113,000"), "a bank's converted amount reached a page");
-  assert.deepEqual(x.pages.find((p) => p.title === "OET Exam Price").claims, []);
+  assert.ok(!x.pages.some((p) => p.title === "OET Exam Price"), "RR-362 (R3): a topic with nothing of its topic is no page"); assert.ok(x.merged.some((m) => m.title === "OET Exam Price"));
   assert.ok(x.pages.find((p) => p.title === "OET Result").claims.every((c) => /accepts OET|does not accept/.test(c.text)));
   const ids = x.pages.filter((p) => p.kind === "topic").flatMap((p) => p.claims.map((c) => c.claimId)); assert.equal(new Set(ids).size, ids.length);
   /* the truth rule: an unchecked fact is never on a page */

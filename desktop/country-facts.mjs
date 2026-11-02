@@ -19,6 +19,13 @@ export const SHOWN_STATUS = Object.freeze(["confirmed", "approved", "edited", "o
 /* RR-334 · a question the filter removed (a comment to a video's maker) is out of every count; an unconfirmed fact still waits for a look */
 export const removed = (f) => f.status === "unconfirmed" && Boolean(f.value?.removedBy);
 export const waiting = (f) => f.status === "unconfirmed" && !f.value?.removedBy;
+/*
+ * 🔴 RR-362 item 12 (owner: "facts I already approved or rejected must never come back"; found on his data: the collector numbers a country's rules, so the SAME rule of Egypt stood under
+ * "rule|Egypt|attestation|3" and "...|4"): a fact the owner decided stays decided whatever key it comes back under. ONE list of what still waits.
+ */
+export const DECIDED = Object.freeze(["approved", "edited", "rejected", "owner"]);
+const sameThing = (f) => { const v = f.value ?? {}, said = v.rule ?? (v.question ? `${v.question}|${v.answer ?? ""}` : v.name ?? v.text ?? v.line ?? v.home ?? JSON.stringify(v)); return [f.product ?? "oet", f.country, f.part, f.profession ?? "", String(said).toLowerCase().replace(/\s+/g, " ").trim()].join("|"); };
+export function stillWaiting(facts = []) { const decided = new Set(facts.filter((f) => DECIDED.includes(f.status)).map(sameThing)), seen = new Set(); return facts.filter((f) => { if (!waiting(f)) return false; const k = sameThing(f); if (decided.has(k) || seen.has(k)) return false; seen.add(k); return true; }); }
 /* RR-329 C (rule R8): an AlmiOET record whose page is gone is hidden until the collector reads it again and confirms it */
 export const GONE = /^the page is gone/;
 /* the subject's professions (AlmiOET's list, desktop/lists/almiworld-oet-professions.json), by the keys the page plan uses */

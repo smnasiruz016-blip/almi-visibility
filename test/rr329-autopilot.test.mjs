@@ -52,7 +52,7 @@ test("A · RR-329 (rule R4): the owner's product order and country order — his
   assert.deepEqual(FIRST_15.slice(0, 3), ["India", "Philippines", "Pakistan"]); assert.equal(NEXT_15.at(-1), "Iran");
   assert.equal(QUEUE_COUNTRIES.length, 197); assert.deepEqual([...QUEUE_COUNTRIES].sort(), [...COUNTRIES].sort(), "every country once");
   assert.deepEqual(QUEUE_COUNTRIES.slice(30, 33), ["Afghanistan", "Albania", "Algeria"], "then the rest, A–Z");
-  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 11), ["oet", "visibility", "cv", "jobs", "study", "salary", "prep", "pte", "toefl", "det", "celpip"], "RR-333 D: AlmiVisibility second");
+  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 12), ["oet", "visibility", "almiworld", "cv", "jobs", "salary", "study", "prep", "pte", "toefl", "det", "celpip"], "RR-333 D: AlmiVisibility second; RR-362 item 8: the owner's order");
   assert.deepEqual(QUEUE_PRODUCTS.filter((p) => p.tier === 5).map((p) => p.key), ["french", "goethe", "spanish", "italian", "portuguese", "dutch", "japanese", "korean", "danish", "norwegian", "swedish", "icelandic", "swiss"]);
   /* editable: his order first, a new product or country always there, an unknown one dropped */
   const q = queueOf({ products: ["cv", "nope", "oet", "cv"], countries: ["Kenya"] });
@@ -101,7 +101,7 @@ test("B · RR-329 (rule R6): each product's own template — the five parts for 
   assert.deepEqual(PRODUCT_FACTS.salary.parts, ["questions", "minimumWage", "averageSalary", "tax", "currency"]); assert.deepEqual(PRODUCT_FACTS.jobs.parts, ["questions", "employment", "workPermit", "recognition"]);
   assert.deepEqual(bodyParts("study"), ["universities", "studentVisa"]); assert.deepEqual(searchedParts("salary"), ["minimumWage", "averageSalary", "tax"]);
   assert.ok(FACT_PRODUCTS.every((p) => PRODUCT_FACTS[p].parts.every((k) => PART_INFO[k])), "every part is defined");
-  assert.ok(DEFAULT_QUEUE.products.filter((p) => p !== "visibility").every((p) => FACT_PRODUCTS.includes(p)), "every queued product has facts (AlmiVisibility: keywords only)");
+  assert.ok(DEFAULT_QUEUE.products.filter((p) => p !== "visibility" && p !== "almiworld").every((p) => FACT_PRODUCTS.includes(p)), "every queued product has facts (AlmiVisibility and AlmiWorld: keywords and questions only)");
   assert.ok(ownerSite("det", "englishtest.duolingo.com") && ownerSite("prep", "www.ielts.org") && !ownerSite("prep", "ielts-blog.example"));
   const rows = [{ keyword: "duolingo english test fee", volume: 900 }, { keyword: "pearson pte fee", volume: 500 }, { keyword: "pte exam fee", volume: 300 }, { keyword: "duolingo app", volume: 9000 }];
   const skip = (own) => ({ test: (t) => /\b(duolingo|pearson)\b/.test(t) && !own.test(t) });
@@ -274,7 +274,7 @@ test("E + D · RR-329: /owner on a phone — the numbers first (This week, the q
     assert.doesNotMatch(page, /sk-ant-test/, "a key is never shown");
     /* the queue: one tap moves AlmiCV above AlmiOET; both collectors read it */
     const moved = await a.req("/owner/queue", { method: "POST", form: { kind: "product", item: "cv" } }); assert.equal(moved.status, 303); assert.match(moved.headers.get("location"), /moved=cv#queue/);
-    assert.deepEqual((await queueNow(a.K.kv)).products.slice(0, 3), ["oet", "cv", "visibility"], "one tap: one place up (RR-333 D: AlmiVisibility is second by default)");
+    assert.deepEqual((await queueNow(a.K.kv)).products.slice(0, 4), ["oet", "visibility", "cv", "almiworld"], "one tap: one place up (RR-362: AlmiWorld is third by default)");
     assert.match((await a.req("/owner?moved=cv")).text, /<details id="queue" open>/);
     assert.equal((await a.req("/owner/queue", { method: "POST", form: { kind: "country", item: "Atlantis" } })).status, 400);
     assert.equal((await a.req("/owner/queue", { method: "POST", form: { kind: "product", item: "cv" }, owner: false })).status, 403);

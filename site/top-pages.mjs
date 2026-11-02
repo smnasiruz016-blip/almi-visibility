@@ -15,7 +15,7 @@ import { SERP, serpTask, readSerp } from "../desktop/serp.mjs";
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
-import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS } from "./almiseo.mjs";
+import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS, clientTopicsToWork, planLimits } from "./almiseo.mjs";
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 
@@ -57,11 +57,13 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
   let lastCost = 0;
   try {
     /* RULING 1: AlmiWorld's own products only, in the owner's queue order: AlmiOET first */
-    const rank = (t) => { const i = queue.products.indexOf(t.id); return i < 0 ? 1e6 : i; }, topics = (await allTopics({ seo, groups })).filter((t) => t.owner === "almiworld" && !t.paused && (t.jobs ?? LIVE_JOBS).includes("top-pages")).sort((a, b) => rank(a) - rank(b));
+    const rank = (t) => { const i = queue.products.indexOf(t.id); return i < 0 ? 1e6 : i; }, all = await allTopics({ seo, groups }), limits = await planLimits(seo), month = today.slice(0, 7), topics = all.filter((t) => t.owner === "almiworld" && !t.paused && (t.jobs ?? LIVE_JOBS).includes("top-pages")).sort((a, b) => rank(a) - rank(b));
+    /* RR-362 item 9 (R14): AlmiWorld's products first. Later, by the owner's switch, a client's subject too, after them and inside its plan's monthly limit; the client still sees pages only */
+    if (env[ENV_NAMES.topPagesClients] === "1") topics.push(...await clientTopicsToWork({ seo, topics: all, today, limits }));
     const facts = await cf.facts();
     for (const topic of topics) {
       if (out.stoppedBy) break;
-      const have = new Map((await seo.lists(topic.id)).map((l) => [l.intent, l])), covered = new Map((await seo.coverage(topic.id)).map((c) => [c.intent, c]));
+      const have = new Map((await seo.lists(topic.id)).map((l) => [l.intent, l])), covered = new Map((await seo.coverage(topic.id)).map((c) => [c.intent, c])), payerLimit = topic.payer ? limits[topic.planOf?.[topic.payer]]?.usdMonth ?? 0 : null;
       for (const intent of intentsOf({ topic, facts })) {
         if (now() - start > budgetMs) { stop("TIME", "This run's time is used — the next run continues."); break; }
         const old = have.get(intent);
@@ -72,6 +74,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           /* the next search may not cross the total, even by a cent: the dearest search this account has been charged ($0.01, RR-359) is held back for it */
           const price = Math.max(SERP.pricePerSearch, lastCost);
           if (budget0.spent + out.cost + Math.max(price, TOP_PAGES_CAPS.searchReserveUsd) > caps.budget + 1e-9) { stop("BUDGET", `The top-pages budget is spent ($${caps.budget} in total) — the collector has stopped by itself.`); break; }
+          if (topic.payer && (await seo.accountSpend(month, topic.payer)) + price > payerLimit + 1e-9) break; // this client's month is used: the next topic
           if (spent.usd + out.cost + price > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
           let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify(serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }
           const got = r ? readSerp(await r.json().catch(() => ({}))) : { ok: false, why: "DataForSEO did not answer" };
@@ -79,7 +82,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           if (!got.ok) { if (got.stop) { stop("DATAFORSEO", got.why); break; } continue; }
           const cost = got.cost || SERP.pricePerSearch; out.cost += cost; lastCost = cost;
           /* booked at once: a run that dies later never forgets money spent */
-          await seo.addSpend(today, TOP_PAGES_JOB, { usd: cost, units: 1 });
+          await seo.addSpend(today, TOP_PAGES_JOB, { usd: cost, units: 1 }); if (topic.payer) await seo.addAccountSpend(month, topic.payer, cost);
           list = { topic: topic.id, intent, location: TOP_PAGES.location, language: TOP_PAGES.language, day: today, results: got.results.map((x) => ({ url: x.url, title: x.title })), paa: got.paa, related: got.related };
           await seo.putList(list); out.lists++;
         }

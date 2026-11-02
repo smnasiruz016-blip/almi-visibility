@@ -27,6 +27,7 @@ import { tokens } from "./youtube-advice.mjs";
 import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
+import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
 import { goodToRead, topicOf as pageTopicOf, offTopic, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
 import { PEOPLE_WORD } from "./recognition.mjs";
 import { duplicationReview, freshness, covers } from "./recipe.mjs"; // RR-356 the recipe
@@ -183,11 +184,11 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         const ASKS = /^(how|what|why|which|where|when|who|is|are|can|does|do|should|will)\b/i;
         const whole = (c) => /[.!?]$/.test(c.text) && !/^(yes|no)\b/i.test(c.text) && c.text.split(/\s+/).length >= 8 && (usedSite.get(c.text) ?? 0) < 3;
         /* the page's own title is asked of the site too ("OET for Nurses" → its pages about nurses), under "What else should I know about …?" */
-        const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim())).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` })), { q: p.title, heading: `What else should I know about ${p.title}?`, max: 3 }];
+        const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim()) && clearQuestion(x, { place: p.kind === KIND.topic ? null : p.country ?? null }) /* RR-362 item 19 */).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` })), { q: p.title, heading: `What else should I know about ${p.title}?`, max: 3 }];
         /* RR-360 (found on the owner's data: an Australian board's rule, read from the client's own pages, on "OET for Dentists in Ireland"): a page the collectors planned for one country says only its own checked facts */
-        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === "country-profession" || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
+        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === KIND.destination || p.kind === KIND.origin || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
         const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
-        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [] }); // RR-356: its research and its existing page
+        meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [], asked: p.askedHeads ?? [], route: p.coverageRoute ?? null, category: p.category ?? null }); // RR-356: its research and its existing page
         needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
         continue;
       }
@@ -314,7 +315,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const dup = duplicationReview(drafts.map((d, i) => ({ url: d.url, title: d.title, intent: d.title, text: (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " "), facts: (meta.get(built[i].needId)?.answers ?? []).map((c) => c.claimId) })));
   drafts.forEach((d, i) => {
     const m = meta.get(built[i].needId) ?? {}, topic = m.topic ?? pageTopicOf({ title: d.title, kind: m.kind ?? null, people: PEOPLE_WORD });
-    const q = goodToRead(d.html, topic), missing = partsMissing(d.html, m.kind, { localCurrency: m.localCurrency });
+    const q = goodToRead(d.html, topic), missing = m.category === "exam" ? partsMissing(d.html, m.kind, { localCurrency: m.localCurrency, asked: m.asked ?? [] }) : [];
     const text = (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " ");
     /* intent completeness: the standard questions still open, and every coverage topic / second-search question the page does not cover */
     const open = (m.open ?? []).filter((x) => !missing.some((y) => x.endsWith(y)));
@@ -323,10 +324,12 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
      * meaning, and the ⚠️ names at most the few real subtopics still missing, in plain words */
     /* RR-360 D · a page outside an exam plan: its coverage by the same order of routes (saved · your AI in your browser · your paid service) */
     { const cv = coverageFor?.(d.title); if (cv) { m.coverage = cv.coverage ?? []; m.second = cv.second ?? []; } }
-    const words = { title: d.title, now, names: WORLD_COUNTRIES, max: 8 };
+    const words = { title: d.title, now, names: WORLD_COUNTRIES, max: 8, subject, intent: m.category /* RR-362 item 15 */ };
     const coverage = recleanCoverage([...(m.coverage ?? []), ...(m.second ?? []).map((x) => ({ topic: x.question ?? x, urls: [], paa: /people also ask/i.test(x.why ?? "") }))], words).map((c) => c.topic);
     const uncovered = coverage.filter((c) => !coversByMeaning(text, c, { title: d.title }));
-    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : []), ...(uncovered.length ? [`Not covered yet — what readers also look for: ${uncovered.slice(0, 5).join("; ")}.`] : []), ...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])];
+    /* 🔴 RR-362 items 13 + 15 (owner's run: 122 pages ⚠️ only because the day's search cap was reached): only a missing CORE question blocks ✅. What the top results cover is a suggestion to add; a page not read yet is checked on a later day */
+    const incomplete = [...(missing.length ? [`Missing: ${missing.join("; ")}.`] : []), ...(open.length ? [`Open questions: ${open.join("; ")}.`] : [])];
+    d.kind = m.kind ?? null; d.type = m.category ? TYPE_OF_KIND[m.kind] ?? null : null; d.suggestions = uncovered.slice(0, 5); d.checkLater = m.route === "none" || Boolean(m.serpWhy);
     /* fact integrity: a fact past its freshness window is never shown as current — the page is "review needed" */
     const fr = freshness(m.answers ?? [], now);
     const stale = [...(fr.expired.length ? [`Review needed — ${fr.expired.length} fact${fr.expired.length === 1 ? " is" : "s are"} past its recheck date: ${fr.expired.slice(0, 3).map((x) => `"${x.text}" (checked ${x.on})`).join("; ")}.`] : []), ...(reviewFor?.(m) ?? []) /* RR-360 F: an official fee, date, score or rule AlmiSEO Data found changed */];
@@ -336,7 +339,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const push = (gate, words, failing) => { d.gates.push({ gate, words, pass: !failing.length, failing, afterPublishing: [] }); if (failing.length) d.pass = false; };
     push(QUALITY_GATE, "good to read", q.problems.map((x) => x.line));
     const look = looksLikeSite(d.html, { target }); push(LOOK_GATE, "looks like your site", look.pass ? [] : [site.lookWhy ? `${look.why} Why: ${site.lookWhy}` /* RR-358: the reason, plainly */ : look.why]);
-    push("H", "answers its whole intent", incomplete);
+    push("H", "answers its core questions", incomplete);
     push("I", "every fact sourced and fresh", stale);
     push("J", "not a duplicate", dr.verdict === "duplicate" ? [`A duplicate: ${dr.why} — its questions belong inside that page.`] : []);
   });

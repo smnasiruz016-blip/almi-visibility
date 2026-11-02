@@ -22,6 +22,7 @@ import { professionIn } from "./page-plan.mjs";
 import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
+import { KIND, TYPE_OF_KIND, STANDING, unclearWhy, clearQuestion, askedHere, itemForAsked, coreMissingOfPlan, ownClaims, mergeWhy } from "./page-types.mjs"; // RR-362: R3, R5, R6
 
 const STOP = new Set(["the", "a", "an", "for", "of", "in", "to", "and", "or", "is", "what", "how", "my", "your", "with", "on", "at", "about", "do", "does", "i", "you"]);
 const SAME = { examination: "exam", exams: "exam", test: "exam", tests: "exam", english: "exam", occupational: "exam", practise: "practice", mock: "practice", preparation: "practice", prep: "practice", sample: "practice", results: "result", score: "result", scores: "result", centre: "centre", centres: "centre", center: "centre", centers: "centre", venue: "centre", venues: "centre", fees: "fee", cost: "fee", costs: "fee", price: "fee", registration: "book", register: "book", booking: "book", dates: "date", schedule: "date" };
@@ -153,10 +154,47 @@ export const usableFacts = (facts = []) => facts.filter((f) => f.verified && f.t
  */
 /* 🔴 RR-360 · `collector` = AlmiSEO Data's page plan ("ready by the rules"), merged here without duplicates (G8): its country pages join the country pages; a country × profession page and a question page are made where their checked answers are here. `maxCountries`: AlmiSEO Data names every country with all its parts. A page keeps at most PAGE_QUESTIONS searches in its ledger, the most searched first, and counts the rest (all the keywords are read; none is dropped from the count) */
 export const PAGE_QUESTIONS = 60;
+const isLocal = (p) => p.kind === KIND.destination || p.kind === KIND.origin;
+const countsOf = (pages, merged) => ({ profession: pages.filter((p) => p.kind === KIND.profession).length, country: pages.filter((p) => p.kind === KIND.country).length, topic: pages.filter((p) => p.kind === KIND.topic).length, destination: pages.filter((p) => p.kind === KIND.destination).length, origin: pages.filter((p) => p.kind === KIND.origin).length, merged: merged.length, improve: pages.filter((p) => p.improve).length });
+/* R3: a merged page's facts go into the country page and the profession page: a council, a fee or a good-standing rule to the country; a score or a test rule to the profession, beside that country's score. Its questions stand on the profession page */
+function placeFacts(p, A, B) {
+  const has = (q, c) => q?.items.some((i) => (i.claims ?? []).some((x) => x.text === c.text));
+  for (const it of p.items) for (const c of it.claims ?? []) {
+    if (has(A, c) || has(B, c)) continue;
+    const toCountry = ["council", "regulator", "fee", "standing"].includes(it.part), target = toCountry ? A ?? B : B ?? A; if (!target) continue;
+    const beside = target === B ? B.items.find((i) => (i.claims ?? []).some((x) => x.text.startsWith(`In ${inCountry(p.country)}`))) : A.items.find((i) => i.part === "councils");
+    if (beside) beside.claims.push({ ...c, card: null }); else target.items.push({ part: toCountry ? "councils" : `scores${90 + target.items.length}`, question: toCountry ? `Which council registers each profession in ${inCountry(p.country)}?` : it.question, claims: [{ ...c, card: null }] });
+  }
+  if (B) for (const q of p.questions ?? []) if (!B.questions.some((x) => x.question === q.question) && B.questions.length < PAGE_QUESTIONS) B.questions.push(q);
+}
+/*
+ * 🔴 RR-362 · R3, AFTER THE SEARCHES (a search may bring the question people ask): a C or D page stays a page only when every core question is answered and
+ * it says something the country page and the profession page do not. A question people ask counts only when this page answers it, by meaning; their own
+ * words then head that answer (G4). Otherwise its facts go into those two and the plan shows "merged". `onlyBefore`: only what no search can bring
+ * is judged, so a page that can never be whole costs no search. The client's existing page stays an improve entry (G8). Mutates the plan; → the plan.
+ */
+export function settleLocal(plan, { onlyBefore = false } = {}) {
+  const { countryPages = [], profPages = [] } = plan.bigger ?? {}, keep = [];
+  for (const p of plan.pages) {
+    if (!isLocal(p) || p.improve) { keep.push(p); continue; }
+    const place = p.country, people = [peopleOf(p.profession)], used = new Set();
+    p.askedHeads = p.items.filter((it) => /^questions\d*$/.test(it.part)).map((it) => it.question);
+    for (const q of (p.questions ?? []).map((x) => x.question ?? x).filter((x) => askedHere(x, { place, people }))) { const it = itemForAsked(q, p.items); if (!it || used.has(it)) continue; used.add(it); it.question = asAsked(q) ?? it.question; p.askedHeads.push(it.question); }
+    const A = countryPages.find((x) => x.title === p.home) ?? null, B = profPages.find((x) => x.title === p.prof) ?? null;
+    const missing = coreMissingOfPlan(p).filter((m) => !onlyBefore || m.part !== "questions"), own = ownClaims(p, [A, B]);
+    const why = mergeWhy({ missing, own }); // a search brings questions, never an answer of its own: a page with nothing of its own costs no search either
+    if (!why) { keep.push(p); continue; }
+    placeFacts(p, A, B);
+    plan.merged.push({ type: p.type, title: p.title, country: place, profession: p.profession, into: [A?.title, B?.title].filter(Boolean), why, missing: missing.map((m) => m.words) });
+  }
+  plan.pages = keep; plan.counts = countsOf(keep, plan.merged);
+  if (!onlyBefore) for (const p of keep.filter(isLocal)) for (const t of [p.home, p.prof]) { const big = [...countryPages, ...profPages].find((x) => x.title === t); if (big) big.links = [...new Set([...(big.links ?? []), p.title])]; }
+  return plan;
+}
 export function examPlan({ subject = null /* RR-359: no default subject */, professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null, collector = [], maxCountries = 10 }) {
   /* a fact is used only when checked, sourced, dated — its notes taken out, a rate from a central bank (or any rate fact) never */
   const ok = usableFacts(facts);
-  const cs = [...new Set([...(countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, maxCountries), ...collector.filter((r) => r.kind === "country").map((r) => r.country)])];
+  const cs = [...new Set([...(countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, maxCountries), /* RR-362 (R3): a country with a council row gets its country page: the merged facts need a home, and a missing part is named (R5) */ ...collector.filter((r) => r.kind === "country" || r.kind === "country-profession").map((r) => r.country)])];
   const join = (page, q) => { page.asked = (page.asked ?? 0) + 1; if (page.questions.length < PAGE_QUESTIONS) page.questions.push(q); };
   const skipped = [], existing = []; let skippedMore = 0;
   const scoreFacts = (f) => f.part === "councils" && f.profession; // a destination regulator's score (the facts file)
@@ -172,7 +210,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const fx = ok.filter((f) => scoreFacts(f) && f.profession === prof);
     const writing = ["writingGlance", "writingWords", "writingMinutes", "writingGradeB"].map((k) => subjectFacts?.[k]).filter((f) => f?.text);
     /* its own questions: the questions people ask (AlmiWorld's question collector, any country) that name this profession, each with its checked answer */
-    const mineQ = [...new Map(ok.filter((f) => f.part === "questions" && asAsked(f.question) && (professionIn(f.question) === prof || professionIn(f.text) === prof)).map((f) => [f.question.toLowerCase(), { ...f, question: asAsked(f.question) }])).values()].slice(0, 4);
+    const mineQ = [...new Map(ok.filter((f) => f.part === "questions" && asAsked(f.question) && clearQuestion(f.question) /* RR-362 item 19 */ && (professionIn(f.question) === prof || professionIn(f.text) === prof)).map((f) => [f.question.toLowerCase(), { ...f, question: asAsked(f.question) }])).values()].slice(0, 4);
     /* RR-356 · THE RESEARCH ENGINE's answers (desktop/research.mjs): one score per main destination the exam owner's list names, each
      * answered from the checked facts, by meaning, or from its regulator's own page — the rest named as open questions */
     const qs = research[prof] ?? null;
@@ -187,7 +225,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
       { part: "writing", question: `What is the ${subject} Writing letter for ${peopleOf(prof)}?`, claims: writing.map(fromSubject) },
       ...mineQ.map((f, i) => ({ part: `questions${i}`, question: f.question, claims: [claimOf(f, null, null)] })),
       /* R6 (owner: "a profession page answers every need of its audience; shared questions appear on each page"): the fee, the results, booking */
-      ...shared.map((it, i) => ({ ...it, part: `questions${70 + i}` }))];
+      ...shared.map((it, i) => ({ ...it, part: `shared${i}` })) /* RR-362: on the page, but not "its own questions" */];
     /* G11 the answer first · G12 a verified comparison — each country's council and the score it asks, from the facts below */
     const answered = qs ? qs.filter((q) => q.kind === "score" && q.answer) : [];
     const content = answered.length ? { answer: `${answered.length} ${answered.length === 1 ? "country's council accepts" : "countries' councils accept"} ${subject} for ${peopleOf(prof)} on their own pages: ${answered.map((q) => inCountry(q.country)).join(", ")}. The score each one asks is below, with its official page and the day it was checked.`,
@@ -195,6 +233,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     return { kind: "profession", profession: prof, title: `${subject} for ${title(peopleOf(prof))}`, questions: [], items, content, ...(qs ? { open: openOf(qs), ledger: ledgerOf(qs) } : {}) };
   });
   /* COUNTRY pages: the five things, in the owner's order */
+  const plannedQ = new Set(collector.filter((r) => r.kind === "question").map((r) => String(r.question).toLowerCase()));
   const countryPages = cs.map((c) => {
     const mine = ok.filter((f) => f.country === c), feeFacts = mine.filter((f) => f.part === "fee");
     const officialOf = (f) => f.official ?? (/(?:AU\$|AUD\s?\$?|A\$)\s?(\d{3,4})/.exec(f.text) ? `AUD ${/(?:AU\$|AUD\s?\$?|A\$)\s?(\d{3,4})/.exec(f.text)[1]}` : null);
@@ -204,7 +243,8 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const other = [subjectFacts?.changeFee, subjectFacts?.remarkFee].filter((f) => f?.text).map((f) => ({ ...fromSubject(f), card: null }));
     const items = [
       { part: "fee", question: `How much does ${subject} cost in ${inCountry(c)}?`, claims: feeClaim ? [feeClaim, ...other] : [] },
-      ...mine.filter((f) => f.part === "questions" && asAsked(f.question)).slice(0, 6).map((f, i) => ({ part: `questions${i}`, question: asAsked(f.question), claims: [claimOf(f, null, null)] })),
+      /* RR-362 item 19: only clear questions on this page's topic; a question the collectors planned a page for stands here (R3), first */
+      ...mine.filter((f) => f.part === "questions" && asAsked(f.question) && clearQuestion(f.question, { place: c })).sort((a, b) => plannedQ.has(String(b.question).toLowerCase()) - plannedQ.has(String(a.question).toLowerCase())).slice(0, 8).map((f, i) => ({ part: `questions${i}`, question: asAsked(f.question), claims: [claimOf(f, null, null)] })),
       { part: "centres", question: `Where can I take ${subject} in ${inCountry(c)}?`, claims: (() => { const all = mine.filter((f) => f.part === "centres"), named = all.filter((f) => !f.fromCollector); return (named.length ? named : all).map((f) => claimOf(f, null, null)); })() /* the collector's general "can be taken at a venue" only when nothing names the venues */ },
       { part: "councils", question: `Which council registers each profession in ${inCountry(c)}?`, claims: mine.filter((f) => f.part === "home-council").slice(0, 12).map((f) => claimOf(f, null, null)) },
       { part: "rules", question: `What rules are special to ${inCountry(c)}?`, claims: [...new Map(mine.filter((f) => f.part === "rules").map((f) => [f.text, f])).values()].slice(0, 6).map((f) => claimOf(f, null, null)) },
@@ -214,10 +254,11 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     return { kind: "country", country: c, title: `${subject} in ${inCountry(c)}: fee, centres and councils`, questions: mine.filter((f) => f.part === "questions" && f.question).map((f) => ({ question: f.question, source: `AlmiWorld's question collector — asked by people in ${inCountry(c)}`, on: f.on })) /* RR-356 G1: their questions are demand evidence */, items, localCurrency: lf?.currency ?? CURRENCY_OF[c] ?? null, content: table ? { table, lastUpdated: rates?.date ?? null } : null };
   });
   /* each search joins the page it is about; the rest are topics, one page per need */
-  const topics = new Map(), sitePages = (site?.pages ?? []).map((p) => ({ url: p.url, need: needOf([p.h1, p.title].filter(Boolean).join(" "), subject) }));
+  const askedOfPair = {}, topics = new Map(), sitePages = (site?.pages ?? []).map((p) => ({ url: p.url, need: needOf([p.h1, p.title].filter(Boolean).join(" "), subject) }));
   for (const d of [...demand].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))) {
     const why = skipWhy(d.text); if (why) { if (skipped.length < 300) skipped.push({ text: d.text, why }); skippedMore++; continue; }
     const prof = professionIn(d.text), where = countriesIn(d.text).filter((c) => cs.includes(c));
+    if (prof && where.length) (askedOfPair[`${prof}|${where[0]}`] ??= []).push({ question: d.text, source: d.source }); // RR-362: what a C or D page must answer
     if (prof && profPages.some((p) => p.profession === prof)) { join(profPages.find((p) => p.profession === prof), { question: d.text, source: d.source }); continue; }
     if (where.length) { join(countryPages.find((p) => p.country === where[0]), { question: d.text, source: d.source }); continue; }
     const need = needOf(d.text, subject); if (!need && topics.has("")) { join(topics.get(""), { question: d.text, source: d.source }); continue; }
@@ -243,34 +284,54 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     if (t.key === "fee" || t.key === "what") { const f = ok.find((x) => x.part === "fee" && /oet\.com/.test(x.link) && /AU\$|AUD/.test(x.text)); if (f) items.unshift({ part: "fee", question: `How much does ${subject} cost?`, claims: [claimOf(f, null)] }); }
     return { kind: "topic", topic: t.key, title: t.title, questions: t.questions, items, source: t.source };
   });
-  /* 🔴 RR-360 · THE COLLECTORS' PLAN, without duplicates (G8): one page per country × profession whose council is checked here; one page per question
-   * whose official answer is here (the same question from two countries is one page; a need a topic page already answers stays there). A row
-   * with no checked answer here makes no page: it is counted, with why — never padded */
-  const cpPages = [], qPages = [], notBuilt = [], seenQ = new Set(topicPages.map((t) => needOf(t.title, subject)));
+  /* 🔴 RR-362 (recipe R3; beta-g, 2 Nov 2026: "OET for Nurses in Australia" and "OET for Doctors in Egypt" had two questions each) · THE COLLECTORS' PLAN, BY TYPE:
+   *   a country × profession row is C when a regulator there accepts the exam for this profession (they want to WORK there), else D (they COME FROM there);
+   *   it stays a page only with every core question answered and something of its own (settleLocal, after the searches). A question page is never a page
+   *   of its own (one answer is thin): it stands on its country page (R3). A row with no checked answer makes no page: counted, with why */
+  const localPages = [], merged = [], notBuilt = [];
+  const says = (text, link, on, id) => ({ claimId: id.replace(/\s+/g, "-"), card: null, text, link, readOn: on, source: `${hostOf(link) ?? "its official page"} — its official page`, official: true });
+  const scoreClaimsOf = (prof, q) => (q?.answer ?? []).map((a) => ({ claimId: a.connected ? `conn-${prof}-${q.country}`.replace(/\s+/g, "-") : a.fact.claimId ?? a.fact.id, card: cardOf(a.fact.text, null), text: plainScores(cleanFact(a.text)), link: a.fact.link, readOn: a.fact.readOn ?? a.fact.on, source: `${a.fact.source ?? hostOf(a.fact.link) ?? "its official page"} — its official page`, official: true }));
   for (const r of collector) {
-    if (r.kind === "country-profession") {
-      const mine = ok.filter((f) => f.country === r.country), council = mine.filter((f) => f.part === "home-council" && f.profession === r.profession), scores = mine.filter((f) => scoreFacts(f) && f.profession === r.profession);
-      if (!council.length) { notBuilt.push({ title: r.title, why: "its council is not among the checked facts read here" }); continue; }
-      const lf = (() => { const fs = mine.filter((f) => f.part === "fee"), src = fs.find((f) => f.official) ?? fs[0]; return src?.official ? localFee({ official: src.official, country: r.country, rates }) : null; })();
-      cpPages.push({ kind: "country-profession", country: r.country, profession: r.profession, title: `${subject} for ${title(peopleOf(r.profession))} in ${inCountry(r.country)}`, questions: [], items: [
-        { part: "councils", question: `Which council registers ${peopleOf(r.profession)} in ${inCountry(r.country)}?`, claims: council.map((f) => claimOf(f, null, null)) },
-        ...(scores.length ? [{ part: "scores", question: `What ${subject} score does it ask?`, claims: sameStandard(scores).map((f) => claimOf(f, null, cardOf(f.text, null))) }] : []),
-        ...(lf ? [{ part: "fee", question: `How much does ${subject} cost in ${inCountry(r.country)}?`, claims: [{ claimId: `fee-${r.country}-${r.profession}`.replace(/\s+/g, "-"), card: lf.card, text: lf.line, link: mine.find((f) => f.part === "fee").link, readOn: mine.find((f) => f.part === "fee").on, source: `${hostOf(mine.find((f) => f.part === "fee").link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true }] }] : []),
-      ], localCurrency: lf?.currency ?? null, content: null });
-    } else if (r.kind === "question") {
-      const key = needOf(r.question, subject), f = ok.find((x) => x.part === "questions" && x.country === r.country && String(x.question).toLowerCase() === String(r.question).toLowerCase());
-      if (!f) { notBuilt.push({ title: r.title, why: "its answer is not among the checked facts read here" }); continue; }
-      if (seenQ.has(key)) continue;
-      seenQ.add(key);
-      qPages.push({ kind: "question", country: r.country, title: asAsked(r.question) ?? title(r.question), questions: [{ question: r.question, source: `AlmiSEO Data's question bank — asked by people in ${inCountry(r.country)}`, on: f.on }], items: [{ part: "questions0", question: asAsked(r.question) ?? title(r.question), claims: [claimOf(f, null)] }], content: null }); // its card: a piece of its own checked answer, when the answer holds one
+    if (r.kind === "question") {
+      const home = countryPages.find((p) => p.country === r.country), odd = unclearWhy(r.question, { place: r.country });
+      merged.push({ type: "question", title: asAsked(r.question) ?? title(r.question), country: r.country, into: home && !odd ? [home.title] : [], why: odd ? `dropped: ${odd}` : "one answer is thin — it stands on its country page" });
+      continue;
     }
+    if (r.kind !== "country-profession") continue;
+    const people = peopleOf(r.profession), dq = (research[r.profession] ?? []).find((q) => q.kind === "score" && q.country === r.country) ?? null, mine = ok.filter((f) => f.country === r.country);
+    const council = mine.filter((f) => f.part === "home-council" && f.profession === r.profession), direct = mine.filter((f) => scoreFacts(f) && f.profession === r.profession);
+    const isC = Boolean(dq) || direct.length > 0, kind = isC ? KIND.destination : KIND.origin, pageTitle = `${subject} for ${title(people)} ${isC ? "in" : "from"} ${inCountry(r.country)}`, cl = (fs) => fs.map((f) => claimOf(f, null, null));
+    let items;
+    if (isC) {
+      const d = dq?.details ?? null, body = dq?.regulator?.short ?? dq?.regulator?.name ?? "the regulator", id = (w) => `${w}-${r.profession}-${r.country}`, on = d?.on ?? null;
+      items = [
+        { part: "scores", question: `What ${subject} score does ${body} ask of ${people}?`, claims: dq?.answer ? scoreClaimsOf(r.profession, dq) : sameStandard(direct).map((f) => claimOf(f, null, cardOf(f.text, null))) },
+        { part: "regulator", question: `Who registers ${people} in ${inCountry(r.country)}, and how do I register?`, claims: d?.steps && council.length ? [...cl(council), says(`${body}'s own page about applying sets out the registration steps.`, d.steps, on, id("steps"))] : [] },
+        { part: "others", question: `Does ${body} accept other English tests?`, claims: d?.others ? [says(d.others.length ? `${body}'s own page also names ${d.others.join(", ")}.` : `${body}'s own page names no other English test.`, d.url, on, id("others"))] : [] },
+        { part: "rules", question: `How long does a ${subject} result count for ${body}?`, claims: [...(d?.validity ? [says(`${body}'s own page gives ${subject} results a time limit of ${d.validity.n} ${d.validity.unit}.`, d.url, on, id("valid"))] : []), ...(d?.combining ? [says(d.combining.allowed ? `${body}'s own page accepts results from two sittings${d.combining.months ? `, taken within ${d.combining.months} months` : ""}.` : `${body}'s own page asks for all parts of the test in one sitting.`, d.url, on, id("combine"))] : [])] },
+      ];
+    } else {
+      const fees = mine.filter((f) => f.part === "fee"), src = fees.find((f) => f.official) ?? fees[0], lf = src?.official ? localFee({ official: src.official, country: r.country, rates }) : null;
+      items = [
+        { part: "council", question: `Which council in ${inCountry(r.country)} registers ${people}?`, claims: cl(council) },
+        { part: "standing", question: `How do ${people} from ${inCountry(r.country)} prove they are in good standing?`, claims: cl(mine.filter((f) => f.part === "rules" && STANDING.test(f.text)).slice(0, 3)) },
+        { part: "destinations", question: `Where do ${people} from ${inCountry(r.country)} go, and what score does each country ask?`, claims: (research[r.profession] ?? []).filter((q) => q.kind === "score" && q.answer).flatMap((q) => scoreClaimsOf(r.profession, q).map((c) => ({ ...c, card: null }))).slice(0, 10) },
+        { part: "fee", question: `How much does ${subject} cost in ${inCountry(r.country)}?`, claims: lf ? [{ claimId: `fee-${r.country}-${r.profession}`.replace(/\s+/g, "-"), card: lf.card, text: lf.line, link: src.link, readOn: src.on, source: `${hostOf(src.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true }] : [] },
+      ];
+    }
+    /* the questions people from here, in this profession, ask — with their checked answer */
+    items.push(...mine.filter((f) => f.part === "questions" && asAsked(f.question) && clearQuestion(f.question, { place: r.country }) && professionIn(f.question) === r.profession).slice(0, 4).map((f, i) => ({ part: `questions${i}`, question: asAsked(f.question), claims: [claimOf(f, null, null)] })));
+    localPages.push({ kind, type: TYPE_OF_KIND[kind], country: r.country, profession: r.profession, title: pageTitle, questions: [...(askedOfPair[`${r.profession}|${r.country}`] ?? [])], items: items.filter((it) => it.claims.length).map((it) => ({ ...it, claims: it.claims.map((c) => ({ ...c, claimId: `${isC ? "c" : "d"}-${r.profession}-${r.country}-${c.claimId}`.replace(/\s+/g, "-") })) })) /* its own answers: the planner must not read a shared fact as "the same page" (whether it says anything of its own is R3's question, by what it says) */, localCurrency: isC ? null : CURRENCY_OF[r.country] ?? null, content: null, home: countryPages.find((p) => p.country === r.country)?.title ?? null, prof: profPages.find((p) => p.profession === r.profession)?.title ?? null, askedHeads: [] });
   }
-  const pages = [...profPages, ...countryPages, ...topicPages, ...cpPages, ...qPages];
-  for (const p of [...cpPages, ...qPages]) { p.links = countryPages.filter((c) => c.country === p.country).map((c) => c.title); p.open = []; p.ledger = []; }
+  /* a topic page with nothing of its topic is thin (R3): its searches stand on the general page */
+  const realTopics = topicPages.filter((p) => p.items.length), bigTopic = realTopics.find((p) => p.topic === "what") ?? realTopics[0] ?? null;
+  for (const p of topicPages.filter((x) => !x.items.length)) { if (bigTopic) for (const q of p.questions) join(bigTopic, q); merged.push({ type: "E", title: p.title, into: bigTopic ? [bigTopic.title] : [], why: "no checked fact of its topic yet — its searches stand on a bigger page" }); }
+  const pages = [...profPages, ...countryPages, ...realTopics, ...localPages];
+  for (const p of localPages) { p.links = [p.home, p.prof].filter(Boolean); p.open = []; p.ledger = []; }
   /* the pages link each other: a profession page its country pages, a country page its profession pages, a topic page the hubs */
   for (const p of profPages) p.links = countryPages.map((c) => c.title);
-  for (const p of countryPages) p.links = profPages.filter((x) => x.items.some((it) => it.claims.some((c) => c.text.startsWith(`In ${inCountry(p.country)}:`)))).map((x) => x.title).concat(topicPages.slice(0, 2).map((x) => x.title));
-  for (const p of topicPages) p.links = [...countryPages.slice(0, 4), ...profPages.slice(0, 4)].map((x) => x.title);
+  for (const p of countryPages) p.links = profPages.filter((x) => x.items.some((it) => it.claims.some((c) => c.text.startsWith(`In ${inCountry(p.country)}:`)))).map((x) => x.title).concat(realTopics.slice(0, 2).map((x) => x.title));
+  for (const p of realTopics) p.links = [...countryPages.slice(0, 4), ...profPages.slice(0, 4)].map((x) => x.title);
   for (const p of pages) {
     p.claims = p.items.find((it) => it.claims.length)?.claims ?? [];
     p.lastChecked = p.items.flatMap((it) => it.claims.map((c) => c.readOn)).filter(Boolean).sort().at(-1) ?? null; p.weak = !p.questions.length;
@@ -283,7 +344,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
       searched: [{ body: "the owner's checked facts file", found: have.has(k) }, { body: "AlmiWorld's country facts", found: have.has(k) }, ...(k === "fee" && rates ? [{ body: `${rates.short}'s rates`, on: rates.date, found: have.has(k) }] : [])].map((s) => ({ ...s, why: s.found ? null : "not stated" })) }));
     p.open = openOf(qs); p.ledger = ledgerOf(qs);
   }
-  for (const p of topicPages) {
+  for (const p of realTopics) {
     const sub = SUBTESTS.includes(p.topic) ? p.topic : null, names = STANDARD.exam.topic[p.topic] ?? [];
     const qs = names.map((n) => { const keys = TOPIC_ANSWERS[n]?.(sub ?? "") ?? [], got = keys.some((k) => (k === "fee" ? p.items.some((it) => it.part === "fee") : Boolean(subjectFacts?.[k]))); return { question: `${sub ? `${subject} ${sub}` : p.title}: ${n}`, answer: got ? true : null, how: got ? `${subject}'s own pages` : null, searched: [{ body: `${subject}'s own pages`, on, found: got, why: got ? null : "not stated there" }] }; });
     p.open = openOf(qs); p.ledger = ledgerOf(qs);
@@ -294,6 +355,11 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   for (const p of countryPages) { const e = own.find((x) => x.country === p.country); if (e) p.improve = { url: e.url, title: e.title }; }
   for (const p of profPages) { const e = own.find((x) => !x.country && x.profession === p.profession); if (e) p.improve = { url: e.url, title: e.title }; }
   /* RR-360: the country × profession page the client already has is improved too (G8), never a second page */
-  for (const p of cpPages) { const e = own.find((x) => x.country === p.country && x.profession === p.profession); if (e) p.improve = { url: e.url, title: e.title }; }
-  return { pages, skipped, skippedTotal: skippedMore, existing, notBuilt, counts: { profession: profPages.length, country: countryPages.length, topic: topicPages.length, countryProfession: cpPages.length, question: qPages.length, improve: pages.filter((p) => p.improve).length } };
+  for (const p of localPages) { const e = own.find((x) => x.country === p.country && x.profession === p.profession); if (e) p.improve = { url: e.url, title: e.title }; }
+  /* 🔴 RR-362 item 16 (owner's run: /guides/oet-pakistan twice, "13 new questions" then "1 new question"): ONE improve entry per existing page — the bigger page keeps it; a smaller page gives it its facts (R3) */
+  for (const p of pages) p.category = "exam"; // its core questions and what it may be about are an exam's
+  const byUrl = new Map();
+  for (const p of pages.filter((x) => x.improve)) { const had = byUrl.get(p.improve.url); if (!had) { byUrl.set(p.improve.url, p); continue; } const [keep, drop] = isLocal(had) && !isLocal(p) ? [p, had] : [had, p]; byUrl.set(p.improve.url, keep); delete drop.improve; }
+  /* R3 before the searches: a C or D page that cannot be whole, whatever a search finds, costs no search */
+  return settleLocal({ pages, skipped, skippedTotal: skippedMore, existing, notBuilt, merged, counts: countsOf(pages, merged), bigger: { countryPages, profPages } }, { onlyBefore: true });
 }

@@ -14,7 +14,7 @@ const RULES = [
   [/offer button|data-cta/i, "It has no offer button — set yours in Settings → Your product."],
   [/meta description/i, "Its short description for Google is missing or the same as another page's."],
   [/canonical/i, "Its address settings need a fix — Visibility does it when you press Fix."],
-  [/robots|disallow/i, "Your site's robots file blocks search engines from it."],
+  [/robots|disallow/i, "Your site's settings keep search engines away from it."],
   [/without a visible source and date/i, "A fact on it does not show where it came from."],
   [/first sourced answer starts after/i, "Its first checked answer is too far down the page."],
 ];
@@ -22,7 +22,7 @@ const RULES = [
 export function plainWhy(draft) {
   if (!draft || draft.readyAsDraft) return null;
   /* RR-355: the sixth check ("good to read") and "looks like your site" already speak in plain words — their own line first */
-  const own = (draft.gates ?? []).filter((g) => !g.pass && /* RR-357: the recipe's own checks speak plain words too — the open questions are named, never "one of the five checks" */ ["good to read", "looks like your site", "answers its whole intent", "every fact sourced and fresh", "not a duplicate"].includes(g.words)).flatMap((g) => g.failing ?? []);
+  const own = (draft.gates ?? []).filter((g) => !g.pass && /* RR-357: the recipe's own checks speak plain words too — the open questions are named, never "one of the five checks" */ ["good to read", "looks like your site", "answers its core questions", "every fact sourced and fresh", "not a duplicate"].includes(g.words)).flatMap((g) => g.failing ?? []);
   if (own.length) return own[0];
   const fails = (draft.gates ?? []).filter((g) => !g.pass).flatMap((g) => g.failing ?? []);
   for (const [re, line] of RULES) if (fails.some((f) => re.test(f))) return line;

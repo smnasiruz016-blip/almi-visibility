@@ -86,7 +86,7 @@ test("RR-358 · 1 · Google's results for EVERY page on a real run — inside th
   assert.deepEqual([readSerp(DENIED).code, readSerp(DENIED).stop], [40100, true]);
   /* wired: the run uses it for every page; the page's ⚠️ and its ledger line say what stopped it; the report carries the line */
   assert.ok(MAIN.includes("const out = await searchPages({ pages: plan.pages,") && !MAIN.includes("plan.pages.slice(0, 30)"));
-  assert.ok(SEO.includes("...(m.serpWhy ? [`Google's results were not read for this page — ${m.serpWhy}`] : [])"));
+  assert.ok(SEO.includes("d.checkLater = m.route === \"none\" || Boolean(m.serpWhy);")); /* RR-362 item 13: never a failure: checked on a later day */
   assert.ok(MAIN.includes("p.serpWhy ? `Google's results were not read for this page: ${p.serpWhy}` : routeLine(p)")); // RR-360: and the route that answered
   assert.ok(MAIN.includes("if (x.pages.serp?.line) lines.push(x.pages.serp.line);"));
 });
@@ -108,7 +108,7 @@ test("RR-358 · 2 · the client's look read from the LIVE site when the saved re
   const d = seoPages({ site, searchConsole: { queries: [{ query: "how long does teeth whitening take", impressions: 30 }], window: "28 days" }, on: "2026-11-01T10:00:00Z" }).drafts[0];
   assert.deepEqual(d.gates.find((g) => g.gate === "G").failing, ["This page does not look like your site yet. Why: your home page https://client.example/ answered 503 instead of the page — check that it opens in a browser, then press Create SEO pages again."]);
   /* wired: pages are made only after the look is read again when the saved read has none */
-  assert.ok(MAIN.includes("async function createPages(id) {\n  await ensureLook(id);") && MAIN.includes("if (!site?.ok || site.shell || !hasWebsite(s)) return site;"));
+  assert.ok(/async function makePages\(id, key\) \{[^\n]*\n[^\n]*\n  await ensureLook\(id\);/.test(MAIN) && MAIN.includes("if (!site?.ok || site.shell || !hasWebsite(s)) return site;"));
 });
 
 test("RR-358 · 3 · an IMPROVE topic is the client's EXISTING page: its address, every link pointing there, counted apart, never published as a second page", async () => {

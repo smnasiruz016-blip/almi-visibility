@@ -11,10 +11,16 @@
  * of words, never the exact words. Pure.
  */
 const NAV = /^(home|menu|search|main menu|navigation|skip to|quick links?|useful links|important links|links|recent posts?|recent comments|related (posts?|articles?|courses?)|popular (posts?|courses?)|latest (posts?|news|blogs?|articles?)|more (posts?|articles?|from)|categories|category|archives?|tags?|share( this)?|follow us|connect with us|contact( us| info| details)?|get in touch|reach us|call us|email us|about( us| the author| me)?|our (team|courses?|services|programs?|blog|story|mission|vision|partners|branches|offices|centres?|centers?|results|achievers|toppers)|services|courses|programs?|blog|news|resources|company|legal|support|help( centre| center)?|faqs?|frequently asked questions|privacy( policy)?|terms( (and|&) conditions| of (use|service))?|cookie(s| policy)?|disclaimer|sitemap|careers?|newsletter|subscribe|sign ?up|log ?in|login|register now|enquire now|enquiry|apply now|book now|join now|download( now| app)?|thank you|thanks|need help( with)?|have a question|any questions|you may also like|table of contents|contents|in this article|on this page|leave a (reply|comment)( cancel reply)?|post a comment|comments?|\d+ comments?|no comments( yet)?|one comment|\d+ thoughts? on .+|reply|cancel reply|post navigation|comment navigation|like this|search for|previous( post)?|next( post)?|read more|load more|see (all|more)|view (all|more)|watch now|back to top|follow|social|testimonials?|reviews?|success stories|what our (students|clients) say|why choose us|why us|trusted by|as seen on|featured in|address|location|locations|branches|offices|opening hours|hours)\b[\s:!.?–-]*$/i;
-const FORM = /\b(your (name|e-?mail|phone|mobile|number|message|city|country|details)|full name|e-?mail address|phone number|mobile number|whatsapp( number)?|enter (your|the)|submit|select (your|an?|the)|choose (your|an?)|you wish to|would you like to|do you want to (join|enrol|enroll|book|study)|preferred (mode|time|centre|center|batch|course)|which (degree|course|program|batch|intake|mode)|how did you hear|captcha|i agree|terms of service)\b/i;
+const FORM = /\b(your (name|e-?mail|phone|mobile|number|message|city|country|details)|full name|e-?mail address|phone number|mobile number|whatsapp( number)?|enter (your|the)|submit|select (your|an?|the)|choose (your|an?)|you wish to|would you like to|do you want to (join|enrol|enroll|book|study)|preferred (mode|time|centre|center|batch|course)|which (degree|course|program|batch|intake|mode)|how did you hear|captcha|i agree|terms of service|are you planning|planning to take|your (?:target|preferred|desired)|tell us)\b/i;
 const OFFER = /\b\d+\s*%\s*(off|discount)|\b(off|discount|coupon|promo( code)?|voucher|deal|sale|offer|offers|limited time|hurry|flat \d|cashback|free (demo|trial|class|session|counselling|counseling|consultation|webinar)|enrol(l)? now|book (a|your) (free|demo)|guarantee[ds]?|money[- ]back|refund policy|pricing plans?|packages?|buy now|add to cart|checkout)\b/i;
 /* RR-359 walk: Google's own "People also ask" can be a brand's praise ("Why is Brooklyn Review the top online OET Coaching institute in India?") */
 const CLAIM = /\b(?:the )?(?:top|best|leading|no\.?\s*1|number one|#1)\b.{0,40}\b(?:institute|academy|coaching|coach|centre|center|tutors?|course|platform|company|school|classes)\b|\b(best|top[- ]rated|top \d+|no\.?\s*1|#1|number one|leading|trusted|award[- ]winning|awards?|world[- ]class|expert (coaching|trainers?|tutors?)|our (expert|experienced|certified)|highest (rated|success)|success rate|\d+\+? (students|learners|candidates) (trained|placed|cleared)|why (choose|join|learn with)|join (the|our|thousands)|is the (best|leading|top|no)\b)/i;
+/* RR-362 item 15 (owner's run): a brand's promise, a call to act, an author's note — no reader's need: "How UNILINKSOLUTIONS prepares you", "Want to know more?", "Must Read Articles", "How we researched" */
+const PROMO = /\bprepares? you\b|\bhelps? you (?:to )?(?:pass|prepare|succeed|achieve)\b|\b(?:how|why|what) we\b|\bwe (?:researched|offer|provide|help|teach)\b|\bour (?:\w+ )?(?:course|courses|team|tutors?|trainers?|method|approach|students?|experts?|institute|academy)\b/i;
+const CALL = /^(?:want|wish|looking|ready|interested) (?:to|for|in)\b.*(?:more|started|today|now)|\bwant to know more\b|\bmust[- ](?:read|see|watch)\b|\bknow more\b|\blearn more\b|\bread (?:also|next)\b|\bsee also\b|\bdon'?t miss\b|\bget started\b|\bcontact (?:us|our)\b/i;
+/* RR-362 item 15: what a page of an exam can be about: the subject itself, or one of these needs (never another field: an eye test, a salary, computer science) */
+const EXAM_NEED = /\b(?:writing|reading|listening|speaking|letter|role-?plays?|sub-?tests?|candidate|retake|resit)\b|\b(?:on|by|at) (?:computer|paper|home)\b/i;
+const NEED_GROUPS = new Set(["cost", "date", "book", "score", "valid", "place", "time", "prepare", "accept", "format", "eligible", "hard"]);
 const CODE = /['"`{}<>;=]|\+\s*['"]|\$\{|\bescapeHtml\b|\bfunction\b|\bundefined\b|\bnull\b|\bvar\b|\bconst\b|&[a-z]+;|\\[nrt]/i;
 const COMMENT = /\b(says|said|wrote|replied)\s*:?\s*$|\bat \d{1,2}:\d{2}\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(st|nd|rd|th)?,?\s+\d{4}\b|\b\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?,?\s+\d{4}\b|\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b|\b(posted|updated|published) (on|by)\b|\bby admin\b|\bminutes? read\b|\bmin read\b/i;
 /* the words that make a heading a topic — a short all-capitalised heading without one is a name (a place, a person, a company) */
@@ -64,6 +70,8 @@ export function junkWhy(text, { now = new Date().toISOString(), names = [] } = {
   if (COMMENT.test(t)) return "a comment, an author or a date line";
   if (FORM.test(t)) return "a form field";
   if (OFFER.test(t)) return "an ad, a price or an offer";
+  if (PROMO.test(t)) return "a brand's claim about itself";
+  if (CALL.test(t)) return "a call to act, not a subtopic";
   if (CLAIM.test(t)) return "a brand's claim about itself";
   const year = Number(String(now).slice(0, 4)), years = [...t.matchAll(/\b(19|20)\d{2}\b/g)].map((m) => Number(m[0]));
   if (years.length && years.every((y) => y < year)) return "dated in a past year";
@@ -80,11 +88,18 @@ export function junkWhy(text, { now = new Date().toISOString(), names = [] } = {
  * `results` = [{ url, headings }]; `paa` = Google's questions; `subject`/`title` = the page's own words (left out of the meaning, so "OET
  * Fees" and "Fees" are one item). `dropped` (optional) collects what was left out and why.
  */
-export function cleanCoverage({ results = [], paa = [], subject = null, title = "", now = new Date().toISOString(), names = [], max = 8, dropped = null } = {}) {
+/** RR-362 item 15: on an exam's page an item names the exam or one of its needs: otherwise it belongs to another field → why, or null */
+export function offIntentWhy(text, { subject = null, intent = null } = {}) {
+  if (intent !== "exam") return null;
+  const t = String(text ?? ""); if (subject && new RegExp(`(?<![\\p{L}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "iu").test(t)) return null;
+  if (EXAM_NEED.test(t) || meaningOf(t).some((w) => NEED_GROUPS.has(w))) return null;
+  return "it belongs to another field, not to this page";
+}
+export function cleanCoverage({ results = [], paa = [], subject = null, title = "", now = new Date().toISOString(), names = [], max = 8, dropped = null, intent = null } = {}) {
   const drop = [subject, ...String(title).split(/[^A-Za-z]+/).filter((w) => /^\p{Lu}/u.test(w) && w.length > 2 && !TOPIC.test(w))];
   const items = [];
   const add = (text, url, from) => {
-    const t = tidy(text), why = junkWhy(t, { now, names }); if (why) { dropped?.push({ text: String(text), why }); return; }
+    const t = tidy(text), why = junkWhy(t, { now, names }) ?? offIntentWhy(t, { subject, intent }); if (why) { dropped?.push({ text: String(text), why }); return; }
     const m = meaningOf(t, { drop }); if (!m.length) { dropped?.push({ text: String(text), why: "says nothing beyond the page's own subject" }); return; }
     /* same meaning → one item: the groups of the shorter are all in the longer, or most of them are */
     const same = items.find((x) => { const both = m.filter((w) => x.meaning.includes(w)).length, small = Math.min(m.length, x.meaning.length); return (small >= 2 && both === small) || both / Math.max(m.length, x.meaning.length) >= 0.67; });
@@ -105,11 +120,11 @@ export function cleanCoverage({ results = [], paa = [], subject = null, title = 
   return kept.sort((a, b) => (b.from === "people also ask") - (a.from === "people also ask") || b.seenOn - a.seenOn).slice(0, max);
 }
 /** a coverage list kept before RR-359 ({ topic, seenOn, urls }) cleaned the same way — so a run's old list never fails a page for junk */
-export function recleanCoverage(list = [], { subject = null, title = "", now, names = [], max = 8 } = {}) {
+export function recleanCoverage(list = [], { subject = null, title = "", now, names = [], max = 8, intent = null } = {}) {
   /* each item keeps where it came from: its top results' sites, Google's "People also ask" (said so), or one unnamed source */
   const results = [], paa = [];
   for (const c of list ?? []) { const t = c?.topic ?? c; if (c?.paa || c?.from === "people also ask") { paa.push(t); continue; } for (const u of (c?.urls?.length ? [...new Set(c.urls)] : [null])) results.push({ url: u, headings: [t] }); }
-  return cleanCoverage({ results, paa, subject, title, now, names, max });
+  return cleanCoverage({ results, paa, subject, title, now, names, max, intent });
 }
 /** does a page's text cover a subtopic BY MEANING? most of the subtopic's same-meaning groups stand in the page */
 export function coversByMeaning(pageText, topic, { subject = null, title = "" } = {}) {

@@ -35,11 +35,13 @@ export async function checkForUpdate({ channelUrl, current, publicKeyPem, fetchI
 }
 
 /** Download and verify the package into the data folder's updates/ (an existing file is verified, never overwritten). */
-export async function downloadUpdate({ channelUrl, manifest, dataDir, publicKeyPem }) {
+/* RR-362 item 6: the download shows how far it is (`onProgress(doneBytes, ofBytes)`) */
+async function fetchBytes(url, onProgress) { const r = await fetch(url); const of = Number(r.headers?.get?.("content-length")) || 0; if (!onProgress || !r.body?.getReader) return Buffer.from(await r.arrayBuffer()); const rd = r.body.getReader(), parts = []; let done = 0; for (;;) { const x = await rd.read(); if (x.done) break; parts.push(Buffer.from(x.value)); done += x.value.length; onProgress(done, of); } return Buffer.concat(parts); }
+export async function downloadUpdate({ channelUrl, manifest, dataDir, publicKeyPem, onProgress = null }) {
   if (!verifyManifest(manifest, publicKeyPem)) return { ok: false, why: "the manifest's signature does not verify" };
   const dir = join(dataDir, "updates"); mkdirSync(dir, { recursive: true });
   const file = join(dir, `AlmiVisibility-${manifest.version}.zip`);
-  const bytes = existsSync(file) ? readFileSync(file) : Buffer.from(await (await fetch(new URL(manifest.package, channelUrl))).arrayBuffer());
+  const bytes = existsSync(file) ? readFileSync(file) : await fetchBytes(new URL(manifest.package, channelUrl), onProgress);
   const sha = createHash("sha256").update(bytes).digest("hex");
   if (sha !== manifest.sha256) return { ok: false, why: "the downloaded package does not match its signed sha256 — refused, not installed" };
   if (!existsSync(file)) writeFileSync(file, bytes, { flag: "wx" });
@@ -47,10 +49,11 @@ export async function downloadUpdate({ channelUrl, manifest, dataDir, publicKeyP
 }
 
 /** Install a downloaded, verified package — only with the client's agreement. The launcher swaps the program folder after this app exits. */
-export function installUpdate({ agreed, file, launcher, quiet = false, verified }) {
+/* RR-362 item 1: "/same-window": the launcher keeps the app's window open; the app comes back on the same port and the window reloads itself */
+export function installUpdate({ agreed, file, launcher, quiet = false, verified, extra = [] }) {
   if (agreed !== true) return { ok: false, why: "the client has not agreed — nothing is installed" };
   if (verified !== true) return { ok: false, why: "the package was not verified — nothing is installed" };
-  const p = spawn(launcher, ["/apply-update", file, ...(quiet ? ["/S"] : [])], { detached: true, stdio: "ignore", windowsHide: true, cwd: dirname(launcher) });
+  const p = spawn(launcher, ["/apply-update", file, "/same-window", ...(quiet ? ["/S"] : []), ...extra], { detached: true, stdio: "ignore", windowsHide: true, cwd: dirname(launcher) });
   p.unref();
   return { ok: true, pid: p.pid };
 }

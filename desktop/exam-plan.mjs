@@ -142,7 +142,7 @@ export function localFee({ official, country, rates }) {
 const MONEY_MARK = Object.freeze({ USD: "US\\$|USD", GBP: "£|GBP", EUR: "€|EUR", NZD: "NZ\\$|NZD", CAD: "CA\\$|CAD", SGD: "S\\$|SGD", INR: "₹|INR", PKR: "PKR", AED: "AED", SAR: "SAR", PHP: "₱|PHP", NGN: "₦|NGN" });
 export function officialLocalPrice({ facts = [], country, aud = null, subject }) {
   const cur = CURRENCY_OF[country]; if (!cur || cur === "AUD") return null;
-  const re = new RegExp(`(?:${MONEY_MARK[cur] ?? cur})\\s?(\\d[\\d,]*)([^.;)]*)`);
+  const re = new RegExp(`(?<![A-Za-z])(?:${MONEY_MARK[cur] ?? cur})\\s?(\\d[\\d,]*)([^.;)]*)`);
   for (const f of facts) { if (f.part !== "fee") continue; const said = String(f.quote ?? f.text ?? ""); if (/estimate|≈|about|convert|approximate|\bbank\b|\brate\b/i.test(said)) continue; const m = re.exec(said); if (!m) continue;
     const amount = Number(m[1].replace(/,/g, "")), scope = m[2].replace(/\s+/g, " ").trim().replace(/^applies only\b.*$/i, ""), shown = `${cur} ${amount.toLocaleString("en-US")}`;
     return { currency: cur, aud, amount, official: true, fact: f, scope, card: `${shown}${scope ? ` ${scope}` : ""} — ${subject}'s own price`, line: `${subject}'s own price in ${inCountry(country)} is ${shown}${scope ? ` ${scope}` : ""}.${aud ? ` Any other way of taking it costs AUD ${aud}.` : ""}` }; }

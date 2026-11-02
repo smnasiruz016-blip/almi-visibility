@@ -31,6 +31,7 @@ test("1.1 own-site paragraphs: beta-g's seven pairs: the wrong paragraph leaves 
 test("1.1 a paragraph is split: the statement that answers stands alone, the rest goes; a statement that does answer stays", () => {
   const p = "You can take OET at home online using OET@Home on your own computer. NMC accepts OET at grade B in each sub-test.";
   assert.equal(ownSiteAnswer("Can I take the OET from home online?", p, opt), "You can take OET at home online using OET@Home on your own computer.");
+  assert.equal(ownSiteAnswer("What is the fee for rescheduling an OET Test?", "Moving a booking to another date costs AU$120 before bookings close.", opt), "Moving a booking to another date costs AU$120 before bookings close.", "the same thing in other words");
   assert.deepEqual(sentencesOf("One here. Two there? Three (4) now."), ["One here.", "Two there?", "Three (4) now."]);
 });
 test("1.1 the same check on any part of a page, and it is reported", () => {
@@ -61,6 +62,7 @@ test("1.3 the official local price first: USD 455, no conversion; other countrie
   const p = officialLocalPrice({ facts: [us], country: "United States", aud: 587, subject: "OET" });
   assert.equal(p.amount, 455); assert.match(p.card, /^USD 455 for OET on Computer at a venue and OET@Home in the US — OET's own price/); assert.match(p.line, /Any other way of taking it costs AUD 587/); assert.ok(!/≈|about|convert/i.test(p.card + p.line));
   assert.equal(officialLocalPrice({ facts: [us], country: "Philippines", aud: 587, subject: "OET" }), null);
+  assert.equal(officialLocalPrice({ facts: [us], country: "Singapore", aud: 587, subject: "OET" }), null, "S$ is not read inside US$");
   assert.equal(officialLocalPrice({ facts: [fee("India", "AUD 587 ≈ INR 39,358 — an estimate")], country: "India", aud: 587, subject: "OET" }), null);
   assert.equal(officialLocalPrice({ facts: [us], country: "Australia", aud: 587, subject: "OET" }), null);
 });

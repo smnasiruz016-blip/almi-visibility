@@ -70,7 +70,8 @@ export function answerFitWhy(question, answer, { subject = null, bodies = [], lo
 }
 /* R12 (beta-g, 2 Nov 2026): a paragraph of the client's own site was written for its own page, not for this question: "Is the OET valid for 3 years?" got Ahpra's scores. It is split into single statements; each stands only under the question it answers, holding most of that question's words; what fits nowhere goes */
 export const sentencesOf = (t) => String(t ?? "").split(/(?<=[.!?])\s+(?=["'(]?[A-Z0-9])/).map((s) => s.trim()).filter(Boolean);
-const holdsMost = (q, s, subject) => { const want = meaningOf(q, { drop: [subject] }), have = new Set(meaningOf(s, { drop: [subject] })); return !want.length || want.filter((w) => have.has(w)).length / want.length > 0.5; };
+const SAME_THING = (t) => String(t).replace(/\b(?:rescheduling|reschedule|moving|move|changing|change|defer|deferring)\b/gi, "reschedule");
+const holdsMost = (q, s, subject) => { const want = meaningOf(SAME_THING(q), { drop: [subject] }), have = new Set(meaningOf(SAME_THING(s), { drop: [subject] })); return !want.length || want.filter((w) => have.has(w)).length / want.length > 0.5; };
 /** the client's own paragraph → only its statements that answer this question, or null */
 export function ownSiteAnswer(question, text, { subject = null, bodies = [] } = {}) { return sentencesOf(text).filter((s) => !answerFitWhy(question, s, { subject, bodies }) && holdsMost(question, s, subject)).join(" ") || null; }
 const hostIs = (u, host) => { try { return Boolean(host) && new URL(u).hostname.replace(/^www\./, "") === host; } catch { return false; } };

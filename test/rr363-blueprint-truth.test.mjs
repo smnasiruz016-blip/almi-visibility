@@ -25,7 +25,7 @@ test("summary = fact: the owner's two cases, and a short form that keeps everyth
   assert.equal(summaryFault("AUD 587 — the official fee", "The full test costs AUD 587 — the official fee."), null);
   assert.match(summaryFault("Ireland — B (350)", "In Australia the regulator asks B (350) in each."), /names Ireland/);
   assert.equal(fitCard("7 days", "OET's own page: bookings close 7 days before the test date."), "bookings close 7 days before the test date.", "the whole sentence instead");
-  assert.equal(wholeFact("OET's own page: x y."), "x y.");
+  assert.equal(wholeFact("OET's own page: x y."), "X y.", "a card is a sentence: it starts with a capital");
 });
 
 test("summary = fact in the plan's own cards: every sub-test stays, or the full sentence is shown", () => {
@@ -238,5 +238,10 @@ test("Part D at the page: the old 12 days never stands on a page, even from the 
   const f = fitParts([{ part: "questions0", question: "When do results come?", claims: [{ claimId: "o", text: "Paper-test results can be made available 12 days after the test date.", link: SRC }, { claimId: "n", text: "Results for the test on paper come from 13 days after the test date.", link: SRC }] }], { subject: "OET" });
   assert.deepEqual(f.parts[0].claims.map((c) => c.claimId), ["n"]); assert.match(f.removed[0].why, /old figure/);
   assert.match(answerFitWhy("Anything?", "Paper-test results can be made available 12 days after the test date.", { subject: "OET", loose: true }), /old figure/);
+});
+
+test("a topic page's blueprint carries its standard questions", () => {
+  const SRCS = readFileSync(new URL("../desktop/serp.mjs", import.meta.url), "utf8"); assert.match(SRCS, /STANDARD\[p\.category \?\? "exam"\]\?\.topic\?\.\[p\.topic\]/);
+  assert.deepEqual(blueprintOf({ tops: [], core: { "how to book": "how to book" }, category: "exam", on: ON }).core, ["how to book"]);
 });
 

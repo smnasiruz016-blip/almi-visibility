@@ -12,6 +12,7 @@ import { coverageOf, secondSearch } from "./recipe.mjs"; // RR-358: G5 + G6 for 
 import { COUNTRIES } from "./world.mjs"; // RR-359: a heading that is only a country's name is no subtopic
 import { blocksOfHtml, blueprintOf } from "./blocks.mjs"; // RR-363: R15
 import { coreOf } from "./page-types.mjs";
+import { STANDARD } from "./research.mjs";
 export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/organic/live/advanced", pricePerSearch: 0.002, capPerDay: 1, depth: 10 });
 export const SERP_OFF = "Google's own results were not read — the search-results service is switched off (Settings → Search results data; about $0.002 a search, at most $1 a day). Visibility used every free source it may: its own search data, your Search Console, AlmiWorld's question collector and the official pages.";
 
@@ -134,7 +135,7 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     /* RR-359: only the topic's real subtopics (desktop/coverage.mjs), judged with the page's own subject and title; covered by meaning */
     const words = { subject, title: p.title, now, names: COUNTRIES };
     p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url); p.searchedOn = String(now).slice(0, 10);
-    p.blueprint = blueprintOf({ tops: tops.map((x) => ({ url: x.url, rank: x.rank, official: x.official, blocks: x.blocks })), core: coreOf(p.kind) ?? {}, category: p.category ?? "general", on: p.searchedOn }); p.unreadTops = results.filter((r) => notForReading(r.url)).length;
+    p.blueprint = blueprintOf({ tops: tops.map((x) => ({ url: x.url, rank: x.rank, official: x.official, blocks: x.blocks })), core: coreOf(p.kind) ?? Object.fromEntries((STANDARD[p.category ?? "exam"]?.topic?.[p.topic] ?? []).map((n) => [n, n])) /* a topic page: its standard questions */, category: p.category ?? "general", on: p.searchedOn }); p.unreadTops = results.filter((r) => notForReading(r.url)).length;
   };
   /* in order, at most `concurrency` at a time; a stop is seen by every page not started yet */
   let at = 0; await Promise.all(Array.from({ length: Math.max(1, concurrency) }, async () => { while (at < pages.length) { const p = pages[at++]; await onePage(p); onPage?.(p, "done"); } }));

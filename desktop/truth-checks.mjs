@@ -35,7 +35,7 @@ export function cardFaultOf(value, planned, texts = []) {
   return whys.length && whys.every(Boolean) ? whys[0] : null;
 }
 /* the fact's own sentence, without the "X's own page:" lead-in: never cut */
-export const wholeFact = (text) => String(text ?? "").replace(/^[^:]{0,40}own page:\s*/i, "").replace(/^In [^:]{2,40}:\s*/, (m) => m).trim();
+export const wholeFact = (text) => { const t = String(text ?? "").replace(/^[^:]{0,40}own page:\s*/i, "").trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
 /** a short form that keeps the fact's meaning, or the whole sentence */
 export const fitCard = (card, text) => (summaryFault(card, text) ? wholeFact(text) : card);
 

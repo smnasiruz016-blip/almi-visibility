@@ -164,7 +164,7 @@ export const PAGE_QUESTIONS = 60;
  * link, tabs per option (paper / computer), numbered steps split by option, practical tips, headings that open their own page, many countries as fold-out sections. A block with no checked fact behind it is left out, never padded.
  */
 function familyBlocks({ subject, f = {}, countryPages, profPages, topics, pages }) {
-  const fact = (k) => f?.[k] ?? null, say = (x) => String(x.text).replace(/^[^:]{0,40}own page:\s*/i, ""), src = (x) => ({ text: say(x), link: x.link, on: x.readOn }), facts = (ks) => ks.map(fact).filter(Boolean), up = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const fact = (k) => f?.[k] ?? null, say = (x) => String(x.text).replace(/^[^:]{0,40}own page:\s*/i, ""), up = (s) => s.charAt(0).toUpperCase() + s.slice(1), src = (x) => ({ text: up(say(x)), link: x.link, on: x.readOn }), facts = (ks) => ks.map(fact).filter(Boolean);
   const official = fact("bookPaperCloses")?.link ?? null, finder = official ? { label: `Find a test on ${subject}'s own booking page`, href: official } : null;
   const shared = { bar: topics.slice(0, 8).map((t) => t.title), chooser: { groups: [{ label: "Choose your country", links: countryPages.map((p) => ({ text: p.country, title: p.title })) }, { label: "Choose your profession", links: profPages.map((p) => ({ text: p.title.replace(`${subject} for `, ""), title: p.title })) }], finder }, official: official ? { label: `Book on ${subject}'s own site`, href: official } : null };
   for (const p of pages) p.content = { ...(p.content ?? {}), ...shared };

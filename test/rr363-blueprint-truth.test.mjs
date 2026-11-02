@@ -232,7 +232,7 @@ test("a topic we can say nothing about takes no page's place among the ten", () 
 test("one need, one page: every wording of a search stands on the first page", () => {
   const p = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: subjectFactsOf(pages, "OET"), demand: ["oet result", "oet result today", "latest oet result", "oet booking"].map((text, i) => ({ text, source: "keywords", weight: 9 - i })), site });
   const titles = p.pages.filter((x) => x.kind === "topic").map((x) => x.title); assert.equal(titles.filter((x) => /Result/.test(x)).length, 1, titles.join(" | "));
-  assert.ok(p.pages.find((x) => /^OET Result$/.test(x.title)).questions.some((q) => q.question === "latest oet result"), "its search stands on the page");
+  assert.ok(p.pages.find((x) => /^OET Result$/.test(x.title)).questions.some((q) => q.question === "oet result today"), "its search stands on the page");
 });
 test("Part D at the page: the old 12 days never stands on a page, even from the client's own site", () => {
   const f = fitParts([{ part: "questions0", question: "When do results come?", claims: [{ claimId: "o", text: "Paper-test results can be made available 12 days after the test date.", link: SRC }, { claimId: "n", text: "Results for the test on paper come from 13 days after the test date.", link: SRC }] }], { subject: "OET" });

@@ -291,11 +291,11 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const need = needOf(d.text, subject); if (!need && topics.has("")) { join(topics.get(""), { question: d.text, source: d.source }); continue; }
     const own = need && sitePages.find((p) => p.need === need); if (own) { if (existing.length < 300) existing.push({ text: d.text, page: own.url }); continue; }
     const tk = topicKeyOf(need, d.text), mapKey = SUBTESTS.includes(tk) ? `sub:${tk}` : need;
-    const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, title: need ? title(d.text) : `What is ${subject}? The test, its fee and the scores asked`, questions: [], source: d.source };
+    const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, asked0: d.text, title: need ? title(d.text) : `What is ${subject}? The test, its fee and the scores asked`, questions: [], source: d.source };
     if (topics.has(mapKey)) join(t, { question: d.text, source: d.source }); topics.set(mapKey, t);
   }
   /* RR-363 (R3): "oet result", "oet result today", "latest oet result": one need, one page: the others' searches stand on the first (the most-searched) */
-  const oneForEachKey = () => { const first = new Map(), out = []; for (const t of topics.values()) { const had = t.key ? first.get(t.key) : null; if (had) { for (const q of t.questions) join(had, q); continue; } if (t.key) first.set(t.key, t); out.push(t); } return out; };
+  const oneForEachKey = () => { const first = new Map(), out = []; for (const t of topics.values()) { const had = t.key ? first.get(t.key) : null; if (had) { for (const q of [{ question: t.asked0, source: t.source }, ...t.questions]) join(had, q); continue; } if (t.key) first.set(t.key, t); out.push(t); } return out; };
   const hasFacts = (t) => Number(t.key === "what" || topicItems(t.key, subjectFacts, subject).length > 0 || t.key === "fee");
   /* a TOPIC page: the subject's own facts about its topic only; two topics never carry the same facts (a page with another's facts competes) */
   const used = new Set(), chosen = oneForEachKey().sort((a, b) => hasFacts(b) - hasFacts(a) || (rankOf[b.key] ?? 0) - (rankOf[a.key] ?? 0)).slice(0, maxTopics) /* RR-363: a topic we can say nothing about takes no place */, itemsOf = new Map();

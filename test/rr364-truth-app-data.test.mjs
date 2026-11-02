@@ -28,6 +28,10 @@ test("1.1 own-site paragraphs: beta-g's seven pairs: the wrong paragraph leaves 
     ["Which is better, OET or IELTS?", "OET costs AU$587 and British Council lists IELTS at PKR 75,600."],
   ]) assert.equal(ownSiteAnswer(q, a, opt), null, q);
 });
+test("1.1 the question's own words must stand in the answer: what the final pages still showed", () => {
+  for (const [q, a] of [["What is the fee for rescheduling an OET Test?", "OET publishes the price of the full test in Australian dollars."], ["Which country accepts C+ in OET?", "OET accepts a valid passport or a valid national ID."], ["Where to see OET result?", "OET sets no validity period itself: each body that recognises the test decides how long a result is accepted."], ["Which is better, OET or IELTS?", "OET publishes its own table comparing OET scores with IELTS bands."]]) assert.equal(ownSiteAnswer(q, a, opt), null, q);
+  assert.equal(ownSiteAnswer("Is the OET valid for 3 years?", "A pass in the English test is valid for two years.", opt), "A pass in the English test is valid for two years.", "a real answer stays");
+});
 test("1.1 a paragraph is split: the statement that answers stands alone, the rest goes; a statement that does answer stays", () => {
   const p = "You can take OET at home online using OET@Home on your own computer. NMC accepts OET at grade B in each sub-test.";
   assert.equal(ownSiteAnswer("Can I take the OET from home online?", p, opt), "You can take OET at home online using OET@Home on your own computer.");

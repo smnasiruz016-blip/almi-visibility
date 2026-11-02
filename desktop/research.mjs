@@ -13,7 +13,8 @@
  * Pure, except searchMissing (it reads the web through the reader it is handed).
  */
 import { PEOPLE_WORD, inCountry, isRegulator, callNames } from "./recognition.mjs";
-import { readRegulator } from "./regulator-read.mjs";
+import { readRegulator, validityIn, combiningIn, STEP_LINK } from "./regulator-read.mjs";
+import { OTHER_TESTS } from "./page-types.mjs";
 
 /* the standard questions of each page type, per product CATEGORY (an exam; any other product) — never one client's list */
 export const STANDARD = Object.freeze({
@@ -130,7 +131,7 @@ export function connectByMeaning({ questions, facts = [], prof, subject = null /
  * only), and those are read the same way. Nothing is taken from Google's text: the score stands on the council's page or the question stays open.
  */
 export const sameSite = (a, b) => { const h = (u) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return null; } }; const x = h(a), y = h(b); if (!x || !y) return false; const tail = (t) => t.split(".").slice(-3).join("."); return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`) || (tail(x) === tail(y) && tail(x).split(".").length === 3 && /\.(gov|org|co|ac|govt|nhs)\.[a-z]{2}$|^[^.]+\.(gov|org|ac)\.[a-z]{2}$/.test(tail(x))); };
-export async function searchMissing({ questions, subject, reader, cache, budget = { left: 20 }, keepDays = 30, now = new Date().toISOString(), findPages = null, retryFailedHours = 1 }) {
+export async function searchMissing({ questions, subject, reader, cache, budget = { left: 20 }, keepDays = 30, now = new Date().toISOString(), findPages = null, retryFailedHours = 1, onRead = null /* RR-362: the progress bar */ }) {
   /* RR-359 (owner's run: the GMC's page "answered 403" once — and that failure was kept 30 days, so no later run read it again): a page READ
    * is kept `keepDays`; a read that FAILED is tried again after `retryFailedHours` (a read kept before RR-359 without its hour: at once) */
   const stale = (got) => !got || (Date.parse(now) - Date.parse(got.on ?? 0)) / 864e5 > keepDays || (got.ok === false && (!got.at || (Date.parse(now) - Date.parse(got.at)) / 36e5 >= retryFailedHours));
@@ -140,7 +141,7 @@ export async function searchMissing({ questions, subject, reader, cache, budget 
       let got = cache.get(url);
       if (stale(got)) {
         if (budget.left <= 0) { q.searched.push({ url, body: body.name, found: false, why: "not searched yet — Visibility reads it on the next run" }); continue; }
-        budget.left--;
+        budget.left--; onRead?.(body.short ?? body.name);
         const r = await readRegulator({ page: { ...body, body: body.name, listId: body.id ?? body.name }, subject, reader }).catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 80), claims: [] }));
         got = { on: String(now).slice(0, 10), at: String(now), ok: r.ok, url: r.url ?? url, why: r.why ?? null, scores: r.ok ? (r.claims ?? []).find((c) => c.fact === "scores") ?? null : null };
         cache.set(url, got);
@@ -171,6 +172,38 @@ export async function searchMissing({ questions, subject, reader, cache, budget 
       }
       if (q.answer) break;
     }
+  }
+  return questions;
+}
+
+/*
+ * 🔴 RR-362 · WHAT A TYPE-C PAGE NEEDS FROM THE REGULATOR'S OWN PAGE (G7): the other English tests it names, how long a result counts, whether sittings combine,
+ * its page about applying. Each address is read once and kept `keepDays` (never re-read what is fresh; recipe §10.4), one body's page serves all its boards. A rule
+ * that names another test and not the subject is that test's rule: never shown as the subject's. A page that names no subject says nothing here.
+ */
+export function detailsIn(page, { subject, tests = OTHER_TESTS.exam, url = page?.url, on = page?.checkedOn } = {}) {
+  if (!page?.ok) return null;
+  const text = `${page.title ?? ""} ${page.text ?? ""}`, own = new RegExp(`\\b${subject}\\b`, "i"); if (!own.test(text)) return null;
+  const others = tests.filter(([name, re]) => name.toLowerCase() !== String(subject).toLowerCase() && re.test(text)).map(([name]) => name);
+  const named = tests.map(([, re]) => re), aboutSubject = (s) => own.test(s) || !named.some((re) => re.test(s));
+  const v = validityIn(text), c = combiningIn(text), step = (page.links ?? []).find((l) => STEP_LINK.test(l.text ?? "") && /^https?:/.test(l.href));
+  return { url, on, others, validity: v && aboutSubject(v.sentence) ? { n: v.n, unit: v.unit } : null, combining: c && aboutSubject(c.sentence) ? { allowed: c.allowed, months: c.months ?? null } : null, steps: step?.href ?? null };
+}
+/** each answered score question gets its regulator's details, read through `reader`; `budget` = { left } → the questions (those not read wait for the next run) */
+export async function readDetails({ questions, subject, reader, cache, budget = { left: 12 }, keepDays = 30, now = new Date().toISOString(), onRead = null }) {
+  for (const q of questions.filter((x) => x.kind === "score" && x.answer)) {
+    const urls = [...new Set([q.answer[0]?.fact?.link, q.regulator?.record?.officialUrl].filter((u) => /^https?:/.test(u ?? "")))]; let d = null;
+    for (const url of urls) {
+      const key = `details|${url}`; let got = cache.get(key);
+      if (!got || (Date.parse(now) - Date.parse(got.on ?? 0)) / 864e5 > keepDays) {
+        if (budget.left <= 0) continue;
+        budget.left--; onRead?.(q.regulator?.short ?? q.regulator?.name ?? url);
+        const page = await Promise.resolve(reader.read(url)).catch(() => null);
+        got = { on: String(now).slice(0, 10), details: detailsIn(page, { subject, url, on: String(now).slice(0, 10) }) }; cache.set(key, got);
+      }
+      if (got.details) d = d ? { ...d, steps: d.steps ?? got.details.steps, validity: d.validity ?? got.details.validity, combining: d.combining ?? got.details.combining } : got.details;
+    }
+    q.details = d;
   }
   return questions;
 }

@@ -57,6 +57,7 @@ product:danish | AlmiDanish | learn danish, danish test, danish course
 product:norwegian | AlmiNorwegian | learn norwegian, norwegian course, norskprove
 product:swedish | AlmiSwedish | learn swedish, swedish course, sfi swedish
 product:swiss | AlmiSwiss | swiss citizenship test, c permit switzerland, learn swiss german
+product:almiworld | AlmiWorld | almiworld, almiworld.com, career tools, study abroad tools, english test practice
 product:visibility | AlmiVisibility | keyword research tool, free seo checker, website audit, seo site checker, ai search visibility, rank in chatgpt, google ai overviews seo, perplexity seo, answer engine optimization, generative engine optimization, youtube seo, local seo, seo for restaurants, seo for small business, how to get my restaurant on google, free seo check for my website, how to rank in chatgpt
 # The general keyword database — after the products, every 60 days (one request per seed per location)
 category:shopping | Shopping | shoes, clothes, mobile phones, laptops, furniture, jewellery, cosmetics, perfume, watches, baby products

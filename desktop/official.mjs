@@ -34,12 +34,14 @@ const day = (d) => String(d ?? "").slice(0, 10);
  * `allowLocal` is for TESTS ONLY (a stand-in official site on this computer).
  */
 export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(), paceMs = OFFICIAL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), allowLocal = false, resolve, retries = 2, retryPauseMs = paceMs === 0 ? 0 : 2500 } = {}) {
-  let last = 0, count = 0;
-  const pace = async () => { const wait = last + paceMs - Date.now(); if (wait > 0) await sleep(wait); last = Date.now(); };
+  /* 🔴 RR-362 items 10 + 17 (found by the log: 98 pages × 10 top results × robots + page, one read at a time, 2 s apart = over an hour): politeness is per SITE. Each site is still read one at a time, 2 s apart; different sites do not wait for each other */
+  const lastOf = new Map(), hostIn = (u) => { try { return new URL(u).host; } catch { return ""; } }; let count = 0;
+  const slots = new Map();
+  const pace = (u) => { const h = hostIn(u), turn = (slots.get(h) ?? Promise.resolve()).then(async () => { const wait = (lastOf.get(h) ?? 0) + paceMs - Date.now(); if (wait > 0) await sleep(wait); lastOf.set(h, Date.now()); }); slots.set(h, turn); return turn; };
   /* RR-321 A2: Google's robots rule (RFC 9309) — a 4xx robots.txt lets the site be read; a 5xx or no answer: not now, again next run */
-  const robots = createRobotsCache({ fetchImpl, userAgent: USER_AGENT, beforeRequest: pace, rfc9309: true, allowHop: async (u) => (await allowedUrl(u)).ok });
+  const robots = createRobotsCache({ fetchImpl, userAgent: USER_AGENT, beforeRequest: (u) => pace(u), rfc9309: true, allowHop: async (u) => (await allowedUrl(u)).ok });
   const cache = new Map();
-  const get1 = async (u, accept) => { await pace(); count++; try { return await fetchImpl(u, { method: "GET", redirect: "manual", headers: { "User-Agent": USER_AGENT, Accept: accept }, signal: AbortSignal.timeout(OFFICIAL.timeoutMs) }); } catch (e) { return { failed: e?.name === "TimeoutError" ? "timed out" : "no answer" }; } finally { last = Date.now(); } };
+  const get1 = async (u, accept) => { await pace(u); count++; try { return await fetchImpl(u, { method: "GET", redirect: "manual", headers: { "User-Agent": USER_AGENT, Accept: accept }, signal: AbortSignal.timeout(OFFICIAL.timeoutMs) }); } catch (e) { return { failed: e?.name === "TimeoutError" ? "timed out" : "no answer" }; } finally { lastOf.set(hostIn(u), Date.now()); } };
   /* a move to another address is followed (up to 3), each new address checked as the first: public, and allowed by ITS robots.txt */
   const get = async (u, accept) => { let at = u; for (let hop = 0; hop < 4; hop++) { const r = await get1(at, accept); if (r.failed || !(r.status >= 300 && r.status < 400)) { if (!r.failed) Object.defineProperty(r, "finalUrl", { value: at }); return r; } const to = r.headers.get("location"); if (!to) return r; const next = new URL(to, at).href; const a = await allowedUrl(next); if (!a.ok) return { failed: `moves to an address that is not read (${a.why})` }; if (!(await robots.check(next)).allowed) return { failed: "moves to a page its robots.txt does not let us read" }; at = next; } return { failed: "moves too many times" }; };
   const allowedUrl = async (url) => { let u; try { u = new URL(url); } catch { return { ok: false, why: "not a web address" }; } if (!/^https?:$/.test(u.protocol)) return { ok: false, why: "not a web address" }; if (!allowLocal) { const t = await testableUrl(u.href, resolve ? { resolve } : {}); if (!t.ok) return { ok: false, why: t.why }; } return { ok: true, u }; };

@@ -136,7 +136,7 @@ test("F1: ONE topic list — the owner adds any topic in one line; nothing is ti
   assert.equal(p.ok, true); assert.deepEqual(p.topic.seeds, ["pet insurance", "vet cost"]); assert.deepEqual(p.topic.countries, ["Pakistan", "India"]); assert.deepEqual(p.topic.jobs, ["keywords", "questions"]);
   assert.equal(parseTopicLine("App idea | budget app").ok, true);
   for (const bad of ["", "No seeds", "X | y | Atlantis", "X | y | Pakistan | astrology"]) assert.equal(parseTopicLine(bad).ok, false, bad);
-  assert.equal(ownTopics().length, 24, "every product of ours is on it");
+  assert.equal(ownTopics().length, 25, "every product of ours is on it (RR-362: AlmiWorld)");
   const seo = seoMemoryStore(); await seo.putTopic(p.topic, { at: AT });
   assert.ok((await allTopics({ seo })).some((t) => t.name === "Pet insurance"));
   assert.equal(groupsForTopics({ topics: await allTopics({ seo }) })[0].key, p.topic.id, "the keyword collector reads the same list");
@@ -287,7 +287,7 @@ test("ROUTES: the top-pages cron answers only Vercel's own call", async () => {
 test("OWNER'S PAGE: the topic list and the spend ledger, a topic added in one line; settings by NAME only", async () => {
   const P = await import("../site/pages.mjs");
   const html = P.ownerAlmiSeo({ topics: ownTopics(), ledger: { jobs: [{ job: "AI", cap: "$5 a day", today: 1, month: 2, units: "x" }] }, changed: [{ id: "1", topic: "oet", text: "Pakistan: fee", was: "AUD 587", value: "AUD 620", sourceUrl: OFFICIAL, on: DAY }], limits: DEFAULT_PLAN_LIMITS, fields: [{ id: "visibility_1", words: "$30 a month" }], names: ENV_NAMES, envSet: { [ENV_NAMES.dfsPassword]: true } });
-  assert.match(html, /The topic list \(24\)/); assert.match(html, /AlmiOET/); assert.match(html, /name="line"/); assert.match(html, /Spend — every collector, one ledger/); assert.match(html, /was|AUD 587/); assert.match(html, /ALMISEO_DATAFORSEO_PASSWORD: set/);
+  assert.match(html, /The topic list \(25\)/); assert.match(html, /AlmiOET/); assert.match(html, /name="line"/); assert.match(html, /Spend — every collector, one ledger/); assert.match(html, /was|AUD 587/); assert.match(html, /ALMISEO_DATAFORSEO_PASSWORD: set/);
   assert.match(html, /visibility_1_usd/);
 });
 test("STORES: Postgres speaks the same contract's SQL (no write can lose the changed flag); the schema is made by the code itself", () => {

@@ -35,7 +35,7 @@ import { cfPgStore, SHOWN, PHOTO } from "./cf-store.mjs"; // RR-328 B
 import { runCountryFacts, CF_ORDER, capsOf, finishedIn, costKey, CF_COLLECTOR } from "./cf-collector.mjs";
 import { aiConfigured } from "./cf-ai.mjs";
 import { CREATORS, settingsOf, changeSettings, runCreatorResearch, creatorFor, nicheOfTopic, aiUsdCapOf as crAiCapOf, ytUnitsOf, ytConfigured } from "./creators.mjs"; // RR-348 c
-import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS, doneIn } from "../desktop/country-facts.mjs";
+import { coverageOf, countryPacket, productCoverageOf, CF_PROFESSIONS, doneIn, stillWaiting } from "../desktop/country-facts.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { chainFetch } from "./chain-fetch.mjs"; // RR-330
 import { runTestDates, datesTask } from "./cf-dates.mjs"; // RR-331
@@ -47,7 +47,8 @@ import { COUNTRIES } from "../desktop/world.mjs";
 import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, withMeaning } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
 import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
 import { seoPgStore } from "./almiseo-store.mjs"; // RR-360 AlmiSEO Data
-import { almiSeoAnswer, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
+import { ownerReview, decideTicked, REVIEW_JS } from "./owner-review.mjs"; // RR-362
+import { almiSeoAnswer, saveFromApp, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -80,6 +81,9 @@ export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed, isSet]
  * RR-342 follow-up (owner: still "cannot read it" after two careful pastes; a throwaway key made by tools/make-signing-keys.mjs failed the
  * loader only when Windows' CRLF had been written out as "\r\n" or an invisible character sat inside): the body keeps base64 characters only.
  */
+/* the owner's Edit of one fact → its new value (RR-362: one place, the country page's form and the tick list's Edit) */
+const editedValue = (old, f) => { const t = (k, n = 600) => String(f[k] ?? "").trim().slice(0, n); return (old.product ?? "oet") !== "oet" && old.part !== "questions" ?  { ...old.value, ...(old.value?.name !== undefined ? { name: t("name", 200), website: t("website", 300) } : {}), text: t("text", 1200) } : old.part === "councils" ? { ...old.value, name: t("name", 200), website: t("website", 300), address: t("address", 400), addressWhy: undefined } : old.part === "questions" ? { ...old.value, question: t("question", 200), answer: t("answer", 1200), label: "written by the owner" } : old.part === "rules" ? { ...old.value, rule: t("rule", 600) } : old.part === "fee" ? { ...old.value, line: t("line", 400) } : { ...old.value, home: t("home", 400) }; };
+
 export function pemOf(v, kind = "PRIVATE KEY") {
   const t = String(v ?? "").replace(/[​-‍⁠﻿]/g, "").trim().replace(/^["']|["']$/g, "").replace(/\\r/g, "").replace(/\\n/g, "\n").trim();
   if (!t) return null;
@@ -430,6 +434,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && sales && P.HELP[u.pathname]) return send(200, P.helpPage(u.pathname)); // RR-353: the help guides
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === "/review.js") return send(200, REVIEW_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-362: the owner's ticks
       if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /title-check\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
@@ -506,7 +511,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!owner(req)) return send(403, P.ownerSignIn(), undefined, priv);
         /* RR-343 (owner, 29 Oct: /owner/collect said "Page not found") · a button's own address opened again — a refresh, a typed or a
          * remembered address — goes back to a page, never to "Page not found" (the buttons themselves POST) */
-        const BACK = { "/owner/creators/collect": "/owner/creators", "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries",
+        const BACK = { "/owner/creators/collect": "/owner/creators", "/owner/collect": "/owner/countries", "/owner/countries/run": "/owner/countries", "/owner/countries/fact": "/owner/countries", "/owner/countries/know": "/owner/countries", "/owner/countries/questions": "/owner/countries", "/owner/review/decide": "/owner/review",
           "/owner/seeds": "/owner", "/owner/import": "/owner", "/owner/check-google": "/owner", "/owner/queue": "/owner", "/owner/portal": "/owner", "/owner/search-console": "/owner", "/owner/visibility/questions": "/owner", "/owner/articles/decide": "/owner/articles", "/owner/articles/publish": "/owner/articles", "/owner/almiseo/topic": "/owner/almiseo", "/owner/almiseo/pause": "/owner/almiseo", "/owner/almiseo/remove": "/owner/almiseo", "/owner/almiseo/settled": "/owner/almiseo", "/owner/almiseo/limits": "/owner/almiseo" };
         if (req.method === "GET" && BACK[u.pathname]) return send(303, "", "text/plain", { ...priv, location: BACK[u.pathname] });
         if (req.method === "POST" && u.pathname === "/owner/seeds") {
@@ -619,6 +624,14 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
         }
         /* RR-328 B · the owner's country facts: the grid, one short run, and his word on a fact (his edit wins) */
+        /* 🔴 RR-362 items 11 + 12 · THE REVIEW LIST: every fact waiting, a tick on each; saved at once, no page jump (site/owner-review.mjs) */
+        if (u.pathname === "/owner/review" || u.pathname === "/owner/review/decide") {
+          if (!cf) return send(503, P.notFound(u.pathname, { lite: true }), undefined, priv);
+          const product = FACT_PRODUCTS.includes(u.searchParams.get("p")) ? u.searchParams.get("p") : "oet", all = await cf.facts(), mine = all.filter((f) => (f.product ?? "oet") === product);
+          if (req.method === "GET") return send(200, ownerReview({ facts: mine, product, products: FACT_PRODUCTS.map((p) => ({ key: p, name: productName(p) })), order: (await queueNow(kv)).countries, menu: P.ownerMenu("countries"), frame: P.ownerFrame, editOf: P.editFieldsOf, lineOf: P.factLineOf, names: P.PART_SHORT_NAMES }), undefined, priv);
+          const v = form(), at = new Date(now()).toISOString(), r = await decideTicked({ cf, keys: v.keys, action: v.action, at, values: v.values, valueOf: (old, x) => editedValue(old, x) });
+          return send(r.ok ? 200 : 400, JSON.stringify({ ...r, left: stillWaiting((await cf.facts()).filter((f) => (f.product ?? "oet") === product)).length }), "application/json; charset=utf-8", { ...priv, "cache-control": "no-store" });
+        }
         if (u.pathname.startsWith("/owner/countries")) {
           if (!cf) return send(503, await ownerPage({ message: "The database is not connected (DATABASE_URL) — country facts need it." }), undefined, priv);
           if (req.method === "GET" && u.pathname === "/owner/countries") return send(200, await countriesPage({ country: u.searchParams.get("c"), product: u.searchParams.get("p") }), undefined, priv);
@@ -664,8 +677,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
           if (req.method === "POST" && u.pathname === "/owner/countries/fact") {
             const f = form(), old = await cf.fact(String(f.key ?? ""));
             if (!old || !["approve", "edit", "reject"].includes(f.action)) return send(400, await countriesPage({ message: "No such fact or action. Nothing was changed." }), undefined, priv);
-            const t = (k, n = 600) => String(f[k] ?? "").trim().slice(0, n);
-            const value = f.action !== "edit" ? null : (old.product ?? "oet") !== "oet" && old.part !== "questions" ? { ...old.value, ...(old.value?.name !== undefined ? { name: t("name", 200), website: t("website", 300) } : {}), text: t("text", 1200) } : old.part === "councils" ? { ...old.value, name: t("name", 200), website: t("website", 300), address: t("address", 400), addressWhy: undefined } : old.part === "questions" ? { ...old.value, question: t("question", 200), answer: t("answer", 1200), label: "written by the owner" } : old.part === "rules" ? { ...old.value, rule: t("rule", 600) } : old.part === "fee" ? { ...old.value, line: t("line", 400) } : { ...old.value, home: t("home", 400) };
+            const value = f.action !== "edit" ? null : editedValue(old, f);
             if (value && old.part === "councils" && value.website && !/^https?:\/\//.test(value.website)) return send(400, await countriesPage({ country: old.country, message: "The website must start with https:// — nothing was changed." }), undefined, priv);
             const r = await cf.decide(old.key, { action: f.action, value: value ? JSON.parse(JSON.stringify(value)) : null, at: new Date(now()).toISOString() });
             return send(200, await countriesPage({ country: old.country, message: r.ok ? `Saved: ${r.status}.` : r.why }), undefined, priv);
@@ -686,12 +698,14 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       }
       /* 🔴 RR-360 · ALMISEO DATA FOR THE APP: GET /v1/almiseo?subject=&part=&page= (read only, its own subject only, never counted against the keyword searches) and
        * POST /v1/almiseo/topic (a client's product: the collectors start on its subject). The licence decides; an outside client gets no keyword data from Google (site/almiseo.mjs) */
-      if (u.pathname === "/v1/almiseo" || u.pathname === "/v1/almiseo/topic") {
+      if (u.pathname === "/v1/almiseo" || u.pathname === "/v1/almiseo/topic" || u.pathname === "/v1/almiseo/saved") {
         const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
         if (!seo) return json(503, { ok: false, why: "AlmiSEO Data is not connected yet." });
         const lic = checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: sales });
         if (!lic.ok) return json(lic.status, { ok: false, why: lic.why });
         if (req.method === "POST" && u.pathname === "/v1/almiseo/topic") { const v = form(); const r = await registerClient({ seo, subject: v.subject, name: v.name, seeds: v.seeds, site: v.site, countries: Array.isArray(v.countries) ? v.countries : [], intents: v.intents, lic, limits: await planLimits(seo), groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : 400, r.ok ? { ok: true, started: Boolean(r.started), joined: Boolean(r.joined) } : r); }
+        /* RR-362 item 14: what the app searched is saved here: never paid twice */
+        if (req.method === "POST" && u.pathname === "/v1/almiseo/saved") { const v = form(); const r = await saveFromApp({ seo, subject: String(v.subject ?? "").slice(0, 80), lists: v.lists, lic, groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : r.status, r); }
         if (req.method !== "GET" || u.pathname !== "/v1/almiseo") return json(405, { ok: false, why: "Not here." });
         const part = String(u.searchParams.get("part") ?? "summary"), subject = String(u.searchParams.get("subject") ?? "").slice(0, 80);
         if (!["summary", "pages", "keywords", "questions", "countries", "plan", "coverage"].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });

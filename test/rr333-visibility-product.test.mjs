@@ -18,10 +18,10 @@ const ON = "2026-10-27";
 function fakeKv() { const m = new Map(); const fetchImpl = async (_u, init) => ({ ok: true, status: 200, json: async () => JSON.parse(init.body).map(([cmd, k, ...a]) => { const C = cmd.toUpperCase(); if (C === "SET") { m.set(k, String(a[0])); return { result: "OK" }; } if (C === "GET") return { result: m.get(k) ?? null }; return { result: null }; }) }); return { m, kv: kvStore({ url: "https://kv.example", token: "t" }, { fetchImpl }) }; }
 
 test("D · RR-333: AlmiVisibility SECOND in the queue (a queue the owner saved before gets it once, his later moves kept); its seeds cover what it does; no country five-part pages", async () => {
-  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 3), ["oet", "visibility", "cv"]);
+  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 2), ["oet", "visibility"]);
   const K = fakeKv(); K.m.set(QUEUE_KEY, JSON.stringify({ products: ["oet", "cv", "jobs", "visibility"], countries: ["Kenya"] }));
-  assert.deepEqual((await queueNow(K.kv)).products.slice(0, 3), ["oet", "visibility", "cv"]); assert.equal(JSON.parse(K.m.get(QUEUE_KEY)).rr333, true);
-  K.m.set(QUEUE_KEY, JSON.stringify({ products: ["cv", "oet", "visibility"], countries: [], rr333: true }));
+  assert.deepEqual((await queueNow(K.kv)).products.slice(0, 3), ["oet", "visibility", "almiworld"]); assert.equal(JSON.parse(K.m.get(QUEUE_KEY)).rr333, true); assert.equal(JSON.parse(K.m.get(QUEUE_KEY)).rr362, true);
+  K.m.set(QUEUE_KEY, JSON.stringify({ products: ["cv", "oet", "visibility"], countries: [], rr333: true, rr362: true }));
   assert.deepEqual((await queueNow(K.kv)).products.slice(0, 3), ["cv", "oet", "visibility"], "his own later order is kept");
   assert.match(DEFAULT_SEEDS, /product:visibility \| AlmiVisibility \| keyword research tool, free seo checker, website audit, seo site checker, ai search visibility, rank in chatgpt/);
   assert.equal(FACT_PRODUCTS.includes("visibility"), false, "software: no country five-part pages");

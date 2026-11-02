@@ -47,7 +47,7 @@ export function combiningIn(text) {
   for (const s of ss) if (/\b(one|single|same) (test )?sitting\b|\bone test (session|sitting)\b/i.test(s) && /\b(must|all|required?|only)\b/i.test(s)) return { allowed: false, sentence: s };
   return null;
 }
-const STEP_LINK = /\b(how to (apply|register)|apply(ing)? (for|to) (registration|the register)|registration (process|steps|requirements)|application (process|form|guide)|join(ing)? the register|registering (with|as))\b/i;
+export const STEP_LINK = /\b(how to (apply|register)|apply(ing)? (for|to) (registration|the register)|registration (process|steps|requirements)|application (process|form|guide)|join(ing)? the register|registering (with|as))\b/i;
 
 /**
  * Read one regulator page of the plan (desktop/plan-list.mjs) → { ok, url, on, why, claims: [{ fact, text, link, readOn, … }] }. `page` has

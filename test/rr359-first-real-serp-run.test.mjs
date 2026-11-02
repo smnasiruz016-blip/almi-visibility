@@ -143,8 +143,8 @@ test("RR-359 · 2 · G5's coverage list holds ONLY the topic's real subtopics an
   const plan = [{ kind: "topic", title: "How long does OET take", items: [{ part: "topic", question: "How long does OET take?", claims: [{ claimId: "c1", text: "The OET takes about three hours.", link: "https://prep.example/oet", readOn: ON, source: "prep.example", official: true }] }],
     coverage: [...junk.map((t) => ({ topic: t, seenOn: 2, urls: ["https://a.example/1", "https://b.example/2"] })), { topic: "OET results time", seenOn: 2, urls: ["https://a.example/1", "https://b.example/2"] }], second: [{ question: "How long are OET results valid?", why: "people also ask it, and the best result does not answer it" }] }];
   const d = seoPages({ site, on: `${ON}T10:00:00Z`, pagePlan: plan, max: 1 }).drafts[0], H = d.gates.find((g) => g.gate === "H");
-  const line = H.failing.find((x) => x.startsWith("Not covered yet")) ?? "";
-  assert.match(line, /^Not covered yet — what readers also look for: /);
+  const line = (d.suggestions ?? []).join("; ");
+  assert.ok(d.suggestions.length >= 1, "RR-362 item 15: a suggestion to add"); assert.ok(!H.failing.some((x) => /Not covered/.test(x)), "never a failure");
   for (const j of junk) assert.ok(!line.includes(j), `the ⚠️ names junk: ${j} — ${line}`);
   assert.ok(line.split(";").length <= 5, line);
 });
@@ -183,7 +183,7 @@ test("RR-359 · 3 · G7: a council's own page answers its score — a refused re
     await searchMissing({ questions: [q2], subject: "OET", reader: rd(), cache: { get: (u) => kept.get(u) ?? null, set: (u, v) => kept.set(u, v) }, budget: { left: 6 }, now: `${ON}T12:00:00Z` });
     assert.equal(q2.how, "read on General Medical Council's own page", JSON.stringify(q2.searched));
     /* the app hands Google's results to it with the client's switch on */
-    assert.ok(MAIN.includes("for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages })"));
+    assert.ok(MAIN.includes("for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead })"));
   } finally { srv.close(); }
 });
 
@@ -240,8 +240,8 @@ test("RR-359 · 6 + 7 · the API login is not the e-mail; Start here; every scre
   assert.match(plainSerpWhy(40100, "x"), /copy the "API login" shown there \(not your sign-in e-mail\)/);
   /* Start here: the six steps, the first one a button */
   const steps = /const START_STEPS = (\[.*\]);\n/.exec(UI)?.[1]; assert.ok(steps);
-  assert.deepEqual(JSON.parse(steps).map((x) => x[0]), ["Open your product", "Overview", "Tick what you want", "Choose", "Press Start", "Pages and articles"]);
-  assert.ok(UI.includes("${nav}${startHereHtml(H)}<div class=\"card company\">") && UI.includes('id="startopen"'));
+  assert.deepEqual(JSON.parse(steps).map((x) => x[0]), ["Press your product's big button", "Home", "Pages"]);
+  assert.ok(UI.includes("${firstTime ? startHereHtml(H) : \"\"}<div class=\"card company\">") && UI.includes('id="startopen"')); /* RR-362 item 2: only the first time */
   /* every screen: its line at the top and its next step at the bottom */
   const guide = UI.slice(UI.indexOf("const SCREEN_GUIDE = {"), UI.indexOf("function guideBars("));
   const screens = [...new Set([...UI.matchAll(/here\("([a-zA-Z]+)"/g)].map((m) => m[1]))].filter((n) => n !== "work");

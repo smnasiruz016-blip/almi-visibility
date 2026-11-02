@@ -157,9 +157,9 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
     await ui.api.work("YouTube"); assert.equal(ui.history.entries.length, hs.length);
     /* Back (the browser's own, or "← Back") → the Overview of the same product */
     ui.api.set(null, null);
-    await ui.popstate(hs.at(-2)); await until(() => /<h2>Overview<\/h2>/.test(ui.app()));
+    await ui.popstate(hs.at(-2)); await until(() => /<h2>Home<\/h2>/ /* RR-362 item 4 */.test(ui.app()));
     assert.equal(ui.api.nav().P, a.id); assert.equal(ui.api.nav().CUR.args[0], "Overview");
-    assert.match(ui.app(), /<h2>Overview<\/h2>/);
+    assert.match(ui.app(), /<h2>Home<\/h2>/ /* RR-362 item 4 */);
     /* typed and not saved: leaving asks; "Stay" keeps the screen */
     ui.api.typed();
     const before = ui.history.entries.length;

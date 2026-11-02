@@ -15,6 +15,7 @@
  * Pure: the page's HTML in, the problems out.
  */
 import { countriesIn } from "./world.mjs";
+import { CORE, KIND, coreOf } from "./page-types.mjs"; // RR-362: one place per rule
 export const QUALITY_GATE = "F";
 export const LOOK_GATE = "G";
 export const SUBTESTS = Object.freeze(["Listening", "Reading", "Writing", "Speaking"]);
@@ -100,8 +101,8 @@ export function offTopic(line, t) {
     if (!named(t.subtest) && others.length) return `it is about ${others.join(" and ")}, not ${t.subtest}`;
     if (places.length) return `it is ${places[0]}'s requirement, not about the ${t.subtest} test itself`;
   }
-  if (t.kind === "country" && t.country && places.length && !places.includes(t.country)) return `it is about ${places[0]}, not ${t.country}`;
-  if (t.kind === "profession" && t.people.length && !t.people.some((w) => has(s, w))) { const other = t.otherPeople.find((ws) => ws.some((w) => has(s, w))); if (other) return `it is about ${other[0]}, not ${t.people[0]}`; }
+  if ((t.kind === "country" || t.kind === KIND.destination) /* RR-362: where they want to work */ && t.country && places.length && !places.includes(t.country)) return `it is about ${places[0]}, not ${t.country}`;
+  if ((t.kind === "profession" || t.kind === KIND.destination || t.kind === KIND.origin) && t.people.length && !t.people.some((w) => has(s, w))) { const other = t.otherPeople.find((ws) => ws.some((w) => has(s, w))); if (other) return `it is about ${other[0]}, not ${t.people[0]}`; }
   return null;
 }
 
@@ -148,12 +149,14 @@ export function goodToRead(html, topic) {
 
 /* Rule 3 · a country page's five things (owner, decided): the fee in its currency FIRST, its questions with answers, its test centres, each
  * profession's council there, a rule of its own. Each is a part of the page (its item's id ends with the part's name) — a missing one named. */
-export const COUNTRY_PARTS = Object.freeze({ fee: "the fee in its own currency", questions: "the questions people there ask, with answers", centres: "test centres", councils: "the council for each profession", rules: "a rule special to it" });
+export const COUNTRY_PARTS = CORE.exam[KIND.country];
 /* Rule 4 · a profession page's three: the score each council asks (by country), what the Writing letter is for it, its own questions */
-export const PROFESSION_PARTS = Object.freeze({ scores: "the score each council asks, by country", writing: "what the Writing letter is for this profession", questions: "its own questions and answers" });
-export function partsMissing(html, kind, { localCurrency = null } = {}) {
-  const want = kind === "country" ? COUNTRY_PARTS : kind === "profession" ? PROFESSION_PARTS : null; if (!want) return [];
+export const PROFESSION_PARTS = CORE.exam[KIND.profession];
+/* RR-362 (R3, R5, R6): the core questions of every page type, read from the page itself; a heading that is a question people ask (`asked`) answers "the questions people ask" */
+export function partsMissing(html, kind, { localCurrency = null, asked = [] } = {}) {
+  const want = coreOf(kind); if (!want) return [];
   const p = readPage(html), have = new Set(p.items.filter((i) => i.answers.length).map((i) => (/--([a-z]+)\d*$/.exec(i.id) ?? [])[1]).filter(Boolean));
+  if (p.items.some((i) => i.answers.length && asked.includes(i.question))) have.add("questions");
   const missing = Object.entries(want).filter(([k]) => !have.has(k)).map(([, v]) => v);
   /* the fee in the country's own currency is the FIRST card */
   if (kind === "country" && localCurrency && !missing.includes(want.fee) && !new RegExp(`^${localCurrency}\\b`).test(p.cards[0]?.value ?? "")) missing.unshift(`${want.fee} as the first fact card`);

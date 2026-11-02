@@ -77,17 +77,18 @@ test("G8: the collectors' plan merged without duplicates: a country joins the co
   const collector = [{ kind: "country", country: "Pakistan", title: "OET in Pakistan" }, { kind: "country", country: "Kenya", title: "OET in Kenya" }, { kind: "country-profession", country: "Pakistan", profession: "nursing", title: "OET for nursing in Pakistan" }, { kind: "country-profession", country: "Pakistan", profession: "dentistry", title: "OET for dentistry in Pakistan" }, { kind: "question", country: "Pakistan", question: "Can a nurse take OET twice?", title: "Can a nurse take OET twice?" }, { kind: "question", country: "Kenya", question: "Can a nurse take OET twice?", title: "Can a nurse take OET twice?" }, { kind: "question", country: "Kenya", question: "A question with no answer here?", title: "A question with no answer here?" }];
   const x = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Pakistan"], facts: FACTS, rates: RATES, collector, maxCountries: 200 });
   assert.deepEqual(x.pages.filter((p) => p.kind === "country").map((p) => p.country), ["Pakistan", "Kenya"], "Pakistan once");
-  const cp = x.pages.filter((p) => p.kind === "country-profession");
-  assert.equal(cp.length, 1); assert.equal(cp[0].title, "OET for Nurses in Pakistan"); assert.deepEqual(cp[0].items.map((i) => i.part), ["councils", "fee"]); assert.match(cp[0].items[1].claims[0].card, /PKR/);
-  assert.equal(x.pages.filter((p) => p.kind === "question").length, 1, "one page for one question");
-  assert.deepEqual(x.notBuilt.map((n) => n.title).sort(), ["A question with no answer here?", "OET for dentistry in Pakistan"]);
-  assert.equal(x.counts.countryProfession, 1); assert.equal(x.counts.question, 1);
+  /* RR-362 (R3): a row with no council is not a page; one with its council but no good-standing rule, questions or destinations is merged; a question stands on its country page */
+  assert.equal(x.pages.filter((p) => p.kind === "origin-profession" || p.kind === "destination-profession").length, 0);
+  assert.equal(x.merged.find((m) => m.title === "OET for Nurses from Pakistan").type, "D");
+  assert.equal(x.pages.filter((p) => p.kind === "question").length, 0, "one answer is thin");
+  assert.deepEqual(x.merged.find((m) => m.title === "OET for Dentists from Pakistan").missing[0], "their home council");
+  assert.ok(x.merged.some((m) => m.type === "question"));
   assert.equal(new Set(x.pages.map((p) => p.title)).size, x.pages.length, "no two pages with one title");
 });
 test("G8: a page the client already has for that country and profession is improved, never a second one", () => {
   const collector = [{ kind: "country-profession", country: "Pakistan", profession: "nursing", title: "x" }];
   const x = examPlan({ subject: "OET", professions: [], countries: ["Pakistan"], facts: FACTS, rates: RATES, collector, site: { origin: "https://s.example", pages: [{ url: "https://s.example/oet-nurses-pakistan", title: "OET for nurses in Pakistan", h1: "OET for nurses in Pakistan" }] } });
-  assert.equal(x.pages.find((p) => p.kind === "country-profession").improve.url, "https://s.example/oet-nurses-pakistan");
+  assert.deepEqual(x.pages.filter((p) => p.improve).map((p) => [p.kind, p.improve.url]), [["country", "https://s.example/oet-nurses-pakistan"]], "one entry per existing page: the bigger one (RR-362 item 16)");
 });
 test("A: every country AlmiSEO Data names is planned — the old limit of 10 is the default only; a page's ledger keeps the most searched and counts them all", () => {
   const many = Array.from({ length: 16 }, (_, i) => `Country${i}`), x = examPlan({ subject: "OET", countries: [], facts: [], collector: many.map((c) => ({ kind: "country", country: c, title: c })) });
@@ -137,7 +138,7 @@ test("G5 for a page outside an exam plan: its answered coverage goes into comple
   const clean = seoPages(base); assert.equal(clean.drafts.length, 1, "the fixture makes a draft");
   const named = (o, re) => seoPages({ ...base, ...o }).drafts[0].gates.some((g) => g.failing?.some((x) => re.test(x)));
   assert.equal(named({}, /zzzqqq|official page changed/), false);
-  assert.ok(named({ coverageFor: (x) => (x === "Salary in Kenya" ? { coverage: [{ topic: "What is the zzzqqq waiting period?", from: "people also ask", paa: true }], second: [] } : null) }, /zzzqqq/), "a coverage topic it does not cover is named");
+  assert.ok(seoPages({ ...base, coverageFor: (x) => (x === "Salary in Kenya" ? { coverage: [{ topic: "What is the zzzqqq waiting period?", from: "people also ask", paa: true }], second: [] } : null) }).drafts[0].suggestions.some((s) => /zzzqqq/.test(s)), "RR-362: a coverage topic it does not cover is a suggestion");
   assert.ok(named({ reviewFor: (m) => (m.country === "Kenya" ? ['Review needed — the official page changed (fee): was "A", now "B".'] : []) }, /official page changed/), "the changed fact is named");
   assert.equal(seoPages({ ...base, reviewFor: () => ["Review needed — the official page changed (fee)."] }).drafts[0].readyAsDraft, false, "it does not pass");
 });
@@ -148,9 +149,9 @@ test("FOUND ON THE OWNER'S DATA: a coverage topic about another place stays off 
   assert.equal(cleanCoverage({ ...base, title: "OET in India" }).length, 2, "on India's own page it stays");
   const second = secondSearch({ best: { title: "x", headings: [], text: "" }, paa: ["Is OET hard?"], coverage: [{ topic: "Is OET hard?", seenOn: 2 }], subject: "OET", title: "OET Reading" });
   assert.equal(second.length, 1);
-  const x = examPlan({ subject: "OET", professions: [], countries: ["Pakistan"], facts: [...FACTS, { id: "s1", country: "Pakistan", part: "councils", profession: "nursing", text: "PNC. Accepts OET. Grade B.", link: "https://pnc.org.pk/a", on: DAY, verified: true }, { id: "s2", country: "Pakistan", part: "councils", profession: "nursing", text: "PNC Board. Accepts OET. Grade B.", link: "https://pnc.org.pk/b", on: DAY, verified: true }], rates: RATES, collector: [{ kind: "country-profession", country: "Pakistan", profession: "nursing", title: "t" }] });
-  assert.equal(x.pages.find((p) => p.kind === "country-profession").items.find((i) => i.part === "scores").claims.length, 1, "one standard, said once");
-  assert.match(read("desktop/seo-pages.mjs"), /p\.kind === "country-profession" \|\| p\.kind === "question" \? \[\] : asks/);
+  const x = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Pakistan"], facts: [...FACTS, { id: "s1", country: "Pakistan", part: "councils", profession: "nursing", text: "PNC. Accepts OET. Grade B.", link: "https://pnc.org.pk/a", on: DAY, verified: true }, { id: "s2", country: "Pakistan", part: "councils", profession: "nursing", text: "PNC Board. Accepts OET. Grade B.", link: "https://pnc.org.pk/b", on: DAY, verified: true }], rates: RATES, collector: [{ kind: "country-profession", country: "Pakistan", profession: "nursing", title: "t" }] });
+  assert.equal(x.bigger.countryPages[0].items.find((i) => i.part === "scores").claims.length, 1, "one standard, said once: on the country page");
+  assert.match(read("desktop/seo-pages.mjs"), /p\.kind === KIND\.destination \|\| p\.kind === KIND\.origin \|\| p\.kind === "question" \? \[\] : asks/);
 });
 test("REVIEW: a changed fact holds its own country's pages only", () => {
   const file = { review: [{ text: "Pakistan: fee|Pakistan", kind: "fee", was: "AUD 587", now: "AUD 620", link: "https://www.oet.com/x", on: DAY }] };
@@ -166,7 +167,7 @@ test("E: the page's numbers are only what was measured; what arrived, last read;
   assert.equal(almiSeoView(null, { subject: "OET", planOk: false }).state, "NO_PLAN"); assert.equal(almiSeoView(null, { subject: null }).state, "NO_SUBJECT");
 });
 test("E + A3: the screen is in the product's menu and on the Overview; sync on start and on a schedule; never a word sending the client to buy", () => {
-  assert.match(UI, /id="astab">AlmiSEO Data<\/button>/); assert.match(UI, /\$\("#astab"\)\.onclick = almiSeoScreen/); assert.match(UI, /\$\{asCardHtml\(O\.almiseo\)\}/);
+  assert.match(UI, /id="astab">Data<\/button>/); assert.match(UI, /\$\("#astab"\)\.onclick = almiSeoScreen/); assert.match(UI, /\$\{asCardHtml\(O\.almiseo\)\}/);
   assert.match(UI, /you need no other service/); assert.match(UI, /Last read:/); assert.match(UI, /What arrived/);
   assert.match(MAIN, /setTimeout\(\(\) => \{ syncAll\(\); setInterval\(syncAll, SYNC\.everyHours \* 3600e3\)/);
   assert.match(MAIN, /r\[2\] === "almiseo" && req\.method === "GET"/); assert.match(MAIN, /r\[2\] === "almiseo\/sync"/); assert.match(MAIN, /r\[2\] === "almiseo\/browser" && req\.method === "POST"/);
@@ -176,9 +177,9 @@ test("the build ships the new module (a whitelist: a file not on it is missing f
   assert.match(read("desktop/main.mjs"), /from "\.\/almiseo\.mjs"/);
 });
 test("G0/G9 for the two new kinds of page: its person and its reason", () => {
-  assert.match(personOf({ kind: "country-profession", profession: "nursing", country: "Pakistan" }, { subject: "OET" }).goal, /which council registers nurses in Pakistan/);
+  assert.match(personOf({ kind: "destination-profession", profession: "nursing", country: "Australia" }, { subject: "OET" }).person, /wants to work in Australia/); assert.match(personOf({ kind: "origin-profession", profession: "nursing", country: "Pakistan" }, { subject: "OET" }).person, /from Pakistan/);
   assert.match(personOf({ kind: "question", title: "Can I?", country: "Pakistan" }, { subject: "OET" }).goal, /sourced answer/);
-  assert.match(rightToExist({ page: { kind: "country-profession", profession: "nursing", country: "Pakistan" }, questions: [], answered: 2 }).why, /the council that registers nurses in Pakistan/);
+  assert.match(rightToExist({ page: { kind: "origin-profession", profession: "nursing", country: "Pakistan" }, questions: [], answered: 2 }).why, /what nurses from Pakistan need before they go/);
 });
 test("serviceFactsOf reads a whole packet from AlmiSEO Data as before", () => {
   const packets = { Pakistan: { fee: { value: { official: "AUD 587" }, source: "https://www.oet.com/x", readOn: DAY, status: "confirmed" }, councils: { nursing: { value: { name: "PNC" }, source: "https://pnc.org.pk", readOn: DAY, status: "confirmed", found: true } } } };
@@ -230,10 +231,10 @@ test("THE APP, for real: reads AlmiSEO Data by itself on start for its own subje
 
 test("B: pages from AlmiSEO Data for a product of any kind: each answer with its page and day; a guidance answer or a row with no checked answer makes no page, said", () => {
   const f = (value, source = "https://gov.example/x") => ({ value, source, readOn: DAY, status: "confirmed" });
-  const file = { countries: { Kenya: { parts: { minimumWage: [f({ text: "The minimum wage is KES 15,000 a month." })], tax: [f({ name: "Kenya Revenue Authority", website: "https://kra.go.ke" })], questions: [f({ question: "Q official?", answer: "An official answer.", answerKind: "official" }), f({ question: "Q guidance?", answer: "General guidance.", answerKind: "guidance" })] } }, Peru: { parts: { tax: [{ value: { name: "No source" }, source: "not a link", readOn: DAY }] } } },
-    plan: [{ kind: "country", country: "Kenya", title: "Salary in Kenya" }, { kind: "country", country: "Peru", title: "Salary in Peru" }, { kind: "question", country: "Kenya", question: "Q official?", title: "Q official?" }, { kind: "question", country: "Kenya", question: "Q guidance?", title: "Q guidance?" }, { kind: "question", country: "Kenya", question: "Q official?", title: "Q official?" }] };
+  const file = { countries: { Kenya: { parts: { minimumWage: [f({ text: "The minimum wage is KES 15,000 a month." })], tax: [f({ name: "Kenya Revenue Authority", website: "https://kra.go.ke" })], questions: [f({ question: "Is Q official or not?", answer: "An official answer.", answerKind: "official" }), f({ question: "Q guidance?", answer: "General guidance.", answerKind: "guidance" })] } }, Peru: { parts: { tax: [{ value: { name: "No source" }, source: "not a link", readOn: DAY }] } } },
+    plan: [{ kind: "country", country: "Kenya", title: "Salary in Kenya" }, { kind: "country", country: "Peru", title: "Salary in Peru" }, { kind: "question", country: "Kenya", question: "Is Q official or not?", title: "Is Q official or not?" }, { kind: "question", country: "Kenya", question: "Q guidance?", title: "Q guidance?" }, { kind: "question", country: "Kenya", question: "Is Q official or not?", title: "Is Q official or not?" }] };
   const x = genericPlanPages({ file, subject: "Salary" });
-  assert.deepEqual(x.pages.map((p) => p.title), ["Salary in Kenya", "Q official?"], "no duplicate");
+  assert.deepEqual(x.pages.map((p) => p.title), ["Salary in Kenya", "Is Q official or not?"], "no duplicate");
   assert.deepEqual(x.notBuilt.map((n) => n.title), ["Salary in Peru", "Q guidance?"]);
   const k = x.pages[0]; assert.deepEqual(k.items.map((i) => i.part), ["minimumWage", "tax", "questions0"]);
   assert.equal(k.items[0].claims[0].card, "KES 15,000"); assert.equal(k.items[0].claims[0].link, "https://gov.example/x"); assert.equal(k.items[0].claims[0].readOn, DAY); assert.match(k.items[1].claims[0].text, /Kenya Revenue Authority — https:\/\/kra\.go\.ke/);

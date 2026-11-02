@@ -155,7 +155,7 @@ static class Program {
     Step(dir, progress, 8, "AlmiVisibility is running — asking it to close: " + Describe(ours));
     AskToQuit(dir);
     foreach (var p in ours) { try { if (p.MainWindowHandle != IntPtr.Zero) p.CloseMainWindow(); } catch { } }
-    CloseOwnWindow(dir);
+    if (KeepPort == null) CloseOwnWindow(dir); // RR-362 item 1: an update from inside the app keeps its window
     if (WaitGone(ours, 10) && Ours(dir, skip).Count == 0) { Step(dir, progress, 20, "AlmiVisibility closed by itself"); return true; }
     var left = Ours(dir, skip);
     Step(dir, progress, 14, "AlmiVisibility did not close within 10 seconds — stopping its own processes only: " + Describe(left));
@@ -315,6 +315,8 @@ static class Program {
       return string.Equals(p.MainModule.FileName, Path.GetFullPath(node), StringComparison.OrdinalIgnoreCase) ? port : null;
     } catch { return null; }
   }
+  /* RR-362 item 1 (owner: "the app restarts in the same window"): an update from inside the app keeps its window open: the app comes back on the port that window knows, and the window reloads itself */
+  static string KeepPort = null;
   static int Launch(bool window) {
     var dir = InstalledDir;
     var node = Path.Combine(dir, "app", "runtime", "node.exe");
@@ -325,7 +327,7 @@ static class Program {
       if (!File.Exists(node) || !File.Exists(main)) throw new Blocked("AlmiVisibility's program files are incomplete (" + (File.Exists(node) ? main : node) + " is missing).\n\nWhat to do: run the latest AlmiVisibility Setup again — it repairs the program and keeps your data.");
       var runFile = Path.Combine(DataDir, "run.json");
       if (File.Exists(runFile)) File.Delete(runFile);
-      var p = new ProcessStartInfo(node, "\"" + main + "\" --data=\"" + DataDir + "\" --install=\"" + dir + "\"") { CreateNoWindow = true, UseShellExecute = false, WorkingDirectory = Path.Combine(dir, "app") };
+      var p = new ProcessStartInfo(node, "\"" + main + "\" --data=\"" + DataDir + "\" --install=\"" + dir + "\"" + (KeepPort != null ? " --port=" + KeepPort : "")) { CreateNoWindow = true, UseShellExecute = false, WorkingDirectory = Path.Combine(dir, "app") };
       Process.Start(p);
       port = "";
       for (int i = 0; i < 150 && (port = PortIn(runFile)) == ""; i++) Thread.Sleep(100);
@@ -333,6 +335,7 @@ static class Program {
       Log(dir, "LAUNCHED the app on port " + port);
     }
     if (!window) return 0;
+    if (KeepPort != null && port == KeepPort) { Log(dir, "the window stays open on port " + port); return 0; }
     /* its OWN window: Edge in app mode with a separate window profile under the app's data — never the user's own browser profile */
     var edge = new[] { @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", @"C:\Program Files\Microsoft\Edge\Application\msedge.exe" }.FirstOrDefault(File.Exists);
     var url = "http://127.0.0.1:" + port + "/";
@@ -349,6 +352,7 @@ static class Program {
     var zip = args[i + 1];
     var dir = InstalledDir;
     Directory.SetCurrentDirectory(dir); // never stand inside the folder being swapped
+    if (Has(args, "/same-window")) { var was = PortIn(Path.Combine(DataDir, "run.json")); if (was != "") KeepPort = was; }
     try {
       Step(dir, null, 0, "Update: starting from " + zip);
       TakeOver(dir, null, -1);

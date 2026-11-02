@@ -3,7 +3,7 @@
  * each product's progress and ETA (its first 30 countries) for both collectors, the AI spend today and this month, the database's size and
  * when it will be full. Read from the stores; nothing here asks Google or the AI.
  */
-import { queueOf, progressOf, etaOf, raiseAdvice, FRONT } from "./queue.mjs";
+import { queueOf, progressOf, etaOf, raiseAdvice, FRONT, DEFAULT_QUEUE } from "./queue.mjs";
 import { daysOf, redLine, weekOf } from "./health.mjs";
 import { finishedIn, costKey, capsOf, CF_COLLECTOR } from "./cf-collector.mjs";
 import { currentGroups, plan, storageLimitOf, COLLECTOR } from "./kw-collector.mjs";
@@ -30,8 +30,10 @@ const addDays = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86400000).
 /* RR-333 D: a queue the owner saved before AlmiVisibility moved up gets it SECOND once (his later moves are kept: the mark rr333) */
 export async function queueNow(kv) { try { const [s] = kv ? await kv.run([["GET", QUEUE_KEY]]) : [null]; let saved = s ? JSON.parse(s) : null;
   if (saved && !saved.rr333 && Array.isArray(saved.products)) { const p = saved.products.filter((x) => x !== "visibility"), at = Math.max(0, p.indexOf("oet")) + 1; p.splice(at, 0, "visibility"); saved = { ...saved, products: p, rr333: true }; try { await kv.run([["SET", QUEUE_KEY, JSON.stringify(saved)]]); } catch { /* next time */ } }
+  /* RR-362 item 8 (owner, 2 Nov): a queue saved before gets the owner's new order once (his later moves are kept: the mark rr362) */
+  if (saved && !saved.rr362 && Array.isArray(saved.products)) { const front = DEFAULT_QUEUE.products.slice(0, 6); saved = { ...saved, products: [...front, ...saved.products.filter((x) => !front.includes(x))], rr362: true }; try { await kv.run([["SET", QUEUE_KEY, JSON.stringify(saved)]]); } catch { /* next time */ } }
   return queueOf(saved); } catch { return queueOf(null); } }
-export async function saveQueue(kv, q) { await kv.run([["SET", QUEUE_KEY, JSON.stringify({ products: q.products, countries: q.countries, rr333: true })]]); }
+export async function saveQueue(kv, q) { await kv.run([["SET", QUEUE_KEY, JSON.stringify({ products: q.products, countries: q.countries, rr333: true, rr362: true })]]); }
 export const PRODUCT_NAMES = Object.freeze({ oet: "AlmiOET", cv: "AlmiCV", jobs: "AlmiJob", study: "AlmiStudy", salary: "AlmiSalary", prep: "AlmiPrep (IELTS)", pte: "AlmiPTE", toefl: "AlmiTOEFL", det: "AlmiDET", celpip: "AlmiCELPIP",
   french: "AlmiFrench", goethe: "AlmiGoethe", spanish: "AlmiSpanish", italian: "AlmiItalian", portuguese: "AlmiPortuguese", dutch: "AlmiDutch", japanese: "AlmiJapanese", korean: "AlmiKorean", danish: "AlmiDanish", norwegian: "AlmiNorwegian", swedish: "AlmiSwedish", icelandic: "AlmiIcelandic", swiss: "AlmiSwiss", visibility: "AlmiVisibility" });
 export const productName = (p) => PRODUCT_NAMES[p] ?? p;

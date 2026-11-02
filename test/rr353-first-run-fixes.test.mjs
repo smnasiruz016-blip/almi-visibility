@@ -59,8 +59,8 @@ test("RR-353 · 2–6 · the screens: breadcrumb on every screen, Open/Settings 
   /* 2 */
   assert.ok(UI.includes("bar.innerHTML += crumbsHtml(name, args);"));
   assert.ok(UI.includes('const parts = [`<button type="button" id="crumbhome">All products</button>`];'));
-  assert.ok(UI.includes('<button type="button" data-open="${esc(p.id)}">Open</button><button class="ghost" type="button" data-settings="${esc(p.id)}">Settings</button>'));
-  assert.ok(UI.includes('<span class="open">Open →</span>'), "the card looks clickable");
+  assert.ok(UI.includes('data-open="${esc(p.id)}">Open</button>') && UI.includes('data-settings="${esc(p.id)}">Settings</button>')); /* RR-362 item 2: small links under the card's one big button */
+  assert.ok(UI.includes('class="big nextgo"'), "the card's one big next step");
   /* 3 */
   assert.ok(UI.includes('<input type="checkbox" class="willtick nodirty" value="${esc(l.action)}">'));
   assert.ok(UI.includes('<button id="willgo">Start the ticked jobs</button>'));

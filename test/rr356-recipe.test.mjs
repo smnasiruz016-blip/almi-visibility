@@ -98,7 +98,7 @@ test("RR-356 · the checks in the drafts: intent completeness against the covera
   const plan = [{ kind: "topic", title: "How long does teeth whitening take", items: [{ part: "topic", question: "How long does teeth whitening take?", claims: [{ claimId: "c1", text: "Teeth whitening takes 60 to 90 minutes at the clinic.", link: "https://c.example/whitening", readOn: "2026-10-30", source: "c.example", official: true }] }], coverage: [{ topic: "Does whitening hurt" }], second: [] }];
   const d = seoPages({ site, on: `${ON}T10:00:00Z`, pagePlan: plan }).drafts[0];
   const H = d.gates.find((g) => g.gate === "H"), I = d.gates.find((g) => g.gate === "I");
-  assert.match(H.failing.join(" "), /Not covered yet — what readers also look for: Does whitening hurt\./ /* RR-359: plain words, at most 5 */);
+  assert.deepEqual(d.suggestions, ["Does whitening hurt"], "RR-362 item 15: a suggestion to add, never a failure"); assert.deepEqual(H.failing, []);
   assert.equal(I.pass, true);
   const old = seoPages({ site, on: `${ON}T10:00:00Z`, pagePlan: [{ ...plan[0], coverage: [], items: [{ ...plan[0].items[0], claims: [{ ...plan[0].items[0].claims[0], readOn: "2025-09-01" }] /* a length of time: a stable fact, a year at most */ }] }] }).drafts[0];
   assert.match(old.gates.find((g) => g.gate === "I").failing.join(" "), /^Review needed — 1 fact is past its recheck date/);

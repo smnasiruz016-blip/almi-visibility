@@ -127,7 +127,7 @@ for (const [name, make] of STORES) {
       await s.setSeedList("product:oet | AlmiOET | oet, oet exam\nproduct:cv | AlmiCV | cv maker\ncategory:food | Food | recipes", "2026-10-26T00:00:00.000Z");
       const ads = siteAds({ env: FULL_ENV, kv: K.kv, fetchImpl: G.fetchImpl, now: clock.now, sleep: clock.sleep });
       assert.equal(LOCATIONS.length, 193, "all locations and 192 countries (Google's own country criteria)"); assert.deepEqual([...NOT_IN_GOOGLE].sort(), ["Cuba", "Iran", "Kosovo", "North Korea", "Palestine"]);
-      assert.equal(parseSeeds(DEFAULT_SEEDS).groups.filter((g) => g.kind === "product").length, 24);
+      assert.equal(parseSeeds(DEFAULT_SEEDS).groups.filter((g) => g.kind === "product").length, 25); /* RR-362 item 8: AlmiWorld */
       let saved = 0, ops = 0;
       for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); saved += r.saved; ops += r.ops; if (!r.left.due) break; }
       const ideas = G.ideas(), prod = (c) => ({ "oet,oet exam": "oet", "cv maker": "cv", recipes: "food" })[c.body.keywordSeed.keywords.join()], where = (c) => LOCATIONS.find((l) => (l.geo ?? "ALL") === (c.body.geoTargetConstants[0] ?? "ALL")).name;
@@ -333,7 +333,7 @@ test("B + G · the owner's page: per product, category and YouTube niche (keywor
     assert.equal((await a.req("/owner/seeds", { method: "POST", form: { seeds: "x" } })).status, 403, "only the owner");
   } finally { await a.close(); }
   assert.match(parseSeeds(`product:a | A | ${Array.from({ length: 21 }, (_, i) => `s${i}`).join(", ")}`).why, /at most 20 seed words for a product/);
-  assert.equal(parseSeeds(DEFAULT_SEEDS).groups.length, 24 + 11 + 1);
+  assert.equal(parseSeeds(DEFAULT_SEEDS).groups.length, 25 + 11 + 1);
 });
 
 test("B · the cron: only with Vercel's own Authorization header carrying CRON_SECRET — else 401 and nothing runs", async () => {

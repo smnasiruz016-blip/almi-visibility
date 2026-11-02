@@ -126,7 +126,7 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
       let res, at = `${origin}/robots.txt`;
       for (let hop = 0; ; hop++) {
         /* 🔴 A robots.txt request is a request to the host like any other: it waits for the caller's pacer. */
-        await beforeRequest();
+        await beforeRequest(at);
         requestsIssued += 1;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);

@@ -13,14 +13,16 @@
  */
 import { PEOPLE_WORD, inCountry } from "./recognition.mjs";
 import { cleanCoverage, coversByMeaning } from "./coverage.mjs"; // RR-359: only real subtopics; covered by meaning
+import { KIND } from "./page-types.mjs"; // RR-362
 
 /* ── G0 · the real person, context and goal of a page's intent ── */
 export function personOf(page, { subject = null /* RR-359: no default subject */, product = null } = {}) {
   const people = page.profession ? PEOPLE_WORD[page.profession] ?? page.profession : null;
   if (page.kind === "profession") return { person: `A trained ${people?.replace(/s$/, "")} who wants to work abroad`, context: `must show English for registration with a council in another country`, goal: `know which council asks which ${subject} score, and how the ${subject} for ${people} works` };
   if (page.kind === "country") return { person: `A healthcare professional in or from ${inCountry(page.country)}`, context: `is planning to take ${subject} there, or to register there`, goal: `know the fee in local money, where to take it, which council registers them and what is special to ${inCountry(page.country)}` };
-  /* RR-360 · the two kinds the collectors plan */
-  if (page.kind === "country-profession") return { person: `A trained ${people?.replace(/s$/, "")} in or from ${inCountry(page.country)}`, context: `needs the council that registers ${people} there, and what it asks`, goal: `know which council registers ${people} in ${inCountry(page.country)} and what ${subject} score applies` };
+  /* RR-362 · C and D are two different people: never mixed */
+  if (page.kind === KIND.destination) return { person: `A trained ${people?.replace(/s$/, "")} who wants to work in ${inCountry(page.country)}`, context: `must show English to register there`, goal: `know the score ${inCountry(page.country)} asks for each part, who registers ${people} there and how, and which other tests count` };
+  if (page.kind === KIND.origin) return { person: `A trained ${people?.replace(/s$/, "")} from ${inCountry(page.country)}`, context: `plans to work abroad`, goal: `know their home council and how to prove good standing, where ${people} from there go and the score each asks, and the fee in their own money` };
   if (page.kind === "question") return { person: `Someone who asked this about ${subject}`, context: page.country ? `in ${inCountry(page.country)}` : "looking for a straight answer", goal: `get a sourced answer to "${page.title}"` };
   if (page.kind === "topic") return { person: `A ${subject} candidate`, context: `preparing for ${page.title}`, goal: `understand ${page.title} well enough to prepare and pass` };
   return { person: product?.who ?? "A visitor", context: product?.what ?? "looking for an answer", goal: `get a clear answer to "${page.title}"` };
@@ -31,12 +33,15 @@ export function personOf(page, { subject = null /* RR-359: no default subject */
 export const UNIVERSE = Object.freeze({
   profession: (s, people) => [["first", `Which countries accept ${s} for ${people}?`], ["eligibility", `Can ${people} take the ${s} for their own profession?`], ["cost", `How much does ${s} cost?`], ["time", `When do ${s} results come?`], ["exceptions", `Is ${s} taken at home accepted?`], ["next", `What is the ${s} Writing task for ${people}?`], ["actions", `How do I book ${s}?`], ["documents", `What documents does a council ask for besides ${s}?`], ["mistakes", `What mistakes cost ${people} their registration?`]],
   country: (s, c) => [["cost", `How much does ${s} cost in ${c}?`], ["first", `Where can I take ${s} in ${c}?`], ["eligibility", `Which council registers each profession in ${c}?`], ["exceptions", `What rules are special to ${c}?`], ["next", `What do people in ${c} ask about ${s}?`], ["time", `When do ${s} results come?`], ["documents", `What documents do I need from ${c}?`], ["actions", `How do I book ${s} in ${c}?`], ["mistakes", `What mistakes do candidates from ${c} make?`]],
+  /* RR-362 · the types C and D */
+  destination: (s, c, people) => [["first", `What ${s} score do ${people} need for ${c}?`], ["eligibility", `Who registers ${people} in ${c}?`], ["actions", `How do ${people} register in ${c}?`], ["exceptions", `Does ${c} accept other English tests?`], ["time", `How long does a ${s} result count in ${c}?`]],
+  origin: (s, c, people) => [["first", `Which council in ${c} registers ${people}?`], ["documents", `How do ${people} from ${c} prove good standing?`], ["next", `Where do ${people} from ${c} go, and what score does each ask?`], ["cost", `How much does ${s} cost in ${c}?`]],
   topic: (s, t) => [["first", `What is ${t}?`], ["time", `How long does it take?`], ["cost", `What does it cost?`], ["next", `How is it scored?`], ["actions", `How should I prepare?`], ["mistakes", `What mistakes lose marks?`], ["exceptions", `What is different on computer or at home?`]],
 });
 /** → [{ question, category, source, on, from }] — the universe for the page, then the questions people asked (its demand), each with its source */
 export function questionsOf(page, { subject = null /* RR-359: no default subject */, on = null, extra = [] } = {}) {
   const people = page.profession ? PEOPLE_WORD[page.profession] ?? page.profession : null;
-  const set = page.kind === "profession" ? UNIVERSE.profession(subject, people) : page.kind === "country" ? UNIVERSE.country(subject, inCountry(page.country)) : UNIVERSE.topic(subject, page.title);
+  const set = page.kind === "profession" ? UNIVERSE.profession(subject, people) : page.kind === "country" ? UNIVERSE.country(subject, inCountry(page.country)) : page.kind === KIND.destination ? UNIVERSE.destination(subject, inCountry(page.country), people) : page.kind === KIND.origin ? UNIVERSE.origin(subject, inCountry(page.country), people) : UNIVERSE.topic(subject, page.title);
   return [...set.map(([category, question]) => ({ question, category, source: "the recipe's question set for this kind of page", from: "recipe", on })),
     ...(page.questions ?? []).map((q) => ({ question: q.question ?? q, category: "asked", source: q.source ?? "a search people make", from: /reddit/i.test(q.source ?? "") ? "reddit" : /quora/i.test(q.source ?? "") ? "quora" : /your AI/i.test(q.source ?? "") ? "ai" : /question collector/i.test(q.source ?? "") ? "collector" : "search", on: q.on ?? on })),
     ...extra];
@@ -86,7 +91,7 @@ export function decisionOf({ row, pack = null, measured = null }) {
 export function rightToExist({ page, questions, answered }) {
   const asked = questions.filter((q) => q.from !== "recipe"), sources = [...new Set(asked.map((q) => q.from))];
   const kind = asked.length ? "demand" : "opportunity";
-  const need = page.kind === "country-profession" ? `the council that registers ${PEOPLE_WORD[page.profession] ?? page.profession} in ${inCountry(page.country)}` : page.kind === "profession" ? `which council in each country asks which score of ${PEOPLE_WORD[page.profession] ?? page.profession}` : page.kind === "country" ? `the fee in local money, the centres, the councils and the rules of ${inCountry(page.country)}` : page.title;
+  const need = page.kind === KIND.destination ? `what ${inCountry(page.country)} asks of ${PEOPLE_WORD[page.profession] ?? page.profession} who want to work there` : page.kind === KIND.origin ? `what ${PEOPLE_WORD[page.profession] ?? page.profession} from ${inCountry(page.country)} need before they go` : page.kind === "profession" ? `which council in each country asks which score of ${PEOPLE_WORD[page.profession] ?? page.profession}` : page.kind === "country" ? `the fee in local money, the centres, the councils and the rules of ${inCountry(page.country)}` : page.title;
   return { kind, sources, why: kind === "demand" ? `${asked.length} search${asked.length === 1 ? "" : "es"} people make (${sources.join(", ")}) ask for ${need}; ${answered} of its questions are answered with official sources no other page of this site gives.` : `No search names it yet, but the person needs ${need}, and its ${answered} checked answers differ from every other page — an opportunity page, built strong and watched.` };
 }
 
@@ -108,8 +113,10 @@ const shingles = (t) => { const w = String(t).toLowerCase().replace(/[^a-z0-9]+/
 export function overlap(a, b) { const x = shingles(a), y = shingles(b); if (!x.size || !y.size) return 0; let n = 0; for (const s of x) if (y.has(s)) n++; return n / Math.min(x.size, y.size); }
 export function duplicationReview(pages) {
   const out = new Map(pages.map((p) => [p.url, { worst: 0, with: null, verdict: "distinct", why: null }]));
+  /* RR-362 item 17: each page's shingles once (they were made again for every pair: 24,000 times on a 220-page run) */
+  const sets = pages.map((p) => shingles(p.text)), overlapOf = (x, y) => { if (!x.size || !y.size) return 0; let n = 0; for (const s of x) if (y.has(s)) n++; return n / Math.min(x.size, y.size); };
   for (let i = 0; i < pages.length; i++) for (let j = i + 1; j < pages.length; j++) {
-    const o = overlap(pages[i].text, pages[j].text); if (o <= 0.4) continue;
+    const o = overlapOf(sets[i], sets[j]); if (o <= 0.4) continue;
     const sameIntent = pages[i].intent === pages[j].intent, ownFacts = (p, q) => p.facts.some((f) => !q.facts.includes(f));
     const dup = sameIntent || !(ownFacts(pages[i], pages[j]) && ownFacts(pages[j], pages[i]));
     for (const [p, q] of [[pages[i], pages[j]], [pages[j], pages[i]]]) { const r = out.get(p.url); if (o > r.worst) Object.assign(r, { worst: o, with: q.title, verdict: dup ? "duplicate" : "distinct", why: dup ? `it says what "${q.title}" says (${Math.round(o * 100)}% the same words, and no answer of its own)` : `${Math.round(o * 100)}% of its words are also on "${q.title}" (shared questions), reviewed: a different intent with its own checked facts` }); }

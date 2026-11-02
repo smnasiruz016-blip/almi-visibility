@@ -56,6 +56,8 @@ export function readSerp(json) {
     paa: items.filter((i) => i.type === "people_also_ask").flatMap((i) => (i.items ?? []).map((x) => x.title)).filter(Boolean),
     related: items.filter((i) => i.type === "related_searches").flatMap((i) => i.items ?? []).map((x) => (typeof x === "string" ? x : x?.title)).filter(Boolean) };
 }
+/* RR-362 (found in the crash hunt: Google's own redirect links among the results were being read): a result on Google's own site, Reddit or Quora is never opened */
+export const notForReading = (u) => /^https?:\/\/(?:[^/]*\.)?(?:google\.[a-z.]+|reddit\.com|quora\.com)(?:[/:?#]|$)/i.test(String(u));
 /** R4: a Reddit or Quora result, as Google shows it → a question in people's words (its title, or a question in its snippet) — never a fact */
 export function communityQuestions(results = [], site) {
   return results.filter((r) => { try { return new URL(r.url).hostname.replace(/^www\./, "").endsWith(site); } catch { return false; } })
@@ -65,14 +67,20 @@ export function communityQuestions(results = [], site) {
  * One search through the service, inside the cap. `settings` = { on }; `ledger` = { spent: [{ on, cost, q }], cache: { key: answer } } (kept by
  * the caller); `login`/`password` from the secure store. → readSerp's answer, or { ok:false, why } (switched off, the cap, no key).
  */
+/* RR-362 item 14 (R13: "each result is saved once and reused"): a search already kept and still fresh is reused free, whether the switch is on or off: never paid twice. A month old, it may be bought again (the same month as the server collector) */
+export const KEEP_SEARCH_DAYS = 30;
+const flying = new WeakMap();
 export async function searchGoogle({ keyword, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), location, language, test = false, retry = RETRY, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
+  const key = `${keyword}|${location ?? ""}|${language ?? ""}`, kept = !test ? ledger.serpCache?.[key] : null;
+  if (kept && (!kept.at || (Date.parse(now) - Date.parse(kept.at)) / 864e5 <= KEEP_SEARCH_DAYS)) return { ...kept, cached: true };
   if (settings.on !== true && !test) return { ok: false, off: true, why: SERP_OFF }; // "Test the connection" is the client's own click — inside the caps
   if (!login || !password) return { ok: false, stop: true, why: "your DataForSEO login is not saved on this computer (Search results data → step 2)" };
-  const key = `${keyword}|${location ?? ""}|${language ?? ""}`; if (!test && ledger.serpCache?.[key]) return { ...ledger.serpCache[key], cached: true };
   const cap = Number(settings.capDay) > 0 ? Number(settings.capDay) : SERP.capPerDay, capMonth = Number(settings.capMonth) > 0 ? Number(settings.capMonth) : Infinity;
-  const m = mayBuy(ledger, { now, cap, capMonth }); if (!m.ok) return { ok: false, stop: true, capped: true, why: `the cap is reached ($${m.spent.toFixed(4)} today of $${Math.min(cap, SERP.capPerDay)}, $${m.month.toFixed(4)} this month) — nothing more is bought until it resets` };
+  /* RR-362: searches now run side by side: one already on its way counts against the cap, so a search that could pass it is still refused before it is sent */
+  const fly = flying.get(ledger) ?? 0, m = mayBuy(ledger, { now, cap, capMonth, price: SERP.pricePerSearch * (fly + 1) }); if (!m.ok) return { ok: false, stop: true, capped: true, why: `the cap is reached ($${m.spent.toFixed(4)} today of $${Math.min(cap, SERP.capPerDay)}, $${m.month.toFixed(4)} this month) — nothing more is bought until it resets` };
+  flying.set(ledger, fly + 1);
   let got, tries = 0;
-  for (;;) {
+  try { for (;;) {
     tries++;
     let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}` }, body: JSON.stringify(serpTask(keyword, { location, language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }
     got = r ? readSerp(await r.json().catch(() => ({}))) : { ok: false, code: null, message: null, why: "the search-results service did not answer" };
@@ -80,9 +88,9 @@ export async function searchGoogle({ keyword, settings = {}, ledger, login, pass
     (ledger.spent ??= []).push({ on: tries > 1 ? new Date().toISOString() : now, cost: got.ok ? got.cost || SERP.pricePerSearch : 0, q: keyword, what: test ? "search results (connection test)" : "search results", ...(got.ok ? { ok: true } : { ok: false, code: got.code, why: got.why }), ...(tries > 1 ? { retry: tries - 1 } : {}) });
     if (got.ok || !tryAgain(got) || tries > (retry?.times ?? 0)) break;
     await sleep((retry?.pauseMs ?? 0) * tries);
-  }
+  } } finally { flying.set(ledger, (flying.get(ledger) ?? 1) - 1); }
   if (!got.ok && tries > 1) got = { ...got, why: `${got.why} Tried ${tries} times, with a pause; nothing was charged.` };
-  if (got.ok) (ledger.serpCache ??= {})[key] = got;
+  if (got.ok) (ledger.serpCache ??= {})[key] = { ...got, at: now };
   return { ...got, tries };
 }
 
@@ -93,28 +101,38 @@ export async function searchGoogle({ keyword, settings = {}, ledger, login, pass
  * `readHtml(url)` reads a top result's page (robots obeyed by the caller's reader). Mutates each page: questions, coverage, second,
  * topRead, serpWhy. → { searches, cost, read, of, reddit, quora, stopped, notes, line }
  */
-export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep }) {
-  let reddit = 0, quora = 0, pagesRead = 0, stopped = null; const notes = [], spentBefore = (ledger.spent ?? []).length;
-  const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, retry, ...(sleep ? { sleep } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
-  for (const p of pages) {
+/* RR-362 items 14 + 17: `concurrency` pages side by side (each site is still read politely, desktop/official.mjs), `topCache` = { get(url), set(url, value) }: a top page's headings kept a month, never read twice; `onPage`: the progress bar */
+export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep, concurrency = 1, topCache = null, onPage = null }) {
+  let reddit = 0, quora = 0, pagesRead = 0, stopped = null, reused = 0, topsReused = 0; const reading = new Map(), notes = [], spentBefore = (ledger.spent ?? []).length;
+  const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, retry, ...(sleep ? { sleep } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (r.cached) reused++; if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
+  const headingsOf = (h) => [...String(h).matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40);
+  const onePage = async (p) => {
     delete p.serpWhy;
-    if (stopped) { p.serpWhy = stopped; continue; } // every page after a stop says why it was not searched
-    const main = await ask(p.title); if (!main.ok) { p.serpWhy = main.why; notes.push(`${p.title}: ${main.why}`); continue; }
-    pagesRead++;
+    if (stopped) { p.serpWhy = stopped; return; } // every page after a stop says why it was not searched
+    onPage?.(p, "search");
+    const main = await ask(p.title); if (!main.ok) { p.serpWhy = main.why; notes.push(`${p.title}: ${main.why}`); return; }
+    pagesRead++; p.paa = main.paa; p.related = main.related;
     const rq = communityQuestions((await ask(`${p.title} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(quoraSearch(p.title))).results ?? [], "quora.com");
     reddit += rq.length; quora += qq.length;
     const day = String(now).slice(0, 10), q = (text, src) => ({ question: text, source: src, on: day });
     p.questions = [...(p.questions ?? []), ...main.paa.map((t) => q(t, `Google "People also ask" (${day})`)), ...main.related.map((t) => q(t, `Google related searches (${day})`)), ...rq.map((t) => q(t, `a Reddit result as Google shows it (${day})`)), ...qq.map((t) => q(t, `a Quora result as Google shows it (${day})`))];
     /* the top results' own headings — read only to see what they cover; nothing is copied, no fact is taken */
-    const tops = [];
-    for (const r of main.results.slice(0, SERP.depth)) { if (/reddit\.com|quora\.com/.test(r.url)) continue; const h = await Promise.resolve(readHtml(r.url)).catch(() => null); if (!h) continue; tops.push({ url: r.url, title: r.title, headings: [...String(h).matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40), text: String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) }); }
+    const tops = (await Promise.all(main.results.slice(0, SERP.depth).filter((r) => !notForReading(r.url)).map(async (r) => {
+      const was = topCache?.get(r.url); if (was && (Date.parse(now) - Date.parse(was.on ?? 0)) / 864e5 <= KEEP_SEARCH_DAYS) { topsReused++; return was.headings ? { url: r.url, title: r.title, headings: was.headings, text: "" } : null; }
+      /* the same page wanted by two pages side by side is read once */
+      if (!reading.has(r.url)) reading.set(r.url, Promise.resolve(readHtml(r.url)).catch(() => null));
+      const h = await reading.get(r.url); topCache?.set(r.url, { on: String(now).slice(0, 10), headings: h ? headingsOf(h) : null }); if (!h) return null;
+      return { url: r.url, title: r.title, headings: headingsOf(h), text: String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, " ").slice(0, 20000) };
+    }))).filter(Boolean);
     /* RR-359: only the topic's real subtopics (desktop/coverage.mjs), judged with the page's own subject and title; covered by meaning */
     const words = { subject, title: p.title, now, names: COUNTRIES };
-    p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url);
-  }
-  const mine = (ledger.spent ?? []).slice(spentBefore), searches = mine.length /* every search sent is in the ledger, refused or not */, cost = mine.reduce((t, x) => t + (Number(x.cost) || 0), 0), retried = mine.filter((x) => x.retry).length, failed = mine.filter((x) => x.ok === false).length;
+    p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url); p.searchedOn = String(now).slice(0, 10);
+  };
+  /* in order, at most `concurrency` at a time; a stop is seen by every page not started yet */
+  let at = 0; await Promise.all(Array.from({ length: Math.max(1, concurrency) }, async () => { while (at < pages.length) { const p = pages[at++]; await onePage(p); onPage?.(p, "done"); } }));
+  const mine = (ledger.spent ?? []).slice(spentBefore), bought = mine.filter((x) => x.ok !== false).length, searches = mine.length /* every search sent is in the ledger, refused or not */, cost = mine.reduce((t, x) => t + (Number(x.cost) || 0), 0), retried = mine.filter((x) => x.retry).length, failed = mine.filter((x) => x.ok === false).length;
   const line = `Google's results (your DataForSEO account): ${searches} search${searches === 1 ? "" : "es"}, $${cost.toFixed(4)} — ${pagesRead} of ${pages.length} pages read what ranks, "People also ask", related searches, Reddit and Quora as Google shows them.${retried ? ` ${retried} tried again after DataForSEO failed; ${failed} failed search${failed === 1 ? "" : "es"} charged nothing.` : ""}${stopped ? ` Stopped: ${stopped}` : notes.length ? ` Not read for ${notes.length}: ${notes[0]}` : ""}`;
-  return { searches, cost, retried, failed, read: pagesRead, of: pages.length, reddit, quora, stopped, notes, line };
+  return { searches, cost, retried, failed, read: pagesRead, of: pages.length, reddit, quora, stopped, notes, line, reused, bought, topsReused };
 }
 
 /* RR-359 (owner: Quora as "site:quora.com …" cost $0.01 a search — DataForSEO charges five times for a search with an operator): Quora as

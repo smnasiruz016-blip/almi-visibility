@@ -197,7 +197,7 @@ test("RR-355 · bugs · in the app and on the screens", () => {
   assert.ok(UI.includes('via ? `<button type="button" data-fixvia="${esc(i.id)}">Fix it for me</button>` : ""') && !UI.includes('data-nofix="${has'));
   assert.ok(MAIN.includes('if (r[2] === "fix-existing" && req.method === "POST") {'));
   /* at most 2 recommended cards; the rest under More; every card shows its button; the Google screen's main button */
-  assert.ok(UI.includes(".slice(0, 2), rest = O.menu.cards.filter((c) => !top.includes(c));") && UI.includes('<details class="card more" id="morecards">'));
+  assert.ok(UI.includes("jobListHtml(O.menu.cards,") && UI.includes('id="jobmore"')); /* RR-362 item 3: a short list, the rest under More jobs */
   assert.ok(UI.includes('<span class="fgo">${c.id === "google" ? "Connect" : "Open"} →</span>'));
   assert.ok(UI.includes('<button class="big" id="gsignon1">Connect Google Search Console</button>') && UI.includes('<button class="big" id="connect">Connect Google Search Console</button>'));
   /* the update: downloaded in the background, then ONE button */

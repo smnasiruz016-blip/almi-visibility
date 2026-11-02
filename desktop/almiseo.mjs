@@ -15,6 +15,7 @@
 import { cleanCoverage, meaningOf } from "./coverage.mjs";
 import { secondSearch } from "./recipe.mjs";
 import { COUNTRIES } from "./world.mjs";
+import { KIND, clearQuestion } from "./page-types.mjs"; // RR-362
 import { licenceHeaderOf, LICENCE_HEADER, SERVICE_URL } from "./keyword-service.mjs";
 
 export const ALMISEO_FILE = "almiseo.json", ALMISEO_KEYWORDS = "almiseo-keywords.json", BROWSER_COVERAGE = "browser-coverage.json";
@@ -40,6 +41,7 @@ export function almiSeoClient({ siteUrl = SERVICE_URL, signed = null, fetchImpl 
   return Object.freeze({
     part: (part, subject, page = 0) => call(`v1/almiseo?subject=${encodeURIComponent(subject)}&part=${part}${page ? `&page=${page}` : ""}`),
     register: (b) => call("v1/almiseo/topic", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }),
+    saveSearches: (b) => call("v1/almiseo/saved", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }),
   });
 }
 
@@ -101,7 +103,9 @@ const sameWords = (a, b) => { const x = meaningOf(a), y = meaningOf(b); return x
 /** which saved list answers this page: its own plan row (the same country, profession, kind), or the same words as its title */
 export function savedListFor(page, file) {
   const lists = file?.coverage ?? []; if (!lists.length) return null;
-  const row = (file.plan ?? []).find((p) => p.kind === page.kind && (p.country ?? null) === (page.country ?? null) && (p.profession ?? null) === (page.profession ?? null) && (page.kind !== "question" || sameWords(p.title, page.title)));
+  /* RR-362: C and D are the collectors' country × profession rows; the same search, never bought twice */
+  const kind = page.kind === KIND.destination || page.kind === KIND.origin ? "country-profession" : page.kind;
+  const row = (file.plan ?? []).find((p) => p.kind === kind && (p.country ?? null) === (page.country ?? null) && (p.profession ?? null) === (page.profession ?? null) && (page.kind !== "question" || sameWords(p.title, page.title)));
   return lists.find((l) => row && l.intent === row.title) ?? lists.find((l) => l.intent === page.title || sameWords(l.intent, page.title)) ?? null;
 }
 /**
@@ -112,7 +116,8 @@ export async function coverageRoutes({ pages, file, browser = {}, paidOn = false
   const n = { saved: 0, browser: 0, paid: 0, none: 0 }, left = [];
   for (const p of pages) {
     const s = savedListFor(p, file), b = browser?.[p.title] ?? null;
-    if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on }); delete p.serpWhy; n.saved++; continue; }
+    /* RR-362: what people asked comes with a saved list too (a page needs the questions as much as a paid search would bring them) */
+    if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on, questions: [...(p.questions ?? []), ...(s.asked ?? []).filter((q) => !(p.questions ?? []).some((x) => (x.question ?? x) === q)).map((question) => ({ question, source: `what people search (${s.on})`, on: s.on }))] }); delete p.serpWhy; n.saved++; continue; }
     if (b) { Object.assign(p, { coverage: b.coverage ?? [], second: b.second ?? [], topRead: b.read ?? [], coverageRoute: ROUTES.browser, coverageOn: b.on }); delete p.serpWhy; n.browser++; continue; }
     left.push(p);
   }
@@ -120,6 +125,17 @@ export async function coverageRoutes({ pages, file, browser = {}, paidOn = false
   if (left.length && paidOn && paid) { paidResult = await paid(left); for (const p of left) { if (p.topRead?.length || p.coverage?.length) { p.coverageRoute = ROUTES.paid; n.paid++; } else { p.coverageRoute = ROUTES.none; n.none++; } } }
   else for (const p of left) { p.coverageRoute = ROUTES.none; n.none++; }
   return { counts: n, paid: paidResult, line: `Google's results by route: ${n.saved} saved in AlmiSEO Data, ${n.browser} from your own AI in your own browser, ${n.paid} from your own paid service, ${n.none} not read yet.` };
+}
+/*
+ * 🔴 RR-362 item 14 (owner's run: "0 saved in AlmiSEO Data"): what this run searched is sent to AlmiSEO Data under the name the collectors' plan gives that page, so neither the server collector nor a later run buys it again.
+ * Only what a search gave: addresses, topics, questions. → the lists to send
+ */
+const planRowTitle = (page, file) => { const kind = page.kind === KIND.destination || page.kind === KIND.origin ? "country-profession" : page.kind; return (file?.plan ?? []).find((p) => p.kind === kind && (p.country ?? null) === (page.country ?? null) && (p.profession ?? null) === (page.profession ?? null) && kind !== "question")?.title ?? null; };
+export const searchedLists = (pages, file) => pages.filter((p) => p.coverageRoute === ROUTES.paid && p.searchedOn).map((p) => ({ intent: planRowTitle(p, file) ?? p.title, on: p.searchedOn, read: p.topRead ?? [], paa: p.paa ?? [], related: p.related ?? [], coverage: (p.coverage ?? []).map((c) => c.topic ?? c), second: (p.second ?? []).map((x) => x.question ?? x) }));
+/** the run's one line: saved · reused · bought (R13), and what is left for tomorrow */
+export function searchCounts({ routes, paid = null, saved = 0, later: laterPages = null }) {
+  const reused = (routes?.saved ?? 0) + (routes?.browser ?? 0) + (paid?.reused ?? 0), bought = paid?.bought ?? 0, cost = paid?.cost ?? 0, later = laterPages ?? routes?.none ?? 0;
+  return { saved, reused, bought, cost, later, line: `Searches: ${saved} saved in AlmiSEO Data, ${reused} reused free, ${bought} bought ($${cost.toFixed(2)}).${later ? ` ${later} page${later === 1 ? "" : "s"} will be checked tomorrow.` : ""}` };
 }
 /** one page's ledger line: which route answered */
 export const routeLine = (p, serpWhy = null) => { const r = p?.coverageRoute ?? ROUTES.none; return r === ROUTES.none ? (serpWhy ?? NOT_READ_LINE) : `${(p.topRead ?? []).length} top results read for what they cover (never copied, no fact taken) — from ${ROUTE_LINE[r]}${p.coverageOn ? `, ${p.coverageOn}` : ""}.`; };
@@ -153,7 +169,7 @@ const claimFrom = (id, text, f) => ({ claimId: id, card: FIGURE.exec(String(text
 const okFact = (f) => /^https:\/\//.test(f?.source ?? "") && /^\d{4}-\d{2}-\d{2}/.test(f?.readOn ?? "");
 export function genericPlanPages({ file, subject }) {
   const pages = [], notBuilt = [], seen = new Set();
-  const qsOf = (c) => (file.countries?.[c]?.parts?.questions ?? []).filter((f) => okFact(f) && f.value?.question && f.value?.answer && f.value?.answerKind !== "guidance");
+  const qsOf = (c) => (file.countries?.[c]?.parts?.questions ?? []).filter((f) => okFact(f) && f.value?.question && f.value?.answer && f.value?.answerKind !== "guidance" && clearQuestion(f.value.question, { place: c }) /* RR-362 item 19 */);
   for (const r of file.plan ?? []) {
     const k = String(r.title).toLowerCase().trim(); if (seen.has(k)) continue;
     if (r.kind === "country") {

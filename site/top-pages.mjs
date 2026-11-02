@@ -11,7 +11,7 @@
  * OWNER'S RULING 1: AlmiWorld's OWN products only, AlmiOET first; a TOTAL budget ($50), and a daily cap: a search that could pass either is not sent, and the run stops by itself.
  */
 import { randomBytes } from "node:crypto";
-import { SERP, serpTask, readSerp } from "../desktop/serp.mjs";
+import { SERP, serpTask, readSerp, notForReading } from "../desktop/serp.mjs";
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { COUNTRIES } from "../desktop/world.mjs";
@@ -87,7 +87,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           await seo.putList(list); out.lists++;
         }
         /* each top page once a month; only its structure */
-        const urls = list.results.map((x) => x.url).filter((u) => !/reddit\.com|quora\.com/.test(u)), kept = new Map((await seo.pages(urls)).map((p) => [p.url, p])), tops = [];
+        const urls = list.results.map((x) => x.url).filter((u) => !notForReading(u)), kept = new Map((await seo.pages(urls)).map((p) => [p.url, p])), tops = [];
         for (const u of urls) {
           let p = kept.get(u);
           if (!p || daysBetween(p.day, today) >= TOP_PAGES_CAPS.refreshDays) {

@@ -86,7 +86,7 @@ test("RR-357 · 3 + 4 + 5 · navigation on Your products; never a second product
     const dup = await A.call("/api/products", { name: "Again", site: "https://fixture.invalid", goal: { grow: "website", hasWebsite: true }, saveAnyway: true, addAnyway: true });
     assert.deepEqual([dup.status, dup.j.duplicate?.name], [409, "Fixture"], "\"add anyway\" no longer adds a second one");
   } finally { await A.stop(); }
-  assert.ok(UI.includes('<nav id="homenav" class="pact">') && UI.includes('id="navhelp"') && UI.includes('id="navupd"') && UI.includes('$("#navupd").onclick = () => checkUpdates(true);'));
+  assert.ok(UI.includes('<nav id="homenav" class="pact">') && UI.includes('id="helpbtn"') && UI.includes('id="updchk"')); /* RR-362: Help and updates once, in the header on every screen */
   assert.ok(UI.includes("data-status>${esc(p.next?.status ?? \"\")}") && !UI.includes("Pages ${p.pages} · Articles ${p.articles}")); /* RR-362 item 2: one status line */
   assert.ok(!UI.includes("Add a second one anyway"));
 });

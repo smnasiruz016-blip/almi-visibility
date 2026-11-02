@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:http";
-import { searchGoogle, searchPages, SERP, KEEP_SEARCH_DAYS } from "../desktop/serp.mjs";
+import { searchGoogle, searchPages, notForReading, SERP, KEEP_SEARCH_DAYS } from "../desktop/serp.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { searchedLists, searchCounts } from "../desktop/almiseo.mjs";
 import { KIND } from "../desktop/page-types.mjs";
@@ -52,6 +52,11 @@ test("items 14 + 17: a top page read once a month, the pages side by side, count
   const p2 = pages(), second = await run(p2);
   assert.equal(second.bought, 0); assert.equal(second.reused, 6); assert.equal(calls.n, 6, "nothing bought again"); assert.equal(reads.n, 1, "nothing read again");
   assert.ok(p2[0].searchedOn && p2[0].topRead.length === 1, "the page keeps what the search gave");
+});
+
+test("never opened: a result on Google's own site, Reddit or Quora", () => {
+  for (const u of ["https://google.com/goto?url=x", "https://www.google.co.uk/search?q=x", "https://www.reddit.com/r/x", "https://quora.com/x"]) assert.equal(notForReading(u), true, u);
+  for (const u of ["https://oet.com/x", "https://googlenews.example.org/x", "https://example.org/google.com/x"]) assert.equal(notForReading(u), false, u);
 });
 
 test("items 10 + 17: politeness is per site: one site waits its turn, another does not wait for it", async () => {

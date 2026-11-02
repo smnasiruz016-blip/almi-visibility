@@ -240,7 +240,7 @@ test("RR-359 · 6 + 7 · the API login is not the e-mail; Start here; every scre
   assert.match(plainSerpWhy(40100, "x"), /copy the "API login" shown there \(not your sign-in e-mail\)/);
   /* Start here: the six steps, the first one a button */
   const steps = /const START_STEPS = (\[.*\]);\n/.exec(UI)?.[1]; assert.ok(steps);
-  assert.deepEqual(JSON.parse(steps).map((x) => x[0]), ["Open your product", "Home", "Tick what you want", "Choose", "Press Start", "Pages"]);
+  assert.deepEqual(JSON.parse(steps).map((x) => x[0]), ["Press your product's big button", "Home", "Pages"]);
   assert.ok(UI.includes("${firstTime ? startHereHtml(H) : \"\"}<div class=\"card company\">") && UI.includes('id="startopen"')); /* RR-362 item 2: only the first time */
   /* every screen: its line at the top and its next step at the bottom */
   const guide = UI.slice(UI.indexOf("const SCREEN_GUIDE = {"), UI.indexOf("function guideBars("));

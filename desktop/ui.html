@@ -160,7 +160,7 @@ async function here(name, args = []) {
  */
 /* RR-359: "Set it now" opens Settings → Your product with "What it is about" ready to type */
 const askSubject = async () => { await settings("product"); $("#f7")?.focus(); $("#f7")?.scrollIntoView({ block: "center" }); };
-const START_STEPS = [["Open your product", "press its button below (or + New product)"], ["Home", "it opens first: your score and what to do now"], ["Tick what you want", "under \"What do you want done?\""], ["Choose", "\"Show me before publishing\" or \"Publish for me\""], ["Press Start", "Visibility does each job to the end by itself"], ["Pages", "press \"Read it\" on each page, then \"Approve & Publish\" — or \"Fix\""]];
+const START_STEPS = [["Press your product's big button", "or + New product"], ["Home", "your score, and What to do now with its one button"], ["Pages", "press \"Read it\" on each page, then \"Approve & Publish\" or \"Fix\""]];
 function startHereHtml(H) {
   const first = H.products[0];
   return `<div class="card starthere" id="starthere"><h2>Start here</h2><ol>${START_STEPS.map(([b, t]) => `<li><b>${esc(b)}</b> — ${esc(t)}.</li>`).join("")}</ol><p>${first ? `<button id="startopen" type="button" data-open="${esc(first.id)}">Step 1: open ${esc(first.name)} →</button>` : `<button id="startadd" type="button">Step 1: add your first product →</button>`}</p></div>`;
@@ -230,7 +230,7 @@ async function home() {
   const M = await get("/api/menu");
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
   /* RR-357 (owner: "the Your products screen has no navigation"): the same way around as every other screen — each product, add one, help, updates */
-  const nav = `<nav id="homenav" class="pact"><button class="ghost" id="navhelp" type="button">Help</button><button class="ghost" id="navupd" type="button">Check for updates</button><button class="ghost" id="plan" type="button">Your plan${H.accountSet ? "" : " — add your licence key"}</button><button class="ghost" id="gsignon" type="button">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></nav>`;
+  const nav = `<nav id="homenav" class="pact"><button class="ghost" id="plan" type="button">Your plan${H.accountSet ? "" : " — add your licence key"}</button><button class="ghost" id="gsignon" type="button">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></nav>`;
   /* 🔴 RR-362 item 2 (R11): each product a card: one status line, ONE big next step. "Start here" only the first time */
   const firstTime = !H.products.some((p) => p.next?.action !== "check" && p.next?.action !== "settings") && (() => { try { return localStorage.getItem("av-started") !== "yes"; } catch { return true; } })();
   $("#app").innerHTML = `${nav}${firstTime ? startHereHtml(H) : ""}<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
@@ -245,7 +245,6 @@ async function home() {
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) return openProduct(H.products[0].id).then(() => openFeature(b.dataset.f)); /* RR-348: the product (S) loaded first — a card on the home with one product threw "reading product of null" */ $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
   if ($("#startopen")) $("#startopen").onclick = () => openProduct($("#startopen").dataset.open); if ($("#startadd")) $("#startadd").onclick = () => addProduct(); // RR-359
   $("#add").onclick = () => addProduct();
-  $("#navhelp").onclick = () => helpScreen(); $("#navupd").onclick = () => checkUpdates(true);
   $("#plan").onclick = () => planScreen();
   $("#gsignon").onclick = () => googleSignInScreen(home);
   notifySwitch(); todayLines(H.products);

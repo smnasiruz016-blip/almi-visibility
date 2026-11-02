@@ -56,6 +56,8 @@ export function readSerp(json) {
     paa: items.filter((i) => i.type === "people_also_ask").flatMap((i) => (i.items ?? []).map((x) => x.title)).filter(Boolean),
     related: items.filter((i) => i.type === "related_searches").flatMap((i) => i.items ?? []).map((x) => (typeof x === "string" ? x : x?.title)).filter(Boolean) };
 }
+/* RR-362 (found in the crash hunt: Google's own redirect links among the results were being read): a result on Google's own site, Reddit or Quora is never opened */
+export const notForReading = (u) => /^https?:\/\/(?:[^/]*\.)?(?:google\.[a-z.]+|reddit\.com|quora\.com)(?:[/:?#]|$)/i.test(String(u));
 /** R4: a Reddit or Quora result, as Google shows it → a question in people's words (its title, or a question in its snippet) — never a fact */
 export function communityQuestions(results = [], site) {
   return results.filter((r) => { try { return new URL(r.url).hostname.replace(/^www\./, "").endsWith(site); } catch { return false; } })
@@ -115,7 +117,7 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     const day = String(now).slice(0, 10), q = (text, src) => ({ question: text, source: src, on: day });
     p.questions = [...(p.questions ?? []), ...main.paa.map((t) => q(t, `Google "People also ask" (${day})`)), ...main.related.map((t) => q(t, `Google related searches (${day})`)), ...rq.map((t) => q(t, `a Reddit result as Google shows it (${day})`)), ...qq.map((t) => q(t, `a Quora result as Google shows it (${day})`))];
     /* the top results' own headings — read only to see what they cover; nothing is copied, no fact is taken */
-    const tops = (await Promise.all(main.results.slice(0, SERP.depth).filter((r) => !/reddit\.com|quora\.com/.test(r.url)).map(async (r) => {
+    const tops = (await Promise.all(main.results.slice(0, SERP.depth).filter((r) => !notForReading(r.url)).map(async (r) => {
       const was = topCache?.get(r.url); if (was && (Date.parse(now) - Date.parse(was.on ?? 0)) / 864e5 <= KEEP_SEARCH_DAYS) { topsReused++; return was.headings ? { url: r.url, title: r.title, headings: was.headings, text: "" } : null; }
       /* the same page wanted by two pages side by side is read once */
       if (!reading.has(r.url)) reading.set(r.url, Promise.resolve(readHtml(r.url)).catch(() => null));

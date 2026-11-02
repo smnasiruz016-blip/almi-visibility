@@ -94,8 +94,19 @@ test("the app stopping loses nothing: a run in progress is remembered and goes o
   assert.match(UI, /id="appdown">Visibility stopped working just now/);
 });
 
+test("the watcher: while a run is not finished it starts the app again; never after the run ended or the app was asked to stop", { timeout: 60000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), "rr362-dog-")), marker = join(dir, "run"), stop = join(dir, "stop"), out = join(dir, "started.txt"), launcher = join(dir, "launcher.cmd"); writeFileSync(launcher, `@echo started>"${out}"\r\n`); writeFileSync(marker, "{}");
+  const dead = spawn(process.execPath, ["-e", ""], { stdio: "ignore" }); await new Promise((r) => dead.on("exit", r));
+  const go = (m) => new Promise((res) => { const c = spawn(process.execPath, [join(REPO, "desktop", "watchdog.mjs"), String(dead.pid), m, stop, process.platform === "win32" ? launcher : "/bin/true"], { stdio: "ignore" }); c.on("exit", res); });
+  try {
+    await go(join(dir, "no-such-marker")); assert.ok(!existsSync(out), "the run ended: nothing started");
+    writeFileSync(stop, "x"); await go(marker); assert.ok(!existsSync(out), "asked to stop: nothing started"); rmSync(stop);
+    assert.match(readFileSync(join(REPO, "desktop", "watchdog.mjs"), "utf8"), /\/nowindow/); assert.match(MAIN, /askedToStop\(\);\n\s+const r = installUpdate/); assert.match(MAIN, /"\/api\/quit"\) \{ askedToStop\(\);/); assert.match(MAIN, /startWatchdog\(id\);/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("the new modules ship in the Setup (a whitelist: a file not on it is missing)", () => {
-  for (const f of ["page-types.mjs", "jobs.mjs", "next-step.mjs", "notify.mjs"]) assert.ok(BUILD.includes(`"${f}"`), f);
+  for (const f of ["page-types.mjs", "jobs.mjs", "next-step.mjs", "notify.mjs", "watchdog.mjs"]) assert.ok(BUILD.includes(`"${f}"`), f);
   const site = readFileSync(join(REPO, "tools", "bundle-site.mjs"), "utf8"); assert.ok(/desktop|site/.test(site));
 });
 

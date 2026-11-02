@@ -68,6 +68,7 @@ import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mj
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { genericPlanPages, almiSeoClient, syncProduct, heldFor, keywordItems, questionItems, coverageRoutes, routeLine, coverageItems, coverageFromBrowser, reviewLinesFor, almiSeoView, searchedLists, searchCounts, ALMISEO_FILE, ALMISEO_KEYWORDS, BROWSER_COVERAGE, SYNC, ROUTES } from "./almiseo.mjs"; // RR-360 AlmiSEO Data
+import { spawn } from "node:child_process"; // RR-362: the watcher
 import { jobBoard, LONG_SECONDS } from "./jobs.mjs"; // RR-362
 import { nextStepOf, checksDue, TOP_JOBS, MORE_JOBS } from "./next-step.mjs"; // RR-362
 import { windowsToast } from "./notify.mjs"; // RR-362
@@ -832,11 +833,14 @@ function setAsideForeign(id) {
   return moved;
 }
 /* 🔴 RR-362 items 6 + 10: a run is on the board from its first step to its last, once per product (a second press joins the first), and it logs where its time goes (run-timing.json) */
-const making = new Map();
+const making = new Map(), STOP_FILE = () => join(DATA, "app-asked-to-stop");
+/* if the app is gone in the middle of a run, a small process starts it again (desktop/watchdog.mjs); only an installed app */
+function startWatchdog(id) { const launcher = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(launcher)) return; try { const c = spawn(process.execPath, [join(HERE, "watchdog.mjs"), String(process.pid), pfile(id, "run-in-progress.json"), STOP_FILE(), launcher, ...(Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [])], { detached: true, stdio: "ignore", windowsHide: true }); c.on("error", () => {}); c.unref(); } catch { /* the next open goes on with the run */ } }
+const askedToStop = () => { try { writeFileSync(STOP_FILE(), new Date().toISOString()); } catch { /* the watcher's grace time covers it */ } };
 function createPages(id) {
   if (making.has(id)) return making.get(id);
   const key = `make:${id}`; BOARD.start(key, { product: id, kind: "make", label: "Making your pages", what: "Reading what we already hold", long: true, unit: "pages" });
-  pwrite(id, "run-in-progress.json", { on: new Date().toISOString() });
+  pwrite(id, "run-in-progress.json", { on: new Date().toISOString() }); startWatchdog(id);
   const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? `${(r.pages?.drafts ?? []).filter((d) => d.readyAsDraft && !d.improve).length} pages are ready for you.` }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
   making.set(id, run); return run;
 }
@@ -990,6 +994,9 @@ async function continueChecks() {
   /* RR-362: a run the app was stopped in (the computer turned off, the app crashed, an update) goes on by itself, what it already read kept */
   for (const p of store.list()) { try { const pending = pread(p.id, "pending-checks.json", null); if (!making.has(p.id) && (existsSync(pfile(p.id, "run-in-progress.json")) || checksDue(pending, { today, running: false }))) await createPages(p.id); } catch { /* tried again next hour */ } }
 }
+/* RR-362: the app started again in the middle of a run: it goes on at once */
+rmSync(STOP_FILE(), { force: true });
+setTimeout(() => { for (const p of store.list()) if (existsSync(pfile(p.id, "run-in-progress.json")) && !making.has(p.id)) createPages(p.id).catch(() => {}); }, 3000).unref();
 setTimeout(() => { weeklyRound(); continueChecks(); setInterval(() => { weeklyRound(); continueChecks(); }, 3600e3).unref(); }, Number.isInteger(CONFIG.weeklyFirstMs) ? CONFIG.weeklyFirstMs : 5 * 60e3).unref();
 /* 🔴 RR-360 A3 · AlmiSEO Data is read on start and on a schedule, for every product (the page says when it was last read) */
 const syncAll = async () => { if (CONFIG.testOffline === true || !currentLicence()) return; for (const p of store.list()) { try { await syncAlmiSeo(p.id); } catch { /* the page says it could not be read */ } } };
@@ -1948,12 +1955,13 @@ const server = createServer((req, res) => {
         if (!updateFound) return send(400, { refused: "Check for updates first — no newer version is waiting." });
         let d; try { d = updateReady && updateReady.version === updateFound.version ? { ok: true, ...updateReady } : await downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }); } catch { return send(400, { refused: "The update could not be downloaded — check the internet connection and try again. Nothing was changed." }); }
         if (!d.ok) return send(400, { refused: d.why });
+        askedToStop();
         const r = installUpdate({ agreed: agree === true, verified: true, file: d.file, launcher: join(INSTALL, "AlmiVisibility.exe"), quiet: CONFIG.quietUpdate === true, extra: Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [] /* TESTS ONLY: a sandbox install */ });
         if (!r.ok) return send(400, { refused: r.why });
         send(200, { ok: true, version: d.version, line: `Restarting with version ${d.version}. Your data is kept.` });
         return setTimeout(() => process.exit(0), 300);
       }
-      if (req.method === "POST" && u.pathname === "/api/quit") { send(200, { ok: true }); return setTimeout(() => process.exit(0), 200); }
+      if (req.method === "POST" && u.pathname === "/api/quit") { askedToStop(); send(200, { ok: true }); return setTimeout(() => process.exit(0), 200); }
       send(404, { refused: "not found" });
     } catch (e) { send(500, { refused: e.message }); }
   });

@@ -21,7 +21,9 @@ const RULES = [
   ["tipMinutes", /How-do-I-book-OET$/, /payment details within (\d{1,2}) minutes/i, (m) => `You have ${m[1]} minutes to finish the booking and pay.`],
   ["tipSpam", /How-do-I-book-OET$/, /\bspam\b/i, () => "Check your spam folder for the confirmation e-mail."],
   ["bookPaperCloses", /book-a-test$/, /Test on Paper close\w*\s+(\d{1,3})\s+days? before/i, (m, s) => `${s}'s own page: bookings for the test on paper close ${m[1]} days before the test date.`],
-  ["changeFee", /manage-your-booking$/, /AU\s?\$\s?(\d{2,4})\s+After the booking closing date/i, (m, s) => `${s}'s own page: a change after the booking closing date costs AUD ${m[1]}.`],
+  /* 🔴 RR-365: the old rule took the price in the row ABOVE "After the booking closing date": every country page said a late change costs AUD 120; OET's table says AU$120 up to that date, AU$200 after */
+  ["changeFee", /manage-your-booking$/, /Up to the booking closing date\.?[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*After the booking closing date\.?[\s|]*AU\s?\$\s?(\d{2,4})/i, (m, s) => `${s}'s own page: moving a paper booking to another date, venue or test type costs AU$${m[1]} up to the booking closing date and AU$${m[2]} after.`],
+  ["changeFeeComputer", /manage-your-booking$/, /Up to 7 days before the test[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*US\s?\$\s?(\d{2,4})[\s|]*Less than 7 days before the test[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*US\s?\$\s?(\d{2,4})/i, (m, s) => `${s}'s own page: rescheduling the test on computer or at home costs AU$${m[1]} (US$${m[2]} in the US) up to 7 days before the test and AU$${m[3]} (US$${m[4]} in the US) after that.`],
   ["scale", /results-and-scoring$|test-statistics$/, /scale from\s+0\s*(?:-|–|to)\s*500/i, (m, s) => `${s}'s own page: each sub-test is reported on a scale from 0 to 500, with a letter grade from E to A.`],
   ["gradeB", /ready\/(listening|reading)$/, /grade B \(a scale score of (\d{3})\)/i, (m, s) => `${s}'s own page: grade B is a scale score of ${m[1]}.`],
   ["writingWords", /ready\/writing$/, /word range for the task \((\d{3})\s*[–-]\s*(\d{3}) words\)/i, (m, s) => `${s}'s own page: the Writing task's word range is ${m[1]}–${m[2]} words (no automatic penalty for writing over or under it).`],
@@ -43,11 +45,11 @@ const RULES = [
   ["benchmarkIelts", /about\/backed-by-research$/, /\((\d{4}), updated [A-Za-z]+ (\d{4})\) The Occupational English Test and IELTS: A Benchmarking Report/i, (m, s) => `${s}'s own research page lists a study benchmarking ${s} against IELTS (${m[1]}, updated ${m[2]}).`],
   ["speakingOtherDay", /on-computer$|at-home$/, /Speaking sub-test will be completed on a different day, up to (\d) days before or after/i, (m, s) => `${s}'s own page: for the test on computer, Speaking is taken online on a different day, up to ${m[1]} days before or after the other sub-tests.`],
   /* RR-327 · re-marking (its own topic): the fee per sub-test and the window to ask, from the subject's re-marking policy page */
-  ["remarkFee", /remarking-policy$/, /AU\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?[^.]{0,60}?per sub-?test/i, (m, s) => `${s}'s own page: a re-mark costs AU$${m[1]} per sub-test.`],
+  ["remarkFee", /remarking-policy$/, /AU\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?(?:\s*\/\s*US\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?)?[^.]{0,60}?per sub-?test/i, (m, s) => `${s}'s own page: a re-mark costs AU$${m[1]}${m[2] ? ` (US$${m[2]} in the US)` : ""} per sub-test.`], /* RR-365: "AU$120 (Global, except US) / US$95 (US only)" */
   ["remarkHours", /remarking-policy$/, /within\s+(\d{2,3})\s+hours\s+(?:from|of|after)/i, (m, s) => `${s}'s own page: a re-mark must be asked for within ${m[1]} hours of the results' release.`],
 ];
 /* RR-363: "12 days" for paper results was OET's old word: it never reaches a page again, from any source (the owner's ruling, recipe R12) */
-export const oldWording = (text) => /\bpaper\b[^.]{0,80}\b12 (?:calendar )?days\b|\b12 (?:calendar )?days\b[^.]{0,60}\bpaper\b/i.test(String(text ?? ""));
+export const oldWording = (text) => /\bpaper\b[^.]{0,80}\b12 (?:calendar )?days\b|\b12 (?:calendar )?days\b[^.]{0,60}\bpaper\b|\bafter the booking closing date costs AU[D$]\s?\$?\s?120\b/i.test(String(text ?? "")); /* RR-365: + the late-change fee this app misread: a copy kept from before never reaches a page */
 /* a subject's own help pages no sitemap names (data per subject) */
 export const SUBJECT_EXTRA_PAGES = Object.freeze({ OET: Object.freeze(["https://support.oet.com/articles/Knowledge/How-do-I-book-OET"]) });
 /** the subject's pages → { key: { claimId, fact, text, link, readOn, source, official, body, value } } — only what a page states */
@@ -67,14 +69,14 @@ export function subjectFactsOf(pages, subject) {
 export const SUBJECT_FACT_PAGES = /\/(test\/(book-a-test(\/manage-your-booking)?|results-and-scoring|oet-test|oet-test-on-computer|oet-test-at-home|test-day-information)|ready\/(writing|speaking|listening|reading|sample-tests)|about\/(test-statistics|backed-by-research)|remarking-policy)$/; // RR-327: + the re-marking policy
 /* which facts each demand topic shows (its answer, its table) */
 export const FACTS_FOR = Object.freeze({
-  booking: ["bookPaperCloses", "bookComputerCloses", "changeFee", "resultsPaper", "resultsComputer"],
+  booking: ["bookPaperCloses", "bookComputerCloses", "changeFee", "changeFeeComputer", "resultsPaper", "resultsComputer"],
   results: ["resultsComputer", "results95", "resultsPaper", "resultsIndia", "resultsPhilippines", "scale"],
   remark: ["remarkFee", "remarkHours", "resultsComputer", "resultsPaper", "scale"], // RR-327
   scores: ["scale", "gradeB", "writingGradeB", "speakingGradeB", "listeningB", "readingB"],
   computer: ["resultsComputer", "results95", "speakingOtherDay", "bookComputerCloses"],
   format: ["listeningMarks", "readingMarks", "readingPartA", "writingWords", "writingMinutes", "speakingRoleplay", "scale"],
   prep: ["practiceEvery", "gradeB", "writingWords", "readingPartA"],
-  fees: ["changeFee", "bookPaperCloses"],
+  fees: ["changeFee", "changeFeeComputer", "bookPaperCloses"],
   vs: ["benchmarkIelts", "scale", "gradeB"],
   Writing: ["writingWords", "writingMinutes", "writingGradeB"], Speaking: ["speakingRoleplay", "speakingGradeB"], Listening: ["listeningMarks", "listeningB", "gradeB"], Reading: ["readingMarks", "readingPartA", "readingB", "gradeB"],
 });

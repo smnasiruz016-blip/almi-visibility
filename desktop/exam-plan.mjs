@@ -95,13 +95,13 @@ export function serviceFactsOf(packets = {}, subject = null /* RR-359: no defaul
 /* the subject's own facts (desktop/subject-facts.mjs) a topic is answered with, each fact under the question it answers */
 /* {S} the subject, {T} the sub-test of the page (empty on another page) */
 const ASK = Object.freeze({
-  bookPaperCloses: "When do {S} bookings close?", bookComputerCloses: "When do {S} bookings close?", changeFee: "What does changing a {S} booking cost?",
+  bookPaperCloses: "When do {S} bookings close?", bookComputerCloses: "When do {S} bookings close?", changeFee: "What does changing a {S} booking cost?", changeFeeComputer: "What does changing a {S} booking cost?",
   resultsComputer: "When do {S} results come?", resultsPaper: "When do {S} results come?", results95: "When do {S} results come?", resultsIndia: "When do {S} results come?",
   scale: "How is {S} {T} scored?", gradeB: "What is grade B in {S}?", benchmarkIelts: "How does {S} compare with IELTS?", practiceEvery: "How often should I take a {S} {T} practice test?",
   listeningMarks: "How is {S} Listening built?", listeningB: "What score is grade B in {S} Listening?", readingMarks: "How is {S} Reading built?", readingPartA: "How is {S} Reading built?", readingB: "What score is grade B in {S} Reading?",
   writingWords: "How long is the {S} Writing task?", writingMinutes: "How long is the {S} Writing task?", writingGradeB: "What is grade B in {S} Writing?", writingTask: "What is the {S} Writing task?",
   speakingRoleplay: "How long is an {S} Speaking role-play?", speakingGradeB: "What is grade B in {S} Speaking?", speakingOtherDay: "When is {S} Speaking taken on computer?",
-  remarkFee: "How do I ask for an {S} re-mark?", remarkHours: "How do I ask for an {S} re-mark?",
+  remarkFee: "What does an {S} re-mark cost?", remarkHours: "How long do I have to ask for an {S} re-mark?", /* RR-365: a fee never answered "How do I ask?" */
   listeningGlance: "How long is {S} Listening, and how many questions?", readingGlance: "How long is {S} Reading, and how many questions?", speakingGlance: "How long is {S} Speaking?", writingGlance: "How long is {S} Writing?",
 });
 const askOf = (k, subject, sub) => String(ASK[k] ?? "What should I know about {S} {T}?").replace("{S}", subject).replace("{T}", sub ?? "").replace(/\s+/g, " ").replace(/\s\?/, "?").replace(/\ba (?=[AEIOU][A-Z])/g, "an ");
@@ -111,8 +111,8 @@ const asAsked = (q) => { const t = String(q ?? "").trim().replace(/\s+/g, " "); 
 const TOPIC_FACTS = Object.freeze({
   Listening: ["listeningGlance", "listeningMarks", "listeningB", "scale", "practiceEvery"], Reading: ["readingGlance", "readingMarks", "readingPartA", "readingB", "scale", "practiceEvery"],
   Writing: ["writingGlance", "writingWords", "writingMinutes", "writingGradeB", "practiceEvery"], Speaking: ["speakingGlance", "speakingRoleplay", "speakingGradeB", "speakingOtherDay", "practiceEvery"],
-  fee: ["changeFee", "remarkFee"], result: ["resultsComputer", "results95", "resultsPaper", "resultsIndia", "scale", "gradeB", "remarkHours"],
-  book: ["bookPaperCloses", "bookComputerCloses", "changeFee"], date: ["bookPaperCloses", "bookComputerCloses", "resultsPaper", "resultsComputer"],
+  fee: ["changeFee", "changeFeeComputer", "remarkFee"], result: ["resultsComputer", "results95", "resultsPaper", "resultsIndia", "scale", "gradeB", "remarkHours"],
+  book: ["bookPaperCloses", "bookComputerCloses", "changeFee", "changeFeeComputer"], date: ["bookPaperCloses", "bookComputerCloses", "resultsPaper", "resultsComputer"],
   online: ["speakingOtherDay", "resultsComputer", "results95", "bookComputerCloses"], practice: ["practiceEvery", "gradeB", "writingWords", "readingPartA"],
   vs: ["benchmarkIelts", "scale", "gradeB"], what: ["scale", "listeningGlance", "readingGlance", "writingGlance", "speakingGlance", "gradeB", "resultsComputer"],
 });
@@ -148,6 +148,9 @@ export function officialLocalPrice({ facts = [], country, aud = null, subject })
     return { currency: cur, aud, amount, official: true, fact: f, scope, card: `${shown}${scope ? ` ${scope}` : ""} — ${subject}'s own price`, line: `${subject}'s own price in ${inCountry(country)} is ${shown}${scope ? ` ${scope}` : ""}.${aud ? ` Any other way of taking it costs AUD ${aud}.` : ""}` }; }
   return null;
 }
+
+/* RR-365: a price with its US price beside it: a page about the US says the US price, every other page the other, never "in the US" on a page about Nepal */
+export const priceHere = (text, country) => String(text).replace(/AU\$\d[\d,]* \(US\$(\d[\d,]*) in the US\)/g, (all, us) => (country === "United States" ? `US$${us}` : all.split(" (")[0]));
 
 /* RR-356 (never filler): boards of one body that state the very same standard ("Medical Board of Australia (via Ahpra). Accepts OET. Tests on/after
  * …", nine times) are ONE line naming each board — the standard said once, its source the first board's page */
@@ -199,8 +202,12 @@ function placeFacts(p, A, B) {
   for (const it of p.items) for (const c of it.claims ?? []) {
     if (has(A, c) || has(B, c)) continue;
     const toCountry = ["council", "regulator", "fee", "standing"].includes(it.part), target = toCountry ? A ?? B : B ?? A; if (!target) continue;
-    const beside = target === B ? B.items.find((i) => (i.claims ?? []).some((x) => x.text.startsWith(`In ${inCountry(p.country)}`))) : A.items.find((i) => i.part === "councils");
-    if (beside) beside.claims.push({ ...c, card: null }); else target.items.push({ part: toCountry ? "councils" : `scores${90 + target.items.length}`, question: toCountry ? `Which council registers each profession in ${inCountry(p.country)}?` : it.question, claims: [{ ...c, card: null }] });
+    /* 🔴 RR-365 (the US page: "about USD 413" stood among the councils, against OET's own US$455): a fee joins the page's fee, a good-standing rule its rules; the page's own fee line is never joined by another page's */
+    const home = it.part === "fee" ? "fee" : it.part === "standing" ? "rules" : "councils";
+    if (target === A && home === "fee" && /(?:^|-)fee-/.test(String(c.claimId)) && A.items.some((i) => i.part === "fee" && (i.claims ?? []).some((x) => String(x.claimId).startsWith("fee-")))) continue;
+    const beside = target === B ? B.items.find((i) => (i.claims ?? []).some((x) => x.text.startsWith(`In ${inCountry(p.country)}`))) : A.items.find((i) => i.part === home);
+    const WORDS = { fee: `How much does it cost in ${inCountry(p.country)}?`, rules: `What rules are special to ${inCountry(p.country)}?`, councils: `Which council registers each profession in ${inCountry(p.country)}?` };
+    if (beside) beside.claims.push({ ...c, card: null }); else target.items.push({ part: toCountry ? home : `scores${90 + target.items.length}`, question: toCountry ? WORDS[home] : it.question, claims: [{ ...c, card: null }] });
   }
   if (B) for (const q of p.questions ?? []) if (!B.questions.some((x) => x.question === q.question) && B.questions.length < PAGE_QUESTIONS) B.questions.push(q);
 }
@@ -277,7 +284,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const feeSrc = feeFacts.find((f) => /oet\.com/.test(f.link) && officialOf(f)) ?? feeFacts.find(officialOf);
     const converted = feeSrc ? localFee({ official: officialOf(feeSrc), country: c, rates }) : null, ownPrice = officialLocalPrice({ facts: ok, country: c, aud: converted?.aud ?? null, subject }), lf = ownPrice ?? converted;
     const feeClaim = ownPrice ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: ownPrice.fact.link, readOn: ownPrice.fact.on, source: `${hostOf(ownPrice.fact.link)} — its own price`, official: true } : lf ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: feeSrc.link, readOn: feeSrc.on, source: `${hostOf(feeSrc.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true } : null;
-    const other = [subjectFacts?.changeFee, subjectFacts?.remarkFee].filter((f) => f?.text).map((f) => ({ ...fromSubject(f), card: null }));
+    const other = [subjectFacts?.changeFee, subjectFacts?.changeFeeComputer, subjectFacts?.remarkFee].filter((f) => f?.text).map((f) => ({ ...fromSubject(f), card: null, text: priceHere(f.text, c) }));
     const items = [
       { part: "fee", question: `How much does ${subject} cost in ${inCountry(c)}?`, claims: feeClaim ? [feeClaim, ...other] : [] },
       /* RR-362 item 19: only clear questions on this page's topic; a question the collectors planned a page for stands here (R3), first */
@@ -354,12 +361,12 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
         { part: "rules", question: `How long does a ${subject} result count for ${body}?`.replace(/\ba (?=[AEIOU][A-Z])/g, "an "), claims: [...(d?.validity ? [says(`${body}'s own page gives ${subject} results a time limit of ${d.validity.n} ${d.validity.unit}.`, d.url, on, id("valid"))] : []), ...(d?.combining ? [says(d.combining.allowed ? `${body}'s own page accepts results from two sittings${d.combining.months ? `, taken within ${d.combining.months} months` : ""}.` : `${body}'s own page asks for all parts of the test in one sitting.`, d.url, on, id("combine"))] : [])] },
       ];
     } else {
-      const fees = mine.filter((f) => f.part === "fee"), src = fees.find((f) => f.official) ?? fees[0], lf = src?.official ? localFee({ official: src.official, country: r.country, rates }) : null;
+      const fees = mine.filter((f) => f.part === "fee"), src = fees.find((f) => f.official) ?? fees[0], own = officialLocalPrice({ facts: ok, country: r.country, aud: null, subject }) /* RR-365: its own price here too */, lf = own ?? (src?.official ? localFee({ official: src.official, country: r.country, rates }) : null);
       items = [
         { part: "council", question: `Which council in ${inCountry(r.country)} registers ${people}?`, claims: cl(council) },
         { part: "standing", question: `How do ${people} from ${inCountry(r.country)} prove they are in good standing?`, claims: cl(mine.filter((f) => f.part === "rules" && STANDING.test(f.text)).slice(0, 3)) },
         { part: "destinations", question: `Where do ${people} from ${inCountry(r.country)} go, and what score does each country ask?`, claims: (research[r.profession] ?? []).filter((q) => q.kind === "score" && q.answer).flatMap((q) => scoreClaimsOf(r.profession, q).map((c) => ({ ...c, card: null }))).slice(0, 10) },
-        { part: "fee", question: `How much does ${subject} cost in ${inCountry(r.country)}?`, claims: lf ? [{ claimId: `fee-${r.country}-${r.profession}`.replace(/\s+/g, "-"), card: lf.card, text: lf.line, link: src.link, readOn: src.on, source: `${hostOf(src.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true }] : [] },
+        { part: "fee", question: `How much does ${subject} cost in ${inCountry(r.country)}?`, claims: lf ? [{ claimId: `fee-${r.country}-${r.profession}`.replace(/\s+/g, "-"), card: lf.card, text: lf.line, link: own ? own.fact.link : src.link, readOn: own ? own.fact.on : src.on, source: own ? `${hostOf(own.fact.link)} — its own price` : `${hostOf(src.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true }] : [] },
       ];
     }
     /* the questions people from here, in this profession, ask — with their checked answer */

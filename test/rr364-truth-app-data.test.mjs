@@ -35,7 +35,7 @@ test("1.1 the question's own words must stand in the answer: what the final page
   assert.equal(bodyOfUnknownPlace("The Optometrists and Dispensing Opticians Board asks for 350.", "India"), true); assert.equal(bodyOfUnknownPlace("The Indian Nursing Council in India asks for 350.", "India"), false); assert.equal(bodyOfUnknownPlace("Results come within 48 hours.", "India"), false);
   assert.match(readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"), /p\.kind === KIND\.country && bodyOfUnknownPlace\(text, p\.country\)/);
   assert.equal(ownSiteAnswer("How much does OET cost and how long is it?", "OET costs AU$587 in all.", opt), null, "half of what was asked is not an answer");
-  assert.equal(ownSiteAnswer("Is the OET valid for 3 years?", "A pass in the English test is valid for two years.", opt), "A pass in the English test is valid for two years.", "a real answer stays");
+  assert.equal(ownSiteAnswer("Is the OET valid for 3 years?", "The GMC treats OET certificates as valid for two years.", opt), "The GMC treats OET certificates as valid for two years.", "a real answer stays");
 });
 test("1.1 a paragraph is split: the statement that answers stands alone, the rest goes; a statement that does answer stays", () => {
   const p = "You can take OET at home online using OET@Home on your own computer. NMC accepts OET at grade B in each sub-test.";
@@ -44,9 +44,9 @@ test("1.1 a paragraph is split: the statement that answers stands alone, the res
   assert.deepEqual(sentencesOf("One here. Two there? Three (4) now."), ["One here.", "Two there?", "Three (4) now."]);
 });
 test("1.1 the same check on any part of a page, and it is reported", () => {
-  const f = fitParts([{ part: "rules", question: "Where to see OET result?", claims: [{ claimId: "o", text: SCORES, link: OWN }] }], { subject: "OET", ownHost: "client.example.org" });
+  const f = fitParts([{ part: "standing", question: "Where to see OET result?", claims: [{ claimId: "o", text: SCORES, link: OWN }] }], { subject: "OET", ownHost: "client.example.org" });
   assert.deepEqual(f.dropped, ["Where to see OET result?"]); assert.match(f.removed[0].why, /own site/);
-  const notOwn = fitParts([{ part: "rules", question: "Where to see OET result?", claims: [{ claimId: "o", text: SCORES, link: "https://official.example.org/x" }] }], { subject: "OET", ownHost: "client.example.org" });
+  const notOwn = fitParts([{ part: "standing", question: "Where to see OET result?", claims: [{ claimId: "o", text: SCORES, link: "https://official.example.org/x" }] }], { subject: "OET", ownHost: "client.example.org" });
   assert.equal(notOwn.dropped.length, 0, "an official line under a loose part keeps the older check");
 });
 const site = { ok: true, origin: "https://client.example.org", robotsTxt: null, sitemapUrls: null, readOn: `${ON}T00:00:00Z`, pages: [{ url: OWN, title: "A", h1: "A", h2: [], prices: [], links: [], description: "", qa: [{ q: "x", a: "Bookings for OET can be made through the official link on the OET website. Each sub-test costs $200 and NMC accepts grade B in every sub-test." }], facts: ["OET costs $587 for the whole test in every country that sells it.", "The OET Booking Guide costs nothing and gives the whole OET Booking Guide in one short read."] }] };

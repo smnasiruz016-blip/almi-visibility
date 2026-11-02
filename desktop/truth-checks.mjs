@@ -8,7 +8,8 @@
 import { countriesIn } from "./world.mjs";
 import { meaningOf, NEED_GROUPS } from "./coverage.mjs";
 import { oldWording } from "./subject-facts.mjs";
-import { professionIn } from "./page-plan.mjs";
+import { professionIn, professionRegistered } from "./page-plan.mjs";
+import { unclearWhy } from "./page-types.mjs";
 
 const SUBTESTS = ["Listening", "Reading", "Writing", "Speaking"];
 const distinct = (xs) => [...new Set(xs)];
@@ -25,6 +26,9 @@ export function summaryFault(card, text) {
   if (!scoresIn(c).length && s.length >= 2 && /\b[ABC]\+?\b/.test(c)) return `it shows a grade but the fact states ${s.join(", ")}`;
   const lostGrade = gradesIn(t).filter((g) => /\+/.test(g) && !c.includes(g)); if (lostGrade.length && /\b[ABC]\+?\b|\d{3}/.test(c)) return `it leaves out ${lostGrade.join(", ")}`;
   if (BARE_TIME.test(c) && TIME_RULE.test(t)) return "a time alone: the fact says which way it runs (before, after, within)";
+  /* RR-365: "AU$120" of "AU$120 up to the closing date and AU$200 after" */
+  const moneyOf = (x) => distinct((String(x).match(/(?:AU\$|AUD|US\$|USD|A\$|[$£€])\s?\d[\d,]*/g) ?? []).map((m) => m.replace(/\s/g, "")));
+  if (moneyOf(c).length && /\b(?:up to|before|after|less than)\b|\(US\$\d+ in the US\)/i.test(t) && moneyOf(t).some((m) => !moneyOf(c).includes(m))) return "it shows one price, the fact has more than one";
   const here = countriesIn(c), there = countriesIn(t); if (here.length && there.length && !here.some((x) => there.includes(x))) return `it names ${here[0]}, the fact is about ${there[0]}`;
   const body = bodyIn(t), name = body?.replace(/^The\s+/i, "").split(/[\s(,]+/)[0]; if (name && SCOREISH.test(c) && !c.toLowerCase().includes(name.toLowerCase())) return `it shows a score but not that it is ${body}'s`;
   return null;
@@ -48,6 +52,35 @@ const OPTIONS = Object.freeze([["paper", /\bon paper\b|\bpaper\b/i], ["computer"
 const ASKS_TIME = /^(how long|when)\b/i, SAYS_TIME = /\d|\b(?:minutes?|hours?|days?|weeks?|months?|years?|immediately|same day)\b/i;
 const placesOf = (t, bodies) => distinct([...countriesIn(t), ...bodies.filter((b) => (b.names ?? []).some((n) => nameIn(t, n))).map((b) => b.country)]);
 
+/* 🔴 RR-365 · C2 made strict: the KEY THING asked must be what the answer speaks of, from any source, official or not (beta-g on pages marked ready). Plain words, for every product */
+const WHO_SETS = /\b(?:Board|Council|College|Authority|Commission|Ministry|Registry|Regulator|Association|Federation)\b/;
+const namesWhoSets = (a, { subject, bodies }) => WHO_SETS.test(a) || bodies.some((b) => (b.names ?? []).some((n) => nameIn(a, n))) || (subject && new RegExp(`\\b${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'s own\\b`, "i").test(a)) || (String(a).match(/\b[A-Z]{2,}\b/g) ?? []).some((w) => !["UK", "US", "USA", "UAE", "NZ", "EU", String(subject ?? "").toUpperCase()].includes(w));
+const THINGS = Object.freeze([
+  /* the fee for changing the venue is not the fee for changing the date */
+  { asks: /\b(?:chang|mov|switch|transfer)\w*\b[^?]*\b(?:venue|cent(?:re|er)|location)s?\b/i, says: (a) => /\b(?:venue|cent(?:re|er)|location)s?\b/i.test(a), why: "it asks about changing the venue, the answer is about something else" },
+  /* classes are not the test */
+  { asks: /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?)\b/i, says: (a) => /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?|teach\w*|training|review cent(?:re|er)s?)\b/i.test(a), why: "it asks about classes, the answer is about the test itself" },
+  /* how to pass is advice, not how scoring works */
+  { asks: /^how\s+(?:do|can|should|could|to|does)\b[^?]*\b(?:pass|clear|crack|succeed|improve)\b/i, says: (a) => /\byou (?:should|need to|must)\b|\bto pass\b|\baim (?:for|to)\b|\bfocus on\b|\bwork on\b|\bpractice tests?\b|\bpractise\b|\brevise\b|\bstudy (?:the|your)\b|\btips?\b/i.test(a), why: "it asks how to pass, the answer only says how scoring works" },
+  /* what a score means is not what one body asks: "What grade is 300?" */
+  { asks: /^what (?:grade|score|band) is\b/i, says: (a) => !/\b(?:asks?|requires?|accepts?|wants?)\b/i.test(a), why: "it asks what a score means, the answer is what one body asks" },
+  /* how long a pass counts is somebody's rule: say whose */
+  { asks: /\b(?:valid|validity|expires?|expiry)\b/i, says: namesWhoSets, why: "it says how long a result counts, but not who sets that rule" },
+]);
+/* the part's own kind: a line under "What rules are special to …?" states a rule; a line under the councils names a council, never a price */
+const RULE_SAYS = /\b(?:must|required?|requires|needs? to|only|cannot|can't|not allowed|may not|mandatory|shall|apostille|legali[sz]\w*|attest\w*|verif\w*|good standing|authenticat\w*|consular|not a party|registr\w*|register\w*|licen[cs]\w*)\b/i;
+const NOT_RULE = /\bresults?\b[^.]*\b(?:released?|come|available)\b|\b(?:listed among|among the locations|regions? where)\b/i;
+const PRICE = /(?:\bAU[D$]|\bUS[D$]|≈|\bcosts?\b)/;
+export function partFitWhy(part, text) {
+  const t = String(text ?? ""), k = String(part ?? "");
+  if (k === "rules" && (NOT_RULE.test(t) || !RULE_SAYS.test(t))) return "it is a fact about the country, not a rule";
+  if (k === "councils" && PRICE.test(t) && !/\bregister/i.test(t)) return "a price is not a council";
+  return null;
+}
+/* the councils most candidates look for come first (owner + beta-g): nurses, then doctors, then the rest as they were */
+const COUNCIL_RANK = { nursing: 0, medicine: 1 };
+const councilRank = (c) => COUNCIL_RANK[professionRegistered(c.text)] ?? 2;
+
 /**
  * B · why this answer does not answer its question → the reason, or null. `bodies` = [{ names, country }] (a regulator's name says its country); `loose`: a part the plan built for this very
  * question (its fee, its councils): only who and where are judged, never the words.
@@ -66,6 +99,7 @@ export function answerFitWhy(question, answer, { subject = null, bodies = [], lo
   if (ASKS_TIME.test(q) && !SAYS_TIME.test(a)) return "it asks how long or when, the answer gives no time";
   /* "How long does it take to get your results?" must say results, not only some time */
   const nouns = want.filter((w) => !["time", "long", "take", "way", "much", "know"].includes(w)); if (ASKS_TIME.test(q) && nouns.length && !nouns.some((w) => have.has(w))) return "it gives a time, but not of what was asked";
+  for (const k of THINGS) if (k.asks.test(q) && !k.says(a, { subject, bodies })) return k.why;
   return null;
 }
 /* R12 (beta-g, 2 Nov 2026): a paragraph of the client's own site was written for its own page, not for this question: "Is the OET valid for 3 years?" got Ahpra's scores. It is split into single statements; each stands only under the question it answers, holding most of that question's words; what fits nowhere goes */
@@ -91,7 +125,10 @@ const WATCHED = /^(questions|topic|main)\d*$/;
 export function fitParts(parts, { subject = null, bodies = [], ownHost = null } = {}) {
   const removed = [], dropped = [], out = [];
   for (const it of parts) {
-    const loose = !WATCHED.test(String(it.part)), kept = (it.claims ?? []).flatMap((c) => { if (hostIs(c.link, ownHost)) { const text = ownSiteAnswer(it.question, c.text, { subject, bodies }); if (text !== c.text) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; } const why = answerFitWhy(it.question, c.text, { subject, bodies, loose }); if (why) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why }); return why ? [] : [c]; });
+    /* RR-365: whichever road a question came by: one nobody asks does not stand */
+    if (/^questions/.test(String(it.part)) && unclearWhy(it.question)) { dropped.push(it.question); continue; }
+    const loose = !WATCHED.test(String(it.part)), kept = (it.claims ?? []).flatMap((c) => { const off = partFitWhy(it.part, c.text); if (off) { removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: off }); return []; } if (hostIs(c.link, ownHost)) { const text = ownSiteAnswer(it.question, c.text, { subject, bodies }); if (text !== c.text) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; } const why = answerFitWhy(it.question, c.text, { subject, bodies, loose }); if (why) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why }); return why ? [] : [c]; });
+    if (it.part === "councils") kept.sort((a, b) => councilRank(a) - councilRank(b));
     if (kept.length) out.push({ ...it, claims: kept }); else if ((it.claims ?? []).length) dropped.push(it.question);
   }
   return { parts: out, removed, dropped };

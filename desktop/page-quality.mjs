@@ -15,6 +15,7 @@
  * Pure: the page's HTML in, the problems out.
  */
 import { countriesIn } from "./world.mjs";
+import { professionRegistered } from "./page-plan.mjs"; // RR-365
 import { CORE, KIND, coreOf } from "./page-types.mjs"; // RR-362: one place per rule
 export const QUALITY_GATE = "F";
 export const LOOK_GATE = "G";
@@ -158,6 +159,8 @@ export function partsMissing(html, kind, { localCurrency = null, asked = [] } = 
   const p = readPage(html), have = new Set(p.items.filter((i) => i.answers.length).map((i) => (/--([a-z]+)\d*$/.exec(i.id) ?? [])[1]).filter(Boolean));
   if (p.items.some((i) => i.answers.length && asked.includes(i.question))) have.add("questions");
   const missing = Object.entries(want).filter(([k]) => !have.has(k)).map(([, v]) => v);
+  /* 🔴 RR-365 + the owner's rule of 27 Oct (a country's councils = nursing and medicine first): the United States listed six other councils and stood ✅: a list without them is named, never invented */
+  if (kind === "country" && have.has("councils")) { const lines = p.items.filter((i) => /--councils\d*$/.test(i.id)).flatMap((i) => i.answers), lack = [["nursing", "the nurses' council"], ["medicine", "the doctors' council"]].filter(([k]) => !lines.some((l) => professionRegistered(l) === k)).map(([, w]) => w); if (lack.length) missing.push(lack.join(" and ")); }
   /* the fee in the country's own currency is the FIRST card */
   if (kind === "country" && localCurrency && !missing.includes(want.fee) && !new RegExp(`^${localCurrency}\\b`).test(p.cards[0]?.value ?? "")) missing.unshift(`${want.fee} as the first fact card`);
   return missing;

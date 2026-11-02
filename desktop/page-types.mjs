@@ -8,6 +8,7 @@
  * is not a page: its facts go into A and B and the plan shows "merged". Pure.
  */
 import { countriesIn } from "./world.mjs";
+import { meaningOf } from "./coverage.mjs";
 
 export const KIND = Object.freeze({ country: "country", profession: "profession", destination: "destination-profession", origin: "origin-profession", topic: "topic" });
 export const TYPE_OF_KIND = Object.freeze({ [KIND.country]: "A", [KIND.profession]: "B", [KIND.destination]: "C", [KIND.origin]: "D", [KIND.topic]: "E" });
@@ -36,13 +37,22 @@ export const STANDING = /\bgood standing\b|\bverif(?:y|ication|ied)\b|\bcertific
  */
 const ASKS = /^(how|what|why|which|where|when|who|is|are|can|could|does|do|did|should|will|would|may|must|has|have)\b/i;
 const STORY = /\b(?:the|this|that|a) (?:student|video|channel|clip|post|comment|teacher|tutor|instructor)\b|\bmy (?:friend|teacher|tutor|cousin|sister|brother)\b|\b(?:he|she|his|her|him)\b/i;
+/* 🔴 RR-365 · collectors' questions are suggestions, not orders (beta-g, on pages marked ready). A form's or survey's prompt to the reader: "Which profession and country are you applying to?" */
+const SURVEY = /^can you (?:help|tell|give|share|suggest|recommend|send)\b|^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
+/* someone's impression, not a need: "Why does the speaking test feel like the candidate is the interviewer?" */
+const IMPRESSION = /^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b|\binterviewer\b[^?]*\bcandidate\b|\bcandidate\b[^?]*\binterviewer\b/i;
+/* nothing a reader can act on: with these words gone, nothing is left: "Is my answer accepted as right?" */
+const NO_THING = new Set(["answer", "accept", "right", "correct", "wrong", "true", "okay", "ok", "good", "bad", "fine", "thing", "stuff", "question", "problem", "one"]);
 const CONTEXTLESS = /^(?:is|are|does|do|can|will|would|should|was|were) (?:it|this|that|these|those|they)\b|\b(?:this|that) (?:one|page|article|answer|thing)\b|\babove\b/i;
 export function unclearWhy(question, { place = null } = {}) {
   const t = String(question ?? "").replace(/\s+/g, " ").trim(), words = t.split(" ").filter((w) => /\p{L}/u.test(w));
   if (!ASKS.test(t) && !/\?$/.test(t)) return "it is not a question";
   if (words.length < 4) return "too short to say what it asks";
   if (words.length > 30) return "too long to be one clear question";
+  if (SURVEY.test(t)) return "it is a form's or a survey's prompt, not a question people ask";
   if (STORY.test(t)) return "it is about someone's story, not what a candidate needs";
+  if (IMPRESSION.test(t)) return "it is someone's impression, not what a candidate needs";
+  if (meaningOf(t).every((w) => NO_THING.has(w))) return "it does not say what it is about";
   if (CONTEXTLESS.test(t)) return "it does not say what it is about";
   if (/^(?:why|how) did\b/i.test(t)) return "it asks about something that once happened, not what a candidate needs";
   if (place && countriesIn(t).some((c) => c !== place)) return "it is about another country";

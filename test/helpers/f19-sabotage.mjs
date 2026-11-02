@@ -59,7 +59,7 @@ export const F19_SABOTAGES = [
     expect: /F19-RATE-VIOLATED/ },
 
   { id: "F19-S6", what: "robots.txt is fetched outside the pacer (the defect the measurement found)", file: ROBOTS, test: T, named: "F19 · B5 ·",
-    from: `      await beforeRequest();`, to: `      void beforeRequest;`,
+    from: `      await beforeRequest(at);`, to: `      void beforeRequest;`,
     expect: /F19-RATE-VIOLATED: request 2 \(\/r1\)/ },
 
   { id: "F19-S7", what: "the per-request abort timer does not abort", file: FETCHER, test: T, named: "F19 · B6 ·",

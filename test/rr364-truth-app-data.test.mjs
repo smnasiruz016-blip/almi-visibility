@@ -58,6 +58,15 @@ test("1.1 the other road onto a page: a question people ask gets only what answe
   assert.match(readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"), /x\.text = ownSiteAnswer\(x\.q, x\.text/);
 });
 
+test("1.1 on the owner's own setting: a product with no subject set: the check still knows OET is the subject (this let every wrong pair through)", () => {
+  const siteC = { ...site, pages: [{ ...site.pages[0], qa: [], facts: ["OET publishes its own table comparing OET scores with IELTS bands on its results page today."] }] };
+  const plan = [{ kind: "topic", category: "exam", links: [], open: [], ledger: [], topic: "vs", title: "OET Compared", questions: [{ question: "Which is better, OET or IELTS?", source: "s" }], items: [{ part: "topic", question: "When do OET bookings close?", claims: [{ claimId: "c", card: null, text: "Bookings close 7 days before the test date.", link: "https://official.example.org/b", readOn: ON, source: "s", official: true }] }], content: {} }];
+  const build = (o) => seoPages({ site: siteC, on: `${ON}T00:00:00Z`, pagePlan: plan, max: 1, subject: null, cta: { label: "Go", href: "https://client.example.org/go" }, ...o }).drafts[0].html;
+  assert.ok(/comparing OET scores/.test(build({})), "without it, the wrong pair stands: the failing case");
+  assert.ok(!/comparing OET scores/.test(build({ fitSubject: "OET" })), "with it, it leaves");
+  assert.match(readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), /fitSubject: seedOf\(store\.read\(id\)\)/, "the app passes it");
+});
+
 test("1.2 a card that loses the body shows the sentence: 1400 total; minimum 350", () => {
   assert.match(summaryFault("1400 total", "HCPC accepts OET for some professions: 1400 total, no element below 300."), /not that it is HCPC's/);
   assert.match(summaryFault("minimum 350", "Medical Board of Australia accepts OET: minimum 350 in each sub-test."), /not that it is Medical Board/);

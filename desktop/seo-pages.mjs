@@ -158,7 +158,8 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
-export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null, coverageFor = null, reviewFor = null /* RR-360 */, bodies = [] /* RR-363 */ }) {
+export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, cta = null, target = null, coverageFor = null, reviewFor = null /* RR-360 */, bodies = [] /* RR-363 */, fitSubject = null /* RR-364 */ }) {
+  const askAbout = fitSubject ?? subject;
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
    * pages Visibility read for that country (desktop/official.mjs) — each line with its body, its page and the day it was checked */
   const officialFor = (text) => destinationsIn(text).flatMap((c) => official[c] ?? []);
@@ -182,7 +183,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         const loose = (part) => !/^(councils|scores|fee)$/.test(String(part));
         const clean = (cs, part = "site") => cs.map((c) => ({ ...c, text: cleanFact(c.text) })).filter((c) => c.text.length >= 12 && !offTopic(c.text, topic)).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
         /* 🔴 RR-363 (R15: answer fits question): a line that does not answer its own question leaves it; a question left with nothing goes */
-        const fit = fitParts(p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { ownHost: (() => { try { return new URL(site?.origin ?? site?.url ?? site?.pages?.[0]?.url).hostname.replace(/^www\./, ""); } catch { return null; } })(), subject, bodies });
+        const fit = fitParts(p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { ownHost: (() => { try { return new URL(site?.origin ?? site?.url ?? site?.pages?.[0]?.url).hostname.replace(/^www\./, ""); } catch { return null; } })(), subject: askAbout, bodies });
         const parts = fit.parts;
         const kept = parts.flatMap((it) => it.claims);
         /* the client's own pages answer the questions people ask about it — a real question only (never a bare search wording as a heading), a
@@ -192,7 +193,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         /* the page's own title is asked of the site too ("OET for Nurses" → its pages about nurses), under "What else should I know about …?" */
         const asks = [...[...new Set(qs)].filter((x) => ASKS.test(String(x).trim()) && clearQuestion(x, { place: p.kind === KIND.topic ? null : p.country ?? null }) /* RR-362 item 19 */ && !/\b(?:this|that|these|those)\s*\??$/i.test(String(x).trim()) /* RR-364: "for this?": this what? */).slice(0, 12).map((q) => ({ q, heading: `${asQuestion(String(q).trim().replace(/\s+/g, " "), casingOf(site)).replace(/[?.]*$/, "")}?` }))];
         /* RR-360 (found on the owner's data: an Australian board's rule, read from the client's own pages, on "OET for Dentists in Ireland"): a page the collectors planned for one country says only its own checked facts */
-        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === KIND.destination || p.kind === KIND.origin || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).flatMap((c) => { const text = ownSiteAnswer(heading, c.text, { subject, bodies }); if (text !== c.text) fit.removed.push({ question: heading, line: c.text.slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; }).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length || parts.some((it) => String(it.question).toLowerCase() === heading.toLowerCase()) /* RR-362: one question once */) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
+        let fromSite = 0; for (const { q, heading, max = 2 } of p.kind === KIND.destination || p.kind === KIND.origin || p.kind === "question" ? [] : asks) { if (fromSite >= 4) break; const a = clean(answersFromSite(q, site, max + 2)).flatMap((c) => { const text = ownSiteAnswer(heading, c.text, { subject: askAbout, bodies }); if (text !== c.text) fit.removed.push({ question: heading, line: c.text.slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; }).filter(whole).filter((c) => !kept.some((d) => same(c, d))).slice(0, max); if (!a.length || parts.some((it) => String(it.question).toLowerCase() === heading.toLowerCase()) /* RR-362: one question once */) continue; for (const c of a) { kept.push(c); usedSite.set(c.text, (usedSite.get(c.text) ?? 0) + 1); } fromSite++; parts.push({ part: `questions${50 + fromSite}` /* a question people ask, answered on the client's own pages */, question: heading, claims: a }); }
         const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
         meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [], asked: p.askedHeads ?? [], route: p.coverageRoute ?? null, category: p.category ?? null, blueprint: p.blueprint ?? null, fit, unreadTops: p.unreadTops ?? 0 }); // RR-356: its research and its existing page
         needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
@@ -249,13 +250,13 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     for (const x of pairs) {
       if (extra.length >= 5 || normQ(x.q) === normQ(n.question)) continue;
       if (n.claims.some((c) => c.text === x.text)) continue;
-      x.text = ownSiteAnswer(x.q, x.text, { subject, bodies }); if (!x.text) continue;
+      x.text = ownSiteAnswer(x.q, x.text, { subject: askAbout, bodies }); if (!x.text) continue;
       extra.push({ needId: `${n.needId}--q${extra.length + 1}`, question: asQuestion(x.q, casing), claims: [{ claimId: `site-${createHash("sha256").update(`${x.link}|${x.text}`).digest("hex").slice(0, 16)}`, text: x.text, link: x.link, readOn: day, source: new URL(x.link).hostname }] });
     }
     const used = new Set([...n.claims, ...extra.flatMap((e) => e.claims)].map((c) => c.text));
     for (const q of meta.get(n.needId)?.alsoAsked ?? []) {
       if (extra.length >= 5) break;
-      const a = answersFromSite(q, site, 2).flatMap((c) => { const text = ownSiteAnswer(q, c.text, { subject, bodies }); return text ? [{ ...c, text }] : []; }).filter((c) => !used.has(c.text)); if (!a.length) continue;
+      const a = answersFromSite(q, site, 2).flatMap((c) => { const text = ownSiteAnswer(q, c.text, { subject: askAbout, bodies }); return text ? [{ ...c, text }] : []; }).filter((c) => !used.has(c.text)); if (!a.length) continue;
       for (const c of a) used.add(c.text);
       extra.push({ needId: `${n.needId}--q${extra.length + 1}`, question: asQuestion(q, casing), claims: a });
     }
@@ -347,7 +348,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     /* 🔴 RR-363 · R15's checks read the page itself: every card keeps its fact; every answer fits its question. And the year the top pages put in their title, when they do */
     const seen = readPage(d.html), byNeed = new Map(keyFacts.filter((k) => !k.needId || k.needId === built[i].needId).map((k) => [String(k.value), k.text]));
     const cardFaults = seen.cards.flatMap((c) => { const why = cardFaultOf(c.value, byNeed.get(c.value), [...byNeed.values()]); return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
-    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
+    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
     if (m.blueprint?.year && !/\b20\d\d\b/.test(d.title)) { const y = String(on).slice(0, 4); d.html = d.html.replace(/(<title\b[^>]*>)([\s\S]*?)(<\/title>)/i, `$1$2 ${y}$3`).replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, `$1$2 ${y}$3`); }
     const compared = blocksCompared(m.blueprint, blocksOfHtml(d.html));
     d.truth = { cards: changedCards[built[i].needId] ?? [], removed: m.fit?.removed ?? [], dropped: m.fit?.dropped ?? [] }; d.blocks = { ...compared, blueprint: m.blueprint ?? null, unreadTops: m.unreadTops ?? 0 };

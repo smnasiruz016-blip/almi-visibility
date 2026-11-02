@@ -38,9 +38,9 @@ export const STANDING = /\bgood standing\b|\bverif(?:y|ication|ied)\b|\bcertific
 const ASKS = /^(how|what|why|which|where|when|who|is|are|can|could|does|do|did|should|will|would|may|must|has|have)\b/i;
 const STORY = /\b(?:the|this|that|a) (?:student|video|channel|clip|post|comment|teacher|tutor|instructor)\b|\bmy (?:friend|teacher|tutor|cousin|sister|brother)\b|\b(?:he|she|his|her|him)\b/i;
 /* 🔴 RR-365 · collectors' questions are suggestions, not orders (beta-g, on pages marked ready). A form's or survey's prompt to the reader: "Which profession and country are you applying to?" */
-const SURVEY = /^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
+const SURVEY = /^can you (?:help|tell|give|share|suggest|recommend|send)\b|^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
 /* someone's impression, not a need: "Why does the speaking test feel like the candidate is the interviewer?" */
-const IMPRESSION = /^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b/i;
+const IMPRESSION = /^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b|\binterviewer\b[^?]*\bcandidate\b|\bcandidate\b[^?]*\binterviewer\b/i;
 /* nothing a reader can act on: with these words gone, nothing is left: "Is my answer accepted as right?" */
 const NO_THING = new Set(["answer", "accept", "right", "correct", "wrong", "true", "okay", "ok", "good", "bad", "fine", "thing", "stuff", "question", "problem", "one"]);
 const CONTEXTLESS = /^(?:is|are|does|do|can|will|would|should|was|were) (?:it|this|that|these|those|they)\b|\b(?:this|that) (?:one|page|article|answer|thing)\b|\babove\b/i;

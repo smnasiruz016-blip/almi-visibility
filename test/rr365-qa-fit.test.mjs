@@ -7,14 +7,15 @@ import { unclearWhy } from "../desktop/page-types.mjs";
 import { answerFitWhy, ownSiteAnswer, partFitWhy, fitParts, summaryFault } from "../desktop/truth-checks.mjs";
 import { subjectFactsOf, oldWording } from "../desktop/subject-facts.mjs";
 import { partsMissing } from "../desktop/page-quality.mjs";
-import { settleLocal } from "../desktop/exam-plan.mjs";
+import { settleLocal, priceHere, examPlan } from "../desktop/exam-plan.mjs";
+import { professionRegistered } from "../desktop/page-plan.mjs";
 
 const ON = "2026-11-02", opt = { subject: "OET" }, OFFICIAL = "https://official.example.org/x";
 const page = (url, text) => ({ ok: true, url, text, checkedOn: ON });
 const claim = (text, extra = {}) => ({ claimId: extra.claimId ?? text.slice(0, 8), text, link: OFFICIAL, ...extra });
 
 test("A form fields and survey prompts never enter a page", () => {
-  for (const q of ["Which profession and country are you applying to?", "Which test are you planning to take?", "What is your target score?", "Are you a nurse or a doctor?", "Where are you from?"]) assert.match(unclearWhy(q), /form's or a survey's/, q);
+  for (const q of ["Which profession and country are you applying to?", "Which test are you planning to take?", "What is your target score?", "Are you a nurse or a doctor?", "Where are you from?", "Can you help me find OET test practice material?"]) assert.match(unclearWhy(q), /form's or a survey's/, q);
   for (const q of ["What score do you need for nurses?", "Are you allowed to use a tablet?", "Can we use a pencil for writing the letter?"]) assert.equal(unclearWhy(q), null, q);
 });
 
@@ -22,6 +23,7 @@ test("A vague and odd questions never enter a page", () => {
   assert.match(unclearWhy("Is my answer accepted as right?"), /does not say/);
   assert.match(unclearWhy("Why does the speaking test feel like the candidate is the interviewer?"), /impression/);
   assert.match(unclearWhy("Why does the speaking student seem like the interviewer in videos?"), /impression/);
+  assert.match(unclearWhy("Is the speaking test interviewer the candidate?"), /impression/);
   assert.equal(unclearWhy("Is OET accepted in Ireland?"), null, "it names what it is about");
   assert.equal(unclearWhy("Why is the OET Writing task a letter?"), null, "a real why stays");
 });
@@ -54,6 +56,11 @@ test("B the fee for changing the venue is not the fee for changing the date", ()
   assert.equal(answerFitWhy("What is the fee for rescheduling an OET Test?", date, opt), null, "the date's fee answers the date");
 });
 
+test("B what a score means is not what one body asks", () => {
+  assert.match(answerFitWhy("What grade is 300 in OET?", "The UK's Nursing and Midwifery Council asks for at least grade B (350) and at least C+ (300) in Writing.", opt), /what a score means/);
+  assert.equal(answerFitWhy("What grade is 300 in OET?", "A score of 300 is grade C+ in OET.", opt), null);
+});
+
 test("B classes are not the test", () => {
   assert.match(answerFitWhy("Can I take OET online classes at home?", "OET is normally sat at a test venue; sitting at home (OET@Home) is limited to candidates with no venue available.", opt), /classes/);
   assert.equal(answerFitWhy("How do I register for an OET review class?", "Book by contacting one of the three official OET review centres to register.", opt), null);
@@ -71,14 +78,17 @@ test("B rules: a line under the rules states a rule; result timing and a venue l
 test("B councils: a price is not a council; nurses and doctors come first", () => {
   assert.match(partFitWhy("councils", "The full test costs AUD 587. In the United States that is about USD 413."), /price/);
   assert.equal(partFitWhy("councils", "Nursing Board registers nurses in Ruritania."), null);
-  const f = fitParts([{ part: "councils", question: "Which council registers each profession in Ruritania?", claims: ["Physio Board registers physiotherapists in Ruritania.", "Medical Board registers doctors in Ruritania.", "Vet Board registers vets in Ruritania.", "Nursing Board registers nurses in Ruritania."].map((t) => claim(t)) }], opt);
-  assert.deepEqual(f.parts[0].claims.map((c) => c.text.split(" ")[0]), ["Nursing", "Medical", "Physio", "Vet"]);
+  assert.equal(professionRegistered("Medical Rehabilitation Therapists Board of Nigeria registers physiotherapists in Nigeria — https://www.mrtb.gov.ng/."), "physiotherapy", "a name is not whom it registers");
+  assert.equal(professionRegistered("A Board registers vets in Ruritania — https://medical.example.org/"), professionRegistered("registers vets"), "nor is its address");
+  const f = fitParts([{ part: "councils", question: "Which council registers each profession in Ruritania?", claims: ["Medical Rehabilitation Board registers physiotherapists in Ruritania.", "Physio Board registers physiotherapists in Ruritania.", "Medical Board registers doctors in Ruritania.", "Vet Board registers vets in Ruritania.", "Nursing Board registers nurses in Ruritania."].map((t) => claim(t)) }], opt);
+  assert.deepEqual(f.parts[0].claims.map((c) => c.text.split(" registers ")[0]), ["Nursing Board", "Medical Board", "Medical Rehabilitation Board", "Physio Board", "Vet Board"]);
 });
 
 test("B a country page without the nurses' and doctors' councils is named, never ✅", () => {
   const html = (lines) => `<main><h1>t</h1><ul><li class="card"><span class="k">k</span><span class="v">USD 455</span></li></ul>${[["fee", ["USD 455"]], ["questions0", ["An answer."]], ["centres", ["A venue."]], ["councils", lines], ["rules", ["A rule."]]].map(([p, ls]) => `<details data-need-id="n--${p}"><summary>q?</summary>${ls.map((l, i) => `<p data-claim-id="c${i}">${l}</p>`).join("")}</details>`).join("")}</main>`;
   assert.deepEqual(partsMissing(html(["Physio Board registers physiotherapists in Ruritania."]), "country", { localCurrency: "USD" }), ["the nurses' council and the doctors' council"]);
   assert.deepEqual(partsMissing(html(["Nursing Board registers nurses in Ruritania."]), "country", { localCurrency: "USD" }), ["the doctors' council"]);
+  assert.deepEqual(partsMissing(html(["Nursing Board registers nurses in Ruritania.", "Medical Rehabilitation Board registers physiotherapists in Ruritania."]), "country", { localCurrency: "USD" }), ["the doctors' council"]);
   assert.deepEqual(partsMissing(html(["Nursing Board registers nurses in Ruritania.", "Medical Board registers doctors in Ruritania."]), "country", { localCurrency: "USD" }), []);
 });
 
@@ -89,7 +99,7 @@ test("found by reading OET's own page: the change fee and the re-mark fee are re
   ], "OET");
   assert.equal(facts.changeFee.text, "OET's own page: moving a paper booking to another date, venue or test type costs AU$120 up to the booking closing date and AU$200 after.");
   assert.equal(facts.changeFeeComputer.text, "OET's own page: rescheduling the test on computer or at home costs AU$120 (US$95 in the US) up to 7 days before the test and AU$200 (US$155 in the US) after that.");
-  assert.equal(facts.remarkFee.text, "OET's own page: a re-mark costs AU$120 per sub-test (US$95 in the US).");
+  assert.equal(facts.remarkFee.text, "OET's own page: a re-mark costs AU$120 (US$95 in the US) per sub-test.");
   assert.equal(facts.remarkHours.text, "OET's own page: a re-mark must be asked for within 72 hours of the results' release.");
   assert.equal(facts.remarkHours.link, "https://oet.example/remarking-policy"); assert.equal(facts.remarkHours.readOn, ON);
   assert.equal(oldWording("OET's own page: a change after the booking closing date costs AUD 120."), true, "the misread copy kept on a computer never reaches a page");
@@ -97,6 +107,16 @@ test("found by reading OET's own page: the change fee and the re-mark fee are re
   assert.equal(summaryFault("AU$120", facts.changeFee.text), "it shows one price, the fact has more than one");
   assert.equal(summaryFault("AU$120", facts.remarkFee.text), "it shows one price, the fact has more than one");
   assert.equal(summaryFault("USD 455 — OET's own price", "OET's own price in the United States is USD 455 for OET@Home in the US. Any other way of taking it costs AUD 587."), null, "the country's first fee card stays");
+});
+
+test("a price with its US price beside it: each page says its own, and it stays on every country page", () => {
+  const both = "OET's own page: a re-mark costs AU$120 (US$95 in the US) per sub-test.";
+  assert.equal(priceHere(both, "Nepal"), "OET's own page: a re-mark costs AU$120 per sub-test.");
+  assert.equal(priceHere(both, "United States"), "OET's own page: a re-mark costs US$95 per sub-test.");
+  const F = (k, text) => ({ claimId: k, text, link: "https://official.example.org/p", readOn: ON, source: "s", official: true });
+  const pl = (c) => examPlan({ subject: "OET", professions: [], countries: [c], facts: [{ id: "f", country: c, part: "fee", verified: true, official: "AUD 587", text: "OET costs AUD 587 here.", link: "https://oet.com/fee", on: ON }], subjectFacts: { remarkFee: F("subject-remarkFee", both) }, rates: { date: ON, rates: { NPR: 100, USD: 0.7 }, short: "R", link: "https://r.example.org" } }).pages.find((p) => p.country === c).items.find((i) => i.part === "fee").claims.map((x) => x.text);
+  assert.ok(pl("Nepal").includes("OET's own page: a re-mark costs AU$120 per sub-test."));
+  assert.ok(pl("United States").includes("OET's own page: a re-mark costs US$95 per sub-test."));
 });
 
 test("a merged page's fee never stands among the councils, nor beside the country's own price", () => {

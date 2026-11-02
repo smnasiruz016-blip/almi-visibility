@@ -8,7 +8,7 @@
 import { countriesIn } from "./world.mjs";
 import { meaningOf, NEED_GROUPS } from "./coverage.mjs";
 import { oldWording } from "./subject-facts.mjs";
-import { professionIn } from "./page-plan.mjs";
+import { professionIn, professionRegistered } from "./page-plan.mjs";
 import { unclearWhy } from "./page-types.mjs";
 
 const SUBTESTS = ["Listening", "Reading", "Writing", "Speaking"];
@@ -62,6 +62,8 @@ const THINGS = Object.freeze([
   { asks: /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?)\b/i, says: (a) => /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?|teach\w*|training|review cent(?:re|er)s?)\b/i.test(a), why: "it asks about classes, the answer is about the test itself" },
   /* how to pass is advice, not how scoring works */
   { asks: /^how\s+(?:do|can|should|could|to|does)\b[^?]*\b(?:pass|clear|crack|succeed|improve)\b/i, says: (a) => /\byou (?:should|need to|must)\b|\bto pass\b|\baim (?:for|to)\b|\bfocus on\b|\bwork on\b|\bpractice tests?\b|\bpractise\b|\brevise\b|\bstudy (?:the|your)\b|\btips?\b/i.test(a), why: "it asks how to pass, the answer only says how scoring works" },
+  /* what a score means is not what one body asks: "What grade is 300?" */
+  { asks: /^what (?:grade|score|band) is\b/i, says: (a) => !/\b(?:asks?|requires?|accepts?|wants?)\b/i.test(a), why: "it asks what a score means, the answer is what one body asks" },
   /* how long a pass counts is somebody's rule: say whose */
   { asks: /\b(?:valid|validity|expires?|expiry)\b/i, says: namesWhoSets, why: "it says how long a result counts, but not who sets that rule" },
 ]);
@@ -77,7 +79,7 @@ export function partFitWhy(part, text) {
 }
 /* the councils most candidates look for come first (owner + beta-g): nurses, then doctors, then the rest as they were */
 const COUNCIL_RANK = { nursing: 0, medicine: 1 };
-const councilRank = (c) => COUNCIL_RANK[professionIn(c.text)] ?? 2;
+const councilRank = (c) => COUNCIL_RANK[professionRegistered(c.text)] ?? 2;
 
 /**
  * B · why this answer does not answer its question → the reason, or null. `bodies` = [{ names, country }] (a regulator's name says its country); `loose`: a part the plan built for this very

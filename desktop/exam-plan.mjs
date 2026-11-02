@@ -149,6 +149,9 @@ export function officialLocalPrice({ facts = [], country, aud = null, subject })
   return null;
 }
 
+/* RR-365: a price with its US price beside it: a page about the US says the US price, every other page the other, never "in the US" on a page about Nepal */
+export const priceHere = (text, country) => String(text).replace(/AU\$\d[\d,]* \(US\$(\d[\d,]*) in the US\)/g, (all, us) => (country === "United States" ? `US$${us}` : all.split(" (")[0]));
+
 /* RR-356 (never filler): boards of one body that state the very same standard ("Medical Board of Australia (via Ahpra). Accepts OET. Tests on/after
  * …", nine times) are ONE line naming each board — the standard said once, its source the first board's page */
 export function sameStandard(facts) {
@@ -281,7 +284,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const feeSrc = feeFacts.find((f) => /oet\.com/.test(f.link) && officialOf(f)) ?? feeFacts.find(officialOf);
     const converted = feeSrc ? localFee({ official: officialOf(feeSrc), country: c, rates }) : null, ownPrice = officialLocalPrice({ facts: ok, country: c, aud: converted?.aud ?? null, subject }), lf = ownPrice ?? converted;
     const feeClaim = ownPrice ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: ownPrice.fact.link, readOn: ownPrice.fact.on, source: `${hostOf(ownPrice.fact.link)} — its own price`, official: true } : lf ? { claimId: `fee-${c}`, card: lf.card, text: lf.line, link: feeSrc.link, readOn: feeSrc.on, source: `${hostOf(feeSrc.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true } : null;
-    const other = [subjectFacts?.changeFee, subjectFacts?.changeFeeComputer, subjectFacts?.remarkFee].filter((f) => f?.text).map((f) => ({ ...fromSubject(f), card: null }));
+    const other = [subjectFacts?.changeFee, subjectFacts?.changeFeeComputer, subjectFacts?.remarkFee].filter((f) => f?.text).map((f) => ({ ...fromSubject(f), card: null, text: priceHere(f.text, c) }));
     const items = [
       { part: "fee", question: `How much does ${subject} cost in ${inCountry(c)}?`, claims: feeClaim ? [feeClaim, ...other] : [] },
       /* RR-362 item 19: only clear questions on this page's topic; a question the collectors planned a page for stands here (R3), first */

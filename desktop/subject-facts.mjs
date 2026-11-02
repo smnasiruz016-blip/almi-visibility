@@ -45,7 +45,7 @@ const RULES = [
   ["benchmarkIelts", /about\/backed-by-research$/, /\((\d{4}), updated [A-Za-z]+ (\d{4})\) The Occupational English Test and IELTS: A Benchmarking Report/i, (m, s) => `${s}'s own research page lists a study benchmarking ${s} against IELTS (${m[1]}, updated ${m[2]}).`],
   ["speakingOtherDay", /on-computer$|at-home$/, /Speaking sub-test will be completed on a different day, up to (\d) days before or after/i, (m, s) => `${s}'s own page: for the test on computer, Speaking is taken online on a different day, up to ${m[1]} days before or after the other sub-tests.`],
   /* RR-327 · re-marking (its own topic): the fee per sub-test and the window to ask, from the subject's re-marking policy page */
-  ["remarkFee", /remarking-policy$/, /AU\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?(?:\s*\/\s*US\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?)?[^.]{0,60}?per sub-?test/i, (m, s) => `${s}'s own page: a re-mark costs AU$${m[1]} per sub-test${m[2] ? ` (US$${m[2]} in the US)` : ""}.`], /* RR-365: "AU$120 (Global, except US) / US$95 (US only)" */
+  ["remarkFee", /remarking-policy$/, /AU\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?(?:\s*\/\s*US\s?\$\s?(\d{2,4})(?:\s*\([^)]{0,40}\))?)?[^.]{0,60}?per sub-?test/i, (m, s) => `${s}'s own page: a re-mark costs AU$${m[1]}${m[2] ? ` (US$${m[2]} in the US)` : ""} per sub-test.`], /* RR-365: "AU$120 (Global, except US) / US$95 (US only)" */
   ["remarkHours", /remarking-policy$/, /within\s+(\d{2,3})\s+hours\s+(?:from|of|after)/i, (m, s) => `${s}'s own page: a re-mark must be asked for within ${m[1]} hours of the results' release.`],
 ];
 /* RR-363: "12 days" for paper results was OET's old word: it never reaches a page again, from any source (the owner's ruling, recipe R12) */

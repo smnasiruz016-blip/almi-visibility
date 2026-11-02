@@ -50,7 +50,7 @@ test("RR-354 · 4 · the exam plan: one page per profession, one per main countr
   const what = x.pages.find((p) => p.title === "What is OET? The test, its fee and the scores asked");
   assert.deepEqual(what.questions.map((q) => q.question), ["oet examination", "oet english test"]);
   assert.deepEqual(x.existing, [{ text: "oet practice test", page: "https://prep.example/practice" }]);
-  assert.deepEqual(x.pages.filter((p) => p.kind === "topic").map((p) => p.title), ["What is OET? The test, its fee and the scores asked", "Oet Exam Price".replace("Oet", "OET"), "OET Result"]);
+  assert.deepEqual(x.pages.filter((p) => p.kind === "topic").map((p) => p.title), ["What is OET? The test, its fee and the scores asked", "OET Result"]);
   /* a topic page gets the checked fact that fits it — and two topics never share facts. RR-355 (owner: ONE exchange-rate service, never a
    * bank's rate): "PKR 113,000 at the bank's rate" is on no page; with no fee from OET's own page and no facts of OET's own pages, the
    * price page holds nothing — it is not made, never filled with another page's facts */

@@ -133,8 +133,8 @@ export async function coverageRoutes({ pages, file, browser = {}, paidOn = false
 const planRowTitle = (page, file) => { const kind = page.kind === KIND.destination || page.kind === KIND.origin ? "country-profession" : page.kind; return (file?.plan ?? []).find((p) => p.kind === kind && (p.country ?? null) === (page.country ?? null) && (p.profession ?? null) === (page.profession ?? null) && kind !== "question")?.title ?? null; };
 export const searchedLists = (pages, file) => pages.filter((p) => p.coverageRoute === ROUTES.paid && p.searchedOn).map((p) => ({ intent: planRowTitle(p, file) ?? p.title, on: p.searchedOn, read: p.topRead ?? [], paa: p.paa ?? [], related: p.related ?? [], coverage: (p.coverage ?? []).map((c) => c.topic ?? c), second: (p.second ?? []).map((x) => x.question ?? x) }));
 /** the run's one line: saved · reused · bought (R13), and what is left for tomorrow */
-export function searchCounts({ routes, paid = null, saved = 0 }) {
-  const reused = (routes?.saved ?? 0) + (routes?.browser ?? 0) + (paid?.reused ?? 0), bought = paid?.bought ?? 0, cost = paid?.cost ?? 0, later = routes?.none ?? 0;
+export function searchCounts({ routes, paid = null, saved = 0, later: laterPages = null }) {
+  const reused = (routes?.saved ?? 0) + (routes?.browser ?? 0) + (paid?.reused ?? 0), bought = paid?.bought ?? 0, cost = paid?.cost ?? 0, later = laterPages ?? routes?.none ?? 0;
   return { saved, reused, bought, cost, later, line: `Searches: ${saved} saved in AlmiSEO Data, ${reused} reused free, ${bought} bought ($${cost.toFixed(2)}).${later ? ` ${later} page${later === 1 ? "" : "s"} will be checked tomorrow.` : ""}` };
 }
 /** one page's ledger line: which route answered */

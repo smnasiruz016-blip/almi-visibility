@@ -167,8 +167,8 @@ function startHereHtml(H) {
 }
 const OVERVIEW = { label: "Next: Home →", go: () => work("Overview") }, PAGES = { label: "Next: Pages →", go: () => work("Pages and articles") }, PRODUCTS = { label: "Back to your products →", go: () => home() };
 const SCREEN_GUIDE = {
-  home: { line: "Your products — start with Start here below.", next: null },
-  "work:Overview": { line: "Your score, what to fix first, and the jobs Visibility does for you — tick them and press Start.", next: PAGES },
+  home: { line: "Your products, each with its one next step.", next: null },
+  "work:Overview": { line: "Your score and the one thing to do now.", next: PAGES },
   "work:Pages and articles": { line: "The pages Visibility made — Read it, then Approve & Publish, or Fix.", next: { label: "Back to Home →", go: () => work("Overview") } },
   "work:Approvals": { line: "Pages waiting for your yes (you chose \"Show me before publishing\").", next: PAGES },
   "work:YouTube": { line: "Advice for your channel and each video, and new video ideas.", next: OVERVIEW },
@@ -233,7 +233,7 @@ async function home() {
   const nav = `<nav id="homenav" class="pact"><button class="ghost" id="navhelp" type="button">Help</button><button class="ghost" id="navupd" type="button">Check for updates</button><button class="ghost" id="plan" type="button">Your plan${H.accountSet ? "" : " — add your licence key"}</button><button class="ghost" id="gsignon" type="button">Google sign-in: ${H.google?.on ? "on ✓" : "switch it on"}</button></nav>`;
   /* 🔴 RR-362 item 2 (R11): each product a card: one status line, ONE big next step. "Start here" only the first time */
   const firstTime = !H.products.some((p) => p.next?.action !== "check" && p.next?.action !== "settings") && (() => { try { return localStorage.getItem("av-started") !== "yes"; } catch { return true; } })();
-  $("#app").innerHTML = `${firstTime ? startHereHtml(H) : ""}<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
+  $("#app").innerHTML = `${nav}${firstTime ? startHereHtml(H) : ""}<div class="card company">${logo}<div><h1>${esc(H.company.name)}</h1><div class="site">${esc(H.company.site)}</div></div></div>
   <h2>Your products</h2><div class="pcards" id="pcards">${H.products.map((p) => `<div class="pcard" data-pcard="${esc(p.id)}"><h3>${esc(p.name)}</h3><div class="addr meta">${esc(p.site ?? "no website")}</div><p class="status" data-status>${esc(p.next?.status ?? "")}</p><button class="big nextgo" type="button" data-next="${esc(p.id)}" data-action="${esc(p.next?.action ?? "pages")}">${esc(p.next?.button ?? "Open")}</button>${p.sameSiteAs ? `<div class="warn" data-same>Same website as ${esc(p.sameSiteAs)} — keep one product per website: open ${esc(p.sameSiteAs)}, and delete this copy once you have checked it.</div>` : ""}<div class="meta today" data-today="${esc(p.id)}"></div><p class="small"><button class="linkbtn" type="button" data-open="${esc(p.id)}">Open</button> · <button class="linkbtn" type="button" data-settings="${esc(p.id)}">Settings</button> · <button class="linkbtn del" type="button" data-del="${esc(p.id)}" data-name="${esc(p.name)}" aria-label="Delete ${esc(p.name)}">🗑 Delete</button></p></div>`).join("") || `<div class="meta">No product yet. Add your first one below.</div>`}</div>
   <p style="margin-top:16px"><button id="add" ${H.mayAdd ? "" : "disabled"}>+ New product</button></p><div class="limit meta">${esc(H.limit)}</div><div class="err" id="err"></div>
   <p class="meta" style="margin-top:8px"><label class="check"><input type="checkbox" id="notify"> Tell me with a Windows notification when today's article is ready (while Visibility is open)</label> · A daily or weekly e-mail summary — coming soon</p>
@@ -244,7 +244,7 @@ async function home() {
   document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => askDelete(b.dataset.del, b.dataset.name)));
   document.querySelectorAll(".fcard").forEach((b) => (b.onclick = () => { if (!H.products.length) return addProduct(); if (H.products.length === 1) return openProduct(H.products[0].id).then(() => openFeature(b.dataset.f)); /* RR-348: the product (S) loaded first — a card on the home with one product threw "reading product of null" */ $("#err").textContent = "Pick a product above first — then choose this card on its page."; window.scrollTo(0, 0); }));
   if ($("#startopen")) $("#startopen").onclick = () => openProduct($("#startopen").dataset.open); if ($("#startadd")) $("#startadd").onclick = () => addProduct(); // RR-359
-  $("#add").onclick = () => addProduct(); $("#navadd").onclick = () => addProduct();
+  $("#add").onclick = () => addProduct();
   $("#navhelp").onclick = () => helpScreen(); $("#navupd").onclick = () => checkUpdates(true);
   $("#plan").onclick = () => planScreen();
   $("#gsignon").onclick = () => googleSignInScreen(home);
@@ -353,14 +353,18 @@ async function goNext(id, action) {
 }
 /* 🔴 RR-362 item 6 · THE BAR ON EVERY SCREEN: how much is done, about how long is left, what is happening now; a long job says the window may be closed */
 const jobHtml = (j) => j.running ? `<div class="jobcard" data-job="${esc(j.key)}"><p style="margin:0"><b>${esc(j.label)}</b>${j.of ? ` — <b data-jobcount>${j.done} of ${j.of}${j.unit ? ` ${esc(j.unit)}` : ""}</b>` : ""}${j.leftLine ? ` · ${esc(j.leftLine)}` : ""}</p><div class="progress"><div style="width:${j.percent ?? 5}%"></div></div><p class="meta" style="margin:0">${esc(j.what ?? "")}${j.canClose ? " · You can close this window. The work goes on, and you get a notification when it is done." : ""}</p></div>` : `<div class="jobcard" data-job="${esc(j.key)}"><b>${j.ok ? "✓" : "!"} ${esc(j.label)}</b>${j.line ? ` — ${esc(j.line)}` : ""} <button class="linkbtn" type="button" data-jobok="${esc(j.key)}">OK</button></div>`;
-const JOB_SEEN = new Set();
+const JOB_SEEN = new Set(); let DOWN = 0;
+/* a short job that went well says nothing when it ends; a long one, or a failure, does */
+const jobShown = (j) => j.running || (!JOB_SEEN.has(j.key) && (j.ok === false || j.seconds >= 20));
 async function jobLoop() {
-  let J = null; try { J = await get("/api/jobs"); } catch {}
+  let J = null; try { const r = await fetch("/api/jobs", { cache: "no-store" }); J = await r.json(); } catch { DOWN++; }
   const box = $("#jobbar");
-  if (J && box) { const show = J.jobs.filter((j) => j.running || !JOB_SEEN.has(j.key)); const html = show.map(jobHtml).join(""); if (box.dataset.was !== html) { box.innerHTML = html; box.dataset.was = html; box.querySelectorAll("[data-jobok]").forEach((b) => (b.onclick = () => { JOB_SEEN.add(b.dataset.jobok); box.dataset.was = ""; jobLoop0(); })); } for (const j of J.jobs) if (j.running) JOB_SEEN.delete(j.key); }
+  /* the app itself stopped: said, with what to do; the work starts again by itself (a run in progress is remembered) */
+  if (!J && box && DOWN >= 3 && !$("#updback")) { box.innerHTML = `<div class="warn" id="appdown">Visibility stopped working just now. Open it again from its desktop icon. Nothing is lost, and work that was running starts again by itself.</div>`; box.dataset.was = ""; }
+  if (J && box) { if (DOWN) { DOWN = 0; box.dataset.was = ""; } const show = J.jobs.filter(jobShown); const html = show.map(jobHtml).join(""); if (box.dataset.was !== html) { box.innerHTML = html; box.dataset.was = html; box.querySelectorAll("[data-jobok]").forEach((b) => (b.onclick = () => { JOB_SEEN.add(b.dataset.jobok); box.dataset.was = ""; jobLoop0(); })); } for (const j of J.jobs) if (j.running) JOB_SEEN.delete(j.key); }
   setTimeout(jobLoop, J?.jobs?.some((j) => j.running) ? 1500 : 5000);
 }
-function jobLoop0() { get("/api/jobs").then((J) => { const box = $("#jobbar"); if (box) box.innerHTML = J.jobs.filter((j) => j.running || !JOB_SEEN.has(j.key)).map(jobHtml).join(""); box?.querySelectorAll("[data-jobok]").forEach((b) => (b.onclick = () => { JOB_SEEN.add(b.dataset.jobok); jobLoop0(); })); }).catch(() => {}); }
+function jobLoop0() { get("/api/jobs").then((J) => { const box = $("#jobbar"); if (box) box.innerHTML = J.jobs.filter(jobShown).map(jobHtml).join(""); box?.querySelectorAll("[data-jobok]").forEach((b) => (b.onclick = () => { JOB_SEEN.add(b.dataset.jobok); jobLoop0(); })); }).catch(() => {}); }
 function cardsHtml(cards, { checking = false } = {}) {
   const sorted = [...cards.filter((c) => c.recommended), ...cards.filter((c) => !c.recommended)];
   /* a check that is running is never offered again — its card says so */
@@ -927,9 +931,10 @@ async function overview() {
   const ageDays = c?.on ? Math.floor((Date.now() - Date.parse(c.on)) / 864e5) : null;
   const checkWord = O.noWebsite ? "Check my channel now" : "Check my product now";
   const scoreHtml = O.checking ? checkingHtml(O.progress) : c?.failed ? `<div class="failed"><h3>Check failed — your website could not be opened.</h3><p>${esc(c.why)}${c.suggestion ? ` Did you mean ${esc(c.suggestion)}?` : ""}</p><button id="fixaddr">Fix the address in Settings</button></div>${ytGauge ? `<div class="score">${ytGauge}</div>` : ""}`
-    : c ? `<div class="score"><div>${gauge(c)}${ytGauge || c.youtubeOnly ? `<div class="meta" style="text-align:center">${c.youtubeOnly ? "YouTube" : "Website"}</div>` : ""}</div>${ytGauge}${areasHtml(c)}</div>
-    <p class="meta">Checked on ${esc(String(c.on).slice(0, 16).replace("T", " at "))} (${ageDays === 0 ? "today" : ageDays === 1 ? "1 day ago" : `${ageDays} days ago`})${c.youtubeOnly ? "" : ` · ${c.pagesRead} page${c.pagesRead === 1 ? "" : "s"} read`}.${c.notChecked ? ` ${esc(c.notChecked)}` : ""} ${esc(c.noPromise)}</p>
-    ${ageDays >= 1 && !O.checking ? `<div class="warn" id="oldcheck">Your last check is ${ageDays === 1 ? "a day" : `${ageDays} days`} old — what you changed since is not in it. <button id="chk2">Check now</button></div>` : ""}` : `<p>No check yet.</p>`;
+    : c ? `<div class="score"><div>${gauge(c)}${ytGauge || c.youtubeOnly ? `<div class="meta" style="text-align:center">${c.youtubeOnly ? "YouTube" : "Website"}</div>` : ""}</div>${ytGauge}</div>`
+    : `<p>No check yet.</p>`;
+  const scoreMore = !c || c.failed || O.checking ? "" : `${areasHtml(c)}<p class="meta">Checked on ${esc(String(c.on).slice(0, 16).replace("T", " at "))} (${ageDays === 0 ? "today" : ageDays === 1 ? "1 day ago" : `${ageDays} days ago`})${c.youtubeOnly ? "" : ` · ${c.pagesRead} page${c.pagesRead === 1 ? "" : "s"} read`}.${c.notChecked ? ` ${esc(c.notChecked)}` : ""} ${esc(c.noPromise)}</p>
+    ${ageDays >= 1 && !O.checking ? `<div class="warn" id="oldcheck">Your last check is ${ageDays === 1 ? "a day" : `${ageDays} days`} old — what you changed since is not in it. <button id="chk2">Check now</button></div>` : ""}`;
   /* RR-310 A2 + A3 + D: "What I will do for you", then "What to fix first" = the action plan's THIS WEEK, then the rest of the plan */
   const PL = O.plan, W = O.willDo;
   /* RR-353 (owner): tick one or more of the jobs, then ONE "Start the ticked jobs" — each job shows its own state as it runs */
@@ -966,7 +971,7 @@ async function overview() {
     <h4 style="margin-top:10px">Before a page goes live</h4><label class="choice"><input type="radio" class="nodirty" name="appr" value="review" ${O.review ? "checked" : ""}> <b>Show me before publishing</b></label><label class="choice"><input type="radio" class="nodirty" name="appr" value="publish" ${O.review ? "" : "checked"}> <b>Publish for me</b> <span class="meta">— each page goes live once it passes every check</span></label>
     <p><button class="big" id="jobsgo" type="button">Start</button> <span id="jobsmsg"></span></p><div id="jobrep">${O.report ? reportHtml(O.report) : ""}</div></div>`;
   const more = `<details class="card more" id="more"><summary><b>More</b> — each job on its own, the page count, and the full plan</summary>${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}</details>`;
-  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${whatNowHtml(NEXT)}<details class="card more" id="homemore"><summary>See everything else</summary>${asCardHtml(O.almiseo)}${O.checking ? "" : `<p><button id="chk" class="ghost">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
+  $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${whatNowHtml(NEXT)}<details class="card more" id="homemore"><summary>See everything else</summary>${scoreMore}${asCardHtml(O.almiseo)}${O.checking ? "" : `<p><button id="chk" class="ghost">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
     <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${jobListHtml(O.menu.cards, { topJobs: O.topJobs ?? [], moreJobs: O.moreJobs ?? [] }, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}${O.noWebsite ? "" : found}</details><div id="featbox"></div>`;
   if ($("#whatgo")) $("#whatgo").onclick = () => goNext(P, $("#whatgo").dataset.action);
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;

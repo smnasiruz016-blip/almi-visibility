@@ -35,7 +35,7 @@ export function ownerReview({ facts = [], product = "oet", products = [], order 
 <div class="card" id="reviewbar" data-product="${esc(product)}" data-total="${list.length}" style="position:sticky;top:0;z-index:5"><p><b id="reviewleft">${list.length} of ${list.length} left</b> <span id="reviewmsg" role="status"></span></p>
 <p class="row"><label>Country <select id="reviewcountry"><option value="">All countries</option>${countries.map((c) => `<option>${esc(c)}</option>`).join("")}</select></label> <label>Part <select id="reviewpart"><option value="">All parts</option>${parts.map((p) => `<option value="${esc(p)}">${esc(names[p] ?? p)}</option>`).join("")}</select></label> <button class="pill ghost" type="button" id="reviewnext">Next country</button></p>
 <p class="row"><label class="check"><input type="checkbox" id="reviewall"> Tick all shown</label> <button class="pill" type="button" id="reviewapprove">Approve ticked</button> <button class="pill ghost" type="button" id="reviewreject">Reject ticked</button></p></div>
-${list.length ? `<ul class="plain" id="reviewlist">${sorted.map(row).join("")}</ul>` : `<p class="note" id="reviewdone">Nothing is waiting for you.</p>`}<script src="/review.js" defer></script>`);
+${list.length ? `<ul class="plain" id="reviewlist" style="list-style:none;padding:0">${sorted.map(row).join("")}</ul>` : `<p class="note" id="reviewdone">Nothing is waiting for you.</p>`}<script src="/review.js" defer></script>`);
 }
 
 /* the page's script (the site's Content-Security-Policy allows its own scripts only) */

@@ -427,7 +427,8 @@ const RESEARCH_READS = 6, DETAIL_READS = 12;
 async function examResearch(id, subject, onRead = null) {
   const s = store.read(id), list = listOf(s, subject, id)?.items ?? [];
   const facts = usableFacts([...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, subject)).flat()]);
-  const reads = pread(id, "research-reads.json", {}), cache = { get: (u) => reads[u] ?? null, set: (u, v) => { reads[u] = v; } };
+  /* RR-362: each page read is kept at once: a run that stops never reads it twice */
+  const reads = pread(id, "research-reads.json", {}), cache = { get: (u) => reads[u] ?? null, set: (u, v) => { reads[u] = v; pwrite(id, "research-reads.json", reads); } };
   const out = {}, budget = { left: CONFIG.testOffline === true ? 0 : Number.isInteger(CONFIG.testResearchReads) ? CONFIG.testResearchReads : RESEARCH_READS }, rd = budget.left > 0 ? reader() : null;
   for (const prof of professionsOf()) { const qs = professionQuestions({ subject, prof, destinations: destinationsFor(prof, list) }); connectByMeaning({ questions: qs, facts, prof, subject }); out[prof] = qs; }
   /* RR-359: with the client's search-results switch on, Google's results name each council's own page (its own website only; cached) */
@@ -835,7 +836,8 @@ const making = new Map();
 function createPages(id) {
   if (making.has(id)) return making.get(id);
   const key = `make:${id}`; BOARD.start(key, { product: id, kind: "make", label: "Making your pages", what: "Reading what we already hold", long: true, unit: "pages" });
-  const run = makePages(id, key).then((r) => { BOARD.finish(key, { ok: !r.refused, line: r.refused ?? `${(r.pages?.drafts ?? []).filter((d) => d.readyAsDraft && !d.improve).length} pages are ready for you.` }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
+  pwrite(id, "run-in-progress.json", { on: new Date().toISOString() });
+  const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? `${(r.pages?.drafts ?? []).filter((d) => d.readyAsDraft && !d.improve).length} pages are ready for you.` }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
   making.set(id, run); return run;
 }
 const stageClock = () => { const marks = [], t0 = Date.now(); let last = t0; return { mark: (stage) => { const n = Date.now(); marks.push({ stage, seconds: Math.round((n - last) / 100) / 10 }); last = n; }, done: () => ({ total: Math.round((Date.now() - t0) / 1000), stages: marks }) }; };
@@ -903,7 +905,7 @@ async function makePages(id, key) {
   /* RR-359: the councils' own pages found through Google's results are searches too — counted, and their cost, in the run's line */
   if (serp?.on) { const cs = (dfsLedger().spent ?? []).slice(councilFrom).filter((x) => / English language requirement$/.test(x.q ?? "")); if (cs.length) { const c = cs.reduce((t, x) => t + (Number(x.cost) || 0), 0); serp.line += ` The councils' own pages, found through Google's results: ${cs.length} more search${cs.length === 1 ? "" : "es"}, $${c.toFixed(4)} (all searches this run: ${(serp.searches ?? 0) + cs.length}, $${((serp.cost ?? 0) + c).toFixed(4)}).`; serp.searches = (serp.searches ?? 0) + cs.length; serp.cost = (serp.cost ?? 0) + c; } }
   /* RR-362 item 14: "saved / reused / bought", in one line; the long account stays beside it */
-  const counts = searchCounts({ routes: serp?.routes ?? genericRoutes?.counts ?? null, paid: routes?.paid ?? genericRoutes?.paid ?? null, saved: savedCount });
+  const counts = searchCounts({ routes: serp?.routes ?? genericRoutes?.counts ?? null, paid: routes?.paid ?? genericRoutes?.paid ?? null, saved: savedCount, later: pages.drafts.filter((d) => d.checkLater).length });
   if (serp) pages.serp = { on: serp.on, line: counts.line, counts, detail: [serp.routesLine, serp.on ? serp.line : null].filter(Boolean).join(" "), searches: serp.searches ?? 0, cost: serp.cost ?? 0, stopped: serp.stopped ?? null, routes: serp.routes ?? null };
   else if (genericRoutes) pages.serp = { on: false, line: counts.line, counts, detail: genericRoutes.line, searches: genericRoutes.paid?.searches ?? 0, cost: genericRoutes.paid?.cost ?? 0, stopped: genericRoutes.paid?.stopped ?? null, routes: genericRoutes.counts };
   if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing, notBuilt: exam.notBuilt ?? [], merged: exam.merged ?? [] };
@@ -985,7 +987,8 @@ async function weeklyRound() {
 /* 🔴 RR-362 item 13: "Not read yet" never blocks a page: the day after, the run goes on by itself for the pages not read yet (what is saved is reused free; nothing is bought twice) */
 async function continueChecks() {
   const today = new Date().toISOString().slice(0, 10);
-  for (const p of store.list()) { try { const pending = pread(p.id, "pending-checks.json", null); if (checksDue(pending, { today, running: making.has(p.id) })) await createPages(p.id); } catch { /* tried again next hour */ } }
+  /* RR-362: a run the app was stopped in (the computer turned off, the app crashed, an update) goes on by itself, what it already read kept */
+  for (const p of store.list()) { try { const pending = pread(p.id, "pending-checks.json", null); if (!making.has(p.id) && (existsSync(pfile(p.id, "run-in-progress.json")) || checksDue(pending, { today, running: false }))) await createPages(p.id); } catch { /* tried again next hour */ } }
 }
 setTimeout(() => { weeklyRound(); continueChecks(); setInterval(() => { weeklyRound(); continueChecks(); }, 3600e3).unref(); }, Number.isInteger(CONFIG.weeklyFirstMs) ? CONFIG.weeklyFirstMs : 5 * 60e3).unref();
 /* 🔴 RR-360 A3 · AlmiSEO Data is read on start and on a schedule, for every product (the page says when it was last read) */

@@ -70,7 +70,7 @@ const nameIn = (text, word) => new RegExp(`(?<![\\p{L}])${String(word).replace(/
 /* G4: people ask in search wordings too ("Australia OET score for nurses"): such a wording counts when it names BOTH the place and the people; never one that asks for another site or a free copy */
 const OTHER_SITE = /\b(reddit|quora|youtube|pdf|free|login|near me)\b/i;
 const namesPeople = (q, people) => people.some((w) => nameIn(q, w) || nameIn(q, String(w).replace(/s$/, "")));
-export const askedHere = (q, { place, people = [] }) => { if (clearQuestion(q, { place })) return nameIn(q, place) || namesPeople(q, people); return nameIn(q, place) && namesPeople(q, people) && !OTHER_SITE.test(String(q)) && String(q).trim().split(/\s+/).length >= 3; };
+export const askedHere = (q, { place, people = [] }) => { if (ASKS.test(String(q).trim()) || /\?\s*$/.test(String(q))) return clearQuestion(q, { place }) && (nameIn(q, place) || namesPeople(q, people)); return nameIn(q, place) && namesPeople(q, people) && !OTHER_SITE.test(String(q)) && String(q).trim().split(/\s+/).length >= 3; };
 
 /** the core parts a planned page still lacks (each by the words above): `askedHeads` = its headings that are questions people ask */
 export function coreMissingOfPlan(page, category = "exam") {

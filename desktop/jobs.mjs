@@ -14,7 +14,7 @@ export function leftWords(seconds) {
 export function jobBoard({ now = () => Date.now(), keepFinishedMs = 15 * 60e3, onFinish = null } = {}) {
   const jobs = new Map();
   const view = (j) => {
-    const seconds = Math.round((now() - j.started) / 1000), /* the time left is this step's own pace (a run has several steps, each with its own count) */ inStep = (now() - (j.stepAt ?? j.started)) / 1000, left = j.running && j.done > 0 && j.of > j.done ? Math.round((inStep / j.done) * (j.of - j.done)) : null, long = j.running && (j.long || seconds + (left ?? 0) >= LONG_SECONDS);
+    const seconds = Math.round(((j.ended ?? now()) - j.started) / 1000), /* the time left is this step's own pace (a run has several steps, each with its own count) */ inStep = (now() - (j.stepAt ?? j.started)) / 1000, left = j.running && j.done > 0 && j.of > j.done ? Math.round((inStep / j.done) * (j.of - j.done)) : null, long = j.running && (j.long || seconds + (left ?? 0) >= LONG_SECONDS);
     return { key: j.key, product: j.product, kind: j.kind, label: j.label, done: j.done, of: j.of, unit: j.unit, what: j.what, seconds, secondsLeft: left, leftLine: j.running ? (j.of ? leftWords(left) : null) : null, running: j.running, ok: j.ok, line: j.line, canClose: long, percent: j.of ? Math.min(j.running ? 99 : 100, Math.round((j.done / j.of) * 100)) : j.running ? null : 100 };
   };
   return Object.freeze({

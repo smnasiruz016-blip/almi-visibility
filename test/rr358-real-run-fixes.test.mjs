@@ -108,7 +108,7 @@ test("RR-358 · 2 · the client's look read from the LIVE site when the saved re
   const d = seoPages({ site, searchConsole: { queries: [{ query: "how long does teeth whitening take", impressions: 30 }], window: "28 days" }, on: "2026-11-01T10:00:00Z" }).drafts[0];
   assert.deepEqual(d.gates.find((g) => g.gate === "G").failing, ["This page does not look like your site yet. Why: your home page https://client.example/ answered 503 instead of the page — check that it opens in a browser, then press Create SEO pages again."]);
   /* wired: pages are made only after the look is read again when the saved read has none */
-  assert.ok(/async function makePages\(id, key\) \{[^\n]*\n[^\n]*\n  await ensureLook\(id\);/.test(MAIN) && MAIN.includes("if (!site?.ok || site.shell || !hasWebsite(s)) return site;"));
+  assert.ok(/async function makePages\(id, key\) \{(?:\n[^\n]*){1,3}\n  await ensureLook\(id\);/.test(MAIN) && MAIN.includes("if (!site?.ok || site.shell || !hasWebsite(s)) return site;"));
 });
 
 test("RR-358 · 3 · an IMPROVE topic is the client's EXISTING page: its address, every link pointing there, counted apart, never published as a second page", async () => {

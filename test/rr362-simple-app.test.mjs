@@ -70,6 +70,9 @@ test("item 4: four tabs: Home, Pages, Data, Settings; the rest under More; Home 
   assert.match(UI, /id="astab">Data<\/button><button class="ghost" id="set">Settings<\/button><details class="moretabs" id="moretabs"><summary>More<\/summary>/);
   assert.ok(UI.includes('<h3>What to do now</h3>')); assert.equal((/const whatNowHtml = [^\n]*/.exec(UI)[0].match(/<button/g) ?? []).length, 1, "ONE button");
   assert.ok(UI.indexOf("${whatNowHtml(NEXT)}") < UI.indexOf('id="homemore"'), "the box first; everything else closed");
+  assert.ok(UI.includes("<summary>See everything else</summary>${scoreMore}"), "the long list of what to fix is closed");
+  assert.ok(UI.includes("$(\"#app\").innerHTML = `${nav}${firstTime"), "the top menu is drawn: every button the screen wires exists");
+  assert.ok(!UI.includes('$("#navadd")'));
 });
 
 test("item 5: no internal word on what the client reads", () => {
@@ -84,6 +87,11 @@ test("item 5: no internal word on what the client reads", () => {
 test("item 13: the Pages tab says what is left for tomorrow in one line, and what was merged, never a wall of warnings", () => {
   assert.match(UI, /will be checked tomorrow\./); assert.match(UI, /merged into bigger pages/); assert.match(MAIN, /r\[2\] === "plan-summary"/);
   assert.match(MAIN, /checksDue\(pending,/); assert.match(MAIN, /continueChecks\(\)/);
+});
+
+test("the app stopping loses nothing: a run in progress is remembered and goes on; each official page read is kept at once; the window says what to do", () => {
+  assert.match(MAIN, /pwrite\(id, "run-in-progress\.json"/); assert.match(MAIN, /existsSync\(pfile\(p\.id, "run-in-progress\.json"\)\)/); assert.match(MAIN, /set: \(u, v\) => \{ reads\[u\] = v; pwrite\(id, "research-reads\.json", reads\); \}/);
+  assert.match(UI, /id="appdown">Visibility stopped working just now/);
 });
 
 test("the new modules ship in the Setup (a whitelist: a file not on it is missing)", () => {

@@ -1089,8 +1089,8 @@ async function startJobs() {
   $("#jobrep").innerHTML = reportHtml(r.report); wireReport($("#jobrep"));
 }
 const reportHtml = (R) => `<div class="report" id="report"><h3>${esc(R.headline)}</h3>
-  ${R.needOk?.length ? `<p><b>Waiting for your OK</b></p><ul>${R.needOk.map((x) => `<li>${esc(x.title)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul>` : ""}
-  ${R.needWork?.length ? `<p><b>Need work</b></p><ul>${R.needWork.map((x) => `<li>${esc(x.title)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul>` : ""}
+  ${R.needOk?.length ? `<details class="replist"><summary><b>Waiting for your OK (${R.needOk.length})</b></summary><ul>${R.needOk.map((x) => `<li>${esc(x.title)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul></details>` : ""}
+  ${R.needWork?.length ? `<details class="replist"><summary><b>Need work (${R.needWork.length})</b></summary><ul>${R.needWork.map((x) => `<li>${esc(x.title)} — <span class="meta">${esc(x.why)}</span></li>`).join("")}</ul></details>` : ""}
   ${R.lines?.length ? `<ul class="meta">${R.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
   ${R.next ? `<p><button class="big" data-next="${esc(R.next.action)}">${esc(R.next.label)}</button> <span id="nextmsg"></span></p>` : ""}</div>`;
 function wireReport(root) {

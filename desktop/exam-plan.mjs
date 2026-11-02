@@ -280,9 +280,10 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     return { kind: "country", country: c, title: `${subject} in ${inCountry(c)}: fee, centres and councils`, questions: mine.filter((f) => f.part === "questions" && f.question).map((f) => ({ question: f.question, source: `AlmiWorld's question collector — asked by people in ${inCountry(c)}`, on: f.on })) /* RR-356 G1: their questions are demand evidence */, items, localCurrency: lf?.currency ?? CURRENCY_OF[c] ?? null, content: table ? { table, lastUpdated: rates?.date ?? null } : null };
   });
   /* each search joins the page it is about; the rest are topics, one page per need */
-  const askedOfPair = {}, topics = new Map(), sitePages = (site?.pages ?? []).map((p) => ({ url: p.url, need: needOf([p.h1, p.title].filter(Boolean).join(" "), subject) }));
+  const rankOf = {}, askedOfPair = {}, topics = new Map(), sitePages = (site?.pages ?? []).map((p) => ({ url: p.url, need: needOf([p.h1, p.title].filter(Boolean).join(" "), subject) }));
   for (const d of [...demand].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))) {
     const why = skipWhy(d.text); if (why) { if (skipped.length < 300) skipped.push({ text: d.text, why }); skippedMore++; continue; }
+    if (d.ranks) { rankOf[d.ranks] = Math.max(rankOf[d.ranks] ?? 0, d.weight); continue; } /* RR-363 (R15, item 22): what most people read ranks the page that answers it; it is no page of its own */
     const prof = professionIn(d.text), where = countriesIn(d.text).filter((c) => cs.includes(c));
     if (prof && where.length) (askedOfPair[`${prof}|${where[0]}`] ??= []).push({ question: d.text, source: d.source }); // RR-362: what a C or D page must answer
     if (prof && profPages.some((p) => p.profession === prof)) { join(profPages.find((p) => p.profession === prof), { question: d.text, source: d.source }); continue; }
@@ -293,8 +294,9 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, title: need ? title(d.text) : `What is ${subject}? The test, its fee and the scores asked`, questions: [], source: d.source };
     if (topics.has(mapKey)) join(t, { question: d.text, source: d.source }); topics.set(mapKey, t);
   }
+  const hasFacts = (t) => Number(t.key === "what" || topicItems(t.key, subjectFacts, subject).length > 0 || t.key === "fee");
   /* a TOPIC page: the subject's own facts about its topic only; two topics never carry the same facts (a page with another's facts competes) */
-  const used = new Set(), chosen = [...topics.values()].slice(0, maxTopics), itemsOf = new Map();
+  const used = new Set(), chosen = [...topics.values()].sort((a, b) => hasFacts(b) - hasFacts(a) || (rankOf[b.key] ?? 0) - (rankOf[a.key] ?? 0)).slice(0, maxTopics) /* RR-363: a topic we can say nothing about takes no place */, itemsOf = new Map();
   /* a sub-test page owns its sub-test's facts: the sub-test topics choose first, the general topics after */
   /* RR-363: booking before dates: the booking facts are its own, a schedule page may stand on the rest */
   const FIRST = (k) => (SUBTESTS.includes(k) ? 2 : k === "book" ? 1 : 0);

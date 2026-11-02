@@ -4,7 +4,7 @@
  */
 export const HELP_VIEWS = Object.freeze({
   OET: Object.freeze({ source: "the views OET's help centre showed the owner on 2 Nov 2026", rows: Object.freeze([
-    ["How do I see my {S} results?", 420000], ["Can I defer or reschedule my {S} test, and what does it cost?", 199000], ["What ID can I use for {S}?", 155000], ["How much does {S} cost?", 100000], ["What special testing arrangements does {S} offer?", 43000], ["Can a refugee or asylum seeker without a passport take {S}?", 8000],
+    ["How do I see my {S} results?", 420000, "result"], ["Can I defer or reschedule my {S} test, and what does it cost?", 199000, "fee"], ["What ID can I use for {S}?", 155000], ["How much does {S} cost?", 100000, "fee"], ["What special testing arrangements does {S} offer?", 43000], ["Can a refugee or asylum seeker without a passport take {S}?", 8000],
   ]) }),
 });
 const STOP = new Set(["how", "do", "does", "i", "my", "can", "what", "the", "a", "an", "and", "or", "it", "for", "of", "in", "is", "to", "test", "take"]);
@@ -17,4 +17,4 @@ export function viewsOf(question, subject) {
   return best;
 }
 /** the help centre's questions as demand evidence (G1) */
-export const helpDemand = (subject) => (HELP_VIEWS[subject]?.rows ?? []).map(([t, v]) => ({ text: t.replace("{S}", subject), source: `${HELP_VIEWS[subject].source}: ${Math.round(v / 1000)}K`, weight: 8 + Math.log10(v) }));
+export const helpDemand = (subject) => (HELP_VIEWS[subject]?.rows ?? []).filter((r) => r[2]).map(([t, v, topic]) => ({ text: t.replace("{S}", subject), source: `${HELP_VIEWS[subject].source}: ${Math.round(v / 1000)}K`, weight: 8 + Math.log10(v), ranks: topic }));

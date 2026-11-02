@@ -157,8 +157,9 @@ test("real demand ranks a page's questions: what most people read comes first", 
   const fee = { id: "f", country: "Ireland", part: "fee", verified: true, official: "AUD 500", text: "OET costs AUD 500 here.", link: SRC, on: ON };
   const home = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [fee, ...asked], subjectFacts: subjectFactsOf(pages, "OET"), demand: [], site }).pages.find((x) => x.kind === "country");
   assert.equal(home.items.find((it) => /^questions/.test(it.part)).question, "How do I see my OET results?", "the most-read question is first, not cut as the ninth");
-  const titles = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: subjectFactsOf(pages, "OET"), demand: [{ text: "oet schedule", source: "keywords", weight: 8.5 }, { text: "oet booking", source: "keywords", weight: 8.4 }, ...helpDemand("OET")], site }).pages.filter((x) => x.kind === "topic").map((x) => x.title);
-  assert.match(titles[0], /See My OET Results/i, titles.join(" | "));
+  const topicsOf = (o = {}) => examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: subjectFactsOf(pages, "OET"), demand: [{ text: "oet schedule", source: "keywords", weight: 8.5 }, { text: "oet booking", source: "keywords", weight: 8.4 }, { text: "oet result", source: "keywords", weight: 2 }, ...helpDemand("OET")], site, ...o }).pages.filter((x) => x.kind === "topic").map((x) => x.title);
+  const titles = topicsOf(); assert.match(titles[0], /^OET Result/, titles.join(" | "));
+  assert.ok(titles.every((x) => !/See My|Defer|How Much/i.test(x)), `a help-centre row is no page of its own: ${titles.join(" | ")}`); assert.ok(titles.some((x) => /Booking/.test(x)), "and takes no page's place");
   assert.match(readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), /const demand = \[\.\.\.helpDemand\(seedOf\(s\)\),/, "the app feeds them in");
 });
 
@@ -223,3 +224,7 @@ test("the old wording is refused at the door: a page that still says 12 days fil
   assert.equal(f.resultsPaper, undefined);
 });
 
+test("a topic we can say nothing about takes no page's place among the ten", () => {
+  const titles = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: subjectFactsOf(pages, "OET"), demand: [{ text: "oet study", source: "keywords", weight: 9 }, { text: "oet booking", source: "keywords", weight: 8 }], site, maxTopics: 1 }).pages.filter((x) => x.kind === "topic").map((x) => x.title);
+  assert.ok(titles.some((x) => /Booking/.test(x)), titles.join(" | "));
+});

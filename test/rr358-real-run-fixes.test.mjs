@@ -85,7 +85,7 @@ test("RR-358 · 1 · Google's results for EVERY page on a real run — inside th
   assert.match(plainSerpWhy(40210, "insufficient funds."), /^your DataForSEO balance is too low/);
   assert.deepEqual([readSerp(DENIED).code, readSerp(DENIED).stop], [40100, true]);
   /* wired: the run uses it for every page; the page's ⚠️ and its ledger line say what stopped it; the report carries the line */
-  assert.ok(MAIN.includes("const out = await searchPages({ pages: plan.pages,") && !MAIN.includes("plan.pages.slice(0, 30)"));
+  assert.ok(MAIN.includes("const pagesToSearch = Array.isArray(CONFIG.testSerpOnly) ? plan.pages.filter((p) => CONFIG.testSerpOnly.includes(p.title)) : plan.pages;") && MAIN.includes("const out = await searchPages({ pages: pagesToSearch,") && !MAIN.includes("plan.pages.slice(0, 30)")); /* RR-366: only the one live proof narrows it */
   assert.ok(SEO.includes("d.checkLater = m.route === \"none\" || Boolean(m.serpWhy);")); /* RR-362 item 13: never a failure: checked on a later day */
   assert.ok(MAIN.includes("p.serpWhy ? `Google's results were not read for this page: ${p.serpWhy}` : routeLine(p)")); // RR-360: and the route that answered
   assert.ok(MAIN.includes("if (x.pages.serp?.line) lines.push(x.pages.serp.line);"));

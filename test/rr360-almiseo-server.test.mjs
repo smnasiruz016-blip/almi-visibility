@@ -227,13 +227,13 @@ test("C + Part D's source: each intent once, saved with its date, reused free; a
 test("C + Part D's source: a list already saved is never bought again, even when its coverage list was not finished (a run stopped between)", async () => {
   const w = await world(); let n = 0;
   await w.seo.putList({ topic: "oet", intent: "OET in Pakistan", location: "United States", language: "en", day: DAY, results: [{ url: "https://a.example/one", title: "x" }], paa: ["Is OET hard?"], related: [] });
-  const r = await runTopPages({ seo: w.seo, cf: w.cf, env: TP_ENV, reader: standinReader({ "https://a.example/one": PAGE() }), fetchImpl: async (u, init) => { n++; return { json: async () => serpAnswer(JSON.parse(init.body)[0].keyword) }; }, now });
+  const r = await runTopPages({ seo: w.seo, cf: w.cf, env: TP_ENV, reader: standinReader({ "https://a.example/one": PAGE() }), fetchImpl: async (u, init) => { if (String(u).includes("task_post")) n++; /* RR-366: a page read is no search */ return { json: async () => serpAnswer(JSON.parse(init.body)[0].keyword) }; }, now });
   assert.equal(r.ok, true); assert.equal(n, 3, "only the other three intents");
   assert.ok((await w.seo.coverage("oet")).some((c) => c.intent === "OET in Pakistan" && c.coverage.length), "its coverage list is finished from the saved list");
 });
 test("C: its own daily cap: a search that could pass it is not sent; a DataForSEO refusal stops the run once", async () => {
   const w = await world(); let n = 0;
-  const fetchImpl = async (u, init) => { n++; return { json: async () => serpAnswer(JSON.parse(init.body)[0].keyword) }; };
+  const fetchImpl = async (u, init) => { if (String(u).includes("task_post")) n++; return { json: async () => serpAnswer(JSON.parse(init.body)[0].keyword) }; };
   const r = await runTopPages({ seo: w.seo, cf: w.cf, env: { ...TP_ENV, [ENV_NAMES.topPagesUsd]: "0.004" }, reader: standinReader({}), fetchImpl, now });
   assert.equal(n, 2); assert.equal(r.stoppedBy, "CAP"); assert.match(r.why, /cap/);
   const w2 = await world(); let m = 0;

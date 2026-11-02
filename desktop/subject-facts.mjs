@@ -24,6 +24,11 @@ const RULES = [
   /* 🔴 RR-365: the old rule took the price in the row ABOVE "After the booking closing date": every country page said a late change costs AUD 120; OET's table says AU$120 up to that date, AU$200 after */
   ["changeFee", /manage-your-booking$/, /Up to the booking closing date\.?[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*After the booking closing date\.?[\s|]*AU\s?\$\s?(\d{2,4})/i, (m, s) => `${s}'s own page: moving a paper booking to another date, venue or test type costs AU$${m[1]} up to the booking closing date and AU$${m[2]} after.`],
   ["changeFeeComputer", /manage-your-booking$/, /Up to 7 days before the test[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*US\s?\$\s?(\d{2,4})[\s|]*Less than 7 days before the test[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*US\s?\$\s?(\d{2,4})/i, (m, s) => `${s}'s own page: rescheduling the test on computer or at home costs AU$${m[1]} (US$${m[2]} in the US) up to 7 days before the test and AU$${m[3]} (US$${m[4]} in the US) after that.`],
+  /* 🔴 RR-366 Part 2: who the test is for, in OET's own terms (read 2 Nov 2026: "tailored to 12 healthcare professions"; "If you are not a health professional … may not be the most suitable") */
+  ["professions12", /test\/oet-test$/, /tailored to\s+(\d{1,2})\s+healthcare professions/i, (m, s, text) => { const list = ["medicine", "nursing", "dentistry", "dietetics", "pharmacy", "physiotherapy", "podiatry", "radiology", "occupational therapy", "veterinary science", "optometry", "speech pathology"].filter((w) => new RegExp(`\\b${w}\\b`, "i").test(text)); return `${s}'s own page: ${s} is made for ${m[1]} healthcare professions${list.length >= 3 ? `: ${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : ""}.`; }],
+  ["purpose", /test\/oet-test$/, /who seek to register and practi[sc]e in an English-speaking/i, (m, s) => `${s}'s own page: ${s} tests the English of healthcare professionals who want to register and practise where English is spoken.`],
+  ["notForOthers", /test\/oet-test$/, /If you are not a health professional/i, (m, s) => `${s}'s own page: for someone who is not a health professional working towards registration, ${s} may not be the most suitable test.`],
+  ["sampleTests", /sample-tests$/, /\bsample tests?\b/i, (m, s) => `${s}'s own page offers sample tests to practise with.`],
   ["scale", /results-and-scoring$|test-statistics$/, /scale from\s+0\s*(?:-|–|to)\s*500/i, (m, s) => `${s}'s own page: each sub-test is reported on a scale from 0 to 500, with a letter grade from E to A.`],
   ["gradeB", /ready\/(listening|reading)$/, /grade B \(a scale score of (\d{3})\)/i, (m, s) => `${s}'s own page: grade B is a scale score of ${m[1]}.`],
   ["writingWords", /ready\/writing$/, /word range for the task \((\d{3})\s*[–-]\s*(\d{3}) words\)/i, (m, s) => `${s}'s own page: the Writing task's word range is ${m[1]}–${m[2]} words (no automatic penalty for writing over or under it).`],
@@ -58,8 +63,8 @@ export function subjectFactsOf(pages, subject) {
   for (const [key, where, re, say] of RULES) {
     for (const p of pages) {
       if (!p?.ok || !where.test(String(p.url ?? "").replace(/\/$/, ""))) continue;
-      const m = re.exec(String(p.text ?? "").replace(/\s+/g, " ")); if (!m || oldWording(say(m, subject))) continue;
-      out[key] = { claimId: `subject-${key}`, fact: key, text: say(m, subject), link: p.url, readOn: String(p.checkedOn ?? "").slice(0, 10), source: `${subject} — its own page`, official: true, body: subject, value: m.slice(1).filter(Boolean).map(num) };
+      const flat = String(p.text ?? "").replace(/\s+/g, " "), m = re.exec(flat); if (!m || oldWording(say(m, subject, flat))) continue;
+      out[key] = { claimId: `subject-${key}`, fact: key, text: say(m, subject, flat), link: p.url, readOn: String(p.checkedOn ?? "").slice(0, 10), source: `${subject} — its own page`, official: true, body: subject, value: m.slice(1).filter(Boolean).map(num) };
       break;
     }
   }
@@ -67,6 +72,8 @@ export function subjectFactsOf(pages, subject) {
 }
 /** the subject's own pages to read for them (from its sitemap) — never a blog or a news post */
 export const SUBJECT_FACT_PAGES = /\/(test\/(book-a-test(\/manage-your-booking)?|results-and-scoring|oet-test|oet-test-on-computer|oet-test-at-home|test-day-information)|ready\/(writing|speaking|listening|reading|sample-tests)|about\/(test-statistics|backed-by-research)|remarking-policy)$/; // RR-327: + the re-marking policy
+/* 🔴 RR-366 Part 2: a page read keeps only WHICH words it holds (never a sentence), so "its official page, checked <date>, does not say this" is said only when that is true */
+export const pageWords = (p) => ({ url: p.url, on: String(p.checkedOn ?? "").slice(0, 10), words: [...new Set(String(p.text ?? "").toLowerCase().match(/[a-z]{3,}/g) ?? [])] });
 /* which facts each demand topic shows (its answer, its table) */
 export const FACTS_FOR = Object.freeze({
   booking: ["bookPaperCloses", "bookComputerCloses", "changeFee", "changeFeeComputer", "resultsPaper", "resultsComputer"],

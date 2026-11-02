@@ -38,9 +38,9 @@ export const STANDING = /\bgood standing\b|\bverif(?:y|ication|ied)\b|\bcertific
 const ASKS = /^(how|what|why|which|where|when|who|is|are|can|could|does|do|did|should|will|would|may|must|has|have)\b/i;
 const STORY = /\b(?:the|this|that|a) (?:student|video|channel|clip|post|comment|teacher|tutor|instructor)\b|\bmy (?:friend|teacher|tutor|cousin|sister|brother)\b|\b(?:he|she|his|her|him)\b/i;
 /* 🔴 RR-365 · collectors' questions are suggestions, not orders (beta-g, on pages marked ready). A form's or survey's prompt to the reader: "Which profession and country are you applying to?" */
-const SURVEY = /^can you (?:help|tell|give|share|suggest|recommend|send)\b|^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
+const SURVEY = /\byour (?:class|course|coaching|academy|centre|center|channel|batch)\b|\banyone else here\b|^will you\b|^can you (?:help|tell|give|share|suggest|recommend|send)\b|^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
 /* someone's impression, not a need: "Why does the speaking test feel like the candidate is the interviewer?" */
-const IMPRESSION = /^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b|\binterviewer\b[^?]*\bcandidate\b|\bcandidate\b[^?]*\binterviewer\b/i;
+const IMPRESSION = /^why (?:do|does|am|did) (?:i|we)\b|^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b|\binterviewer\b[^?]*\bcandidate\b|\bcandidate\b[^?]*\binterviewer\b/i;
 /* nothing a reader can act on: with these words gone, nothing is left: "Is my answer accepted as right?" */
 const NO_THING = new Set(["answer", "accept", "right", "correct", "wrong", "true", "okay", "ok", "good", "bad", "fine", "thing", "stuff", "question", "problem", "one"]);
 const CONTEXTLESS = /^(?:is|are|does|do|can|will|would|should|was|were) (?:it|this|that|these|those|they)\b|\b(?:this|that) (?:one|page|article|answer|thing)\b|\babove\b/i;
@@ -59,6 +59,13 @@ export function unclearWhy(question, { place = null } = {}) {
   return null;
 }
 export const clearQuestion = (q, o) => !unclearWhy(q, o);
+/* 🔴 RR-366 Part 6 C (beta-g: Qatar's "Which exam is needed to work abroad with a hospital administration diploma?"): an exam page's question names the exam or one of its needs. A question about a diploma, a salary or a course of another field is off this page's intent */
+const EXAM_TOPIC = /\b(?:fees?|costs?|prices?|how much|scores?|grades?|bands?|results?|book\w*|regist\w*|licen[cs]\w*|council|board|apply|centres?|centers?|venues?|dates?|re-?mark\w*|role[- ]?plays?|role[- ]?cards?|speaking|writing|listening|reading|sub-?tests?|practice|practise|sample|study material|mock|prepar\w*)\b/i;
+export function questionOffIntentWhy(question, { subject = null, category = "exam" } = {}) {
+  if (category !== "exam") return null;
+  const t = String(question ?? ""); if (subject && new RegExp(`(?<![\\p{L}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "iu").test(t)) return null;
+  return EXAM_TOPIC.test(t) ? null : "it is not about this test or what a candidate needs for it";
+}
 
 /* same-meaning words → the part of a C or D page that answers a question people ask (G7: by meaning, never by label) */
 const ROUTES = Object.freeze([
@@ -85,7 +92,7 @@ export const askedHere = (q, { place, people = [] }) => { if (ASKS.test(String(q
 /** the core parts a planned page still lacks (each by the words above): `askedHeads` = its headings that are questions people ask */
 export function coreMissingOfPlan(page, category = "exam") {
   const want = coreOf(page.kind, category); if (!want) return [];
-  const have = new Set(page.items.filter((it) => it.claims?.length).map((it) => String(it.part).replace(/\d+$/, "")));
+  const have = new Set(page.items.filter((it) => it.claims?.length).map((it) => String(it.part).replace(/\d+$/, "").replace(/^questionsa$/, "questions") /* RR-366: a question the ladder answered */));
   if (page.askedHeads?.length) have.add("questions");
   return Object.entries(want).filter(([k]) => !have.has(k)).map(([k, words]) => ({ part: k, words }));
 }

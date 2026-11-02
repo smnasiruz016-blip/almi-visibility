@@ -112,10 +112,10 @@ export function savedListFor(page, file) {
  * Every page's coverage by the order above. Mutates each page: coverage, second, topRead, coverageRoute, coverageOn. `browser` = browser-coverage.json;
  * `paid(pages)` runs the client's own paid service for the pages still unanswered (only when the client switched it on). → the counts per route
  */
-export async function coverageRoutes({ pages, file, browser = {}, paidOn = false, paid = null }) {
+export async function coverageRoutes({ pages, file, browser = {}, paidOn = false, paid = null, forcePaid = null /* THE ONE LIVE PROOF ONLY: these pages are searched, saved list or not */ }) {
   const n = { saved: 0, browser: 0, paid: 0, none: 0 }, left = [];
   for (const p of pages) {
-    const s = savedListFor(p, file), b = browser?.[p.title] ?? null;
+    const s = forcePaid?.includes(p.title) ? null : savedListFor(p, file), b = browser?.[p.title] ?? null;
     /* RR-362: what people asked comes with a saved list too (a page needs the questions as much as a paid search would bring them) */
     if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on, blueprint: s.blueprint ?? null /* RR-363 */, questions: [...(p.questions ?? []), ...(s.asked ?? []).filter((q) => !(p.questions ?? []).some((x) => (x.question ?? x) === q)).map((question) => ({ question, source: `what people search (${s.on})`, on: s.on }))] }); delete p.serpWhy; n.saved++; continue; }
     if (b) { Object.assign(p, { coverage: b.coverage ?? [], second: b.second ?? [], topRead: b.read ?? [], coverageRoute: ROUTES.browser, coverageOn: b.on }); delete p.serpWhy; n.browser++; continue; }

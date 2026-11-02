@@ -20,7 +20,9 @@ import { checkForUpdate, downloadUpdate, installUpdate } from "./updater.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
 import { STEPS, checkStep, webAddress, stepsFor, CHOICES, HOWTO, recommended, ctaFrom, ctaOfSetup, NO_CTA } from "./setup.mjs";
 import { FACTS_FILE, readFactsFile, addFactsFile, officialClaimsOf, countryLinesOf, factsFileView, factsOfStore } from "./facts-file.mjs"; // RR-351
-import { examPlan, serviceFactsOf, usableFacts , settleLocal } from "./exam-plan.mjs"; // RR-354
+import { examPlan, serviceFactsOf, askedOf as askedByCountry, validityClaimsOf, applyLocalQuestions, usableFacts , settleLocal } from "./exam-plan.mjs"; // RR-354
+import { answerQuestion, edgeClaims } from "./answer-ladder.mjs"; // RR-366
+import { checkCouncil, findRegulator, councilFacts, councilKey } from "./council-truth.mjs"; // RR-366
 import { destinationsFor, professionQuestions, connectByMeaning, searchMissing , readDetails } from "./research.mjs"; // RR-356
 import { plainWhy, JOBS, jobReport, notMadeOf } from "./plain-words.mjs"; // RR-354
 import { CF_PRIORITY } from "./country-facts.mjs"; // RR-354
@@ -35,7 +37,7 @@ import { productStore, productCard } from "./products.mjs";
 import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
-import { searchGoogle, searchPages, SERP_OFF, SERP, realPrice, runEstimate, RETRY, notForReading } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
+import { searchGoogle, searchPages, searchTermOf, SERP_OFF, SERP, realPrice, runEstimate, RETRY, notForReading } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
 import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
@@ -54,7 +56,7 @@ import { officialReader, officialClaims } from "./official.mjs"; // RR-318 B6
 import { realityFilter, advise, listFromFile, DIMENSIONS } from "./page-count.mjs"; // RR-318 C
 import { parseFormula, fromGuided, groupQuestions, faqQuestions, planPages, subjectProblem, formulaOf } from "./page-plan.mjs"; // RR-319
 import { fiveAnswers, fiveFromList, questionsByCountry, browserSearchList, takeHandIn, takeSearchFile, searchFileText, figureOf } from "./research5.mjs"; // RR-320 B
-import { recognitionOf, callNames } from "./recognition.mjs"; // RR-321 A
+import { recognitionOf, callNames, PEOPLE_WORD, inCountry } from "./recognition.mjs"; // RR-321 A; RR-366
 import { planFromList } from "./plan-list.mjs"; // RR-321 B
 import { venueCountries, statisticsOf, gazetteerOf } from "./venues.mjs"; // RR-321 G1, B2; RR-327 the venue cities
 import { readRates, OPEN_RATES, openRates } from "./rates.mjs"; // RR-321 D5; RR-355 the one rate service
@@ -63,7 +65,7 @@ import { readRegulator } from "./regulator-read.mjs"; // RR-321 A2/A4
 import { regulatorPagesOf } from "./recognition.mjs"; // RR-322 A2
 import { subtestFactsOf } from "./pseo.mjs"; // RR-322 B5
 import { lightCheck, teachesHealth, professionsOfFields, professionsInName } from "./universities.mjs"; // RR-322 A1
-import { subjectFactsOf, SUBJECT_FACT_PAGES, FACTS_FOR , SUBJECT_EXTRA_PAGES, oldWording } from "./subject-facts.mjs"; // RR-323
+import { subjectFactsOf, pageWords, SUBJECT_FACT_PAGES, FACTS_FOR , SUBJECT_EXTRA_PAGES, oldWording } from "./subject-facts.mjs"; // RR-323
 import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mjs"; // RR-323; RR-324 D2
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
@@ -334,7 +336,24 @@ const ownItemsOf = (id) => {
 /* every call that makes the drafts judges them by the same data: the coverage a page without a plan was given, and the facts AlmiSEO Data found changed */
 /* RR-363: which country a regulator's name means (the truth check: an answer about the right place) */
 const bodiesOf = (id) => { const seen = new Map(); for (const qs of Object.values(pread(id, "research.json", null)?.questions ?? {})) for (const q of qs) for (const b of [q.regulator, ...(q.also ?? [])].filter(Boolean)) if (b.country && !seen.has(b.name)) seen.set(b.name, { names: [b.short, b.name].filter((n) => n && n.length >= 3), country: b.country }); return [...seen.values()]; };
-const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}); return { bodies: bodiesOf(id), fitSubject: seedOf(store.read(id)), coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)) }; };
+const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}), s = store.read(id); return { bodies: bodiesOf(id), fitSubject: seedOf(store.read(id)), coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)), ...(examProduct(s, id) ? { officialHost: hostOf(s.setup?.official?.site ?? (/^oet$/i.test(String(seedOf(s))) ? "https://oet.com" : "")), answerFor: (q, p, o = {}) => answerQuestion(q, { ...ladderCtx(id), country: p.country ?? null, ...o }) } : {}) }; };
+/* 🔴 RR-366 Part 2: what the answer ladder may use: the subject's own facts, the words its read pages hold, regulators' own validity rules, and our own product in its own words */
+function ladderCtx(id) { const s = store.read(id), ex = examExtras.get(id), kept = pread(id, "subject-facts.json", null), subject = seedOf(s), subjectFacts = ex?.subjectFacts ?? kept?.facts ?? {}, own = pread(id, "site-read.json", null)?.pages?.[0]; return { subject, subjectFacts, pages: kept?.pages ?? [], extra: { validity: validityClaimsOf(ex?.research ?? pread(id, "research.json", null)?.questions ?? {}, subject) }, edge: edgeClaims({ product: s.product?.name, site: s.product?.site, description: own?.description, on: new Date().toISOString(), subjectFacts }) }; }
+/*
+ * 🔴 RR-366 Part 1 · each council line read against the body's OWN page before a page may say "registers": kept 30 days, each saved at once. With the client's search-results switch on, a body whose page does not say so has the real regulator searched for, by its same-meaning names
+ */
+const COUNCIL_SIDE_BY_SIDE = 10, COUNCIL_KEEP_DAYS = 30;
+async function councilChecksFor(id, subject, onRead = null) {
+  const packets = pread(id, "country-facts.json", null)?.countries ?? {}, wanted = new Set([...examCountriesOf(id), ...(seoFileOf(id)?.plan ?? []).filter((r) => r.kind === "country" || r.kind === "country-profession").map((r) => r.country)]), kept = pread(id, "council-checks.json", {}), now = new Date().toISOString(), today = now.slice(0, 10);
+  const rows = [...wanted].flatMap((c) => Object.entries(packets[c]?.councils ?? {}).filter(([, f]) => f?.value?.name && f.found !== false).map(([profession, f]) => ({ c, profession, name: f.value.name, link: f.source, website: f.value.website ?? null, key: councilKey(c, profession, f.value.name) }))).filter((r) => !kept[r.key] || (Date.now() - Date.parse(kept[r.key].on ?? 0)) / 864e5 > COUNCIL_KEEP_DAYS);
+  if (CONFIG.testOffline === true || !rows.length) return kept;
+  const rd = reader(), st = serpSettings(), search = st.on === true && !CONFIG.testSerpOnly ? (() => { const ledger = dfsLedger(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password); return login && password ? async (keyword) => { const r = await searchGoogle({ keyword, settings: st, ledger, login, password, ...serpTest() }); writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); return r.ok ? r.results : []; } : null; })() : null;
+  let at = 0; await Promise.all(Array.from({ length: COUNCIL_SIDE_BY_SIDE }, async () => { while (at < rows.length) { const r = rows[at++]; onRead?.(r.name); const v = await checkCouncil({ name: r.name, profession: r.profession, link: r.link, website: r.website, read: (u) => rd.read(u), on: today }).catch(() => ({ ok: false, why: "unread", page: r.link, on: today })); if (!v.ok && search) { const found = await findRegulator({ people: PEOPLE_WORD[r.profession] ?? r.profession, profession: r.profession, place: inCountry(r.c), search, read: (u) => rd.read(u), on: today }).catch(() => null); if (found) v.found = found; } kept[r.key] = v; pwrite(id, "council-checks.json", kept); } }));
+  return kept;
+}
+const serpTest = () => (CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(new URL(new URL(u2).pathname, CONFIG.serpTestUrl), init) } : {});
+/* RR-366 Part 3: what people of each country type, read from what the searches kept */
+const localCtx = (id) => (p) => ({ ...ladderCtx(id), country: p.country ?? null });
 /* 🔴 OWNER'S RULING 2: a licence that is not AlmiWorld's own gets finished pages only */
 const outsideClient = () => { const l = currentLicence(); return Boolean(l) && !isOwnerLicence(l.licence); };
 /* 🔴 RR-362 item 14 (R13): each search this run made goes to AlmiSEO Data, so the server and every later run reuse it. A failed send is said in the count; the search stays kept here */
@@ -403,12 +422,12 @@ async function subjectFactsFor(id, subject) {
   const kept = pread(id, "subject-facts.json", null), site = store.read(id).setup?.official?.site ?? (/^oet$/i.test(String(subject)) ? "https://oet.com" : null);
   const keptFacts = Object.fromEntries(Object.entries(kept?.facts ?? {}).filter(([, x]) => !oldWording(x?.text))); /* RR-365: whichever way a kept copy is used */
   if (!site || CONFIG.testOffline === true) return { facts: keptFacts, line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
-  if (kept?.on && kept.v === 365 /* RR-365: the change fee and the re-mark fee read again */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
+  if (kept?.on && kept.v === 366 /* RR-366: who the test is for read too, and which words each page holds */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
   try {
     const rd = reader(), urls = ((await rd.sitemapOf(site)).urls ?? []).filter((u) => SUBJECT_FACT_PAGES.test(String(u).replace(/\/$/, ""))).slice(0, 16), pages = [];
     for (const u of [...urls, ...(SUBJECT_EXTRA_PAGES[subject] ?? [])]) pages.push(await rd.read(u));
     const facts = subjectFactsOf(pages, subject);
-    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 365, on: new Date().toISOString(), site, facts });
+    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 366, on: new Date().toISOString(), site, facts, pages: pages.filter((p) => p.ok).map(pageWords) });
     return { facts: Object.keys(facts).length ? facts : keptFacts, line: `${subject}'s own pages: ${Object.keys(facts).length} facts read from ${pages.filter((p) => p.ok).length} pages` };
   } catch (e) { return { facts: keptFacts, line: `${subject}'s own pages could not be read just now` }; }
 }
@@ -438,8 +457,8 @@ async function examResearch(id, subject, onRead = null) {
   const out = {}, budget = { left: CONFIG.testOffline === true ? 0 : Number.isInteger(CONFIG.testResearchReads) ? CONFIG.testResearchReads : RESEARCH_READS }, rd = budget.left > 0 ? reader() : null;
   for (const prof of professionsOf()) { const qs = professionQuestions({ subject, prof, destinations: destinationsFor(prof, list) }); connectByMeaning({ questions: qs, facts, prof, subject }); out[prof] = qs; }
   /* RR-359: with the client's search-results switch on, Google's results name each council's own page (its own website only; cached) */
-  const st = serpSettings(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), ledger = st.on === true && login && password ? dfsLedger() : null;
-  const findPages = ledger ? async (body) => { const r = await searchGoogle({ keyword: `${body.short ?? body.name} ${subject} English language requirement`, settings: st, ledger, login, password, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) }); return r.ok ? r.results.map((x) => x.url) : []; } : null;
+  const st = serpSettings(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), ledger = st.on === true && login && password && !CONFIG.testSerpOnly ? dfsLedger() : null;
+  const findPages = ledger ? async (body) => { const r = await searchGoogle({ keyword: `${body.short ?? body.name} ${subject} English language requirement`, settings: st, ledger, login, password, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...serpTest() }); return r.ok ? r.results.map((x) => x.url) : []; } : null;
   for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead }).catch(() => null);
   const details = { left: CONFIG.testOffline === true ? 0 : Number.isInteger(CONFIG.testDetailReads) ? CONFIG.testDetailReads : DETAIL_READS }, rd2 = details.left > 0 ? rd ?? reader() : null;
   for (const prof of Object.keys(out)) await readDetails({ questions: out[prof], subject, reader: rd2 ?? { read: async () => null }, cache, budget: details, onRead }).catch(() => null);
@@ -473,12 +492,12 @@ const searchData = () => { const d = CONFIG.dataForSeo ?? {}; return { on: d.on 
 const serpSettings = () => searchData();
 /* RR-362 items 14 + 17: several pages side by side (each site still read politely), a search kept is reused free even with the switch off, a top page's headings read once a month */
 const SERP_SIDE_BY_SIDE = 6;
-const hasKeptSearch = (pages) => { const c = dfsLedger().serpCache ?? {}; return pages.some((p) => c[`${p.title}||`]); };
+const hasKeptSearch = (pages) => { const c = dfsLedger().serpCache ?? {}; return pages.some((p) => c[`${searchTermOf(p)}||`]); };
 /* item 34c: what the sites beside us have pages on and we do not; kept a month, free */
 async function competitorStep(id, plan) {
   if (CONFIG.testOffline === true) return pread(id, "competitors.json", null);
   const was = pread(id, "competitors.json", null), now = new Date().toISOString(), s = store.read(id), subject = seedOf(s), cache = dfsLedger().serpCache ?? {}; if (!subject) return was;
-  const ranked = plan.pages.flatMap((p) => (cache[`${p.title}||`]?.results ?? []).map((r) => r.url)).filter((u) => !notForReading(u)), official = plan.pages.flatMap((p) => (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => c.official).map((c) => c.link))), hosts = competitorsFrom(ranked, { exclude: [s.product?.site, ...new Set(official)] });
+  const ranked = plan.pages.flatMap((p) => (cache[`${searchTermOf(p)}||`]?.results ?? []).map((r) => r.url)).filter((u) => !notForReading(u)), official = plan.pages.flatMap((p) => (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => c.official).map((c) => c.link))), hosts = competitorsFrom(ranked, { exclude: [s.product?.site, ...new Set(official)] });
   const fresh = was && (Date.parse(now) - Date.parse(was.on)) / 864e5 <= COMPETITOR_KEEP_DAYS && hosts.every((h) => was.hosts.includes(h)); const rd = reader(), read = (u, a) => rd.raw(u, a);
   const sites = fresh ? was.sites : await Promise.all(hosts.map(async (host) => ({ host, urls: await sitemapUrlsOf(host, read).catch(() => []) })));
   const out = { on: fresh ? was.on : now, hosts, sites, list: pagesTheyHave({ sites, subject, ours: [...plan.pages.map((p) => p.title), ...(plan.merged ?? []).map((m) => m.title)] }) };
@@ -488,7 +507,8 @@ async function serpStep(id, plan, onPage = null) {
   const st = serpSettings(), ledger = dfsLedger(), on = new Date().toISOString();
   if (st.on !== true && !hasKeptSearch(plan.pages)) return { on: false, why: SERP_OFF, searches: 0, reddit: 0, quora: 0 };
   const login = st.on === true ? KEYS.get(DFS_KEYS.login) : null, password = st.on === true ? KEYS.get(DFS_KEYS.password) : null, rd = reader(), tops = pread(id, "top-reads.json", {});
-  const out = await searchPages({ pages: plan.pages, ledger, settings: st, login, password, now: on, subject: seedOf(store.read(id)), retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, readHtml: (u) => rd.raw(u, "text/html"), officialPageOf: (p) => (p.items ?? []).flatMap((it) => it.claims ?? []).find((c) => c.official && /^https?:/.test(c.link ?? "") && hostOf(c.link) === hostOf(store.read(id).setup?.official?.site ?? "https://oet.com"))?.link ?? null, concurrency: Number.isInteger(CONFIG.testSerpSideBySide) ? CONFIG.testSerpSideBySide : SERP_SIDE_BY_SIDE, topCache: { get: (u) => tops[u] ?? null, set: (u, v) => { tops[u] = v; } }, onPage, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
+  const pagesToSearch = Array.isArray(CONFIG.testSerpOnly) ? plan.pages.filter((p) => CONFIG.testSerpOnly.includes(p.title)) : plan.pages; /* TESTS AND THE ONE LIVE PROOF ONLY: these pages, no others */
+  const out = await searchPages({ pages: pagesToSearch, ledger, settings: st, queue: { ...(Number.isInteger(CONFIG.testQueueMaxMs) ? { maxMs: CONFIG.testQueueMaxMs } : {}), ...(Number.isInteger(CONFIG.testQueueEveryMs) ? { everyMs: CONFIG.testQueueEveryMs } : {}) }, onQueue: () => writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)), parse: st.on === true, login, password, now: on, subject: seedOf(store.read(id)), retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, readHtml: (u) => rd.raw(u, "text/html"), officialPageOf: (p) => (p.items ?? []).flatMap((it) => it.claims ?? []).find((c) => c.official && /^https?:/.test(c.link ?? "") && hostOf(c.link) === hostOf(store.read(id).setup?.official?.site ?? "https://oet.com"))?.link ?? null, concurrency: Number.isInteger(CONFIG.testSerpSideBySide) ? CONFIG.testSerpSideBySide : SERP_SIDE_BY_SIDE, topCache: { get: (u) => tops[u] ?? null, set: (u, v) => { tops[u] = v; } }, onPage, ...serpTest() });
   writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); pwrite(id, "top-reads.json", tops);
   pwrite(id, "auto-plan.json", { ...pread(id, "auto-plan.json", {}), pages: plan.pages });
   return { on: true, ...out };
@@ -542,9 +562,11 @@ const examExtras = new Map(); // id → { subjectFacts, rates } of this run (cre
 const savePlan = (id, x) => { const { bigger, ...keep } = x; pwrite(id, "auto-plan.json", { on: new Date().toISOString(), subject: seedOf(store.read(id)) /* RR-359 */, ...keep }); };
 function buildExamPlan(id) {
   const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
-  const facts = [...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s))).flat()];
+  /* 🔴 RR-366 Part 1: a council line says "registers" only on its body's own page's word */
+  const council = councilFacts([...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s))).flat()], Object.keys(pread(id, "council-checks.json", {})).length ? pread(id, "council-checks.json", {}) : null, { inPlace: inCountry, peopleOf: (p) => PEOPLE_WORD[p] ?? p, today: new Date().toISOString().slice(0, 10) }), facts = council.facts;
   const demand = [...helpDemand(seedOf(s)), ...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
-  const x = examPlan({ subject: seedOf(s), professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: ex.research ?? pread(id, "research.json", null)?.questions ?? {}, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json"), collector: seoFileOf(id)?.plan ?? [], maxCountries: 200 });
+  const x = examPlan({ subject: seedOf(s), professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: ex.research ?? pread(id, "research.json", null)?.questions ?? {}, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json"), collector: seoFileOf(id)?.plan ?? [], maxCountries: 200, asked: askedByCountry(pread(id, "country-facts.json", null)?.countries ?? {}), ladder: ladderCtx(id) });
+  x.councilChanges = council.changes;
   savePlan(id, x);
   return x;
 }
@@ -872,18 +894,19 @@ async function makePages(id, key) {
   /* RR-353: our own data first (read by ownItemsOf below); RR-354: an exam-prep product then gets its own plan (profession + country pages) */
   const councilFrom = (dfsLedger().spent ?? []).length; // RR-359: the searches of this run start here
   const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
-  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s), reading); clock.mark("reading official pages"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
+  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s), reading); clock.mark("reading official pages"); await councilChecksFor(id, seedOf(s), reading); clock.mark("checking each council on its own page"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
   /* RR-360 B: a product of any kind: what AlmiSEO Data planned for its subject (desktop/almiseo.mjs genericPlanPages) */
   const buildGeneric = () => { const f = seoFileOf(id), x = f?.plan?.length ? genericPlanPages({ file: f, subject: seedOf(s) }) : null; if (!x?.pages.length) return null; x.fromAlmiSeo = true; savePlan(id, x); return x; };
   let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
   /* 🔴 RR-360 D · G5's order for every intent: saved in AlmiSEO Data → your own AI in your own browser → your own paid service, only if you switched it on */
   /* R13: saved in AlmiSEO Data first; then a search this app already made, free; then the client's own paid switch */
-  const routeOf = (list) => coverageRoutes({ pages: list, file: seoFileOf(id), browser: pread(id, BROWSER_COVERAGE, {}), paidOn: serpSettings().on === true || hasKeptSearch(list), paid: (left) => { step({ done: 0, of: left.length, unit: "pages", what: "Looking at what Google shows" }); return serpStep(id, { pages: left }, (p, state) => (state === "done" ? step({ add: 1 }) : step({ what: `Looking at what Google shows for ${p.title}` }))).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })); } });
+  const routeOf = (list) => coverageRoutes({ pages: list, file: seoFileOf(id), forcePaid: Array.isArray(CONFIG.testSerpOnly) ? CONFIG.testSerpOnly : null, browser: pread(id, BROWSER_COVERAGE, {}), paidOn: serpSettings().on === true || hasKeptSearch(list), paid: (left) => { step({ done: 0, of: left.length, unit: "pages", what: "Looking at what Google shows" }); return serpStep(id, { pages: left }, (p, state) => (state === "done" ? step({ add: 1 }) : step({ what: `Looking at what Google shows for ${p.title}` }))).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })); } });
   const routes = exam ? await routeOf(exam.pages) : null, serp = exam ? { ...(routes.paid ?? { on: false }), routes: routes.counts, routesLine: routes.line, why: routes.paid?.why ?? routes.line } : null;
   clock.mark("looking at what Google shows");
   /* 🔴 RR-362 (R3): with what the searches brought, each C and D page stays a page or its facts go into the bigger pages. Each search saved in AlmiSEO Data (R13) */
   const searchedPages = exam ? [...exam.pages] : [];
   if (exam?.bigger) settleLocal(exam);
+  if (exam && examProduct(s, id)) applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-366 Part 3 */
   if (exam) savePlan(id, exam);
   let savedCount = await saveSearches(id, searchedPages);
   const yt = ctx.youtubeConfirmed ? YT.foundFor(id) : null;
@@ -902,7 +925,7 @@ async function makePages(id, key) {
     /* RR-362 item 17: a round in which no official page could be read finds nothing new: it is not written again */
     step({ done: 0, of: RESEARCH_READS + DETAIL_READS, unit: "official pages", what: "Looking again for what is still missing" }); const r2 = await examResearch(id, seedOf(s), reading); if (!lastResearchReads) break; examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
     /* what the search step found stays with each page through a repair round */
-    if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn, searchedOn: o.searchedOn }); } settleLocal(exam); savePlan(id, exam); }
+    if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn, searchedOn: o.searchedOn, localAsked: o.localAsked, blueprint: o.blueprint }); } settleLocal(exam); applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); savePlan(id, exam); }
     const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
     if (failures(again) >= before) break;
     Object.assign(pages, again);
@@ -1845,7 +1868,7 @@ const server = createServer((req, res) => {
         /* RR-358 (the owner's four tests searched "almiworld youtube" from AlmiOET — the screen sent a name kept from another product): the OPEN product's own subject */
         const ps = (() => { try { return v.product ? store.read(String(v.product)) : null; } catch { return null; } })();
         const q = String(v.keyword ?? "").trim() || (ps ? `${seedOf(ps) ?? ps.product?.name ?? ""}`.trim() : "") || "how to choose a dentist";
-        const r = await searchGoogle({ keyword: q, settings: searchData(), ledger, login, password, test: true, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...(CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(CONFIG.serpTestUrl, init) } : {}) });
+        const r = await searchGoogle({ keyword: q, settings: searchData(), ledger, login, password, test: true, poll: { maxMs: 120000, everyMs: 5000 } /* RR-366: the queue answers within minutes */, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...serpTest() });
         writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
         const cost = (ledger.spent ?? []).length > spentBefore ? (ledger.spent.at(-1)?.cost ?? 0) : 0; // RR-358: only THIS search's cost
         /* RR-358: the test shows what Google returned (the top results' titles); a refusal is DataForSEO's own reason, in plain words */

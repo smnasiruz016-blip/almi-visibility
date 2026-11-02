@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:http";
 import { searchGoogle, searchPages, SERP, KEEP_SEARCH_DAYS } from "../desktop/serp.mjs";
 import { officialReader } from "../desktop/official.mjs";
 import { searchedLists, searchCounts } from "../desktop/almiseo.mjs";
@@ -143,6 +144,10 @@ test("item 9: AlmiWorld's products first; a client's subject only by the owner's
   await seo.putTopic({ ...ownTopics().find((t) => t.id === "visibility"), intents: ["AlmiVisibility pricing"] }, { at: NOW });
   asked.length = 0; await seo.addAccountSpend(NOW.slice(0, 7), who, 3); await go({ [ENV_NAMES.topPagesClients]: "1" });
   assert.ok(!asked.includes("Pets in Ireland"), "its plan's $3 is used this month");
+  /* room for less than one search: the limit is judged before each search is sent, never after */
+  const near = seoMemoryStore(); await near.putTopic(client, { at: NOW }); await near.addAccountSpend(NOW.slice(0, 7), who, 2.9995); asked.length = 0;
+  await runTopPages({ seo: near, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", [ENV_NAMES.topPagesClients]: "1" }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
+  assert.ok(!asked.includes("Pets in Ireland"), "less than one search of room: not sent");
   const fresh = seoMemoryStore(); await fresh.putTopic(client, { at: NOW }); await fresh.putTopic({ ...ownTopics().find((t) => t.id === "visibility"), intents: ["AlmiVisibility pricing"] }, { at: NOW });
   asked.length = 0; await runTopPages({ seo: fresh, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", [ENV_NAMES.topPagesClients]: "1" }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
   assert.ok(asked.indexOf("AlmiVisibility pricing") >= 0 && asked.indexOf("AlmiVisibility pricing") < asked.indexOf("Pets in Ireland"), `own first: ${asked}`);
@@ -184,11 +189,20 @@ test("item 11: the page: a tick on every fact, both buttons, what is left, the f
   assert.match(ownerReview({ facts: [], frame: (t, b) => b, editOf: () => "", lineOf: () => "" }), /Nothing is waiting/);
 });
 
-test("the owner's review routes answer the owner only, and the list is what stillWaiting says", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "rr362-"));
+test("the owner's review routes, for real: the owner only; the list; ticks saved as JSON; what is left; a decided fact gone", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "rr362-")), cf = cfMemoryStore(), kvm = new Map(), key = "owner-page-key-for-this-test-only-0001";
+  const kvFetch = async (_u, init) => ({ ok: true, status: 200, json: async () => JSON.parse(init.body).map(([cmd, k, ...x]) => { const C = cmd.toUpperCase(); if (C === "SET") { kvm.set(k, String(x[0])); return { result: "OK" }; } if (C === "GET") return { result: kvm.get(k) ?? null }; if (C === "INCR") { const v = Number(kvm.get(k) ?? 0) + 1; kvm.set(k, String(v)); return { result: v }; } return { result: 1 }; }) });
+  for (const k of ["a", "b"]) await cf.putFact(fact(k, "unconfirmed", { rule: `Rule ${k}.` }), { at: NOW });
+  const { createApp } = await import("../site/app.mjs"), handler = createApp({ mode: "sales", env: { KV_REST_API_URL: "https://kv.example", KV_REST_API_TOKEN: "x", OWNER_ACCESS_KEY: key, CRON_SECRET: "x".repeat(20) }, kvFetch, cfStore: cf, seoStore: seoMemoryStore(), dataDir: dir });
+  const srv = createServer(handler); await new Promise((r) => srv.listen(0, "127.0.0.1", r)); const root = `http://127.0.0.1:${srv.address().port}`;
   try {
-    const { createApp } = await import("../site/app.mjs");
-    const app = createApp({ env: {}, dataDir: dir, cf: cfMemoryStore() });
-    assert.ok(app); // the routes themselves are walked on the built server copy (the report's screenshot)
-  } catch (e) { assert.fail(e.message); } finally { rmSync(dir, { recursive: true, force: true }); }
+    assert.equal((await fetch(`${root}/owner/review`)).status, 403, "a stranger sees no list");
+    assert.equal((await fetch(`${root}/owner/review/decide`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ keys: ["a"], action: "approve" }) })).status, 403, "a stranger decides nothing"); assert.equal((await cf.fact("a")).status, "unconfirmed");
+    const inn = await fetch(`${root}/owner/sign-in`, { method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" }, body: `key=${key}` }), cookie = inn.headers.get("set-cookie").split(";")[0];
+    const list = await (await fetch(`${root}/owner/review`, { headers: { cookie } })).text(); assert.match(list, /2 of 2 left/); assert.match(list, /Rule a\./);
+    const r = await fetch(`${root}/owner/review/decide`, { method: "POST", headers: { cookie, "content-type": "application/json" }, body: JSON.stringify({ keys: ["a"], action: "reject" }) }), j = await r.json();
+    assert.equal(r.status, 200); assert.deepEqual(j.decided, ["a"]); assert.equal(j.left, 1); assert.equal((await cf.fact("a")).status, "rejected");
+    assert.match(await (await fetch(`${root}/owner/review`, { headers: { cookie } })).text(), /1 of 1 left/);
+    assert.match(await (await fetch(`${root}/review.js`)).text(), /reviewapprove/);
+  } finally { srv.close(); rmSync(dir, { recursive: true, force: true }); }
 });

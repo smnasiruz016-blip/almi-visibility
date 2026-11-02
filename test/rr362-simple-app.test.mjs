@@ -79,7 +79,7 @@ test("item 5: no internal word on what the client reads", () => {
   /* the page's own words: templates and strings, its comments out */
   const shown = UI.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/<script[^>]*>|<\/script>/g, " ");
   const words = [/\bSERP\b/, /\bG\d{1,2}\b/, /\bcanonical(?! ?:)/, /structured data/, /\bcoverage lists?\b/, /\bintent\b/, /five gates/, /\bAEO\b/, /\bGEO\b/];
-  for (const w of words) { const m = shown.split("\n").filter((l) => w.test(l.replace(/"[a-z-]+":|\.[a-zA-Z]+|[a-zA-Z]+:/g, " ").replace(/\b(?:coverage|canonical)\b(?=\??\.)/g, ""))); assert.deepEqual(m.map((l) => l.slice(0, 80)), [], String(w)); }
+  for (const w of words) { const m = shown.split("\n").filter((l) => w.test(l.replace(/"[a-z-]+":|\.[a-zA-Z]+|\b[a-z][a-zA-Z]*:/g, " ") /* a word followed by a colon may still be shown: only code's own lower-case names are left out */.replace(/\b(?:coverage|canonical)\b(?=\??\.)/g, ""))); assert.deepEqual(m.map((l) => l.slice(0, 80)), [], String(w)); }
   const FEAT = readFileSync(join(REPO, "desktop", "features.mjs"), "utf8"); assert.ok(!/title: "[^"]*\((?:AEO|GEO)\)/.test(FEAT));
   assert.equal(plainWhy({ readyAsDraft: false, gates: [{ gate: "H", words: "answers its core questions", pass: false, failing: ["Missing: test centres."] }] }), "Missing: test centres.");
 });

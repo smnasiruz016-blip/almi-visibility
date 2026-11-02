@@ -6,12 +6,13 @@
  *       with nothing is dropped (a core question then stays open, named). Recipe R12 (no lies to customers), R15. Pure.
  */
 import { countriesIn } from "./world.mjs";
-import { meaningOf } from "./coverage.mjs";
+import { meaningOf, NEED_GROUPS } from "./coverage.mjs";
 import { professionIn } from "./page-plan.mjs";
 
 const SUBTESTS = ["Listening", "Reading", "Writing", "Speaking"];
 const distinct = (xs) => [...new Set(xs)];
-const scoresIn = (t) => distinct(String(t).match(/(?<![\d.,])[1-5]\d{2}(?![\d,])/g) ?? []);
+/* a score, never money or a rate ("AUD 587", "= 194.49"); "340, 320" is two scores */
+const scoresIn = (t) => distinct(String(t).match(/(?<![\d.,])(?<!\b[A-Z]{3} |[$£€] ?)[1-5]\d{2}(?!\d|[.,]\d)/g) ?? []);
 const gradesIn = (t) => distinct((String(t).match(/\b[ABC]\+?(?=\s*\(\d{3}|\s+in\b|\s+for\b|\s*[,;.]|\s+\(|\s*$)/g) ?? []).filter((g) => g !== "A" && /\d{3}/.test(t) || /\+/.test(g)));
 const TIME_RULE = /\b(before|after|within|from|up to|at least|no later|as little as|in as little|close[sd]?)\b/i, BARE_TIME = /^(?:[A-Za-z ]+ — )?(?:about |up to )?\d[\d–-]*\s*(?:minutes?|hours?|days?|weeks?|months?|years?)$/i;
 
@@ -33,7 +34,6 @@ export const fitCard = (card, text) => (summaryFault(card, text) ? wholeFact(tex
 
 const nameIn = (t, w) => new RegExp(`(?<![\\p{L}])${String(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "iu").test(String(t ?? ""));
 const OPTIONS = Object.freeze([["paper", /\bon paper\b|\bpaper\b/i], ["computer", /\bon computer\b|\bcomputer\b/i], ["home", /@home|\bat home\b/i]]);
-const NEEDS = new Set(["cost", "date", "book", "score", "valid", "place", "time", "prepare", "accept", "format", "eligible"]);
 const ASKS_TIME = /^(how long|when)\b/i, SAYS_TIME = /\d|\b(?:minutes?|hours?|days?|weeks?|months?|years?|immediately|same day)\b/i;
 const placesOf = (t, bodies) => distinct([...countriesIn(t), ...bodies.filter((b) => (b.names ?? []).some((n) => nameIn(t, n))).map((b) => b.country)]);
 
@@ -49,7 +49,7 @@ export function answerFitWhy(question, answer, { subject = null, bodies = [], lo
   if (loose) return null;
   const oq = OPTIONS.filter(([, re]) => re.test(q)).map(([k]) => k), oa = OPTIONS.filter(([, re]) => re.test(a)).map(([k]) => k); if (oq.length && oa.length && !oa.some((k) => oq.includes(k))) return `it asks about the test ${oq[0]}, the answer is about the test ${oa[0]}`;
   /* a need the words must meet (a cost, a time, a score …); a question with no such need is judged by who and where: an official answer may say it in other words */
-  const drop = [subject], want = meaningOf(q, { drop }), have = new Set(meaningOf(a, { drop })); if (want.some((w) => NEEDS.has(w)) && !want.some((w) => have.has(w))) return "the answer talks about something else";
+  const drop = [subject], want = meaningOf(q, { drop }), have = new Set(meaningOf(a, { drop })); const needs = want.filter((w) => NEED_GROUPS.has(w)); if (needs.length && !needs.some((w) => have.has(w))) return "the answer talks about something else";
   if (ASKS_TIME.test(q) && !SAYS_TIME.test(a)) return "it asks how long or when, the answer gives no time";
   /* "How long does it take to get your results?" must say results, not only some time */
   const nouns = want.filter((w) => !["time", "long", "take", "way", "much", "know"].includes(w)); if (ASKS_TIME.test(q) && nouns.length && !nouns.some((w) => have.has(w))) return "it gives a time, but not of what was asked";

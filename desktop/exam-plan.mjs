@@ -297,7 +297,9 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   /* a TOPIC page: the subject's own facts about its topic only; two topics never carry the same facts (a page with another's facts competes) */
   const used = new Set(), chosen = [...topics.values()].slice(0, maxTopics), itemsOf = new Map();
   /* a sub-test page owns its sub-test's facts: the sub-test topics choose first, the general topics after */
-  for (const t of [...chosen].sort((a, b) => SUBTESTS.includes(b.key) - SUBTESTS.includes(a.key))) {
+  /* RR-363: booking before dates: the booking facts are its own, a schedule page may stand on the rest */
+  const FIRST = (k) => (SUBTESTS.includes(k) ? 2 : k === "book" ? 1 : 0);
+  for (const t of [...chosen].sort((a, b) => FIRST(b.key) - FIRST(a.key))) {
     /* RR-355 (a topic left with one fact is too thin to help): a topic page answers its own questions with every fact of its topic — only its FIRST
      * question must be its own (a page whose first answer is another page's is planned as a section of that page, never a second page) */
     const all = topicItems(t.key, subjectFacts, subject), firstOwn = all.findIndex((it) => it.claims.some((c) => !used.has(c.claimId)));

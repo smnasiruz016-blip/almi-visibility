@@ -181,3 +181,20 @@ test("the server collector saves the blueprint too; a client never gets it", asy
   assert.equal(almiSeoAnswer.length >= 0, true);
   const SRC2 = readFileSync(new URL("../site/almiseo.mjs", import.meta.url), "utf8"); assert.match(SRC2, /CLIENT_PARTS = (?:Object\.freeze\()?\["summary", "pages"\]/, "a client's parts are unchanged: no coverage, no blueprint");
 });
+
+/* the proof run on the owner's data found these: a truth check is wrong in both directions */
+test("summary = fact does not cry wolf: money and exchange rates are not scores (Pakistan, Nepal and Sri Lanka lost their local fee card to it); a list of scores is still read whole", () => {
+  const fee = "The full test costs AUD 587 (the official fee). In Pakistan that is about PKR 114,163 — converted with ExchangeRate-API's rate of 2026-11-02 (1 AUD = 194.49 PKR). It is approximate: you pay the official fee in AUD.";
+  assert.equal(summaryFault("PKR ≈ 114,163 (AUD 587 official fee · rate from ExchangeRate-API, 2026-11-02 · approximate)", fee), null);
+  assert.equal(summaryFault("AUD 587", "The full test costs AUD 587 (1 AUD = 233.59 LKR)."), null);
+  assert.match(summaryFault("350", "Alabama asks 340, 320, 350 and 360."), /340, 320, 360|340/, "a score followed by a comma counts");
+});
+test("answer fits question: a price never answers how hard something is", () => {
+  const a = "British Council Pakistan lists IELTS Academic and General Training on computer at PKR 75,600 in Islamabad.";
+  assert.match(answerFitWhy("Is OET difficult than IELTS?", a, { subject: "OET" }), /something else/);
+  assert.equal(answerFitWhy("Is OET harder than IELTS?", "Most candidates find OET's Writing task harder than IELTS's.", { subject: "OET" }), null);
+});
+test("the booking page keeps its page when a schedule search asks for the same facts: booking chooses first", () => {
+  const titles = [["testx schedule", "testx booking"], ["testx booking", "testx schedule"]].map((texts) => examPlan({ subject: "TESTX", professions: ["nursing"], countries: ["Ireland"], facts: [], subjectFacts: familyFacts, demand: texts.map((text, i) => ({ text, source: "keywords", weight: 100 - i })), site }).pages.filter((x) => x.kind === "topic").map((x) => x.title).join(" | "));
+  for (const t of titles) assert.match(t, /booking/i, t);
+});

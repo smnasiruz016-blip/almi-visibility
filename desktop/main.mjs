@@ -1002,7 +1002,7 @@ function refreshLauncher() {
   const from = join(HERE, "..", "launcher", "AlmiVisibility.exe"), to = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(from) || !existsSync(to)) return true;
   try { if (readFileSync(from).equals(readFileSync(to))) return true; copyFileSync(from, to); return true; } catch { return false; }
 }
-if (!refreshLauncher()) setTimeout(refreshLauncher, 30000).unref();
+{ let tries = 0; const again = () => { if (!refreshLauncher() && ++tries < 24) setTimeout(again, 5000).unref(); }; again(); } // the old launcher is still ending when the new app starts
 /* RR-362: the app started again in the middle of a run: it goes on at once */
 rmSync(STOP_FILE(), { force: true });
 setTimeout(() => { for (const p of store.list()) if (existsSync(pfile(p.id, "run-in-progress.json")) && !making.has(p.id)) createPages(p.id).catch(() => {}); }, 3000).unref();

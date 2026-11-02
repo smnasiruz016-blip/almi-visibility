@@ -181,7 +181,7 @@ export function mergeSameNeeds(parts = [], { droppedWhy = [] } = {}) {
   for (const it of parts) {
     const k = needClass(it.question), had = k ? first.get(k) : null;
     /* the country's own fee stands first, its question kept; a council's or a score's fee is another thing */
-    if (had && !/^(?:councils|scores|rules|centres|writing)/.test(String(it.part))) { const keys = new Set(had.claims.map(textKey)); for (const c of it.claims ?? []) if (!keys.has(textKey(c))) { had.claims = [...had.claims, c]; keys.add(textKey(c)); } droppedWhy.push({ question: it.question, why: `it is the same need as "${had.question}": one question, one answer`, plain: true }); continue; }
+    if (had && !/^(?:councils|scores|rules|centres|writing)/.test(String(it.part))) { const keys = new Set(had.claims.map(textKey)); for (const c of it.claims ?? []) if (!keys.has(textKey(c)) && (!/fee$/.test(k) || /(?:AU[D$]|US[D$]|A\$|[$£€₹])\s?\d/.test(String(c.text))) /* a line under a price says a price */) { had.claims = [...had.claims, c]; keys.add(textKey(c)); } droppedWhy.push({ question: it.question, why: `it is the same need as "${had.question}": one question, one answer`, plain: true }); continue; }
     if (k && !first.has(k)) first.set(k, it);
     out.push(it);
   }

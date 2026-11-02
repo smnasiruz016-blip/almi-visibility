@@ -37,7 +37,7 @@ export const HONEST = /\bofficial page, checked \d{4}-\d{2}-\d{2}, does not say 
 export const VIEW_MARK = "A view many people hold, not an official rule:";
 const short = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
-const fromSubject = (f, country) => ({ claimId: `ladder-${f.claimId}`, card: null, text: placeHere(priceHere(f.text, country), country), link: f.link, readOn: f.readOn, source: f.source ?? "its own page", official: true, body: f.body ?? null });
+const fromSubject = (f, country) => ({ claimId: `ladder-${f.claimId}`, card: null, text: country ? placeHere(priceHere(f.text, country), country) : f.text /* no one country: the whole fact, as the topic page shows it */, link: f.link, readOn: f.readOn, source: f.source ?? "its own page", official: true, body: f.body ?? null });
 /* a view may not carry a fee, a date, a score or a time limit: those are facts, and need their own source */
 const HOLDS_A_NUMBER = /(?:AU[D$]|US[D$]|[$£€])\s?\d|\b\d{2,}\b/;
 const FOR_PLACE = (f, country) => { const here = countriesIn(placeHere(f?.text ?? "", country)); return !here.length || !country || here.includes(country); };

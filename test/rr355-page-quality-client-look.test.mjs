@@ -117,7 +117,7 @@ test("RR-355 · Rule 3 + 4 · the country page's five things, the fee in its own
   const text = JSON.stringify(pk);
   for (const bad of ["193.32", "sbp.org.pk", "this file", "state no PKR"]) assert.ok(!text.includes(bad), `${bad} reached the page`);
   /* the HTML check of the five things: a missing one is named; the fee card must come first */
-  const html = (parts, cards) => pageHtml({ title: "OET in Pakistan", cards, items: parts.map((p) => [`need-x--${p}`, p, [`An answer for ${p}.`]]) });
+  const html = (parts, cards) => pageHtml({ title: "OET in Pakistan", cards, items: parts.map((p) => [`need-x--${p}`, p, p === "councils" ? ["A board registers nurses.", "A board registers doctors."] : [`An answer for ${p}.`]]) });
   assert.deepEqual(partsMissing(html(["fee", "questions0", "centres", "councils", "rules"], ["PKR ≈ 114,277"]), "country", { localCurrency: "PKR" }), []);
   assert.deepEqual(partsMissing(html(["fee", "centres", "councils", "rules"], ["PKR ≈ 114,277"]), "country", { localCurrency: "PKR" }), ["the questions people there ask, with answers"]);
   assert.deepEqual(partsMissing(html(["fee", "questions0", "centres", "councils", "rules"], ["AUD 587", "PKR ≈ 114,277"]), "country", { localCurrency: "PKR" }), ["the fee in its own currency as the first fact card"]);

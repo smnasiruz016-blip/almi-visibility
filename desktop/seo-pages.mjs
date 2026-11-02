@@ -28,7 +28,7 @@ import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
-import { summaryFault, fitCard, fitParts, answerFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace } from "./truth-checks.mjs"; // RR-363: R15
+import { summaryFault, fitCard, fitParts, answerFitWhy, partFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace } from "./truth-checks.mjs"; // RR-363: R15
 import { blocksOfHtml, blocksCompared } from "./blocks.mjs"; // RR-363: R15
 import { readPage } from "./page-quality.mjs";
 import { shortCard } from "./exam-plan.mjs";
@@ -246,7 +246,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     const t = topicWords(n.question), extra = [], day = String(site.readOn).slice(0, 10);
     /* the client's own question-and-answer pairs on this page's topic: each question with ITS OWN answer from its page (an answer the first
      * part already shows is not shown twice) */
-    const pairs = site.pages.flatMap((p) => p.qa.filter((x) => x.q && x.a).map((x) => ({ q: x.q, text: wholeSentences(cleanAnswer(x.a), 600), link: p.url }))).filter((x) => x.text && [...topicWords(x.q)].filter((w) => t.has(w)).length >= Math.min(2, t.size));
+    const pairs = site.pages.flatMap((p) => p.qa.filter((x) => x.q && x.a && clearQuestion(x.q) /* RR-365 */).map((x) => ({ q: x.q, text: wholeSentences(cleanAnswer(x.a), 600), link: p.url }))).filter((x) => x.text && [...topicWords(x.q)].filter((w) => t.has(w)).length >= Math.min(2, t.size));
     for (const x of pairs) {
       if (extra.length >= 5 || normQ(x.q) === normQ(n.question)) continue;
       if (n.claims.some((c) => c.text === x.text)) continue;
@@ -348,7 +348,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     /* 🔴 RR-363 · R15's checks read the page itself: every card keeps its fact; every answer fits its question. And the year the top pages put in their title, when they do */
     const seen = readPage(d.html), byNeed = new Map(keyFacts.filter((k) => !k.needId || k.needId === built[i].needId).map((k) => [String(k.value), k.text]));
     const cardFaults = seen.cards.flatMap((c) => { const why = cardFaultOf(c.value, byNeed.get(c.value), [...byNeed.values()]); return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
-    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
+    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }) ?? partFitWhy(/--([a-z]+)\d*$/.exec(it.id)?.[1], a); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
     if (m.blueprint?.year && !/\b20\d\d\b/.test(d.title)) { const y = String(on).slice(0, 4); d.html = d.html.replace(/(<title\b[^>]*>)([\s\S]*?)(<\/title>)/i, `$1$2 ${y}$3`).replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, `$1$2 ${y}$3`); }
     const compared = blocksCompared(m.blueprint, blocksOfHtml(d.html));
     d.truth = { cards: changedCards[built[i].needId] ?? [], removed: m.fit?.removed ?? [], dropped: m.fit?.dropped ?? [] }; d.blocks = { ...compared, blueprint: m.blueprint ?? null, unreadTops: m.unreadTops ?? 0 };

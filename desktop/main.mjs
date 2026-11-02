@@ -401,15 +401,16 @@ const examCountriesOf = (id) => { const own = [...new Set(factsOfStore(pread(id,
  */
 async function subjectFactsFor(id, subject) {
   const kept = pread(id, "subject-facts.json", null), site = store.read(id).setup?.official?.site ?? (/^oet$/i.test(String(subject)) ? "https://oet.com" : null);
-  if (!site || CONFIG.testOffline === true) return { facts: Object.fromEntries(Object.entries(kept?.facts ?? {}).filter(([, x]) => !oldWording(x?.text))), line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
-  if (kept?.on && kept.v === 363 /* RR-363: booking and results read again from the booking page */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
+  const keptFacts = Object.fromEntries(Object.entries(kept?.facts ?? {}).filter(([, x]) => !oldWording(x?.text))); /* RR-365: whichever way a kept copy is used */
+  if (!site || CONFIG.testOffline === true) return { facts: keptFacts, line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
+  if (kept?.on && kept.v === 365 /* RR-365: the change fee and the re-mark fee read again */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
   try {
     const rd = reader(), urls = ((await rd.sitemapOf(site)).urls ?? []).filter((u) => SUBJECT_FACT_PAGES.test(String(u).replace(/\/$/, ""))).slice(0, 16), pages = [];
     for (const u of [...urls, ...(SUBJECT_EXTRA_PAGES[subject] ?? [])]) pages.push(await rd.read(u));
     const facts = subjectFactsOf(pages, subject);
-    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 363, on: new Date().toISOString(), site, facts });
-    return { facts: Object.keys(facts).length ? facts : kept?.facts ?? {}, line: `${subject}'s own pages: ${Object.keys(facts).length} facts read from ${pages.filter((p) => p.ok).length} pages` };
-  } catch (e) { return { facts: kept?.facts ?? {}, line: `${subject}'s own pages could not be read just now` }; }
+    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 365, on: new Date().toISOString(), site, facts });
+    return { facts: Object.keys(facts).length ? facts : keptFacts, line: `${subject}'s own pages: ${Object.keys(facts).length} facts read from ${pages.filter((p) => p.ok).length} pages` };
+  } catch (e) { return { facts: keptFacts, line: `${subject}'s own pages could not be read just now` }; }
 }
 async function oneRatesFor(id) {
   const kept = pread(id, "rates-open.json", null), today = new Date().toISOString().slice(0, 10);

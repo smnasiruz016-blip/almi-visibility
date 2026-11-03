@@ -53,7 +53,7 @@ const TP = { [ENV_NAMES.topPagesOn]: "1", [ENV_NAMES.dfsLogin]: "login-name", [E
 const answer = (k, cost = 0.002) => ({ status_code: 20000, tasks: [{ status_code: 20000, cost, result: [{ items: [{ type: "organic", url: "https://a.example/one", title: `${k} one` }] }] }] });
 const reader = () => { let n = 0; return { requests: () => n, raw: async () => { n++; return "<main><h2>How much is the exam fee?</h2></main>"; } }; };
 test("RULING 1: the TOTAL budget stops the collector by itself, whatever the day; a search that could pass it is not sent; spent / $50 is measured from what was charged", async () => {
-  const w = await world(); let n = 0; const fetchImpl = async (u, init) => { n++; return { json: async () => answer(JSON.parse(init.body)[0].keyword, 0.01) }; };
+  const w = await world(); let n = 0; const fetchImpl = async (u, init) => { if (String(u).includes("task_post")) n++; /* RR-366: a page read is no search */ return { json: async () => answer(JSON.parse(init.body)[0].keyword, 0.01) }; };
   await w.seo.addSpend("2026-10-01", TOP_PAGES_JOB, { usd: 49.985, units: 9000 }); // the account's earlier days count
   const r = await runTopPages({ seo: w.seo, cf: w.cf, env: TP, reader: reader(), fetchImpl, now });
   assert.equal(n, 1, "one search of $0.01 fits; the next would pass $50 and is never sent"); assert.equal(r.stoppedBy, "BUDGET"); assert.match(r.why, /budget is spent \(\$50 in total\)/);

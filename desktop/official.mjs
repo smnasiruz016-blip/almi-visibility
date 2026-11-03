@@ -55,7 +55,8 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
        * page that answered 403, 429 or 5xx, or did not answer, is read again — at most `retries` more times, a pause between, the SAME reader
        * name (never another one, never around the check); still refused → said, and it goes on the client's browser list as before */
       let res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf");
-      for (let k = 1; k <= retries && (res.failed || res.status === 403 || res.status === 429 || res.status >= 500); k++) { await sleep(retryPauseMs * k); res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf"); }
+      /* RR-366 X5: a site that took the whole wait to say nothing is not waited for twice more (a run doubled in length): it is tried again on the next run */
+      for (let k = 1; k <= retries && res.failed !== "timed out" && (res.failed || res.status === 403 || res.status === 429 || res.status >= 500); k++) { await sleep(retryPauseMs * k); res = await get(a.u.href, "text/html,application/xhtml+xml,application/pdf"); }
       if (res.failed) return { ok: false, url, why: `could not be read (${res.failed})`, checkedOn: day(on) };
       if (!res.ok) return { ok: false, url, why: `the page answered ${res.status}`, checkedOn: day(on) };
       const type = res.headers.get("content-type") ?? "", final = res.finalUrl ?? a.u.href;

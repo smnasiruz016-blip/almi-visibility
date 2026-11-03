@@ -10,6 +10,8 @@ import { meaningOf, NEED_GROUPS } from "./coverage.mjs";
 import { oldWording } from "./subject-facts.mjs";
 import { professionIn, professionRegistered } from "./page-plan.mjs";
 import { unclearWhy } from "./page-types.mjs";
+import { HONEST, VIEW_MARK } from "./answer-ladder.mjs"; // RR-366
+import { councilLineWhy } from "./council-truth.mjs"; // RR-366
 
 const SUBTESTS = ["Listening", "Reading", "Writing", "Speaking"];
 const distinct = (xs) => [...new Set(xs)];
@@ -59,7 +61,7 @@ const THINGS = Object.freeze([
   /* the fee for changing the venue is not the fee for changing the date */
   { asks: /\b(?:chang|mov|switch|transfer)\w*\b[^?]*\b(?:venue|cent(?:re|er)|location)s?\b/i, says: (a) => /\b(?:venue|cent(?:re|er)|location)s?\b/i.test(a), why: "it asks about changing the venue, the answer is about something else" },
   /* classes are not the test */
-  { asks: /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?)\b/i, says: (a) => /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?|teach\w*|training|review cent(?:re|er)s?)\b/i.test(a), why: "it asks about classes, the answer is about the test itself" },
+  { asks: /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?)\b/i, says: (a) => /\b(?:class|classes|courses?|coaching|tuition|lessons?|tutors?|teach\w*|training|review cent(?:re|er)s?|practice|practise|sample tests?)\b/i.test(a), why: "it asks about classes, the answer is about the test itself" },
   /* how to pass is advice, not how scoring works */
   { asks: /^how\s+(?:do|can|should|could|to|does)\b[^?]*\b(?:pass|clear|crack|succeed|improve)\b/i, says: (a) => /\byou (?:should|need to|must)\b|\bto pass\b|\baim (?:for|to)\b|\bfocus on\b|\bwork on\b|\bpractice tests?\b|\bpractise\b|\brevise\b|\bstudy (?:the|your)\b|\btips?\b/i.test(a), why: "it asks how to pass, the answer only says how scoring works" },
   /* what a score means is not what one body asks: "What grade is 300?" */
@@ -70,10 +72,14 @@ const THINGS = Object.freeze([
 /* the part's own kind: a line under "What rules are special to …?" states a rule; a line under the councils names a council, never a price */
 const RULE_SAYS = /\b(?:must|required?|requires|needs? to|only|cannot|can't|not allowed|may not|mandatory|shall|apostille|legali[sz]\w*|attest\w*|verif\w*|good standing|authenticat\w*|consular|not a party|registr\w*|register\w*|licen[cs]\w*)\b/i;
 const NOT_RULE = /\bresults?\b[^.]*\b(?:released?|come|available)\b|\b(?:listed among|among the locations|regions? where)\b/i;
+/* 🔴 RR-366 Part 6 C: "The NMC's certificate … is also called a letter of good standing": a name, not a rule. A sentence that only names a thing is out, unless it also says what must be done */
+const ONLY_A_NAME = /\b(?:is|are) (?:also )?(?:called|known as|referred to as|named)\b/i, A_DUTY = /\b(?:must|required?|requires|needs? to|needed|cannot|can't|will not|won't|not allowed|may not|mandatory|shall)\b/i;
 const PRICE = /(?:\bAU[D$]|\bUS[D$]|≈|\bcosts?\b)/;
 export function partFitWhy(part, text) {
   const t = String(text ?? ""), k = String(part ?? "");
   if (k === "rules" && (NOT_RULE.test(t) || !RULE_SAYS.test(t))) return "it is a fact about the country, not a rule";
+  if (k === "rules" && ONLY_A_NAME.test(t) && !A_DUTY.test(t)) return "it gives a thing's name, not a rule";
+  if (k === "councils") { const who = councilLineWhy(t); if (who) return who; }
   if (k === "councils" && PRICE.test(t) && !/\bregister/i.test(t)) return "a price is not a council";
   return null;
 }
@@ -81,16 +87,20 @@ export function partFitWhy(part, text) {
 const COUNCIL_RANK = { nursing: 0, medicine: 1 };
 const councilRank = (c) => COUNCIL_RANK[professionRegistered(c.text)] ?? 2;
 
+const MANY_PROFESSIONS = (a) => (String(a).match(/\b(?:medicine|nursing|dentistry|dietetics|pharmacy|physiotherapy|podiatry|radiology|optometry)\b/gi) ?? []).length >= 4;
 /**
  * B · why this answer does not answer its question → the reason, or null. `bodies` = [{ names, country }] (a regulator's name says its country); `loose`: a part the plan built for this very
  * question (its fee, its councils): only who and where are judged, never the words.
  */
 export function answerFitWhy(question, answer, { subject = null, bodies = [], loose = false } = {}) {
   const q = String(question ?? ""), a = String(answer ?? "");
+  /* RR-366: "its official page … does not say this" and a marked view answer honestly in their own way: judged by what they say of themselves, never for the words they lack */
+  if (HONEST.test(a)) return null;
+  if (a.startsWith(VIEW_MARK)) return /\b(?:AU[D$]|US[D$])\s?\d/.test(a) ? "a view may not carry a fee: that is a fact, with its own source" : null;
   if (staleNews(a)) return "it is old news, not the current answer";
   if (oldWording(a)) return "it gives an old figure the official page has replaced"; /* Part D: whatever page it came from, the client's own too */
   const qp = placesOf(q, bodies), ap = placesOf(a, bodies); if (qp.length && ap.length && !ap.some((x) => qp.includes(x))) return `it asks about ${qp[0]}, the answer is about ${ap[0]}`;
-  const prof = professionIn(q), other = professionIn(a); if (prof && other && prof !== other) return `it asks about ${prof}, the answer is about ${other}`;
+  const prof = professionIn(q), other = MANY_PROFESSIONS(a) ? null /* RR-366: a list of all the professions answers for each */ : professionIn(a); if (prof && other && prof !== other) return `it asks about ${prof}, the answer is about ${other}`;
   const sq = SUBTESTS.filter((s) => nameIn(q, s)), sa = SUBTESTS.filter((s) => new RegExp(`(?<![\\p{L}])${s}(?![\\p{L}])`, "u").test(a)); if (sq.length && sa.length && !sa.some((s) => sq.includes(s))) return `it asks about ${sq[0]}, the answer is about ${sa[0]}`;
   if (loose) return null;
   const oq = OPTIONS.filter(([, re]) => re.test(q)).map(([k]) => k), oa = OPTIONS.filter(([, re]) => re.test(a)).map(([k]) => k); if (oq.length && oa.length && !oa.some((k) => oq.includes(k))) return `it asks about the test ${oq[0]}, the answer is about the test ${oa[0]}`;
@@ -120,16 +130,78 @@ export function staleNews(text, now = new Date()) {
   const t = String(text ?? ""), years = [...t.matchAll(/\b(19|20)\d\d\b/g)].map((m) => Number(m[0])); if (!years.length) return false;
   return Math.max(...years) <= now.getUTCFullYear() - 2 && /\b(announce\w*|press release|news|launch\w*|new venue|recently opened|opened)\b/i.test(t);
 }
+/* 🔴 RR-366 Part 5 (beta-g: "The GMC treats OET certificates as valid for two years", sourced to our own site) · a fee, date, score, time limit or a body's rule is shown with the official source. Our own site may be a source only for our own product */
+const HOLDS_A_FACT = /(?:AU[D$]|US[D$]|GBP|EUR|PKR|INR|[$£€₹])\s?\d|\b\d+\s*(?:hours?|days?|weeks?|months?|years?|minutes?)\b|\b(?:one|two|three|four|five|six|seven|twelve) (?:hours?|days?|weeks?|months?|years?)\b|\b[1-5]\d{2}\b|\bgrade [A-E]\b/i;
+const A_BODYS_RULE = /\b(?:accepts?|requires?|asks? for|must|valid|validity|recogni[sz]es?|treats?)\b/i;
+export function ownSiteFactWhy(text, { subject = null, bodies = [] } = {}) {
+  const t = String(text ?? ""); if (HOLDS_A_FACT.test(t)) return "a fee, date, score or time limit is shown only with its official source, not our own site";
+  const body = bodies.some((b) => (b.names ?? []).some((n) => nameIn(t, n))) || (subject && nameIn(t, subject)) || WHO_SETS.test(t) || /\b[A-Z]{3,}\b/.test(t);
+  return body && A_BODYS_RULE.test(t) ? "a body's rule is shown only with that body's own page, not our own site" : null;
+}
+/* Part 6 F: a fact with no source or no date maps to nothing */
+const unsourced = (c) => !/^https?:\/\//.test(c?.link ?? "") || !/^\d{4}-\d{2}-\d{2}/.test(c?.readOn ?? "");
 const WATCHED = /^(questions|topic|main)\d*$/;
 /** the parts a page shows, each line that fits its own question kept → { parts, removed: [{ question, line, why }], dropped: [question] }. A question left with nothing goes */
-export function fitParts(parts, { subject = null, bodies = [], ownHost = null } = {}) {
-  const removed = [], dropped = [], out = [];
+export function fitParts(parts, { subject = null, bodies = [], ownHost = null, officialHost = null, requireSource = false } = {}) {
+  const removed = [], dropped = [], out = [], droppedWhy = [], separateOfficial = Boolean(ownHost && officialHost && ownHost !== officialHost);
   for (const it of parts) {
-    /* RR-365: whichever road a question came by: one nobody asks does not stand */
-    if (/^questions/.test(String(it.part)) && unclearWhy(it.question)) { dropped.push(it.question); continue; }
-    const loose = !WATCHED.test(String(it.part)), kept = (it.claims ?? []).flatMap((c) => { const off = partFitWhy(it.part, c.text); if (off) { removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: off }); return []; } if (hostIs(c.link, ownHost)) { const text = ownSiteAnswer(it.question, c.text, { subject, bodies }); if (text !== c.text) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; } const why = answerFitWhy(it.question, c.text, { subject, bodies, loose }); if (why) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why }); return why ? [] : [c]; });
+    /* RR-365: whichever road a question came by: one nobody asks does not stand. RR-366: the words people of a country type keep their own wording */
+    if (/^questions/.test(String(it.part)) && !it.localWording && unclearWhy(it.question)) { dropped.push(it.question); droppedWhy.push({ question: it.question, why: unclearWhy(it.question), plain: true }); continue; }
+    const loose = !WATCHED.test(String(it.part)), kept = (it.claims ?? []).flatMap((c) => { if (requireSource && unsourced(c)) { removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: "it has no source and date, so it maps to no verified fact" }); return []; } const off = partFitWhy(it.part, c.text); if (off) { removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: off }); return []; } if (c.ownProduct) return [c]; if (separateOfficial && hostIs(c.link, ownHost)) { const fact = ownSiteFactWhy(c.text, { subject, bodies }); if (fact) { removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: fact }); return []; } } if (hostIs(c.link, ownHost)) { const text = ownSiteAnswer(it.question, c.text, { subject, bodies }); if (text !== c.text) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why: text ? "only the part that answers it stayed" : "your own site's paragraph does not answer this" }); return text ? [{ ...c, text }] : []; } const why = answerFitWhy(it.question, c.text, { subject, bodies, loose }); if (why) removed.push({ question: it.question, line: String(c.text).slice(0, 160), why }); return why ? [] : [c]; });
     if (it.part === "councils") kept.sort((a, b) => councilRank(a) - councilRank(b));
-    if (kept.length) out.push({ ...it, claims: kept }); else if ((it.claims ?? []).length) dropped.push(it.question);
+    if (kept.length) out.push({ ...it, claims: kept }); else if ((it.claims ?? []).length) { dropped.push(it.question); droppedWhy.push({ question: it.question, why: "no line fitted it" }); }
   }
-  return { parts: out, removed, dropped };
+  return { parts: out, removed, dropped, droppedWhy };
+}
+
+/* 🔴 RR-366 Part 5 · ONE QUESTION, ONE ANSWER: "What is the fee for rescheduling an OET Test?" and "What does changing an OET booking cost?" are one need. Their answers join under the first; the second question goes, said */
+const NEED_CLASSES = Object.freeze([
+  ["change-fee", /\b(?:reschedul\w*|postpon\w*|defer\w*|chang\w*|mov\w*)\b[^?]*\b(?:fee|costs?|price|charge)\b|\b(?:fee|costs?|price|charge)\b[^?]*\b(?:reschedul\w*|postpon\w*|defer\w*|chang\w*|mov\w*)\b/i],
+  ["remark-fee", /\bre-?mark\w*\b[^?]*\b(?:fee|costs?|price)\b|\b(?:fee|costs?|price)\b[^?]*\bre-?mark\w*\b/i],
+  ["result-time", /\bhow (?:long|soon|many days)\b[^?]*\bresults?\b|\bwhen\b[^?]*\bresults?\b|\bresults?\b[^?]*\b(?:take|come|released?|out)\b/i],
+  ["booking-close", /\bbookings?\b[^?]*\bclose\b|\bwhen\b[^?]*\bbook\w*\b[^?]*\bclose\b/i],
+  ["fee", /\b(?:how much|fees?|costs?|price)\b/i],
+]);
+export const needClass = (q) => NEED_CLASSES.find(([, re]) => re.test(String(q)))?.[0] ?? null;
+const textKey = (c) => String(c.text ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+/* one fact once: a question whose whole answer already stands on the page does not repeat it (a repeat is filler, and it stops a page): it joins the question that holds it */
+export function oneFactOnce(parts = [], { droppedWhy = [] } = {}) {
+  const at = new Map(), out = [];
+  for (const it of parts) {
+    if (/^(?:councils|openCouncils|scores|rules|centres|writing)/.test(String(it.part))) { out.push(it); continue; }
+    const honest = (c) => HONEST.test(String(c.text)), left = (it.claims ?? []).filter((c) => honest(c) || !at.has(textKey(c)));
+    /* an answer is its first line: with that gone, what is left does not answer the question ("Can a dental MDS graduate sit it?" left with only "for someone who is not a health professional"): the question joins the one that holds it */
+    const first = (it.claims ?? [])[0];
+    if (first && !honest(first) && at.has(textKey(first))) { droppedWhy.push({ question: it.question, why: `its answer already stands on this page, under "${at.get(textKey(first))}"`, plain: true }); continue; }
+    for (const c of left) if (!at.has(textKey(c))) at.set(textKey(c), it.question);
+    out.push(left.length === (it.claims ?? []).length ? it : { ...it, claims: left });
+  }
+  return out;
+}
+const sameWords = (a, b) => { if (!a.length || !b.length) return false; const y = new Set(b), both = a.filter((w) => y.has(w)).length; return both / new Set([...a, ...b]).size >= 0.8; };
+export function mergeSameNeeds(parts = [], { droppedWhy = [], subject = null } = {}) {
+  const first = new Map(), out = [];
+  for (const it of parts) {
+    /* two wordings nearly word for word ("the criteria used for marking OET", "the criteria used to mark the OET"): one question */
+    if (/^questions/.test(String(it.part))) { const m = meaningOf(String(it.question).replace(/\b(?:marking|marked)\b/gi, "mark"), { drop: [subject] }), twin = out.find((o) => /^questions/.test(String(o.part)) && sameWords(m, meaningOf(String(o.question).replace(/\b(?:marking|marked)\b/gi, "mark"), { drop: [subject] }))); if (twin) { droppedWhy.push({ question: it.question, why: `it asks what "${twin.question}" asks: one question, one answer`, plain: true }); continue; } }
+    const k = needClass(it.question), had = k ? first.get(k) : null;
+    /* the country's own fee stands first, its question kept; a council's or a score's fee is another thing */
+    if (had && !/^(?:councils|scores|rules|centres|writing)/.test(String(it.part))) { const keys = new Set(had.claims.map(textKey)); for (const c of it.claims ?? []) if (!keys.has(textKey(c)) && (!/fee$/.test(k) || /(?:AU[D$]|US[D$]|A\$|[$£€₹])\s?\d/.test(String(c.text))) /* a line under a price says a price */) { had.claims = [...had.claims, c]; keys.add(textKey(c)); } droppedWhy.push({ question: it.question, why: `it is the same need as "${had.question}": one question, one answer`, plain: true }); continue; }
+    if (k && !first.has(k)) first.set(k, it);
+    out.push(it);
+  }
+  return out;
+}
+/* 🔴 RR-366 Part 6 F · every fee, time limit and score a reader sees maps to a verified fact: a number that stands on the page outside the page's sourced facts → the list */
+const SHOWN_NUMBER = /(?:AU[D$]|US[D$]|A\$|GBP|EUR|[$£€₹])\s?\d[\d,]*|\b\d+\s*(?:hours?|calendar days?|days?|weeks?|months?|years?|minutes?)\b/gi;
+export function numbersWithoutFact(html, claims = []) {
+  const main = String(html ?? "").replace(/<style\b[\s\S]*?<\/style>|<script\b[\s\S]*?<\/script>/gi, " "), body = (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(main)?.[1] ?? main).replace(/<[^>]*\bdata-cta\b[^>]*>[\s\S]*?<\/[a-z]+>/gi, " ").replace(/<section class="related">[\s\S]*?<\/section>|<p class="stamp">[\s\S]*?<\/p>|<summary\b[\s\S]*?<\/summary>|<h[1-6]\b[\s\S]*?<\/h[1-6]>/gi, " ").replace(/<[^>]+>/g, " ");
+  const norm = (x) => String(x).toLowerCase().replace(/\s+/g, "").replace(/aud/g, "au$").replace(/usd/g, "us$").replace(/,/g, "").replace(/s$/, ""), known = claims.filter((c) => /^https?:/.test(c.link ?? "")).flatMap((c) => [...String(c.text ?? "").matchAll(SHOWN_NUMBER)].map((m) => norm(m[0])));
+  return [...new Set([...body.matchAll(SHOWN_NUMBER)].map((m) => m[0]).filter((n) => !known.includes(norm(n))))];
+}
+
+/* 🔴 RR-366 X4 ("OET Exam Schedule": the same sentence twice): a sentence said once on a page: it goes from every later line before the page is shown; a line left with nothing goes. Council and score lines differ by their body's name and are never touched */
+export function oneSentenceOnce(parts = []) {
+  const seen = new Set(), key = (s) => s.toLowerCase().replace(/\s+/g, " ").trim(), long = (s) => s.split(/\s+/).length >= 6;
+  return parts.map((it) => { if (/^(?:councils|openCouncils|scores)/.test(String(it.part))) return it; const claims = (it.claims ?? []).flatMap((c) => { const keep = sentencesOf(c.text).filter((s) => { if (HONEST.test(s) || !long(s)) return true; const k = key(s); if (seen.has(k)) return false; seen.add(k); return true; }); return keep.length ? [keep.join(" ") === c.text ? c : { ...c, text: keep.join(" ") }] : []; }); return { ...it, claims }; }).filter((it) => it.claims.length);
 }

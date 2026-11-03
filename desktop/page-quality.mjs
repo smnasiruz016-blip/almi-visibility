@@ -15,6 +15,7 @@
  * Pure: the page's HTML in, the problems out.
  */
 import { countriesIn } from "./world.mjs";
+import { HONEST } from "./answer-ladder.mjs"; // RR-366
 import { professionRegistered } from "./page-plan.mjs"; // RR-365
 import { CORE, KIND, coreOf } from "./page-types.mjs"; // RR-362: one place per rule
 export const QUALITY_GATE = "F";
@@ -135,7 +136,7 @@ export function goodToRead(html, topic) {
   const answerWords = words([p.top, ...p.items.flatMap((i) => i.answers), ...p.parts.flatMap((x) => x.lines)].join(" ")).length;
   /* R7 (owner, after v3 §14): NO fixed word or answer minimum — whether the intent is answered is the completeness check (desktop/seo-pages.mjs);
    * here only an empty page, or FILLER (the same sentence said twice to look deeper), fails */
-  const said = new Map(); for (const s of lines.filter((l) => !p.cards.some((c) => c.value === l)) /* RR-363: a card may say a fact whole, beside its answer */.flatMap((l) => l.split(/(?<=[.!?])\s+/)).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
+  const said = new Map(); for (const s of lines.filter((l) => !p.cards.some((c) => c.value === l)) /* RR-363: a card may say a fact whole, beside its answer */.flatMap((l) => l.split(/(?<=[.!?])\s+/)).filter((s) => !HONEST.test(s) /* RR-366: the owner's own words for "not found", one per question */).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
   const filler = [...said].find(([, n]) => n > 1)?.[0];
   if (!answered) add("e", "Empty — it answers no question yet.");
   else if (filler) add("e", `Filler — the same sentence twice: "${filler.slice(0, 70)}".`);
@@ -156,7 +157,7 @@ export const PROFESSION_PARTS = CORE.exam[KIND.profession];
 /* RR-362 (R3, R5, R6): the core questions of every page type, read from the page itself; a heading that is a question people ask (`asked`) answers "the questions people ask" */
 export function partsMissing(html, kind, { localCurrency = null, asked = [] } = {}) {
   const want = coreOf(kind); if (!want) return [];
-  const p = readPage(html), have = new Set(p.items.filter((i) => i.answers.length).map((i) => (/--([a-z]+)\d*$/.exec(i.id) ?? [])[1]).filter(Boolean));
+  const p = readPage(html), have = new Set(p.items.filter((i) => i.answers.length).map((i) => (/--([a-z]+)\d*$/.exec(i.id) ?? [])[1]?.replace(/^questionsa$/, "questions")).filter(Boolean));
   if (p.items.some((i) => i.answers.length && asked.includes(i.question))) have.add("questions");
   const missing = Object.entries(want).filter(([k]) => !have.has(k)).map(([, v]) => v);
   /* 🔴 RR-365 + the owner's rule of 27 Oct (a country's councils = nursing and medicine first): the United States listed six other councils and stood ✅: a list without them is named, never invented */

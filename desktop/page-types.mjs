@@ -38,15 +38,16 @@ export const STANDING = /\bgood standing\b|\bverif(?:y|ication|ied)\b|\bcertific
 const ASKS = /^(how|what|why|which|where|when|who|is|are|can|could|does|do|did|should|will|would|may|must|has|have)\b/i;
 const STORY = /\b(?:the|this|that|a) (?:student|video|channel|clip|post|comment|teacher|tutor|instructor)\b|\bmy (?:friend|teacher|tutor|cousin|sister|brother)\b|\b(?:he|she|his|her|him)\b/i;
 /* 🔴 RR-365 · collectors' questions are suggestions, not orders (beta-g, on pages marked ready). A form's or survey's prompt to the reader: "Which profession and country are you applying to?" */
-const SURVEY = /^can you (?:help|tell|give|share|suggest|recommend|send)\b|^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
+const SURVEY = /\byour (?:class|course|coaching|academy|centre|center|channel|batch)\b|\banyone else here\b|^will you\b|^can you (?:help|tell|give|share|suggest|recommend|send)\b|^(?:which|what|where)\b[^?]*\b(?:are|were|have) you\b|^(?:which|what)\s+(?:is|are)\s+your\b|^(?:are|have|would|were) you\b(?! (?:allowed|able|required|supposed|expected|permitted)\b)|\b(?:planning|intending) to (?:take|sit|book)\b/i;
 /* someone's impression, not a need: "Why does the speaking test feel like the candidate is the interviewer?" */
-const IMPRESSION = /^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b|\binterviewer\b[^?]*\bcandidate\b|\bcandidate\b[^?]*\binterviewer\b/i;
+const IMPRESSION = /^why (?:do|does|am|did) (?:i|we)\b|^why\b[^?]*\b(?:feels?|seems?|looks?|appears?|sounds?)\b|\bin (?:the |these |those |this |that )?videos?\b|\binterviewer\b[^?]*\bcandidate\b|\bcandidate\b[^?]*\binterviewer\b/i;
 /* nothing a reader can act on: with these words gone, nothing is left: "Is my answer accepted as right?" */
 const NO_THING = new Set(["answer", "accept", "right", "correct", "wrong", "true", "okay", "ok", "good", "bad", "fine", "thing", "stuff", "question", "problem", "one"]);
 const CONTEXTLESS = /^(?:is|are|does|do|can|will|would|should|was|were) (?:it|this|that|these|those|they)\b|\b(?:this|that) (?:one|page|article|answer|thing)\b|\babove\b/i;
 export function unclearWhy(question, { place = null } = {}) {
   const t = String(question ?? "").replace(/\s+/g, " ").trim(), words = t.split(" ").filter((w) => /\p{L}/u.test(w));
   if (!ASKS.test(t) && !/\?$/.test(t)) return "it is not a question";
+  if (/\b(?:with|and|or|of|the|a|an)\s*\?$/i.test(t)) return "it is cut off"; /* RR-366: "… online and with ?" */
   if (words.length < 4) return "too short to say what it asks";
   if (words.length > 30) return "too long to be one clear question";
   if (SURVEY.test(t)) return "it is a form's or a survey's prompt, not a question people ask";
@@ -59,6 +60,13 @@ export function unclearWhy(question, { place = null } = {}) {
   return null;
 }
 export const clearQuestion = (q, o) => !unclearWhy(q, o);
+/* 🔴 RR-366 Part 6 C (beta-g: Qatar's "Which exam is needed to work abroad with a hospital administration diploma?"): an exam page's question names the exam or one of its needs. A question about a diploma, a salary or a course of another field is off this page's intent */
+const EXAM_TOPIC = /\b(?:fees?|costs?|prices?|how much|scores?|grades?|bands?|results?|book\w*|regist\w*|licen[cs]\w*|council|board|paper (?:exam|test)|centres?|centers?|venues?|dates?|re-?mark\w*|role[- ]?plays?|role[- ]?cards?|speaking|writing|listening|reading|sub-?tests?|practice|practise|sample|study material|mock|prepar\w*)\b/i;
+export function questionOffIntentWhy(question, { subject = null, category = "exam" } = {}) {
+  if (category !== "exam") return null;
+  const t = String(question ?? ""); if (subject && new RegExp(`(?<![\\p{L}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "iu").test(t)) return null;
+  return EXAM_TOPIC.test(t) ? null : "it is not about this test or what a candidate needs for it";
+}
 
 /* same-meaning words → the part of a C or D page that answers a question people ask (G7: by meaning, never by label) */
 const ROUTES = Object.freeze([
@@ -85,7 +93,7 @@ export const askedHere = (q, { place, people = [] }) => { if (ASKS.test(String(q
 /** the core parts a planned page still lacks (each by the words above): `askedHeads` = its headings that are questions people ask */
 export function coreMissingOfPlan(page, category = "exam") {
   const want = coreOf(page.kind, category); if (!want) return [];
-  const have = new Set(page.items.filter((it) => it.claims?.length).map((it) => String(it.part).replace(/\d+$/, "")));
+  const have = new Set(page.items.filter((it) => it.claims?.length).map((it) => String(it.part).replace(/\d+$/, "").replace(/^questionsa$/, "questions") /* RR-366: a question the ladder answered */));
   if (page.askedHeads?.length) have.add("questions");
   return Object.entries(want).filter(([k]) => !have.has(k)).map(([k, words]) => ({ part: k, words }));
 }
@@ -94,6 +102,18 @@ const claimKey = (c) => String(c.text ?? "").toLowerCase().replace(/\s+/g, " ").
 export function ownClaims(page, bigger = []) {
   const there = new Set(bigger.filter(Boolean).flatMap((p) => p.items.flatMap((it) => it.claims ?? [])).map(claimKey));
   return page.items.flatMap((it) => it.claims ?? []).filter((c) => !there.has(claimKey(c)));
+}
+/*
+ * 🔴 RR-366 X3 (owner's run: "Interested in Computer Science ?", "How UNILINKSOLUTIONS prepares you for the OET", "Want to know more?", "How we researched") · WHAT TOP PAGES COVER IS A SUGGESTION, THROUGH THE SAME FILTER: a clear question on this page's intent, or it does not stand. No heading, no brand, no menu, no call to action, no form prompt. It never blocks a page. → why it goes, or null
+ */
+const FOREIGN_SERVICE = /\buniversit(?:y|ies)\b|\badmissions?\b|\bsalar(?:y|ies)\b|\bvisas?\b|\btutor(?:s|ing)?\b|\bsessions?\b|\bnear me\b|\bprepares? you\b|\bour (?:course|students?|team|tutors?|classes)\b|\bwe (?:offer|provide|help|researched)\b/i;
+const TESTS_AND_BODIES = new Set(["IELTS", "TOEFL", "CELPIP", "NCLEX", "PLAB", "USMLE", "AHPRA", "HCPC", "CORU", "GPHC", "PMDC", "PNMC"]);
+export function suggestionWhy(text, { subject = null, place = null, category = "exam" } = {}) {
+  const t = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!ASKS.test(t) || !/\?$/.test(t)) return "a heading, a menu or a call to action, not a question";
+  if (FOREIGN_SERVICE.test(t)) return "it is about another company's service";
+  const brands = (t.match(/\b[A-Z]{4,}\b/g) ?? []).filter((w) => w !== String(subject ?? "").toUpperCase() && !TESTS_AND_BODIES.has(w)); if (brands.length) return "it names another company";
+  return unclearWhy(t, { place }) ?? questionOffIntentWhy(t, { subject, category });
 }
 /* R3 · the plain reason a C or D page is not a page of its own */
 export function mergeWhy({ missing, own }) {

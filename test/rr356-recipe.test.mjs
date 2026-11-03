@@ -25,7 +25,7 @@ test("RR-356 · R4 + G1 · Google's results through the paid service — OFF by 
   const off = await searchGoogle({ keyword: "oet for nurses", settings: {}, ledger: { spent: [] }, fetchImpl: () => { throw new Error("bought while off"); } });
   assert.deepEqual([off.ok, off.off, off.why], [false, true, SERP_OFF]);
   /* the cap: a search that could pass $1 today is refused BEFORE it is sent */
-  assert.equal(mayBuy({ spent: [{ on: `${ON}T01:00:00Z`, cost: 0.999 }] }, { now: `${ON}T10:00:00Z` }).ok, false);
+  assert.equal(mayBuy({ spent: [{ on: `${ON}T01:00:00Z`, cost: 0.9998 }] }, { now: `${ON}T10:00:00Z` }).ok, false);
   assert.equal(mayBuy({ spent: [{ on: "2026-10-31T01:00:00Z", cost: 0.999 }] }, { now: `${ON}T10:00:00Z` }).ok, true, "yesterday's spend is not today's");
   /* the service's documented answer read: results, People also ask, related searches */
   const ANSWER = { status_code: 20000, tasks: [{ status_code: 20000, cost: 0.002, result: [{ items: [

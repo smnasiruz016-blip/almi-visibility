@@ -64,3 +64,6 @@ export function jobReport({ drafts = [], live = [], approval = "review", connect
   const topics = drafts.map((d) => ({ title: d.title, url: d.url, is: d.improve ? `improve your existing page ${d.improve.url}` : "new page" }));
   return { headline, needOk, needWork, next, lines, topics };
 }
+
+/* 🔴 RR-366 X5: the Pages screen's list: a title and a status. Each page's details are asked for only when it is opened (204 pages sent 2.9 MB each time) */
+export const pageRow = ({ url, title, type, edited, readyAsDraft, improve, madeAt, checkLater }) => ({ url, title, type, edited, readyAsDraft, improve, madeAt, checkLater });

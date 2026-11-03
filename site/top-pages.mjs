@@ -11,7 +11,7 @@
  * OWNER'S RULING 1: AlmiWorld's OWN products only, AlmiOET first; a TOTAL budget ($50), and a daily cap: a search that could pass either is not sent, and the run stops by itself.
  */
 import { randomBytes } from "node:crypto";
-import { SERP, serpTask, readSerp, notForReading } from "../desktop/serp.mjs";
+import { SERP, ONPAGE, QUEUE, serpTask, readSerp, notForReading, blocksOfContent } from "../desktop/serp.mjs";
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { blocksOfHtml, blueprintOf } from "../desktop/blocks.mjs"; // RR-363: R15
@@ -48,7 +48,9 @@ export function intentsOf({ topic, facts }) {
 }
 
 /** one run. → { ok, day, searches, cost, reads, lists, coverage, stoppedBy, why } */
-export async function runTopPages({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, now = () => Date.now(), budgetMs = TOP_PAGES.runBudgetMs, groups = [], queue = DEFAULT_QUEUE }) {
+/* 🔴 RR-366 Part 7: the Standard queue. A list is posted and paid once; its task id is kept (kv) until its answer is collected, free, by this run or the next: never paid twice. Each top page's blocks through On-Page parsing, once, kept in tp_page; a page it cannot read goes to the polite reader as before */
+const PENDING_KEY = "av:tp:pending";
+export async function runTopPages({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, now = () => Date.now(), budgetMs = TOP_PAGES.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), pollMs = QUEUE.everyMs }) {
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (!topPagesConnected(env)) return { ok: false, day: today, why: `The top-pages collector is off (${ENV_NAMES.topPagesOn}, ${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}) — the owner's decision.` };
   if (kv) { const [locked] = await kv.run([["SET", "av:tp:lock", id, "NX", "EX", TOP_PAGES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another top-pages run is working — this one did nothing." }; }
@@ -56,13 +58,16 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
   const auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
   const reads0 = reader.requests();
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; };
-  let lastCost = 0;
+  let lastCost = 0, pending = {};
+  if (kv) try { pending = JSON.parse((await kv.run([["GET", PENDING_KEY]]))[0] ?? "{}") ?? {}; } catch { pending = {}; }
+  const keepPending = async () => { if (kv) await kv.run([["SET", PENDING_KEY, JSON.stringify(pending)]]).catch(() => null); };
   try {
     /* RULING 1: AlmiWorld's own products only, in the owner's queue order: AlmiOET first */
     const rank = (t) => { const i = queue.products.indexOf(t.id); return i < 0 ? 1e6 : i; }, all = await allTopics({ seo, groups }), limits = await planLimits(seo), month = today.slice(0, 7), topics = all.filter((t) => t.owner === "almiworld" && !t.paused && (t.jobs ?? LIVE_JOBS).includes("top-pages")).sort((a, b) => rank(a) - rank(b));
     /* RR-362 item 9 (R14): AlmiWorld's products first. Later, by the owner's switch, a client's subject too, after them and inside its plan's monthly limit; the client still sees pages only */
     if (env[ENV_NAMES.topPagesClients] === "1") topics.push(...await clientTopicsToWork({ seo, topics: all, today, limits }));
     const facts = await cf.facts();
+    for (let pass = 0; ; pass++) {
     for (const topic of topics) {
       if (out.stoppedBy) break;
       const have = new Map((await seo.lists(topic.id)).map((l) => [l.intent, l])), covered = new Map((await seo.coverage(topic.id)).map((c) => [c.intent, c])), payerLimit = topic.payer ? limits[topic.planOf?.[topic.payer]]?.usdMonth ?? 0 : null;
@@ -73,18 +78,28 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
         if (old && daysBetween(old.day, today) < TOP_PAGES_CAPS.refreshDays && covered.get(intent)?.day >= old.day) continue;
         let list = old && daysBetween(old.day, today) < TOP_PAGES_CAPS.refreshDays ? old : null;
         if (!list) {
+          const waiting = pending[`${topic.id}|${intent}`];
+          let got = null;
+          if (waiting) {
+            let r = null; try { r = await fetchImpl(`${SERP.getUrl}${waiting.id}`, { method: "GET", headers: { authorization: auth }, signal: AbortSignal.timeout(30000) }); } catch { r = null; }
+            const said = r ? await r.json().catch(() => null) : null, st = said?.tasks?.[0]?.status_code; if (!said || QUEUE.waiting.has(st)) continue;
+            delete pending[`${topic.id}|${intent}`]; await keepPending(); got = readSerp(said); if (!got.ok) { if (got.stop) { stop("DATAFORSEO", got.why); break; } continue; } got.cost = 0; /* booked when it was posted */
+          } else {
           /* the next search may not cross the total, even by a cent: the dearest search this account has been charged ($0.01, RR-359) is held back for it */
           const price = Math.max(SERP.pricePerSearch, lastCost);
           if (budget0.spent + out.cost + Math.max(price, TOP_PAGES_CAPS.searchReserveUsd) > caps.budget + 1e-9) { stop("BUDGET", `The top-pages budget is spent ($${caps.budget} in total) — the collector has stopped by itself.`); break; }
           if (topic.payer && (await seo.accountSpend(month, topic.payer)) + price > payerLimit + 1e-9) break; // this client's month is used: the next topic
           if (spent.usd + out.cost + price > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
           let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify(serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }
-          const got = r ? readSerp(await r.json().catch(() => ({}))) : { ok: false, why: "DataForSEO did not answer" };
+          const said = r ? await r.json().catch(() => ({})) : null, task = said?.tasks?.[0];
           out.searches++;
+          if (task?.status_code === QUEUE.created && task.id) { const cost = Number(task.cost) || SERP.pricePerSearch; out.cost += cost; lastCost = cost; pending[`${topic.id}|${intent}`] = { id: task.id, at: today }; await seo.addSpend(today, TOP_PAGES_JOB, { usd: cost, units: 1 }); if (topic.payer) await seo.addAccountSpend(month, topic.payer, cost); await keepPending(); continue; }
+          got = said ? readSerp(said) : { ok: false, why: "DataForSEO did not answer" };
           if (!got.ok) { if (got.stop) { stop("DATAFORSEO", got.why); break; } continue; }
           const cost = got.cost || SERP.pricePerSearch; out.cost += cost; lastCost = cost;
           /* booked at once: a run that dies later never forgets money spent */
           await seo.addSpend(today, TOP_PAGES_JOB, { usd: cost, units: 1 }); if (topic.payer) await seo.addAccountSpend(month, topic.payer, cost);
+          }
           list = { topic: topic.id, intent, location: TOP_PAGES.location, language: TOP_PAGES.language, day: today, results: got.results.map((x) => ({ url: x.url, title: x.title })), paa: got.paa, related: got.related };
           await seo.putList(list); out.lists++;
         }
@@ -93,6 +108,12 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
         for (const u of urls) {
           let p = kept.get(u);
           if (!p || daysBetween(p.day, today) >= TOP_PAGES_CAPS.refreshDays) {
+            /* RR-366: On-Page parsing first, inside the same money caps */
+            if (budget0.spent + out.cost + ONPAGE.price <= caps.budget + 1e-9 && spent.usd + out.cost + ONPAGE.price <= caps.usd + 1e-9) {
+              let said = null; try { const r = await fetchImpl(ONPAGE.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify([{ url: u, markdown_view: true, accept_language: "en" }]), signal: AbortSignal.timeout(60000) }); said = await r.json().catch(() => null); } catch { said = null; }
+              const t = said?.tasks?.[0], item = t?.result?.[0]?.items?.[0];
+              if (said?.status_code === 20000 && t?.status_code === 20000 && item?.page_content) { const c = Number(t.cost) || ONPAGE.price, b = blocksOfContent(item, { title: list.results.find((x) => x.url === u)?.title ?? null }), head = [...new Set(b.headings)].filter((x) => !junkWhy(x, { now: new Date(now()).toISOString(), names: COUNTRIES })).slice(0, TOP_PAGES.maxHeadings); out.cost += c; await seo.addSpend(today, TOP_PAGES_JOB, { usd: c, units: 0 }); p = { url: u, day: today, ok: true, why: null, structure: { headings: head, questions: head.filter((x) => QUESTION.test(x) || x.endsWith("?")), tables: b.blocks.tables, lists: 0, words: b.blocks.words, date: null, droppedHeadings: 0, blocks: b.blocks } }; await seo.putPage(p); tops.push({ url: u, rank: list.results.findIndex((x) => x.url === u) + 1, blocks: b.blocks, title: list.results.find((x) => x.url === u)?.title ?? "", headings: head, text: "" }); continue; }
+            }
             if (reader.requests() - reads0 + readsToday >= caps.reads) { stop("READS", `Today's ${caps.reads} page reads are used — tomorrow continues.`); break; }
             const h = await Promise.resolve(reader.raw(u, "text/html")).catch(() => null);
             p = !h ? { url: u, day: today, ok: false, why: "it refused to be read (robots.txt, a security check or an error) — never gone around", structure: null } : walled(h) ? { url: u, day: today, ok: false, why: "behind a login or a paywall — left unread", structure: null } : { url: u, day: today, ok: true, why: null, structure: pageStructure(h, { now: new Date(now()).toISOString() }) };
@@ -106,6 +127,10 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
         const second = secondSearch({ best: tops[0] ?? null, paa: list.paa, coverage, subject: topic.subject, title: intent });
         await seo.putCoverage({ topic: topic.id, intent, day: list.day, coverage, second, read: tops.map((t) => t.url), blueprint: blueprintOf({ tops, category: PRODUCT_CATEGORY[topic.id] ?? "general", on: list.day }) }); out.coverage++;
       }
+    }
+    /* what is still being prepared: looked for again while this run has time; the rest waits for the next run, already paid */
+    if (out.stoppedBy || !Object.keys(pending).length || now() - start > budgetMs - pollMs) break;
+    await sleep(pollMs);
     }
     out.reads = reader.requests() - reads0;
     await seo.addSpend(today, TOP_PAGES_READS_JOB, { units: out.reads });

@@ -21,7 +21,7 @@ export const MEANINGS = Object.freeze([
   ONE("home", /\bat home\b|@home\b|\bfrom home\b/i, ["bookComputerCloses", "resultsComputer"]),
   ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?:an?|my|the)\b[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
   ONE("abroad", /\b(?:study|work)(?: or (?:study|work))? abroad\b|\buse\b[^?]*\bto (?:study|work|register)\b/i, ["purpose"]),
-  ONE("what", /\bfull form\b|\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|^what is (?:an? )?[A-Za-z]{2,6}(?: exam| test)?\??$|\bmeaning\b|\bwhat is the use of\b/i, ["purpose", "scale"]),
+  ONE("what", /\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|^what is (?:an? )?[A-Za-z]{2,6}(?: exam| test)?\??$|\bmeaning\b|\bwhat is the use of\b/i, ["purpose", "scale"]),
   ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bregistration\b\s+\p{Lu}|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b/iu, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
   ONE("score", /\bscores?\b|\bgrades?\b|\bband\b|\bpass(?:ing)?\b.*\bmarks?\b|\bmarks?\b/i, ["scale", "gradeB"]),
 ]);

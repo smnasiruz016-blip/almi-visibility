@@ -48,7 +48,7 @@ import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, w
 import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
 import { seoPgStore } from "./almiseo-store.mjs"; // RR-360 AlmiSEO Data
 import { ownerReview, decideTicked, REVIEW_JS } from "./owner-review.mjs"; // RR-362
-import { almiSeoAnswer, saveFromApp, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
+import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -418,7 +418,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
     /* RR-326 I: the body as BYTES (a UTF-16 upload must not be decoded as text); the owner's file upload alone may be larger */
     /* RR-329 D: the owner's "Add what I know" may carry one photo (PHOTO.maxBytes) */
-    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : sales && path0 === "/api/webhooks/stripe" ? 200000 : 64000;
+    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : sales && path0 === "/api/webhooks/stripe" ? 200000 : req.method === "POST" && BOUGHT.routes.includes(path0) ? BOUGHT.maxBody /* RR-369: a batch of bought searches; each is whole, nothing else is let this large */ : 64000;
     const chunks = []; let size = 0;
     for await (const c of req) { const b = Buffer.isBuffer(c) ? c : Buffer.from(c); size += b.length; if (size > max) return send(413, "Too large", "text/plain"); chunks.push(b); }
     const raw = Buffer.concat(chunks), body = raw.toString("utf8");
@@ -698,7 +698,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       }
       /* 🔴 RR-360 · ALMISEO DATA FOR THE APP: GET /v1/almiseo?subject=&part=&page= (read only, its own subject only, never counted against the keyword searches) and
        * POST /v1/almiseo/topic (a client's product: the collectors start on its subject). The licence decides; an outside client gets no keyword data from Google (site/almiseo.mjs) */
-      if (u.pathname === "/v1/almiseo" || u.pathname === "/v1/almiseo/topic" || u.pathname === "/v1/almiseo/saved") {
+      if (u.pathname === "/v1/almiseo" || u.pathname === "/v1/almiseo/topic" || u.pathname === "/v1/almiseo/saved" || BOUGHT.routes.includes(u.pathname)) {
         const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
         if (!seo) return json(503, { ok: false, why: "AlmiSEO Data is not connected yet." });
         const lic = checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: sales });
@@ -706,6 +706,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (req.method === "POST" && u.pathname === "/v1/almiseo/topic") { const v = form(); const r = await registerClient({ seo, subject: v.subject, name: v.name, seeds: v.seeds, site: v.site, countries: Array.isArray(v.countries) ? v.countries : [], intents: v.intents, lic, limits: await planLimits(seo), groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : 400, r.ok ? { ok: true, started: Boolean(r.started), joined: Boolean(r.joined) } : r); }
         /* RR-362 item 14: what the app searched is saved here: never paid twice */
         if (req.method === "POST" && u.pathname === "/v1/almiseo/saved") { const v = form(); const r = await saveFromApp({ seo, subject: String(v.subject ?? "").slice(0, 80), lists: v.lists, lic, groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : r.status, r); }
+        /* 🔴 RR-369: every search bought, saved once; before buying, the app asks here first */
+        if (req.method === "POST" && u.pathname === "/v1/almiseo/searches") { const v = form(); const r = await saveBought({ seo, subject: String(v.subject ?? "").slice(0, 80), searches: v.searches, pages: v.pages, lic, groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : r.status, r); }
+        if (req.method === "POST" && u.pathname === "/v1/almiseo/searches/held") { const v = form(); const r = await heldBought({ seo, subject: String(v.subject ?? "").slice(0, 80), keys: v.keys, urls: v.urls, lic, groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : r.status, r); }
         if (req.method !== "GET" || u.pathname !== "/v1/almiseo") return json(405, { ok: false, why: "Not here." });
         const part = String(u.searchParams.get("part") ?? "summary"), subject = String(u.searchParams.get("subject") ?? "").slice(0, 80);
         if (!["summary", "pages", "keywords", "questions", "countries", "plan", "coverage"].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });

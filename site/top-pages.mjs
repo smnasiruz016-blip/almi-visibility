@@ -11,7 +11,7 @@
  * OWNER'S RULING 1: AlmiWorld's OWN products only, AlmiOET first; a TOTAL budget ($50), and a daily cap: a search that could pass either is not sent, and the run stops by itself.
  */
 import { randomBytes } from "node:crypto";
-import { SERP, ONPAGE, QUEUE, serpTask, readSerp, notForReading, blocksOfContent } from "../desktop/serp.mjs";
+import { SERP, ONPAGE, QUEUE, serpTask, readSerp, notForReading, blocksOfContent, searchTermOf } from "../desktop/serp.mjs";
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { blocksOfHtml, blueprintOf } from "../desktop/blocks.mjs"; // RR-363: R15
@@ -80,7 +80,10 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
         if (!list) {
           const waiting = pending[`${topic.id}|${intent}`];
           let got = null;
-          if (waiting) {
+          /* 🔴 RR-369 (owner, R13): an app bought this very search and saved it: reused free. Bought once, by whoever came first */
+          const appKeys = [`${intent}||`, `${searchTermOf(intent)}||`], app = waiting ? null : (await seo.searches?.(topic.id, appKeys) ?? []).sort((a, b) => appKeys.indexOf(a.key) - appKeys.indexOf(b.key))[0]; /* the app searches what people search: a page's subject, not its whole heading */
+          if (app && daysBetween(app.day, today) < TOP_PAGES_CAPS.refreshDays) { out.reused = (out.reused ?? 0) + 1; got = { ok: true, cost: 0, results: app.data.results ?? [], paa: app.data.paa ?? [], related: app.data.related ?? [] }; }
+          else if (waiting) {
             let r = null; try { r = await fetchImpl(`${SERP.getUrl}${waiting.id}`, { method: "GET", headers: { authorization: auth }, signal: AbortSignal.timeout(30000) }); } catch { r = null; }
             const said = r ? await r.json().catch(() => null) : null, st = said?.tasks?.[0]?.status_code; if (!said || QUEUE.waiting.has(st)) continue;
             delete pending[`${topic.id}|${intent}`]; await keepPending(); got = readSerp(said); if (!got.ok) { if (got.stop) { stop("DATAFORSEO", got.why); break; } continue; } got.cost = 0; /* booked when it was posted */

@@ -9,6 +9,7 @@
  *   tp_list       Google's top results for one intent, with its date — asked ONCE, reused by every client until it is due again
  *   tp_page       the STRUCTURE of one top page (headings, questions, tables, lists, length, date) — NEVER its text
  *   tp_coverage   the coverage list and second-search questions made from them (G5, G6)
+ *   seo_search    🔴 RR-369: EVERY search bought by an app or the server, whole (addresses, titles, questions, autocomplete), by its search key: bought once, reused free by every run and the server collector
  * Two stores with ONE contract (test/rr360-*.test.mjs runs the same tests on both): seoPgStore and seoMemoryStore.
  */
 export const SEO_SCHEMA = `
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS tp_list (topic text NOT NULL, intent text NOT NULL, l
 CREATE TABLE IF NOT EXISTS tp_page (url text PRIMARY KEY, day date NOT NULL, ok boolean NOT NULL, why text, structure jsonb);
 CREATE TABLE IF NOT EXISTS tp_coverage (topic text NOT NULL, intent text NOT NULL, day date NOT NULL, coverage jsonb NOT NULL, second jsonb NOT NULL, read jsonb NOT NULL, PRIMARY KEY (topic, intent));
 ALTER TABLE tp_coverage ADD COLUMN IF NOT EXISTS blueprint jsonb;
+CREATE TABLE IF NOT EXISTS seo_search (topic text NOT NULL, key text NOT NULL, kind text NOT NULL, day date NOT NULL, data jsonb NOT NULL, at timestamptz NOT NULL, PRIMARY KEY (topic, key));
 `;
 const copy = (o) => (o === undefined ? o : JSON.parse(JSON.stringify(o)));
 const needFinding = (f) => { if (!f?.sourceUrl) throw new Error("a finding needs a source link"); if (!f?.on) throw new Error("a finding needs its date"); for (const k of ["id", "topic", "job", "kind", "text", "value"]) if (!f?.[k]) throw new Error(`a finding needs its ${k}`); if (!/^https?:\/\//.test(f.sourceUrl)) throw new Error("a finding needs a source link"); if (!/^\d{4}-\d{2}-\d{2}$/.test(f.on)) throw new Error("a finding needs its date"); };
@@ -63,13 +65,18 @@ export function seoPgStore({ url, Pool = null, max = 3 }) {
     async pages(urls) { await ensure(); if (!urls.length) return []; return (await q("SELECT url, day::text AS day, ok, why, structure FROM tp_page WHERE url = ANY($1::text[])", [urls])); },
     async putCoverage(c) { await ensure(); await q("INSERT INTO tp_coverage (topic, intent, day, coverage, second, read, blueprint) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (topic, intent) DO UPDATE SET day = EXCLUDED.day, coverage = EXCLUDED.coverage, second = EXCLUDED.second, read = EXCLUDED.read, blueprint = EXCLUDED.blueprint", [c.topic, c.intent, c.day, JSON.stringify(c.coverage), JSON.stringify(c.second), JSON.stringify(c.read), c.blueprint ? JSON.stringify(c.blueprint) : null]); },
     async coverage(topic) { await ensure(); return (await q("SELECT topic, intent, day::text AS day, coverage, second, read, blueprint FROM tp_coverage WHERE topic = $1 ORDER BY intent", [topic])); },
+    /* RR-369: one statement per batch; a row never replaces a newer one */
+    async putSearches(rows, { at }) { await ensure(); if (!rows.length) return; await q(`INSERT INTO seo_search (topic, key, kind, day, data, at) SELECT * FROM jsonb_to_recordset($1::jsonb) AS x(topic text, key text, kind text, day date, data jsonb, at timestamptz) ON CONFLICT (topic, key) DO UPDATE SET kind = EXCLUDED.kind, day = EXCLUDED.day, data = EXCLUDED.data, at = EXCLUDED.at WHERE seo_search.day <= EXCLUDED.day`, [JSON.stringify(rows.map((r) => ({ ...r, at })))]); },
+    async searches(topic, keys) { await ensure(); if (!keys.length) return []; return q("SELECT topic, key, kind, day::text AS day, data FROM seo_search WHERE topic = $1 AND key = ANY($2::text[])", [topic, keys]); },
+    async searchCount(topic) { await ensure(); const [r] = await q("SELECT count(*)::int AS n FROM seo_search WHERE topic = $1", [topic]); return r?.n ?? 0; },
+    async pageCount() { await ensure(); const [r] = await q("SELECT count(*)::int AS n FROM tp_page"); return r?.n ?? 0; },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }
 
 /** the SAME contract in memory — the tests in CI */
 export function seoMemoryStore() {
-  const topics = new Map(), found = new Map(), spend = new Map(), acc = new Map(), set = new Map(), lists = new Map(), pages = new Map(), cov = new Map();
+  const topics = new Map(), found = new Map(), spend = new Map(), acc = new Map(), set = new Map(), lists = new Map(), pages = new Map(), cov = new Map(), bought = new Map();
   return Object.freeze({
     kind: "memory", ensure: async () => {},
     async topics() { return [...topics.values()].map(copy).sort((a, b) => a.id.localeCompare(b.id)); },
@@ -99,6 +106,10 @@ export function seoMemoryStore() {
     async pages(urls) { return urls.filter((u) => pages.has(u)).map((u) => copy(pages.get(u))); },
     async putCoverage(c) { cov.set(`${c.topic}|${c.intent}`, copy(c)); },
     async coverage(topic) { return [...cov.values()].filter((c) => c.topic === topic).map(copy).sort((a, b) => a.intent.localeCompare(b.intent)); },
+    async putSearches(rows) { for (const r of rows) { const k = `${r.topic}|${r.key}`, o = bought.get(k); if (!o || o.day <= r.day) bought.set(k, copy(r)); } },
+    async searches(topic, keys) { return keys.map((k) => bought.get(`${topic}|${k}`)).filter(Boolean).map(copy); },
+    async searchCount(topic) { return [...bought.values()].filter((r) => r.topic === topic).length; },
+    async pageCount() { return pages.size; },
     async close() {},
   });
 }

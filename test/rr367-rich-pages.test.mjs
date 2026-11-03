@@ -103,3 +103,9 @@ test("found reading the pages: the honest line is no research note; the finder s
   assert.equal(mergeSameNeeds([{ part: "questions0", question: "Do I have to write my name in the writing session?", claims: [] }, { part: "questions1", question: "Do you write your name during the writing session?", claims: [] }], { subject: "OET" }).length, 1);
   const P = read("desktop/exam-plan.mjs"); assert.match(P, /To find a test venue in \$\{inCountry\(c\)\}/); assert.match(P, /claimId: `office-\$\{prof\}-\$\{c\}`/); assert.match(P, /!it && cls === "accepted"/);
 });
+
+test("found counting the pages: a page the plan settled is never folded into another for one shared first question; a researcher's aside leaves the line", async () => {
+  const { cleanFact } = await import("../desktop/page-quality.mjs"), SEO = read("desktop/seo-pages.mjs");
+  assert.match(SEO, /p\.kind === "SECTION" && n\?\.ownPage \? Object\.freeze\(\{ kind: "NEW"/); assert.match(SEO, /ownPage: p\.category === "exam"/);
+  assert.equal(cleanFact("India-distinct federal wrinkle: verification is issued by the state."), "Verification is issued by the state.");
+});

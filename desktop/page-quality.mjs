@@ -44,7 +44,7 @@ export function plainScores(text) {
 
 /** a fact's text with its notes taken out: a sentence (or a bracket) that is a note goes; what is left is the fact. "" when nothing is left */
 export function cleanFact(text) {
-  const t = String(text ?? "").replace(/\s+/g, " ").trim();
+  const t = String(text ?? "").replace(/\s+/g, " ").trim().replace(/^[\p{L}-]+ (?:federal )?wrinkle:\s*(\p{L})/u, (m, c) => c.toUpperCase()); /* RR-367: "India-distinct federal wrinkle:" is a researcher's aside, not the page's voice */
   const noBrackets = t.replace(/\s*\(([^()]*)\)/g, (m, inner) => (NOTE.test(inner) ? "" : m));
   const kept = noBrackets.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/).filter((s) => !NOTE.test(s));
   return kept.join(" ").replace(/\s+([.,;])/g, "$1").trim();

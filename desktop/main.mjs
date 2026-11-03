@@ -964,7 +964,8 @@ async function makePages(id, key) {
   const buildGeneric = () => { const f = seoFileOf(id), x = f?.plan?.length ? genericPlanPages({ file: f, subject: seedOf(s) }) : null; if (!x?.pages.length) return null; x.fromAlmiSeo = true; savePlan(id, x); return x; };
   let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
   /* 🔴 RR-369 Part 2 (owner: "a run can wait up to 15 minutes for Google's queue before pages are made"): PAGES FIRST. The quick pass makes every page from what is in hand: our own data, checked facts, collectors, Google's answers already kept; new searches are posted and kept, nothing waits, no site of the results is read. The pages are shown at once. Then, on its own line on the board, the app collects Google's answers as they come, reads the top results and improves the pages by itself; what comes later still is used on the next run. The client never waits for Google to see pages. (REPLACES RR-368's one wait of 15 minutes) */
-  const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true, savedBefore = savedTotal();
+  /* no Google to wait for (the switch off, nothing kept): one pass, as before */
+  const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? [])), savedBefore = savedTotal();
   const pass = async (quick, step, sayingWhat, clock) => {
     const reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
     if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
@@ -1013,7 +1014,7 @@ async function makePages(id, key) {
     pages.improved = writePacks(id, pages.drafts); // RR-356 PART B
     /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now; with pages first, once Google's answers are in */
     let auto = null;
-    if ((!quick || !wantsLater(pages)) && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+    if (!quick && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
     /* RR-353: where the searches came from, said; nothing known → what to add, each with its one-click way */
     pages.sources = own.lines;
     /* RR-359: the councils' own pages found through Google's results are searches too — counted, and their cost, in the run's line */
@@ -1033,9 +1034,8 @@ async function makePages(id, key) {
     await buildPlan(id).catch(() => null);
     return { pages, auto };
   };
-  const wantsLater = (p) => pagesFirst && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? []) || p.drafts.some((d) => d.gates.some((g) => !g.pass)));
   const first = await pass(pagesFirst, step, sayingWhat, clock);
-  if (pagesFirst && wantsLater(first.pages)) googleLater(id, (say, stage) => pass(false, say, (w) => say({ what: w }), stageClock()).then((r) => { stage?.(); return r; }));
+  if (pagesFirst) googleLater(id, (say, stage) => pass(false, say, (w) => say({ what: w }), stageClock()).then((r) => { stage?.(); return r; }));
   return first;
 }
 /* 🔴 RR-369 Part 2: the line on the board after the pages are shown: Google's answers as they come (the time left from how many have really arrived), then the top results, then the pages improved. It never stands in the way of a page */

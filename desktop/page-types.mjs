@@ -47,7 +47,7 @@ const CONTEXTLESS = /^(?:is|are|does|do|can|will|would|should|was|were) (?:it|th
 export function unclearWhy(question, { place = null } = {}) {
   const t = String(question ?? "").replace(/\s+/g, " ").trim(), words = t.split(" ").filter((w) => /\p{L}/u.test(w));
   if (!ASKS.test(t) && !/\?$/.test(t)) return "it is not a question";
-  if (/\b(?:with|and|or|of|for|to|the|a|an|in|on|from|by)\s*\?$/i.test(t)) return "it is cut off"; /* RR-366: "… online and with ?" */
+  if (/\b(?:with|and|or|of|the|a|an)\s*\?$/i.test(t)) return "it is cut off"; /* RR-366: "… online and with ?" */
   if (words.length < 4) return "too short to say what it asks";
   if (words.length > 30) return "too long to be one clear question";
   if (SURVEY.test(t)) return "it is a form's or a survey's prompt, not a question people ask";

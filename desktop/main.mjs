@@ -40,7 +40,7 @@ import { productStore, productCard } from "./products.mjs";
 import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
-import { searchGoogle, searchPages, searchTermOf, SERP_OFF, SERP, realPrice, runEstimate, RETRY, notForReading , CAP_LATER } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
+import { collectQueued, searchGoogle, searchPages, searchTermOf, SERP_OFF, SERP, realPrice, runEstimate, RETRY, notForReading , CAP_LATER } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
 import { ARTICLE_DEST, EMAIL_SUMMARY, destOf, publishRefusal, todayNotice, markdownOf } from "./article-dest.mjs"; // RR-344 B
 import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
@@ -355,11 +355,11 @@ function ladderCtx(id) { const s = store.read(id), ex = examExtras.get(id), kept
  * 🔴 RR-366 Part 1 · each council line read against the body's OWN page before a page may say "registers": kept 30 days, each saved at once. With the client's search-results switch on, a body whose page does not say so has the real regulator searched for, by its same-meaning names
  */
 const COUNCIL_SIDE_BY_SIDE = 20, COUNCIL_KEEP_DAYS = 30;
-async function councilChecksFor(id, subject, onRead = null) {
+async function councilChecksFor(id, subject, onRead = null, onWhat = null) {
   const packets = pread(id, "country-facts.json", null)?.countries ?? {}, wanted = new Set([...examCountriesOf(id), ...(seoFileOf(id)?.plan ?? []).filter((r) => r.kind === "country" || r.kind === "country-profession").map((r) => r.country)]), kept = pread(id, "council-checks.json", {}), now = new Date().toISOString(), today = now.slice(0, 10);
   const rows = [...wanted].flatMap((c) => Object.entries(packets[c]?.councils ?? {}).filter(([, f]) => f?.value?.name && f.found !== false).map(([profession, f]) => ({ c, profession, name: f.value.name, link: f.source, website: f.value.website ?? null, key: councilKey(c, profession, f.value.name) }))).filter((r) => !kept[r.key] || (Date.now() - Date.parse(kept[r.key].on ?? 0)) / 864e5 > COUNCIL_KEEP_DAYS);
   if (CONFIG.testOffline === true || !rows.length) return kept;
-  const rd = reader(), st = serpSettings(), search = st.on === true && !CONFIG.testSerpOnly ? (() => { const ledger = dfsLedger(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password); return login && password ? async (keyword) => { const r = await searchGoogle({ keyword, settings: st, ledger, login, password, ...serpTest() }); writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); return r.ok ? r.results : []; } : null; })() : null;
+  const rd = reader(), st = serpSettings(), search = st.on === true && !CONFIG.testSerpOnly ? (() => { const ledger = dfsLedger(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password); if (!login || !password) return null; /* 🔴 RR-368: answers already waiting are collected once; a new search is posted and kept at once, and the run goes on */ let collected = false; return async (keyword) => { if (!collected) { collected = true; await collectQueued({ ledger, login, password, maxMs: 0, everyMs: 0, ...serpTest() }); } onWhat?.(`Asking Google about ${keyword}`); const r = await searchGoogle({ keyword, settings: st, ledger, login, password, postOnly: true, ...serpTest() }); writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); return r.ok ? r.results : []; }; })() : null;
   let at = 0; await Promise.all(Array.from({ length: COUNCIL_SIDE_BY_SIDE }, async () => { while (at < rows.length) { const r = rows[at++]; onRead?.(r.name); const v = await checkCouncil({ name: r.name, profession: r.profession, link: r.link, website: r.website, read: (u) => rd.read(u), on: today }).catch(() => ({ ok: false, why: "unread", page: r.link, on: today })); if (!v.ok && search) { const found = await findRegulator({ people: PEOPLE_WORD[r.profession] ?? r.profession, profession: r.profession, place: inCountry(r.c), search, read: (u) => rd.read(u), on: today }).catch(() => null); if (found) v.found = found; } kept[r.key] = v; pwrite(id, "council-checks.json", kept); } }));
   return kept;
 }
@@ -473,7 +473,7 @@ const fixViaOf = (id, s) => { const t = pread(id, "publish.json"); return t?.kin
  */
 /* RR-362 (G7): the regulator pages a type-C page needs: one address serves all its boards, kept 30 days */
 const RESEARCH_READS = 6, DETAIL_READS = 12;
-async function examResearch(id, subject, onRead = null) {
+async function examResearch(id, subject, onRead = null, onWhat = null) {
   const s = store.read(id), list = listOf(s, subject, id)?.items ?? [];
   const facts = usableFacts([...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, subject)).flat()]);
   /* RR-362: each page read is kept at once: a run that stops never reads it twice */
@@ -482,7 +482,9 @@ async function examResearch(id, subject, onRead = null) {
   for (const prof of professionsOf()) { const qs = professionQuestions({ subject, prof, destinations: destinationsFor(prof, list) }); connectByMeaning({ questions: qs, facts, prof, subject }); out[prof] = qs; }
   /* RR-359: with the client's search-results switch on, Google's results name each council's own page (its own website only; cached) */
   const st = serpSettings(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), ledger = st.on === true && login && password && !CONFIG.testSerpOnly ? dfsLedger() : null;
-  const findPages = ledger ? async (body) => { const r = await searchGoogle({ keyword: `${body.short ?? body.name} ${subject} English language requirement`, settings: st, ledger, login, password, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...serpTest() }); return r.ok ? r.results.map((x) => x.url) : []; } : null;
+  /* 🔴 RR-368 (owner's run stood on "Reading LARA's page" for over 7 minutes; found on the built app: 6 searches, 969 polls, no site touched): each search here stood up to 15 minutes in Google's queue, on a screen that said nothing. Now: what is waiting is collected once, a new search is posted and kept at once, and the run goes on */
+  if (ledger) { await collectQueued({ ledger, login, password, maxMs: 0, everyMs: 0, ...serpTest() }); writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); }
+  const findPages = ledger ? async (body) => { onWhat?.(`Asking Google where ${body.short ?? body.name} says this`); const r = await searchGoogle({ keyword: `${body.short ?? body.name} ${subject} English language requirement`, settings: st, ledger, login, password, postOnly: true, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...serpTest() }); writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); return r.ok ? r.results.map((x) => x.url) : []; } : null;
   /* 🔴 RR-367 item 6 (measured: the 298 requests of a run waited 132 s; the rest was sites read one after another): professions side by side. Each SITE is still read one at a time, 2 s apart (desktop/official.mjs), and the budget is shared */
   const sideBySide = async (work) => { const names = Object.keys(out); let at = 0; await Promise.all(Array.from({ length: 6 }, async () => { while (at < names.length) await work(names[at++]).catch(() => null); })); };
   await sideBySide((prof) => searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead }));
@@ -618,7 +620,9 @@ async function creatorData(platform, niche, country = "") {
   return kept?.data ?? null;
 }
 const aiOf = (s) => { const c = s.setup?.aiConnection, p = AI_PROVIDERS.find((x) => x.id === c?.provider || x.keyName === c?.keyName); return p && KEYS.status(p.keyName).saved ? { provider: p.id, key: KEYS.get(p.keyName) } : null; };
-const reader = () => officialReader({ allowLocal, on: new Date().toISOString(), ...(Number.isInteger(CONFIG.testOfficialPaceMs) ? { paceMs: CONFIG.testOfficialPaceMs } : {}) });
+/* TESTS ONLY: testOfficialRoutes [[host pattern, stand-in address]]: an official site that never finishes, on this computer */
+const officialRouted = () => { const routes = (Array.isArray(CONFIG.testOfficialRoutes) ? CONFIG.testOfficialRoutes : []).map(([re, to]) => [new RegExp(re), to]); return routes.length ? { fetchImpl: (u, init) => { const a = new URL(u), to = routes.find(([re]) => re.test(a.host))?.[1]; return fetch(to ? `${to}${a.pathname}` : u, init); } } : {}; };
+const reader = () => officialReader({ allowLocal, on: new Date().toISOString(), ...(Number.isInteger(CONFIG.testOfficialPaceMs) ? { paceMs: CONFIG.testOfficialPaceMs } : {}), ...(Number.isInteger(CONFIG.testReadLimitMs) ? { readLimitMs: CONFIG.testReadLimitMs } : {}), ...officialRouted() });
 /* what the product is about, and the official site of that (e.g. "OET", oet.com) — the client says it once in "How many pages"; a short
  * name in brackets in the product's own description is offered first */
 const aboutOf = (s) => (String(s.setup?.product?.subject ?? "").trim() || null) ?? s.setup?.official?.subject ?? /\(([A-Z][A-Z0-9]{1,9})\)/.exec(String(s.setup?.product?.what ?? ""))?.[1] ?? null;
@@ -913,7 +917,7 @@ function createPages(id) {
 const stageClock = () => { const marks = [], t0 = Date.now(); let last = t0; return { mark: (stage) => { const n = Date.now(); marks.push({ stage, seconds: Math.round((n - last) / 100) / 10 }); last = n; }, done: () => ({ total: Math.round((Date.now() - t0) / 1000), stages: marks }) }; };
 const breathe = () => new Promise((r) => setImmediate(r)); // the app answers its window between the long steps
 async function makePages(id, key) {
-  const clock = stageClock(), step = (x) => BOARD.step(key, x), reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
+  const clock = stageClock(), step = (x) => BOARD.step(key, x), reading = (name) => step({ add: 1, what: `Reading ${name}'s page` }), sayingWhat = (what) => step({ what }); /* RR-368: what it does now, never the last page read */
   step({ done: 0, of: RESEARCH_READS + DETAIL_READS, unit: "official pages" });
   await ensureLook(id);
   const { s, site, sc, files, ctx } = contextOf(id);
@@ -923,7 +927,7 @@ async function makePages(id, key) {
   /* RR-353: our own data first (read by ownItemsOf below); RR-354: an exam-prep product then gets its own plan (profession + country pages) */
   const councilFrom = (dfsLedger().spent ?? []).length; // RR-359: the searches of this run start here
   const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
-  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s), reading); clock.mark("reading official pages"); await councilChecksFor(id, seedOf(s), reading); clock.mark("checking each council on its own page"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
+  if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s), reading, sayingWhat); clock.mark("reading official pages"); await councilChecksFor(id, seedOf(s), reading, sayingWhat); clock.mark("checking each council on its own page"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
   /* RR-360 B: a product of any kind: what AlmiSEO Data planned for its subject (desktop/almiseo.mjs genericPlanPages) */
   const buildGeneric = () => { const f = seoFileOf(id), x = f?.plan?.length ? genericPlanPages({ file: f, subject: seedOf(s) }) : null; if (!x?.pages.length) return null; x.fromAlmiSeo = true; savePlan(id, x); return x; };
   let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
@@ -954,7 +958,7 @@ async function makePages(id, key) {
   while (exam && examProduct(s, id) && !seoFileOf(id)?.outside && rounds < 2 && failures(pages) > 0 && CONFIG.testOffline !== true) {
     const before = failures(pages), prev = pread(id, "auto-plan.json", {}).pages ?? [];
     /* RR-362 item 17: a round in which no official page could be read finds nothing new: it is not written again */
-    step({ done: 0, of: RESEARCH_READS + DETAIL_READS, unit: "official pages", what: "Looking again for what is still missing" }); const r2 = await examResearch(id, seedOf(s), reading); if (!lastResearchReads) break; examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
+    step({ done: 0, of: RESEARCH_READS + DETAIL_READS, unit: "official pages", what: "Looking again for what is still missing" }); const r2 = await examResearch(id, seedOf(s), reading, sayingWhat); if (!lastResearchReads) break; examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
     /* what the search step found stays with each page through a repair round */
     if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn, searchedOn: o.searchedOn, localAsked: o.localAsked, blueprint: o.blueprint }); } settleLocal(exam); applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); savePlan(id, exam); }
     const again = await writePages();

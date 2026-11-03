@@ -77,11 +77,11 @@ test("G8: the collectors' plan merged without duplicates: a country joins the co
   const collector = [{ kind: "country", country: "Pakistan", title: "OET in Pakistan" }, { kind: "country", country: "Kenya", title: "OET in Kenya" }, { kind: "country-profession", country: "Pakistan", profession: "nursing", title: "OET for nursing in Pakistan" }, { kind: "country-profession", country: "Pakistan", profession: "dentistry", title: "OET for dentistry in Pakistan" }, { kind: "question", country: "Pakistan", question: "Can a nurse take OET twice?", title: "Can a nurse take OET twice?" }, { kind: "question", country: "Kenya", question: "Can a nurse take OET twice?", title: "Can a nurse take OET twice?" }, { kind: "question", country: "Kenya", question: "A question with no answer here?", title: "A question with no answer here?" }];
   const x = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Pakistan"], facts: FACTS, rates: RATES, collector, maxCountries: 200 });
   assert.deepEqual(x.pages.filter((p) => p.kind === "country").map((p) => p.country), ["Pakistan", "Kenya"], "Pakistan once");
-  /* RR-362 (R3): a row with no council is not a page; one with its council but no good-standing rule, questions or destinations is merged; a question stands on its country page */
-  assert.equal(x.pages.filter((p) => p.kind === "origin-profession" || p.kind === "destination-profession").length, 0);
-  assert.equal(x.merged.find((m) => m.title === "OET for Nurses from Pakistan").type, "D");
+  /* RR-367 R-C (owner, 3 Nov 2026; was RR-362's R3): a gap never drops a page; a question stands on its country page */
+  assert.ok(x.pages.some((p) => p.title === "OET for Nurses from Pakistan" && p.type === "D"));
+  assert.ok(!x.merged.some((m) => m.type === "D" || m.type === "C"));
   assert.equal(x.pages.filter((p) => p.kind === "question").length, 0, "one answer is thin");
-  assert.deepEqual(x.merged.find((m) => m.title === "OET for Dentists from Pakistan").missing[0], "their home council");
+  assert.ok(x.pages.some((p) => p.title === "OET for Dentists from Pakistan"), "no council found yet: the page still stands");
   assert.ok(x.merged.some((m) => m.type === "question"));
   assert.equal(new Set(x.pages.map((p) => p.title)).size, x.pages.length, "no two pages with one title");
 });

@@ -25,6 +25,9 @@ const RULES = [
   ["changeFee", /manage-your-booking$/, /Up to the booking closing date\.?[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*After the booking closing date\.?[\s|]*AU\s?\$\s?(\d{2,4})/i, (m, s) => `${s}'s own page: moving a paper booking to another date, venue or test type costs AU$${m[1]} up to the booking closing date and AU$${m[2]} after.`],
   ["changeFeeComputer", /manage-your-booking$/, /Up to 7 days before the test[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*US\s?\$\s?(\d{2,4})[\s|]*Less than 7 days before the test[\s|]*AU\s?\$\s?(\d{2,4})[\s|]*US\s?\$\s?(\d{2,4})/i, (m, s) => `${s}'s own page: rescheduling the test on computer or at home costs AU$${m[1]} (US$${m[2]} in the US) up to 7 days before the test and AU$${m[3]} (US$${m[4]} in the US) after that.`],
   /* 🔴 RR-366 Part 2: who the test is for, in OET's own terms (read 2 Nov 2026: "tailored to 12 healthcare professions"; "If you are not a health professional … may not be the most suitable") */
+  /* RR-367 item 4 (both read 3 Nov 2026) */
+  ["contact", /contact-us$/, /(\+\d[\d\s]{7,16}\d)/, (m, s) => `${s}'s own contact page gives its support site, its e-mail and the phone number ${m[1].replace(/\s+/g, " ")}.`],
+  ["recognised", /who-recognises-oet$/, /accepted as proof of English language skills/i, (m, s) => `${s}'s own page says its results are accepted as proof of English language skills worldwide, and links to its directory of the organisations that recognise it.`],
   ["professions12", /test\/oet-test$/, /tailored to\s+(\d{1,2})\s+healthcare professions/i, (m, s, text) => { const list = ["medicine", "nursing", "dentistry", "dietetics", "pharmacy", "physiotherapy", "podiatry", "radiology", "occupational therapy", "veterinary science", "optometry", "speech pathology"].filter((w) => new RegExp(`\\b${w}\\b`, "i").test(text)); return `${s}'s own page: ${s} is made for ${m[1]} healthcare professions${list.length >= 3 ? `: ${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : ""}.`; }],
   ["purpose", /test\/oet-test$/, /who seek to register and practi[sc]e in an English-speaking/i, (m, s) => `${s}'s own page: ${s} tests the English of healthcare professionals who want to register and practise where English is spoken.`],
   ["notForOthers", /test\/oet-test$/, /If you are not a health professional/i, (m, s) => `${s}'s own page: for someone who is not a health professional working towards registration, ${s} may not be the most suitable test.`],
@@ -56,7 +59,7 @@ const RULES = [
 /* RR-363: "12 days" for paper results was OET's old word: it never reaches a page again, from any source (the owner's ruling, recipe R12) */
 export const oldWording = (text) => /\bpaper\b[^.]{0,80}\b12 (?:calendar )?days\b|\b12 (?:calendar )?days\b[^.]{0,60}\bpaper\b|\bafter the booking closing date costs AU[D$]\s?\$?\s?120\b/i.test(String(text ?? "")); /* RR-365: + the late-change fee this app misread: a copy kept from before never reaches a page */
 /* a subject's own help pages no sitemap names (data per subject) */
-export const SUBJECT_EXTRA_PAGES = Object.freeze({ OET: Object.freeze(["https://support.oet.com/articles/Knowledge/How-do-I-book-OET"]) });
+export const SUBJECT_EXTRA_PAGES = Object.freeze({ OET: Object.freeze(["https://support.oet.com/articles/Knowledge/How-do-I-book-OET", "https://oet.com/contact-us", "https://oet.com/test/who-recognises-oet"]) });
 /** the subject's pages → { key: { claimId, fact, text, link, readOn, source, official, body, value } } — only what a page states */
 export function subjectFactsOf(pages, subject) {
   const out = {};

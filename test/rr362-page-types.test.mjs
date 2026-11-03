@@ -32,21 +32,16 @@ test("a country × profession row is C where a regulator accepts the exam for it
 test("C: every core question answered and something of its own → it stays a page; each question people ask heads the part that answers it (R3, G4, G7)", () => {
   const p = settleLocal(plan()), c = p.pages.find((x) => x.kind === KIND.destination);
   assert.ok(c, "the whole page stays"); assert.deepEqual(coreMissingOfPlan(c), []);
-  assert.deepEqual(c.items.map((i) => i.part.replace(/\d+$/, "")), ["scores", "regulator", "others", "rules"]);
+  assert.deepEqual(c.items.map((i) => i.part.replace(/\d+$/, "")).slice(0, 4), ["scores", "regulator", "others", "rules"]);
   assert.equal(c.items[0].question, "What testx score do nurses need for ireland?", "their own words");
   assert.ok(c.items.find((i) => i.part === "others").claims[0].text.includes("IELTS, PTE Academic"));
   assert.ok(c.items.find((i) => i.part === "regulator").claims.some((x) => x.link === whole.steps), "its registration steps, on the regulator's own page");
   assert.ok(p.bigger.profPages.find((x) => x.profession === "nursing").links.includes(c.title), "the profession page links it");
 });
 
-test("R3: a C page missing a core question is not a page: named in the plan as merged, its facts on the country page and the profession page", () => {
-  const p = settleLocal(plan({ research: { nursing: [answered({ details: { ...whole, others: null } })], medicine: [] } })), m = p.merged.find((x) => x.title === "TESTX for Nurses in Ireland");
-  assert.ok(!p.pages.some((x) => x.kind === KIND.destination), "no thin page");
-  assert.deepEqual(m.missing, ["whether other English tests are accepted"]); assert.match(m.why, /cannot answer: whether other English tests/);
-  assert.deepEqual(m.into, ["TESTX in Ireland: fee, centres and councils", "TESTX for Nurses"]);
-  const prof = p.bigger.profPages.find((x) => x.profession === "nursing"), all = prof.items.flatMap((i) => i.claims.map((c) => c.text)).join(" ");
-  assert.match(all, /time limit of 2 years/, "what only the merged page knew goes beside that country's score");
-  assert.match(p.bigger.countryPages.find((x) => x.country === "Ireland").items.flatMap((i) => i.claims.map((c) => c.text)).join(" "), /sets out the registration steps/, "how to register goes to the country page");
+test("RR-367 R-C: a C page missing a core answer stays a page, never merged for a research gap", () => {
+  const p = settleLocal(plan({ research: { nursing: [answered({ details: { ...whole, others: null } })], medicine: [] } }));
+  assert.ok(p.pages.some((x) => x.title === "TESTX for Nurses in Ireland"), "the page stands"); assert.ok(!p.merged.some((x) => x.title === "TESTX for Nurses in Ireland"));
 });
 
 test("R3: a page whose every answer the bigger pages already give is not a page either", () => {
@@ -57,8 +52,8 @@ test("R3: a page whose every answer the bigger pages already give is not a page 
 
 test("a D page: its home council, good standing, the score each destination asks, the fee, its own questions (never a destination's page)", () => {
   assert.deepEqual(Object.keys(coreOf(KIND.origin)), ["council", "standing", "destinations", "fee", "questions"]);
-  const p = settleLocal(plan({ research: { nursing: [], medicine: [{ ...answered(), regulator: { ...regulator, professions: ["medicine"] } }] } })), m = p.merged.find((x) => x.title === "TESTX for Doctors from Egypt");
-  assert.ok(m, "nothing of its own: merged before any search is bought"); assert.match(m.why, /already on the country page and the profession page/);
+  const p = settleLocal(plan({ research: { nursing: [], medicine: [{ ...answered(), regulator: { ...regulator, professions: ["medicine"] } }] } })), d = p.pages.find((x) => x.title === "TESTX for Doctors from Egypt");
+  assert.ok(d, "RR-367 R-C: shared facts make no duplicate: the page stands"); assert.equal(d.type, "D");
 });
 
 test("a question page is never a page of its own: one answer is thin (R3); an unclear one is dropped, said", () => {

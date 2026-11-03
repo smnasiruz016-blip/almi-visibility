@@ -119,13 +119,11 @@ test("a price with its US price beside it: each page says its own, and it stays 
   assert.ok(pl("United States").includes("OET's own page: a re-mark costs US$95 per sub-test."));
 });
 
-test("a merged page's fee never stands among the councils, nor beside the country's own price", () => {
+test("RR-367: a page that stands keeps its own fee line; the country page's own price is untouched", () => {
   const A = { kind: "country", country: "United States", title: "A", questions: [], items: [{ part: "fee", question: "How much?", claims: [{ claimId: "fee-United States", text: "OET's own price in the United States is USD 455." }] }, { part: "councils", question: "Which council?", claims: [{ claimId: "k", text: "Board registers physiotherapists in the United States." }] }] };
   const D = { kind: "origin-profession", type: "D", profession: "nursing", country: "United States", title: "D", home: "A", prof: null, questions: [], items: [{ part: "fee", question: "How much?", claims: [{ claimId: "d-nursing-United-States-fee-United-States-nursing", text: "The full test costs AUD 587. In the United States that is about USD 413." }] }, { part: "standing", question: "How do they prove?", claims: [{ claimId: "s", text: "A good-standing letter must be sent by the state board." }] }, { part: "council", question: "Home council?", claims: [{ claimId: "c", text: "State Board registers nurses in the United States." }] }] };
   const plan = { pages: [A, D], merged: [], bigger: { countryPages: [A], profPages: [] } };
   settleLocal(plan);
   const part = (k) => A.items.find((i) => i.part === k)?.claims.map((c) => c.text) ?? [];
-  assert.equal(part("fee").length, 1, "the own price alone"); assert.ok(!JSON.stringify(A.items).includes("USD 413"));
-  assert.deepEqual(part("rules"), ["A good-standing letter must be sent by the state board."]);
-  assert.ok(part("councils").includes("State Board registers nurses in the United States."));
+  assert.equal(part("fee").length, 1, "the own price alone"); assert.ok(!JSON.stringify(A.items).includes("USD 413")); assert.ok(plan.pages.includes(D), "the page stands");
 });

@@ -330,7 +330,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
    *   good to read (RR-355 Rule 2, its fixed minimums removed by R7) · looks like your site (Rule 1) · INTENT COMPLETENESS (the coverage list
    *   that applies to this intent — its standard questions, what the top results cover, the second-search questions — no filler) ·
    *   FACT INTEGRITY (every fee, date, score and rule with its source and FRESH: G14) · DUPLICATION (G15: overlap above 40% → a meaning review) */
-  const dup = duplicationReview(drafts.map((d, i) => ({ url: d.url, title: d.title, intent: d.title, text: (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " "), facts: (meta.get(built[i].needId)?.answers ?? []).map((c) => c.claimId) })));
+  const dup = duplicationReview(drafts.map((d, i) => ({ url: d.url, title: d.title, intent: d.title, text: (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " "), facts: (meta.get(built[i].needId)?.answers ?? []).map((c) => c.claimId), identity: (() => { const m = meta.get(built[i].needId); return m?.kind === KIND.destination || m?.kind === KIND.origin ? `${m.profession}|${m.country}` : null; })() })));
   drafts.forEach((d, i) => {
     const m = meta.get(built[i].needId) ?? {}, topic = m.topic ?? pageTopicOf({ title: d.title, kind: m.kind ?? null, people: PEOPLE_WORD });
     const q = goodToRead(d.html, topic), missing = m.category === "exam" ? partsMissing(d.html, m.kind, { localCurrency: m.localCurrency, asked: m.asked ?? [] }) : [];

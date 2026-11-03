@@ -125,12 +125,14 @@ export function goodToRead(html, topic) {
   const p = readPage(html), problems = [], add = (check, line) => { if (!problems.some((x) => x.check === check)) problems.push({ check, line }); };
   const lines = [...p.cards.map((c) => c.value), p.top, ...p.items.flatMap((i) => i.answers), ...p.parts.flatMap((x) => x.lines)].filter(Boolean);
   /* a) on topic */
-  for (const l of lines) { const why = offTopic(l, topic); if (why) { add("a", `Off topic: "${l.slice(0, 70)}${l.length > 70 ? "…" : ""}" — ${why}.`); break; } }
+  for (const l of lines) { const why = HONEST.test(l) ? null : offTopic(l, topic); if (why) { add("a", `Off topic: "${l.slice(0, 70)}${l.length > 70 ? "…" : ""}" — ${why}.`); break; } }
   /* b) broken or doubled cards */
   for (const c of p.cards) { const why = brokenCard(c.value); if (why) { add("b", `A broken fact card: ${why}.`); break; } }
   const seen = new Set(); for (const c of p.cards) { const k = cardKey(c.value); if (seen.has(k)) { add("b", `The same fact card twice: "${c.value}".`); break; } seen.add(k); }
   /* c) internal notes */
-  const note = lines.find((l) => NOTE.test(l)) ?? (NOTE.test(p.text) ? (p.text.match(new RegExp(`[^.]{0,60}${NOTE.source}[^.]{0,40}`, "i"))?.[0] ?? "a note") : null);
+  /* RR-367: the owner's own honest line ("could not be read on DATE; this is still being looked for") is no research note */
+  const sayHonest = new RegExp(`[^.]*(?:${HONEST.source})[^.]*\\.?`, "g"), bare = String(p.text).replace(sayHonest, " ");
+  const note = lines.find((l) => !HONEST.test(l) && NOTE.test(l)) ?? (NOTE.test(bare) ? (bare.match(new RegExp(`[^.]{0,60}${NOTE.source}[^.]{0,40}`, "i"))?.[0] ?? "a note") : null);
   if (note) add("c", `A research note reached the page: "${String(note).trim().slice(0, 80)}" — readers must never see notes.`);
   /* d) one value per thing */
   const amounts = new Map();

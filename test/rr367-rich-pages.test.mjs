@@ -95,3 +95,11 @@ test("found reading the pages: an honest line survives the cleaning; a shared ru
   assert.match(st("OET for Dietitians from Nepal"), /attestation/); assert.ok(!/NNC/.test(st("OET for Dietitians from Nepal")), "another profession's council"); assert.match(st("OET for Nurses from Nepal"), /NNC/, "its own stays");
   assert.match(read("desktop/exam-plan.mjs"), /const gapScores = /); assert.equal(classOfPhrase("oet in saudi arabia", { subject: "OET", country: "Saudi Arabia" }), "what"); assert.equal(classOfPhrase("oet us", { subject: "OET", country: "United States" }), "what"); assert.equal(classOfPhrase("oet schedule philippines", { subject: "OET", country: "Philippines" }), "book");
 });
+
+test("found reading the pages: the honest line is no research note; the finder stands in its own words; a body that gave a score is that profession's office; the two name questions are one", async () => {
+  const { goodToRead, topicOf } = await import("../desktop/page-quality.mjs"), { PEOPLE_WORD } = await import("../desktop/recognition.mjs"), { mergeSameNeeds } = await import("../desktop/truth-checks.mjs");
+  const T = topicOf({ title: "OET for Doctors from Kenya", kind: "origin-profession", country: "Kenya", profession: "medicine", people: PEOPLE_WORD }), page = (x) => `<main><h1>t</h1><details data-need-id="n--regulator"><summary>How?</summary><p data-claim-id="a">${x}</p></details></main>`, probs = (x) => goodToRead(page(x), T).problems.map((p) => p.line).join(" ");
+  assert.ok(!/research note|Off topic/.test(probs("Kenya Medical Practitioners and Dentists Council's own page could not be read on 2026-11-02; this is still being looked for.")), "honest"); assert.match(probs("The page could not be read by our tool."), /research note/, "a real note is still caught"); assert.match(probs("The Dental Council registers dentists."), /Off topic/, "off topic is still caught");
+  assert.equal(mergeSameNeeds([{ part: "questions0", question: "Do I have to write my name in the writing session?", claims: [] }, { part: "questions1", question: "Do you write your name during the writing session?", claims: [] }], { subject: "OET" }).length, 1);
+  const P = read("desktop/exam-plan.mjs"); assert.match(P, /To find a test venue in \$\{inCountry\(c\)\}/); assert.match(P, /claimId: `office-\$\{prof\}-\$\{c\}`/); assert.match(P, /!it && cls === "accepted"/);
+});

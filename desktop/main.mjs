@@ -370,7 +370,8 @@ const councilBrowserItems = (id) => { const kept = pread(id, "council-checks.jso
 function takeCouncilBrowser(id, hand) {
   const items = councilBrowserItems(id), t = takeBrowserReads(hand, items); if (!t.ok) return { ok: false, line: `Refused: ${t.refusedFor.join(", ")}. Nothing from this file is kept.` };
   const kept = pread(id, "council-checks.json", {}), lines = []; let confirmed = 0, notSaid = 0;
-  for (const p of t.pages) for (const [key, v] of Object.entries(kept)) { if (v.page !== p.url || v.ok) continue; const [, profession, ...rest] = key.split("|"), strict = NOT_A_REGISTRAR.test(rest.join("|")), says = statesRegistration(p.text, profession, { strict }); kept[key] = says ? { ok: true, evidence: p.url, on: p.date, strict, via: "read in your browser" } : { ok: false, why: strict ? "association" : "not stated", page: p.url, on: p.date, via: "read in your browser" }; if (says) confirmed++; else notSaid++; }
+  const bare = (u) => String(u).replace(/^https?:\/\/(?:www\.)?/i, "").replace(/\/$/, ""); /* bmdc.org.bd and www.bmdc.org.bd are one page */
+  for (const p of t.pages) for (const [key, v] of Object.entries(kept)) { if (bare(v.page) !== bare(p.url) || v.ok) continue; const [, profession, ...rest] = key.split("|"), strict = NOT_A_REGISTRAR.test(rest.join("|")), says = statesRegistration(p.text, profession, { strict }); kept[key] = says ? { ok: true, evidence: p.url, on: p.date, strict, via: "read in your browser" } : { ok: false, why: strict ? "association" : "not stated", page: p.url, on: p.date, via: "read in your browser" }; if (says) confirmed++; else notSaid++; }
   pwrite(id, "council-checks.json", kept); lines.push(`${t.pages.length} pages read in your browser: ${confirmed} council lines confirmed on the body's own page, ${notSaid} not said there.`);
   return { ok: true, line: lines.join(" "), confirmed, notSaid, notOnList: t.notOnList.length };
 }

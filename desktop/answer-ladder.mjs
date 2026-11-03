@@ -22,7 +22,7 @@ export const MEANINGS = Object.freeze([
   ONE("contact", /\bnumber\b|\bcontact\b|\bcustomer (?:care|service)\b|\bphone\b|\bhelpline\b/i, ["contact"]),
   ONE("recognised", /\bwhich countries\b|\bwhere is\b[^?]*\baccepted\b|\bcountries\b[^?]*\baccept/i, ["recognised"]),
   ONE("home", /\bat home\b|@home\b|\bfrom home\b/i, ["bookComputerCloses", "resultsComputer"]),
-  ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?:an?|my|the)\b[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
+  ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?!i\b|we\b|you\b)[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
   ONE("abroad", /\b(?:study|work)(?: or (?:study|work))? abroad\b|\buse\b[^?]*\bto (?:study|work|register)\b/i, ["purpose"]),
   ONE("what", /\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|^what is (?:an? )?[A-Za-z]{2,6}(?: exam| test)?\??$|\bmeaning\b|\bwhat is the use of\b/i, ["purpose", "scale"]),
   ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bregistration\b\s+\p{Lu}|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b/iu, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),

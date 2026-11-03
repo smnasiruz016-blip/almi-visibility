@@ -10,6 +10,8 @@
  *   node desktop/main.mjs --data=<dir> [--install=<program dir>] [--port=0]
  */
 import { createServer } from "node:http";
+import { setDefaultAutoSelectFamily } from "node:net"; // RR-366 X5
+import { setDefaultResultOrder } from "node:dns"; // RR-366 X5
 import { browserOpener, STRIPE_BILLING_ORIGIN } from "./open-browser.mjs"; // RR-314 A1
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync, readdirSync, statSync, copyFileSync } from "node:fs";
 import { PILOT_CHANNELS } from "../config/youtube/pilot-channels.mjs";
@@ -92,6 +94,11 @@ import { newIndexNowKey, checkKeyFile, keyFileHowTo, keyFileUrl, indexNow, inSit
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const arg = (n, d = null) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
+/*
+ * 🔴 RR-366 X5 (profiled on the built app, 3 Nov 2026: the window froze 4.8 seconds in one call: close ← internalConnectMultipleTimeout). Node tries a site's addresses side by side and shuts the attempts that time out; on Windows that shutdown can hold the app's one thread for seconds.
+ * The app connects one address at a time, IPv4 first: a slow site can only delay its own read, never the window.
+ */
+setDefaultAutoSelectFamily(false); setDefaultResultOrder("ipv4first");
 const DATA = arg("data");
 if (!DATA) { console.error("usage: node desktop/main.mjs --data=<dir>"); process.exit(1); }
 const INSTALL = arg("install", join(HERE, "..", ".."));
@@ -202,7 +209,7 @@ const progressOf = (id) => { const p = progress.get(id); return p ? { ...p, seco
 const searchConsoleOf = (id) => pread(id, "search-console.json");
 function contextOf(id) {
   const s = store.read(id), site = pread(id, "site-read.json"), sc = searchConsoleOf(id), files = (() => { try { return JSON.parse(readFileSync(pfile(id, "search-data-files.json"), "utf8")); } catch { return []; } })();
-  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), noWebsite: !hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), searchConsoleKind: sc?.kind ?? null, files: files.length > 0, drafts: Boolean(pread(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
+  return { s, site, sc, files, ctx: { hasSite: hasWebsite(s), noWebsite: !hasWebsite(s), siteRead: site, youtubeConfirmed: Boolean(s.setup?.youtube?.confirmed), youtubeKey: KEYS.status(KEY_NAMES.youtube).saved, searchConsole: Boolean(sc), searchConsoleKind: sc?.kind ?? null, files: files.length > 0, drafts: Boolean(preadMemo(id, "pages.json")?.drafts?.length), check: pread(id, "check.json"), aiKey: AI_PROVIDERS.some((p) => KEYS.status(p.keyName).saved) } };
 }
 /* ── RR-308 D · publishing ── */
 /* each product's connection key has its own NAME in Windows' secure store (two products may be two WordPress sites) */
@@ -561,7 +568,7 @@ const IMPROVE_NOT_PUBLISHED = "This is your existing page — Visibility never p
 /* RR-362 item 7 ("almiworld youtube" showed "20 made · 3 ready": OET's drafts, set aside as another subject's): the card counts this subject's drafts only */
 /* RR-362 items 2 + 4: the one line and the one button of a product (desktop/next-step.mjs) */
 const nextStepFor = (s) => { const id = s.id, c = cardCounts(id), chk = pread(id, "check.json", null), run = BOARD.list({ product: id }).find((j) => j.running && j.product === id) ?? null; return nextStepOf({ hasSite: Boolean(s.product?.site), checked: Boolean(chk), score: chk?.score ?? null, pages: c.pages, ready: c.ready, improve: c.improve, published: c.published, checkLater: pread(id, "pending-checks.json", null)?.titles?.length ?? 0, running: run }); };
-const cardCounts = (id) => { const pg = pread(id, "pages.json", null), all = foreignDraftsOf(id).foreignPages ? [] : pg?.drafts ?? [], d = all.filter((x) => !x.improve) /* RR-358: new pages only */, live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"); return { pages: d.length, improve: all.length - d.length, ready: d.filter((x) => x.readyAsDraft).length, published: live.length, articles: pread(id, "articles.json", []).length }; };
+const cardCounts = (id) => { const pg = preadMemo(id, "pages.json") /* RR-366 X5 (profiled: screens spent 80 s of a 294 s run re-reading big files): read again only when it changed */, all = foreignDraftsOf(id).foreignPages ? [] : pg?.drafts ?? [], d = all.filter((x) => !x.improve) /* RR-358: new pages only */, live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"); return { pages: d.length, improve: all.length - d.length, ready: d.filter((x) => x.readyAsDraft).length, published: live.length, articles: pread(id, "articles.json", []).length }; };
 const examExtras = new Map(); // id → { subjectFacts, rates } of this run (createPages fills it before the plan is made)
 /* the plan on disk: its pages, its merged list (RR-362); the live links to the bigger pages stay in memory */
 const savePlan = (id, x) => { const { bigger, ...keep } = x; pwrite(id, "auto-plan.json", { on: new Date().toISOString(), subject: seedOf(store.read(id)) /* RR-359 */, ...keep }); };
@@ -660,7 +667,10 @@ const mergePhrases = (held, more) => { const key = (p) => `${p.kind}|${String(p.
 /* RR-324 A: the Keyword Planner keywords come from the ONE keyword database (each once, its current range); a search-data phrase read
  * before the database existed still counts until the database holds the same keyword */
 const keywordStore = (id) => localKeywordStore({ read: (n, d) => pread(id, n, d), write: (n, v) => pwrite(id, n, v) });
-const phraseItems = (id) => { const db = ownDb(keywordStore(id).load(), seedOf(store.read(id))) /* RR-359: its own subject's answers only */, held = new Set(Object.keys(db.keywords));
+/* RR-366 X5: worked out again only when the keywords, the phrases or the subject changed */
+const phraseMemo = new Map();
+const phraseItems = (id) => { const stamp = ["keyword-db.json", "phrases.json"].map((n) => { try { return statSync(pfile(id, n)).mtimeMs; } catch { return 0; } }).join("|") + seedOf(store.read(id)), had = phraseMemo.get(id); if (had?.stamp === stamp) return had.items; const items = phraseItemsNow(id); phraseMemo.set(id, { stamp, items }); return items; };
+const phraseItemsNow = (id) => { const db = ownDb(keywordStore(id).load(), seedOf(store.read(id))) /* RR-359: its own subject's answers only */, held = new Set(Object.keys(db.keywords));
   return [...pread(id, "phrases.json", []).filter((p) => !(p.kind === "tool" && held.has(keyOf(p.text)))).map((p) => ({ text: p.text, source: p.source, on: p.date, kind: p.kind, place: p.place, volume: p.volume ?? null, weight: p.kind === "observed" ? 6 : 4 })),
     ...itemsOf(db).map((x) => ({ ...x, on: x.date }))]; };
 /**
@@ -860,7 +870,7 @@ async function ensureLook(id) {
  * They are moved aside — pages-set-aside-<day>.json, auto-plan-set-aside-<day>.json, never deleted — and the Overview says so once.
  */
 function foreignDraftsOf(id) {
-  const s = store.read(id), mine = String(seedOf(s) ?? "").toLowerCase(), pg = pread(id, "pages.json", null), ap = pread(id, "auto-plan.json", null);
+  const s = store.read(id), mine = String(seedOf(s) ?? "").toLowerCase(), pg = preadMemo(id, "pages.json"), ap = preadMemo(id, "auto-plan.json");
   const foreignPlan = ap?.pages?.length && (ap.subject != null ? String(ap.subject).toLowerCase() !== mine : !examProduct(s, id));
   /* drafts kept before RR-359 carry no subject: they are another subject's when they are that set-aside plan's pages (the owner's 20 OET drafts) */
   const foreignPages = pg?.drafts?.length && (pg.subject != null ? String(pg.subject).toLowerCase() !== mine : (Boolean(pg.examPlan) && !examProduct(s, id)) || (foreignPlan && pg.drafts.some((d) => ap.pages.some((x) => x.title === d.title))));

@@ -346,9 +346,13 @@ test("X5: writing the pages runs on its own thread, gives the same pages, and ca
   let usedSync = false; const r = await seoPagesOff({ args, data, sync: () => { usedSync = true; return { fromHere: true }; }, workerUrl: new URL("file:///no/such/worker.mjs") }); assert.equal(usedSync, true); assert.equal(r.fromHere, true);
   const bad = await seoPagesOff({ args: { ...args, on: () => 1 }, data, sync: () => ({ fromHere: "cannot be sent" }) }); assert.equal(bad.fromHere, "cannot be sent", "what cannot cross to the thread is made here");
 });
+test("X5: a slow site can only delay its own read: the app connects one address at a time, before it does anything else", () => {
+  const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"); assert.match(MAIN, /setDefaultAutoSelectFamily\(false\); setDefaultResultOrder\("ipv4first"\);/); assert.ok(MAIN.indexOf("setDefaultAutoSelectFamily(false)") < MAIN.indexOf("createServer(") || MAIN.indexOf('import { createServer }') < MAIN.indexOf("setDefaultAutoSelectFamily(false)"));
+  assert.ok(MAIN.indexOf("setDefaultAutoSelectFamily(false)") < MAIN.indexOf("const CONFIG ="), "before any connection is made");
+});
 test("X5: the Pages screen's list is short; a page's details come only when it is opened", async () => {
   const { pageRow } = await import("../desktop/plain-words.mjs"), huge = "x".repeat(50000), row = pageRow({ url: "u", title: "T", type: "A", readyAsDraft: true, html: huge, recipe: { a: huge }, ledger: [huge], truth: { removed: [huge] }, gates: [huge], blocks: { line: huge } }); assert.deepEqual(Object.keys(row).filter((k) => row[k] !== undefined).sort(), ["readyAsDraft", "title", "type", "url"]); assert.ok(JSON.stringify(row).length < 200);
   const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), UI = readFileSync(new URL("../desktop/ui.html", import.meta.url), "utf8");
-  assert.match(MAIN, /drafts: \(preadMemo\(id, "pages\.json"\)\?\.drafts \?\? \[\]\)\.map\(pageRow\)/); assert.ok(!/why: plainWhy\(d\), live:[^}]*ledger:/.test(MAIN), "the list of reasons carries no ledger"); assert.match(MAIN, /r\[2\] === "pages-row"/); assert.match(MAIN, /\|pages-view\|pages-row\|/);
+  assert.match(MAIN, /drafts: \(preadMemo\(id, "pages\.json"\)\?\.drafts \?\? \[\]\)\.map\(pageRow\)/); assert.ok(!/why: plainWhy\(d\), live:[^}]*ledger:/.test(MAIN), "the list of reasons carries no ledger"); assert.match(MAIN, /r\[2\] === "pages-row"/); assert.match(MAIN, /\|pages-view\|pages-row\|/); assert.match(MAIN, /const cardCounts = \(id\) => \{ const pg = preadMemo\(id, "pages\.json"\)/, "a screen does not read the whole page file again"); assert.match(MAIN, /had\?\.stamp === stamp/);
   assert.match(UI, /\[data-more\]"\)\.forEach\(\(box\) => box\.addEventListener\("toggle"/); assert.ok(!/\$\{ledgerHtml\(rowOf\(d\.url\)/.test(UI), "no ledger built with the list");
 });

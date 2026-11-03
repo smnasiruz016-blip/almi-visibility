@@ -106,7 +106,9 @@ test("found reading the pages: the honest line is no research note; the finder s
 
 test("found counting the pages: a page the plan settled is never folded into another for one shared first question; a researcher's aside leaves the line", async () => {
   const { cleanFact } = await import("../desktop/page-quality.mjs"), SEO = read("desktop/seo-pages.mjs");
-  assert.match(SEO, /p\.kind === "SECTION" && n\?\.ownPage \? Object\.freeze\(\{ kind: "NEW"/); assert.match(SEO, /ownPage: p\.category === "exam"/);
+  assert.match(SEO, /ownPage: p\.category === "exam"/); assert.ok(SEO.includes("const plan = planNewPages({ needs, existing });"), "the census's mark stands");
+  const { planNewPages } = await import("../src/page/one-builder.mjs"), claim = (id) => ({ claimId: id, text: "A fact of this page.", link: "https://x.example/", readOn: ON, source: "S" }), need = (id, extra = {}) => ({ needId: id, label: "DEMAND", path: `/${id}`, question: "What OET score is required for Australia?", claims: [claim(id)], ...extra });
+  assert.deepEqual(planNewPages({ needs: [need("a", { ownPage: true }), need("b", { ownPage: true })], existing: [] }).map((p) => p.kind), ["NEW", "NEW"], "the same first question: two pages of their own"); assert.deepEqual(planNewPages({ needs: [need("a"), need("b")], existing: [] }).map((p) => p.kind), ["NEW", "SECTION"], "any other page: one page, as before"); assert.equal(planNewPages({ needs: [need("a", { ownPage: true, claims: [{ ...claim("a"), link: null }] })], existing: [] })[0].kind, "REFUSED", "the source rule stands for it");
   assert.equal(cleanFact("India-distinct federal wrinkle: verification is issued by the state."), "Verification is issued by the state.");
 });
 

@@ -82,7 +82,8 @@ export function planNewPages({ needs = [], existing = [] }) {
     if (typeof n.path !== "string" || !/^\/[a-z0-9/-]+$/.test(n.path)) { out.push(Object.freeze({ kind: "REFUSED", needId: n.needId, reason: NEW_PAGE_REFUSAL.NO_PATH })); continue; }
     if (!ids.length || !n.claims.every(sourced)) { out.push(Object.freeze({ kind: "REFUSED", needId: n.needId, reason: NEW_PAGE_REFUSAL.NOT_SOURCED })); continue; }
     const same = (p) => ids.every((id) => p.claimIds.includes(id)) || (p.questions ?? []).some((q) => normQ(q) === normQ(n.question));
-    const into = existing.find(same) ?? newOnes.find(same);
+    /* RR-367 R-C (owner, 3 Nov 2026): a page the exam plan settled (`ownPage`) is its own questions, answers and profession: one shared first question does not fold it into another. A client's existing page is still improved, by the plan's own improve row. The source rule above stands for it */
+    const into = n.ownPage ? null : existing.find(same) ?? newOnes.find(same);
     if (into) { out.push(Object.freeze({ kind: "SECTION", needId: n.needId, question: n.question, claimIds: ids, into: into.url ?? into.id, reason: `its answer is the same as ${into.url ?? into.id} — a section of that page, never a duplicate page` })); continue; }
     const p = Object.freeze({ kind: "NEW", needId: n.needId, label: n.label, path: n.path, need: n, claimIds: ids, questions: [n.question, ...(n.alsoAsked ?? [])] });
     newOnes.push({ ...p, id: n.path, url: null });

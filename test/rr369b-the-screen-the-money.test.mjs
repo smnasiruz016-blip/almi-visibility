@@ -53,8 +53,9 @@ test("ITEM 3: a marked page with a saved list goes to the paid step for its seed
   /* the cap */
   const capped = { spent: [{ on: NOW, cost: 1, q: "x" }] }; posted.length = 0; const m2 = { ...marked, localAsked: undefined }; const out = await searchPages({ pages: [], askOnly: [m2], ledger: capped, settings: { on: true }, login: "l", password: "p", now: NOW, subject: "OET", fetchImpl, queue: { maxMs: 0, everyMs: 0 }, retry: { times: 0 } }); assert.equal(posted.length, 0, "not past $1 a day"); assert.match(out.stopped, /cap is reached/);
   /* a word people type takes the verified answer, in their words; never a question of ours */
-  const fee = { claimId: "f", text: "The fee is AUD 587.", link: "https://oet.com/fee", readOn: DAY, official: true }, plan = { pages: [{ ...marked, items: [], localAsked: ["oet vets nepal fee"] }] };
-  applyPairQuestions(plan, { subject: "OET", ctxFor: () => ({ subjectFacts: { fee }, country: "Nepal" }) }); assert.ok(plan.pages[0].items.every((i) => !/^Can /.test(i.question)));
+  const answers = { claimId: "r", fact: "resultsComputer", text: "OET's own page: results come in about 10 working days.", link: "https://oet.com/results", readOn: DAY, source: "OET", official: true }, plan = { pages: [{ ...marked, items: [], localAsked: ["oet vets nepal result"] }, { ...marked, title: "no wording", items: [], localAsked: ["oet vets nepal"] }] };
+  applyPairQuestions(plan, { subject: "OET", ctxFor: () => ({ subjectFacts: { resultsComputer: answers, results95: answers, resultsPaper: answers }, country: "Nepal" }) }); assert.ok(plan.pages.flatMap((p) => p.items).every((i) => !/^Can /.test(i.question)), "never a question of ours"); assert.deepEqual(plan.questionsWanted.map((w) => w.title), ["no wording"], "a wording that asks takes the verified answer; one that does not stays marked"); assert.ok(plan.pages[0].items.some((i) => i.realQuestion && i.localWording));
+  const headed = { pages: [{ ...marked, items: [{ part: "fee", question: "How much?", claims: [answers] }], localAsked: ["oet vets nepal fee"] }] }; applyPairQuestions(headed, { subject: "OET", ctxFor: () => ({}) }); assert.equal(headed.pages[0].items[0].question, "OET vets Nepal fee?", "a part it already answers takes their words"); assert.deepEqual(headed.pages[0].askedHeads, ["OET vets Nepal fee?"]); assert.deepEqual(headed.questionsWanted, []);
   assert.match(read("desktop/almiseo.mjs"), /if \(\(left\.length \|\| askOnly\.length\) && paidOn && paid\) \{ paidResult = await paid\(left, askOnly\);/);
 });
 
@@ -65,7 +66,7 @@ test("ITEM 4: the collector's reuse is kept in recordRun and on the server's own
   const seo = seoMemoryStore(), topic = (await allTopics({ seo })).find((t) => t.id === "oet"), intent = "OET for Nurses in Kenya"; await seo.putTopic({ ...topic, intents: [intent], owner: "almiworld", jobs: ["top-pages"] }, { at: NOW });
   await saveBought({ seo, subject: "OET", searches: [{ key: serpKey(intent), on: DAY, results: [{ url: "https://t.example/a", title: "A" }], paa: [], related: [] }], pages: [{ url: "https://t.example/a", on: DAY, headings: ["Fees"], blocks: {} }], lic: OWNER, at: NOW });
   const out = await runTopPages({ seo, cf: cfMemoryStore(), env: { [ENV_NAMES.topPagesOn]: "1", [ENV_NAMES.dfsLogin]: "l", [ENV_NAMES.dfsPassword]: "p" }, reader: { requests: () => 0, raw: async () => null }, fetchImpl: async () => assert.fail("nothing is paid"), now: () => Date.parse(NOW), kv });
-  assert.equal(out.reused, 1); assert.deepEqual(await collectorReuse(seo), { reused: 1, readsSkipped: 0 }); assert.equal(JSON.parse(mem.get(`av:health:top-pages:${DAY}`) ?? [...mem.values()].at(-1)).reused >= 1, true);
+  assert.equal(out.reused, 1); assert.deepEqual(await collectorReuse(seo), { reused: 1, readsSkipped: 0 }); { const h = [...mem.values()].map((v) => { try { return JSON.parse(v); } catch { return null; } }).find((v) => v?.runs); assert.deepEqual([h.runs, h.reused], [3, 11], "the run's own reuse is in recordRun"); }
   assert.match(read("site/almiseo.mjs"), /\.\.\.\(await collectorReuse\(seo\)\)/);
 });
 

@@ -350,6 +350,15 @@ test("X5: a slow site can only delay its own read: the app connects one address 
   const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"); assert.match(MAIN, /setDefaultAutoSelectFamily\(false\); setDefaultResultOrder\("ipv4first"\);/); assert.ok(MAIN.indexOf("setDefaultAutoSelectFamily(false)") < MAIN.indexOf("createServer(") || MAIN.indexOf('import { createServer }') < MAIN.indexOf("setDefaultAutoSelectFamily(false)"));
   assert.ok(MAIN.indexOf("setDefaultAutoSelectFamily(false)") < MAIN.indexOf("const CONFIG ="), "before any connection is made");
 });
+test("X5: a site that timed out is not waited for twice more; a refusal is still read again", async () => {
+  const { officialReader } = await import("../desktop/official.mjs"); let timedOut = 0, refused = 0;
+  const robots = { status: 200, ok: true, headers: new Map([["content-type", "text/plain"]]), text: async () => "User-agent: *\nAllow: /", arrayBuffer: async () => new TextEncoder().encode("User-agent: *\nAllow: /").buffer };
+  const page = { status: 200, ok: true, headers: new Map([["content-type", "text/html"]]), arrayBuffer: async () => new TextEncoder().encode("<title>T</title><p>Hello there.</p>").buffer };
+  const fetchImpl = async (u) => { if (String(u).endsWith("/robots.txt")) return robots; if (String(u).includes("slow.example")) { timedOut++; const e = new Error("t"); e.name = "TimeoutError"; throw e; } refused++; return refused === 1 ? { status: 403, ok: false, headers: new Map() } : page; };
+  const rd = officialReader({ fetchImpl, paceMs: 0, sleep: async () => {}, resolve: async () => [{ address: "93.184.216.34", family: 4 }], retryPauseMs: 0 });
+  const a = await rd.read("https://slow.example/x"); assert.equal(a.ok, false); assert.match(a.why, /timed out/); assert.equal(timedOut, 1, "not waited for twice more");
+  const b = await rd.read("https://refuses.example/x"); assert.equal(b.ok, true, b.why); assert.equal(refused, 2, "a 403 is still read again");
+});
 test("X5: the Pages screen's list is short; a page's details come only when it is opened", async () => {
   const { pageRow } = await import("../desktop/plain-words.mjs"), huge = "x".repeat(50000), row = pageRow({ url: "u", title: "T", type: "A", readyAsDraft: true, html: huge, recipe: { a: huge }, ledger: [huge], truth: { removed: [huge] }, gates: [huge], blocks: { line: huge } }); assert.deepEqual(Object.keys(row).filter((k) => row[k] !== undefined).sort(), ["readyAsDraft", "title", "type", "url"]); assert.ok(JSON.stringify(row).length < 200);
   const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), UI = readFileSync(new URL("../desktop/ui.html", import.meta.url), "utf8");

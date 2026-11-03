@@ -24,7 +24,8 @@ import { examPlan, serviceFactsOf, askedOf as askedByCountry, validityClaimsOf, 
 import { answerQuestion, edgeClaims } from "./answer-ladder.mjs"; // RR-366
 import { checkCouncil, findRegulator, councilFacts, councilKey } from "./council-truth.mjs"; // RR-366
 import { destinationsFor, professionQuestions, connectByMeaning, searchMissing , readDetails } from "./research.mjs"; // RR-356
-import { plainWhy, JOBS, jobReport, notMadeOf } from "./plain-words.mjs"; // RR-354
+import { plainWhy, JOBS, jobReport, notMadeOf, pageRow } from "./plain-words.mjs"; // RR-354; RR-366
+import { seoPagesOff, extrasFrom } from "./pages-off.mjs"; // RR-366 X5
 import { CF_PRIORITY } from "./country-facts.mjs"; // RR-354
 import { bingQueries, bingPhrases, bingKeyName, BING_HOWTO, BING_SETUP_STEPS } from "./bing-webmaster.mjs"; // RR-353
 import { SOCIAL_NETWORKS, socialFrom, socialShare, AUTO_POST_LINE } from "./social-links.mjs"; // RR-353
@@ -336,7 +337,9 @@ const ownItemsOf = (id) => {
 /* every call that makes the drafts judges them by the same data: the coverage a page without a plan was given, and the facts AlmiSEO Data found changed */
 /* RR-363: which country a regulator's name means (the truth check: an answer about the right place) */
 const bodiesOf = (id) => { const seen = new Map(); for (const qs of Object.values(pread(id, "research.json", null)?.questions ?? {})) for (const q of qs) for (const b of [q.regulator, ...(q.also ?? [])].filter(Boolean)) if (b.country && !seen.has(b.name)) seen.set(b.name, { names: [b.short, b.name].filter((n) => n && n.length >= 3), country: b.country }); return [...seen.values()]; };
-const seoExtras = (id) => { const g = pread(id, "generic-coverage.json", {}), s = store.read(id); return { bodies: bodiesOf(id), fitSubject: seedOf(store.read(id)), coverageFor: (t) => g[t] ?? null, reviewFor: (m) => reviewLinesFor({ country: m.country ?? null }, seoFileOf(id)), ...(examProduct(s, id) ? { officialHost: hostOf(s.setup?.official?.site ?? (/^oet$/i.test(String(seedOf(s))) ? "https://oet.com" : "")), answerFor: (q, p, o = {}) => answerQuestion(q, { ...ladderCtx(id), country: p.country ?? null, ...o }) } : {}) }; };
+/* RR-366 X5: as plain data, so the pages can be written on their own thread */
+const seoExtraData = (id) => { const s = store.read(id); return { bodies: bodiesOf(id), fitSubject: seedOf(store.read(id)), generic: pread(id, "generic-coverage.json", {}), seoFile: seoFileOf(id), ...(examProduct(s, id) ? { officialHost: hostOf(s.setup?.official?.site ?? (/^oet$/i.test(String(seedOf(s))) ? "https://oet.com" : "")), ladder: ladderCtx(id) } : {}) }; };
+const seoExtras = (id) => extrasFrom(seoExtraData(id));
 /* 🔴 RR-366 Part 2: what the answer ladder may use: the subject's own facts, the words its read pages hold, regulators' own validity rules, and our own product in its own words */
 function ladderCtx(id) { const s = store.read(id), ex = examExtras.get(id), kept = pread(id, "subject-facts.json", null), subject = seedOf(s), subjectFacts = ex?.subjectFacts ?? kept?.facts ?? {}, own = pread(id, "site-read.json", null)?.pages?.[0]; return { subject, subjectFacts, pages: kept?.pages ?? [], extra: { validity: validityClaimsOf(ex?.research ?? pread(id, "research.json", null)?.questions ?? {}, subject) }, edge: edgeClaims({ product: s.product?.name, site: s.product?.site, description: own?.description, on: new Date().toISOString(), subjectFacts }) }; }
 /*
@@ -914,7 +917,9 @@ async function makePages(id, key) {
   const want = [...new Set([...(sc?.queries ?? []).map((q) => q.query), ...files.map((f) => f.phrase), ...plannedOf(id).map((p) => p.text)].flatMap((t) => destinationsIn(t)))].filter((c) => !(c in officialOf(id)));
   if (want.length && s.setup?.official?.site) await refreshOfficial(id, want.slice(0, 12)).catch(() => null);
   step({ done: 0, of: 0, unit: "pages", what: "Writing the pages" }); await breathe();
-  const pages = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
+  /* 🔴 RR-366 X5: on a thread of its own: the window never waits for it */
+  const writePages = async () => { const args = { site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...madePlanOf(id) }; return seoPagesOff({ args, data: seoExtraData(id), sync: () => seoPages({ ...args, ...seoExtras(id) }) }); };
+  const pages = await writePages();
   clock.mark("writing the pages");
   /* v3 §15 · AT MOST TWO REPAIR ROUNDS: while pages still fail, Visibility searches the official pages again for what is missing and builds
    * again; a round that removes no named failure stops early; after two, each page shows its exact blocker */
@@ -926,7 +931,7 @@ async function makePages(id, key) {
     step({ done: 0, of: RESEARCH_READS + DETAIL_READS, unit: "official pages", what: "Looking again for what is still missing" }); const r2 = await examResearch(id, seedOf(s), reading); if (!lastResearchReads) break; examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
     /* what the search step found stays with each page through a repair round */
     if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn, searchedOn: o.searchedOn, localAsked: o.localAsked, blueprint: o.blueprint }); } settleLocal(exam); applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); savePlan(id, exam); }
-    const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: yt?.state === "READY" ? yt : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
+    const again = await writePages();
     if (failures(again) >= before) break;
     Object.assign(pages, again);
   }
@@ -1168,7 +1173,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|next|plan-summary|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|fix-existing|improve-pack|almiseo|almiseo\/sync|almiseo\/browser)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
+      { const r = /^\/api\/products\/([^/]+)\/(overview|next|plan-summary|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|pages-row|fix-existing|improve-pack|almiseo|almiseo\/sync|almiseo\/browser)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -1246,10 +1251,12 @@ const server = createServer((req, res) => {
           if (r[2] === "improve-pack" && req.method === "GET") { const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url") && x.improve); return d ? send(200, inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${d.title}</title></head><body><main><h1>Improve your page</h1><p>${d.improve.url}</p>${packOf(id, d).html || "<p>Your page already answers every question Visibility has for it.</p>"}</main></body></html>`, pread(id, "site-read.json")?.shell ?? null), "text/html; charset=utf-8") : send(404, { refused: "no improvement for this page" }); }
           /* RR-356 · the search-results switch: OFF by default, the client's own choice, at most $1 a day */
           /* RR-362: what the plan merged, and the pages checked later: said once, in plain words */
-          if (r[2] === "plan-summary" && req.method === "GET") { const pg = pread(id, "pages.json", null), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
+          if (r[2] === "plan-summary" && req.method === "GET") { const pg = preadMemo(id, "pages.json"), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
+          /* RR-366 X5: one page's details, when it is opened */
+          if (r[2] === "pages-row" && req.method === "GET") { const d = (preadMemo(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, { open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }) : send(404, { refused: "No such page." }); }
           if (r[2] === "pages-view" && req.method === "GET") {
-            const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = pread(id, "pages.json")?.drafts ?? [];
-            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null, open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
+            const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = preadMemo(id, "pages.json")?.drafts ?? [];
+            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
           }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);
@@ -1725,7 +1732,7 @@ const server = createServer((req, res) => {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
           const s = store.read(id), conn = pread(id, "publish.json"), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
-          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (pread(id, "pages.json")?.drafts ?? []).map(({ html, ...d }) => d), folder: downloadsFor(id) });
+          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (preadMemo(id, "pages.json")?.drafts ?? []).map(pageRow) /* RR-366 X5: a title and a status; details when a page is opened */, folder: downloadsFor(id) });
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });

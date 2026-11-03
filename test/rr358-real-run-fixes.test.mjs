@@ -68,7 +68,7 @@ test("RR-358 · 1 · Google's results for EVERY page on a real run — inside th
     const capped = [{ title: "A one" }, { title: "B two" }, { title: "C three" }];
     const c = await searchPages({ pages: capped, ledger: { spent: [] }, settings: { on: true, capDay: 0.004 }, ...KEYS, now: "2026-11-01T10:00:00Z", fetchImpl: S.fetchImpl, readHtml: S.readHtml });
     assert.equal(c.searches, 2); assert.match(c.stopped, /^the cap is reached \(\$0\.0040 today of \$0\.004/);
-    assert.deepEqual(capped.slice(1).map((p) => p.serpWhy), [c.stopped, c.stopped]); assert.match(c.line, / — 1 of 3 pages read .* Stopped: the cap is reached/);
+    assert.deepEqual(capped.slice(1).map((p) => p.serpWhy), ["More data will be added when the budget resets.", "More data will be added when the budget resets."], "RR-366 X1"); assert.match(c.line, / — 1 of 3 pages read .* More data will be added when the budget resets\.$/);
   } finally { S.close(); }
   /* THE OWNER'S RUN, replayed: DataForSEO refuses the login → ONE search for 29 pages (as his ledger), now said, and booked at what DataForSEO charged */
   const R = await standIn({ refuse: true });
@@ -87,7 +87,7 @@ test("RR-358 · 1 · Google's results for EVERY page on a real run — inside th
   /* wired: the run uses it for every page; the page's ⚠️ and its ledger line say what stopped it; the report carries the line */
   assert.ok(MAIN.includes("const pagesToSearch = Array.isArray(CONFIG.testSerpOnly) ? plan.pages.filter((p) => CONFIG.testSerpOnly.includes(p.title)) : plan.pages;") && MAIN.includes("const out = await searchPages({ pages: pagesToSearch,") && !MAIN.includes("plan.pages.slice(0, 30)")); /* RR-366: only the one live proof narrows it */
   assert.ok(SEO.includes("d.checkLater = m.route === \"none\" || Boolean(m.serpWhy);")); /* RR-362 item 13: never a failure: checked on a later day */
-  assert.ok(MAIN.includes("p.serpWhy ? `Google's results were not read for this page: ${p.serpWhy}` : routeLine(p)")); // RR-360: and the route that answered
+  assert.ok(MAIN.includes("p.serpWhy ? (p.serpWhy === CAP_LATER ? CAP_LATER : `Google's results were not read for this page: ${p.serpWhy}`) : routeLine(p)")); /* RR-366 X1 */ // RR-360: and the route that answered
   assert.ok(MAIN.includes("if (x.pages.serp?.line) lines.push(x.pages.serp.line);"));
 });
 

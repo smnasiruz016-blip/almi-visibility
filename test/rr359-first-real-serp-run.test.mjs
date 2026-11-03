@@ -183,7 +183,7 @@ test("RR-359 · 3 · G7: a council's own page answers its score — a refused re
     await searchMissing({ questions: [q2], subject: "OET", reader: rd(), cache: { get: (u) => kept.get(u) ?? null, set: (u, v) => kept.set(u, v) }, budget: { left: 6 }, now: `${ON}T12:00:00Z` });
     assert.equal(q2.how, "read on General Medical Council's own page", JSON.stringify(q2.searched));
     /* the app hands Google's results to it with the client's switch on */
-    assert.ok(MAIN.includes("for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead })"));
+    assert.ok(MAIN.includes("await sideBySide((prof) => searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead }));")); /* RR-367 item 6 */
   } finally { srv.close(); }
 });
 

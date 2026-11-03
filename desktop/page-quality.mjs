@@ -44,7 +44,7 @@ export function plainScores(text) {
 
 /** a fact's text with its notes taken out: a sentence (or a bracket) that is a note goes; what is left is the fact. "" when nothing is left */
 export function cleanFact(text) {
-  const t = String(text ?? "").replace(/\s+/g, " ").trim();
+  const t = String(text ?? "").replace(/\s+/g, " ").trim().replace(/^[\p{L}-]+ (?:federal )?wrinkle:\s*(\p{L})/u, (m, c) => c.toUpperCase()); /* RR-367: "India-distinct federal wrinkle:" is a researcher's aside, not the page's voice */
   const noBrackets = t.replace(/\s*\(([^()]*)\)/g, (m, inner) => (NOTE.test(inner) ? "" : m));
   const kept = noBrackets.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/).filter((s) => !NOTE.test(s));
   return kept.join(" ").replace(/\s+([.,;])/g, "$1").trim();
@@ -94,6 +94,13 @@ export function topicOf({ title = "", kind = null, country = null, profession = 
   return { kind, subtest, country: c, people: mine, otherPeople: Object.entries(people).filter(([p]) => p !== profession).map(([p, w]) => [w, p]) };
 }
 /** a) is a line about the page's own topic? → null, or why not */
+/* 🔴 RR-367 (found reading the pages: India's document rule ended "State nursing-council verification is a separate step", and took the whole rule off the dentists' page): a shared rule keeps its sentences up to the first that belongs to another profession; a line that opens with another profession's matter is not this page's. A sentence too long to read splits where the source put its semicolon */
+export function ownPart(line, t) {
+  const text = String(line ?? ""), parts = text.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/), cut = offTopic(text, t) ? parts.findIndex((s) => offTopic(s, t)) : -1;
+  if (cut === 0) return null;
+  const kept = cut > 0 ? parts.slice(0, cut) : parts;
+  return kept.map((s) => (s.split(/\s+/).length > 45 ? s.replace(/;\s+(\p{L})/gu, (m, x) => `. ${x.toUpperCase()}`) : s)).join(" ");
+}
 export function offTopic(line, t) {
   const s = String(line ?? ""), places = countriesIn(s);
   if (t.subtest) {
@@ -109,6 +116,7 @@ export function offTopic(line, t) {
 }
 
 const words = (s) => String(s ?? "").split(/\s+/).filter((w) => /\p{L}/u.test(w));
+const SHARED_OFFICE = /\bregisters\b.* — https?:\/\/| — https?:\/\/\S+\.?$/;
 const MACHINE = /\bundefined\b|\bnull\b|\bNaN\b|\[object |\{|\}|\brr\d{3}\b|\bclaimId\b|\bslug\b|\bpayload\b|\bJSON\b|_[a-z]+_/;
 /**
  * THE SIXTH CHECK. `html` = the page; `topic` = topicOf(…). → { pass, problems: [{ check: "a".."f", line }] } — each line in plain words.
@@ -117,12 +125,14 @@ export function goodToRead(html, topic) {
   const p = readPage(html), problems = [], add = (check, line) => { if (!problems.some((x) => x.check === check)) problems.push({ check, line }); };
   const lines = [...p.cards.map((c) => c.value), p.top, ...p.items.flatMap((i) => i.answers), ...p.parts.flatMap((x) => x.lines)].filter(Boolean);
   /* a) on topic */
-  for (const l of lines) { const why = offTopic(l, topic); if (why) { add("a", `Off topic: "${l.slice(0, 70)}${l.length > 70 ? "…" : ""}" — ${why}.`); break; } }
+  for (const l of lines) { const why = HONEST.test(l) ? null : offTopic(l, topic); if (why) { add("a", `Off topic: "${l.slice(0, 70)}${l.length > 70 ? "…" : ""}" — ${why}.`); break; } }
   /* b) broken or doubled cards */
   for (const c of p.cards) { const why = brokenCard(c.value); if (why) { add("b", `A broken fact card: ${why}.`); break; } }
   const seen = new Set(); for (const c of p.cards) { const k = cardKey(c.value); if (seen.has(k)) { add("b", `The same fact card twice: "${c.value}".`); break; } seen.add(k); }
   /* c) internal notes */
-  const note = lines.find((l) => NOTE.test(l)) ?? (NOTE.test(p.text) ? (p.text.match(new RegExp(`[^.]{0,60}${NOTE.source}[^.]{0,40}`, "i"))?.[0] ?? "a note") : null);
+  /* RR-367: the owner's own honest line ("could not be read on DATE; this is still being looked for") is no research note */
+  const sayHonest = new RegExp(`[^.]*(?:${HONEST.source})[^.]*\\.?`, "g"), bare = String(p.text).replace(sayHonest, " ");
+  const note = lines.find((l) => !HONEST.test(l) && NOTE.test(l)) ?? (NOTE.test(bare) ? (bare.match(new RegExp(`[^.]{0,60}${NOTE.source}[^.]{0,40}`, "i"))?.[0] ?? "a note") : null);
   if (note) add("c", `A research note reached the page: "${String(note).trim().slice(0, 80)}" — readers must never see notes.`);
   /* d) one value per thing */
   const amounts = new Map();
@@ -136,7 +146,7 @@ export function goodToRead(html, topic) {
   const answerWords = words([p.top, ...p.items.flatMap((i) => i.answers), ...p.parts.flatMap((x) => x.lines)].join(" ")).length;
   /* R7 (owner, after v3 §14): NO fixed word or answer minimum — whether the intent is answered is the completeness check (desktop/seo-pages.mjs);
    * here only an empty page, or FILLER (the same sentence said twice to look deeper), fails */
-  const said = new Map(); for (const s of lines.filter((l) => !p.cards.some((c) => c.value === l)) /* RR-363: a card may say a fact whole, beside its answer */.flatMap((l) => l.split(/(?<=[.!?])\s+/)).filter((s) => !HONEST.test(s) /* RR-366: the owner's own words for "not found", one per question */).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
+  const said = new Map(); for (const s of lines.filter((l) => !p.cards.some((c) => c.value === l)) /* RR-363: a card may say a fact whole, beside its answer */.flatMap((l) => l.split(/(?<=[.!?])\s+/)).filter((s) => !HONEST.test(s) /* RR-366: the owner's own words for "not found", one per question */ && !/^(?:Whether it is the registering body|Office for )/.test(s) && !SHARED_OFFICE.test(s) /* RR-367 R-B: one office may serve several professions */).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
   const filler = [...said].find(([, n]) => n > 1)?.[0];
   if (!answered) add("e", "Empty — it answers no question yet.");
   else if (filler) add("e", `Filler — the same sentence twice: "${filler.slice(0, 70)}".`);

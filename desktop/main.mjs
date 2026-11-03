@@ -24,7 +24,7 @@ import { STEPS, checkStep, webAddress, stepsFor, CHOICES, HOWTO, recommended, ct
 import { FACTS_FILE, readFactsFile, addFactsFile, officialClaimsOf, countryLinesOf, factsFileView, factsOfStore } from "./facts-file.mjs"; // RR-351
 import { examPlan, serviceFactsOf, askedOf as askedByCountry, validityClaimsOf, applyLocalQuestions, usableFacts , settleLocal } from "./exam-plan.mjs"; // RR-354
 import { answerQuestion, edgeClaims } from "./answer-ladder.mjs"; // RR-366
-import { checkCouncil, findRegulator, councilFacts, councilKey } from "./council-truth.mjs"; // RR-366
+import { checkCouncil, findRegulator, councilFacts, councilKey, statesRegistration, NOT_A_REGISTRAR } from "./council-truth.mjs"; // RR-366
 import { destinationsFor, professionQuestions, connectByMeaning, searchMissing , readDetails } from "./research.mjs"; // RR-356
 import { plainWhy, JOBS, jobReport, notMadeOf, pageRow } from "./plain-words.mjs"; // RR-354; RR-366
 import { seoPagesOff, extrasFrom } from "./pages-off.mjs"; // RR-366 X5
@@ -83,7 +83,7 @@ import { TYPE_WORDS } from "./page-types.mjs"; // RR-362
 import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan, countryFactsForPlan, ownDb } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
 import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
-import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows } from "./browser-list.mjs"; // RR-322 A2–A4, C2
+import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows, BROWSER } from "./browser-list.mjs"; // RR-322 A2–A4, C2
 import { CENTRAL_BANKS, PEGS } from "./rates.mjs"; // RR-322 A3
 import { mondayReport, nextBatch, beforeExpand, refreshDue } from "./indexing.mjs"; // RR-322 C3
 import { builtInList, HOWTO as LIST_HOWTO, WORLD_LISTS, draftList } from "./lists.mjs"; // RR-319 B
@@ -354,7 +354,7 @@ function ladderCtx(id) { const s = store.read(id), ex = examExtras.get(id), kept
 /*
  * 🔴 RR-366 Part 1 · each council line read against the body's OWN page before a page may say "registers": kept 30 days, each saved at once. With the client's search-results switch on, a body whose page does not say so has the real regulator searched for, by its same-meaning names
  */
-const COUNCIL_SIDE_BY_SIDE = 10, COUNCIL_KEEP_DAYS = 30;
+const COUNCIL_SIDE_BY_SIDE = 20, COUNCIL_KEEP_DAYS = 30;
 async function councilChecksFor(id, subject, onRead = null) {
   const packets = pread(id, "country-facts.json", null)?.countries ?? {}, wanted = new Set([...examCountriesOf(id), ...(seoFileOf(id)?.plan ?? []).filter((r) => r.kind === "country" || r.kind === "country-profession").map((r) => r.country)]), kept = pread(id, "council-checks.json", {}), now = new Date().toISOString(), today = now.slice(0, 10);
   const rows = [...wanted].flatMap((c) => Object.entries(packets[c]?.councils ?? {}).filter(([, f]) => f?.value?.name && f.found !== false).map(([profession, f]) => ({ c, profession, name: f.value.name, link: f.source, website: f.value.website ?? null, key: councilKey(c, profession, f.value.name) }))).filter((r) => !kept[r.key] || (Date.now() - Date.parse(kept[r.key].on ?? 0)) / 864e5 > COUNCIL_KEEP_DAYS);
@@ -362,6 +362,18 @@ async function councilChecksFor(id, subject, onRead = null) {
   const rd = reader(), st = serpSettings(), search = st.on === true && !CONFIG.testSerpOnly ? (() => { const ledger = dfsLedger(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password); return login && password ? async (keyword) => { const r = await searchGoogle({ keyword, settings: st, ledger, login, password, ...serpTest() }); writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger)); return r.ok ? r.results : []; } : null; })() : null;
   let at = 0; await Promise.all(Array.from({ length: COUNCIL_SIDE_BY_SIDE }, async () => { while (at < rows.length) { const r = rows[at++]; onRead?.(r.name); const v = await checkCouncil({ name: r.name, profession: r.profession, link: r.link, website: r.website, read: (u) => rd.read(u), on: today }).catch(() => ({ ok: false, why: "unread", page: r.link, on: today })); if (!v.ok && search) { const found = await findRegulator({ people: PEOPLE_WORD[r.profession] ?? r.profession, profession: r.profession, place: inCountry(r.c), search, read: (u) => rd.read(u), on: today }).catch(() => null); if (found) v.found = found; } kept[r.key] = v; pwrite(id, "council-checks.json", kept); } }));
   return kept;
+}
+/*
+ * 🔴 RR-367 item 3 (owner's ruling of 15 Oct; "reader blocked is not a fact"): a council page our reader could not open goes on the client's browser list. The client's own AI reads it in the client's own browser, under the same rules (client-started, a pause between pages, stop on a captcha). Only the verdict is kept, never the text
+ */
+const councilBrowserItems = (id) => { const kept = pread(id, "council-checks.json", {}), seen = new Set(), items = []; for (const [key, v] of Object.entries(kept)) { if (v.ok || v.why !== "unread" || !/^https?:/.test(v.page ?? "") || seen.has(v.page)) continue; seen.add(v.page); items.push({ kind: "council", url: v.page, label: key.split("|").slice(2).join("|"), why: "our reader could not open it" }); } return items.slice(0, BROWSER.cap); };
+function takeCouncilBrowser(id, hand) {
+  const items = councilBrowserItems(id), t = takeBrowserReads(hand, items); if (!t.ok) return { ok: false, line: `Refused: ${t.refusedFor.join(", ")}. Nothing from this file is kept.` };
+  const kept = pread(id, "council-checks.json", {}), lines = []; let confirmed = 0, notSaid = 0;
+  const bare = (u) => String(u).replace(/^https?:\/\/(?:www\.)?/i, "").replace(/\/$/, ""); /* bmdc.org.bd and www.bmdc.org.bd are one page */
+  for (const p of t.pages) for (const [key, v] of Object.entries(kept)) { if (bare(v.page) !== bare(p.url) || v.ok) continue; const [, profession, ...rest] = key.split("|"), strict = NOT_A_REGISTRAR.test(rest.join("|")), says = statesRegistration(p.text, profession, { strict }); kept[key] = says ? { ok: true, evidence: p.url, on: p.date, strict, via: "read in your browser" } : { ok: false, why: strict ? "association" : "not stated", page: p.url, on: p.date, via: "read in your browser" }; if (says) confirmed++; else notSaid++; }
+  pwrite(id, "council-checks.json", kept); lines.push(`${t.pages.length} pages read in your browser: ${confirmed} council lines confirmed on the body's own page, ${notSaid} not said there.`);
+  return { ok: true, line: lines.join(" "), confirmed, notSaid, notOnList: t.notOnList.length };
 }
 const serpTest = () => (CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(new URL(new URL(u2).pathname, CONFIG.serpTestUrl), init) } : {});
 /* RR-366 Part 3: what people of each country type, read from what the searches kept */
@@ -434,12 +446,12 @@ async function subjectFactsFor(id, subject) {
   const kept = pread(id, "subject-facts.json", null), site = store.read(id).setup?.official?.site ?? (/^oet$/i.test(String(subject)) ? "https://oet.com" : null);
   const keptFacts = Object.fromEntries(Object.entries(kept?.facts ?? {}).filter(([, x]) => !oldWording(x?.text))); /* RR-365: whichever way a kept copy is used */
   if (!site || CONFIG.testOffline === true) return { facts: keptFacts, line: kept ? `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` : null };
-  if (kept?.on && kept.v === 366 /* RR-366: who the test is for read too, and which words each page holds */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
+  if (kept?.on && kept.v === 367 /* RR-367: its contact page and its recognition page read too */ && (Date.now() - Date.parse(kept.on)) / 864e5 < 7) return { facts: kept.facts, line: `${subject}'s own pages: read ${String(kept.on).slice(0, 10)}` };
   try {
     const rd = reader(), urls = ((await rd.sitemapOf(site)).urls ?? []).filter((u) => SUBJECT_FACT_PAGES.test(String(u).replace(/\/$/, ""))).slice(0, 16), pages = [];
     for (const u of [...urls, ...(SUBJECT_EXTRA_PAGES[subject] ?? [])]) pages.push(await rd.read(u));
     const facts = subjectFactsOf(pages, subject);
-    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 366, on: new Date().toISOString(), site, facts, pages: pages.filter((p) => p.ok).map(pageWords) });
+    if (Object.keys(facts).length) pwrite(id, "subject-facts.json", { v: 367, on: new Date().toISOString(), site, facts, pages: pages.filter((p) => p.ok).map(pageWords) });
     return { facts: Object.keys(facts).length ? facts : keptFacts, line: `${subject}'s own pages: ${Object.keys(facts).length} facts read from ${pages.filter((p) => p.ok).length} pages` };
   } catch (e) { return { facts: keptFacts, line: `${subject}'s own pages could not be read just now` }; }
 }
@@ -471,9 +483,11 @@ async function examResearch(id, subject, onRead = null) {
   /* RR-359: with the client's search-results switch on, Google's results name each council's own page (its own website only; cached) */
   const st = serpSettings(), login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password), ledger = st.on === true && login && password && !CONFIG.testSerpOnly ? dfsLedger() : null;
   const findPages = ledger ? async (body) => { const r = await searchGoogle({ keyword: `${body.short ?? body.name} ${subject} English language requirement`, settings: st, ledger, login, password, retry: Number.isInteger(CONFIG.testSerpPauseMs) ? { ...RETRY, pauseMs: CONFIG.testSerpPauseMs } : RETRY, ...serpTest() }); return r.ok ? r.results.map((x) => x.url) : []; } : null;
-  for (const prof of Object.keys(out)) await searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead }).catch(() => null);
+  /* 🔴 RR-367 item 6 (measured: the 298 requests of a run waited 132 s; the rest was sites read one after another): professions side by side. Each SITE is still read one at a time, 2 s apart (desktop/official.mjs), and the budget is shared */
+  const sideBySide = async (work) => { const names = Object.keys(out); let at = 0; await Promise.all(Array.from({ length: 6 }, async () => { while (at < names.length) await work(names[at++]).catch(() => null); })); };
+  await sideBySide((prof) => searchMissing({ questions: out[prof], subject, reader: rd ?? { on: new Date().toISOString().slice(0, 10) }, cache, budget, findPages, onRead }));
   const details = { left: CONFIG.testOffline === true ? 0 : Number.isInteger(CONFIG.testDetailReads) ? CONFIG.testDetailReads : DETAIL_READS }, rd2 = details.left > 0 ? rd ?? reader() : null;
-  for (const prof of Object.keys(out)) await readDetails({ questions: out[prof], subject, reader: rd2 ?? { read: async () => null }, cache, budget: details, onRead }).catch(() => null);
+  await sideBySide((prof) => readDetails({ questions: out[prof], subject, reader: rd2 ?? { read: async () => null }, cache, budget: details, onRead }));
   lastResearchReads = (Number.isInteger(CONFIG.testResearchReads) ? CONFIG.testResearchReads : RESEARCH_READS) - budget.left + (Number.isInteger(CONFIG.testDetailReads) ? CONFIG.testDetailReads : DETAIL_READS) - details.left;
   if (ledger) writeFileSync(DFS_LEDGER_FILE, JSON.stringify(ledger));
   pwrite(id, "research-reads.json", reads);
@@ -1185,7 +1199,7 @@ const server = createServer((req, res) => {
         });
       }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
-      { const r = /^\/api\/products\/([^/]+)\/(overview|next|plan-summary|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|pages-row|fix-existing|improve-pack|almiseo|almiseo\/sync|almiseo\/browser)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
+      { const r = /^\/api\/products\/([^/]+)\/(overview|next|plan-summary|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|pages-row|councils\/browser|fix-existing|improve-pack|almiseo|almiseo\/sync|almiseo\/browser)$/.exec(u.pathname); // RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -1263,7 +1277,10 @@ const server = createServer((req, res) => {
           if (r[2] === "improve-pack" && req.method === "GET") { const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url") && x.improve); return d ? send(200, inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${d.title}</title></head><body><main><h1>Improve your page</h1><p>${d.improve.url}</p>${packOf(id, d).html || "<p>Your page already answers every question Visibility has for it.</p>"}</main></body></html>`, pread(id, "site-read.json")?.shell ?? null), "text/html; charset=utf-8") : send(404, { refused: "no improvement for this page" }); }
           /* RR-356 · the search-results switch: OFF by default, the client's own choice, at most $1 a day */
           /* RR-362: what the plan merged, and the pages checked later: said once, in plain words */
-          if (r[2] === "plan-summary" && req.method === "GET") { const pg = preadMemo(id, "pages.json"), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
+          if (r[2] === "plan-summary" && req.method === "GET") { const pg = preadMemo(id, "pages.json"), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, councilsBlocked: councilBrowserItems(id).length, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
+          /* RR-367 item 3: the councils our reader could not open: the list for the client's own AI, and what it hands in */
+          if (r[2] === "councils/browser" && req.method === "GET") { const items = councilBrowserItems(id); return send(200, { items, instruction: items.length ? browserInstruction(items) : null }); }
+          if (r[2] === "councils/browser" && req.method === "POST") { const v = takeCouncilBrowser(id, json()); return send(v.ok ? 200 : 400, v.ok ? v : { refused: v.line }); }
           /* RR-366 X5: one page's details, when it is opened */
           if (r[2] === "pages-row" && req.method === "GET") { const d = (preadMemo(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, { open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }) : send(404, { refused: "No such page." }); }
           if (r[2] === "pages-view" && req.method === "GET") {

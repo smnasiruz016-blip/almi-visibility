@@ -28,12 +28,14 @@ import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
-import { summaryFault, fitCard, fitParts, answerFitWhy, partFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace, ownSiteFactWhy, mergeSameNeeds, oneFactOnce, oneSentenceOnce, numbersWithoutFact } from "./truth-checks.mjs"; // RR-363: R15; RR-366
+import { summaryFault, fitCard, fitParts, answerFitWhy, partFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace, ownSiteFactWhy, mergeSameNeeds, oneFactOnce, oneSentenceOnce, numbersWithoutFact, BUILT_FOR_THE_PAGE } from "./truth-checks.mjs"; // RR-363: R15; RR-366
 import { questionOffIntentWhy, suggestionWhy } from "./page-types.mjs"; // RR-366
 import { blocksOfHtml, blocksCompared } from "./blocks.mjs"; // RR-363: R15
 import { readPage } from "./page-quality.mjs";
 import { shortCard } from "./exam-plan.mjs";
-import { goodToRead, topicOf as pageTopicOf, offTopic, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
+import { professionIn } from "./page-plan.mjs";
+import { HONEST as LADDER_HONEST } from "./answer-ladder.mjs";
+import { goodToRead, topicOf as pageTopicOf, offTopic, ownPart, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
 import { PEOPLE_WORD } from "./recognition.mjs";
 import { duplicationReview, freshness, covers } from "./recipe.mjs"; // RR-356 the recipe
 
@@ -182,13 +184,14 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         /* a council or score line differs by its body's name only — those are never merged; a rule or centre said twice (the same fee of the same body) is */
         const same = (a, b, loose = true) => { if (a.text === b.text) return true; if (!loose) return false; const x = sig(a.text), y = sig(b.text); return Boolean(nums(a.text)) && nums(a.text) === nums(b.text) && hostOf(a.link) === hostOf(b.link) || [...x].filter((w) => y.has(w)).length / Math.max(1, Math.min(x.size, y.size)) >= 0.85; };
         const loose = (part) => !/^(councils|scores|fee)$/.test(String(part));
-        const clean = (cs, part = "site") => cs.map((c) => ({ ...c, text: cleanFact(c.text) })).filter((c) => c.text.length >= 12 && !offTopic(c.text, topic)).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
+        /* 🔴 RR-367: an honest line ("could not be read on …") is never cleaned away nor off topic; a page's own part keeps what is its own */
+        const clean = (cs, part = "site") => cs.flatMap((c) => { if (LADDER_HONEST.test(c.text)) return [c]; const text = cleanFact(c.text), own = BUILT_FOR_THE_PAGE.test(String(part)) ? ownPart(text, topic) : text; return own ? [{ ...c, text: own }] : []; }).filter((c) => c.text.length >= 12 && (LADDER_HONEST.test(c.text) || !offTopic(c.text, topic))).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
         /* 🔴 RR-363 (R15: answer fits question): a line that does not answer its own question leaves it; a question left with nothing goes */
-        const fit = fitParts(p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { ownHost: (() => { try { return new URL(site?.origin ?? site?.url ?? site?.pages?.[0]?.url).hostname.replace(/^www\./, ""); } catch { return null; } })(), subject: askAbout, bodies, officialHost, requireSource: p.category === "exam" });
+        const fit = fitParts(p.items.map((it) => ({ ...it, question: /^scores/.test(String(it.part)) && p.profession && professionIn(it.question) && professionIn(it.question) !== p.profession ? `What ${askAbout} score is asked of ${PEOPLE_WORD[p.profession] ?? p.profession} in ${p.country ?? "this country"}?` /* RR-367: "become a nurse" on the pharmacists' page */ : it.question, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { ownHost: (() => { try { return new URL(site?.origin ?? site?.url ?? site?.pages?.[0]?.url).hostname.replace(/^www\./, ""); } catch { return null; } })(), subject: askAbout, bodies, officialHost, requireSource: p.category === "exam" });
         let parts = fit.parts;
         /* 🔴 RR-366 Part 2: a clear question on this page's topic whose lines did not fit is not dropped: it gets its answer from the ladder. Only a question nobody asks, off this page's topic, or said twice goes, with why */
         const separate = (() => { try { return officialHost && new URL(site?.origin ?? "").hostname.replace(/^www\./, "") !== officialHost; } catch { return false; } })(), onIntent = (q) => clearQuestion(q, { place: p.kind === KIND.topic ? null : p.country ?? null }) && !questionOffIntentWhy(q, { subject: askAbout, category: p.category ?? null });
-        if (answerFor) { let n = 0; fit.droppedWhy = fit.droppedWhy.filter((d) => { if (d.plain || !onIntent(d.question)) return true; const a = answerFor(d.question, p); if (!a?.claims?.length) return true; parts.push({ part: `questionsa${80 + n++}`, question: d.question, claims: a.claims, ladderStep: a.step }); fit.dropped = fit.dropped.filter((x) => x !== d.question); return false; }); }
+        if (answerFor) { let n = 0; fit.droppedWhy = fit.droppedWhy.filter((d) => { if (d.plain || !/^(?:questions|topic|main)/.test(String(d.part ?? "questions")) /* RR-367: a page's own part is no question to look up */ || !onIntent(d.question)) return true; const a = answerFor(d.question, p); if (!a?.claims?.length) return true; parts.push({ part: `questionsa${80 + n++}`, question: d.question, claims: a.claims, ladderStep: a.step }); fit.dropped = fit.dropped.filter((x) => x !== d.question); return false; }); }
         const kept = parts.flatMap((it) => it.claims);
         /* the client's own pages answer the questions people ask about it — a real question only (never a bare search wording as a heading), a
          * whole answer only (never a lone "No." whose question is not shown, never a page title), each site line on three pages at most */
@@ -203,7 +206,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         parts = oneSentenceOnce(oneFactOnce(mergeSameNeeds(parts, { droppedWhy: fit.droppedWhy, subject: askAbout }), { droppedWhy: fit.droppedWhy })); /* RR-366 Part 5: one question, one answer */
         const first = parts[0] ?? { part: "main", question: p.title, claims: [] }, needId = `${base}--${first.part}`;
         meta.set(needId, { demand: { text: p.title, source: p.weak ? `How many pages (${p.kind}): an opportunity page — no search asks for it yet` : `How many pages (${p.kind}): answers ${qs.length} question${qs.length === 1 ? "" : "s"} people ask`, weight: 4 }, answers: parts.flatMap((it) => it.claims), alsoAsked: [], links: p.links ?? null, lastChecked: p.lastChecked ?? null, content: p.content ?? null, kind: p.kind, country: p.country ?? null, profession: p.profession ?? null, localCurrency: p.localCurrency ?? null, topic, open: p.open ?? [], ledger: p.ledger ?? null, improve: p.improve ?? null, coverage: p.coverage ?? [], serpWhy: p.serpWhy ?? null /* RR-358 */, second: p.second ?? [], asked: p.askedHeads ?? [], route: p.coverageRoute ?? null, category: p.category ?? null, blueprint: p.blueprint ?? null, fit, unreadTops: p.unreadTops ?? 0 }); // RR-356: its research and its existing page
-        needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
+        needs.push({ needId, label: "DEMAND", path: `/${slug(p.title)}`, title: p.title, ownPage: p.category === "exam", question: first.question, claims: first.claims, extraItems: parts.slice(1).map((it) => ({ needId: `${base}--${it.part}`, question: it.question, claims: it.claims })) });
         continue;
       }
       const needId = base;
@@ -274,6 +277,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   const existing = site.pages.map((p) => ({ id: p.url, url: p.url, claimIds: [], questions: [p.h1, p.title, ...p.qa.map((x) => x.q)].filter(Boolean) }));
   /* an answer taken from ONE existing page means that page already does the job: improve it (existing page first) */
   for (const n of needs) { const own = n.claims.filter((c) => !c.official), pages = new Set(own.map((c) => c.link)); if (pages.size === 1 && own.length === n.claims.length) { const e = existing.find((x) => x.url === [...pages][0]); if (e) e.claimIds.push(...own.map((c) => c.claimId)); } } // an official answer is no page of the client's
+  /* 🔴 RR-367 R-C (found counting the pages: "OET for Radiographers in Australia" became a section of the doctors' page, "OET Speaking" of the speech therapists' guide): a page the plan settled is its own questions, answers and profession: one shared first question is no reason to fold it into another. An existing page of the client's is still improved, by its own row */
   const plan = planNewPages({ needs, existing });
   const rows = plan.map((p) => { const m = meta.get(p.needId) ?? {}; return { kind: p.kind, question: p.need?.title ?? needs.find((n) => n.needId === p.needId)?.title ?? p.question ?? p.need?.question ?? needs.find((n) => n.needId === p.needId)?.question, demand: m.demand, alsoAsked: m.alsoAsked ?? [], answers: m.answers ?? [],
     into: p.into ?? null, why: p.kind === "REFUSED" ? (p.reason?.startsWith("its answer is not sourced") ? "No answer to it was found on your pages yet — write the answer on your site (or tell Visibility where it is), then plan again." : p.reason) : p.kind === "SECTION" ? `Improve your existing page ${p.into}: add this question and its answer there — a second page would compete with it.` : "A new page: real demand, answered from your own pages, each answer with its source and date." }; });
@@ -330,7 +334,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
    *   good to read (RR-355 Rule 2, its fixed minimums removed by R7) · looks like your site (Rule 1) · INTENT COMPLETENESS (the coverage list
    *   that applies to this intent — its standard questions, what the top results cover, the second-search questions — no filler) ·
    *   FACT INTEGRITY (every fee, date, score and rule with its source and FRESH: G14) · DUPLICATION (G15: overlap above 40% → a meaning review) */
-  const dup = duplicationReview(drafts.map((d, i) => ({ url: d.url, title: d.title, intent: d.title, text: (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " "), facts: (meta.get(built[i].needId)?.answers ?? []).map((c) => c.claimId) })));
+  const dup = duplicationReview(drafts.map((d, i) => ({ url: d.url, title: d.title, intent: d.title, text: (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(d.html)?.[1] ?? d.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, " "), facts: (meta.get(built[i].needId)?.answers ?? []).map((c) => c.claimId), identity: (() => { const m = meta.get(built[i].needId); return m?.kind === KIND.destination || m?.kind === KIND.origin ? `${m.profession}|${m.country}` : null; })() })));
   drafts.forEach((d, i) => {
     const m = meta.get(built[i].needId) ?? {}, topic = m.topic ?? pageTopicOf({ title: d.title, kind: m.kind ?? null, people: PEOPLE_WORD });
     const q = goodToRead(d.html, topic), missing = m.category === "exam" ? partsMissing(d.html, m.kind, { localCurrency: m.localCurrency, asked: m.asked ?? [] }) : [];
@@ -355,7 +359,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     /* 🔴 RR-363 · R15's checks read the page itself: every card keeps its fact; every answer fits its question. And the year the top pages put in their title, when they do */
     const seen = readPage(d.html), byNeed = new Map(keyFacts.filter((k) => !k.needId || k.needId === built[i].needId).map((k) => [String(k.value), k.text]));
     const cardFaults = seen.cards.flatMap((c) => { const why = cardFaultOf(c.value, byNeed.get(c.value), [...byNeed.values()]); return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
-    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }) ?? partFitWhy(/--([a-z]+)\d*$/.exec(it.id)?.[1], a); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
+    const unfit = seen.items.filter((it) => !BUILT_FOR_THE_PAGE.test(/--([a-z-]+\d*)$/.exec(it.id)?.[1] ?? "")).flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }) ?? partFitWhy(/--([a-z]+)\d*$/.exec(it.id)?.[1], a); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
     if (m.blueprint?.year && !/\b20\d\d\b/.test(d.title)) { const y = String(on).slice(0, 4); d.html = d.html.replace(/(<title\b[^>]*>)([\s\S]*?)(<\/title>)/i, `$1$2 ${y}$3`).replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, `$1$2 ${y}$3`); }
     const compared = blocksCompared(m.blueprint, blocksOfHtml(d.html));
     const orphans = numbersWithoutFact(d.html, [...(m.answers ?? []), ...(m.content ? [{ text: JSON.stringify({ a: m.content.tabs, b: m.content.stepsBy, c: m.content.tips, d: m.content.foldouts, e: m.content.table, f: m.content.answer }), link: "https://sourced.inside/" }] : [])]);

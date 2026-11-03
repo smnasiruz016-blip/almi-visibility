@@ -18,24 +18,27 @@ export const MEANINGS = Object.freeze([
   ONE("result", /\bresults?\b/i, ["resultsPaper", "resultsIndia", "resultsComputer", "results95"]),
   ONE("offline", /\boffline\b|\bon paper\b|\bpaper[- ]based\b.*\b(?:apply|book|register)\b|\b(?:apply|book|register)\b.*\bpaper\b/i, ["bookFind", "bookPaper", "bookPaperCloses"]),
   /* RR-366 (found reading the ready pages): these stay narrow. A wrong answer is worse than "its official page does not say this" */
+  /* RR-367 item 4 */
+  ONE("contact", /\bnumber\b|\bcontact\b|\bcustomer (?:care|service)\b|\bphone\b|\bhelpline\b/i, ["contact"]),
+  ONE("recognised", /\bwhich countries\b|\bwhere is\b[^?]*\baccepted\b|\bcountries\b[^?]*\baccept/i, ["recognised"]),
   ONE("home", /\bat home\b|@home\b|\bfrom home\b/i, ["bookComputerCloses", "resultsComputer"]),
-  ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?:an?|my|the)\b[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
+  ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?!i\b|we\b|you\b)[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
   ONE("abroad", /\b(?:study|work)(?: or (?:study|work))? abroad\b|\buse\b[^?]*\bto (?:study|work|register)\b/i, ["purpose"]),
   ONE("what", /\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|^what is (?:an? )?[A-Za-z]{2,6}(?: exam| test)?\??$|\bmeaning\b|\bwhat is the use of\b/i, ["purpose", "scale"]),
-  ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bregistration\b\s+\p{Lu}|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b/iu, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
+  ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b|\bschedules?\b/i, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
   ONE("score", /\bscores?\b|\bgrades?\b|\bband\b|\bpass(?:ing)?\b.*\bmarks?\b|\bmarks?\b/i, ["scale", "gradeB"]),
 ]);
 export const FEE_WORDS = /\bfees?\b|\bcosts?\b|\bprices?\b|\bhow much\b|\bkitni\b|\bkitna\b|\bmagkano\b|\bkharcha\b|\bcharges?\b/i;
 export const CENTRE_WORDS = /\bcent(?:re|er)s?\b|\bvenues?\b|\bnear me\b|\bwhere\b.*\b(?:take|sit|give)\b/i;
 const OPINION = /\bbetter\b|\bbest\b|\beasier\b|\bharder\b|\bvs\.?\b|\bversus\b|\bshould i\b|\bworth\b|\bor (?:ielts|pte|toefl|oet)\b|\b(?:ielts|pte|toefl|oet) or\b/i;
-export const PRACTICE = /\bclass(?:es)?\b|\bcoaching\b|\bcourses?\b|\btuition\b|\btutors?\b|\blessons?\b|\bpractice\b|\bpractise\b|\bpreparation\b|\bprepare\b|\bprep\b|\bmock\b|\bsamples?\b|\bmaterials?\b|\bbooks?\b(?! (?:a|an|the|my|oet))/i;
+export const PRACTICE = /\bclass(?:es)?\b|\bcoaching\b|\bcourses?\b|\btuition\b|\btutors?\b|\blessons?\b|\bpractice\b|\bpractise\b|\bpreparation\b|\bprepare\b|\bprep\b|\bmock\b|\bsamples?\b|\bexamples?\b|\bmaterials?\b|\bbooks?\b(?! (?:a|an|the|my|oet))/i;
 /* a question about the test's own format: every country shares it, so it belongs on the topic page */
 const FORMAT = /\brole[- ]?plays?\b|\brole[- ]?cards?\b|\binterlocut\w+|\bspeaking\b|\bwriting\b|\blistening\b|\breading\b|\bsub-?tests?\b|\bcase notes?\b|\bmarking\b|\bcriteria\b|\braw (?:test )?marks?\b|\bpencil\b|\bwarm-?up\b|\bassessors?\b/i;
 export const SUBTEST_OF = (q) => ["Speaking", "Writing", "Listening", "Reading"].find((s) => new RegExp(`\\b${s}\\b`, "i").test(q)) ?? (/\brole[- ]?(?:plays?|cards?)\b|\binterlocut/i.test(q) ? "Speaking" : /\bcase notes?\b|\bletter\b/i.test(q) ? "Writing" : null);
 /** a test-format question naming no place → it goes to its topic page; one naming the place stays */
 export const isTestFormat = (q, place = null) => FORMAT.test(String(q)) && !(place && countriesIn(q).includes(place));
 
-export const HONEST = /\bofficial page, checked \d{4}-\d{2}-\d{2}, does not say this\b|\bofficial page, checked \d{4}-\d{2}-\d{2}, is the place to read this\b/;
+export const HONEST = /\bofficial page, checked \d{4}-\d{2}-\d{2}, does not say this\b|\bofficial page, checked \d{4}-\d{2}-\d{2}, is the place to read this\b|\bcould not be read on \d{4}-\d{2}-\d{2}; this is still being looked for\b/;
 export const VIEW_MARK = "A view many people hold, not an official rule:";
 const short = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
@@ -87,8 +90,13 @@ export function edgeClaims({ product, site, description, on, subjectFacts = {} }
 const ANOTHER_SITE = /\b(?:reddit|quora|youtube|pdf|login|log in|sign in|portal|\.com|\.org)\b/i;
 export const shownWording = (phrase, subject, country = null) => { const t = short(phrase).replace(/[?.]+$/, ""), s = String(subject), named = t.replace(new RegExp(`\\b${s}\\b`, "gi"), s); return `${(country ? named.replace(new RegExp(`\\b${country}\\b`, "gi"), country) : named).replace(/^./, (x) => x.toUpperCase())}?`; };
 /** the need a typed phrase asks: its class, or null when no verified answer could be matched */
-export function classOfPhrase(phrase) {
+export const ASK_OF_CLASS = (cls, subject) => (cls === "what" ? `What is ${subject}?` : null);
+export function classOfPhrase(phrase, { subject = null, country = null } = {}) {
   const p = short(phrase);
+  if (/\bnumber\b|\bcontact\b|\bcustomer (?:care|service)\b|\bphone\b|\bhelpline\b/i.test(p)) return "contact"; /* RR-367 item 4: answered with the official contact page */
+  if (/\bwhich countries\b/i.test(p)) return "recognised";
+  /* RR-367 item 4: "oet uk", "oet exam pakistan": nothing but the test and the place: what it is */
+  if (subject && country) { const left = p.toLowerCase().replace(new RegExp(`\\b${String(subject).toLowerCase()}\\b`, "g"), " ").replace(new RegExp(`\\b${String(country).toLowerCase()}\\b`, "g"), " ").replace(/\b(?:exams?|tests?|uk|usa|us|uae|bd|in|the|for|at)\b/g, " ").trim(); if (!left) return "what"; }
   if (MEANINGS.find((m) => m.key === "change-fee").re.test(p)) return "change-fee";
   if (FEE_WORDS.test(p)) return "fee";
   if (/\baccepted\b|\brequirements?\b/i.test(p) && !/\bwhich countries\b/i.test(p)) return "accepted";
@@ -102,5 +110,5 @@ export function phraseOutWhy(phrase, { country, subject, skipWhy = () => null })
   const p = short(phrase); if (!new RegExp(`\\b${String(subject)}\\b`, "i").test(p)) return "it is not about this subject";
   const places = countriesIn(p); if (places.some((c) => c !== country)) return "it is about another country";
   if (ANOTHER_SITE.test(p)) return "people typing this want another website";
-  return skipWhy(p);
+  return /\bnumber\b|\bcontact\b/i.test(p) ? null /* RR-367 item 4: the official contact page answers it */ : skipWhy(p);
 }

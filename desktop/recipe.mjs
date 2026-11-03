@@ -117,6 +117,8 @@ export function duplicationReview(pages) {
   const sets = pages.map((p) => shingles(p.text)), overlapOf = (x, y) => { if (!x.size || !y.size) return 0; let n = 0; for (const s of x) if (y.has(s)) n++; return n / Math.min(x.size, y.size); };
   for (let i = 0; i < pages.length; i++) for (let j = i + 1; j < pages.length; j++) {
     const o = overlapOf(sets[i], sets[j]); if (o <= 0.4) continue;
+    /* RR-367 R-C: a page for one profession in one country is a duplicate only of a page for the same profession and country */
+    if ((pages[i].identity || pages[j].identity) && pages[i].identity !== pages[j].identity) continue;
     const sameIntent = pages[i].intent === pages[j].intent, ownFacts = (p, q) => p.facts.some((f) => !q.facts.includes(f));
     const dup = sameIntent || !(ownFacts(pages[i], pages[j]) && ownFacts(pages[j], pages[i]));
     for (const [p, q] of [[pages[i], pages[j]], [pages[j], pages[i]]]) { const r = out.get(p.url); if (o > r.worst) Object.assign(r, { worst: o, with: q.title, verdict: dup ? "duplicate" : "distinct", why: dup ? `it says what "${q.title}" says (${Math.round(o * 100)}% the same words, and no answer of its own)` : `${Math.round(o * 100)}% of its words are also on "${q.title}" (shared questions), reviewed: a different intent with its own checked facts` }); }

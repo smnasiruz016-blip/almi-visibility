@@ -55,3 +55,15 @@ test("a score never read is said as never read; a page read and silent as silent
   const p = examPlan({ subject: "OET", professions: ["nursing"], countries: ["Nepal"], research, facts: [], subjectFacts: { scale: F("scale", "OET's own page: each sub-test is reported on a scale from 0 to 500.") }, maxCountries: 50 }), hub = p.pages.find((x) => x.kind === "profession"), line = (c) => hub.items.find((i) => i.question.includes(c))?.claims[0].text;
   assert.equal(line("Nepal"), "Silent Board's own page could not be read on 2026-11-03; this is still being looked for."); assert.ok(HONEST.test(line("Nepal"))); assert.equal(line("Ghana"), "Quiet Board's official page, checked 2026-11-03, does not say this."); assert.equal(line("Kenya"), undefined); assert.ok(hub.open.some((x) => x.includes("Kenya")));
 });
+
+test("a read that breaks halfway is said in plain words; the one wait left is said with its limit", async () => {
+  let n = 0; const broken = officialReader({ fetchImpl: async (u) => { if (/robots/.test(u)) return new Response("User-agent: *\nAllow: /"); n++; return { ok: true, status: 200, headers: new Headers({ "content-type": "text/html" }), arrayBuffer: async () => { throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); } }; }, allowLocal: true, paceMs: 0, sleep: async () => {}, retries: 0 });
+  const r = await within(2000, broken.read("http://127.0.0.1:9/page")); assert.equal(r.ok, false); assert.equal(r.why, "could not be read (it stopped answering)"); assert.equal(n, 1);
+  const MAIN = read("desktop/main.mjs"); assert.match(MAIN, /if \(left\) onWhat\?\.\(`Waiting for Google's results: \$\{left\} still being prepared\. The wait ends by itself within 15 minutes/); assert.match(MAIN, /return serpStep\(id, \{ pages: left \}, [^\n]*, sayingWhat\)/);
+  assert.match(MAIN, /postOnly: true, retry: [^\n]*\.\.\.serpTest\(\) \}\); writeFileSync\(DFS_LEDGER_FILE, JSON\.stringify\(ledger\)\);/, "a paid search is kept at once");
+});
+
+test("the limit stays firm when several reads on one silent site wait for each other: one extension, then each gives up", async () => {
+  const s = await serve((q, r) => { if (/robots/.test(q.url)) return r.end("User-agent: *\nAllow: /\n"); /* never answers */ });
+  try { const rd = officialReader({ allowLocal: true, paceMs: 10, sleep: async () => {}, retries: 0, readLimitMs: 100 }), all = await within(3000, Promise.all(["a", "b", "c"].map((x) => rd.read(`${s.url}/${x}`)))); assert.ok(all.every((r) => r.ok === false && /could not be read/.test(r.why))); } finally { s.stop(); }
+});

@@ -78,7 +78,8 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
       const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].map((m) => { try { return { href: new URL(decode(m[1]), final).href, text: decode(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() }; } catch { return null; } }).filter(Boolean).slice(0, 3000); // RR-319: a regulator's page can carry hundreds of menu links before its own
       return { ok: true, url: final, title: one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, html), h1: one(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, html), text: pageText(html), links, checkedOn: day(on) };
     })();
-    const limited = withLimit(url, run, () => ({ ok: false, url, why: `could not be read (no answer within ${Math.round(readLimitMs / 1000)} seconds)`, timedOut: true, checkedOn: day(on) }));
+    /* RR-368 (the proof: "The operation was aborted due to timeout" stood where a reader needs plain words): a read that breaks halfway is a page that could not be read */
+    const limited = withLimit(url, run.catch(() => ({ ok: false, url, why: "could not be read (it stopped answering)", checkedOn: day(on) })), () => ({ ok: false, url, why: `could not be read (no answer within ${Math.round(readLimitMs / 1000)} seconds)`, timedOut: true, checkedOn: day(on) }));
     cache.set(url, limited);
     return limited;
   }

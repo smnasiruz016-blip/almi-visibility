@@ -8,9 +8,10 @@
  *   · the backfill is this same list: what was bought before is simply not on the "saved" list yet.
  * Pure but for the client handed in.
  */
+import { failuresOfLedger } from "./read-failures.mjs"; // RR-369b item 5
 export const SAVED_FILE = "almiseo-saved.json", OUTBOX_FILE = "almiseo-outbox.json";
 export const UPLOAD = Object.freeze({ maxBytes: 800000, maxRows: 400, listBytes: 60000, retryMs: 5 * 60e3 });
-export const emptySaved = () => ({ searches: {}, pages: {}, lists: 0, reused: 0, lastOk: null, lastTry: null, lastWhy: null, server: null });
+export const emptySaved = () => ({ searches: {}, pages: {}, failures: {}, failHosts: {}, failHostsSent: null, lists: 0, reused: 0, lastOk: null, lastTry: null, lastWhy: null, server: null });
 const kindOf = (key) => (String(key).startsWith("auto|") ? "auto" : "serp");
 const day = (x) => (/^\d{4}-\d{2}-\d{2}/.test(String(x ?? "")) ? String(x).slice(0, 10) : null);
 /** the day a search was bought: its own date; before dates were kept, the ledger's row */
@@ -18,7 +19,7 @@ const firstDays = (ledger) => { const out = new Map(); for (const r of ledger?.s
 const qOf = (key) => { const p = String(key).split("|"); return p[0] === "auto" ? p[1] : p[0]; };
 /** one kept answer as it travels: what a later run needs, never a snippet of a page's text */
 export const searchRow = (key, c, on = null) => ({ key, kind: kindOf(key), on: day(c.at) ?? on, ...(c.empty ? { empty: true } : {}), results: (c.results ?? []).map((r) => ({ url: r.url, title: r.title ?? "", rank: r.rank ?? null })), paa: c.paa ?? [], related: c.related ?? [], phrases: c.phrases ?? [] });
-export const pageRow = (url, t) => ({ url, on: day(t.on), headings: t.headings ?? null, blocks: t.blocks ?? null });
+export const pageRow = (url, t) => ({ url, on: day(t.on), headings: t.headings ?? null, blocks: t.blocks ?? null, ...(t.paidFail ? { paidFail: true } : {}) });
 /** what was bought and the server has not named back */
 export function unsaved({ ledger = {}, tops = {}, saved = emptySaved() }) {
   const days = firstDays(ledger);
@@ -35,7 +36,7 @@ export function batches(rows, { maxBytes = UPLOAD.maxBytes, maxRows = UPLOAD.max
  * Everything still unsaved goes up. `subjectOf(row)` says whose it is. A batch not answered stays for the next try: saved only moves on what the server named. → { sent, confirmed, left, why }
  * `save(saved)` after each batch, so a run that dies keeps what was confirmed.
  */
-export async function uploadBought({ client, ledger, tops = {}, saved, subjectOf, save = () => {}, now = new Date().toISOString() }) {
+export async function uploadBought({ client, ledger, tops = {}, saved, subjectOf, save = () => {}, now = new Date().toISOString(), examSubject = null }) {
   const u = unsaved({ ledger, tops, saved }), groups = new Map(), put = (subject, side, row) => { const g = groups.get(subject) ?? { searches: [], pages: [] }; g[side].push(row); groups.set(subject, g); };
   let left = 0, why = null, confirmed = 0, sent = 0, stop = false;
   for (const r of u.searches) { const s = subjectOf(r); if (s) put(s, "searches", r); else left++; }
@@ -58,6 +59,13 @@ export async function uploadBought({ client, ledger, tops = {}, saved, subjectOf
       }
     }
   }
+  /* 🔴 RR-369b item 5: what failed is remembered on the server: each address (a backfill of the old ones too, once) and each site's counts. A server that does not answer for them yet loses nothing: they stay to send */
+  const fails = failuresOfLedger(ledger), failRows = [...fails.urls.keys()].filter((u) => !saved.failures?.[u]).map((u) => ({ url: u, on: fails.urls.get(u).on, headings: tops[u]?.headings ?? null, blocks: tops[u]?.blocks ?? null, paidFail: true })), hostText = JSON.stringify(fails.hosts), subj = examSubject ?? (failRows.length ? subjectOf(failRows[0]) : null);
+  if (subj && !stop && (failRows.length || hostText !== saved.failHostsSent)) {
+    saved.failures ??= {};
+    for (const b of batches(failRows)) { const r = await client.saveBought({ subject: subj, pages: b }).catch(() => null); if (!r?.ok) { why ??= r?.why ?? "AlmiSEO Data did not answer."; stop = true; break; } const named = new Set(r.pages ?? []); for (const x of b) if (named.has(x.url)) saved.failures[x.url] = now; save(saved); }
+    if (!stop) { const r = await client.saveBought({ subject: subj, failHosts: fails.hosts }).catch(() => null); if (Number.isInteger(r?.failHosts)) saved.failHostsSent = hostText; }
+  }
   if (!sent && !left) saved.lastWhy = null;
   save(saved);
   return { sent, confirmed, left, why };
@@ -72,8 +80,9 @@ export async function askServerFirst({ client, subject, keys = [], urls = [], le
   for (let i = 0; i < Math.max(need.length, needUrls.length); i += perCall) {
     const r = await client.heldBought({ subject, keys: need.slice(i, i + perCall), urls: needUrls.slice(i, i + perCall) }).catch(() => ({ ok: false }));
     if (!r?.ok) { if (r?.status === 404 || r?.status === 403) return { ok: true, reused, topsReused, noRoute: r.status === 404 }; return { ok: false, reused, topsReused, why: r?.why ?? "AlmiSEO Data did not answer." }; }
+    if (r.failHosts) saved.failHosts = r.failHosts; /* RR-369b item 5: what fails, learned by everyone */
     for (const [k, v] of Object.entries(r.searches ?? {})) { (ledger.serpCache ??= {})[k] = { ok: true, ...(v.empty ? { empty: true } : {}), results: v.results ?? [], paa: v.paa ?? [], related: v.related ?? [], ...(v.kind === "auto" ? { phrases: v.phrases ?? [] } : {}), cost: 0, at: `${v.on}T00:00:00.000Z`, fromServer: true }; saved.searches[k] = now; reused++; }
-    for (const [u, v] of Object.entries(r.pages ?? {})) if (tops) { tops[u] = { on: v.on, headings: v.headings, blocks: v.blocks, fromServer: true }; saved.pages[u] = now; topsReused++; }
+    for (const [u, v] of Object.entries(r.pages ?? {})) if (tops) { tops[u] = { on: v.on, headings: v.headings, blocks: v.blocks, fromServer: true, ...(v.paidFail ? { paidFail: true } : {}) }; saved.pages[u] = now; topsReused++; }
   }
   saved.reused = (saved.reused ?? 0) + reused + topsReused;
   return { ok: true, reused, topsReused };

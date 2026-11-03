@@ -242,7 +242,7 @@ test("C + Part D's source: a list already saved is never bought again, even when
 });
 test("C: its own daily cap: a search that could pass it is not sent; a DataForSEO refusal stops the run once", async () => {
   const w = await world(); let n = 0;
-  const fetchImpl = async (u, init) => { if (String(u).includes("task_post")) n++; return { json: async () => serpAnswer(JSON.parse(init.body)[0].keyword) }; };
+  const fetchImpl = async (u, init) => { if (String(u).includes("content_parsing")) return { json: async () => ({ status_code: 20000, tasks: [{ status_code: 40000, cost: 0 }] }) }; /* RR-369b: a page reading is no search; a charged failure is booked now */ if (String(u).includes("task_post")) n++; return { json: async () => serpAnswer(JSON.parse(init.body)[0].keyword) }; };
   const r = await runTopPages({ seo: w.seo, cf: w.cf, env: { ...TP_ENV, [ENV_NAMES.topPagesUsd]: "0.004" }, reader: standinReader({}), fetchImpl, now });
   assert.equal(n, 2); assert.equal(r.stoppedBy, "CAP"); assert.match(r.why, /cap/);
   const w2 = await world(); let m = 0;

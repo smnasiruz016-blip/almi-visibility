@@ -30,11 +30,11 @@ const dayBefore = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) - n * 86400000
 const keyOf = (c, d) => `av:health:${c}:${d}`;
 
 /** one run's outcome → today's record (merged). `progress`: new things saved; `code`/`why`: why it stopped (null: it finished or ran out of time) */
-export async function recordRun(kv, collector, day, { progress = 0, code = null, why = null, aiUsd = 0, keywords = 0, facts = 0, finished = [], sizeMb = null } = {}) {
+export async function recordRun(kv, collector, day, { progress = 0, code = null, why = null, aiUsd = 0, keywords = 0, facts = 0, finished = [], sizeMb = null, reused = 0, readsSkipped = 0 } = {}) {
   if (!kv) return null;
   try {
     const [old] = await kv.run([["GET", keyOf(collector, day)]]), r = old ? JSON.parse(old) : { day, runs: 0, progress: 0, keywords: 0, facts: 0, aiUsd: 0, finished: [], stops: {} };
-    r.runs++; r.progress += progress; r.keywords += keywords; r.facts += facts; r.aiUsd = Math.round((r.aiUsd + aiUsd) * 1e4) / 1e4; r.finished = [...new Set([...r.finished, ...finished])].slice(0, 400);
+    r.runs++; r.reused = (r.reused ?? 0) + reused; r.readsSkipped = (r.readsSkipped ?? 0) + readsSkipped; r.progress += progress; r.keywords += keywords; r.facts += facts; r.aiUsd = Math.round((r.aiUsd + aiUsd) * 1e4) / 1e4; r.finished = [...new Set([...r.finished, ...finished])].slice(0, 400);
     if (code) { r.stops[code] = (r.stops[code] ?? 0) + 1; r.lastCode = code; r.lastWhy = why; }
     if (sizeMb !== null) r.sizeMb = sizeMb;
     await kv.run([["SET", keyOf(collector, day), JSON.stringify(r), "EX", HEALTH.keepDays * 86400]]);

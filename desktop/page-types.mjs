@@ -60,7 +60,7 @@ export function unclearWhy(question, { place = null } = {}) {
 }
 export const clearQuestion = (q, o) => !unclearWhy(q, o);
 /* 🔴 RR-366 Part 6 C (beta-g: Qatar's "Which exam is needed to work abroad with a hospital administration diploma?"): an exam page's question names the exam or one of its needs. A question about a diploma, a salary or a course of another field is off this page's intent */
-const EXAM_TOPIC = /\b(?:fees?|costs?|prices?|how much|scores?|grades?|bands?|results?|book\w*|regist\w*|licen[cs]\w*|council|board|apply|centres?|centers?|venues?|dates?|re-?mark\w*|role[- ]?plays?|role[- ]?cards?|speaking|writing|listening|reading|sub-?tests?|practice|practise|sample|study material|mock|prepar\w*)\b/i;
+const EXAM_TOPIC = /\b(?:fees?|costs?|prices?|how much|scores?|grades?|bands?|results?|book\w*|regist\w*|licen[cs]\w*|council|board|paper (?:exam|test)|centres?|centers?|venues?|dates?|re-?mark\w*|role[- ]?plays?|role[- ]?cards?|speaking|writing|listening|reading|sub-?tests?|practice|practise|sample|study material|mock|prepar\w*)\b/i;
 export function questionOffIntentWhy(question, { subject = null, category = "exam" } = {}) {
   if (category !== "exam") return null;
   const t = String(question ?? ""); if (subject && new RegExp(`(?<![\\p{L}])${String(subject).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "iu").test(t)) return null;

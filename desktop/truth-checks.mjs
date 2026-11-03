@@ -170,7 +170,9 @@ export function oneFactOnce(parts = [], { droppedWhy = [] } = {}) {
   for (const it of parts) {
     if (/^(?:councils|openCouncils|scores|rules|centres|writing)/.test(String(it.part))) { out.push(it); continue; }
     const honest = (c) => HONEST.test(String(c.text)), left = (it.claims ?? []).filter((c) => honest(c) || !at.has(textKey(c)));
-    if (!left.length && (it.claims ?? []).length) { droppedWhy.push({ question: it.question, why: `its answer already stands on this page, under "${at.get(textKey(it.claims[0]))}"`, plain: true }); continue; }
+    /* an answer is its first line: with that gone, what is left does not answer the question ("Can a dental MDS graduate sit it?" left with only "for someone who is not a health professional"): the question joins the one that holds it */
+    const first = (it.claims ?? [])[0];
+    if (first && !honest(first) && at.has(textKey(first))) { droppedWhy.push({ question: it.question, why: `its answer already stands on this page, under "${at.get(textKey(first))}"`, plain: true }); continue; }
     for (const c of left) if (!at.has(textKey(c))) at.set(textKey(c), it.question);
     out.push(left.length === (it.claims ?? []).length ? it : { ...it, claims: left });
   }

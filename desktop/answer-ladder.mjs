@@ -17,10 +17,12 @@ export const MEANINGS = Object.freeze([
   ONE("remark", /\bre-?mark\w*|\bre-?evaluat\w*|\bre-?check\w*|\bre-?scor\w*/i, ["remarkFee", "remarkHours"]),
   ONE("result", /\bresults?\b/i, ["resultsPaper", "resultsIndia", "resultsComputer", "results95"]),
   ONE("offline", /\boffline\b|\bon paper\b|\bpaper[- ]based\b.*\b(?:apply|book|register)\b|\b(?:apply|book|register)\b.*\bpaper\b/i, ["bookFind", "bookPaper", "bookPaperCloses"]),
-  ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\bfor which professions?\b|\bwhich professions?\b|\b(?:can|may)\b.*\b(?:take|sit|apply for|give)\b.*\b(?:exam|test)\b/i, ["professions12", "notForOthers"]),
-  ONE("abroad", /\babroad\b|\bwork (?:in|overseas)\b|\buse .*\bto\b.*\b(?:work|study|register)\b|\bis .* accepted\b/i, ["purpose", "professions12"]),
-  ONE("what", /\bfull form\b|\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|\bwhat is\b(?! (?:the|a) (?:fee|cost|price|score|grade))|\bmeaning\b/i, ["purpose", "professions12", "scale"]),
-  ONE("book", /\bbook\w*\b|\bregist\w*\b|\bapply\b|\bapplication\b|\bdates?\b|\bwhen\b.*\b(?:exam|test)\b/i, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
+  /* RR-366 (found reading the ready pages): these stay narrow. A wrong answer is worse than "its official page does not say this" */
+  ONE("home", /\bat home\b|@home\b|\bfrom home\b/i, ["bookComputerCloses", "resultsComputer"]),
+  ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?:an?|my|the)\b[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
+  ONE("abroad", /\b(?:study|work)(?: or (?:study|work))? abroad\b|\buse\b[^?]*\bto (?:study|work|register)\b/i, ["purpose"]),
+  ONE("what", /\bfull form\b|\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|^what is (?:an? )?[A-Za-z]{2,6}(?: exam| test)?\??$|\bmeaning\b|\bwhat is the use of\b/i, ["purpose", "scale"]),
+  ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bregistration\b\s+\p{Lu}|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b/iu, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
   ONE("score", /\bscores?\b|\bgrades?\b|\bband\b|\bpass(?:ing)?\b.*\bmarks?\b|\bmarks?\b/i, ["scale", "gradeB"]),
 ]);
 export const FEE_WORDS = /\bfees?\b|\bcosts?\b|\bprices?\b|\bhow much\b|\bkitni\b|\bkitna\b|\bmagkano\b|\bkharcha\b|\bcharges?\b/i;
@@ -40,7 +42,7 @@ const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); 
 const fromSubject = (f, country) => ({ claimId: `ladder-${f.claimId}`, card: null, text: country ? placeHere(priceHere(f.text, country), country) : f.text /* no one country: the whole fact, as the topic page shows it */, link: f.link, readOn: f.readOn, source: f.source ?? "its own page", official: true, body: f.body ?? null });
 /* a view may not carry a fee, a date, a score or a time limit: those are facts, and need their own source */
 const HOLDS_A_NUMBER = /(?:AU[D$]|US[D$]|[$£€])\s?\d|\b\d{2,}\b/;
-const FOR_PLACE = (f, country) => { const here = countriesIn(placeHere(f?.text ?? "", country)); return !here.length || !country || here.includes(country); };
+const FOR_PLACE = (f, country) => { const here = countriesIn(placeHere(priceHere(f?.text ?? "", country), country)); return !here.length || !country || here.includes(country); };
 
 /** step 1 → the claims of the first meaning that fits, or null. `extra`: facts the caller holds for a need (a validity read from a regulator's own page) */
 export function factAnswer(question, { subjectFacts = {}, country = null, extra = {} } = {}) {
@@ -51,7 +53,10 @@ export function factAnswer(question, { subjectFacts = {}, country = null, extra 
     let keys = m.keys;
     if (m.key === "result") keys = country && /^(?:India|Philippines)$/.test(country) ? ["resultsIndia", "resultsComputer", "results95"] : ["resultsPaper", "resultsComputer", "results95"];
     const facts = keys.map((k) => subjectFacts[k]).filter((f) => f?.text && /^https?:/.test(f.link ?? "") && FOR_PLACE(f, country));
-    if (facts.length) return { how: m.key, claims: facts.map((f) => fromSubject(f, country)) };
+    /* "What grade is 300?" must say 300: a score asked is answered with that score, or not by this rung */
+    const asked = q.match(/\b[1-5]\d{2}\b/g) ?? [], hold = asked.length ? facts.filter((f) => asked.some((n) => String(f.text).includes(n))) : facts;
+    if (hold.length) return { how: m.key, claims: hold.map((f) => fromSubject(f, country)) };
+    return null;
   }
   return null;
 }

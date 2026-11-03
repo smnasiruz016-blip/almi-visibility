@@ -17,6 +17,9 @@ import { localSeeds } from "./subject-demand.mjs";
 import { STANDARD } from "./research.mjs";
 /* 🔴 RR-366 Part 7 (owner + DataForSEO's account manager, 2 Nov 2026): the STANDARD queue, $0.0006 a search against $0.002 live; results come within minutes and collecting them is free. Nothing here needs real time */
 export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/organic/task_post", getUrl: "https://api.dataforseo.com/v3/serp/google/organic/task_get/advanced/", pricePerSearch: 0.0006, capPerDay: 1, depth: 10 });
+/* 🔴 RR-366 X1 (owner's ruling, 15 Oct): paid search only enriches, in the background; it never stops a page. The cap is said in these words, never as a reason */
+export const CAP_LATER = "More data will be added when the budget resets.";
+const laterWhy = (why) => (/cap is reached/.test(String(why ?? "")) ? CAP_LATER : why);
 export const QUEUE = Object.freeze({ everyMs: 15000, maxMs: 900000 /* measured in the live proof: some answers took over ten minutes; what is later waits, paid, for the next run */, perPost: 100, side: 12, waiting: new Set([40601, 40602]), created: 20100 });
 /* On-Page content parsing reads one page's structure (headings, lists, tables, text) for $0.00015; each page once, kept and reused */
 export const ONPAGE = Object.freeze({ url: "https://api.dataforseo.com/v3/on_page/content_parsing/live", price: 0.00015 });
@@ -226,8 +229,12 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     const wanted = pages.flatMap((p) => [...[searchTermOf(p), `${searchTermOf(p)} reddit`, quoraSearch(searchTermOf(p))].map((k) => ({ key: serpKey(k), q: k, task: serpTask(k) })), ...(p.kind === "country" && p.country && subject ? localSeeds(subject, p.country, p.category ?? "exam").map((k) => ({ key: autoKey(k, p.country), q: k, kind: "auto", task: autoTask(k, p.country) })) : [])]);
     const before = new Set(Object.keys(ledger.pending ?? {})), had = new Set(Object.keys(ledger.serpCache ?? {}));
     /* the two kinds of search have two addresses */
-    for (const kind of ["serp", "auto"]) { const q = await queueSearches({ wanted: wanted.filter((w) => (w.kind ?? "serp") === kind), settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }); if (q.stop && !stopped) stopped = q.stop; }
-    const c = await collectQueued({ ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}), ...(sleep ? { sleep } : {}), onWait: onQueue, ...queue });
+    /* X4: a search that failed on the service's side ("Internal SE Server Error") is tried again, at most RETRY.times; still failing, its page carries on without it */
+    let c = null, ask = wanted; for (let round = 0; round <= (retry?.times ?? 0); round++) {
+      for (const kind of ["serp", "auto"]) { const q = await queueSearches({ wanted: ask.filter((w) => (w.kind ?? "serp") === kind), settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }); if (q.stop && !stopped) stopped = q.stop; }
+      c = await collectQueued({ ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}), ...(sleep ? { sleep } : {}), onWait: onQueue, ...queue });
+      const again = new Set(c.failed.filter((f) => tryAgain({ ok: false, why: f.why })).map((f) => f.q)); if (!again.size || stopped) break; ask = wanted.filter((w) => again.has(w.q)); if (sleep) await sleep((retry?.pauseMs ?? 0) * (round + 1));
+    }
     for (const k of Object.keys(ledger.serpCache ?? {})) if (!had.has(k)) bought.add(k);
     if (c.waiting) notes.push(`${c.waiting} searches are still being prepared: they are collected free on the next run.`);
     void before;
@@ -236,11 +243,11 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
   const headingsOf = (h) => [...String(h).matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40);
   const onePage = async (p) => {
     delete p.serpWhy;
-    if (stopped) { p.serpWhy = stopped; return; } // every page after a stop says why it was not searched
+    if (stopped) { p.serpWhy = laterWhy(stopped); return; } // every page after a stop says why it was not searched
     onPage?.(p, "search");
     /* RR-366 (the live proof): what people of a country type does not wait for the page's own search */
     if (p.kind === "country" && p.country && subject) { const said = []; for (const keyword of localSeeds(subject, p.country, p.category ?? "exam")) { const a = await autocompleteIn({ keyword, country: p.country, settings, ledger, login, password, now, ...(queue ? { wait: false } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (a.stop && !stopped) stopped = a.why; if (a.ok) said.push(...a.phrases); } if (said.length) { p.localAsked = [...new Set(said)]; p.items = rankByLocal(p.items ?? [], p.localAsked, subject); } }
-    const term = searchTermOf(p), main = await ask(term); if (!main.ok) { p.serpWhy = main.why; notes.push(`${p.title}: ${main.why}`); return; }
+    const term = searchTermOf(p), main = await ask(term); if (!main.ok) { p.serpWhy = laterWhy(main.why); notes.push(`${p.title}: ${laterWhy(main.why)}`); return; }
     pagesRead++; p.paa = main.paa; p.related = [...new Set([...main.related, ...(p.localAsked ?? [])])];
     const rq = communityQuestions((await ask(`${term} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(quoraSearch(term))).results ?? [], "quora.com");
     reddit += rq.length; quora += qq.length;
@@ -267,7 +274,7 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
   /* in order, at most `concurrency` at a time; a stop is seen by every page not started yet */
   let at = 0; await Promise.all(Array.from({ length: Math.max(1, concurrency) }, async () => { while (at < pages.length) { const p = pages[at++]; await onePage(p); onPage?.(p, "done"); } }));
   const mine = (ledger.spent ?? []).slice(spentBefore), boughtN = mine.filter((x) => x.ok !== false).length, searches = mine.length /* every search sent is in the ledger, refused or not */, cost = mine.reduce((t, x) => t + (Number(x.cost) || 0), 0), retried = mine.filter((x) => x.retry).length, failed = mine.filter((x) => x.ok === false).length;
-  const line = `Google's results (your DataForSEO account): ${searches} search${searches === 1 ? "" : "es"}, $${cost.toFixed(4)} — ${pagesRead} of ${pages.length} pages read what ranks, "People also ask", related searches, Reddit and Quora as Google shows them.${retried ? ` ${retried} tried again after DataForSEO failed; ${failed} failed search${failed === 1 ? "" : "es"} charged nothing.` : ""}${stopped ? ` Stopped: ${stopped}` : notes.length ? ` Not read for ${notes.length}: ${notes[0]}` : ""}`;
+  const line = `Google's results (your DataForSEO account): ${searches} search${searches === 1 ? "" : "es"}, $${cost.toFixed(4)} — ${pagesRead} of ${pages.length} pages read what ranks, "People also ask", related searches, Reddit and Quora as Google shows them.${retried ? ` ${retried} tried again after DataForSEO failed; ${failed} failed search${failed === 1 ? "" : "es"} charged nothing.` : ""}${stopped ? (laterWhy(stopped) === CAP_LATER ? ` ${CAP_LATER}` : ` Stopped: ${stopped}`) : notes.length ? ` Not read for ${notes.length}: ${notes[0]}` : ""}`;
   return { searches, cost, retried, failed, read: pagesRead, of: pages.length, reddit, quora, stopped, notes, line, reused, bought: boughtN, topsReused };
 }
 

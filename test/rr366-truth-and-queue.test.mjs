@@ -7,12 +7,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { checkCouncil, councilFacts, councilLineWhy, statesRegistration, openLine, findRegulator, councilKey } from "../desktop/council-truth.mjs";
 import { answerQuestion, factAnswer, honestAnswer, isTestFormat, classOfPhrase, phraseOutWhy, shownWording, edgeClaims, VIEW_MARK } from "../desktop/answer-ladder.mjs";
-import { answerFitWhy, partFitWhy, fitParts, mergeSameNeeds, oneFactOnce, needClass, ownSiteFactWhy, numbersWithoutFact } from "../desktop/truth-checks.mjs";
-import { questionOffIntentWhy, unclearWhy, coreMissingOfPlan } from "../desktop/page-types.mjs";
-import { examPlan, applyLocalQuestions, askedOf, validityClaimsOf, priceHere } from "../desktop/exam-plan.mjs";
+import { answerFitWhy, partFitWhy, fitParts, mergeSameNeeds, oneFactOnce, oneSentenceOnce, needClass, ownSiteFactWhy, numbersWithoutFact } from "../desktop/truth-checks.mjs";
+import { questionOffIntentWhy, unclearWhy, coreMissingOfPlan, suggestionWhy } from "../desktop/page-types.mjs";
+import { examPlan, applyLocalQuestions, askedOf, validityClaimsOf, priceHere, settleLocal } from "../desktop/exam-plan.mjs";
 import { placeHere } from "../desktop/truth-prices.mjs";
 import { subjectFactsOf, pageWords } from "../desktop/subject-facts.mjs";
-import { SERP, ONPAGE, queueSearches, collectQueued, searchGoogle, parseTopPage, blocksOfContent, searchPages, serpKey, autocompleteIn, autoKey, autoTask, readSerp, notForReading, searchTermOf } from "../desktop/serp.mjs";
+import { SERP, ONPAGE, queueSearches, collectQueued, searchGoogle, parseTopPage, blocksOfContent, searchPages, serpKey, autocompleteIn, autoKey, autoTask, readSerp, notForReading, searchTermOf, CAP_LATER } from "../desktop/serp.mjs";
 import { partsMissing } from "../desktop/page-quality.mjs";
 import { runTopPages } from "../site/top-pages.mjs";
 
@@ -300,4 +300,38 @@ test("askedOf: every question heard, with its kind; a question not yet shown sta
   const got = askedOf({ India: { questions: [{ status: "confirmed", value: { question: "Q one?", answer: "A", answerKind: "guidance" }, source: "https://b.example/", readOn: ON }, { status: "unconfirmed", value: { question: "Hidden?" } }, { status: "approved", value: { question: "Q two?", answerKind: "official" }, source: "http://not-https/", readOn: ON }] } });
   assert.deepEqual(got.India.map((x) => [x.question, x.kind, x.link]), [["Q one?", "guidance", "https://b.example/"], ["Q two?", "official", null]]);
   assert.equal(openLine({ name: "X", people: "nurses", place: "India", why: "unread", on: ON }), `Who registers nurses in India is still an open question: X's own page could not be read on ${ON}.`);
+});
+
+/* ── the owner's addition, 3 Nov 2026 ── */
+test("X1: the paid cap never stops a page: said as more data later, the page carries on; nothing is bought past it", async () => {
+  const pages = [{ kind: "topic", title: "OET fees", items: [], questions: [] }, { kind: "topic", title: "OET booking", items: [], questions: [] }], ledger = { spent: [{ on: NOW, cost: 1 }] };
+  const out = await searchPages({ pages, ledger, settings: { on: true, capDay: 1 }, login: "l", password: "p", now: NOW, fetchImpl: () => { throw new Error("bought past the cap"); }, queue: { everyMs: 0, maxMs: 0 }, subject: "OET" });
+  assert.ok(pages.every((p) => p.serpWhy === CAP_LATER), JSON.stringify(pages.map((p) => p.serpWhy))); assert.ok(!/cap is reached/.test(JSON.stringify(pages))); assert.ok(out.line.endsWith(CAP_LATER));
+  const SEO = readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"); assert.match(SEO, /d\.checkLater = m\.route === "none" \|\| Boolean\(m\.serpWhy\)/, "checked later, never a failed check"); assert.ok(!/serpWhy[^;]*push\("H"/.test(SEO));
+  const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"); assert.ok(MAIN.includes('pwrite(id, "pending-checks.json"'), "the next day the app reads them itself"); assert.ok(MAIN.includes("p.serpWhy === CAP_LATER ? CAP_LATER"));
+  assert.ok(!/answers its whole intent/.test(SEO + MAIN), "the old words are gone");
+});
+test("X2: a combination stays a page only with something of its own; the reason is kept either way", () => {
+  const big = { kind: "country", country: "Ghana", title: "OET in Ghana", items: [{ part: "councils", claims: [{ text: "Vet Council registers vets in Ghana." }] }], links: [] }, prof = { kind: "profession", profession: "veterinary science", title: "OET for Vets", questions: [], items: [], links: [] };
+  const thin = { kind: "origin-profession", type: "D", country: "Ghana", profession: "veterinary science", title: "OET for Vets from Ghana", home: big.title, prof: prof.title, questions: [], items: [{ part: "council", claims: [{ text: "Vet Council registers vets in Ghana." }] }, { part: "standing", claims: [{ text: "x" }] }, { part: "destinations", claims: [{ text: "y" }] }, { part: "fee", claims: [{ text: "z" }] }, { part: "questions0", question: "q", claims: [{ text: "w" }] }] };
+  const none = { ...thin, title: "OET for Vets in Zimbabwe", items: [] }, own = { ...thin, title: "OET for Vets with its own rule", items: thin.items.map((i, n) => ({ ...i, claims: [{ text: `only here ${n}` }] })) };
+  const plan = { pages: [big, prof, thin, none, own], merged: [], bigger: { countryPages: [big], profPages: [prof] } }; settleLocal(plan);
+  assert.ok(plan.pages.some((p) => p.title === "OET for Vets with its own rule" && /neither the country page nor the profession page/.test(p.keptWhy)));
+  assert.ok(!plan.pages.some((p) => p.title === "OET for Vets in Zimbabwe")); assert.match(plan.merged.find((m) => m.title === "OET for Vets in Zimbabwe").why, /cannot answer/); assert.ok(plan.merged.every((m) => m.why && m.into.length));
+});
+test("X3: what top pages cover goes through the same filter: every line the owner found, and clear questions stay", () => {
+  for (const junk of ["Interested in Computer Science ?", "How UNILINKSOLUTIONS prepares you for the OET", "Want to know more?", "Must Read Articles", "How we researched", "What you can expect to study", "Why should I have an eye test?", "What is the starting salary for an MBBS doctor in Ireland?", "How long is a medical degree?", "Which English test are you planning to take?", "Who This OET Optometry Tutoring Is For", "How Much Does an OET Optometry Tutor Cost?", "What a Typical OET Optometry Session Looks Like", "OET Course Near Me?", "How does UNILINK help with OET?", "Is NCLEX accepted in Ireland?"]) assert.ok(suggestionWhy(junk, { subject: "OET" }), junk);
+  for (const good of ["Is OET harder than IELTS?", "How can I book an OET Test in medicine?", "What ID can I use to book and sit the OET Test?", "How early should I book my OET exam?"]) assert.equal(suggestionWhy(good, { subject: "OET" }), null, good);
+  assert.match(suggestionWhy("Is OET accepted in India?", { subject: "OET", place: "Ghana" }), /another country/);
+  const SEO = readFileSync(new URL("../desktop/seo-pages.mjs", import.meta.url), "utf8"); assert.match(SEO, /\.map\(\(c\) => c\.topic\)\.filter\(\(c\) => m\.category !== "exam" \|\| !suggestionWhy/); assert.match(SEO, /const incomplete = \[\.\.\.\(missing\.length/, "only a missing core question blocks"); assert.ok(!/incomplete = [^;]*uncovered/.test(SEO), "a suggestion never blocks");
+});
+test("X4: coaching is preparation, never a promised centre; a sentence said once; the retry stays and the page carries on", async () => {
+  const facts = { practiceEvery: F("practiceEvery", "OET's own page recommends one practice test every 2-3 weeks."), sampleTests: FACTS.sampleTests };
+  const plan = examPlan({ subject: "OET", facts: [], subjectFacts: facts, demand: [{ text: "oet coaching centre near me", source: "s", weight: 9 }, { text: "oet practice test", source: "s", weight: 5 }] });
+  assert.ok(!JSON.stringify(plan.pages.map((p) => p.title)).includes("Coaching"), "no page promises a coaching centre"); assert.ok(plan.pages.some((p) => p.title === "OET Preparation Online"));
+  const long = "For an OET taken on or after 23 April 2026, Ahpra's National Boards ask for these scores.", out = oneSentenceOnce([{ part: "topic", question: "A?", claims: [{ text: long }] }, { part: "questions1", question: "B?", claims: [{ text: `${long} And another thing is said right here today.` }] }, { part: "questions2", question: "C?", claims: [{ text: long }] }, { part: "scores", question: "D?", claims: [{ text: long }] }]);
+  assert.deepEqual(out.map((x) => x.question), ["A?", "B?", "D?"]); assert.equal(out[1].claims[0].text, "And another thing is said right here today.");
+  let posts = 0, tries = 0; const fetchImpl = async (u, init) => { if (init?.method === "POST") { posts += JSON.parse(init.body).length; return { json: async () => ({ status_code: 20000, tasks: JSON.parse(init.body).map((t, i) => created(`p${posts}-${i}`)) }) }; } tries++; return { json: async () => ({ status_code: 20000, tasks: [{ status_code: 50000, status_message: "Internal SE Server Error.", cost: 0 }] }) }; };
+  const p = { kind: "topic", title: "OET Singapore", items: [], questions: [] }, r = await searchPages({ pages: [p], ledger: { spent: [] }, settings: ON_SWITCH, login: "l", password: "p", now: NOW, fetchImpl, queue: { everyMs: 0, maxMs: 0 }, subject: "OET", sleep: async () => {} });
+  assert.equal(posts, 9, "tried three times in all, three searches each"); assert.ok(p.serpWhy, "said on the page"); assert.equal(r.read, 0, "and the run carries on");
 });

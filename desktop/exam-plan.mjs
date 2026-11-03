@@ -133,7 +133,10 @@ const TOPIC_FACTS = Object.freeze({
   online: ["speakingOtherDay", "resultsComputer", "results95", "bookComputerCloses"], practice: ["practiceEvery", "gradeB", "writingWords", "readingPartA"],
   vs: ["benchmarkIelts", "scale", "gradeB"], what: ["scale", "listeningGlance", "readingGlance", "writingGlance", "speakingGlance", "gradeB", "resultsComputer"],
 });
+const COACHING = /\b(?:coaching|tuition|tutors?|tutoring|classes)\b/i;
 const topicKeyOf = (need, text) => { const w = new Set(String(need).split(" ")); const sub = SUBTESTS.find((s) => new RegExp(`\\b${s}\\b`, "i").test(text)); if (sub) return sub;
+  /* RR-366 X4: coaching is preparation: a coaching search stands on the preparation page */
+  if (COACHING.test(text)) return "practice";
   for (const k of ["fee", "result", "book", "date", "practice", "vs"]) if (w.has(k)) return k; if (w.has("online") || w.has("computer") || w.has("home")) return "online"; if (w.has("ielts")) return "vs"; return need ? null : "what"; };
 const fromSubject = (f) => ({ claimId: f.claimId, card: cardOf(f.text) ?? null, text: f.text, link: f.link, readOn: f.readOn, source: f.source ?? "its own page", official: true, body: f.body ?? null });
 /** the items (questions, each with its own facts) a topic page is made of — only facts about that topic */
@@ -265,7 +268,7 @@ export function settleLocal(plan, { onlyBefore = false } = {}) {
     const A = countryPages.find((x) => x.title === p.home) ?? null, B = profPages.find((x) => x.title === p.prof) ?? null;
     const missing = coreMissingOfPlan(p).filter((m) => !onlyBefore || m.part !== "questions"), own = ownClaims(p, [A, B]);
     const why = mergeWhy({ missing, own }); // a search brings questions, never an answer of its own: a page with nothing of its own costs no search either
-    if (!why) { keep.push(p); continue; }
+    if (!why) { p.keptWhy = `it says ${own.length} thing${own.length === 1 ? "" : "s"} neither the country page nor the profession page says, and it answers every question its kind of page must`; keep.push(p); continue; }
     placeFacts(p, A, B);
     plan.merged.push({ type: p.type, title: p.title, country: place, profession: p.profession, into: [A?.title, B?.title].filter(Boolean), why, missing: missing.map((m) => m.words) });
   }
@@ -357,7 +360,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const need = needOf(d.text, subject); if (!need && topics.has("")) { join(topics.get(""), { question: d.text, source: d.source }); continue; }
     const own = need && sitePages.find((p) => p.need === need); if (own) { if (existing.length < 300) existing.push({ text: d.text, page: own.url }); continue; }
     const tk = topicKeyOf(need, d.text), mapKey = SUBTESTS.includes(tk) ? `sub:${tk}` : need;
-    const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, asked0: d.text, title: need ? title(d.text) : `What is ${subject}? The test, its fee and the scores asked`, questions: [], source: d.source };
+    const t = topics.get(mapKey) ?? { kind: "topic", need, key: tk, asked0: d.text, title: !need ? `What is ${subject}? The test, its fee and the scores asked` : COACHING.test(d.text) ? `${subject} Preparation Online` /* RR-366 X4: never a promise of a coaching centre this product is not */ : title(d.text), questions: [], source: d.source };
     if (topics.has(mapKey)) join(t, { question: d.text, source: d.source }); topics.set(mapKey, t);
   }
   /* RR-363 (R3): "oet result", "oet result today", "latest oet result": one need, one page: the others' searches stand on the first (the most-searched) */

@@ -102,6 +102,18 @@ export function ownClaims(page, bigger = []) {
   const there = new Set(bigger.filter(Boolean).flatMap((p) => p.items.flatMap((it) => it.claims ?? [])).map(claimKey));
   return page.items.flatMap((it) => it.claims ?? []).filter((c) => !there.has(claimKey(c)));
 }
+/*
+ * 🔴 RR-366 X3 (owner's run: "Interested in Computer Science ?", "How UNILINKSOLUTIONS prepares you for the OET", "Want to know more?", "How we researched") · WHAT TOP PAGES COVER IS A SUGGESTION, THROUGH THE SAME FILTER: a clear question on this page's intent, or it does not stand. No heading, no brand, no menu, no call to action, no form prompt. It never blocks a page. → why it goes, or null
+ */
+const FOREIGN_SERVICE = /\btutor(?:s|ing)?\b|\bsessions?\b|\bnear me\b|\bprepares? you\b|\bour (?:course|students?|team|tutors?|classes)\b|\bwe (?:offer|provide|help|researched)\b/i;
+const TESTS_AND_BODIES = new Set(["IELTS", "TOEFL", "CELPIP", "NCLEX", "PLAB", "USMLE", "AHPRA", "HCPC", "CORU", "GPHC", "PMDC", "PNMC"]);
+export function suggestionWhy(text, { subject = null, place = null, category = "exam" } = {}) {
+  const t = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!ASKS.test(t) || !/\?$/.test(t)) return "a heading, a menu or a call to action, not a question";
+  if (FOREIGN_SERVICE.test(t)) return "it is about another company's service";
+  const brands = (t.match(/\b[A-Z]{4,}\b/g) ?? []).filter((w) => w !== String(subject ?? "").toUpperCase() && !TESTS_AND_BODIES.has(w)); if (brands.length) return "it names another company";
+  return unclearWhy(t, { place }) ?? questionOffIntentWhy(t, { subject, category });
+}
 /* R3 · the plain reason a C or D page is not a page of its own */
 export function mergeWhy({ missing, own }) {
   if (missing.length) return `not a page of its own yet — it cannot answer: ${missing.map((m) => m.words).join("; ")}`;

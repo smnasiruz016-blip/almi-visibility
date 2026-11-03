@@ -196,3 +196,9 @@ export function numbersWithoutFact(html, claims = []) {
   const norm = (x) => String(x).toLowerCase().replace(/\s+/g, "").replace(/aud/g, "au$").replace(/usd/g, "us$").replace(/,/g, "").replace(/s$/, ""), known = claims.filter((c) => /^https?:/.test(c.link ?? "")).flatMap((c) => [...String(c.text ?? "").matchAll(SHOWN_NUMBER)].map((m) => norm(m[0])));
   return [...new Set([...body.matchAll(SHOWN_NUMBER)].map((m) => m[0]).filter((n) => !known.includes(norm(n))))];
 }
+
+/* 🔴 RR-366 X4 ("OET Exam Schedule": the same sentence twice): a sentence said once on a page: it goes from every later line before the page is shown; a line left with nothing goes. Council and score lines differ by their body's name and are never touched */
+export function oneSentenceOnce(parts = []) {
+  const seen = new Set(), key = (s) => s.toLowerCase().replace(/\s+/g, " ").trim(), long = (s) => s.split(/\s+/).length >= 6;
+  return parts.map((it) => { if (/^(?:councils|openCouncils|scores)/.test(String(it.part))) return it; const claims = (it.claims ?? []).flatMap((c) => { const keep = sentencesOf(c.text).filter((s) => { if (HONEST.test(s) || !long(s)) return true; const k = key(s); if (seen.has(k)) return false; seen.add(k); return true; }); return keep.length ? [keep.join(" ") === c.text ? c : { ...c, text: keep.join(" ") }] : []; }); return { ...it, claims }; }).filter((it) => it.claims.length);
+}

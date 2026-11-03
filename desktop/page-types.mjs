@@ -47,6 +47,7 @@ const CONTEXTLESS = /^(?:is|are|does|do|can|will|would|should|was|were) (?:it|th
 export function unclearWhy(question, { place = null } = {}) {
   const t = String(question ?? "").replace(/\s+/g, " ").trim(), words = t.split(" ").filter((w) => /\p{L}/u.test(w));
   if (!ASKS.test(t) && !/\?$/.test(t)) return "it is not a question";
+  if (/\b(?:with|and|or|of|for|to|the|a|an|in|on|from|by)\s*\?$/i.test(t)) return "it is cut off"; /* RR-366: "… online and with ?" */
   if (words.length < 4) return "too short to say what it asks";
   if (words.length > 30) return "too long to be one clear question";
   if (SURVEY.test(t)) return "it is a form's or a survey's prompt, not a question people ask";
@@ -105,7 +106,7 @@ export function ownClaims(page, bigger = []) {
 /*
  * 🔴 RR-366 X3 (owner's run: "Interested in Computer Science ?", "How UNILINKSOLUTIONS prepares you for the OET", "Want to know more?", "How we researched") · WHAT TOP PAGES COVER IS A SUGGESTION, THROUGH THE SAME FILTER: a clear question on this page's intent, or it does not stand. No heading, no brand, no menu, no call to action, no form prompt. It never blocks a page. → why it goes, or null
  */
-const FOREIGN_SERVICE = /\btutor(?:s|ing)?\b|\bsessions?\b|\bnear me\b|\bprepares? you\b|\bour (?:course|students?|team|tutors?|classes)\b|\bwe (?:offer|provide|help|researched)\b/i;
+const FOREIGN_SERVICE = /\buniversit(?:y|ies)\b|\badmissions?\b|\bsalar(?:y|ies)\b|\bvisas?\b|\btutor(?:s|ing)?\b|\bsessions?\b|\bnear me\b|\bprepares? you\b|\bour (?:course|students?|team|tutors?|classes)\b|\bwe (?:offer|provide|help|researched)\b/i;
 const TESTS_AND_BODIES = new Set(["IELTS", "TOEFL", "CELPIP", "NCLEX", "PLAB", "USMLE", "AHPRA", "HCPC", "CORU", "GPHC", "PMDC", "PNMC"]);
 export function suggestionWhy(text, { subject = null, place = null, category = "exam" } = {}) {
   const t = String(text ?? "").replace(/\s+/g, " ").trim();

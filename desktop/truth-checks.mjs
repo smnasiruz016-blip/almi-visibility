@@ -178,9 +178,12 @@ export function oneFactOnce(parts = [], { droppedWhy = [] } = {}) {
   }
   return out;
 }
-export function mergeSameNeeds(parts = [], { droppedWhy = [] } = {}) {
+const sameWords = (a, b) => { if (!a.length || !b.length) return false; const y = new Set(b), both = a.filter((w) => y.has(w)).length; return both / new Set([...a, ...b]).size >= 0.8; };
+export function mergeSameNeeds(parts = [], { droppedWhy = [], subject = null } = {}) {
   const first = new Map(), out = [];
   for (const it of parts) {
+    /* two wordings nearly word for word ("the criteria used for marking OET", "the criteria used to mark the OET"): one question */
+    if (/^questions/.test(String(it.part))) { const m = meaningOf(String(it.question).replace(/\b(?:marking|marked)\b/gi, "mark"), { drop: [subject] }), twin = out.find((o) => /^questions/.test(String(o.part)) && sameWords(m, meaningOf(String(o.question).replace(/\b(?:marking|marked)\b/gi, "mark"), { drop: [subject] }))); if (twin) { droppedWhy.push({ question: it.question, why: `it asks what "${twin.question}" asks: one question, one answer`, plain: true }); continue; } }
     const k = needClass(it.question), had = k ? first.get(k) : null;
     /* the country's own fee stands first, its question kept; a council's or a score's fee is another thing */
     if (had && !/^(?:councils|scores|rules|centres|writing)/.test(String(it.part))) { const keys = new Set(had.claims.map(textKey)); for (const c of it.claims ?? []) if (!keys.has(textKey(c)) && (!/fee$/.test(k) || /(?:AU[D$]|US[D$]|A\$|[$£€₹])\s?\d/.test(String(c.text))) /* a line under a price says a price */) { had.claims = [...had.claims, c]; keys.add(textKey(c)); } droppedWhy.push({ question: it.question, why: `it is the same need as "${had.question}": one question, one answer`, plain: true }); continue; }

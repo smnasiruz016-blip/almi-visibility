@@ -92,6 +92,7 @@ export function classOfPhrase(phrase) {
   if (MEANINGS.find((m) => m.key === "change-fee").re.test(p)) return "change-fee";
   if (FEE_WORDS.test(p)) return "fee";
   if (/\baccepted\b|\brequirements?\b/i.test(p) && !/\bwhich countries\b/i.test(p)) return "accepted";
+  if (/\b(?:review|coaching|training|tuition) cent(?:re|er)s?\b/i.test(p)) return "practice"; /* a review centre teaches: it is not where the test is taken */
   if (CENTRE_WORDS.test(p)) return "centre";
   if (PRACTICE.test(p)) return "practice";
   return MEANINGS.find((m) => m.re.test(p))?.key ?? null;

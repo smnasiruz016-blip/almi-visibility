@@ -109,6 +109,7 @@ export function offTopic(line, t) {
 }
 
 const words = (s) => String(s ?? "").split(/\s+/).filter((w) => /\p{L}/u.test(w));
+const SHARED_OFFICE = /\bregisters\b.* — https?:\/\/| — https?:\/\/\S+\.?$/;
 const MACHINE = /\bundefined\b|\bnull\b|\bNaN\b|\[object |\{|\}|\brr\d{3}\b|\bclaimId\b|\bslug\b|\bpayload\b|\bJSON\b|_[a-z]+_/;
 /**
  * THE SIXTH CHECK. `html` = the page; `topic` = topicOf(…). → { pass, problems: [{ check: "a".."f", line }] } — each line in plain words.
@@ -136,7 +137,7 @@ export function goodToRead(html, topic) {
   const answerWords = words([p.top, ...p.items.flatMap((i) => i.answers), ...p.parts.flatMap((x) => x.lines)].join(" ")).length;
   /* R7 (owner, after v3 §14): NO fixed word or answer minimum — whether the intent is answered is the completeness check (desktop/seo-pages.mjs);
    * here only an empty page, or FILLER (the same sentence said twice to look deeper), fails */
-  const said = new Map(); for (const s of lines.filter((l) => !p.cards.some((c) => c.value === l)) /* RR-363: a card may say a fact whole, beside its answer */.flatMap((l) => l.split(/(?<=[.!?])\s+/)).filter((s) => !HONEST.test(s) /* RR-366: the owner's own words for "not found", one per question */).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
+  const said = new Map(); for (const s of lines.filter((l) => !p.cards.some((c) => c.value === l)) /* RR-363: a card may say a fact whole, beside its answer */.flatMap((l) => l.split(/(?<=[.!?])\s+/)).filter((s) => !HONEST.test(s) /* RR-366: the owner's own words for "not found", one per question */ && !/^(?:Whether it is the registering body|Office for )/.test(s) && !SHARED_OFFICE.test(s) /* RR-367 R-B: one office may serve several professions */).map((s) => s.trim().toLowerCase()).filter((s) => words(s).length >= 6)) said.set(s, (said.get(s) ?? 0) + 1);
   const filler = [...said].find(([, n]) => n > 1)?.[0];
   if (!answered) add("e", "Empty — it answers no question yet.");
   else if (filler) add("e", `Filler — the same sentence twice: "${filler.slice(0, 70)}".`);

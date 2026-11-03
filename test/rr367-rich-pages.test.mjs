@@ -72,3 +72,14 @@ test("item 3: the blocked councils go on the client's browser list; a hand-in gi
 test("item 6: research reads side by side; each site still one at a time", () => {
   const MAIN = read("desktop/main.mjs"); assert.match(MAIN, /await sideBySide\(\(prof\) => searchMissing/); assert.match(MAIN, /await sideBySide\(\(prof\) => readDetails/); assert.match(read("desktop/official.mjs"), /const pace = \(u\) => \{ const h = hostIn\(u\)/, "politeness is per site");
 });
+
+test("found reading the pages: a page's own parts are not judged for who and where; nor is an office repeated for each profession filler", async () => {
+  const { fitParts, BUILT_FOR_THE_PAGE } = await import("../desktop/truth-checks.mjs"), { goodToRead, topicOf } = await import("../desktop/page-quality.mjs");
+  const c = (text) => ({ text, link: "https://x.example/", readOn: ON }), out = fitParts([{ part: "council", question: "Which council in Bangladesh registers dentists?", claims: [c("Bangladesh Medical & Dental Council registers dentists in Bangladesh.")] }, { part: "destinations", question: "Where do dentists from Bangladesh go, and what score does each country ask?", claims: [c("In Australia: Dental Board of Australia accepts OET.")] }, { part: "questions0", question: "What does OET cost in Bangladesh?", claims: [c("In Australia it costs AUD 587.")] }], { subject: "OET" });
+  assert.deepEqual(out.parts.map((p) => p.part), ["council", "destinations"], "a question people ask is still judged"); assert.ok(BUILT_FOR_THE_PAGE.test("standing"));
+  assert.match(read("desktop/seo-pages.mjs"), /seen\.items\.filter\(\(it\) => !BUILT_FOR_THE_PAGE\.test/);
+  const line = (p) => `Office for ${p} in Nepal: Allied Council, 1 Road, Kathmandu — https://a.example/. Whether it is the registering body is not confirmed yet.`, html = `<main><h1>t</h1><details data-need-id="n--councils"><summary>Which?</summary><p data-claim-id="a">${line("dietitians")}</p><p data-claim-id="b">${line("optometrists")}</p></details></main>`, q = goodToRead(html, topicOf({ title: "OET in Nepal", kind: "country", country: "Nepal" }));
+  assert.ok(!q.problems.some((x) => /Filler/.test(x.line)), JSON.stringify(q.problems));
+  const words = (x) => answerQuestion(x, { subject: "OET", subjectFacts: { bookFind: F("bookFind", "Go to OET's booking page and press Find a test.") }, pages: [{ url: "https://oet.com/a", on: ON, words: [] }] }).claims[0].text; assert.match(words("Is IELTS or OET better for registration in Ireland?"), /does not say this/, "not a booking step");
+  const p = plan({ facts: [{ verified: true, id: "q", part: "questions", country: "Nepal", question: "Can an anesthesia technician apply to take the OET?", text: "OET is made for 12 professions.", link: "https://oet.com/q", on: ON }, fact("Nepal Nursing Council", "nursing", "Nepal")] }); assert.ok(!p.pages.find((x) => x.title === "OET for Nurses from Nepal").items.some((i) => /anesthesia/.test(i.question)), "another job's question");
+});

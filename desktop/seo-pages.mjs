@@ -28,7 +28,7 @@ import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
 import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
-import { summaryFault, fitCard, fitParts, answerFitWhy, partFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace, ownSiteFactWhy, mergeSameNeeds, oneFactOnce, oneSentenceOnce, numbersWithoutFact } from "./truth-checks.mjs"; // RR-363: R15; RR-366
+import { summaryFault, fitCard, fitParts, answerFitWhy, partFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace, ownSiteFactWhy, mergeSameNeeds, oneFactOnce, oneSentenceOnce, numbersWithoutFact, BUILT_FOR_THE_PAGE } from "./truth-checks.mjs"; // RR-363: R15; RR-366
 import { questionOffIntentWhy, suggestionWhy } from "./page-types.mjs"; // RR-366
 import { blocksOfHtml, blocksCompared } from "./blocks.mjs"; // RR-363: R15
 import { readPage } from "./page-quality.mjs";
@@ -188,7 +188,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         let parts = fit.parts;
         /* 🔴 RR-366 Part 2: a clear question on this page's topic whose lines did not fit is not dropped: it gets its answer from the ladder. Only a question nobody asks, off this page's topic, or said twice goes, with why */
         const separate = (() => { try { return officialHost && new URL(site?.origin ?? "").hostname.replace(/^www\./, "") !== officialHost; } catch { return false; } })(), onIntent = (q) => clearQuestion(q, { place: p.kind === KIND.topic ? null : p.country ?? null }) && !questionOffIntentWhy(q, { subject: askAbout, category: p.category ?? null });
-        if (answerFor) { let n = 0; fit.droppedWhy = fit.droppedWhy.filter((d) => { if (d.plain || !onIntent(d.question)) return true; const a = answerFor(d.question, p); if (!a?.claims?.length) return true; parts.push({ part: `questionsa${80 + n++}`, question: d.question, claims: a.claims, ladderStep: a.step }); fit.dropped = fit.dropped.filter((x) => x !== d.question); return false; }); }
+        if (answerFor) { let n = 0; fit.droppedWhy = fit.droppedWhy.filter((d) => { if (d.plain || !/^(?:questions|topic|main)/.test(String(d.part ?? "questions")) /* RR-367: a page's own part is no question to look up */ || !onIntent(d.question)) return true; const a = answerFor(d.question, p); if (!a?.claims?.length) return true; parts.push({ part: `questionsa${80 + n++}`, question: d.question, claims: a.claims, ladderStep: a.step }); fit.dropped = fit.dropped.filter((x) => x !== d.question); return false; }); }
         const kept = parts.flatMap((it) => it.claims);
         /* the client's own pages answer the questions people ask about it — a real question only (never a bare search wording as a heading), a
          * whole answer only (never a lone "No." whose question is not shown, never a page title), each site line on three pages at most */
@@ -355,7 +355,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     /* 🔴 RR-363 · R15's checks read the page itself: every card keeps its fact; every answer fits its question. And the year the top pages put in their title, when they do */
     const seen = readPage(d.html), byNeed = new Map(keyFacts.filter((k) => !k.needId || k.needId === built[i].needId).map((k) => [String(k.value), k.text]));
     const cardFaults = seen.cards.flatMap((c) => { const why = cardFaultOf(c.value, byNeed.get(c.value), [...byNeed.values()]); return why ? [`The card "${c.value}" changes the fact: ${why}.`] : []; });
-    const unfit = seen.items.flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }) ?? partFitWhy(/--([a-z]+)\d*$/.exec(it.id)?.[1], a); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
+    const unfit = seen.items.filter((it) => !BUILT_FOR_THE_PAGE.test(/--([a-z-]+\d*)$/.exec(it.id)?.[1] ?? "")).flatMap((it) => it.answers.flatMap((a) => { const why = answerFitWhy(it.question, a, { subject: askAbout, bodies, loose: !/--(?:questions|topic|main)\d*$/.test(it.id) }) ?? partFitWhy(/--([a-z]+)\d*$/.exec(it.id)?.[1], a); return why ? [`"${it.question}" is not answered by "${a.slice(0, 70)}": ${why}.`] : []; }));
     if (m.blueprint?.year && !/\b20\d\d\b/.test(d.title)) { const y = String(on).slice(0, 4); d.html = d.html.replace(/(<title\b[^>]*>)([\s\S]*?)(<\/title>)/i, `$1$2 ${y}$3`).replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, `$1$2 ${y}$3`); }
     const compared = blocksCompared(m.blueprint, blocksOfHtml(d.html));
     const orphans = numbersWithoutFact(d.html, [...(m.answers ?? []), ...(m.content ? [{ text: JSON.stringify({ a: m.content.tabs, b: m.content.stepsBy, c: m.content.tips, d: m.content.foldouts, e: m.content.table, f: m.content.answer }), link: "https://sourced.inside/" }] : [])]);

@@ -109,3 +109,16 @@ test("found counting the pages: a page the plan settled is never folded into ano
   assert.match(SEO, /p\.kind === "SECTION" && n\?\.ownPage \? Object\.freeze\(\{ kind: "NEW"/); assert.match(SEO, /ownPage: p\.category === "exam"/);
   assert.equal(cleanFact("India-distinct federal wrinkle: verification is issued by the state."), "Verification is issued by the state.");
 });
+
+test("what stayed green when broken on purpose: a score not found is an honest line on the profession page; a body that gave a score is that profession's office", () => {
+  const research = { nursing: [{ kind: "score", country: "Nepal", question: "What OET score does Nepal Nursing Council in Nepal ask of nurses?", answer: null, searched: [{ body: "Nepal Nursing Council", url: "https://nnc.example/", on: ON, found: false, why: "not stated" }] }, { kind: "score", country: "Ghana", question: "What OET score does a board in Ghana ask of nurses?", answer: null, searched: [{ body: "A board", why: "not searched yet" }] }], dietetics: [{ kind: "score", country: "Nepal", question: "What OET score does Diet Board in Nepal ask of dietitians?", regulator: { name: "Diet Board", short: "Diet Board" }, answer: [{ fact: { text: "In Nepal: Diet Board accepts OET: grade B in each sub-test.", link: "https://diet.example/", on: ON } }] }] };
+  const p = plan({ research }), hub = p.pages.find((x) => x.kind === "profession" && x.profession === "nursing"), gap = hub.items.find((i) => i.question === research.nursing[0].question);
+  assert.ok(gap, "the honest line stands on the page"); assert.equal(gap.claims[0].text, "Nepal Nursing Council's official page, checked 2026-11-03, does not say this."); assert.equal(gap.claims[0].link, "https://nnc.example/");
+  assert.ok(!hub.open.includes(research.nursing[0].question), "no longer open"); assert.ok(hub.open.includes(research.nursing[1].question), "never read: still open, never said as checked");
+  const lines = p.pages.find((x) => x.kind === "country" && x.country === "Nepal").items.find((i) => i.part === "councils").claims; const office = lines.find((c) => /Diet Board/.test(c.text));
+  assert.match(office.text, /^Office for dietitians in Nepal: Diet Board\. Whether it is the registering body is not confirmed yet\.$/); assert.equal(office.link, "https://diet.example/"); assert.equal(office.readOn, ON);
+});
+test("what stayed green when broken on purpose: a hand-in that breaks the rules keeps nothing; research runs six side by side; the thread that cannot start falls back", () => {
+  const MAIN = read("desktop/main.mjs"); assert.ok(MAIN.includes('if (!t.ok) return { ok: false, line: `Refused: ${t.refusedFor.join(", ")}. Nothing from this file is kept.` };')); assert.ok(MAIN.indexOf("if (!t.ok) return { ok: false, line: `Refused:") < MAIN.indexOf("kept[key] = says ?"), "refused before anything is kept");
+  assert.match(MAIN, /const sideBySide = async \(work\) => \{[^\n]*Array\.from\(\{ length: 6 \}/); assert.match(read("desktop/pages-off.mjs"), /catch \{ return here\(\); \}/);
+});

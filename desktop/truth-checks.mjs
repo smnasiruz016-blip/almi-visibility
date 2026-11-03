@@ -142,7 +142,7 @@ export function ownSiteFactWhy(text, { subject = null, bodies = [] } = {}) {
 const unsourced = (c) => !/^https?:\/\//.test(c?.link ?? "") || !/^\d{4}-\d{2}-\d{2}/.test(c?.readOn ?? "");
 const WATCHED = /^(questions|topic|main)\d*$/;
 /* 🔴 RR-367: a part built for this very page: its council ("Medical & Dental Council registers dentists" is not about medicine), the scores other countries ask of these people (a Bangladeshi dentist's destinations are about Australia: that is their point), its good standing. The fit of who and where is not judged on them */
-export const BUILT_FOR_THE_PAGE = /^(?:council|regulator|standing|destinations|others|country-rules)\d*$/;
+export const BUILT_FOR_THE_PAGE = /^(?:council|regulator|standing|destinations|others|country-rules|scores|rules)\d*$/;
 /** the parts a page shows, each line that fits its own question kept → { parts, removed: [{ question, line, why }], dropped: [question] }. A question left with nothing goes */
 export function fitParts(parts, { subject = null, bodies = [], ownHost = null, officialHost = null, requireSource = false } = {}) {
   const removed = [], dropped = [], out = [], droppedWhy = [], separateOfficial = Boolean(ownHost && officialHost && ownHost !== officialHost);
@@ -180,7 +180,7 @@ export function oneFactOnce(parts = [], { droppedWhy = [] } = {}) {
   }
   return out;
 }
-const sameWords = (a, b) => { if (!a.length || !b.length) return false; const y = new Set(b), both = a.filter((w) => y.has(w)).length; return both / new Set([...a, ...b]).size >= 0.8; };
+const sameWords = (a, b) => { if (!a.length || !b.length) return false; const y = new Set(b), both = a.filter((w) => y.has(w)).length; return both / new Set([...a, ...b]).size >= 0.7; /* RR-367 item 5: "Do I have to write my name in the writing session?", "Do you write your name during the writing session?": one question */ };
 export function mergeSameNeeds(parts = [], { droppedWhy = [], subject = null } = {}) {
   const first = new Map(), out = [];
   for (const it of parts) {

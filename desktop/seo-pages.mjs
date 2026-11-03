@@ -33,7 +33,9 @@ import { questionOffIntentWhy, suggestionWhy } from "./page-types.mjs"; // RR-36
 import { blocksOfHtml, blocksCompared } from "./blocks.mjs"; // RR-363: R15
 import { readPage } from "./page-quality.mjs";
 import { shortCard } from "./exam-plan.mjs";
-import { goodToRead, topicOf as pageTopicOf, offTopic, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
+import { professionIn } from "./page-plan.mjs";
+import { HONEST as LADDER_HONEST } from "./answer-ladder.mjs";
+import { goodToRead, topicOf as pageTopicOf, offTopic, ownPart, partsMissing, looksLikeSite, cleanFact, brokenCard, QUALITY_GATE, LOOK_GATE } from "./page-quality.mjs"; // RR-355
 import { PEOPLE_WORD } from "./recognition.mjs";
 import { duplicationReview, freshness, covers } from "./recipe.mjs"; // RR-356 the recipe
 
@@ -182,9 +184,10 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
         /* a council or score line differs by its body's name only — those are never merged; a rule or centre said twice (the same fee of the same body) is */
         const same = (a, b, loose = true) => { if (a.text === b.text) return true; if (!loose) return false; const x = sig(a.text), y = sig(b.text); return Boolean(nums(a.text)) && nums(a.text) === nums(b.text) && hostOf(a.link) === hostOf(b.link) || [...x].filter((w) => y.has(w)).length / Math.max(1, Math.min(x.size, y.size)) >= 0.85; };
         const loose = (part) => !/^(councils|scores|fee)$/.test(String(part));
-        const clean = (cs, part = "site") => cs.map((c) => ({ ...c, text: cleanFact(c.text) })).filter((c) => c.text.length >= 12 && !offTopic(c.text, topic)).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
+        /* 🔴 RR-367: an honest line ("could not be read on …") is never cleaned away nor off topic; a page's own part keeps what is its own */
+        const clean = (cs, part = "site") => cs.flatMap((c) => { if (LADDER_HONEST.test(c.text)) return [c]; const text = cleanFact(c.text), own = BUILT_FOR_THE_PAGE.test(String(part)) ? ownPart(text, topic) : text; return own ? [{ ...c, text: own }] : []; }).filter((c) => c.text.length >= 12 && (LADDER_HONEST.test(c.text) || !offTopic(c.text, topic))).filter((c, i, all) => all.findIndex((d) => same(c, d, loose(part))) === i);
         /* 🔴 RR-363 (R15: answer fits question): a line that does not answer its own question leaves it; a question left with nothing goes */
-        const fit = fitParts(p.items.map((it) => ({ ...it, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { ownHost: (() => { try { return new URL(site?.origin ?? site?.url ?? site?.pages?.[0]?.url).hostname.replace(/^www\./, ""); } catch { return null; } })(), subject: askAbout, bodies, officialHost, requireSource: p.category === "exam" });
+        const fit = fitParts(p.items.map((it) => ({ ...it, question: /^scores/.test(String(it.part)) && p.profession && professionIn(it.question) && professionIn(it.question) !== p.profession ? `What ${askAbout} score is asked of ${PEOPLE_WORD[p.profession] ?? p.profession} in ${p.country ?? "this country"}?` /* RR-367: "become a nurse" on the pharmacists' page */ : it.question, claims: clean(it.claims ?? [], it.part) })).filter((it) => it.claims.length), { ownHost: (() => { try { return new URL(site?.origin ?? site?.url ?? site?.pages?.[0]?.url).hostname.replace(/^www\./, ""); } catch { return null; } })(), subject: askAbout, bodies, officialHost, requireSource: p.category === "exam" });
         let parts = fit.parts;
         /* 🔴 RR-366 Part 2: a clear question on this page's topic whose lines did not fit is not dropped: it gets its answer from the ladder. Only a question nobody asks, off this page's topic, or said twice goes, with why */
         const separate = (() => { try { return officialHost && new URL(site?.origin ?? "").hostname.replace(/^www\./, "") !== officialHost; } catch { return false; } })(), onIntent = (q) => clearQuestion(q, { place: p.kind === KIND.topic ? null : p.country ?? null }) && !questionOffIntentWhy(q, { subject: askAbout, category: p.category ?? null });

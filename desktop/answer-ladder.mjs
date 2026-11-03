@@ -25,7 +25,7 @@ export const MEANINGS = Object.freeze([
   ONE("who", /^who\b|\beligib\w*|\bwho can\b|\bonly for\b|\b(?:for )?which professions?\b|^can (?!i\b|we\b|you\b)[^?]*\b(?:take|sit|apply|give)\b/i, ["professions12", "notForOthers"]),
   ONE("abroad", /\b(?:study|work)(?: or (?:study|work))? abroad\b|\buse\b[^?]*\bto (?:study|work|register)\b/i, ["purpose"]),
   ONE("what", /\bkya hai\b|\bke ho\b|\bki hai\b|\bmatlab\b|^what is (?:an? )?[A-Za-z]{2,6}(?: exam| test)?\??$|\bmeaning\b|\bwhat is the use of\b/i, ["purpose", "scale"]),
-  ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b/i, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
+  ONE("book", /\bbook\w*\b|\bregister for\b|\b(?:oet|exam|test) registration\b|\bregistration (?:for|in|of) (?:the )?(?:oet|exam|test)\b|\bapply for (?:the )?(?:oet|exam|test)\b|\bdates?\b|\bschedules?\b/i, ["bookFind", "bookPaperCloses", "bookComputerCloses"]),
   ONE("score", /\bscores?\b|\bgrades?\b|\bband\b|\bpass(?:ing)?\b.*\bmarks?\b|\bmarks?\b/i, ["scale", "gradeB"]),
 ]);
 export const FEE_WORDS = /\bfees?\b|\bcosts?\b|\bprices?\b|\bhow much\b|\bkitni\b|\bkitna\b|\bmagkano\b|\bkharcha\b|\bcharges?\b/i;
@@ -96,7 +96,7 @@ export function classOfPhrase(phrase, { subject = null, country = null } = {}) {
   if (/\bnumber\b|\bcontact\b|\bcustomer (?:care|service)\b|\bphone\b|\bhelpline\b/i.test(p)) return "contact"; /* RR-367 item 4: answered with the official contact page */
   if (/\bwhich countries\b/i.test(p)) return "recognised";
   /* RR-367 item 4: "oet uk", "oet exam pakistan": nothing but the test and the place: what it is */
-  if (subject && country) { const left = p.toLowerCase().replace(new RegExp(`\\b${String(subject).toLowerCase()}\\b`, "g"), " ").replace(new RegExp(`\\b${String(country).toLowerCase()}\\b`, "g"), " ").replace(/\b(?:exam|test|uk|usa|uae)\b/g, " ").trim(); if (!left) return "what"; }
+  if (subject && country) { const left = p.toLowerCase().replace(new RegExp(`\\b${String(subject).toLowerCase()}\\b`, "g"), " ").replace(new RegExp(`\\b${String(country).toLowerCase()}\\b`, "g"), " ").replace(/\b(?:exams?|tests?|uk|usa|us|uae|bd|in|the|for|at)\b/g, " ").trim(); if (!left) return "what"; }
   if (MEANINGS.find((m) => m.key === "change-fee").re.test(p)) return "change-fee";
   if (FEE_WORDS.test(p)) return "fee";
   if (/\baccepted\b|\brequirements?\b/i.test(p) && !/\bwhich countries\b/i.test(p)) return "accepted";

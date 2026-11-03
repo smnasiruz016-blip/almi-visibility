@@ -94,6 +94,13 @@ export function topicOf({ title = "", kind = null, country = null, profession = 
   return { kind, subtest, country: c, people: mine, otherPeople: Object.entries(people).filter(([p]) => p !== profession).map(([p, w]) => [w, p]) };
 }
 /** a) is a line about the page's own topic? → null, or why not */
+/* 🔴 RR-367 (found reading the pages: India's document rule ended "State nursing-council verification is a separate step", and took the whole rule off the dentists' page): a shared rule keeps its sentences up to the first that belongs to another profession; a line that opens with another profession's matter is not this page's. A sentence too long to read splits where the source put its semicolon */
+export function ownPart(line, t) {
+  const text = String(line ?? ""), parts = text.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/), cut = offTopic(text, t) ? parts.findIndex((s) => offTopic(s, t)) : -1;
+  if (cut === 0) return null;
+  const kept = cut > 0 ? parts.slice(0, cut) : parts;
+  return kept.map((s) => (s.split(/\s+/).length > 45 ? s.replace(/;\s+(\p{L})/gu, (m, x) => `. ${x.toUpperCase()}`) : s)).join(" ");
+}
 export function offTopic(line, t) {
   const s = String(line ?? ""), places = countriesIn(s);
   if (t.subtest) {

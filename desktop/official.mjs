@@ -20,7 +20,8 @@ import { USER_AGENT } from "./user-agent.mjs"; // RR-328: not the whole site rea
 import { namesOf, slugOf, originsIn } from "./world.mjs";
 import { pdfText, isPdf, PDF_TEXT } from "../src/facts/pdf-text.mjs";
 
-export const OFFICIAL = Object.freeze({ paceMs: 2000, timeoutMs: 15000, maxBytes: 3_000_000, maxPages: 40 });
+/* readLimitMs (RR-368, owner's run stuck for over 7 minutes): a whole read, whatever it does inside (robots, moves, retries, a page that sends half and goes silent) */
+export const OFFICIAL = Object.freeze({ paceMs: 2000, timeoutMs: 15000, maxBytes: 3_000_000, maxPages: 40, readLimitMs: 60000 });
 const decode = (s) => String(s ?? "").replace(/&#x([0-9a-f]{1,6});/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d{1,7});/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/&[lr]squo;/g, "'").replace(/&[lr]dquo;/g, '"').replace(/&ndash;/g, "–").replace(/&mdash;/g, "—"); // RR-359: the GMC writes grade &lsquo;B&rsquo;
 /** a page's own readable text: no scripts, no menus, no footer */
 export const pageText = (html) => decode(String(html ?? "").replace(/<(head|script|style|noscript|nav|footer|header)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -33,7 +34,9 @@ const day = (d) => String(d ?? "").slice(0, 10);
  * A reader for official pages, paced and robots-obedient. `read(url)` → { ok, url, title, h1, text, checkedOn } or { ok:false, why }.
  * `allowLocal` is for TESTS ONLY (a stand-in official site on this computer).
  */
-export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(), paceMs = OFFICIAL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), allowLocal = false, resolve, retries = 2, retryPauseMs = paceMs === 0 ? 0 : 2500 } = {}) {
+export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(), paceMs = OFFICIAL.paceMs, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), allowLocal = false, resolve, retries = 2, retryPauseMs = paceMs === 0 ? 0 : 2500, readLimitMs = OFFICIAL.readLimitMs } = {}) {
+  /* 🔴 RR-368: the work gives up at its limit and the run goes on. The time a read stands in line behind others on the same site does not count against it */
+  const inLine = new Map(), withLimit = (u, work, gaveUp) => { let h = ""; try { h = new URL(u).host; } catch {} inLine.set(h, (inLine.get(h) ?? 0) + 1); let timer, extended = false; const limit = new Promise((ok) => { const atLimit = () => { const others = (inLine.get(h) ?? 1) - 1, extra = others * Math.max(paceMs, 0) * 2; /* one extension only, the time the others on this site still need: the limit stays firm */ if (!extended && extra > 0) { extended = true; timer = setTimeout(atLimit, extra); timer.unref?.(); return; } ok(gaveUp()); }; timer = setTimeout(atLimit, readLimitMs); timer.unref?.(); }); return Promise.race([work, limit]).finally(() => { clearTimeout(timer); inLine.set(h, Math.max(0, (inLine.get(h) ?? 1) - 1)); }); };
   /* 🔴 RR-362 items 10 + 17 (found by the log: 98 pages × 10 top results × robots + page, one read at a time, 2 s apart = over an hour): politeness is per SITE. Each site is still read one at a time, 2 s apart; different sites do not wait for each other */
   const lastOf = new Map(), hostIn = (u) => { try { return new URL(u).host; } catch { return ""; } }; let count = 0;
   const slots = new Map();
@@ -75,11 +78,14 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
       const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].map((m) => { try { return { href: new URL(decode(m[1]), final).href, text: decode(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() }; } catch { return null; } }).filter(Boolean).slice(0, 3000); // RR-319: a regulator's page can carry hundreds of menu links before its own
       return { ok: true, url: final, title: one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, html), h1: one(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, html), text: pageText(html), links, checkedOn: day(on) };
     })();
-    cache.set(url, run);
-    return run;
+    /* RR-368 (the proof: "The operation was aborted due to timeout" stood where a reader needs plain words): a read that breaks halfway is a page that could not be read */
+    const limited = withLimit(url, run.catch(() => ({ ok: false, url, why: "could not be read (it stopped answering)", checkedOn: day(on) })), () => ({ ok: false, url, why: `could not be read (no answer within ${Math.round(readLimitMs / 1000)} seconds)`, timedOut: true, checkedOn: day(on) }));
+    cache.set(url, limited);
+    return limited;
   }
   /** the pages a site lists in its sitemap(s) — its robots.txt "Sitemap:" lines and /sitemap.xml, robots obeyed */
-  async function sitemapOf(siteUrl) {
+  const sitemapOf = (siteUrl) => withLimit(siteUrl, sitemapWork(siteUrl), () => ({ ok: false, why: "no sitemap could be read in time", urls: [] }));
+  async function sitemapWork(siteUrl) {
     const a = await allowedUrl(siteUrl); if (!a.ok) return { ok: false, why: a.why, urls: [] };
     const origin = a.u.origin;
     const rt = (await robots.check(`${origin}/`));
@@ -98,7 +104,8 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
     return { ok: urls.size > 0, origin, urls: [...urls], why: urls.size ? null : "no sitemap could be read" };
   }
   /** RR-319: an official data file (the ECB's reference rates, XML) — public, robots obeyed, GET only; its text, or null */
-  async function raw(url, accept = "text/xml,application/xml,text/plain") {
+  const raw = (url, accept) => withLimit(url, rawWork(url, accept), () => null);
+  async function rawWork(url, accept = "text/xml,application/xml,text/plain") {
     const a = await allowedUrl(url); if (!a.ok) return null;
     if (!(await robots.check(a.u.href)).allowed) return null;
     const r = await get(a.u.href, accept); if (r.failed || !r.ok) return null;

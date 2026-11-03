@@ -123,12 +123,12 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
 
     let entry;
     try {
-      let res, at = `${origin}/robots.txt`;
+      let res, stop = null, at = `${origin}/robots.txt`;
       for (let hop = 0; ; hop++) {
         /* 🔴 A robots.txt request is a request to the host like any other: it waits for the caller's pacer. */
         await beforeRequest(at);
         requestsIssued += 1;
-        const controller = new AbortController();
+        const controller = new AbortController(); stop = controller;
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
           /* RR-135: never followed by the platform. A 3xx is "not ok" below, so a redirected robots.txt is UNKNOWN and fails closed */
@@ -163,7 +163,9 @@ export function createRobotsCache({ fetchImpl, userAgent = USER_AGENT, timeoutMs
       } else if (!res.ok) {
         entry = { state: "UNKNOWN", rules: [], reason: `robots.txt returned HTTP ${res.status}`, failClosed: true };
       } else {
-        entry = { state: "ALLOWED", rules: parseRobots(await res.text(), userAgent), reason: "robots.txt read", failClosed: false };
+        /* RR-368: headers, then silence, never hold a run: the body has its own time limit; no answer is UNKNOWN below, as any other */
+        let bodyTimer; const body = await Promise.race([res.text(), new Promise((_, no) => { bodyTimer = setTimeout(() => { stop?.abort(); no(new Error("robots.txt stopped answering")); }, timeoutMs); bodyTimer.unref?.(); })]).finally(() => clearTimeout(bodyTimer));
+        entry = { state: "ALLOWED", rules: parseRobots(body, userAgent), reason: "robots.txt read", failClosed: false };
       }
     } catch (err) {
       entry = {

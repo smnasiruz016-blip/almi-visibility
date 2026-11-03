@@ -190,7 +190,7 @@ test("RR-355 · bugs · in the app and on the screens", () => {
   assert.deepEqual([fi.questions.length, fi.phrases.length], [2, 1]);
   assert.ok(MAIN.includes("asked: askedOf(id)") && (MAIN.match(/asked: askedOf\(id\)/g) ?? []).length === 3);
   /* the plan made again after the pages (its keywords and articles never 0 beside the searches found) */
-  assert.ok(MAIN.includes("await buildPlan(id).catch(() => null);\n  return { pages, auto };"));
+  assert.ok(MAIN.includes("await buildPlan(id).catch(() => null);\n    return { pages, auto };") /* RR-369: inside the pass */);
   /* the gains sentence names each gain, never the area twice */
   assert.ok(UI.includes("The biggest gains now: ${esc(gainsOf(PL.thisWeek))}.") && UI.includes('"meta-description": "page descriptions for Google"'));
   /* "Fix it for me" only where Visibility does it */

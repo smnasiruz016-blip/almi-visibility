@@ -4,6 +4,7 @@
  * it IS the regulator (Ireland's pharmacy regulator is named a society, in law). Otherwise the real regulator is searched for by its same-meaning names; not found, the line is an honest open question with the page checked and its date. Never invented.
  * The page's text is read only to decide, never kept. Pure apart from the `read` and `search` handed in.
  */
+import { readFileSync } from "node:fs";
 const WORDS = Object.freeze({ nursing: /\bnurs(?:e|es|ing)\b|\bmidwi/i, medicine: /\bdoctors?\b|\bphysicians?\b|\bmedical practitioners?\b|\bmedicine\b|\bmedical\b/i, dentistry: /\bdentists?\b|\bdentistry\b|\bdental\b/i, pharmacy: /\bpharmac/i, physiotherapy: /\bphysiotherap|\bphysical therap/i, "occupational therapy": /\boccupational therap/i, radiography: /\bradiograph|\bradiolog|\bmedical radiation\b|\bimaging technolog/i, dietetics: /\bdietiti|\bdietici|\bdietetic|\bnutritionists?\b/i, optometry: /\boptomet/i, podiatry: /\bpodiatr|\bchiropod/i, "speech pathology": /\bspeech\b|\baudiolog/i, "veterinary science": /\bveterinar/i });
 const DUTY = /\bregist(?:er|ers|ered|ering|ration)\b|\blicen[cs](?:e|es|ed|ing)\b|\bregulat(?:e|es|ed|ing|or|ors|ory|ion)\b|\bstatutory\b/i;
 /* registering for an event, an account or a membership is no registering of a profession */
@@ -49,6 +50,22 @@ export async function findRegulator({ people, profession, place, search, read, o
 }
 export const openLine = ({ name, people, place, why, on }) => (why === "unread" ? `Who registers ${people} in ${place} is still an open question: ${name}'s own page could not be read on ${on}.` : why === "association" ? `${name} is a professional body, not shown here as the registering body: its own page, checked ${on}, does not say it registers ${people}. Who registers ${people} in ${place} is still an open question.` : `Who registers ${people} in ${place} is still an open question: ${name}'s own page, checked ${on}, does not say it registers them.`);
 /* 🔴 RR-367 R-A + R-B (owner, 3 Nov 2026): an office not confirmed as the registering body, with an address or contact from a real source, is SHOWN with that source and date. It is no open question. One office may serve several professions: it stands on every page it serves. It never says "registers" unless the body's own page does */
+/* 🔴 RR-369 Part 3 (owner, 3 Nov 2026): a body's own page gives the score: that is said plainly, with no "not confirmed yet" for that body. "Not confirmed" stays only for a body whose role is truly not stated */
+export function asksLine({ name, people, scoreText }) {
+  const t = String(scoreText ?? "").replace(/^In (?:the )?[^:]{2,60}(?: \((?:state board|provincial college)\))?:\s*/, "").trim(), m = /\b(?:accepts?|asks?(?: for)?|requires?|names)\s+(?:\S+)(?:\s+on its own page among the English tests it accepts)?[^:—–]{0,40}[:—–]\s*(.+)$/.exec(t), said = m?.[1]?.replace(/\.*$/, "");
+  /* only a score reads as "asks"; anything else in the source's own sentence stands whole ("…English language proficiency, August 2024; next review 2026)" read as a score) */
+  return said && /^(?:[A-E]\+?(?:\s|\b)|grades?\b|Listening\b|Reading\b|Writing\b|Speaking\b|\d{3}\b|at least\b|a minimum\b|minimum\b|overall\b)/i.test(said) ? `${name} (official page) asks ${people}: ${said}.` : `${name} (official page): ${t.replace(/\.*$/, "")}.`;
+}
+const sameBody = (a, b) => { const x = String(a ?? "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim(), y = String(b ?? "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim(); return Boolean(x && y) && (x === y || x.includes(y) || y.includes(x)); };
+/** an office line whose body's own page gave the score, in plain words */
+export const officesThatAsk = (facts, research = {}, { peopleOf = (p) => p } = {}) => facts.map((f) => { if (!f.office || !f.profession) return f; const q = (research[f.profession] ?? []).find((x) => x.kind === "score" && x.country === f.country && x.answer?.length && (x.answer[0].text ?? x.answer[0].fact?.text) && (sameBody(x.regulator?.name, f.councilName) || sameBody(x.regulator?.short, f.councilName))); return q ? { ...f, text: asksLine({ name: f.councilName, people: peopleOf(f.profession), scoreText: q.answer[0].text ?? q.answer[0].fact.text }), link: q.answer[0].fact.link ?? f.link, on: q.answer[0].fact.readOn ?? q.answer[0].fact.on ?? f.on, office: false, asks: true } : f; });
+/* 🔴 RR-369 Parts 3 + 5: a body's own page read on its date, or the honest line. It replaces what the collectors hold for that country and profession; no check can turn it back */
+export const COUNCIL_CORRECTIONS = Object.freeze(JSON.parse(readFileSync(new URL("./lists/council-corrections.json", import.meta.url), "utf8")).rows);
+export function correctedCouncils(facts = [], rows = COUNCIL_CORRECTIONS) {
+  const hit = (f) => rows.some((r) => r.country === f.country && r.profession === f.profession);
+  /* first: a country's list is cut at twelve, and nurses' and doctors' lines must stand on it */
+  return [...rows.map((r) => ({ id: `corrected-${r.country}-${r.profession}`.replace(/\s+/g, "-"), part: "home-council", country: r.country, profession: r.profession, councilName: r.councilName, text: r.text, link: r.link, on: r.on, website: r.website, verified: true, corrected: true, body: r.councilName, ...(r.stepsLine ? { stepsLine: r.stepsLine } : {}), ...(r.checkedWhy ? { checkedWhy: r.checkedWhy, checkedOn: r.on } : {}) })), ...facts.filter((f) => !((f.part === "home-council" || f.part === "open-council") && f.profession && hit(f)))];
+}
 export const officeLine = ({ name, people, place, address = null, website = null, professional = false }) => `Office for ${people} in ${place}: ${name}${professional ? " (a professional body)" : ""}${address ? `, ${String(address).replace(/[.\s]+$/, "")}` : ""}${website ? ` — ${website}` : ""}. Whether it is the registering body is not confirmed yet.`;
 export const OPEN_QUESTION = (place) => `Which councils are not confirmed yet in ${place}?`;
 const stateCouncil = (name) => /\bState\b/.test(String(name)) && !/\bStates\b/.test(String(name));
@@ -60,7 +77,7 @@ export const councilKey = (country, profession, name) => `${country}|${professio
  */
 export function councilFacts(facts = [], checks = null, { inPlace = (c) => c, peopleOf = (p) => p, today = null } = {}) {
   const changes = [], out = facts.flatMap((f) => {
-    if (f.part !== "home-council" || !f.profession) return [f];
+    if (f.part !== "home-council" || !f.profession || f.corrected) return [f];
     const name = f.councilName ?? String(f.text).split(/ registers /)[0], c = checks?.[keyOf({ ...f, councilName: name })] ?? null, place = inPlace(f.country), people = peopleOf(f.profession), on = c?.on ?? today ?? f.on;
     const open = (why, page) => { if (f.address || f.website) { const text = officeLine({ name, people, place, address: f.address, website: f.website, professional: NOT_A_REGISTRAR.test(name) }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: f.link, on: f.on, why }); return [{ ...f, text, office: true, checkedWhy: why, checkedOn: on }]; } const text = openLine({ name, people, place, why, on }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: page ?? f.link, on }); return [{ ...f, part: "open-council", text, link: page ?? f.link, on }]; };
     /* the owner's verified facts already hold this body's own page for this profession (GMC refuses our reader, its OET page is in his file) */

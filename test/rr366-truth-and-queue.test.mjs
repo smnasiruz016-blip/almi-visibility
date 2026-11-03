@@ -220,7 +220,7 @@ const standIn = ({ readyAfter = 1, spent = [] } = {}) => { let n = 0; const poll
 const ON_SWITCH = { on: true, capDay: 1, capMonth: 30 };
 test("Part 7: the Standard queue: the right address and price, posted once, collected free; never live", () => {
   assert.match(SERP.url, /\/serp\/google\/organic\/task_post$/); assert.ok(!/live/.test(SERP.url)); assert.equal(SERP.pricePerSearch, 0.0006); assert.equal(ONPAGE.price, 0.00015); assert.match(ONPAGE.url, /\/on_page\/content_parsing\/live$/);
-  const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), TP = readFileSync(new URL("../site/top-pages.mjs", import.meta.url), "utf8"); assert.ok(MAIN.includes("queue: {") && MAIN.includes("parse: st.on === true")); assert.ok(!/live\/advanced/.test(MAIN + TP + readFileSync(new URL("../desktop/serp.mjs", import.meta.url), "utf8")), "no live search anywhere");
+  const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), TP = readFileSync(new URL("../site/top-pages.mjs", import.meta.url), "utf8"); assert.ok(MAIN.includes("queue: inHand ?") && MAIN.includes("parse: st.on === true && !quick") /* RR-369: the quick pass reads no page */); assert.ok(!/live\/advanced/.test(MAIN + TP + readFileSync(new URL("../desktop/serp.mjs", import.meta.url), "utf8")), "no live search anywhere");
 });
 test("Part 7: a search posted once is never paid twice: not when it is still waiting, not on the next run, not after a stop", async () => {
   const S = standIn({ readyAfter: 3 }), ledger = { spent: [] }, wanted = ["a", "b"].map((k) => ({ key: serpKey(k), q: k, task: [{ keyword: k }] }));
@@ -236,11 +236,9 @@ test("Part 7: searchGoogle alone: posts, waits, returns; a pending one from an e
   const S2 = standIn(), l2 = { spent: [], pending: { [serpKey("y")]: { id: "old", kind: "serp", at: NOW, cost: 0.0006, q: "y" } } }, r2 = await searchGoogle({ keyword: "y", settings: ON_SWITCH, ledger: l2, login: "l", password: "p", fetchImpl: S2.fetchImpl, now: NOW, poll: { everyMs: 0 } }); assert.equal(r2.ok, true); assert.equal(S2.posted(), 0, "already paid"); assert.equal(l2.spent.length, 0);
   const S3 = standIn(), l3 = { spent: [] }, a = await autocompleteIn({ keyword: "oet kya hai", country: "Pakistan", settings: ON_SWITCH, ledger: l3, login: "l", password: "p", fetchImpl: S3.fetchImpl, now: NOW, poll: { everyMs: 0 } }); assert.deepEqual([a.ok, a.phrases], [true, ["oet fees"]]); assert.match(String(S3.posted()), /1/); assert.equal(l3.spent[0].what, "autocomplete");
 });
-test("Part 7: a saved answer of only Google's redirect links is bought once more, marked, never a third time; a good one is never bought again", async () => {
+test("Part 7, REPLACED by RR-369 (never paid twice): a saved answer of Google's redirect links is used as it is and not bought once more; a good one is never bought again", async () => {
   const S = standIn(), goog = { ok: true, results: [{ url: "https://google.com/goto?url=a" }, { url: "https://google.com/goto?url=b" }, { url: "https://real.example/" }], paa: [], related: [], at: NOW }, ledger = { spent: [], serpCache: { [serpKey("bad")]: goog, [serpKey("good")]: { ...goog, results: [{ url: "https://real.example/" }] } } }, wanted = ["bad", "good"].map((k) => ({ key: serpKey(k), q: k, task: [{ keyword: k }] }));
-  assert.equal((await queueSearches({ wanted, settings: ON_SWITCH, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW })).posted, 1);
-  await collectQueued({ ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW, everyMs: 0 }); assert.equal(ledger.serpCache[serpKey("bad")].again, true);
-  ledger.serpCache[serpKey("bad")].results = goog.results; assert.equal((await queueSearches({ wanted, settings: ON_SWITCH, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW })).posted, 0, "never a third time");
+  assert.equal((await queueSearches({ wanted, settings: ON_SWITCH, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW })).posted, 0, "never a second time");
   const off = await searchGoogle({ keyword: "q", settings: {}, ledger: { spent: [], serpCache: { [serpKey("q")]: goog } }, fetchImpl: () => { throw new Error("bought while off"); }, now: NOW }); assert.equal(off.cached, true, "with the switch off what is kept is still reused free");
 });
 test("Part 7 (found by the live proof): 'No Search Results' is an answer, kept: never posted a second time; a run never posts again what it posted", async () => {

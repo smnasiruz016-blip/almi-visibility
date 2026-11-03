@@ -80,7 +80,7 @@ export async function queueSearches({ wanted = [], settings = {}, ledger, login,
   if (settings.on !== true) return { posted: 0, cost: 0, off: true };
   if (!login || !password) return { posted: 0, cost: 0, stop: "your DataForSEO login is not saved on this computer (Search results data → step 2)" };
   const cap = Number(settings.capDay) > 0 ? Number(settings.capDay) : SERP.capPerDay, capMonth = Number(settings.capMonth) > 0 ? Number(settings.capMonth) : Infinity, price = SERP.pricePerSearch;
-  const fresh = (k) => { const c = ledger.serpCache?.[k]; return c && usable(c) && (!c.at || (Date.parse(now) - Date.parse(c.at)) / 864e5 <= KEEP_SEARCH_DAYS); }, seen = new Set(), wasUnusable = (k) => Boolean(ledger.serpCache?.[k]?.results?.length) && !usable(ledger.serpCache[k]);
+  const fresh = (k) => { const c = ledger.serpCache?.[k]; return c && (!c.at || (Date.parse(now) - Date.parse(c.at)) / 864e5 <= KEEP_SEARCH_DAYS); }, seen = new Set();
   const todo = wanted.filter((w) => !fresh(w.key) && !ledger.pending?.[w.key] && !seen.has(w.key) && seen.add(w.key));
   let posted = 0, cost = 0, stop = null, left = todo;
   while (left.length && !stop) {
@@ -90,7 +90,7 @@ export async function queueSearches({ wanted = [], settings = {}, ledger, login,
     const sameKind = batch.filter((w) => (w.kind ?? "serp") === (batch[0].kind ?? "serp")), url = batch[0].kind === "auto" ? AUTOCOMPLETE.url : SERP.url;
     let r = null; try { r = await fetchImpl(url, { method: "POST", headers: { "content-type": "application/json", authorization: authOf(login, password) }, body: JSON.stringify(sameKind.flatMap((w) => w.task)), signal: AbortSignal.timeout(60000) }); } catch { r = null; }
     const json = r ? await r.json().catch(() => null) : null; if (!json || json.status_code !== 20000) { const bad = readSerp(json ?? {}); stop = bad.stop ? bad.why : `the search-results service did not take the searches: ${bad.why}`; break; }
-    sameKind.forEach((w, i) => { const t = json.tasks?.[i]; if (isCreated(t)) { const c = Number(t.cost) || price; (ledger.pending ??= {})[w.key] = { id: t.id, kind: w.kind ?? "serp", at: now, cost: c, q: w.q, ...(wasUnusable(w.key) ? { again: true } : {}) }; (ledger.spent ??= []).push({ on: now, cost: c, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", queued: true, ok: true }); posted++; cost += c; } else { const g = readOf(w.kind ?? "serp", { status_code: 20000, tasks: [t] }); (ledger.spent ??= []).push({ on: now, cost: g.ok ? g.cost || price : 0, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", ok: g.ok, ...(g.ok ? {} : { code: g.code, why: g.why }) }); if (g.ok) { (ledger.serpCache ??= {})[w.key] = { ...g, at: now }; posted++; cost += g.cost || price; } else if (g.stop) stop = g.why; } });
+    sameKind.forEach((w, i) => { const t = json.tasks?.[i]; if (isCreated(t)) { const c = Number(t.cost) || price; (ledger.pending ??= {})[w.key] = { id: t.id, kind: w.kind ?? "serp", at: now, cost: c, q: w.q }; (ledger.spent ??= []).push({ on: now, cost: c, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", queued: true, ok: true }); posted++; cost += c; } else { const g = readOf(w.kind ?? "serp", { status_code: 20000, tasks: [t] }); (ledger.spent ??= []).push({ on: now, cost: g.ok ? g.cost || price : 0, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", ok: g.ok, ...(g.ok ? {} : { code: g.code, why: g.why }) }); if (g.ok) { (ledger.serpCache ??= {})[w.key] = { ...g, at: now }; posted++; cost += g.cost || price; } else if (g.stop) stop = g.why; } });
     left = left.filter((w) => !sameKind.includes(w));
   }
   return { posted, cost, stop };
@@ -105,7 +105,7 @@ export async function collectQueued({ ledger, login, password, fetchImpl = fetch
       delete ledger.pending[k];
       /* 🔴 RR-366 (the live proof: "No Search Results" was not kept, so the page step posted it again and paid twice): nothing to show is an answer, kept like any other */
       if (!a.ok && /no search results/i.test(String(a.why ?? a.message ?? ""))) { (ledger.serpCache ??= {})[k] = { ok: true, empty: true, results: [], paa: [], related: [], phrases: [], cost: p.cost, at: now }; got++; return; }
-      if (a.ok) { (ledger.serpCache ??= {})[k] = { ...a, cost: p.cost, at: now, ...(p.again ? { again: true } : {}) }; got++; } else { failed.push({ q: p.q, why: a.why }); const row = [...(ledger.spent ?? [])].reverse().find((x) => x.q === p.q && x.queued); if (row) Object.assign(row, { ok: false, why: a.why }); }
+      if (a.ok) { (ledger.serpCache ??= {})[k] = { ...a, cost: p.cost, at: now }; got++; } else { failed.push({ q: p.q, why: a.why }); const row = [...(ledger.spent ?? [])].reverse().find((x) => x.q === p.q && x.queued); if (row) Object.assign(row, { ok: false, why: a.why }); }
     }));
     const left = Object.keys(ledger.pending ?? {}).length; onWait?.(left); if (!left || clock() - t0 >= maxMs) break;
     await sleep(everyMs);
@@ -153,7 +153,7 @@ export async function autocompleteIn({ keyword, country, settings = {}, ledger, 
   if (!login || !password) return { ok: false, stop: true, why: "your DataForSEO login is not saved on this computer" };
   /* wait false: the run already posted everything together: here it is only collected, never posted again */
   if (!ledger.pending?.[key] && wait) { const q = await queueSearches({ wanted: [{ key, q: keyword, kind: "auto", task: autoTask(keyword, country) }], settings, ledger, login, password, fetchImpl, now }); if (q.stop) return { ok: false, stop: true, capped: /cap is reached/.test(q.stop), why: q.stop }; }
-  if (ledger.pending?.[key]) { if (wait) await collectQueued({ ledger, login, password, fetchImpl, now, ...poll }); else await collectQueued({ ledger, login, password, fetchImpl, now, maxMs: 0, everyMs: 0 }); }
+  if (ledger.pending?.[key] && wait) await collectQueued({ ledger, login, password, fetchImpl, now, ...poll }); /* RR-369: not waiting = the run's one collecting pass already looked: a poll per page per search is what cost 365,000 polls in the RR-368 proof */
   return ledger.serpCache?.[key] ?? { ok: false, waiting: Boolean(ledger.pending?.[key]), why: ledger.pending?.[key] ? "still being prepared — collected free on the next run" : "the service did not answer" };
 }
 /* item 29: a country page's questions, most typed there first; a question people there type in the same words takes their wording */
@@ -177,12 +177,11 @@ export function communityQuestions(results = [], site) {
 /* RR-362 item 14 (R13: "each result is saved once and reused"): a search already kept and still fresh is reused free, whether the switch is on or off: never paid twice. A month old, it may be bought again (the same month as the server collector) */
 export const KEEP_SEARCH_DAYS = 30;
 const flying = new WeakMap();
-/* 🔴 RR-366: a saved answer whose results are nearly all Google's own redirect links can never be read for its blocks (846 of 1,220 at RR-363): it is bought once more, marked, and never again */
-const usable = (c) => { const rs = c?.results; if (!rs?.length || c.again) return true; return rs.filter((r) => !/^https?:\/\/(?:[^/]*\.)?google\./i.test(r.url)).length * 2 >= rs.length; };
+/* 🔴 RR-369 (REPLACES RR-366's "bought once more"): an answer with many of Google's redirect links was thrown away and bought again: on the owner's ledger 715 of 1,239 kept answers, and 59 pages of the 3 Nov run "to check tomorrow" though their answer was paid and in hand. The redirects stay unread (notForReading); everything else in the answer is used. Never paid twice */
 export const serpKey = (keyword, location = "", language = "") => `${keyword}|${location ?? ""}|${language ?? ""}`;
 export async function searchGoogle({ postOnly = false /* RR-368: paid and kept; collected on the next run or by the run's own collecting step. The run does not stand and wait */, keyword, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), location, language, test = false, retry = RETRY, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), wait = true, poll = {} }) {
   const key = `${keyword}|${location ?? ""}|${language ?? ""}`, kept = !test ? ledger.serpCache?.[key] : null;
-  if (kept && (settings.on !== true || usable(kept)) && (!kept.at || (Date.parse(now) - Date.parse(kept.at)) / 864e5 <= KEEP_SEARCH_DAYS)) return { ...kept, cached: true };
+  if (kept && (!kept.at || (Date.parse(now) - Date.parse(kept.at)) / 864e5 <= KEEP_SEARCH_DAYS)) return { ...kept, cached: true };
   if (settings.on !== true && !test) return { ok: false, off: true, why: SERP_OFF }; // "Test the connection" is the client's own click — inside the caps
   if (!login || !password) return { ok: false, stop: true, why: "your DataForSEO login is not saved on this computer (Search results data → step 2)" };
   /* RR-366: already posted and paid: only collected, free */
@@ -223,15 +222,19 @@ export async function searchGoogle({ postOnly = false /* RR-368: paid and kept; 
 /* 🔴 RR-366 (the live proof: "OET in the United Kingdom: fee, centres and councils" brought a government data catalogue): what people search is the page's subject, not its whole heading */
 export const searchTermOf = (p) => String(p?.title ?? p ?? "").split(/:\s|\?\s/)[0].trim().replace(/^(What is .+)$/i, "$1?");
 /* RR-366 (`queue`: a real run): every search of the run is posted first and collected together, so a run waits minutes once, never per search. `parse`: each top page through On-Page parsing, once */
-export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep, concurrency = 1, topCache = null, onPage = null, officialPageOf = null, queue = null, parse = false, onQueue = null, maxTops = SERP.depth }) {
-  let reddit = 0, quora = 0, pagesRead = 0, stopped = null, reused = 0, topsReused = 0; const reading = new Map(), notes = [], spentBefore = (ledger.spent ?? []).length, bought = new Set();
+export async function searchPages({ pages = [], ledger, settings, login, password, now = new Date().toISOString(), readHtml = async () => null, fetchImpl, subject = null, retry = RETRY, sleep, concurrency = 1, topCache = null, onPage = null, officialPageOf = null, queue = null, parse = false, onQueue = null, maxTops = SERP.depth, askFirst = null /* RR-369: asks AlmiSEO Data before anything is bought */, askTops = null, noReads = false /* RR-369: pages first: only what is already in hand; no site is read, nothing waits */ }) {
+  let reddit = 0, quora = 0, pagesRead = 0, stopped = null, reused = 0, topsReused = 0, noBuy = false; const reading = new Map(), notes = [], spentBefore = (ledger.spent ?? []).length, bought = new Set();
+  /* RR-369 Part 4: a page with no real question yet asks Google's autocomplete there too, inside the same cap */
+  const seedsOf = (p) => (!p.country || !subject ? [] : p.askSeeds ?? (p.kind === "country" ? localSeeds(subject, p.country, p.category ?? "exam") : []));
   if (queue && settings?.on === true) {
-    const wanted = pages.flatMap((p) => [...[searchTermOf(p), `${searchTermOf(p)} reddit`, quoraSearch(searchTermOf(p))].map((k) => ({ key: serpKey(k), q: k, task: serpTask(k) })), ...(p.kind === "country" && p.country && subject ? localSeeds(subject, p.country, p.category ?? "exam").map((k) => ({ key: autoKey(k, p.country), q: k, kind: "auto", task: autoTask(k, p.country) })) : [])]);
+    const wanted = pages.flatMap((p) => [...[searchTermOf(p), `${searchTermOf(p)} reddit`, quoraSearch(searchTermOf(p))].map((k) => ({ key: serpKey(k), q: k, task: serpTask(k) })), ...seedsOf(p).map((k) => ({ key: autoKey(k, p.country), q: k, kind: "auto", task: autoTask(k, p.country) }))]);
     const before = new Set(Object.keys(ledger.pending ?? {})), had = new Set(Object.keys(ledger.serpCache ?? {}));
+    /* 🔴 RR-369 (R13): what AlmiSEO Data already holds is reused free. A server that cannot answer buys nothing new this run: paid search only enriches, it never stops a page */
+    const asked = askFirst ? await askFirst(wanted.map((w) => w.key)) : { ok: true }; for (const w of wanted) if (ledger.serpCache?.[w.key]?.fromServer && !had.has(w.key)) { had.add(w.key); reused++; } if (!asked.ok && !stopped) { noBuy = true; notes.push(`AlmiSEO Data could not be asked first, so nothing new was bought in this run: ${asked.why ?? "no answer"}`); }
     /* the two kinds of search have two addresses */
     /* X4: a search that failed on the service's side ("Internal SE Server Error") is tried again, at most RETRY.times; still failing, its page carries on without it */
     let c = null, ask = wanted; for (let round = 0; round <= (retry?.times ?? 0); round++) {
-      for (const kind of ["serp", "auto"]) { const q = await queueSearches({ wanted: ask.filter((w) => (w.kind ?? "serp") === kind), settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }); if (q.stop && !stopped) stopped = q.stop; }
+      if (!noBuy) for (const kind of ["serp", "auto"]) { const q = await queueSearches({ wanted: ask.filter((w) => (w.kind ?? "serp") === kind), settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }); if (q.stop && !stopped) stopped = q.stop; }
       c = await collectQueued({ ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}), ...(sleep ? { sleep } : {}), onWait: onQueue, ...queue });
       const again = new Set(c.failed.filter((f) => tryAgain({ ok: false, why: f.why })).map((f) => f.q)); if (!again.size || stopped) break; ask = wanted.filter((w) => again.has(w.q)); if (sleep) await sleep((retry?.pauseMs ?? 0) * (round + 1));
     }
@@ -239,14 +242,16 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     if (c.waiting) notes.push(`${c.waiting} searches are still being prepared: they are collected free on the next run.`);
     void before;
   }
-  const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, retry, ...(queue ? { wait: false } : {}), ...(sleep ? { sleep } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (r.cached && !bought.has(serpKey(k))) reused++; if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
+  const ask = async (k) => { const r = await searchGoogle({ keyword: k, settings, ledger, login, password, now, retry, ...(queue ? { wait: false, postOnly: true /* RR-369: the run's collecting pass already looked */ } : {}), ...(sleep ? { sleep } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (r.cached && !bought.has(serpKey(k)) && !ledger.serpCache?.[serpKey(k)]?.fromServer) reused++; if (!r.ok && r.stop && !stopped) stopped = r.why; return r; };
+  /* RR-369: each top page bought once: what the server already read, before any page asks again */
+  if (askTops && !noReads) { const urls = [...new Set(pages.flatMap((p) => (ledger.serpCache?.[serpKey(searchTermOf(p))]?.results ?? []).map((r) => r.url)))].filter((u) => !notForReading(u)); if (urls.length) await askTops(urls).catch(() => null); }
   const headingsOf = (h) => [...String(h).matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/gi)].map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 40);
   const onePage = async (p) => {
     delete p.serpWhy;
     if (stopped) { p.serpWhy = laterWhy(stopped); return; } // every page after a stop says why it was not searched
     onPage?.(p, "search");
     /* RR-366 (the live proof): what people of a country type does not wait for the page's own search */
-    if (p.kind === "country" && p.country && subject) { const said = []; for (const keyword of localSeeds(subject, p.country, p.category ?? "exam")) { const a = await autocompleteIn({ keyword, country: p.country, settings, ledger, login, password, now, ...(queue ? { wait: false } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (a.stop && !stopped) stopped = a.why; if (a.ok) said.push(...a.phrases); } if (said.length) { p.localAsked = [...new Set(said)]; p.items = rankByLocal(p.items ?? [], p.localAsked, subject); } }
+    if (seedsOf(p).length) { const said = []; for (const keyword of seedsOf(p)) { const a = await autocompleteIn({ keyword, country: p.country, settings, ledger, login, password, now, ...(queue ? { wait: false } : {}), ...(fetchImpl ? { fetchImpl } : {}) }); if (a.stop && !stopped) stopped = a.why; if (a.ok) said.push(...a.phrases); } if (said.length) { p.localAsked = [...new Set(said)]; p.items = rankByLocal(p.items ?? [], p.localAsked, subject); } }
     const term = searchTermOf(p), main = await ask(term); if (!main.ok) { p.serpWhy = laterWhy(main.why); notes.push(`${p.title}: ${laterWhy(main.why)}`); return; }
     pagesRead++; p.paa = main.paa; p.related = [...new Set([...main.related, ...(p.localAsked ?? [])])];
     const rq = communityQuestions((await ask(`${term} reddit`)).results ?? [], "reddit.com"), qq = communityQuestions((await ask(quoraSearch(term))).results ?? [], "quora.com");
@@ -259,6 +264,7 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     const toRead = [...results.filter((r) => !notForReading(r.url)).slice(0, maxTops), ...(own && !results.some((r) => r.url === own) ? [{ url: own, title: "", rank: null, official: true }] : [])];
     const tops = (await Promise.all(toRead.map(async (r) => {
       const was = topCache?.get(r.url); if (was && (was.blocks || !was.headings) /* RR-363: a read from before blocks is read again */ && (Date.parse(now) - Date.parse(was.on ?? 0)) / 864e5 <= KEEP_SEARCH_DAYS) { topsReused++; return was.headings ? { url: r.url, rank: r.rank ?? null, official: r.official, title: r.title, headings: was.headings, blocks: was.blocks, text: "" } : null; }
+      if (noReads) return null;
       /* the same page wanted by two pages side by side is read once */
       /* 🔴 RR-366: each top page's blocks through On-Page parsing first, once, kept; a page it cannot read is read as before, politely. Its text is never kept */
       if (parse && !r.official) { if (!reading.has(`p|${r.url}`)) reading.set(`p|${r.url}`, parseTopPage({ url: r.url, title: r.title || null, settings, ledger, login, password, now, ...(fetchImpl ? { fetchImpl } : {}) }).catch(() => ({ ok: false }))); const a = await reading.get(`p|${r.url}`); if (a.stop && !stopped) stopped = a.why; if (a.ok) { topCache?.set(r.url, { on: String(now).slice(0, 10), headings: a.headings, blocks: a.blocks }); return { url: r.url, rank: r.rank ?? null, official: r.official, title: r.title, blocks: a.blocks, headings: a.headings, text: "" }; } }
@@ -268,11 +274,12 @@ export async function searchPages({ pages = [], ledger, settings, login, passwor
     }))).filter(Boolean);
     /* RR-359: only the topic's real subtopics (desktop/coverage.mjs), judged with the page's own subject and title; covered by meaning */
     const words = { subject, title: p.title, now, names: COUNTRIES };
-    p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url); p.searchedOn = String(now).slice(0, 10);
+    p.coverage = coverageOf(tops, { ...words, paa: main.paa }); p.second = secondSearch({ best: tops[0] ?? null, paa: main.paa, coverage: p.coverage, subject, title: p.title }); p.topRead = tops.map((r) => r.url); if (!noReads) p.searchedOn = String(now).slice(0, 10);
     p.blueprint = blueprintOf({ tops: tops.map((x) => ({ url: x.url, rank: x.rank, official: x.official, blocks: x.blocks })), core: coreOf(p.kind) ?? Object.fromEntries((STANDARD[p.category ?? "exam"]?.topic?.[p.topic] ?? []).map((n) => [n, n])) /* a topic page: its standard questions */, category: p.category ?? "general", on: p.searchedOn }); p.unreadTops = results.filter((r) => notForReading(r.url)).length;
   };
   /* in order, at most `concurrency` at a time; a stop is seen by every page not started yet */
   let at = 0; await Promise.all(Array.from({ length: Math.max(1, concurrency) }, async () => { while (at < pages.length) { const p = pages[at++]; await onePage(p); onPage?.(p, "done"); } }));
+  /* RR-369: the kept answers the server held count as reused */
   const mine = (ledger.spent ?? []).slice(spentBefore), boughtN = mine.filter((x) => x.ok !== false).length, searches = mine.length /* every search sent is in the ledger, refused or not */, cost = mine.reduce((t, x) => t + (Number(x.cost) || 0), 0), retried = mine.filter((x) => x.retry).length, failed = mine.filter((x) => x.ok === false).length;
   const line = `Google's results (your DataForSEO account): ${searches} search${searches === 1 ? "" : "es"}, $${cost.toFixed(4)} — ${pagesRead} of ${pages.length} pages read what ranks, "People also ask", related searches, Reddit and Quora as Google shows them.${retried ? ` ${retried} tried again after DataForSEO failed; ${failed} failed search${failed === 1 ? "" : "es"} charged nothing.` : ""}${stopped ? (laterWhy(stopped) === CAP_LATER ? ` ${CAP_LATER}` : ` Stopped: ${stopped}`) : notes.length ? ` Not read for ${notes.length}: ${notes[0]}` : ""}`;
   return { searches, cost, retried, failed, read: pagesRead, of: pages.length, reddit, quora, stopped, notes, line, reused, bought: boughtN, topsReused };

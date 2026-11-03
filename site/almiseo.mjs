@@ -115,6 +115,45 @@ export async function saveFromApp({ seo, subject, lists = [], lic, groups = [], 
   return { ok: true, saved, kept };
 }
 
+/*
+ * 🔴 RR-369 (owner's run on 1.15.22: "6 saved in AlmiSEO Data, 944 bought"; R13: every search is bought once, saved here, reused free) · EVERY BOUGHT RESULT, BY ITS OWN SEARCH KEY.
+ * saveFromApp above holds a finished page's list; this holds each search as bought: Reddit's, Quora's, a council's, autocomplete, and each top page's structure (tp_page, the collector's own store). Only addresses, titles,
+ * questions and phrases arrive; a page's text never. A key is confirmed row by row: the app marks only what is named back. An outside client may send its own topic's, and is sent none back (ruling 2): it gets finished pages.
+ */
+export const BOUGHT = Object.freeze({ routes: Object.freeze(["/v1/almiseo/searches", "/v1/almiseo/searches/held"]), maxBody: 1000000, perCall: 500, keepDays: 30, results: 10, questions: 20, phrases: 30, headings: 40 });
+const text1 = (x, n) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const strs = (xs, n, len = 200) => (Array.isArray(xs) ? xs : []).map((x) => text1(x, len)).filter(Boolean).slice(0, n);
+const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
+const dayIn = (d, today) => (/^\d{4}-\d{2}-\d{2}$/.test(String(d ?? "")) && d <= today ? d : today);
+const cleanBoughtBlocks = (b) => (b && typeof b === "object" ? Object.fromEntries(Object.entries(b).filter(([k]) => /^[a-zA-Z]{1,20}$/.test(k)).map(([k, v]) => [k, typeof v === "boolean" ? v : typeof v === "number" ? v : k === "via" ? text1(v, 20) : k === "cannotSee" ? strs(v, 6, 20) : k === "columns" ? (Array.isArray(v) ? v.slice(0, 3).map((c) => strs(c, 8, 40)) : []) : null]).filter(([, v]) => v !== null)) : null);
+const QUESTION_LINE = /\?\s*$/;
+const yours = async ({ seo, subject, lic, groups }) => { const topic = topicForSubject(subject, await allTopics({ seo, groups })); if (!topic) return { ok: false, status: 404, why: "No such subject here yet." }; if (!lic.owner && !(topic.owner === "client" && (topic.clients ?? []).includes(accountHash(lic.account)))) return { ok: false, status: 403, why: "That subject is not yours." }; return { ok: true, topic }; };
+export async function saveBought({ seo, subject, searches = [], pages = [], lic, groups = [], at }) {
+  const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
+  const today = dayOf(at), rows = [], confirmed = [], refused = [], pagesConfirmed = [];
+  for (const s of (Array.isArray(searches) ? searches : []).slice(0, BOUGHT.perCall)) {
+    const key = String(s?.key ?? ""); if (!key || key.length > 400) { refused.push({ key: key.slice(0, 80), why: "no usable search key" }); continue; }
+    const results = (Array.isArray(s.results) ? s.results : []).filter((r) => /^https?:\/\//.test(r?.url ?? "")).slice(0, BOUGHT.results).map((r, i) => ({ url: String(r.url).slice(0, 2000), title: text1(r.title, 300), rank: num(r.rank) || i + 1 }));
+    rows.push({ topic: y.topic.id, key, kind: s.kind === "auto" ? "auto" : "serp", day: dayIn(s.on, today), data: { ok: true, ...(s.empty ? { empty: true } : {}), results, paa: strs(s.paa, BOUGHT.questions), related: strs(s.related, BOUGHT.questions), phrases: strs(s.phrases, BOUGHT.phrases) } }); confirmed.push(key);
+  }
+  if (rows.length) await seo.putSearches(rows, { at });
+  for (const p of (Array.isArray(pages) ? pages : []).slice(0, BOUGHT.perCall)) {
+    const url = String(p?.url ?? ""); if (!/^https?:\/\//.test(url) || url.length > 2000) continue;
+    const headings = strs(p.headings, BOUGHT.headings), read = Array.isArray(p.headings), blocks = cleanBoughtBlocks(p.blocks);
+    await seo.putPage({ url, day: dayIn(p.on, today), ok: read, why: read ? null : "the app could not read it", structure: read ? { headings, questions: headings.filter((h) => QUESTION_LINE.test(h)), tables: num(blocks?.tables), lists: 0, words: num(blocks?.words), date: null, droppedHeadings: 0, blocks } : null }); pagesConfirmed.push(url);
+  }
+  return { ok: true, confirmed, pages: pagesConfirmed, refused, held: { searches: await seo.searchCount(y.topic.id), pages: await seo.pageCount() } };
+}
+/** before buying: what is already here and fresh (the same month as the collector). An outside client is sent none of it (ruling 2) */
+export async function heldBought({ seo, subject, keys = [], urls = [], lic, groups = [], at }) {
+  const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
+  if (!lic.owner) return { ok: true, outside: true, searches: {}, pages: {} };
+  const today = dayOf(at), fresh = (d) => (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`)) / 864e5 <= BOUGHT.keepDays, searches = {}, pages = {};
+  for (const r of await seo.searches(y.topic.id, (Array.isArray(keys) ? keys : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(r.day)) searches[r.key] = { ...r.data, kind: r.kind, on: r.day };
+  for (const p of await seo.pages((Array.isArray(urls) ? urls : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(p.day)) pages[p.url] = { on: p.day, headings: p.ok ? p.structure?.headings ?? [] : null, blocks: p.ok ? p.structure?.blocks ?? null : null };
+  return { ok: true, searches, pages };
+}
+
 /* ── THE PLAN LIMITS ── */
 export async function planLimits(seo) { const s = await seo.setting("plan-limits").catch(() => null); return Object.fromEntries(PLANS.map((p) => [p.id, { ...(DEFAULT_PLAN_LIMITS[p.id] ?? { usdMonth: 0, countries: 0 }), ...(s?.[p.id] ?? {}) }])); }
 /** a client topic is worked while ONE of its accounts still has room this month */

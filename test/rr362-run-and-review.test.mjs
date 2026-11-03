@@ -73,7 +73,7 @@ test("item 14: what a run searched is sent under the collectors' own name for th
   const lists = searchedLists([{ kind: KIND.destination, country: "Ireland", profession: "nursing", title: "TESTX for Nurses in Ireland", coverageRoute: "paid", searchedOn: "2026-11-02", topRead: ["https://top.example.org/a"], paa: ["Q?"], related: [], coverage: [{ topic: "T" }], second: [{ question: "S?" }] }, { title: "Not searched", coverageRoute: "none" }, { title: "From the list", coverageRoute: "saved", searchedOn: "2026-11-02" }], file);
   assert.equal(lists.length, 1); assert.equal(lists[0].intent, "OET for nursing in Ireland"); assert.deepEqual(lists[0].coverage, ["T"]); assert.deepEqual(lists[0].second, ["S?"]);
   const c = searchCounts({ routes: { saved: 3, browser: 1, paid: 2, none: 5 }, paid: { reused: 4, bought: 6, cost: 0.012 }, saved: 2 });
-  assert.equal(c.line, "Searches: 2 saved in AlmiSEO Data, 8 reused free, 6 bought ($0.01). 5 pages will be checked tomorrow.");
+  assert.equal(c.line, "Searches: 2 saved in AlmiSEO Data (confirmed by the server), 8 reused free, 6 bought ($0.01). 5 pages will be checked tomorrow." /* RR-369 */);
   assert.equal(searchCounts({ routes: { none: 0 } }).later, 0);
 });
 

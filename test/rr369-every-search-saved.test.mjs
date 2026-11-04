@@ -16,7 +16,7 @@ import { cfMemoryStore } from "../site/cf-store.mjs";
 import { seoMemoryStore } from "../site/almiseo-store.mjs";
 import { saveBought, heldBought, BOUGHT, allTopics, ENV_NAMES } from "../site/almiseo.mjs";
 import { runTopPages } from "../site/top-pages.mjs";
-import { queueSearches, searchGoogle, searchPages, serpKey, autoKey } from "../desktop/serp.mjs";
+import { queueSearches, searchGoogle, searchPages, serpKey, autoKey, serpTask } from "../desktop/serp.mjs";
 import { correctedCouncils, councilFacts, officesThatAsk, asksLine, COUNCIL_CORRECTIONS } from "../desktop/council-truth.mjs";
 import { partsMissing, offTopic } from "../desktop/page-quality.mjs";
 import { applyPairQuestions, usableFacts, examPlan } from "../desktop/exam-plan.mjs";
@@ -121,10 +121,10 @@ test("THE SERVER COLLECTOR reuses what an app bought: not one search paid for it
 test("NEVER PAID TWICE: an answer with many redirect links is used as it is and not bought again (REPLACES RR-366); a month later it may be", async () => {
   const redirects = { ok: true, cost: 0.0006, at: NOW, results: [{ url: "https://google.com/goto?url=a" }, { url: "https://google.com/goto?url=b" }, { url: "https://real.example/" }], paa: ["Why?"], related: [] }, ledger = { spent: [], serpCache: { [serpKey("OET x")]: redirects } };
   let posts = 0; const fetchImpl = async () => { posts++; return { json: async () => ({ status_code: 20000, tasks: [] }) }; };
-  await queueSearches({ wanted: [{ key: serpKey("OET x"), q: "OET x", task: [{}] }], settings: { on: true }, ledger, login: "l", password: "p", fetchImpl, now: NOW }); assert.equal(posts, 0);
+  await queueSearches({ wanted: [{ key: serpKey("OET x"), q: "OET x", task: serpTask("OET x") }], settings: { on: true }, ledger, login: "l", password: "p", fetchImpl, now: NOW }); assert.equal(posts, 0);
   const g = await searchGoogle({ keyword: "OET x", settings: { on: true }, ledger, login: "l", password: "p", fetchImpl, now: NOW, wait: false }); assert.equal(g.ok, true); assert.equal(g.cached, true);
   const pages = [{ kind: "origin-profession", title: "OET x" }], out = await searchPages({ pages, ledger, settings: { on: true }, login: "l", password: "p", now: NOW, subject: "OET", fetchImpl, queue: { maxMs: 0, everyMs: 0 }, retry: { times: 0 }, readHtml: async () => "<h2>Fees</h2>" }); assert.equal(out.read, 1, "the page reads what it paid for"); assert.ok(!pages[0].serpWhy);
-  posts = 0; await queueSearches({ wanted: [{ key: serpKey("OET x"), q: "OET x", task: [{}] }], settings: { on: true }, ledger, login: "l", password: "p", fetchImpl, now: "2026-12-20T00:00:00.000Z" }); assert.equal(posts, 1, "a month later");
+  posts = 0; await queueSearches({ wanted: [{ key: serpKey("OET x"), q: "OET x", task: serpTask("OET x") }], settings: { on: true }, ledger, login: "l", password: "p", fetchImpl, now: "2026-12-20T00:00:00.000Z" }); assert.equal(posts, 1, "a month later");
 });
 
 test("PAGES FIRST: the quick pass reads no site, waits on no queue, polls once; what is kept is used; a top page already read counts", async () => {

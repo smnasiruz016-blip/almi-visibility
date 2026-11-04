@@ -29,7 +29,7 @@ import { oldWording } from "./subject-facts.mjs"; // RR-363
 import { KIND, TYPE_OF_KIND, STANDING, unclearWhy, clearQuestion, askedHere, itemForAsked, coreMissingOfPlan, ownClaims, mergeWhy, questionOffIntentWhy } from "./page-types.mjs"; // RR-362: R3, R5, R6
 import { answerQuestion, factAnswer, isTestFormat, SUBTEST_OF, classOfPhrase, phraseOutWhy, shownWording, ASK_OF_CLASS } from "./answer-ladder.mjs"; // RR-366
 import { meaningOf } from "./coverage.mjs"; // RR-366
-import { intentOfFact } from "./fact-intent.mjs"; // RR-370 A
+import { intentOfFact, splitOtherFees } from "./fact-intent.mjs"; // RR-370 A
 import { OPEN_QUESTION } from "./council-truth.mjs"; // RR-366
 import { needClass } from "./truth-checks.mjs"; // RR-366
 import { priceHere } from "./truth-prices.mjs";
@@ -481,7 +481,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   { const placed = new Set(), perPage = new Map(); for (const r of movedQuestions) { const sub = SUBTEST_OF(r.question), home = realTopics.find((x) => x.topic === sub) ?? bigTopic, sig = sigOf(r.question), say = (why) => droppedQuestions.push({ page: r.from, question: r.question, why }); if (!home) { say("it is a test-format question and no topic page is planned for it yet"); continue; } if (placed.has(sig)) { say(`it is a test-format question: it stands once, on "${home.title}"`); continue; } if ((perPage.get(home) ?? 0) >= 6) { say(`it is a test-format question: "${home.title}" already carries six of them`); continue; } const claims = r.fact ? [claimOf(r.fact, null, null)] : answerQuestion(r.question, ladderOf(null, r.view))?.claims; if (!claims?.length) { say("it is a test-format question with no verified answer yet"); continue; } placed.add(sig); perPage.set(home, (perPage.get(home) ?? 0) + 1); home.items.push({ part: `questionsa${60 + perPage.get(home)}`, question: r.question, claims }); say(`it is a test-format question, so it moved to "${home.title}"`); } }
   const pages = [...profPages, ...countryPages, ...realTopics, ...localPages];
   /* 🔴 RR-370: "How much does OET cost?" is the test's price. What a change or a re-mark costs is true, and has a question of its own */
-  for (const p of pages) { const at = (p.items ?? []).findIndex((it) => it.part === "fee"); if (at < 0) continue; const it = p.items[at], other = (it.claims ?? []).filter((c) => c.intent === "booking" || c.intent === "remark"); if (!other.length) continue; p.items[at] = { ...it, claims: it.claims.filter((c) => !other.includes(c)) }; p.items.splice(at + 1, 0, { part: "otherfees", question: `How much does it cost to change an ${subject} booking or ask for a re-mark?`, claims: other }); }
+  splitOtherFees(pages, subject);
   for (const p of localPages) { const kin = localPages.filter((x) => x !== p && x.profession === p.profession && x.kind === p.kind).map((x) => x.title), at = kin.findIndex((t) => t > p.title); /* 🔴 RR-370 item 10: its country page, its profession page, the nearest pages of the same profession */ p.links = [p.home, p.prof, ...[...kin.slice(Math.max(0, at)), ...kin].slice(0, 3)].filter(Boolean); p.open = []; p.ledger = []; }
   /* the pages link each other: a profession page its country pages, a country page its profession pages, a topic page the hubs */
   for (const p of profPages) p.links = countryPages.map((c) => c.title);

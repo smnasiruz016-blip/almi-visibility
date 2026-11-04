@@ -132,6 +132,12 @@ test("A: the plan's builder takes another profession's council's rules off this 
   assert.match(read("desktop/exam-plan.mjs"), /!ofAnotherBody\(f\.link\) && \(intentOfFact\(f\) === "good-standing"/); assert.match(read("desktop/exam-plan.mjs"), /!ofAnotherBody\(f\.link\) && intentOfFact\(f\) === "documents"/); assert.match(read("desktop/exam-plan.mjs"), /claims\.filter\(\(c\) => !ofAnotherBody\(c\.link\)\)/);
 });
 
+test("A: the test's price stands alone; what a change or a re-mark costs is answered under its own question", async () => {
+  const { splitOtherFees } = await import("../desktop/fact-intent.mjs"), p = { items: [{ part: "fee", question: "How much does OET cost?", claims: [{ text: "AU$587", intent: "fee" }, { text: "AU$120 to move", intent: "booking" }, { text: "re-mark AU$100", intent: "remark" }] }] }; splitOtherFees([p], "OET");
+  assert.deepEqual(p.items[0].claims.map((c) => c.text), ["AU$587"]); assert.equal(p.items[1].part, "otherfees"); assert.match(p.items[1].question, /change an OET booking or ask for a re-mark/); assert.equal(p.items[1].claims.length, 2);
+  assert.match(read("desktop/exam-plan.mjs"), /splitOtherFees\(pages, subject\);/);
+});
+
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {
   assert.equal(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for nursing in Bangladesh")); assert.equal(meaningKey("cost of oet exam"), meaningKey("exam fee for oet")); assert.equal(meaningKey("oet centre near me"), meaningKey("oet exam center near me")); assert.equal(meaningKey("OET in Singapore: fee, centres and councils"), meaningKey("OET in Singapore")); assert.equal(meaningKey("OET in the Philippines"), meaningKey("OET in Philippines"));
   assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Nurses from Nepal")); assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Doctors from Bangladesh")); assert.notEqual(meaningKey("OET for Nurses"), meaningKey("OET for Nurses reddit")); assert.equal(twinOf("auto|oet fee|Ghana", byMeaning(["auto|oet cost|Ghana"])), null, "autocomplete stands apart");

@@ -71,3 +71,29 @@ export function listFromRows(rows, { date, page }) {
   }
   return { source: `OET's own "Who recognises OET" list, written out by your AI in your browser on ${date}`, listOn: date, page, leftOut, items };
 }
+
+/* ═══ 🔴 RR-370 ADDITION: what the client's AI read of the council pages our reader could not open ═══ */
+const COULD_NOT = /^\s*COULD NOT READ\s*:?\s*/i;
+const bare = (u) => String(u ?? "").replace(/^https?:\/\/(?:www\.)?/i, "").replace(/\/$/, "");
+/** the reason, as a page may say it: the first clause, no asides, no note */
+export function shortReason(text) { return String(text ?? "").replace(COULD_NOT, "").replace(/\s*\([^)]*\)/g, "").split(/\.\s|;\s|\s*Note:/)[0].replace(/[.\s]+$/, "").slice(0, 110).trim() || "no reason given"; }
+/** a line never comes back on the day's list while what the client's AI said of it is fresh */
+export const stillFresh = (v, keepDays, now = Date.now()) => Boolean(v?.via) && (now - Date.parse(v.recheckedOn ?? v.on ?? 0)) / 864e5 <= keepDays;
+/**
+ * each page read → checked exactly like a page our reader opened, with the date it was read; each "COULD NOT READ" → an honest gap with its reason. Never "registers" unless the page's text says so. The page's text is not kept.
+ * `check` is council-truth's checkCouncil. → { kept, pages: [{ url, on, state, reason, lines: [{ key, result }] }], confirmed, notSaid, gaps }
+ */
+export async function councilReads({ pages, kept, check }) {
+  const out = []; let confirmed = 0, notSaid = 0, gaps = 0;
+  for (const p of pages) {
+    const on = String(p.readAt ?? p.date ?? "").slice(0, 10) || p.date, cant = COULD_NOT.test(p.text ?? ""), empty = !cant && !String(p.text ?? "").trim(), reason = cant ? shortReason(p.text) : empty ? "the file holds no text for it" : null, lines = [];
+    for (const [key, v] of Object.entries(kept)) {
+      if (bare(v.page) !== bare(p.url) || v.ok) continue; const [, profession, ...rest] = key.split("|"), name = rest.join("|");
+      if (reason) { if (v.why !== "unread") continue; kept[key] = { ok: false, why: "unread", page: p.url, on, via: "read in your browser", reason }; gaps++; lines.push({ key, result: "could not read" }); continue; }
+      const r = await check({ name, profession, link: p.url, read: textReader(p.url, p.text, on).read, on, extra: 0 }); kept[key] = r.ok ? { ok: true, evidence: p.url, on, strict: r.strict, via: "read in your browser" } : { ok: false, why: r.why === "unread" ? "not stated" : r.why, page: p.url, on, via: "read in your browser" };
+      if (r.ok) confirmed++; else notSaid++; lines.push({ key, result: r.ok ? "the page says it registers them" : "the page does not say it" });
+    }
+    out.push({ url: p.url, on, state: reason ? "could not read" : "read", ...(reason ? { reason } : {}), lines });
+  }
+  return { kept, pages: out, confirmed, notSaid, gaps };
+}

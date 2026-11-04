@@ -19,9 +19,13 @@ const windows = (t) => { const s = String(t ?? "").replace(/\s+/g, " "), out = [
 const FIND = /\b(?:about|who we are|mandate|mission|functions?|what we do|our role|regist|licen[cs]|the act\b|legislation)\b/i;
 export const SAME_MEANING_NAMES = "council commission board authority ministry office";
 
+/* 🔴 RR-370 (the owner's file: "Bangladesh Medical & Dental Council" is not the page saying it registers dentists; "The page does not say it licenses doctors" is a reader's note, not the page): both are taken out first */
+const READERS_NOTE = /[^.]*\b(?:does not say|does not state|not stated|gives no|no other board)\b[^.]*\.?/gi;
+const withoutOwnName = (text, name) => { if (!name) return String(text ?? ""); const words = String(name).replace(/\s*\([^)]*\)\s*/g, " ").trim(), short = /\(([^)]+)\)/.exec(String(name))?.[1] ?? null, re = (x) => new RegExp(x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s*(?:&|\band\b)\s*/gi, "\\s*(?:&|and)\\s*").replace(/\s+/g, "\\s+"), "gi"); let t = String(text ?? "").replace(re(words), " "); if (short) t = t.replace(re(short), " "); return t; };
 /** does this page's text say its body registers, licenses or regulates this profession? */
-export function statesRegistration(text, profession, { strict = false } = {}) {
+export function statesRegistration(text0, profession, { strict = false, name = null } = {}) {
   const who = WORDS[profession]; if (!who) return false;
+  const text = withoutOwnName(text0, name).replace(READERS_NOTE, " ");
   if (strict && NOT_THE_LAW.test(String(text))) return false;
   return windows(text).some((s) => who.test(s) && !NOT_THE_DUTY.test(s) && (!strict || SAYS_IT_IS.test(s)));
 }
@@ -32,7 +36,7 @@ export async function checkCouncil({ name, profession, link, website = null, rea
   while (queue.length) {
     const u = queue.shift(); if (seen.has(u)) continue; seen.add(u);
     const p = await Promise.resolve(read(u)).catch(() => null); if (!p?.ok) continue; readAny = true;
-    if (statesRegistration(titled(p), profession, { strict })) return { ok: true, evidence: p.url ?? u, on, strict };
+    if (statesRegistration(titled(p), profession, { strict, name })) return { ok: true, evidence: p.url ?? u, on, strict };
     for (const l of p.links ?? []) { if (more <= 0) break; if (seen.has(l.href) || queue.includes(l.href) || !/^https?:/.test(l.href)) continue; let same = false; try { same = new URL(l.href).hostname.replace(/^www\./, "") === new URL(u).hostname.replace(/^www\./, ""); } catch { /* not an address */ } if (same && FIND.test(`${l.text ?? ""} ${l.href}`)) { queue.push(l.href); more--; } }
   }
   return { ok: false, why: !readAny ? "unread" : strict ? "association" : "not stated", page: first, on };
@@ -48,7 +52,7 @@ export async function findRegulator({ people, profession, place, search, read, o
   }
   return null;
 }
-export const openLine = ({ name, people, place, why, on }) => (why === "unread" ? `Who registers ${people} in ${place} is still an open question: ${name}'s own page could not be read on ${on}.` : why === "association" ? `${name} is a professional body, not shown here as the registering body: its own page, checked ${on}, does not say it registers ${people}. Who registers ${people} in ${place} is still an open question.` : `Who registers ${people} in ${place} is still an open question: ${name}'s own page, checked ${on}, does not say it registers them.`);
+export const openLine = ({ name, people, place, why, on, reason = null }) => (why === "unread" ? `Who registers ${people} in ${place} is still an open question: ${name}'s own page could not be read on ${on}${reason ? ` (${reason})` : ""}.` : why === "association" ? `${name} is a professional body, not shown here as the registering body: its own page, checked ${on}, does not say it registers ${people}. Who registers ${people} in ${place} is still an open question.` : `Who registers ${people} in ${place} is still an open question: ${name}'s own page, checked ${on}, does not say it registers them.`);
 /* 🔴 RR-367 R-A + R-B (owner, 3 Nov 2026): an office not confirmed as the registering body, with an address or contact from a real source, is SHOWN with that source and date. It is no open question. One office may serve several professions: it stands on every page it serves. It never says "registers" unless the body's own page does */
 /* 🔴 RR-369 Part 3 (owner, 3 Nov 2026): a body's own page gives the score: that is said plainly, with no "not confirmed yet" for that body. "Not confirmed" stays only for a body whose role is truly not stated */
 export function asksLine({ name, people, scoreText }) {
@@ -67,7 +71,7 @@ export function correctedCouncils(facts = [], rows = COUNCIL_CORRECTIONS) {
   /* first: a country's list is cut at twelve, and nurses' and doctors' lines must stand on it */
   return [...whole.map((r) => ({ id: `corrected-${r.country}-${r.profession}`.replace(/\s+/g, "-"), part: "home-council", country: r.country, profession: r.profession, councilName: r.councilName, text: r.text, link: r.link, on: r.on, website: r.website, verified: true, corrected: true, body: r.councilName, ...(r.stepsLine ? { stepsLine: r.stepsLine } : {}), ...(r.checkedWhy ? { checkedWhy: r.checkedWhy, checkedOn: r.on } : {}) })), ...facts.filter((f) => !((f.part === "home-council" || f.part === "open-council") && f.profession && hit(f))).map(withSteps)];
 }
-export const officeLine = ({ name, people, place, address = null, website = null, professional = false }) => `Office for ${people} in ${place}: ${name}${professional ? " (a professional body)" : ""}${address ? `, ${String(address).replace(/[.\s]+$/, "")}` : ""}${website ? ` — ${website}` : ""}. Whether it is the registering body is not confirmed yet.`;
+export const officeLine = ({ name, people, place, address = null, website = null, professional = false, unread = null }) => `Office for ${people} in ${place}: ${name}${professional ? " (a professional body)" : ""}${address ? `, ${String(address).replace(/[.\s]+$/, "")}` : ""}${website ? ` — ${website}` : ""}. Whether it is the registering body is not confirmed yet${unread ? ` (its page could not be read on ${unread.on}: ${unread.reason})` : ""}.`;
 export const OPEN_QUESTION = (place) => `Which councils are not confirmed yet in ${place}?`;
 const stateCouncil = (name) => /\bState\b/.test(String(name)) && !/\bStates\b/.test(String(name));
 const keyOf = (f) => `${f.country}|${f.profession}|${f.councilName ?? f.text}`;
@@ -80,12 +84,12 @@ export function councilFacts(facts = [], checks = null, { inPlace = (c) => c, pe
   const changes = [], out = facts.flatMap((f) => {
     if (f.part !== "home-council" || !f.profession || f.corrected) return [f];
     const name = f.councilName ?? String(f.text).split(/ registers /)[0], c = checks?.[keyOf({ ...f, councilName: name })] ?? null, place = inPlace(f.country), people = peopleOf(f.profession), on = c?.on ?? today ?? f.on;
-    const open = (why, page) => { if (f.address || f.website) { const text = officeLine({ name, people, place, address: f.address, website: f.website, professional: NOT_A_REGISTRAR.test(name) }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: f.link, on: f.on, why }); return [{ ...f, text, office: true, checkedWhy: why, checkedOn: on }]; } const text = openLine({ name, people, place, why, on }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: page ?? f.link, on }); return [{ ...f, part: "open-council", text, link: page ?? f.link, on }]; };
+    const open = (why, page) => { if (f.address || f.website) { const text = officeLine({ name, people, place, address: f.address, website: f.website, professional: NOT_A_REGISTRAR.test(name), unread: why === "unread" && c?.reason ? { on, reason: c.reason } : null }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: f.link, on: f.on, why }); return [{ ...f, text, office: true, checkedWhy: why, checkedOn: on }]; } const text = openLine({ name, people, place, why, on, reason: c?.reason ?? null }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: page ?? f.link, on }); return [{ ...f, part: "open-council", text, link: page ?? f.link, on }]; };
     /* the owner's verified facts already hold this body's own page for this profession (GMC refuses our reader, its OET page is in his file) */
     const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } }, verified = !NOT_A_REGISTRAR.test(name) ? facts.find((x) => x.part === "councils" && x.verified && x.country === f.country && x.profession === f.profession && [host(f.link), host(f.website)].filter(Boolean).includes(host(x.link))) : null;
     if (verified && !c?.ok) { changes.push({ country: f.country, profession: f.profession, before: f.text, after: f.text, source: verified.link, on: verified.on, kept: "its own page could not be read here, but the owner's verified facts hold that page" }); return [{ ...f, link: verified.link, on: verified.on }]; }
     /* the owner reviewed this very line and approved it: it stands, said in the list, unless its body is an association */
-    if (f.approved && !NOT_A_REGISTRAR.test(name) && !c?.ok && !c?.found) { changes.push({ country: f.country, profession: f.profession, before: f.text, after: f.text, source: f.link, on: f.on, kept: `the app could not confirm it (${c?.why ?? "not checked"}): it stands on the owner's own approval` }); return [f]; }
+    if (f.approved && !c?.via && !NOT_A_REGISTRAR.test(name) && !c?.ok && !c?.found) { changes.push({ country: f.country, profession: f.profession, before: f.text, after: f.text, source: f.link, on: f.on, kept: `the app could not confirm it (${c?.why ?? "not checked"}): it stands on the owner's own approval` }); return [f]; }
     if (!c) return NOT_A_REGISTRAR.test(name) ? open("association", f.link) : [f];
     if (c.found) { const text = `${c.found.name} registers ${people} in ${place}.`; changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: c.found.link, on }); return [{ ...f, councilName: c.found.name, text, link: c.found.link, on, body: c.found.name }]; }
     if (!c.ok) return open(c.why, c.page);

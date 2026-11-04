@@ -32,7 +32,7 @@ test("ITEM 1: an open Pages screen is drawn again when a run or its improving li
   const UI = read("desktop/ui.html");
   assert.match(UI, /const PAGES_JOB = \/\^\(\?:make\|improve\)\$\//);
   assert.match(UI, /function pagesAfterJobs\(jobs\) \{ const ended = jobs\.some\(\(j\) => PAGES_JOB\.test\(j\.kind\) && j\.product === P && !j\.running && JOBS_RUNNING\.has\(j\.key\)\)/, "only a job seen running here, now ended");
-  assert.match(UI, /if \(ended && \$\("#pubbox"\)\) pagesBox\(PAGES_WAITING\)/); assert.match(UI, /if \(J\) pagesAfterJobs\(J\.jobs\);/); assert.match(UI, /PAGES_WAITING = waitingOnly;/);
+  assert.match(UI, /if \(ended && \$\("#pubbox"\)\) pagesBox\(PAGES_WAITING\)/); assert.match(UI, /if \(J\) \{ pagesAfterJobs\(J\.jobs\);/); assert.match(UI, /PAGES_WAITING = waitingOnly;/);
   const f = /const readyWords = (\(n\) => `[^\n]*`);/.exec(UI)?.[1]; assert.ok(f); const words = new Function(`return ${f}`)();
   assert.equal(words({ newReady: 311, newAll: 311, existingReady: 12, existingAll: 12 }), "311 new pages and 12 existing pages ready");
   assert.equal(words({ newReady: 305, newAll: 311, existingReady: 10, existingAll: 12 }), "305 new pages of 311 and 10 existing pages of 12 ready");

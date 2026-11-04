@@ -320,7 +320,9 @@ static class Program {
   static int Launch(bool window) {
     var dir = InstalledDir;
     var node = Path.Combine(dir, "app", "runtime", "node.exe");
-    var main = Path.Combine(dir, "app", "desktop", "main.mjs");
+    /* 🔴 RR-372: the app's parent, which keeps how it ended; it starts main.mjs. A package from before it has none: main.mjs is started as before */
+    var main = Path.Combine(dir, "app", "desktop", "supervisor.mjs");
+    if (!File.Exists(main)) main = Path.Combine(dir, "app", "desktop", "main.mjs");
     Directory.CreateDirectory(DataDir);
     var port = RunningPort(node);
     if (port == null) {

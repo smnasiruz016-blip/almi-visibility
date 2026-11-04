@@ -74,6 +74,7 @@ import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, tr
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { failuresOfLedger, readFailures } from "./read-failures.mjs"; // RR-369b item 5
 import { refusedLine } from "./dfs-task.mjs"; // RR-370b
+import { writeLastError, writeState, logLine, trimLog, clearLastError, unseenCrash, crashSeen, crashLine, supportText } from "./crash-record.mjs"; // RR-372
 import { VERDICTS_FILE, FIT_FILE, JUDGE, unjudged, judgeAll, settleVerdicts, markPages, fitCheckText, readyLine } from "./qa-judge.mjs"; // RR-370 B
 import { Worker as LinkWorker } from "node:worker_threads";
 import { LINKS_FILE, CORRECTIONS, linksToCheck, checkLinksOff, applySources, linksText } from "./source-links.mjs"; // RR-370 items 4, 7, 9
@@ -374,6 +375,8 @@ async function councilChecksFor(id, subject, onRead = null, onWhat = null) {
 /*
  * 🔴 RR-367 item 3 (owner's ruling of 15 Oct; "reader blocked is not a fact"): a council page our reader could not open goes on the client's browser list. The client's own AI reads it in the client's own browser, under the same rules (client-started, a pause between pages, stop on a captcha). Only the verdict is kept, never the text
  */
+/* 🔴 RR-372 (owner: Home showed "204 new pages… 169 need work" from 2 Nov under a run of 4 Nov): the report is of the latest pages, or it is made again from them */
+const latestReport = (id, s) => { const saved = pread(id, "last-report.json"), pg = pread(id, "pages.json"); if (!pg?.drafts?.length) return saved; if (saved?.on && pg.madeOn && Date.parse(saved.on) >= Date.parse(pg.madeOn)) return saved; const mode = s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST; return { on: pg.madeOn, ...jobReport({ notMade: notMadeOf(pg.plan ?? []), drafts: pg.drafts, live: pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url), approval: mode === PUBLISH_MODE.REVIEW_FIRST ? "review" : "publish", connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, lines: [] }) }; };
 const councilBrowserItems = (id) => { const kept = pread(id, "council-checks.json", {}), seen = new Set(), items = []; for (const [key, v] of Object.entries(kept)) { if (v.ok || v.why !== "unread" || stillFresh(v, COUNCIL_KEEP_DAYS) /* RR-370: the client's AI has just tried it */ || !/^https?:/.test(v.page ?? "") || seen.has(v.page)) continue; seen.add(v.page); items.push({ kind: "council", url: v.page, label: key.split("|").slice(2).join("|"), why: "our reader could not open it" }); } return items.slice(0, BROWSER.cap); };
 async function takeCouncilBrowser(id, hand) {
   const kept = pread(id, "council-checks.json", {}), readAt = new Map((hand.pages ?? []).map((p) => [p.url, p.readAt])), split = splitAnswered(hand.pages ?? [], kept), onList = [...councilBrowserItems(id), ...split.again.filter((p) => /^https?:/.test(p.url ?? "")).map((p) => ({ kind: "council", url: p.url }))], t = takeBrowserReads(hand, onList); if (!t.ok) return { ok: false, line: fileRefusedLine(t.refusedFor) };
@@ -943,9 +946,10 @@ function setAsideForeign(id) {
   return moved;
 }
 /* 🔴 RR-362 items 6 + 10: a run is on the board from its first step to its last, once per product (a second press joins the first), and it logs where its time goes (run-timing.json) */
-const making = new Map(), STOP_FILE = () => join(DATA, "app-asked-to-stop");
+const making = new Map(), STOP_FILE = () => join(DATA, "app-asked-to-stop"), SUPERVISED = process.env.ALMIVISIBILITY_SUPERVISED === "1";
 /* if the app is gone in the middle of a run, a small process starts it again (desktop/watchdog.mjs); only an installed app */
-function startWatchdog(id) { const launcher = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(launcher)) return; try { const c = spawn(process.execPath, [join(HERE, "watchdog.mjs"), String(process.pid), pfile(id, "run-in-progress.json"), STOP_FILE(), launcher, "/nowindow", ...(Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [])], { detached: true, stdio: "ignore", windowsHide: true }); c.on("error", () => {}); c.unref(); } catch { /* the next open goes on with the run */ } }
+/* 🔴 RR-372: with the supervisor as parent there is no second watcher: it sees the exit first, and sees the code */
+function startWatchdog(id) { if (SUPERVISED) return; const launcher = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(launcher)) return; try { const c = spawn(process.execPath, [join(HERE, "watchdog.mjs"), String(process.pid), pfile(id, "run-in-progress.json"), STOP_FILE(), launcher, "/nowindow", ...(Array.isArray(CONFIG.testUpdateArgs) ? CONFIG.testUpdateArgs : [])], { detached: true, stdio: "ignore", windowsHide: true }); c.on("error", () => {}); c.unref(); } catch { /* the next open goes on with the run */ } }
 const askedToStop = () => { try { writeFileSync(STOP_FILE(), new Date().toISOString()); } catch { /* the watcher's grace time covers it */ } };
 function createPages(id) {
   if (making.has(id)) return making.get(id);
@@ -953,7 +957,8 @@ function createPages(id) {
   { const later = improving.get(id); if (later) { later.state.stop = later.state.stage === "waiting"; const run = later.run.then(() => { making.delete(id); return createPages(id); }); making.set(id, run); return run; } }
   const key = `make:${id}`; BOARD.start(key, { product: id, kind: "make", label: "Making your pages", what: "Reading what we already hold", long: true, unit: "pages" });
   pwrite(id, "run-in-progress.json", { on: new Date().toISOString() }); startWatchdog(id);
-  const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? readyLine(r.pages?.drafts ?? []) }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
+  /* 🔴 RR-372: the mark stays while the improving line (and its AI judge) goes on: the crash on 4 Nov was there, with no mark, so nothing went on */
+  const run = makePages(id, key).then((r) => { if (!improving.has(id)) rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? readyLine(r.pages?.drafts ?? [], { judging: improving.has(id), why: pread(id, "qa-run.json", {}).why ?? null }) }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
   making.set(id, run); return run;
 }
 const stageClock = () => { const marks = [], t0 = Date.now(); let last = t0; return { mark: (stage) => { const n = Date.now(); marks.push({ stage, seconds: Math.round((n - last) / 100) / 10 }); last = n; }, done: () => ({ total: Math.round((Date.now() - t0) / 1000), stages: marks }) }; };
@@ -977,12 +982,13 @@ async function makePages(id, key) {
   /* no Google to wait for (the switch off, nothing kept): one pass, as before */
   const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? [])), savedBefore = savedTotal();
   /* 🔴 RR-370 A + B + items 4, 7, 9: every claim's source and every question's answer, by meaning, on the plan before a page is written */
-  const factsStep = async (plan, quick, step) => { if (!plan || CONFIG.testOffline === true) return; const a = aiOf(store.read(id)), key = a?.provider === "anthropic" ? a.key : null, verdicts = pread(id, VERDICTS_FILE, {}), checks = pread(id, LINKS_FILE, {}), usd0 = LEDGER.month()?.usd ?? 0;
+  let runUsd = 0; const factsStep = async (plan, quick, step) => { if (!plan || CONFIG.testOffline === true) return; const a = aiOf(store.read(id)), key = a?.provider === "anthropic" ? a.key : null, verdicts = pread(id, VERDICTS_FILE, {}), checks = pread(id, LINKS_FILE, {}), usd0 = LEDGER.month()?.usd ?? 0;
     if (!quick && CONFIG.linkCheck !== false) { const urls = linksToCheck(plan, checks); if (urls.length) { step({ done: 0, of: urls.length, unit: "source links", what: "Opening every source link" }); await checkLinksOff(urls, { kept: checks, Worker: LinkWorker, onDone: () => step({ add: 1 }), ...(Number.isInteger(CONFIG.testLinkMs) ? { timeoutMs: CONFIG.testLinkMs } : {}), ...(CONFIG.testLinkFetch ? { standin: CONFIG.testLinkFetch } : {}) }); pwrite(id, LINKS_FILE, checks); } }
-    const sources = applySources(plan, { checks }); let log = settleVerdicts(plan, verdicts), why = null;
-    for (let round = 0; !quick && key && round < JUDGE.rounds; round++) { const rows = unjudged(plan, verdicts); if (!rows.length) break; step({ done: 0, of: rows.length, unit: "answers", what: "Your AI is checking that each answer fits its question" }); const r = await judgeAll({ key, rows, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}), allowed: () => LEDGER.allowed().ok, onUsage: (u) => LEDGER.add(u), onDone: (n, _o, got) => { Object.assign(verdicts, got); step({ done: n }); } }); Object.assign(verdicts, r.verdicts); pwrite(id, VERDICTS_FILE, verdicts); why = r.why; if (r.why) break; log = [...log, ...settleVerdicts(plan, verdicts)]; }
+    const sources = applySources(plan, { checks }); let log = settleVerdicts(plan, verdicts), why = null, code = null;
+    for (let round = 0; !quick && key && round < JUDGE.rounds; round++) { const rows = unjudged(plan, verdicts); if (!rows.length) break; step({ done: 0, of: rows.length, unit: "answers", what: "Your AI is checking that each answer fits its question" }); const r = await judgeAll({ key, rows, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}), allowed: () => LEDGER.allowed().ok, onUsage: (u) => LEDGER.add(u), onDone: (n, _o, got) => { Object.assign(verdicts, got); /* 🔴 RR-372: on disk the moment it returns: a crash never loses a verdict that was paid for */ pwrite(id, VERDICTS_FILE, verdicts); step({ done: n }); } }); Object.assign(verdicts, r.verdicts); pwrite(id, VERDICTS_FILE, verdicts); why = r.why; code = r.status ?? code; if (r.why) break; log = [...log, ...settleVerdicts(plan, verdicts)]; }
     markPages(plan, verdicts, { judging: Boolean(key) });
-    const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: Math.max(0, (LEDGER.month()?.usd ?? 0) - usd0), why, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); };
+    runUsd += Math.max(0, (LEDGER.month()?.usd ?? 0) - usd0); /* 🔴 RR-372: the run's cost: the later pass that judged nothing wrote $0 over $7.71 */
+    const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: runUsd, why, code, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); };
   const pass = async (quick, step, sayingWhat, clock) => {
     const reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
     if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
@@ -1078,9 +1084,10 @@ function googleLater(id, improve) {
     state.stage = "improving";
     const r = await improve((x) => BOARD.step(key, x));
     const left = Object.keys(dfsLedger().pending ?? {}).length;
-    BOARD.finish(key, { ok: !r.refused, line: `Your pages were improved with Google's results. ${readyLine(r.pages?.drafts ?? [])}${left ? ` ${left} ${left === 1 ? "answer" : "answers"} came too late: used on the next run, already paid.` : ""}` });
+    BOARD.finish(key, { ok: !r.refused, line: `Your pages were improved with Google's results. ${readyLine(r.pages?.drafts ?? [], { why: pread(id, "qa-run.json", {}).why ?? null })}${left ? ` ${left} ${left === 1 ? "answer" : "answers"} came too late: used on the next run, already paid.` : ""}` });
     return r;
-  })().catch((e) => { BOARD.finish(key, { ok: false, line: `Your pages are ready. Improving them with Google's results stopped: ${String(e?.message ?? e).slice(0, 80)}. It goes on at the next run.` }); return null; }).finally(() => improving.delete(id));
+  })().catch((e) => { BOARD.finish(key, { ok: false, line: `Your pages are ready. Improving them with Google's results stopped: ${String(e?.message ?? e).slice(0, 80)}. It goes on at the next run.` }); return null; }).finally(() => { improving.delete(id); if (!making.has(id)) rmSync(pfile(id, "run-in-progress.json"), { force: true }); });
+  pwrite(id, "run-in-progress.json", { on: new Date().toISOString() }); startWatchdog(id);
   improving.set(id, { run, state });
   return run;
 }
@@ -1169,6 +1176,13 @@ function reopenWindowIfNone() {
 { let tries = 0; const again = () => { if (!refreshLauncher() && ++tries < 24) setTimeout(again, 5000).unref(); }; again(); } // the old launcher is still ending when the new app starts
 /* RR-362: the app started again in the middle of a run: it goes on at once */
 rmSync(STOP_FILE(), { force: true });
+/* 🔴 RR-372: every way this process can end by its own error writes why, before it ends; what it is doing is on disk for the supervisor, for the ways no code runs */
+clearLastError(DATA); for (const s of [process.stdout, process.stderr]) s.on("error", () => {});
+const lastWords = (kind) => (e) => { writeLastError(DATA, kind, e); logLine(DATA, `${kind}: ${String(e?.stack ?? e)}`); console.error(kind, e); process.exit(70); };
+process.on("uncaughtException", lastWords("uncaughtException")); process.on("unhandledRejection", lastWords("unhandledRejection"));
+let lastStep = null; const nowDoing = () => { const run = BOARD.list().filter((j) => j.running), step = run.map((j) => `${j.label}: ${j.what ?? ""}${j.of ? ` (${j.done} of ${j.of})` : ""}`).join(" · ") || null, m = process.memoryUsage(); writeState(DATA, { step, memoryMB: Math.round(m.rss / 1048576), heapMB: Math.round(m.heapUsed / 1048576), pid: process.pid, version: VERSION }); const key = step?.replace(/\(\d+ of \d+\)/g, "") ?? null; if (key !== lastStep) { lastStep = key; logLine(DATA, step ?? "nothing running"); trimLog(DATA); } }; nowDoing(); setInterval(nowDoing, 2000).unref();
+/* TESTS ONLY, proof of the record on the built app: a native end and a thrown error, at a chosen moment */
+if (CONFIG.testSecretsInMemory === true) { if (Number.isInteger(CONFIG.testAbortAfterMs)) setTimeout(() => process.abort(), CONFIG.testAbortAfterMs); if (Number.isInteger(CONFIG.testThrowAfterMs)) setTimeout(() => { throw new Error("stand-in error for the crash record"); }, CONFIG.testThrowAfterMs); }
 setTimeout(() => { for (const p of store.list()) if (existsSync(pfile(p.id, "run-in-progress.json")) && !making.has(p.id)) createPages(p.id).catch(() => {}); }, 3000).unref();
 setTimeout(() => { weeklyRound(); continueChecks(); setInterval(() => { weeklyRound(); continueChecks(); }, 3600e3).unref(); }, Number.isInteger(CONFIG.weeklyFirstMs) ? CONFIG.weeklyFirstMs : 5 * 60e3).unref();
 /* 🔴 RR-369: on opening the app every bought result not yet confirmed goes up (the backfill, once, is this), every few minutes while anything is left */
@@ -1196,7 +1210,8 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/company-logo") { const c = store.company(); const f = c?.logoFile ? join(DATA, c.logoFile) : null; return f && existsSync(f) ? send(200, readFileSync(f), "image/png") : send(404, { refused: "no company logo" }); }
       /* the home screen: the company, its products, the plan limit */
       /* RR-362 item 6: every wait, for the bar on every screen */
-      if (req.method === "GET" && u.pathname === "/api/jobs") return send(200, { version: VERSION, jobs: BOARD.list() });
+      if (req.method === "GET" && u.pathname === "/api/jobs") { const c = unseenCrash(DATA); return send(200, { version: VERSION, jobs: BOARD.list(), crash: c ? { line: crashLine(c), support: supportText(c) } : null }); }
+      if (req.method === "POST" && u.pathname === "/api/crash/seen") { crashSeen(DATA); return send(200, { ok: true }); }
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
@@ -1372,7 +1387,7 @@ const server = createServer((req, res) => {
           if (r[2] === "improve-pack" && req.method === "GET") { const d = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url") && x.improve); return d ? send(200, inSiteLook(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Improve: ${d.title}</title></head><body><main><h1>Improve your page</h1><p>${d.improve.url}</p>${packOf(id, d).html || "<p>Your page already answers every question Visibility has for it.</p>"}</main></body></html>`, pread(id, "site-read.json")?.shell ?? null), "text/html; charset=utf-8") : send(404, { refused: "no improvement for this page" }); }
           /* RR-356 · the search-results switch: OFF by default, the client's own choice, at most $1 a day */
           /* RR-362: what the plan merged, and the pages checked later: said once, in plain words */
-          if (r[2] === "plan-summary" && req.method === "GET") { const pg = preadMemo(id, "pages.json"), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, councilsBlocked: councilBrowserItems(id).length, councilsRead: pread(id, "council-browser-reads.json", null), searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
+          if (r[2] === "plan-summary" && req.method === "GET") { const pg = preadMemo(id, "pages.json"), m = pg?.examPlan?.merged ?? [], ds = (pg?.drafts ?? []).filter((d) => !d.improve); return send(200, { theyHave: pg?.examPlan?.theyHave ?? [], counts: pg?.examPlan?.counts ?? null, merged: m.map((x) => ({ title: x.title, into: x.into ?? [], why: x.why })), later: (pg?.drafts ?? []).filter((d) => d.checkLater).length, councilsBlocked: councilBrowserItems(id).length, councilsRead: pread(id, "council-browser-reads.json", null), judgeWhy: pread(id, "qa-run.json", {}).why ?? null, judgeCost: pread(id, "qa-run.json", {}).usd ?? null, searches: pg?.serp?.counts ?? null, timing: pg?.timing ?? null, byType: Object.fromEntries(Object.entries(TYPE_WORDS).map(([k, w]) => [k, { words: w, pages: ds.filter((d) => d.type === k).length, ready: ds.filter((d) => d.type === k && d.readyAsDraft).length }])) }); }
           /* RR-367 item 3: the councils our reader could not open: the list for the client's own AI, and what it hands in */
           if (r[2] === "councils/browser" && req.method === "GET") { const items = councilBrowserItems(id); return send(200, { items, instruction: items.length ? browserInstruction(items) : null }); }
           if (r[2] === "councils/browser" && req.method === "POST") { const v = await takeCouncilBrowser(id, json()); return send(v.ok ? 200 : 400, v.ok ? v : { refused: v.line }); }
@@ -1380,7 +1395,7 @@ const server = createServer((req, res) => {
           if (r[2] === "pages-row" && req.method === "GET") { const d = (preadMemo(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, { open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }) : send(404, { refused: "No such page." }); }
           if (r[2] === "pages-view" && req.method === "GET") {
             const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = preadMemo(id, "pages.json")?.drafts ?? [];
-            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null }; }), report: pread(id, "last-report.json"), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
+            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null }; }), report: latestReport(id, s), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
           }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);

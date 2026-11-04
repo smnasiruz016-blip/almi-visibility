@@ -1,0 +1,7 @@
+{
+ "note": "RR-372 (4 Nov 2026). The Node program the app ships. A REAL build refuses any other. Node 24.15.0 (libuv 1.51.0) died with 0xC0000409 inside uv_tcp_connect, fast-fail reason 2, in 12 to 25 percent of stress processes on the owner's machine; the same stress on this version: see Desktop\\oet test\\RR-372 proof. Change it only with that stress run again on the new version.",
+ "version": "24.22.2",
+ "libuv": "1.52.1",
+ "sha256": "1c331340fa6cac5e4294725959070a143fa0507195a78ad77eed7943f719aac9",
+ "source": "https://nodejs.org/dist/v24.22.2/win-x64/node.exe, hash as in https://nodejs.org/dist/v24.22.2/SHASUMS256.txt"
+}

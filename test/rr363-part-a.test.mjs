@@ -80,7 +80,7 @@ test("A7: never \"one of the five checks\": the failed check is named", () => {
 const WINDOWS_ONLY = cscAvailable() ? false : "Windows only: the launcher is a Windows program";
 test("A3: the update carries the launcher: an old launcher is replaced by the new app; the window follows the new version by itself", () => {
   assert.match(BUILD, /join\(stage, "launcher", "AlmiVisibility\.exe"\)/); assert.match(MAIN, /function refreshLauncher\(\)/); assert.match(MAIN, /join\(HERE, "\.\.", "launcher", "AlmiVisibility\.exe"\)/);
-  assert.match(UI, /if \(J\.version !== APP_VERSION\) return location\.reload\(\);/); assert.match(MAIN, /send\(200, \{ version: VERSION, jobs: BOARD\.list\(\) \}\)/);
+  assert.match(UI, /if \(J\.version !== APP_VERSION\) return location\.reload\(\);/); assert.match(MAIN, /send\(200, \{ version: VERSION, jobs: BOARD\.list\(\),/);
 });
 test("A3: the one update that still runs the old launcher: when no screen asks for anything after it, the new launcher opens the window", () => {
   assert.match(MAIN, /copyFileSync\(from, to\); reopenWindowIfNone\(\);/); assert.match(MAIN, /if \(Date\.now\(\) - screenSeenAt < 15000\) return; try \{ spawn\(join\(INSTALL, "AlmiVisibility\.exe"\)/); assert.match(MAIN, /startsWith\("\/api\/"\)\) screenSeenAt = Date\.now\(\);/);

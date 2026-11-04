@@ -56,6 +56,11 @@ test("one office is one line on a page listing every profession; its own words s
   assert.match(read("desktop/exam-plan.mjs"), /it\.part === "councils"\) it\.claims = mergeOffices\(it\.claims\)/);
 });
 
+test("the page's gate reads every profession on a merged office line", async () => {
+  const { professionsRegistered } = await import("../desktop/page-plan.mjs"); assert.deepEqual(professionsRegistered("Office for doctors and nurses in the Philippines: PRC, Manila. Whether it is the registering body is not confirmed yet."), ["medicine", "nursing"]); assert.deepEqual(professionsRegistered("Office for pharmacists, dietitians and vets in X: Y."), ["pharmacy", "dietetics", "veterinary science"]); assert.deepEqual(professionsRegistered("Pakistan Nursing and Midwifery Council registers nurses in Pakistan."), ["nursing"]);
+  assert.match(read("desktop/page-quality.mjs"), /professionsRegistered\(l\)\.includes\(k\)/);
+});
+
 test("the wiring: the button beside the list; the route is async; a day's list skips what was tried; our reader failing again keeps what your AI read", () => {
   const ui = read("desktop/ui.html"), m = read("desktop/main.mjs");
   assert.match(ui, /<b>Add what your AI read<\/b> <input type="file" id="handinfile" accept="\.json,application\/json"/); assert.match(ui, /e\.target\?\.id !== "handinfile"/); assert.match(ui, /councils\/browser`, hand\)/); assert.match(ui, /could not read: \$\{esc\(p\.reason\)\}/);

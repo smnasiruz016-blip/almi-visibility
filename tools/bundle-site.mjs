@@ -22,6 +22,8 @@ export function siteFiles() {
     seen.add(file);
     const text = readFileSync(join(REPO, file), "utf8");
     for (const m of text.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+["'](\.{1,2}\/[^"']+)["']/g)) walk(relative(REPO, resolve(REPO, dirname(file), m[1])).replace(/\\/g, "/"));
+    /* 🔴 RR-370b (the whole site answered 500 on 4 Nov 2026: desktop/research.mjs read desktop/lists/fact-corrections.json as it loaded, and only imports were followed): a data file a module reads by its own address goes with it */
+    for (const m of text.matchAll(/new URL\(\s*["'](\.{1,2}\/[^"']+\.json)["']\s*,\s*import\.meta\.url\s*\)/g)) { const data = relative(REPO, resolve(REPO, dirname(file), m[1])).replace(/\\/g, "/"); if (existsSync(join(REPO, data))) seen.add(data); }
   };
   walk("site/app.mjs");
   /* RR-348: the home's pictures (site/img: the app screenshot, the brands' icons and where each came from) */

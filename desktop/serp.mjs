@@ -9,6 +9,7 @@
  * Pure parts (the request, the answer read, the cap) are exported for the tests; the call is handed fetch.
  */
 import { coverageOf, secondSearch } from "./recipe.mjs"; // RR-358: G5 + G6 for every page
+import { keywordField, taskFault, noteRefused, REFUSED_CODES } from "./dfs-task.mjs"; // RR-370b
 import { COUNTRIES } from "./world.mjs"; // RR-359: a heading that is only a country's name is no subtopic
 import { blocksOfHtml, blueprintOf } from "./blocks.mjs"; // RR-363: R15
 import { coreOf } from "./page-types.mjs";
@@ -33,7 +34,7 @@ export function mayBuy(ledger = { spent: [] }, { now = new Date().toISOString(),
   return { ok: spent + price <= day + 1e-9 && month + price <= capMonth + 1e-9, spent, month, left: Math.max(0, day - spent) };
 }
 /** the request body (one task) for a search in a country and language */
-export const serpTask = (keyword, { location = "United States", language = "en" } = {}) => [{ keyword, location_name: location, language_code: language, depth: SERP.depth, priority: 1 }];
+export const serpTask = (keyword, { location = "United States", language = "en" } = {}) => [{ keyword: keywordField(keyword), location_name: location, language_code: language, depth: SERP.depth, priority: 1 }];
 /*
  * 🔴 RR-358 (owner's real run on 1.15.10: ONE search for 29 pages). His ledger: four "Test the connection" searches and one run search, none
  * kept as a result — every one was refused. The run stopped after the first because the old loop stopped on any reason with "login" in it,
@@ -59,9 +60,9 @@ export function plainSerpWhy(code, message) {
  * that grows; a refusal that stops every search (the login, the account, the money, the cap) is never retried. A failed search costs $0.
  */
 export const RETRY = Object.freeze({ times: 2, pauseMs: 3000 });
-export const tryAgain = (got) => !got.ok && !got.stop && !got.capped && !got.off && (got.code == null || got.code >= 50000 || [40101, 40202, 40209, 40501, 40502, 40503].includes(got.code) || /internal|server error|time ?out|timed out|try again|did not answer|temporar/i.test(`${got.message ?? ""} ${got.why ?? ""}`));
+export const tryAgain = (got) => !got.ok && !got.stop && !got.capped && !got.off && (got.code == null || got.code >= 50000 || [40101, 40202, 40209].includes(got.code) /* RR-370b: 40501, 40502 and 40503 say the request is wrong: sent again, it is wrong again */ || /internal|server error|time ?out|timed out|try again|did not answer|temporar/i.test(`${got.message ?? ""} ${got.why ?? ""}`));
 /* RR-363 (found in the owner's saved results: 846 of 1,220 addresses were Google's own redirect links, never opened): the page's own address, from the result's breadcrumb; none: the redirect stays, and is left unread */
-const realUrl = (i) => { if (!/^https?:\/\/(?:[^/]*\.)?google\./i.test(i.url)) return i.url; const b = String(i.breadcrumb ?? "").split(/\s*›\s*/).map((x) => x.trim()).filter(Boolean); return /^https?:\/\/[^\s/]+\.[a-z]/i.test(b[0] ?? "") && !/\.\.\.|…/.test(String(i.breadcrumb ?? "")) /* RR-366: a breadcrumb cut short ("oet-test-centr...") is no address */ && b.every((x, k) => k === 0 || /^[\w%.~-]+$/.test(x)) ? b.join("/").replace(/([^:])\/\//g, "$1/") : i.url; };
+const realUrl = (i) => { if (!/^https?:\/\/(?:[^/]*\.)?google\./i.test(i.url)) return i.url; const b = String(i.breadcrumb ?? "").split(/\s*›\s*/).map((x) => x.trim()).filter(Boolean); return /^https?:\/\/[^\s/]+\.[a-z][^\s/]*$/i.test(b[0] ?? "") /* RR-370b: "https://www.dvidshub.net · Feb 24, 2025" is no address */ && !/\.\.\.|…/.test(String(i.breadcrumb ?? "")) /* RR-366: a breadcrumb cut short ("oet-test-centr...") is no address */ && b.every((x, k) => k === 0 || /^[\w%.~-]+$/.test(x)) ? b.join("/").replace(/([^:])\/\//g, "$1/") : i.url; };
 /**
  * 🔴 RR-366 Part 7 · THE STANDARD QUEUE. A search is posted once and paid once: its task id stays in the ledger (ledger.pending) until its answer is collected, free, so a run that stops, or an answer not ready yet, is never paid again.
  * `tasksOf` posts up to QUEUE.perPost at a time, `collectOne` asks for one answer. An answer that comes at once (a stand-in, a test) is taken as it is.
@@ -84,7 +85,9 @@ export async function queueSearches({ wanted = [], settings = {}, ledger, login,
   const fresh = (k) => { const c = ledger.serpCache?.[k]; return c && (!c.at || (Date.parse(now) - Date.parse(c.at)) / 864e5 <= KEEP_SEARCH_DAYS); }, seen = new Set();
   /* 🔴 RR-370 item 11: the same search in other words is the saved one: reused, never bought */
   { const map = byMeaning(Object.keys(ledger.serpCache ?? {}).filter(fresh)); for (const w of wanted) { if (fresh(w.key) || ledger.pending?.[w.key]) continue; const twin = twinOf(w.key, map); if (twin && twin !== w.key) (ledger.serpCache ??= {})[w.key] = { ...ledger.serpCache[twin], cost: 0, sameAs: twin }; } }
-  const todo = wanted.filter((w) => !fresh(w.key) && !ledger.pending?.[w.key] && !seen.has(w.key) && seen.add(w.key));
+  /* 🔴 RR-370b: each task is checked before it is sent; one refused is remembered, and not posted again */
+  const stillRefused = (k) => { const r = ledger.refused?.[k]; return r && (Date.parse(now) - Date.parse(r.on)) / 864e5 <= KEEP_SEARCH_DAYS; };
+  const todo = wanted.filter((w) => { if (fresh(w.key) || ledger.pending?.[w.key] || seen.has(w.key)) return false; seen.add(w.key); if (stillRefused(w.key)) return false; const fault = (w.task ?? []).map((t) => taskFault(w.kind ?? "serp", t)).find(Boolean); if (fault) { noteRefused(ledger, w, fault, { on: now, by: "us" }); return false; } return true; });
   let posted = 0, cost = 0, stop = null, left = todo;
   while (left.length && !stop) {
     /* never past the cap: only as many as it still allows are sent */
@@ -93,7 +96,7 @@ export async function queueSearches({ wanted = [], settings = {}, ledger, login,
     const sameKind = batch.filter((w) => (w.kind ?? "serp") === (batch[0].kind ?? "serp")), url = batch[0].kind === "auto" ? AUTOCOMPLETE.url : SERP.url;
     let r = null; try { r = await fetchImpl(url, { method: "POST", headers: { "content-type": "application/json", authorization: authOf(login, password) }, body: JSON.stringify(sameKind.flatMap((w) => w.task)), signal: AbortSignal.timeout(60000) }); } catch { r = null; }
     const json = r ? await r.json().catch(() => null) : null; if (!json || json.status_code !== 20000) { const bad = readSerp(json ?? {}); stop = bad.stop ? bad.why : `the search-results service did not take the searches: ${bad.why}`; break; }
-    sameKind.forEach((w, i) => { const t = json.tasks?.[i]; if (isCreated(t)) { const c = Number(t.cost) || price; (ledger.pending ??= {})[w.key] = { id: t.id, kind: w.kind ?? "serp", at: now, cost: c, q: w.q }; (ledger.spent ??= []).push({ on: now, cost: c, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", queued: true, ok: true }); posted++; cost += c; } else { const g = readOf(w.kind ?? "serp", { status_code: 20000, tasks: [t] }); (ledger.spent ??= []).push({ on: now, cost: g.ok ? g.cost || price : 0, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", ok: g.ok, ...(g.ok ? {} : { code: g.code, why: g.why }) }); if (g.ok) { (ledger.serpCache ??= {})[w.key] = { ...g, at: now }; posted++; cost += g.cost || price; } else if (g.stop) stop = g.why; } });
+    sameKind.forEach((w, i) => { const t = json.tasks?.[i]; if (isCreated(t)) { const c = Number(t.cost) || price; (ledger.pending ??= {})[w.key] = { id: t.id, kind: w.kind ?? "serp", at: now, cost: c, q: w.q }; (ledger.spent ??= []).push({ on: now, cost: c, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", queued: true, ok: true }); posted++; cost += c; } else if (REFUSED_CODES.has(t?.status_code)) { noteRefused(ledger, w, `DataForSEO refused it (${t.status_code}: ${String(t.status_message ?? "").slice(0, 100)})`, { on: now, by: "DataForSEO" }); (ledger.spent ??= []).push({ on: now, cost: 0, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", ok: false, code: t.status_code, why: String(t.status_message ?? "") }); } else { const g = readOf(w.kind ?? "serp", { status_code: 20000, tasks: [t] }); (ledger.spent ??= []).push({ on: now, cost: g.ok ? g.cost || price : 0, q: w.q, what: w.kind === "auto" ? "autocomplete" : "search results", ok: g.ok, ...(g.ok ? {} : { code: g.code, why: g.why }) }); if (g.ok) { (ledger.serpCache ??= {})[w.key] = { ...g, at: now }; posted++; cost += g.cost || price; } else if (g.stop) stop = g.why; } });
     left = left.filter((w) => !sameKind.includes(w));
   }
   return { posted, cost, stop };
@@ -147,7 +150,7 @@ export function readSerp(json) {
 /* RR-362 (found in the crash hunt: Google's own redirect links among the results were being read): a result on Google's own site, Reddit or Quora is never opened */
 /* 🔴 item 34b: Google's autocomplete in a country, through the same service, ledger and caps; a kept answer is reused free */
 export const AUTOCOMPLETE = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/autocomplete/task_post" });
-export const autoKey = (keyword, country) => `auto|${keyword}|${country}`, autoTask = (keyword, country) => [{ keyword, location_name: country, language_code: "en", priority: 1 }];
+export const autoKey = (keyword, country) => `auto|${keyword}|${country}`, autoTask = (keyword, country) => [{ keyword: keywordField(keyword), location_name: country, language_code: "en", priority: 1 }];
 export const readAutocomplete = (json) => { const t = json?.tasks?.[0]; if (json?.status_code !== 20000 || t?.status_code !== 20000) return { ok: false, why: t?.status_message ?? json?.status_message ?? "no answer" }; return { ok: true, cost: Number(t.cost) || 0, phrases: (t.result?.[0]?.items ?? []).filter((i) => i.type === "autocomplete" && i.suggestion).map((i) => String(i.suggestion).trim()) }; };
 export async function autocompleteIn({ keyword, country, settings = {}, ledger, login, password, fetchImpl = fetch, now = new Date().toISOString(), wait = true, poll = {} }) {
   const key = autoKey(keyword, country), kept = ledger.serpCache?.[key];
@@ -167,7 +170,7 @@ export function rankByLocal(items = [], phrases = [], subject = null) {
   const out = [...items]; slots.forEach((i, n) => { const { it, hit } = asks[n], same = hit && [...hit.w].sort().join() === meaningOf(it.question, { drop: [subject] }).join() && /^(how|what|why|which|where|when|who|is|are|can|does|do)\b/i.test(hit.p); out[i] = same ? { ...it, question: `${hit.p.charAt(0).toUpperCase()}${hit.p.slice(1).replace(/[?.]*$/, "")}?`, localWording: true } : it; });
   return out;
 }
-export const notForReading = (u) => /^https?:\/\/(?:[^/]*\.)?(?:google\.[a-z.]+|reddit\.com|quora\.com)(?:[/:?#]|$)/i.test(String(u)) || /\.\.\.$|…$/.test(String(u));
+export const notForReading = (u) => /^https?:\/\/(?:[^/]*\.)?(?:google\.[a-z.]+|reddit\.com|quora\.com)(?:[/:?#]|$)/i.test(String(u)) || /\.\.\.$|…$/.test(String(u)) || /\s/.test(String(u));
 /** R4: a Reddit or Quora result, as Google shows it → a question in people's words (its title, or a question in its snippet) — never a fact */
 export function communityQuestions(results = [], site) {
   return results.filter((r) => { try { return new URL(r.url).hostname.replace(/^www\./, "").endsWith(site); } catch { return false; } })

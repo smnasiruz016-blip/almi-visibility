@@ -12,7 +12,7 @@ import { questionOffIntentWhy, unclearWhy, coreMissingOfPlan, suggestionWhy } fr
 import { examPlan, applyLocalQuestions, askedOf, validityClaimsOf, priceHere, settleLocal } from "../desktop/exam-plan.mjs";
 import { placeHere } from "../desktop/truth-prices.mjs";
 import { subjectFactsOf, pageWords } from "../desktop/subject-facts.mjs";
-import { SERP, ONPAGE, queueSearches, collectQueued, searchGoogle, parseTopPage, blocksOfContent, searchPages, serpKey, autocompleteIn, autoKey, autoTask, readSerp, notForReading, searchTermOf, CAP_LATER } from "../desktop/serp.mjs";
+import { serpTask, SERP, ONPAGE, queueSearches, collectQueued, searchGoogle, parseTopPage, blocksOfContent, searchPages, serpKey, autocompleteIn, autoKey, autoTask, readSerp, notForReading, searchTermOf, CAP_LATER } from "../desktop/serp.mjs";
 import { partsMissing } from "../desktop/page-quality.mjs";
 import { runTopPages } from "../site/top-pages.mjs";
 
@@ -223,7 +223,7 @@ test("Part 7: the Standard queue: the right address and price, posted once, coll
   const MAIN = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), TP = readFileSync(new URL("../site/top-pages.mjs", import.meta.url), "utf8"); assert.ok(MAIN.includes("queue: inHand ?") && MAIN.includes("parse: st.on === true && !quick") /* RR-369: the quick pass reads no page */); assert.ok(!/live\/advanced/.test(MAIN + TP + readFileSync(new URL("../desktop/serp.mjs", import.meta.url), "utf8")), "no live search anywhere");
 });
 test("Part 7: a search posted once is never paid twice: not when it is still waiting, not on the next run, not after a stop", async () => {
-  const S = standIn({ readyAfter: 3 }), ledger = { spent: [] }, wanted = ["a", "b"].map((k) => ({ key: serpKey(k), q: k, task: [{ keyword: k }] }));
+  const S = standIn({ readyAfter: 3 }), ledger = { spent: [] }, wanted = ["a", "b"].map((k) => ({ key: serpKey(k), q: k, task: serpTask(k) }));
   const q = await queueSearches({ wanted, settings: ON_SWITCH, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW });
   assert.deepEqual([q.posted, S.posted()], [2, 2]); assert.equal(ledger.spent.length, 2); assert.ok(ledger.pending[serpKey("a")].id);
   const again = await queueSearches({ wanted, settings: ON_SWITCH, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW }); assert.equal(again.posted, 0, "already on its way"); assert.equal(S.posted(), 2);
@@ -237,7 +237,7 @@ test("Part 7: searchGoogle alone: posts, waits, returns; a pending one from an e
   const S3 = standIn(), l3 = { spent: [] }, a = await autocompleteIn({ keyword: "oet kya hai", country: "Pakistan", settings: ON_SWITCH, ledger: l3, login: "l", password: "p", fetchImpl: S3.fetchImpl, now: NOW, poll: { everyMs: 0 } }); assert.deepEqual([a.ok, a.phrases], [true, ["oet fees"]]); assert.match(String(S3.posted()), /1/); assert.equal(l3.spent[0].what, "autocomplete");
 });
 test("Part 7, REPLACED by RR-369 (never paid twice): a saved answer of Google's redirect links is used as it is and not bought once more; a good one is never bought again", async () => {
-  const S = standIn(), goog = { ok: true, results: [{ url: "https://google.com/goto?url=a" }, { url: "https://google.com/goto?url=b" }, { url: "https://real.example/" }], paa: [], related: [], at: NOW }, ledger = { spent: [], serpCache: { [serpKey("bad")]: goog, [serpKey("good")]: { ...goog, results: [{ url: "https://real.example/" }] } } }, wanted = ["bad", "good"].map((k) => ({ key: serpKey(k), q: k, task: [{ keyword: k }] }));
+  const S = standIn(), goog = { ok: true, results: [{ url: "https://google.com/goto?url=a" }, { url: "https://google.com/goto?url=b" }, { url: "https://real.example/" }], paa: [], related: [], at: NOW }, ledger = { spent: [], serpCache: { [serpKey("bad")]: goog, [serpKey("good")]: { ...goog, results: [{ url: "https://real.example/" }] } } }, wanted = ["bad", "good"].map((k) => ({ key: serpKey(k), q: k, task: serpTask(k) }));
   assert.equal((await queueSearches({ wanted, settings: ON_SWITCH, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW })).posted, 0, "never a second time");
   const off = await searchGoogle({ keyword: "q", settings: {}, ledger: { spent: [], serpCache: { [serpKey("q")]: goog } }, fetchImpl: () => { throw new Error("bought while off"); }, now: NOW }); assert.equal(off.cached, true, "with the switch off what is kept is still reused free");
 });
@@ -262,7 +262,7 @@ test("Part 7 (found by the live proof): a page's local questions do not wait for
   assert.deepEqual(p.localAsked, ["oet fees in ghana"]); assert.match(p.serpWhy, /still being prepared/);
 });
 test("Part 7: the cap holds: only what it allows is sent; a whole post is never let through", async () => {
-  const S = standIn(), ledger = { spent: [{ on: NOW, cost: 0.1988 }] }, wanted = ["a", "b", "c", "d"].map((k) => ({ key: serpKey(k), q: k, task: [{ keyword: k }] }));
+  const S = standIn(), ledger = { spent: [{ on: NOW, cost: 0.1988 }] }, wanted = ["a", "b", "c", "d"].map((k) => ({ key: serpKey(k), q: k, task: serpTask(k) }));
   const q = await queueSearches({ wanted, settings: { on: true, capDay: 0.2 }, ledger, login: "l", password: "p", fetchImpl: S.fetchImpl, now: NOW }); assert.equal(q.posted, 2, "$0.0012 was left"); assert.match(q.stop, /cap is reached/); assert.ok(ledger.spent.reduce((t, x) => t + x.cost, 0) <= 0.2 + 1e-9);
   const off = await queueSearches({ wanted, settings: {}, ledger: { spent: [] }, login: "l", password: "p", fetchImpl: () => { throw new Error("bought while off"); }, now: NOW }); assert.equal(off.off, true);
   const noLogin = await queueSearches({ wanted, settings: ON_SWITCH, ledger: { spent: [] }, fetchImpl: () => { throw new Error("sent with no login"); }, now: NOW }); assert.match(noLogin.stop, /login/);

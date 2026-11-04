@@ -16,7 +16,7 @@
  */
 import { countriesIn } from "./world.mjs";
 import { HONEST } from "./answer-ladder.mjs"; // RR-366
-import { professionRegistered } from "./page-plan.mjs"; // RR-365
+import { professionsRegistered } from "./page-plan.mjs"; // RR-365
 import { CORE, KIND, coreOf } from "./page-types.mjs"; // RR-362: one place per rule
 export const QUALITY_GATE = "F";
 export const LOOK_GATE = "G";
@@ -46,7 +46,7 @@ export function plainScores(text) {
 export function cleanFact(text) {
   const t = String(text ?? "").replace(/\s+/g, " ").trim().replace(/^[\p{L}-]+ (?:federal )?wrinkle:\s*(\p{L})/u, (m, c) => c.toUpperCase()); /* RR-367: "India-distinct federal wrinkle:" is a researcher's aside, not the page's voice */
   const noBrackets = t.replace(/\s*\(([^()]*)\)/g, (m, inner) => (NOTE.test(inner) ? "" : m));
-  const kept = noBrackets.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/).filter((s) => !NOTE.test(s));
+  const kept = noBrackets.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/).filter((s) => !NOTE.test(s) || HONEST.test(s)); /* RR-370b: the owner's honest line stays, with its reason */
   return kept.join(" ").replace(/\s+([.,;])/g, "$1").trim();
 }
 
@@ -174,7 +174,7 @@ export function partsMissing(html, kind, { localCurrency = null, asked = [], que
   /* RR-369 Part 4: marked for the collector: no question of ours stands in for it, and the page stays */
   const missing = Object.entries(want).filter(([k]) => !have.has(k) && !(k === "questions" && questionsWanted)).map(([, v]) => v);
   /* 🔴 RR-365 + the owner's rule of 27 Oct (a country's councils = nursing and medicine first): the United States listed six other councils and stood ✅: a list without them is named, never invented */
-  if (kind === "country" && have.has("councils")) { const lines = p.items.filter((i) => /--councils\d*$/.test(i.id)).flatMap((i) => i.answers), lack = [["nursing", "the nurses' council"], ["medicine", "the doctors' council"]].filter(([k]) => !lines.some((l) => professionRegistered(l) === k)).map(([, w]) => w); if (lack.length) missing.push(lack.join(" and ")); }
+  if (kind === "country" && have.has("councils")) { const lines = p.items.filter((i) => /--councils\d*$/.test(i.id)).flatMap((i) => i.answers), lack = [["nursing", "the nurses' council"], ["medicine", "the doctors' council"]].filter(([k]) => !lines.some((l) => professionsRegistered(l).includes(k))).map(([, w]) => w); if (lack.length) missing.push(lack.join(" and ")); }
   /* the fee in the country's own currency is the FIRST card */
   if (kind === "country" && localCurrency && !missing.includes(want.fee) && !new RegExp(`^${localCurrency}\\b`).test(p.cards[0]?.value ?? "")) missing.unshift(`${want.fee} as the first fact card`);
   return missing;

@@ -12,6 +12,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { SERP, ONPAGE, QUEUE, serpTask, readSerp, notForReading, blocksOfContent, searchTermOf } from "../desktop/serp.mjs";
+import { taskFault } from "../desktop/dfs-task.mjs"; // RR-370b
 import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { blocksOfHtml, blueprintOf } from "../desktop/blocks.mjs"; // RR-363: R15
@@ -99,6 +100,8 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           if (budget0.spent + out.cost + Math.max(price, TOP_PAGES_CAPS.searchReserveUsd) > caps.budget + 1e-9) { stop("BUDGET", `The top-pages budget is spent ($${caps.budget} in total) — the collector has stopped by itself.`); break; }
           if (topic.payer && (await seo.accountSpend(month, topic.payer)) + price > payerLimit + 1e-9) break; // this client's month is used: the next topic
           if (spent.usd + out.cost + price > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
+          /* 🔴 RR-370b: checked before it is sent; a bad one is counted, never sent */
+          if (taskFault("serp", serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })[0])) { out.refused = (out.refused ?? 0) + 1; continue; }
           let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify(serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }
           const said = r ? await r.json().catch(() => ({})) : null, task = said?.tasks?.[0];
           out.searches++;

@@ -81,7 +81,8 @@ export function applyVerdicts(plan, verdicts = {}) {
 export function markPages(plan, verdicts, { judging = true } = {}) { for (const p of plan.pages ?? []) { const rows = (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => !honest(c)).map((c) => verdicts[pairKey(p.title, it.question, c.text)])), un = rows.filter((v) => !v).length, no = rows.filter((v) => v?.fits === false).length; p.fitCheck = judging ? { judged: rows.length - un, unjudged: un, no } : { notJudged: true, judged: rows.length - un, unjudged: 0, no }; } return plan; }
 /** a fair sample: every type, then random, from a seed, so the same day's file can be read again */
 export function samplePages(pages, { count = JUDGE.sample, seed = 1 } = {}) {
-  let s = seed >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }, shuffled = [...pages].map((p) => [rnd(), p]).sort((a, b) => a[0] - b[0]).map((x) => x[1]), kinds = [...new Set(pages.map((p) => p.kind))], first = kinds.flatMap((k) => shuffled.filter((p) => p.kind === k).slice(0, 3)), seen = new Set(first);
+  /* 🔴 RR-370: by the page's own name, never its place in the list: one page more or less leaves the others in the sample */
+  const place = (p) => createHash("sha1").update(`${seed}|${p.title ?? p.need?.title ?? ""}`).digest("hex"), shuffled = [...pages].map((p) => [place(p), p]).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map((x) => x[1]), kinds = [...new Set(pages.map((p) => p.kind))], first = kinds.flatMap((k) => shuffled.filter((p) => p.kind === k).slice(0, 3)), seen = new Set(first);
   return [...first, ...shuffled.filter((p) => !seen.has(p))].slice(0, count);
 }
 /** the file beta-g reads */

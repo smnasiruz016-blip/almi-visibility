@@ -138,6 +138,11 @@ test("A: the test's price stands alone; what a change or a re-mark costs is answ
   assert.match(read("desktop/exam-plan.mjs"), /splitOtherFees\(pages, subject\);/);
 });
 
+test("C: the sample stands still: one page more or less leaves the other pages where they were", () => {
+  const pages = Array.from({ length: 200 }, (_, i) => ({ title: `Page ${i}`, kind: "local" })), a = samplePages(pages, { count: 30, seed: 7 }).map((p) => p.title), gone = a[3], b = samplePages(pages.filter((p) => p.title !== gone), { count: 30, seed: 7 }).map((p) => p.title);
+  assert.equal(a.filter((x) => !b.includes(x)).length, 1, "only the page that went"); assert.notDeepEqual(a, samplePages(pages, { count: 30, seed: 8 }).map((p) => p.title), "another day, another sample");
+});
+
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {
   assert.equal(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for nursing in Bangladesh")); assert.equal(meaningKey("cost of oet exam"), meaningKey("exam fee for oet")); assert.equal(meaningKey("oet centre near me"), meaningKey("oet exam center near me")); assert.equal(meaningKey("OET in Singapore: fee, centres and councils"), meaningKey("OET in Singapore")); assert.equal(meaningKey("OET in the Philippines"), meaningKey("OET in Philippines"));
   assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Nurses from Nepal")); assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Doctors from Bangladesh")); assert.notEqual(meaningKey("OET for Nurses"), meaningKey("OET for Nurses reddit")); assert.equal(twinOf("auto|oet fee|Ghana", byMeaning(["auto|oet cost|Ghana"])), null, "autocomplete stands apart");

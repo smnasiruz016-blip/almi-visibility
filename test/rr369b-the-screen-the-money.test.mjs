@@ -18,6 +18,12 @@ import { saveBought, heldBought, sharedFailHosts, collectorReuse, allTopics, ENV
 import { runTopPages } from "../site/top-pages.mjs";
 import { recordRun } from "../site/health.mjs";
 import { bundle, importClosure } from "../site/owner-bundle.mjs";
+import { generateKeyPairSync, sign } from "node:crypto";
+import { Readable } from "node:stream";
+import { almiSeoClient } from "../desktop/almiseo.mjs";
+import { licenceBytes, OWNER as OWNER_ID } from "../desktop/licence.mjs";
+import { createApp } from "../site/app.mjs";
+import { memoryStore } from "../site/kw-store.mjs";
 
 const NOW = "2026-11-03T20:00:00.000Z", DAY = "2026-11-03", OWNER = { owner: true, account: "o", plan: "owner" }, read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
 const ok = (q, cost = 0.00015) => ({ on: NOW, what: "top page read", q, cost, ok: true }), bad = (q, why = "Ok.", cost = 0.00015) => ({ on: NOW, what: "top page read", q, cost, ok: false, why });
@@ -109,6 +115,18 @@ test("ITEM 5, THE SERVER: what failed goes up once (the old ones too), the sites
   const parsed = []; const fetchImpl = async (u, init) => { const url = JSON.parse(init.body)[0].url; parsed.push(url); return { json: async () => ({ status_code: 20000, tasks: [{ status_code: 20000, status_message: "Ok.", cost: 0.00015, result: [{ items: [{}] }] }] }) }; };
   const out = await runTopPages({ seo, cf: cfMemoryStore(), env: { [ENV_NAMES.topPagesOn]: "1", [ENV_NAMES.dfsLogin]: "l", [ENV_NAMES.dfsPassword]: "p" }, reader: { requests: () => 0, raw: async () => "<h2>Fees</h2><p>x</p>" }, fetchImpl, now: () => Date.parse(NOW) });
   assert.deepEqual(parsed, ["https://fresh.example/1"], "facebook.com is not paid for"); assert.equal(out.readsSkipped, 1); assert.ok(out.cost >= 0.00015, "a failed reading is booked"); assert.equal((await seo.pages(["https://fresh.example/1"]))[0].structure.paidFail, true); assert.equal((await sharedFailHosts(seo))["fresh.example"].fail, 1, "remembered for everyone"); assert.ok(String(FAIL_KEY).length);
+});
+
+test("ITEM 5, THE REAL ROUTE: over HTTP, with the licence checked: the sites' counts arrive, are said back, and the app takes them; the same counts sent twice stay one report", async () => {
+  const pair = generateKeyPairSync("ed25519"), pub = pair.publicKey.export({ type: "spki", format: "pem" }), seo = seoMemoryStore(), env = { KV_REST_API_URL: "https://kv.example", KV_REST_API_TOKEN: "x", LICENCE_PUBLIC_KEY: pub, CRON_SECRET: "x".repeat(20), OWNER_ACCESS_KEY: "k".repeat(30) };
+  const handler = createApp({ mode: "sales", env, kvFetch: async () => ({ ok: true, status: 200, json: async () => [] }), kwStore: memoryStore(), cfStore: cfMemoryStore(), seoStore: seo, dataDir: "." }), AT = new Date().toISOString(), lic = { account: "av_owner_x", kind: OWNER_ID.kind, licensee: OWNER_ID.licensee, plan: OWNER_ID.plan, status: "ACTIVE", periodEnd: null, issuedAt: AT }, signed = { licence: lic, signature: sign(null, licenceBytes(lic), pair.privateKey).toString("base64") };
+  const fetchImpl = async (url, init = {}) => { const u = new URL(url), body = init.body ?? "", req = Readable.from(body ? [Buffer.from(body)] : []); req.method = init.method ?? "GET"; req.url = `${u.pathname}${u.search}`; req.headers = { ...Object.fromEntries(Object.entries(init.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v])), host: u.host }; let status = 0, out = ""; await new Promise((ok2) => handler(req, { writeHead: (c) => { status = c; }, setHeader: () => {}, end: (x) => { out = String(x ?? ""); ok2(); } })); return { ok: status < 400, status, json: async () => JSON.parse(out) }; };
+  const client = almiSeoClient({ siteUrl: "https://x.example/", signed, fetchImpl }), ledger = { spent: [bad("https://www.facebook.com/1"), bad("https://www.facebook.com/2")], serpCache: {} }, saved = emptySaved();
+  await uploadBought({ client, ledger, tops: {}, saved, subjectOf: () => "OET", examSubject: "OET", now: AT }); assert.ok(saved.failHostsSent, "the server said it took them"); assert.deepEqual((await sharedFailHosts(seo))["facebook.com"], { ok: 0, fail: 2 });
+  await saveBought({ seo, subject: "OET", failHosts: { "facebook.com": { ok: 0, fail: 2 } }, lic: OWNER, at: AT }); assert.deepEqual((await sharedFailHosts(seo))["facebook.com"], { ok: 0, fail: 2 }, "absolute, not added");
+  const sv = emptySaved(); await askServerFirst({ client, subject: "OET", keys: ["x||"], ledger: { spent: [] }, saved: sv }); assert.equal(sv.failHosts["facebook.com"].fail, 2);
+  /* one failure of its own, told to the server and heard back, is still one */
+  assert.equal(readFailures({ own: { "one.example": { ok: 0, fail: 1 } }, shared: { "one.example": { ok: 0, fail: 1 } } }).skip("https://one.example/x"), null, "never the sum");
 });
 
 test("THE BUNDLE: the last folder's files from HEAD; the folder's own package.json and vercel.json kept; what the server newly imports added; a key or env file never", () => {

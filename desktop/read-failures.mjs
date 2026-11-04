@@ -19,17 +19,17 @@ export function failuresOfLedger(ledger = {}) {
   }
   return { urls, hosts };
 }
-const add = (a, b) => { const out = { ...a }; for (const [k, v] of Object.entries(b ?? {})) out[k] = { ok: (out[k]?.ok ?? 0) + (Number(v?.ok) || 0), fail: (out[k]?.fail ?? 0) + (Number(v?.fail) || 0) }; return out; };
 /**
  * The check a run asks before paying. `own` = this app's or the collector's own counts; `shared` = the counts held on the server, from everyone else. → { skip(url) → why or null, note(url, { ok, why }), own(), skipped() }
  */
 export function readFailures({ urls = new Map(), own = {}, shared = {} } = {}) {
   const failed = new Map(urls), mine = { ...own }, seen = new Set(); let skipped = 0;
-  const countOf = (h) => { const a = mine[h], b = shared[h]; return { ok: (a?.ok ?? 0) + (b?.ok ?? 0), fail: (a?.fail ?? 0) + (b?.fail ?? 0) }; };
+  /* the server's counts already hold this app's own: the larger is the truth, never the sum: a sum would condemn a site on one failure */
+  const countOf = (h) => { const a = mine[h], b = shared[h]; return { ok: Math.max(a?.ok ?? 0, b?.ok ?? 0), fail: Math.max(a?.fail ?? 0, b?.fail ?? 0) }; };
   return Object.freeze({
     skip(url) { const why = failed.has(url) ? "it failed before" : DOCUMENT.test(String(url)) ? "a document, which this reading cannot read" : hostFails(countOf(hostOf(url))) ? "this site nearly always refuses this reading" : null; if (why && !seen.has(url)) { seen.add(url); skipped++; } return why; },
     note(url, { ok, why = null }) { if (NOT_THE_PAGE.test(String(why ?? ""))) return; const h = hostOf(url); if (h) { mine[h] = { ok: (mine[h]?.ok ?? 0) + (ok ? 1 : 0), fail: (mine[h]?.fail ?? 0) + (ok ? 0 : 1) }; } if (!ok) failed.set(url, { why }); },
-    own: () => ({ ...mine }), skipped: () => skipped, failedUrls: () => [...failed.keys()], total: () => add(mine, shared),
+    own: () => ({ ...mine }), skipped: () => skipped, failedUrls: () => [...failed.keys()],
   });
 }
 /** a ledger's reads, replayed in their own order with this rule: how many paid failures it would have saved, and how many good reads it would have skipped (those still get the free read) */

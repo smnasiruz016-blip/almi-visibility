@@ -69,7 +69,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
     if (env[ENV_NAMES.topPagesClients] === "1") topics.push(...await clientTopicsToWork({ seo, topics: all, today, limits }));
     const facts = await cf.facts();
     /* 🔴 RR-369b item 5: what is known to fail is not paid for; what fails here is remembered for everyone */
-    const fails = readFailures({ shared: await sharedFailHosts(seo).catch(() => ({})) }), hostsHere = {}, noteHere = (u, ok, why) => { fails.note(u, { ok, why }); const h = hostOf(u); if (h && !/too long/i.test(String(why ?? ""))) { hostsHere[h] ??= { ok: 0, fail: 0 }; hostsHere[h][ok ? "ok" : "fail"]++; } };
+    const fails = readFailures({ own: await sharedFailHosts(seo).catch(() => ({})) }) /* its own failures add to what everyone reported */, hostsHere = {}, noteHere = (u, ok, why) => { fails.note(u, { ok, why }); const h = hostOf(u); if (h && !/too long/i.test(String(why ?? ""))) { hostsHere[h] ??= { ok: 0, fail: 0 }; hostsHere[h][ok ? "ok" : "fail"]++; } };
     for (let pass = 0; ; pass++) {
     for (const topic of topics) {
       if (out.stoppedBy) break;

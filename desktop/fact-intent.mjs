@@ -14,7 +14,7 @@ export function intentOfFact(f) {
   return null;
 }
 /** which facts a fixed part of a page may hold. A part not named here takes anything the judge lets stand */
-export const PART_INTENTS = Object.freeze({ standing: ["good-standing"], documents: ["documents"], fee: ["fee"], centres: ["venue"], results: ["results"], scores: ["required-score"], destinations: ["required-score"], council: ["who-registers"], councils: ["who-registers", "required-score"], regulator: ["who-registers", "registration"] });
+export const PART_INTENTS = Object.freeze({ standing: ["good-standing"], documents: ["documents"], fee: ["fee", "booking", "remark"], centres: ["venue", "booking"], results: ["results"], scores: ["required-score"], destinations: ["required-score"], council: ["who-registers"], councils: ["who-registers", "required-score"], regulator: ["who-registers", "registration"] });
 const partOf = (part) => String(part ?? "").replace(/\d+$/, "");
 /** a claim whose collected intent is known and is not what this part asks */
 export const misplaced = (part, claim) => { const allowed = PART_INTENTS[partOf(part)], i = claim?.intent; return Boolean(allowed && i && !allowed.includes(i) && !claim.gap); };

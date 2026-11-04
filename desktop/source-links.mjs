@@ -37,19 +37,24 @@ export const thirdPerson = (t) => FIRST_PERSON.reduce((s, [re, to]) => s.replace
  * The corrections and the checks applied to every claim of the plan. → { changed: [{ page, text, link, to, why }], removed: [...] }
  * corrections.text: wrong words → the checked words and their page · corrections.cite: a claim holding these words is cited to that document · corrections.links: an address → the right one
  */
+const hostIn = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
+export const notCovered = (link, profession, { bodyCovers = {} } = CORRECTIONS) => { const list = bodyCovers[hostIn(link)]; return Array.isArray(list) && !list.includes(profession); };
+const bodyOf = (link) => CORRECTIONS.bodyNames?.[hostIn(link)] ?? hostIn(link);
 export function applySources(plan, { corrections = CORRECTIONS, checks = {} } = {}) {
   const changed = [], removed = [];
   for (const p of plan.pages ?? []) { const items = [];
-    for (const it of p.items ?? []) { const keep = [];
+    for (const it of p.items ?? []) { const keep = []; let uncovered = false;
       for (const c0 of it.claims ?? []) { let c = c0;
         const to = (patch, why) => { changed.push({ page: p.title, text: String(c.text).slice(0, 120), link: c.link, to: patch.link ?? c.link, why }); c = { ...c, ...patch }; };
         for (const r of corrections.text ?? []) if (String(c.text).includes(r.has)) to({ text: r.to, link: r.link, readOn: r.on, source: `${r.source} — its official page`, intent: r.intent ?? c.intent, card: null }, r.why);
         for (const r of corrections.cite ?? []) if (String(c.text).includes(r.has) && c.link !== r.link) to({ link: r.link, readOn: r.on, source: r.source }, r.why);
         for (const r of corrections.links ?? []) if (String(c.link ?? "").includes(r.from) && (!r.textHas || String(c.text).includes(r.textHas))) to({ link: r.to, readOn: r.on, source: `${r.source} — its official page` }, r.why);
         if (firstPersonIn(c.text)) { const t = thirdPerson(c.text); if (t !== c.text) c = { ...c, text: t }; if (firstPersonIn(c.text)) { removed.push({ page: p.title, text: String(c.text).slice(0, 160), link: c.link, why: "it speaks as \"I\"" }); continue; } }
+        /* 🔴 RR-370 item 3: a body's own policy names whom it regulates. Whatever route brought it here, its words are no answer for a profession it does not name */
+        if (p.profession && notCovered(c.link, p.profession, corrections)) { removed.push({ page: p.title, text: String(c.text).slice(0, 160), link: c.link, why: `its body does not regulate ${p.profession}` }); uncovered = true; continue; }
         const k = checks[c.link]; if (k?.state === "broken" || errorAddress(c.link)) { removed.push({ page: p.title, text: String(c.text).slice(0, 160), link: c.link, why: k?.why ?? "its address is an error page" }); continue; }
         keep.push(c); }
-      if (keep.length) items.push({ ...it, claims: keep }); else if (!(it.claims ?? []).length) items.push(it); else if (FIXED_PART.test(it.part)) { /* a part the page must keep: its source no longer opens: said, with the body's own site, never the broken address */ const c = it.claims[0]; let home = null; try { home = `${new URL(c.link).origin}/`; } catch { /* no address at all */ } const on = String(c.readOn ?? "").slice(0, 10); if (home) items.push({ ...it, claims: [{ claimId: `open-${c.claimId}`, card: null, text: `${new URL(home).hostname.replace(/^www\./, "")}'s own page could not be read on ${on}; this is still being looked for.`, link: home, readOn: on, source: c.source, official: true, gap: true }] }); } }
+      if (keep.length) items.push({ ...it, claims: keep }); else if (!(it.claims ?? []).length) items.push(it); else if (uncovered && FIXED_PART.test(it.part)) { const c = it.claims[0]; items.push({ ...it, claims: [{ claimId: `open-${c.claimId}`, card: null, text: `${bodyOf(c.link)} does not regulate this profession, so its English standard is not given here. The body that does is still being looked for.`, link: c.link, readOn: String(c.readOn ?? "").slice(0, 10), source: c.source, official: true, gap: true }] }); } else if (uncovered) { /* a question people asked: it goes */ } else if (FIXED_PART.test(it.part)) { /* a part the page must keep: its source no longer opens: said, with the body's own site, never the broken address */ const c = it.claims[0]; let home = null; try { home = `${new URL(c.link).origin}/`; } catch { /* no address at all */ } const on = String(c.readOn ?? "").slice(0, 10); if (home) items.push({ ...it, claims: [{ claimId: `open-${c.claimId}`, card: null, text: `${new URL(home).hostname.replace(/^www\./, "")}'s own page could not be read on ${on}; this is still being looked for.`, link: home, readOn: on, source: c.source, official: true, gap: true }] }); } }
     p.items = items; }
   return { changed, removed };
 }

@@ -14,5 +14,6 @@
   { "from": "ahpra.gov.au/Error/500", "to": "https://www.ahpra.gov.au/Registration/Practitioner-Services/Certificate-of-Registration-Status.aspx", "on": "2026-11-04", "source": "ahpra.gov.au", "why": "the address was an error page; this page says the same" },
   { "from": "oet.com/test/oet-test-at-home", "textHas": "full test costs", "to": "https://support.oet.com/articles/Knowledge/How-much-does-OET-cost", "on": "2026-11-04", "source": "support.oet.com", "why": "the fee's source is OET's fee page, not the OET@Home page" }
  ],
+ "bodyNames": { "ahpra.gov.au": "Ahpra" },
  "bodyCovers": { "note": "Ahpra's policy of April 2026 names the professions it regulates; a profession outside the list is never joined to its standard.", "ahpra.gov.au": ["medicine", "nursing", "dentistry", "pharmacy", "physiotherapy", "occupational therapy", "radiography", "optometry", "podiatry"] }
 }

@@ -46,7 +46,7 @@ export function plainScores(text) {
 export function cleanFact(text) {
   const t = String(text ?? "").replace(/\s+/g, " ").trim().replace(/^[\p{L}-]+ (?:federal )?wrinkle:\s*(\p{L})/u, (m, c) => c.toUpperCase()); /* RR-367: "India-distinct federal wrinkle:" is a researcher's aside, not the page's voice */
   const noBrackets = t.replace(/\s*\(([^()]*)\)/g, (m, inner) => (NOTE.test(inner) ? "" : m));
-  const kept = noBrackets.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/).filter((s) => !NOTE.test(s));
+  const kept = noBrackets.split(/(?<=[.!?])\s+(?=[A-Z0-9("'])/).filter((s) => !NOTE.test(s) || HONEST.test(s)); /* RR-370b: the owner's honest line stays, with its reason */
   return kept.join(" ").replace(/\s+([.,;])/g, "$1").trim();
 }
 

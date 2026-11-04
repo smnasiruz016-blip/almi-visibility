@@ -19,7 +19,7 @@
 import { PEOPLE_WORD, inCountry } from "./recognition.mjs";
 import { countriesIn } from "./world.mjs";
 import { professionIn } from "./page-plan.mjs";
-import { asksLine, officeLine } from "./council-truth.mjs";
+import { asksLine, officeLine, mergeOffices } from "./council-truth.mjs";
 import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores, ownPart, topicOf as pageTopicOf } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
@@ -484,6 +484,7 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   const pages = [...profPages, ...countryPages, ...realTopics, ...localPages];
   /* 🔴 RR-370: "How much does OET cost?" is the test's price. What a change or a re-mark costs is true, and has a question of its own */
   splitOtherFees(pages, subject);
+  for (const p of pages) for (const it of p.items ?? []) if (it.part === "councils") it.claims = mergeOffices(it.claims);
   for (const p of localPages) { const kin = localPages.filter((x) => x !== p && x.profession === p.profession && x.kind === p.kind).map((x) => x.title), at = kin.findIndex((t) => t > p.title); /* 🔴 RR-370 item 10: its country page, its profession page, the nearest pages of the same profession */ p.links = [p.home, p.prof, ...[...kin.slice(Math.max(0, at)), ...kin].slice(0, 3)].filter(Boolean); p.open = []; p.ledger = []; }
   /* the pages link each other: a profession page its country pages, a country page its profession pages, a topic page the hubs */
   for (const p of profPages) p.links = countryPages.map((c) => c.title);

@@ -49,6 +49,13 @@ test("the file's checks stand: a wrong source, no notice, too fast: nothing kept
   const now = Date.parse("2026-11-04T12:00:00Z"); assert.equal(stillFresh({ via: "x", on: "2026-11-04" }, 30, now), true); assert.equal(stillFresh({ on: "2026-11-04" }, 30, now), false); assert.equal(stillFresh({ via: "x", on: "2026-09-01" }, 30, now), false); assert.equal(stillFresh({ via: "x", on: "2026-09-01", recheckedOn: "2026-11-01" }, 30, now), true);
 });
 
+test("one office is one line on a page listing every profession; its own words stay; other lines are left alone", async () => {
+  const { mergeOffices } = await import("../desktop/council-truth.mjs"), o = (who, rest = "AHPC, G-5/2, Islamabad. Whether it is the registering body is not confirmed yet.") => ({ text: `Office for ${who} in Pakistan: ${rest}`, link: "https://a.example/" }), r = { text: "PNMC registers nurses in Pakistan." };
+  const got = mergeOffices([r, o("physiotherapists"), o("radiographers"), o("dietitians"), o("vets", "Another, elsewhere. Whether it is the registering body is not confirmed yet.")]);
+  assert.equal(got.length, 3); assert.equal(got[0], r); assert.equal(got[1].text, "Office for physiotherapists, radiographers and dietitians in Pakistan: AHPC, G-5/2, Islamabad. Whether it is the registering body is not confirmed yet."); assert.match(got[2].text, /^Office for vets in Pakistan: Another/);
+  assert.match(read("desktop/exam-plan.mjs"), /it\.part === "councils"\) it\.claims = mergeOffices\(it\.claims\)/);
+});
+
 test("the wiring: the button beside the list; the route is async; a day's list skips what was tried; our reader failing again keeps what your AI read", () => {
   const ui = read("desktop/ui.html"), m = read("desktop/main.mjs");
   assert.match(ui, /<b>Add what your AI read<\/b> <input type="file" id="handinfile" accept="\.json,application\/json"/); assert.match(ui, /e\.target\?\.id !== "handinfile"/); assert.match(ui, /councils\/browser`, hand\)/); assert.match(ui, /could not read: \$\{esc\(p\.reason\)\}/);

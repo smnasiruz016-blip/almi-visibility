@@ -73,7 +73,7 @@ import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mj
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { failuresOfLedger, readFailures } from "./read-failures.mjs"; // RR-369b item 5
-import { VERDICTS_FILE, FIT_FILE, JUDGE, unjudged, judgeAll, settleVerdicts, markPages, fitCheckText } from "./qa-judge.mjs"; // RR-370 B
+import { VERDICTS_FILE, FIT_FILE, JUDGE, unjudged, judgeAll, settleVerdicts, markPages, fitCheckText, readyLine } from "./qa-judge.mjs"; // RR-370 B
 import { Worker as LinkWorker } from "node:worker_threads";
 import { LINKS_FILE, CORRECTIONS, linksToCheck, checkLinksOff, applySources, linksText } from "./source-links.mjs"; // RR-370 items 4, 7, 9
 import { SAVED_FILE, OUTBOX_FILE, UPLOAD, emptySaved, uploadBought, askServerFirst, sendLists, savedCounts } from "./search-store.mjs"; // RR-369
@@ -952,7 +952,7 @@ function createPages(id) {
   { const later = improving.get(id); if (later) { later.state.stop = later.state.stage === "waiting"; const run = later.run.then(() => { making.delete(id); return createPages(id); }); making.set(id, run); return run; } }
   const key = `make:${id}`; BOARD.start(key, { product: id, kind: "make", label: "Making your pages", what: "Reading what we already hold", long: true, unit: "pages" });
   pwrite(id, "run-in-progress.json", { on: new Date().toISOString() }); startWatchdog(id);
-  const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? `${(r.pages?.drafts ?? []).filter((d) => d.readyAsDraft && !d.improve).length} pages are ready for you.` }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
+  const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? readyLine(r.pages?.drafts ?? []) }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
   making.set(id, run); return run;
 }
 const stageClock = () => { const marks = [], t0 = Date.now(); let last = t0; return { mark: (stage) => { const n = Date.now(); marks.push({ stage, seconds: Math.round((n - last) / 100) / 10 }); last = n; }, done: () => ({ total: Math.round((Date.now() - t0) / 1000), stages: marks }) }; };
@@ -1077,7 +1077,7 @@ function googleLater(id, improve) {
     state.stage = "improving";
     const r = await improve((x) => BOARD.step(key, x));
     const left = Object.keys(dfsLedger().pending ?? {}).length;
-    BOARD.finish(key, { ok: !r.refused, line: `Your pages were improved with Google's results.${left ? ` ${left} ${left === 1 ? "answer" : "answers"} came too late: used on the next run, already paid.` : ""}` });
+    BOARD.finish(key, { ok: !r.refused, line: `Your pages were improved with Google's results. ${readyLine(r.pages?.drafts ?? [])}${left ? ` ${left} ${left === 1 ? "answer" : "answers"} came too late: used on the next run, already paid.` : ""}` });
     return r;
   })().catch((e) => { BOARD.finish(key, { ok: false, line: `Your pages are ready. Improving them with Google's results stopped: ${String(e?.message ?? e).slice(0, 80)}. It goes on at the next run.` }); return null; }).finally(() => improving.delete(id));
   improving.set(id, { run, state });

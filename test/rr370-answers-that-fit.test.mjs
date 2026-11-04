@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { intentOfFact, misplaced, PART_INTENTS, INTENTS } from "../desktop/fact-intent.mjs";
-import { settleVerdicts, pairsOf, pairKey, unjudged, judgeBatch, judgeAll, applyVerdicts, markPages, fitCheckText, samplePages, JUDGE, SYSTEM } from "../desktop/qa-judge.mjs";
+import { readyLine, settleVerdicts, pairsOf, pairKey, unjudged, judgeBatch, judgeAll, applyVerdicts, markPages, fitCheckText, samplePages, JUDGE, SYSTEM } from "../desktop/qa-judge.mjs";
 import { checkLink, applySources, firstPersonIn, thirdPerson, errorAddress, CORRECTIONS, linksToCheck, linksText } from "../desktop/source-links.mjs";
 import { meaningKey, byMeaning, twinOf } from "../desktop/search-meaning.mjs";
 import { previewOf, publishDraft } from "../desktop/publish.mjs";
@@ -182,6 +182,12 @@ test("B, NO 'NO' SURVIVES: a part's own question coming back with an answer alre
   settleVerdicts(plan, verdicts); assert.equal(page.items.length, 0, "nothing judged no is left"); markPages(plan, verdicts); assert.equal(page.fitCheck.no, 0);
   const held = { pages: [{ title: "U", items: [{ part: "questions0", question: "Q?", claims: [claim(a)] }] }] }; markPages(held, { [pairKey("U", "Q?", a)]: { fits: false } }); assert.equal(held.pages[0].fitCheck.no, 1);
   assert.match(read("desktop/seo-pages.mjs"), /m\.fitCheck\?\.no \? \[/, "the gate holds it"); assert.match(read("desktop/main.mjs"), /let log = settleVerdicts\(plan, verdicts\)/); assert.match(read("desktop/main.mjs"), /log = \[\.\.\.log, \.\.\.settleVerdicts\(plan, verdicts\)\]/);
+});
+
+test("THE SCREEN: never '0 pages are ready' with nothing said of the rest; both lines of the run give the count", () => {
+  const wait = { readyAsDraft: false, gates: [{ pass: false, failing: ["3 answers are still being checked by your AI."] }] }, ok = { readyAsDraft: true, gates: [] }, other = { readyAsDraft: false, gates: [{ pass: false, failing: ["Missing: x."] }] };
+  assert.equal(readyLine([wait, wait]), "0 pages are ready for you. 2 are waiting for your AI to check their answers; the next step does that."); assert.equal(readyLine([ok, other]), "1 page is ready for you."); assert.equal(readyLine([{ ...ok, improve: true }]), "0 pages are ready for you.");
+  assert.match(read("desktop/main.mjs"), /line: r\.refused \?\? readyLine\(/); assert.match(read("desktop/main.mjs"), /improved with Google's results\. \$\{readyLine\(/);
 });
 
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {

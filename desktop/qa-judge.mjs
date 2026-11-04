@@ -79,6 +79,8 @@ export function applyVerdicts(plan, verdicts = {}) {
 }
 /** 🔴 RR-370 (the built app: 7 ready pages still held a "no"): one pass can put back an answer already judged "no" (the part's own question, a replacement). The verdicts are applied until nothing moves */
 export function settleVerdicts(plan, verdicts = {}) { const log = []; for (let i = 0; i < 8; i++) { const more = applyVerdicts(plan, verdicts); if (!more.length) break; log.push(...more); } return log; }
+/** 🔴 RR-370 (the built app's screen: "0 pages are ready for you" above 308 ready): the count, and why the rest wait */
+export function readyLine(drafts = []) { const live = drafts.filter((d) => !d.improve), n = live.filter((d) => d.readyAsDraft).length, waiting = live.filter((d) => !d.readyAsDraft && (d.gates ?? []).some((g) => !g.pass && (g.failing ?? []).some((x) => /still being checked by your AI/.test(x)))).length; return `${n} ${n === 1 ? "page is" : "pages are"} ready for you.${waiting ? ` ${waiting} ${waiting === 1 ? "is" : "are"} waiting for your AI to check their answers; the next step does that.` : ""}`; }
 /** how a page stands */
 export function markPages(plan, verdicts, { judging = true } = {}) { for (const p of plan.pages ?? []) { const rows = (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => !honest(c)).map((c) => verdicts[pairKey(p.title, it.question, c.text)])), un = rows.filter((v) => !v).length, no = rows.filter((v) => v?.fits === false).length; p.fitCheck = judging ? { judged: rows.length - un, unjudged: un, no } : { notJudged: true, judged: rows.length - un, unjudged: 0, no }; } return plan; }
 /** a fair sample: every type, then random, from a seed, so the same day's file can be read again */

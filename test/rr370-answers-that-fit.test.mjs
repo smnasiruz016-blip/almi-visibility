@@ -151,6 +151,18 @@ test("C: the sample stands still: one page more or less leaves the other pages w
   assert.equal(a.filter((x) => !b.includes(x)).length, 1, "only the page that went"); assert.notDeepEqual(a, samplePages(pages, { count: 30, seed: 8 }).map((p) => p.title), "another day, another sample");
 });
 
+test("the checks that stayed green when broken: each now read", async () => {
+  /* an honest line stands, whatever a verdict says of it */
+  const line = { claimId: "o", text: "The page could not be read; this is still being looked for.", gap: true, link: "https://x.example/", intent: "good-standing" }, page = { title: "T", kind: "local", country: "X", profession: "nursing", items: [{ part: "standing", question: "Q?", claims: [line] }] };
+  applyVerdicts({ pages: [page] }, { [pairKey("T", "Q?", line.text)]: { fits: false, intent: "good-standing", reason: "no" } }); assert.deepEqual(page.items[0].claims.map((c) => c.text), [line.text]);
+  /* every type of page reaches the sample, however few */
+  const many = [...Array.from({ length: 300 }, (_, i) => ({ title: `Local ${i}`, kind: "local" })), { title: "The one topic", kind: "topic" }]; for (const seed of [1, 2, 3, 4, 5]) assert.ok(samplePages(many, { count: 5, seed }).some((p) => p.kind === "topic"), `seed ${seed}`);
+  /* autocomplete stands apart from a search */
+  const { byMeaning, twinOf } = await import("../desktop/search-meaning.mjs"); assert.equal(byMeaning(["auto|nurses|en"]).size, 0); assert.equal(twinOf("auto|nurses|en", byMeaning(["nurses|x|en"])), null);
+  /* the page's own gate, its family, the words on the screen */
+  const pages = read("desktop/seo-pages.mjs"), ui = read("desktop/ui.html"); assert.match(pages, /push\("P", [^\n]*it\.answers\.filter\(\(a\) => firstPersonIn\(a\)\)/); assert.match(pages, /if \(m\.profession && other === m\.profession\) return true;/); assert.match(ui, /id="previewline"><b>Approve &amp; Publish and Publish all ready write to a preview, not your live site:/);
+});
+
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {
   assert.equal(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for nursing in Bangladesh")); assert.equal(meaningKey("cost of oet exam"), meaningKey("exam fee for oet")); assert.equal(meaningKey("oet centre near me"), meaningKey("oet exam center near me")); assert.equal(meaningKey("OET in Singapore: fee, centres and councils"), meaningKey("OET in Singapore")); assert.equal(meaningKey("OET in the Philippines"), meaningKey("OET in Philippines"));
   assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Nurses from Nepal")); assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Doctors from Bangladesh")); assert.notEqual(meaningKey("OET for Nurses"), meaningKey("OET for Nurses reddit")); assert.equal(twinOf("auto|oet fee|Ghana", byMeaning(["auto|oet cost|Ghana"])), null, "autocomplete stands apart");

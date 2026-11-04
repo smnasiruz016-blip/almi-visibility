@@ -22,6 +22,8 @@ export const TARGETS = Object.freeze([
   Object.freeze({ id: "shopify", label: "Shopify", chooseIf: "your shop runs on Shopify.", needs: "your shop's address (your-shop.myshopify.com) and an access token from a custom app you make in your Shopify admin (Settings → Apps → Develop apps → allow \"write online store pages\").", keyName: "SHOPIFY_ADMIN_TOKEN" }),
   Object.freeze({ id: "download", label: "Download the files, I'll add them myself", chooseIf: "your site is built another way, or you want to add the pages yourself.", needs: "nothing — each page is saved as a file in a folder on this computer, with where to put it.", keyName: null }),
 ]);
+/* 🔴 RR-370 item 12: a GitHub branch other than the site's main one is a preview: nothing there is live */
+export const previewOf = (t) => (t?.kind === "github" && t.branch && !/^(?:main|master|production)$/i.test(String(t.branch)) ? { branch: t.branch, repo: t.repo, folder: String(t.folder ?? "").replace(/^\/+|\/+$/g, "") } : null);
 export const SHOPIFY_API_VERSION = "2026-07"; // Shopify's dated admin version — not yet tried against a live shop (none available to AlmiWorld)
 const slugOf = (url) => String(url).replace(/^https?:\/\/[^/]+/, "").replace(/^\/+|\/+$/g, "").replace(/[^a-z0-9/-]+/gi, "-").slice(0, 120) || "page";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -123,7 +125,8 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
      * a repository the token cannot see and for a missing branch — asked which, so the client knows what to change */
     if (!r.ok && r.status === 404) { const repo = await send(`${api}/repos/${target.repo}`, { method: "GET", headers: gh }); r = { ...r, why: !repo.ok ? refusedWhy(target, 404, { message: "Not Found" }, "repo") : refusedWhy(target, 404, { message: "Branch not found" }, "branch") }; }
     if (!r.ok) return { ok: false, why: r.why };
-    return { ok: true, live: `${String(target.site).replace(/\/+$/, "")}/${slug}/`, remote: { path, sha: r.body.content?.sha ?? null } };
+    const preview = previewOf(target); /* 🔴 RR-370 item 12: never said as live, never sent to a search engine */
+    return { ok: true, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${slug}/`, ...(preview ? { preview: { ...preview, path } } : {}), remote: { path, sha: r.body.content?.sha ?? null } };
   }
   if (target.kind === "shopify") {
     const base = testBase ?? `https://${target.shop}`;
@@ -204,7 +207,7 @@ export async function improveExisting({ target, key, url, section, fetchImpl = f
       if (!got.body?.content || !got.body.sha) continue;
       const next = withSection(Buffer.from(got.body.content, "base64").toString("utf8"), section);
       const put = await call(`${api}/repos/${target.repo}/contents/${p}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `Improve ${path || "home"} (AlmiVisibility)`, content: Buffer.from(next).toString("base64"), branch: target.branch, sha: got.body.sha }) });
-      return put.ok ? { ok: true, line: `Improved on your site: ${url} (in ${p}) — it goes live with your site's next deploy.` } : put;
+      return put.ok ? { ok: true, line: previewOf(target) ? `Improved in the preview: branch ${target.branch} of ${target.repo} (in ${p}). Not live until that branch is merged.` : `Improved on your site: ${url} (in ${p}) — it goes live with your site's next deploy.` } : put;
     }
     return { ok: false, why: `Visibility found no file for ${url} in ${target.repo} — the page is made by your site's code. Copy the content Visibility made for it (Get the content).` };
   }

@@ -13,6 +13,8 @@
  * Pure, except searchMissing (it reads the web through the reader it is handed).
  */
 import { PEOPLE_WORD, inCountry, isRegulator, callNames } from "./recognition.mjs";
+import { readFileSync as readList } from "node:fs";
+const BODY_COVERS = Object.freeze(JSON.parse(readList(new URL("./lists/fact-corrections.json", import.meta.url), "utf8")).bodyCovers ?? {});
 import { readRegulator, validityIn, combiningIn, STEP_LINK } from "./regulator-read.mjs";
 import { OTHER_TESTS } from "./page-types.mjs";
 
@@ -109,6 +111,8 @@ export function connectByMeaning({ questions, facts = [], prof, subject = null /
       const said = fs.find((f) => ALL_BOARDS.test(f.text));
       const same = !said && fs.filter((f, i, all) => scoresOf(f.text) && all.some((g) => g !== f && g.profession !== f.profession && scoresOf(g.text) === scoresOf(f.text)));
       const f = said ?? (same?.length >= 2 ? same[0] : null); if (!f) continue;
+      /* 🔴 RR-370 item 3: its own policy names whom it regulates: vets, dietitians and speech pathologists are not among Ahpra's */
+      if (BODY_COVERS[h] && !BODY_COVERS[h].includes(q.profession ?? prof)) continue;
       const body = bodies.find((b) => hostOf(b.website) === h || hostOf(b.record?.officialUrl) === h);
       const name = body?.short ?? body?.name ?? h;
       q.answer = [{ fact: f, connected: true, text: `In ${inCountry(q.country)}: ${name} sets one English standard for every board it registers, the board for ${people} included (${subject}'s own list names ${name} for ${people}) — ${standardPart(f.text)}` }];

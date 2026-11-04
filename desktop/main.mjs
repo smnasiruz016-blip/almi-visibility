@@ -37,7 +37,7 @@ import { googleConnect, importExport } from "./google-connect.mjs";
 import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./seo-pages.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
+import { TARGETS, previewOf, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
 import { collectQueued, searchGoogle, searchPages, searchTermOf, SERP_OFF, SERP, QUEUE, serpKey, realPrice, runEstimate, RETRY, notForReading , CAP_LATER } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
@@ -73,6 +73,9 @@ import { checkSample, hashesOfPages, labelOf, displayNameOf } from "./samples.mj
 import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, trendOf, currentOf, keyOf, fileIdOf, FILE_NAME, SOURCES as KW_SOURCES, byLocationOf } from "./keyword-db.mjs"; // RR-324 A; RR-327 per country
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { failuresOfLedger, readFailures } from "./read-failures.mjs"; // RR-369b item 5
+import { VERDICTS_FILE, FIT_FILE, JUDGE, unjudged, judgeAll, settleVerdicts, markPages, fitCheckText, readyLine } from "./qa-judge.mjs"; // RR-370 B
+import { Worker as LinkWorker } from "node:worker_threads";
+import { LINKS_FILE, CORRECTIONS, linksToCheck, checkLinksOff, applySources, linksText } from "./source-links.mjs"; // RR-370 items 4, 7, 9
 import { SAVED_FILE, OUTBOX_FILE, UPLOAD, emptySaved, uploadBought, askServerFirst, sendLists, savedCounts } from "./search-store.mjs"; // RR-369
 import { genericPlanPages, almiSeoClient, syncProduct, heldFor, keywordItems, questionItems, coverageRoutes, routeLine, coverageItems, coverageFromBrowser, reviewLinesFor, almiSeoView, searchedLists, searchCounts, ALMISEO_FILE, ALMISEO_KEYWORDS, BROWSER_COVERAGE, SYNC, ROUTES } from "./almiseo.mjs"; // RR-360 AlmiSEO Data
 import { spawn } from "node:child_process"; // RR-362: the watcher
@@ -236,6 +239,7 @@ async function publishOne(id, url) {
   if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true, why: `Not published — the page has no offer button. ${NO_CTA}` };
   if (!d.readyAsDraft) return { ok: false, gates: d.gates, why: `Not published — a check failed right before publishing: ${d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `${g.words}: ${g.failing.join("; ")}`).join(" · ")}` };
   if ((pread(id, "published.json", [])).some((x) => x.url === url && x.state === "LIVE")) return { ok: false, why: "This page is already published." };
+  /* RR-370 item 12: a page in the preview is written again, its record once */
   /* RR-356 PART B: a topic the client already has a page for is IMPROVED on that page — never published as a second page */
   if (d.improve) {
     const pack = packOf(id, d), keyName = TARGETS.find((x) => x.id === conn.kind)?.keyName;
@@ -246,7 +250,7 @@ async function publishOne(id, url) {
   const t = conn, keyNeeded = TARGETS.find((x) => x.id === t.kind).keyName;
   const out = await publishDraft({ draft: d, target: t, key: keyNeeded ? KEYS.get(publishKeyName(t.kind, id)) : null, downloadsDir: downloadsFor(id), allowLocal, testBase: CONFIG.testPublishBase ?? null });
   if (!out.ok) return out;
-  pwrite(id, "published.json", [...pread(id, "published.json", []), { url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on: new Date().toISOString(), state: "LIVE" }]);
+  pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => !(x.url === url && x.state === "PREVIEW")), { url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on: new Date().toISOString(), state: out.preview ? "PREVIEW" : "LIVE", ...(out.preview ? { preview: out.preview } : {}) }]);
   /* D4: Search Console — the sitemap submitted only with the client's extra permission; otherwise said what to do */
   let sitemap = null;
   if (out.live && sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true) { const g = await GOOGLE.submitSitemap(sc.site, `${site.origin}/sitemap.xml`); sitemap = g.ok ? `Your sitemap was sent to Google Search Console (${site.origin}/sitemap.xml).` : g.why; }
@@ -259,6 +263,7 @@ async function publishOne(id, url) {
     const subs = pread(id, "submissions.json", {}); subs[out.live] = { ...subs[out.live], bing: b.ok ? { state: "SUBMITTED", on: new Date().toISOString(), note: "IndexNow, on publish" } : { state: "FAILED", on: new Date().toISOString(), why: b.why } }; pwrite(id, "submissions.json", subs);
     bing = b.ok ? "Sent to Bing at once (IndexNow)." : `Bing (IndexNow): ${b.why} — press Submit to try again.`;
   } else if (out.live) bing = "Bing: not sent yet — put your IndexNow key file on your site (Search engines), then every new page is sent at once.";
+  if (out.preview) return { ok: true, live: null, preview: out.preview, sitemap: null, bing: null, line: `In the preview ✓ — written to branch ${out.preview.branch} of ${out.preview.repo}, file ${out.preview.path}. It is NOT live, and nothing was sent to Google or Bing: it goes live only when that branch is merged.` };
   return { ok: true, live: out.live, saved: out.saved ?? null, sitemap, bing, line: out.live ? `Published ✓ — live at ${out.live}` : `Saved ✓ — the page's files are in ${out.saved}. Put index.html on your site at ${url} (the folder has a note saying where).` };
 }
 /** the product's to-do: steps skipped, sources missing */
@@ -623,6 +628,8 @@ function buildExamPlan(id) {
   const s = store.read(id), sc = searchConsoleOf(id), ex = examExtras.get(id) ?? { subjectFacts: pread(id, "subject-facts.json", null)?.facts ?? {}, rates: (() => { const r = pread(id, "rates-open.json", null); return r ? { ...r, short: OPEN_RATES.short, source: OPEN_RATES.source, link: OPEN_RATES.link } : null; })() };
   /* 🔴 RR-366 Part 1: a council line says "registers" only on its body's own page's word */
   const researched = ex.research ?? pread(id, "research.json", null)?.questions ?? {};
+  /* 🔴 RR-370 item 2: a fact checked by hand on its own page stands over the same fact read by a pattern */
+  ex.subjectFacts = { ...(ex.subjectFacts ?? {}), ...Object.fromEntries(Object.entries(CORRECTIONS.subject ?? {}).filter(([k]) => ex.subjectFacts?.[k] || k === "gradeB").map(([k, v]) => [k, { claimId: `subject-${k}`, fact: k, official: true, ...(ex.subjectFacts?.[k] ?? {}), ...v }])) };
   const council = councilFacts(correctedCouncils([...factsOfStore(pread(id, FACTS_FILE, null)), ...Object.values(serviceFactsOf(pread(id, "country-facts.json", null)?.countries ?? {}, seedOf(s))).flat()]), Object.keys(pread(id, "council-checks.json", {})).length ? pread(id, "council-checks.json", {}) : null, { inPlace: inCountry, peopleOf: (p) => PEOPLE_WORD[p] ?? p, today: new Date().toISOString().slice(0, 10) }), facts = officesThatAsk(council.facts, researched, { peopleOf: (p) => PEOPLE_WORD[p] ?? p });
   const demand = [...helpDemand(seedOf(s)), ...ownItemsOf(id), ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: `your Search Console: seen ${q.impressions} time${q.impressions === 1 ? "" : "s"} (${sc.window})`, weight: 10 + Math.log10(1 + (q.impressions ?? 0)) }))];
   const x = examPlan({ subject: seedOf(s), professions: professionsOf(), countries: examCountriesOf(id), facts, subjectFacts: ex.subjectFacts, rates: ex.rates, research: researched, searchedOn: ex.searchedOn ?? pread(id, "research.json", null)?.on ?? null, demand, site: pread(id, "site-read.json"), collector: seoFileOf(id)?.plan ?? [], maxCountries: 200, asked: askedByCountry(pread(id, "country-facts.json", null)?.countries ?? {}), ladder: ladderCtx(id) });
@@ -945,7 +952,7 @@ function createPages(id) {
   { const later = improving.get(id); if (later) { later.state.stop = later.state.stage === "waiting"; const run = later.run.then(() => { making.delete(id); return createPages(id); }); making.set(id, run); return run; } }
   const key = `make:${id}`; BOARD.start(key, { product: id, kind: "make", label: "Making your pages", what: "Reading what we already hold", long: true, unit: "pages" });
   pwrite(id, "run-in-progress.json", { on: new Date().toISOString() }); startWatchdog(id);
-  const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? `${(r.pages?.drafts ?? []).filter((d) => d.readyAsDraft && !d.improve).length} pages are ready for you.` }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
+  const run = makePages(id, key).then((r) => { rmSync(pfile(id, "run-in-progress.json"), { force: true }); BOARD.finish(key, { ok: !r.refused, line: r.refused ?? readyLine(r.pages?.drafts ?? []) }); return r; }, (e) => { BOARD.finish(key, { ok: false, line: "Making the pages stopped. Open the app to try again." }); throw e; }).finally(() => making.delete(id));
   making.set(id, run); return run;
 }
 const stageClock = () => { const marks = [], t0 = Date.now(); let last = t0; return { mark: (stage) => { const n = Date.now(); marks.push({ stage, seconds: Math.round((n - last) / 100) / 10 }); last = n; }, done: () => ({ total: Math.round((Date.now() - t0) / 1000), stages: marks }) }; };
@@ -968,6 +975,13 @@ async function makePages(id, key) {
   /* 🔴 RR-369 Part 2 (owner: "a run can wait up to 15 minutes for Google's queue before pages are made"): PAGES FIRST. The quick pass makes every page from what is in hand: our own data, checked facts, collectors, Google's answers already kept; new searches are posted and kept, nothing waits, no site of the results is read. The pages are shown at once. Then, on its own line on the board, the app collects Google's answers as they come, reads the top results and improves the pages by itself; what comes later still is used on the next run. The client never waits for Google to see pages. (REPLACES RR-368's one wait of 15 minutes) */
   /* no Google to wait for (the switch off, nothing kept): one pass, as before */
   const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? [])), savedBefore = savedTotal();
+  /* 🔴 RR-370 A + B + items 4, 7, 9: every claim's source and every question's answer, by meaning, on the plan before a page is written */
+  const factsStep = async (plan, quick, step) => { if (!plan || CONFIG.testOffline === true) return; const a = aiOf(store.read(id)), key = a?.provider === "anthropic" ? a.key : null, verdicts = pread(id, VERDICTS_FILE, {}), checks = pread(id, LINKS_FILE, {}), usd0 = LEDGER.month()?.usd ?? 0;
+    if (!quick && CONFIG.linkCheck !== false) { const urls = linksToCheck(plan, checks); if (urls.length) { step({ done: 0, of: urls.length, unit: "source links", what: "Opening every source link" }); await checkLinksOff(urls, { kept: checks, Worker: LinkWorker, onDone: () => step({ add: 1 }), ...(Number.isInteger(CONFIG.testLinkMs) ? { timeoutMs: CONFIG.testLinkMs } : {}), ...(CONFIG.testLinkFetch ? { standin: CONFIG.testLinkFetch } : {}) }); pwrite(id, LINKS_FILE, checks); } }
+    const sources = applySources(plan, { checks }); let log = settleVerdicts(plan, verdicts), why = null;
+    for (let round = 0; !quick && key && round < JUDGE.rounds; round++) { const rows = unjudged(plan, verdicts); if (!rows.length) break; step({ done: 0, of: rows.length, unit: "answers", what: "Your AI is checking that each answer fits its question" }); const r = await judgeAll({ key, rows, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}), allowed: () => LEDGER.allowed().ok, onUsage: (u) => LEDGER.add(u), onDone: (n, _o, got) => { Object.assign(verdicts, got); step({ done: n }); } }); Object.assign(verdicts, r.verdicts); pwrite(id, VERDICTS_FILE, verdicts); why = r.why; if (r.why) break; log = [...log, ...settleVerdicts(plan, verdicts)]; }
+    markPages(plan, verdicts, { judging: Boolean(key) });
+    const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: Math.max(0, (LEDGER.month()?.usd ?? 0) - usd0), why, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); };
   const pass = async (quick, step, sayingWhat, clock) => {
     const reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
     if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
@@ -980,6 +994,7 @@ async function makePages(id, key) {
     const searchedPages = exam ? [...exam.pages] : [];
     if (exam?.bigger) settleLocal(exam);
     if (exam && examProduct(s, id)) { applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-366 Part 3 */ applyPairQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-369 Part 4 */ pwrite(id, "questions-wanted.json", { on: new Date().toISOString(), pages: exam.questionsWanted ?? [] }); }
+    await factsStep(exam, quick, step);
     if (exam) savePlan(id, exam);
     /* each search saved in AlmiSEO Data (R13): a page's list only once its top results were read */
     if (!quick) await saveSearches(id, searchedPages);
@@ -1000,7 +1015,7 @@ async function makePages(id, key) {
       /* RR-362 item 17: a round in which no official page could be read finds nothing new: it is not written again */
       step({ done: 0, of: RESEARCH_READS + DETAIL_READS, unit: "official pages", what: "Looking again for what is still missing" }); const r2 = await examResearch(id, seedOf(s), reading, sayingWhat); if (!lastResearchReads) break; examExtras.set(id, { ...examExtras.get(id), research: r2 }); exam = buildExamPlan(id); rounds++;
       /* what the search step found stays with each page through a repair round */
-      if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn, searchedOn: o.searchedOn, localAsked: o.localAsked, blueprint: o.blueprint }); } settleLocal(exam); applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); applyPairQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); pwrite(id, "questions-wanted.json", { on: new Date().toISOString(), pages: exam.questionsWanted ?? [] }); savePlan(id, exam); }
+      if (serp) { for (const p of exam.pages) { const o = prev.find((x) => x.title === p.title); if (o) Object.assign(p, { coverage: o.coverage, second: o.second, topRead: o.topRead, questions: o.questions, serpWhy: o.serpWhy, coverageRoute: o.coverageRoute, coverageOn: o.coverageOn, searchedOn: o.searchedOn, localAsked: o.localAsked, blueprint: o.blueprint }); } settleLocal(exam); applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); applyPairQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); pwrite(id, "questions-wanted.json", { on: new Date().toISOString(), pages: exam.questionsWanted ?? [] }); } await factsStep(exam, false, step); savePlan(id, exam);
       const again = await writePages();
       if (failures(again) >= before) break;
       Object.assign(pages, again);
@@ -1027,6 +1042,8 @@ async function makePages(id, key) {
     if (serp) pages.serp = { on: serp.on, line: counts.line, counts, detail: [serp.routesLine, serp.on ? serp.line : null].filter(Boolean).join(" "), searches: serp.searches ?? 0, cost: serp.cost ?? 0, stopped: serp.stopped ?? null, routes: serp.routes ?? null };
     else if (genericRoutes) pages.serp = { on: false, line: counts.line, counts, detail: genericRoutes.line, searches: genericRoutes.paid?.searches ?? 0, cost: genericRoutes.paid?.cost ?? 0, stopped: genericRoutes.paid?.stopped ?? null, routes: genericRoutes.counts };
     if (exam) pages.examPlan = { counts: exam.counts, skipped: exam.skipped, existing: exam.existing, notBuilt: exam.notBuilt ?? [], merged: exam.merged ?? [], theyHave: (quick ? pread(id, "competitors.json", null) : await competitorStep(id, exam).catch(() => null))?.list ?? [] };
+    /* 🔴 RR-370 C + item 9: the files beta-g reads, from what stands on the pages */
+    if (!quick && exam) { const ready = new Set(pages.drafts.filter((d) => d.readyAsDraft).map((d) => d.title)), day = new Date().toISOString().slice(0, 10), v = pread(id, VERDICTS_FILE, {}), by = aiOf(s)?.provider === "anthropic" ? `your AI (${JUDGE.model})` : "no one: no AI is connected"; pwrite(id, "qa-run.json", { ...pread(id, "qa-run.json", {}), ready: ready.size }); writeFileSync(pfile(id, FIT_FILE), fitCheckText({ plan: exam, verdicts: v, ready, on: day, by, seed: Number(day.replace(/-/g, "")), log: exam.qaLog ?? [] })); writeFileSync(pfile(id, "Source links checked.txt"), linksText({ checks: pread(id, LINKS_FILE, {}), plan: exam, on: day, removed: exam.sourceLog?.removed ?? [] })); }
     /* RR-362 item 13: pages not read yet are read tomorrow, by the app itself */
     { const later = pages.drafts.filter((d) => d.checkLater).map((d) => d.title); pwrite(id, "pending-checks.json", { day: new Date().toISOString().slice(0, 10), titles: later, switchOn: serpSettings().on === true }); }
     clock.mark("the rest"); pages.timing = clock.done(); pwrite(id, quick ? "run-timing-first.json" : "run-timing.json", { on: new Date().toISOString(), ...pages.timing });
@@ -1060,7 +1077,7 @@ function googleLater(id, improve) {
     state.stage = "improving";
     const r = await improve((x) => BOARD.step(key, x));
     const left = Object.keys(dfsLedger().pending ?? {}).length;
-    BOARD.finish(key, { ok: !r.refused, line: `Your pages were improved with Google's results.${left ? ` ${left} ${left === 1 ? "answer" : "answers"} came too late: used on the next run, already paid.` : ""}` });
+    BOARD.finish(key, { ok: !r.refused, line: `Your pages were improved with Google's results. ${readyLine(r.pages?.drafts ?? [])}${left ? ` ${left} ${left === 1 ? "answer" : "answers"} came too late: used on the next run, already paid.` : ""}` });
     return r;
   })().catch((e) => { BOARD.finish(key, { ok: false, line: `Your pages are ready. Improving them with Google's results stopped: ${String(e?.message ?? e).slice(0, 80)}. It goes on at the next run.` }); return null; }).finally(() => improving.delete(id));
   improving.set(id, { run, state });
@@ -1838,7 +1855,7 @@ const server = createServer((req, res) => {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
           const s = store.read(id), conn = pread(id, "publish.json"), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
-          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (preadMemo(id, "pages.json")?.drafts ?? []).map(pageRow) /* RR-366 X5: a title and a status; details when a page is opened */, folder: downloadsFor(id) });
+          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, preview: conn?.kind ? previewOf(conn) : null /* RR-370 item 12 */, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (preadMemo(id, "pages.json")?.drafts ?? []).map(pageRow) /* RR-366 X5: a title and a status; details when a page is opened */, folder: downloadsFor(id) });
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });
@@ -1857,7 +1874,7 @@ const server = createServer((req, res) => {
           }
           if (r[2] === "publish/draft" && req.method === "POST") return send(200, await publishOne(id, json().url));
           if (r[2] === "publish/undo" && req.method === "POST") {
-            const v = json(), recs = pread(id, "published.json", []); const rec = recs.find((x) => x.url === v.url && x.state === "LIVE"); if (!rec) return send(404, { refused: "That page is not published." });
+            const v = json(), recs = pread(id, "published.json", []); const rec = recs.find((x) => x.url === v.url && (x.state === "LIVE" || x.state === "PREVIEW")); if (!rec) return send(404, { refused: "That page is not published." });
             const t = rec.target, k = TARGETS.find((x) => x.id === t.kind).keyName ? KEYS.get(publishKeyName(t.kind, id)) : null;
             const out = await unpublish({ record: rec, target: t, key: k, allowLocal, testBase: CONFIG.testPublishBase ?? null });
             if (!out.ok) return send(400, { refused: out.why });

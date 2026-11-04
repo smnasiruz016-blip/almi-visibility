@@ -23,12 +23,14 @@ import { asksLine, officeLine } from "./council-truth.mjs";
 import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores, ownPart, topicOf as pageTopicOf } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
+import { coveredResearch } from "./source-links.mjs"; // RR-370 item 3
 import { viewsOf } from "./subject-demand.mjs"; // RR-363
 import { fitCard, staleNews } from "./truth-checks.mjs"; // RR-363: R15
 import { oldWording } from "./subject-facts.mjs"; // RR-363
 import { KIND, TYPE_OF_KIND, STANDING, unclearWhy, clearQuestion, askedHere, itemForAsked, coreMissingOfPlan, ownClaims, mergeWhy, questionOffIntentWhy } from "./page-types.mjs"; // RR-362: R3, R5, R6
 import { answerQuestion, factAnswer, isTestFormat, SUBTEST_OF, classOfPhrase, phraseOutWhy, shownWording, ASK_OF_CLASS } from "./answer-ladder.mjs"; // RR-366
 import { meaningOf } from "./coverage.mjs"; // RR-366
+import { intentOfFact, splitOtherFees } from "./fact-intent.mjs"; // RR-370 A
 import { OPEN_QUESTION } from "./council-truth.mjs"; // RR-366
 import { needClass } from "./truth-checks.mjs"; // RR-366
 import { priceHere } from "./truth-prices.mjs";
@@ -77,7 +79,7 @@ export function shortCard(text, country = null) {
   let v = m[0].replace(/\s+/g, " ").trim(); if (v.endsWith(")") && !v.includes("(")) v = v.slice(0, -1); if (v.includes("(") && !v.includes(")")) v = v.replace(/\s*\(/, " ");
   return at(v.trim());
 }
-const claimOf = (f, country = null, card = undefined) => ({ claimId: f.claimId ?? f.id, card: card === undefined ? cardOf(f.text, country) : card, text: country ? `In ${inCountry(country)}: ${f.text}` : f.text, link: f.link, readOn: f.readOn ?? f.on, source: `${f.source ?? f.body ?? hostOf(f.link) ?? "its official page"} — its official page`, official: true, body: f.source ?? f.body ?? null, fromCollector: f.fromCollector ?? false });
+const claimOf = (f, country = null, card = undefined) => ({ claimId: f.claimId ?? f.id, card: card === undefined ? cardOf(f.text, country) : card, text: country ? `In ${inCountry(country)}: ${f.text}` : f.text, link: f.link, readOn: f.readOn ?? f.on, source: `${f.source ?? f.body ?? hostOf(f.link) ?? "its official page"} — its official page`, official: true, body: f.source ?? f.body ?? null, fromCollector: f.fromCollector ?? false, intent: intentOfFact(f) });
 
 const SHOWN = new Set(["confirmed", "approved", "edited", "owner"]);
 const sourced = (x) => /^https:\/\//.test(x?.source ?? "") && /^\d{4}-\d{2}-\d{2}/.test(x?.readOn ?? "") && SHOWN.has(x?.status ?? "confirmed");
@@ -91,7 +93,7 @@ export function serviceFactsOf(packets = {}, subject = null /* RR-359: no defaul
     if (p?.fee && sourced(p.fee) && p.fee.value?.official) add("fee", `${subject}'s own page: the full ${subject} costs ${p.fee.value.official}.`, p.fee.source, p.fee.readOn, { official: p.fee.value.official });
     if (p?.centres && sourced(p.centres)) add("centres", p.centres.value?.venue ? `${subject} can be taken at a test venue in ${inCountry(country)}.` : p.centres.value?.home, p.centres.source, p.centres.readOn);
     for (const [prof, f] of Object.entries(p?.councils ?? {})) if (sourced(f) && f.found !== false && f.value?.name) add("home-council", `${f.value.name} registers ${peopleOf(prof)} in ${inCountry(country)}${/^https?:\/\//.test(f.value.website ?? "") ? ` — ${f.value.website}` : ""}.`, f.source, f.readOn, { profession: prof, councilName: f.value.name, website: f.value.website ?? null, address: f.value.address ?? null, approved: f.status === "approved" });
-    for (const r of p?.rules ?? []) if (sourced(r) && r.value?.rule) add("rules", r.value.rule, r.source, r.readOn);
+    for (const r of p?.rules ?? []) if (sourced(r) && r.value?.rule) add("rules", r.value.rule, r.source, r.readOn, { key: r.key ?? null, ruleProfession: r.profession ?? null }); /* RR-370 A: what it was collected for stays with it */
     /* the questions people there ask, each with its checked answer — never one that restates the fee in another amount */
     for (const q of p?.questions ?? []) if (sourced(q) && q.value?.question && q.value?.answer && q.value.answerKind === "official" && !/\babout [\d,]{3,} [A-Z]{3}\b|≈/.test(q.value.answer)) add("questions", q.value.answer, q.source, q.readOn, { question: q.value.question });
   }
@@ -140,7 +142,7 @@ const topicKeyOf = (need, text) => { const w = new Set(String(need).split(" "));
   if (COACHING.test(text)) return "practice";
   if (/\bwhich\b[^?]*\bbooks?\b|\bbooks?\b (?:should|to (?:read|buy|study)|for (?:prep|study))/i.test(text)) return "practice"; /* RR-367 item 5: a book to read is preparation, not a booking */
   for (const k of ["fee", "result", "book", "date", "practice", "vs"]) if (w.has(k)) return k; if (w.has("online") || w.has("computer") || w.has("home")) return "online"; if (w.has("ielts")) return "vs"; return need ? null : "what"; };
-const fromSubject = (f) => ({ claimId: f.claimId, card: cardOf(f.text) ?? null, text: f.text, link: f.link, readOn: f.readOn, source: f.source ?? "its own page", official: true, body: f.body ?? null });
+const fromSubject = (f) => ({ claimId: f.claimId, card: cardOf(f.text) ?? null, text: f.text, link: f.link, readOn: f.readOn, source: f.source ?? "its own page", official: true, body: f.body ?? null, intent: intentOfFact(f) });
 /** the items (questions, each with its own facts) a topic page is made of — only facts about that topic */
 function topicItems(key, subjectFacts, subject) {
   const keys = TOPIC_FACTS[key] ?? [], items = new Map();
@@ -285,7 +287,7 @@ export function settleLocal(plan, { onlyBefore = false } = {}) {
     if (!isLocal(p) || p.improve) { keep.push(p); continue; }
     const place = p.country, people = [peopleOf(p.profession)], used = new Set();
     p.askedHeads = p.items.filter((it) => /^questions\d*$/.test(it.part)).map((it) => it.question);
-    for (const q of (p.questions ?? []).map((x) => x.question ?? x).filter((x) => askedHere(x, { place, people }))) { const it = itemForAsked(q, p.items); if (!it || used.has(it)) continue; used.add(it); it.question = asAsked(q) ?? it.question; p.askedHeads.push(it.question); }
+    for (const q of (p.questions ?? []).map((x) => x.question ?? x).filter((x) => askedHere(x, { place, people }))) { const it = itemForAsked(q, p.items); if (!it || used.has(it)) continue; used.add(it); it.q0 ??= it.question /* RR-370 B: the part's own question, if the judge says their words do not fit */; it.question = asAsked(q) ?? it.question; p.askedHeads.push(it.question); }
     /* 🔴 RR-367 R-C (owner, 3 Nov 2026: 181 pages merged into 53 is rejected): a page is its own questions, answers and profession. A fee, an office, a score or a country shared with another page makes it neither weak nor a duplicate, and a gap is researched, never a reason to drop it. Only two pages with the same questions and the same answers, for the same profession and country, are one */
     const sig = `${p.profession}|${p.country}|${p.items.map((it) => `${it.question}=${(it.claims ?? []).map((c) => c.text).sort().join("~")}`).sort().join("|")}`, twin = same.get(sig);
     if (twin) { plan.merged.push({ type: p.type, title: p.title, country: place, profession: p.profession, into: [twin.title], why: `the same questions and the same answers as "${twin.title}", for the same profession and country`, missing: [] }); continue; }
@@ -296,6 +298,7 @@ export function settleLocal(plan, { onlyBefore = false } = {}) {
   return plan;
 }
 export function examPlan({ subject = null /* RR-359: no default subject */, professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null, collector = [], maxCountries = 10, asked = {}, ladder = {} }) {
+  research = coveredResearch(research);
   /* a fact is used only when checked, sourced, dated — its notes taken out, a rate from a central bank (or any rate fact) never */
   const ok = usableFacts(facts);
   const cs = [...new Set([...(countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, maxCountries), /* RR-362 (R3): a country with a council row gets its country page: the merged facts need a home, and a missing part is named (R5) */ ...collector.filter((r) => r.kind === "country" || r.kind === "country-profession").map((r) => r.country)])];
@@ -416,9 +419,9 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
    *   a country × profession row is C when a regulator there accepts the exam for this profession (they want to WORK there), else D (they COME FROM there);
    *   it stays a page only with every core question answered and something of its own (settleLocal, after the searches). A question page is never a page
    *   of its own (one answer is thin): it stands on its country page (R3). A row with no checked answer makes no page: counted, with why */
-  const localPages = [], merged = [], notBuilt = [];
+  const localPages = [], merged = [], notBuilt = [], bodyHosts = {};
   const says = (text, link, on, id) => ({ claimId: id.replace(/\s+/g, "-"), card: null, text, link, readOn: on, source: `${hostOf(link) ?? "its official page"} — its official page`, official: true });
-  const scoreClaimsOf = (prof, q) => (q?.answer ?? []).map((a) => ({ claimId: a.connected ? `conn-${prof}-${q.country}`.replace(/\s+/g, "-") : a.fact.claimId ?? a.fact.id, card: cardOf(a.fact.text, null), text: plainScores(cleanFact(a.text)), link: a.fact.link, readOn: a.fact.readOn ?? a.fact.on, source: `${a.fact.source ?? hostOf(a.fact.link) ?? "its official page"} — its official page`, official: true }));
+  const scoreClaimsOf = (prof, q) => (q?.answer ?? []).map((a) => ({ claimId: a.connected ? `conn-${prof}-${q.country}`.replace(/\s+/g, "-") : a.fact.claimId ?? a.fact.id, card: cardOf(a.fact.text, null), text: plainScores(cleanFact(a.text)), link: a.fact.link, readOn: a.fact.readOn ?? a.fact.on, source: `${a.fact.source ?? hostOf(a.fact.link) ?? "its official page"} — its official page`, official: true, intent: "required-score" }));
   for (const r of collector) {
     if (r.kind === "question") {
       const home = countryPages.find((p) => p.country === r.country), odd = unclearWhy(r.question, { place: r.country });
@@ -431,10 +434,12 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
     const isC = Boolean(dq) || direct.length > 0, kind = isC ? KIND.destination : KIND.origin, pageTitle = `${subject} for ${title(people)} ${isC ? "in" : "from"} ${inCountry(r.country)}`, cl = (fs) => fs.map((f) => claimOf(f, null, null));
     /* RR-367: a gap is an honest line with the page checked and its date, never a reason to drop the page */
     const asker = council[0] ?? null, gapWho = asker?.councilName ?? subject, gapLink = asker?.link ?? subjectFacts?.scale?.link ?? null, gapOn = asker?.checkedOn ?? asker?.on ?? subjectFacts?.scale?.readOn ?? null;
-    const gapLine = (w) => (w === "steps" && asker?.stepsLine ? [{ claimId: `steps-${r.profession}-${r.country}`.replace(/\s+/g, "-"), card: null, text: asker.stepsLine, link: asker.link, readOn: String(asker.on).slice(0, 10), source: `${hostOf(asker.link) ?? "its official page"} — its official page`, official: true }] : gapLink && gapOn ? [{ claimId: `gap-${w}`, card: null, text: asker?.checkedWhy === "unread" ? `${gapWho}'s own page could not be read on ${String(gapOn).slice(0, 10)}; this is still being looked for.` : `${gapWho}'s official page, checked ${String(gapOn).slice(0, 10)}, does not say this.`, link: gapLink, readOn: String(gapOn).slice(0, 10), source: `${hostOf(gapLink) ?? "its official page"} — its official page`, official: true, gap: true }] : []);
+    const gapLine = (w) => (w === "steps" && asker?.stepsLine ? [{ claimId: `steps-${r.profession}-${r.country}`.replace(/\s+/g, "-"), card: null, text: asker.stepsLine, link: asker.stepsLink ?? asker.link, readOn: String(asker.stepsOn ?? asker.on).slice(0, 10), source: `${hostOf(asker.stepsLink ?? asker.link) ?? "its official page"} — its official page`, official: true, intent: "registration" }] : gapLink && gapOn ? [{ claimId: `gap-${w}`, card: null, text: asker?.checkedWhy === "unread" ? `${gapWho}'s own page could not be read on ${String(gapOn).slice(0, 10)}; this is still being looked for.` : `${gapWho}'s ${/contact/i.test(gapLink) ? "contact" : /^https?:\/\/[^/]+\/?$/.test(gapLink) ? "home" : "official"} page, checked ${String(gapOn).slice(0, 10)}, does not say this.`, link: gapLink, readOn: String(gapOn).slice(0, 10), source: `${hostOf(gapLink) ?? "its official page"} — its official page`, official: true, gap: true }] : []);
     const orGap = (cs, w) => (cs.length ? cs : gapLine(w));
     /* RR-367: the Nursing Council of Kenya's service on the doctors' page: a shared rule, not one that names another profession's council */
     const topicHere = pageTopicOf({ title: pageTitle, kind, country: r.country, profession: r.profession, people: PEOPLE_WORD }), shortOf = (n) => /\(([A-Z&]{2,})\)/.exec(n)?.[1] ?? String(n).split(/\s+/).filter((w) => /^[A-Z]/.test(w)).map((w) => w[0]).join(""), mineShort = new Set(council.map((f) => shortOf(f.councilName ?? ""))), otherBodies = [...new Set(mine.filter((f) => f.part === "home-council" && f.profession !== r.profession).map((f) => shortOf(f.councilName ?? "")))].filter((a) => a.length >= 3 && !mineShort.has(a)).map((a) => new RegExp(`\\b${a.replace(/&/g, "")}\\b`));
+    /* 🔴 RR-370 A: a rule read on the site of ANOTHER profession's council is that profession's rule. Decided by whose site it was read on, never by a word in it */
+    const siteOf = (f) => hostOf(f.website ?? "") , myHosts = new Set(council.map(siteOf).filter(Boolean)), otherHosts = new Set(mine.filter((f) => f.part === "home-council" && f.profession !== r.profession).map(siteOf).filter((h) => h && !myHosts.has(h))), ofAnotherBody = (link) => otherHosts.has(hostOf(link ?? ""));
     let items, noRealQuestion = false;
     if (isC) {
       const d = dq?.details ?? null, body = dq?.regulator?.short ?? dq?.regulator?.name ?? council[0]?.councilName ?? "the regulator", id = (w) => `${w}-${r.profession}-${r.country}`, on = d?.on ?? null;
@@ -449,7 +454,8 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
       items = [
         { part: "council", question: `Which council in ${inCountry(r.country)} registers ${people}?`, claims: orGap(cl(council), "council") },
         { part: "regulator", question: `How do ${people} register in ${inCountry(r.country)}?`, claims: gapLine("steps") },
-        { part: "standing", question: `How do ${people} from ${inCountry(r.country)} prove they are in good standing?`, claims: orGap(cl(mine.filter((f) => f.part === "rules" && STANDING.test(f.text) && ownPart(cleanFact(f.text), topicHere) && !otherBodies.some((b) => b.test(f.text))).slice(0, 3)), "standing") },
+        { part: "standing", question: `How do ${people} from ${inCountry(r.country)} prove they are in good standing?`, claims: orGap(cl(mine.filter((f) => f.part === "rules" && !ofAnotherBody(f.link) && (intentOfFact(f) === "good-standing" || (!f.key && /\bgood standing\b|\bverification of registration\b/i.test(f.text))) /* 🔴 RR-370 A: what it was collected for, never a word it shares: attestation is its own question */ && (!f.ruleProfession || f.ruleProfession === r.profession || !/\bnurs|\bdoctor|\bpharmac|\bdentist/i.test(f.text)) && ownPart(cleanFact(f.text), topicHere) && !otherBodies.some((b) => b.test(f.text))).slice(0, 3)), "standing") },
+        { part: "documents", question: `How do ${people} from ${inCountry(r.country)} get their documents attested?`, claims: [...new Map(mine.filter((f) => f.part === "rules" && !ofAnotherBody(f.link) && intentOfFact(f) === "documents").map((f) => [f.text, f])).values()].slice(0, 2).map((f) => claimOf(f, null, null)) },
         { part: "destinations", question: `Where do ${people} from ${inCountry(r.country)} go, and what score does each country ask?`, claims: orGap((research[r.profession] ?? []).filter((q) => q.kind === "score" && q.answer).flatMap((q) => scoreClaimsOf(r.profession, q).map((c) => ({ ...c, card: null }))).slice(0, 10), "score") },
         { part: "fee", question: `How much does ${subject} cost in ${inCountry(r.country)}?`, claims: lf ? [{ claimId: `fee-${r.country}-${r.profession}`.replace(/\s+/g, "-"), card: lf.card, text: lf.line, link: own ? own.fact.link : src.link, readOn: own ? own.fact.on : src.on, source: own ? `${hostOf(own.fact.link)} — its own price` : `${hostOf(src.link)} — the official fee; the rate: ${rates?.short ?? "—"} (${rates?.link ?? ""})`, official: true }] : [] },
       ];
@@ -466,7 +472,8 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
       const homeP = countryPages.find((p) => p.country === r.country), sharedOf = (part) => (homeP?.items ?? []).find((it) => it.part === part);
       if (!items.some((it) => it.part === "fee") && sharedOf("fee")?.claims?.length) items.push({ part: "fee", question: sharedOf("fee").question, claims: sharedOf("fee").claims.slice(0, 1) });
       for (const part of ["centres", "results"]) { const it = sharedOf(part); if (it?.claims?.length) items.push({ part, question: it.question, claims: it.claims.map((c) => ({ ...c, card: null })) }); }
-      if (isC && sharedOf("rules")?.claims?.length) items.push({ part: "country-rules", question: sharedOf("rules").question, claims: sharedOf("rules").claims.map((c) => ({ ...c, card: null })) }); }
+      if (isC && sharedOf("rules")?.claims?.length) items.push({ part: "country-rules", question: sharedOf("rules").question, claims: sharedOf("rules").claims.filter((c) => !ofAnotherBody(c.link)).map((c) => ({ ...c, card: null })) }); }
+    for (const [host, who] of mine.filter((f) => f.part === "home-council" && siteOf(f)).map((f) => [siteOf(f), f.profession])) (((bodyHosts[r.country] ??= {})[host] ??= new Set())).add(who);
     localPages.push({ kind, type: TYPE_OF_KIND[kind], country: r.country, profession: r.profession, title: pageTitle, ...(noRealQuestion ? { questionsWanted: true, askSeeds: [`${subject} ${people}`.toLowerCase(), `${subject} ${people} ${String(r.country).toLowerCase()}`] } : {}), questions: [...(askedOfPair[`${r.profession}|${r.country}`] ?? [])], items: items.filter((it) => it.claims.length).map((it) => ({ ...it, claims: it.claims.map((c) => ({ ...c, claimId: `${isC ? "c" : "d"}-${r.profession}-${r.country}-${c.claimId}`.replace(/\s+/g, "-") })) })) /* its own answers: the planner must not read a shared fact as "the same page" (whether it says anything of its own is R3's question, by what it says) */, localCurrency: isC ? null : CURRENCY_OF[r.country] ?? null, content: null, home: countryPages.find((p) => p.country === r.country)?.title ?? null, prof: profPages.find((p) => p.profession === r.profession)?.title ?? null, askedHeads: [] });
   }
   /* a topic page with nothing of its topic is thin (R3): its searches stand on the general page */
@@ -475,7 +482,9 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   /* RR-366 Part 3: a test-format question stands once, on its topic page, never on every country page */
   { const placed = new Set(), perPage = new Map(); for (const r of movedQuestions) { const sub = SUBTEST_OF(r.question), home = realTopics.find((x) => x.topic === sub) ?? bigTopic, sig = sigOf(r.question), say = (why) => droppedQuestions.push({ page: r.from, question: r.question, why }); if (!home) { say("it is a test-format question and no topic page is planned for it yet"); continue; } if (placed.has(sig)) { say(`it is a test-format question: it stands once, on "${home.title}"`); continue; } if ((perPage.get(home) ?? 0) >= 6) { say(`it is a test-format question: "${home.title}" already carries six of them`); continue; } const claims = r.fact ? [claimOf(r.fact, null, null)] : answerQuestion(r.question, ladderOf(null, r.view))?.claims; if (!claims?.length) { say("it is a test-format question with no verified answer yet"); continue; } placed.add(sig); perPage.set(home, (perPage.get(home) ?? 0) + 1); home.items.push({ part: `questionsa${60 + perPage.get(home)}`, question: r.question, claims }); say(`it is a test-format question, so it moved to "${home.title}"`); } }
   const pages = [...profPages, ...countryPages, ...realTopics, ...localPages];
-  for (const p of localPages) { p.links = [p.home, p.prof].filter(Boolean); p.open = []; p.ledger = []; }
+  /* 🔴 RR-370: "How much does OET cost?" is the test's price. What a change or a re-mark costs is true, and has a question of its own */
+  splitOtherFees(pages, subject);
+  for (const p of localPages) { const kin = localPages.filter((x) => x !== p && x.profession === p.profession && x.kind === p.kind).map((x) => x.title), at = kin.findIndex((t) => t > p.title); /* 🔴 RR-370 item 10: its country page, its profession page, the nearest pages of the same profession */ p.links = [p.home, p.prof, ...[...kin.slice(Math.max(0, at)), ...kin].slice(0, 3)].filter(Boolean); p.open = []; p.ledger = []; }
   /* the pages link each other: a profession page its country pages, a country page its profession pages, a topic page the hubs */
   for (const p of profPages) p.links = countryPages.map((c) => c.title);
   for (const p of countryPages) p.links = profPages.filter((x) => x.items.some((it) => it.claims.some((c) => c.text.startsWith(`In ${inCountry(p.country)}:`)))).map((x) => x.title).concat(realTopics.slice(0, 2).map((x) => x.title));
@@ -510,5 +519,5 @@ export function examPlan({ subject = null /* RR-359: no default subject */, prof
   const byUrl = new Map();
   for (const p of pages.filter((x) => x.improve)) { const had = byUrl.get(p.improve.url); if (!had) { byUrl.set(p.improve.url, p); continue; } const [keep, drop] = isLocal(had) && !isLocal(p) ? [p, had] : [had, p]; byUrl.set(p.improve.url, keep); delete drop.improve; }
   /* R3 before the searches: a C or D page that cannot be whole, whatever a search finds, costs no search */
-  return settleLocal({ pages, skipped, skippedTotal: skippedMore, existing, notBuilt, merged, droppedQuestions, counts: countsOf(pages, merged), bigger: { countryPages, profPages } }, { onlyBefore: true });
+  return settleLocal({ pages, bodyHosts: Object.fromEntries(Object.entries(bodyHosts).map(([c, m]) => [c, Object.fromEntries(Object.entries(m).map(([h, s]) => [h, [...s]]))])), skipped, skippedTotal: skippedMore, existing, notBuilt, merged, droppedQuestions, counts: countsOf(pages, merged), bigger: { countryPages, profPages } }, { onlyBefore: true });
 }

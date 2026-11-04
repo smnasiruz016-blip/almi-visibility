@@ -15,6 +15,7 @@ import { coreOf } from "./page-types.mjs";
 import { meaningOf } from "./coverage.mjs";
 import { localSeeds } from "./subject-demand.mjs";
 import { STANDARD } from "./research.mjs";
+import { byMeaning, twinOf } from "./search-meaning.mjs"; // RR-370 item 11
 /* 🔴 RR-366 Part 7 (owner + DataForSEO's account manager, 2 Nov 2026): the STANDARD queue, $0.0006 a search against $0.002 live; results come within minutes and collecting them is free. Nothing here needs real time */
 export const SERP = Object.freeze({ url: "https://api.dataforseo.com/v3/serp/google/organic/task_post", getUrl: "https://api.dataforseo.com/v3/serp/google/organic/task_get/advanced/", pricePerSearch: 0.0006, capPerDay: 1, depth: 10 });
 /* 🔴 RR-366 X1 (owner's ruling, 15 Oct): paid search only enriches, in the background; it never stops a page. The cap is said in these words, never as a reason */
@@ -81,6 +82,8 @@ export async function queueSearches({ wanted = [], settings = {}, ledger, login,
   if (!login || !password) return { posted: 0, cost: 0, stop: "your DataForSEO login is not saved on this computer (Search results data → step 2)" };
   const cap = Number(settings.capDay) > 0 ? Number(settings.capDay) : SERP.capPerDay, capMonth = Number(settings.capMonth) > 0 ? Number(settings.capMonth) : Infinity, price = SERP.pricePerSearch;
   const fresh = (k) => { const c = ledger.serpCache?.[k]; return c && (!c.at || (Date.parse(now) - Date.parse(c.at)) / 864e5 <= KEEP_SEARCH_DAYS); }, seen = new Set();
+  /* 🔴 RR-370 item 11: the same search in other words is the saved one: reused, never bought */
+  { const map = byMeaning(Object.keys(ledger.serpCache ?? {}).filter(fresh)); for (const w of wanted) { if (fresh(w.key) || ledger.pending?.[w.key]) continue; const twin = twinOf(w.key, map); if (twin && twin !== w.key) (ledger.serpCache ??= {})[w.key] = { ...ledger.serpCache[twin], cost: 0, sameAs: twin }; } }
   const todo = wanted.filter((w) => !fresh(w.key) && !ledger.pending?.[w.key] && !seen.has(w.key) && seen.add(w.key));
   let posted = 0, cost = 0, stop = null, left = todo;
   while (left.length && !stop) {

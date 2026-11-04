@@ -38,7 +38,7 @@ export const SUBTEST_OF = (q) => ["Speaking", "Writing", "Listening", "Reading"]
 /** a test-format question naming no place → it goes to its topic page; one naming the place stays */
 export const isTestFormat = (q, place = null) => FORMAT.test(String(q)) && !(place && countriesIn(q).includes(place));
 
-export const HONEST = /\bofficial page, checked \d{4}-\d{2}-\d{2}, does not say this\b|\bofficial page, checked \d{4}-\d{2}-\d{2}, is the place to read this\b|\bcould not be read on \d{4}-\d{2}-\d{2}; this is still being looked for\b/;
+export const HONEST = /\b(?:official|contact|home) page, checked \d{4}-\d{2}-\d{2}, does not say this\b|\bofficial page, checked \d{4}-\d{2}-\d{2}, is the place to read this\b|\bcould not be read on \d{4}-\d{2}-\d{2}; this is still being looked for\b/;
 export const VIEW_MARK = "A view many people hold, not an official rule:";
 const short = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };

@@ -19,6 +19,7 @@ import { COUNTRIES } from "../desktop/world.mjs";
 import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS, clientTopicsToWork, planLimits, sharedFailHosts, FAIL_KEY, PAID_FAIL, TOP_PAGES_REUSED_JOB, TOP_PAGES_SKIPPED_JOB } from "./almiseo.mjs";
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
+import { byMeaning, twinOf, meaningKey } from "../desktop/search-meaning.mjs"; // RR-370 item 11
 import { readFailures, hostOf } from "../desktop/read-failures.mjs"; // RR-369b item 5
 
 const PRODUCT_CATEGORY = Object.freeze({ oet: "exam", prep: "exam", pte: "exam", toefl: "exam", det: "exam", celpip: "exam" });
@@ -73,10 +74,12 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
     for (let pass = 0; ; pass++) {
     for (const topic of topics) {
       if (out.stoppedBy) break;
-      const have = new Map((await seo.lists(topic.id)).map((l) => [l.intent, l])), covered = new Map((await seo.coverage(topic.id)).map((c) => [c.intent, c])), payerLimit = topic.payer ? limits[topic.planOf?.[topic.payer]]?.usdMonth ?? 0 : null;
+      const have = new Map((await seo.lists(topic.id)).map((l) => [l.intent, l])), covered = new Map((await seo.coverage(topic.id)).map((c) => [c.intent, c])), haveByMeaning = new Map([...have.keys()].map((k) => [meaningKey(k), k])), boughtKeys = byMeaning((await seo.searchKeys?.(topic.id)) ?? []), payerLimit = topic.payer ? limits[topic.planOf?.[topic.payer]]?.usdMonth ?? 0 : null;
       for (const intent of intentsOf({ topic, facts })) {
         if (now() - start > budgetMs) { stop("TIME", "This run's time is used — the next run continues."); break; }
         const old = have.get(intent);
+        /* 🔴 RR-370 item 11: this need in other words is already here: nothing is bought for it */
+        if (!old && haveByMeaning.has(meaningKey(intent)) && daysBetween(have.get(haveByMeaning.get(meaningKey(intent))).day, today) < TOP_PAGES_CAPS.refreshDays) { out.sameMeaning = (out.sameMeaning ?? 0) + 1; continue; }
         /* saved once: reused until it is due again — the same list is never bought twice */
         if (old && daysBetween(old.day, today) < TOP_PAGES_CAPS.refreshDays && covered.get(intent)?.day >= old.day) continue;
         let list = old && daysBetween(old.day, today) < TOP_PAGES_CAPS.refreshDays ? old : null;
@@ -84,7 +87,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           const waiting = pending[`${topic.id}|${intent}`];
           let got = null;
           /* 🔴 RR-369 (owner, R13): an app bought this very search and saved it: reused free. Bought once, by whoever came first */
-          const appKeys = [`${intent}||`, `${searchTermOf(intent)}||`], app = waiting ? null : (await seo.searches?.(topic.id, appKeys) ?? []).sort((a, b) => appKeys.indexOf(a.key) - appKeys.indexOf(b.key))[0]; /* the app searches what people search: a page's subject, not its whole heading */
+          const appKeys = [`${intent}||`, `${searchTermOf(intent)}||`, twinOf(`${intent}||`, boughtKeys)].filter(Boolean), app = waiting ? null : (await seo.searches?.(topic.id, appKeys) ?? []).sort((a, b) => appKeys.indexOf(a.key) - appKeys.indexOf(b.key))[0]; /* the app searches what people search: a page's subject, not its whole heading */
           if (app && daysBetween(app.day, today) < TOP_PAGES_CAPS.refreshDays) { out.reused = (out.reused ?? 0) + 1; got = { ok: true, cost: 0, results: app.data.results ?? [], paa: app.data.paa ?? [], related: app.data.related ?? [] }; }
           else if (waiting) {
             let r = null; try { r = await fetchImpl(`${SERP.getUrl}${waiting.id}`, { method: "GET", headers: { authorization: auth }, signal: AbortSignal.timeout(30000) }); } catch { r = null; }

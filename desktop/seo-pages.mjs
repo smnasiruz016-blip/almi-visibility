@@ -377,7 +377,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
     push("I", "every fact sourced and fresh", stale);
     push("K", "short forms keep the fact", cardFaults);
     /* 🔴 RR-370 B: judged by meaning before it is ready. No AI connected: not held back, and the file says "not judged" */
-    push("Q", "each answer judged to fit its question", m.fitCheck?.unjudged ? [`${m.fitCheck.unjudged} answer${m.fitCheck.unjudged === 1 ? " is" : "s are"} still being checked by your AI.`] : []);
+    push("Q", "each answer judged to fit its question", [...(m.fitCheck?.unjudged ? [`${m.fitCheck.unjudged} answer${m.fitCheck.unjudged === 1 ? " is" : "s are"} still being checked by your AI.`] : []), ...(m.fitCheck?.no ? [`${m.fitCheck.no} answer${m.fitCheck.no === 1 ? " does" : "s do"} not fit its question.`] : [])]);
     push("P", "no page speaks as \"I\"", seen.items.flatMap((it) => it.answers.filter((a) => firstPersonIn(a)).map((a) => `"${a.slice(0, 70)}" speaks as "I".`)));
     push("L", "each answer fits its question", unfit);
     push("M", "every number has a verified fact", orphans.map((n) => `"${n}" stands on this page with no verified fact behind it.`)); /* RR-366 Part 6 F */

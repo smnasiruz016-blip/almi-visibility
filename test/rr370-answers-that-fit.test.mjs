@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { intentOfFact, misplaced, PART_INTENTS, INTENTS } from "../desktop/fact-intent.mjs";
-import { pairsOf, pairKey, unjudged, judgeBatch, judgeAll, applyVerdicts, markPages, fitCheckText, samplePages, JUDGE, SYSTEM } from "../desktop/qa-judge.mjs";
+import { settleVerdicts, pairsOf, pairKey, unjudged, judgeBatch, judgeAll, applyVerdicts, markPages, fitCheckText, samplePages, JUDGE, SYSTEM } from "../desktop/qa-judge.mjs";
 import { checkLink, applySources, firstPersonIn, thirdPerson, errorAddress, CORRECTIONS, linksToCheck, linksText } from "../desktop/source-links.mjs";
 import { meaningKey, byMeaning, twinOf } from "../desktop/search-meaning.mjs";
 import { previewOf, publishDraft } from "../desktop/publish.mjs";
@@ -174,6 +174,14 @@ test("ITEM 8: a question people asked goes when it is of no use, even with only 
   const q = "Is there a sitting area for parents at the test venue?", a = "OET's official page, checked 2026-11-03, does not say this.", page = { title: "T", kind: "country", country: "X", items: [{ part: "questionsa3", question: q, claims: [claim(a, { gap: true })] }] }, plan = { pages: [page] };
   assert.equal(unjudged(plan, {}).length, 1, "it goes to the judge"); markPages(plan, {}); assert.equal(page.fitCheck.unjudged, 0, "an honest line never holds a page");
   applyVerdicts(plan, { [pairKey("T", q, a)]: { fits: true, reason: "honest", intent: "other", place: true, worth: false } }); assert.equal(page.items.length, 0); assert.match(plan.droppedQuestions[0].why, /no practical value/);
+});
+
+test("B, NO 'NO' SURVIVES: a part's own question coming back with an answer already judged no goes too, in the same run; a page still holding a no is not ready", () => {
+  const a = "A line about something else.", page = { title: "T", kind: "local", country: "X", items: [{ part: "questions0", q0: "Own question?", question: "Asked question?", claims: [claim(a)] }] }, plan = { pages: [page] };
+  const verdicts = { [pairKey("T", "Asked question?", a)]: { fits: false, intent: "other", reason: "no" }, [pairKey("T", "Own question?", a)]: { fits: false, intent: "other", reason: "no" } };
+  settleVerdicts(plan, verdicts); assert.equal(page.items.length, 0, "nothing judged no is left"); markPages(plan, verdicts); assert.equal(page.fitCheck.no, 0);
+  const held = { pages: [{ title: "U", items: [{ part: "questions0", question: "Q?", claims: [claim(a)] }] }] }; markPages(held, { [pairKey("U", "Q?", a)]: { fits: false } }); assert.equal(held.pages[0].fitCheck.no, 1);
+  assert.match(read("desktop/seo-pages.mjs"), /m\.fitCheck\?\.no \? \[/, "the gate holds it"); assert.match(read("desktop/main.mjs"), /let log = settleVerdicts\(plan, verdicts\)/); assert.match(read("desktop/main.mjs"), /log = \[\.\.\.log, \.\.\.settleVerdicts\(plan, verdicts\)\]/);
 });
 
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {

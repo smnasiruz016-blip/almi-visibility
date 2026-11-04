@@ -9,7 +9,7 @@ import { INTENTS, misplaced, FIXED_PART } from "./fact-intent.mjs";
 import { HONEST } from "./answer-ladder.mjs";
 
 export const VERDICTS_FILE = "qa-verdicts.json", FIT_FILE = "Q-A fit check.txt";
-export const JUDGE = Object.freeze({ model: AI.model, batch: 30, side: 4, rounds: 2, sample: 30, maxTokens: 8000 });
+export const JUDGE = Object.freeze({ model: AI.model, batch: 30, side: 4, rounds: 3, sample: 30, maxTokens: 8000 });
 const SCHEMA = { type: "object", additionalProperties: false, required: ["verdicts"], properties: { verdicts: { type: "array", items: { type: "object", additionalProperties: false, required: ["i", "fits", "reason", "intent", "place", "worth"], properties: { i: { type: "integer" }, fits: { type: "boolean" }, reason: { type: "string" }, intent: { type: "string", enum: [...INTENTS] }, place: { type: "boolean" }, worth: { type: "boolean" } } } } } };
 export const SYSTEM = `You check questions and answers on web pages. Each row gives the page's title, a question and one answer on that page. Judge only from what is written there; add no knowledge of your own.
 - fits: true only if the answer really answers this question: the same thing asked, and the same body, profession and place when the question names one. A general line (a score scale, a list of professions, a document service) does not answer a specific question (a body's required score, how to get a good standing certificate, how to register). A plain statement that a page does not say or could not be read is true.
@@ -77,6 +77,8 @@ export function applyVerdicts(plan, verdicts = {}) {
   }
   return log;
 }
+/** 🔴 RR-370 (the built app: 7 ready pages still held a "no"): one pass can put back an answer already judged "no" (the part's own question, a replacement). The verdicts are applied until nothing moves */
+export function settleVerdicts(plan, verdicts = {}) { const log = []; for (let i = 0; i < 8; i++) { const more = applyVerdicts(plan, verdicts); if (!more.length) break; log.push(...more); } return log; }
 /** how a page stands */
 export function markPages(plan, verdicts, { judging = true } = {}) { for (const p of plan.pages ?? []) { const rows = (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => !honest(c)).map((c) => verdicts[pairKey(p.title, it.question, c.text)])), un = rows.filter((v) => !v).length, no = rows.filter((v) => v?.fits === false).length; p.fitCheck = judging ? { judged: rows.length - un, unjudged: un, no } : { notJudged: true, judged: rows.length - un, unjudged: 0, no }; } return plan; }
 /** a fair sample: every type, then random, from a seed, so the same day's file can be read again */

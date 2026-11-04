@@ -70,6 +70,7 @@ export function seoPgStore({ url, Pool = null, max = 3 }) {
     async searches(topic, keys) { await ensure(); if (!keys.length) return []; return q("SELECT topic, key, kind, day::text AS day, data FROM seo_search WHERE topic = $1 AND key = ANY($2::text[])", [topic, keys]); },
     async searchCount(topic) { await ensure(); const [r] = await q("SELECT count(*)::int AS n FROM seo_search WHERE topic = $1", [topic]); return r?.n ?? 0; },
     async pageCount() { await ensure(); const [r] = await q("SELECT count(*)::int AS n FROM tp_page"); return r?.n ?? 0; },
+    async failHosts() { await ensure(); return q("SELECT topic, key, kind, day::text AS day, data FROM seo_search WHERE kind = 'failhost'"); },
     async close() { if (pool) await pool.end(); pool = null; ready = null; },
   });
 }
@@ -110,6 +111,7 @@ export function seoMemoryStore() {
     async searches(topic, keys) { return keys.map((k) => bought.get(`${topic}|${k}`)).filter(Boolean).map(copy); },
     async searchCount(topic) { return [...bought.values()].filter((r) => r.topic === topic).length; },
     async pageCount() { return pages.size; },
+    async failHosts() { return [...bought.values()].filter((r) => r.kind === "failhost").map(copy); },
     async close() {},
   });
 }

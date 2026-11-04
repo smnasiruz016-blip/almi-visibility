@@ -53,7 +53,7 @@ const TP = { [ENV_NAMES.topPagesOn]: "1", [ENV_NAMES.dfsLogin]: "login-name", [E
 const answer = (k, cost = 0.002) => ({ status_code: 20000, tasks: [{ status_code: 20000, cost, result: [{ items: [{ type: "organic", url: "https://a.example/one", title: `${k} one` }] }] }] });
 const reader = () => { let n = 0; return { requests: () => n, raw: async () => { n++; return "<main><h2>How much is the exam fee?</h2></main>"; } }; };
 test("RULING 1: the TOTAL budget stops the collector by itself, whatever the day; a search that could pass it is not sent; spent / $50 is measured from what was charged", async () => {
-  const w = await world(); let n = 0; const fetchImpl = async (u, init) => { if (String(u).includes("task_post")) n++; /* RR-366: a page read is no search */ return { json: async () => answer(JSON.parse(init.body)[0].keyword, 0.01) }; };
+  const w = await world(); let n = 0; const fetchImpl = async (u, init) => { if (String(u).includes("content_parsing")) return { json: async () => ({ status_code: 20000, tasks: [{ status_code: 40000, cost: 0 }] }) }; /* RR-369b: a page reading is no search; a charged failure is booked now */ if (String(u).includes("task_post")) n++; /* RR-366: a page read is no search */ return { json: async () => answer(JSON.parse(init.body)[0].keyword, 0.01) }; };
   await w.seo.addSpend("2026-10-01", TOP_PAGES_JOB, { usd: 49.985, units: 9000 }); // the account's earlier days count
   const r = await runTopPages({ seo: w.seo, cf: w.cf, env: TP, reader: reader(), fetchImpl, now });
   assert.equal(n, 1, "one search of $0.01 fits; the next would pass $50 and is never sent"); assert.equal(r.stoppedBy, "BUDGET"); assert.match(r.why, /budget is spent \(\$50 in total\)/);
@@ -63,7 +63,7 @@ test("RULING 1: the TOTAL budget stops the collector by itself, whatever the day
 });
 test("RULING 1: each search is booked the moment it is charged: a run that dies later forgets nothing", async () => {
   const w = await world(), bad = { requests: () => 0, raw: async () => { throw new Error("the page read died"); } };
-  await assert.rejects(Promise.resolve().then(async () => { const seo = { ...w.seo, putPage: async () => { throw new Error("the store died"); } }; await runTopPages({ seo, cf: w.cf, env: TP, reader: { ...reader(), ...bad, raw: async () => "<main></main>" }, fetchImpl: async (u, init) => ({ json: async () => answer(JSON.parse(init.body)[0].keyword) }), now }); }), /the store died/);
+  await assert.rejects(Promise.resolve().then(async () => { const seo = { ...w.seo, putPage: async () => { throw new Error("the store died"); } }; await runTopPages({ seo, cf: w.cf, env: TP, reader: { ...reader(), ...bad, raw: async () => "<main></main>" }, fetchImpl: async (u, init) => (String(u).includes("content_parsing") ? { json: async () => ({ status_code: 20000, tasks: [{ status_code: 40000, cost: 0 }] }) } : { json: async () => answer(JSON.parse(init.body)[0].keyword) }), now }); }), /the store died/);
   assert.equal((await topPagesBudget({ seo: w.seo, env: TP })).spent, 0.002);
 });
 test("RULING 1: AlmiWorld's own products only, AlmiOET first; a client's topic and the owner's own ideas never spend it", async () => {

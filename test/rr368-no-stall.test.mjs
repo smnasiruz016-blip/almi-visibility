@@ -59,7 +59,7 @@ test("a score never read is said as never read; a page read and silent as silent
 test("a read that breaks halfway is said in plain words; the one wait left is said with its limit", async () => {
   let n = 0; const broken = officialReader({ fetchImpl: async (u) => { if (/robots/.test(u)) return new Response("User-agent: *\nAllow: /"); n++; return { ok: true, status: 200, headers: new Headers({ "content-type": "text/html" }), arrayBuffer: async () => { throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); } }; }, allowLocal: true, paceMs: 0, sleep: async () => {}, retries: 0 });
   const r = await within(2000, broken.read("http://127.0.0.1:9/page")); assert.equal(r.ok, false); assert.equal(r.why, "could not be read (it stopped answering)"); assert.equal(n, 1);
-  const MAIN = read("desktop/main.mjs"); assert.match(MAIN, /if \(left\) onWhat\?\.\(`Waiting for Google's results: \$\{left\} still being prepared\. The wait ends by itself within 15 minutes/); assert.match(MAIN, /return serpStep\(id, \{ pages: left \}, [^\n]*, sayingWhat, \{ quick, inHand: pagesFirst \}\)/);
+  const MAIN = read("desktop/main.mjs"); assert.match(MAIN, /if \(left\) onWhat\?\.\(`Waiting for Google's results: \$\{left\} still being prepared\. The wait ends by itself within 15 minutes/); assert.match(MAIN, /return serpStep\(id, \{ pages: left \}, [^\n]*, sayingWhat, \{ quick, inHand: pagesFirst, askOnly \}\)/);
   assert.match(MAIN, /postOnly: true, retry: [^\n]*\.\.\.serpTest\(\) \}\); writeFileSync\(DFS_LEDGER_FILE, JSON\.stringify\(ledger\)\);/, "a paid search is kept at once");
 });
 

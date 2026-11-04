@@ -116,16 +116,16 @@ export function savedListFor(page, file) {
  * `paid(pages)` runs the client's own paid service for the pages still unanswered (only when the client switched it on). → the counts per route
  */
 export async function coverageRoutes({ pages, file, browser = {}, paidOn = false, paid = null, forcePaid = null /* THE ONE LIVE PROOF ONLY: these pages are searched, saved list or not */ }) {
-  const n = { saved: 0, browser: 0, paid: 0, none: 0 }, left = [];
+  const n = { saved: 0, browser: 0, paid: 0, none: 0 }, left = [], askOnly = [];
   for (const p of pages) {
     const s = forcePaid?.includes(p.title) ? null : savedListFor(p, file), b = browser?.[p.title] ?? null;
     /* RR-362: what people asked comes with a saved list too (a page needs the questions as much as a paid search would bring them) */
-    if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on, blueprint: s.blueprint ?? null /* RR-363 */, questions: [...(p.questions ?? []), ...(s.asked ?? []).filter((q) => !(p.questions ?? []).some((x) => (x.question ?? x) === q)).map((question) => ({ question, source: `what people search (${s.on})`, on: s.on }))] }); delete p.serpWhy; n.saved++; continue; }
-    if (b) { Object.assign(p, { coverage: b.coverage ?? [], second: b.second ?? [], topRead: b.read ?? [], coverageRoute: ROUTES.browser, coverageOn: b.on }); delete p.serpWhy; n.browser++; continue; }
+    if (s) { Object.assign(p, { coverage: s.coverage ?? [], second: s.second ?? [], topRead: s.read ?? [], coverageRoute: ROUTES.saved, coverageOn: s.on, blueprint: s.blueprint ?? null /* RR-363 */, questions: [...(p.questions ?? []), ...(s.asked ?? []).filter((q) => !(p.questions ?? []).some((x) => (x.question ?? x) === q)).map((question) => ({ question, source: `what people search (${s.on})`, on: s.on }))] }); delete p.serpWhy; n.saved++; if (p.questionsWanted) askOnly.push(p) /* RR-369b item 3: its saved list holds no question it can answer: it still asks */; continue; }
+    if (b) { Object.assign(p, { coverage: b.coverage ?? [], second: b.second ?? [], topRead: b.read ?? [], coverageRoute: ROUTES.browser, coverageOn: b.on }); delete p.serpWhy; n.browser++; if (p.questionsWanted) askOnly.push(p); continue; }
     left.push(p);
   }
   let paidResult = null;
-  if (left.length && paidOn && paid) { paidResult = await paid(left); for (const p of left) { if (p.topRead?.length || p.coverage?.length) { p.coverageRoute = ROUTES.paid; n.paid++; } else { p.coverageRoute = ROUTES.none; n.none++; } } }
+  if ((left.length || askOnly.length) && paidOn && paid) { paidResult = await paid(left, askOnly); for (const p of left) { if (p.topRead?.length || p.coverage?.length) { p.coverageRoute = ROUTES.paid; n.paid++; } else { p.coverageRoute = ROUTES.none; n.none++; } } }
   else for (const p of left) { p.coverageRoute = ROUTES.none; n.none++; }
   return { counts: n, paid: paidResult, line: `Google's results by route: ${n.saved} saved in AlmiSEO Data, ${n.browser} from your own AI in your own browser, ${n.paid} from your own paid service, ${n.none} not read yet.` };
 }
@@ -136,10 +136,10 @@ export async function coverageRoutes({ pages, file, browser = {}, paidOn = false
 const planRowTitle = (page, file) => { const kind = page.kind === KIND.destination || page.kind === KIND.origin ? "country-profession" : page.kind; return (file?.plan ?? []).find((p) => p.kind === kind && (p.country ?? null) === (page.country ?? null) && (p.profession ?? null) === (page.profession ?? null) && kind !== "question")?.title ?? null; };
 export const searchedLists = (pages, file) => pages.filter((p) => p.coverageRoute === ROUTES.paid && p.searchedOn).map((p) => ({ intent: planRowTitle(p, file) ?? p.title, on: p.searchedOn, read: p.topRead ?? [], paa: p.paa ?? [], related: p.related ?? [], coverage: (p.coverage ?? []).map((c) => c.topic ?? c), second: (p.second ?? []).map((x) => x.question ?? x), blueprint: p.blueprint ?? null }));
 /** the run's one line: saved · reused · bought (R13), and what is left for tomorrow */
-export function searchCounts({ routes, paid = null, saved = 0, waiting = 0, later: laterPages = null, coming = 0 }) {
-  const reused = (routes?.saved ?? 0) + (routes?.browser ?? 0) + (paid?.reused ?? 0), bought = paid?.bought ?? 0, cost = paid?.cost ?? 0, later = laterPages ?? routes?.none ?? 0;
+export function searchCounts({ routes, paid = null, saved = 0, waiting = 0, later: laterPages = null, coming = 0, charged = null /* RR-369b item 2: this run's rows in the ledger */ }) {
+  const reused = (routes?.saved ?? 0) + (routes?.browser ?? 0) + (paid?.reused ?? 0), rows = (charged ?? []).filter((x) => Number(x.cost) > 0), bought = charged ? rows.length : paid?.bought ?? 0, cost = charged ? rows.reduce((t, x) => t + Number(x.cost), 0) : paid?.cost ?? 0, failed = rows.filter((x) => x.ok === false).length, later = laterPages ?? routes?.none ?? 0;
   /* RR-369: "saved" = the server named it back; the rest is said, never counted as saved */
-  return { saved, waiting, reused, bought, cost, later, coming, line: `Searches: ${saved} saved in AlmiSEO Data (confirmed by the server), ${reused} reused free, ${bought} bought ($${cost.toFixed(2)}).${waiting ? ` ${waiting} still on their way to AlmiSEO Data; the app keeps trying.` : ""}${coming ? ` ${coming} of Google's answers still coming: the pages improve by themselves when they arrive.` : later ? ` ${later} page${later === 1 ? "" : "s"} will be checked tomorrow.` : ""}` };
+  return { saved, waiting, reused, bought, failed, cost, later, coming, line: `Searches: ${saved} saved in AlmiSEO Data (confirmed by the server), ${reused} reused free, ${bought} bought ($${cost.toFixed(2)})${failed ? `, ${failed} of them charged though the page could not be read` : ""}.${waiting ? ` ${waiting} still on their way to AlmiSEO Data; the app keeps trying.` : ""}${coming ? ` ${coming} of Google's answers still coming: the pages improve by themselves when they arrive.` : later ? ` ${later} page${later === 1 ? "" : "s"} will be checked tomorrow.` : ""}` };
 }
 /** one page's ledger line: which route answered */
 export const routeLine = (p, serpWhy = null) => { const r = p?.coverageRoute ?? ROUTES.none; return r === ROUTES.none ? (serpWhy ?? NOT_READ_LINE) : `${(p.topRead ?? []).length} top results read for what they cover (never copied, no fact taken) — from ${ROUTE_LINE[r]}${p.coverageOn ? `, ${p.coverageOn}` : ""}.`; };

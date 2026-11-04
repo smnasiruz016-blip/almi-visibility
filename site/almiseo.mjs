@@ -120,6 +120,7 @@ export async function saveFromApp({ seo, subject, lists = [], lic, groups = [], 
  * saveFromApp above holds a finished page's list; this holds each search as bought: Reddit's, Quora's, a council's, autocomplete, and each top page's structure (tp_page, the collector's own store). Only addresses, titles,
  * questions and phrases arrive; a page's text never. A key is confirmed row by row: the app marks only what is named back. An outside client may send its own topic's, and is sent none back (ruling 2): it gets finished pages.
  */
+export const FAIL_KEY = "failhost|", PAID_FAIL = "a paid reading of it failed", TOP_PAGES_REUSED_JOB = "top-pages-reused", TOP_PAGES_SKIPPED_JOB = "top-pages-reads-skipped";
 export const BOUGHT = Object.freeze({ routes: Object.freeze(["/v1/almiseo/searches", "/v1/almiseo/searches/held"]), maxBody: 1000000, perCall: 500, keepDays: 30, results: 10, questions: 20, phrases: 30, headings: 40 });
 const text1 = (x, n) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const strs = (xs, n, len = 200) => (Array.isArray(xs) ? xs : []).map((x) => text1(x, len)).filter(Boolean).slice(0, n);
@@ -128,11 +129,11 @@ const dayIn = (d, today) => (/^\d{4}-\d{2}-\d{2}$/.test(String(d ?? "")) && d <=
 const cleanBoughtBlocks = (b) => (b && typeof b === "object" ? Object.fromEntries(Object.entries(b).filter(([k]) => /^[a-zA-Z]{1,20}$/.test(k)).map(([k, v]) => [k, typeof v === "boolean" ? v : typeof v === "number" ? v : k === "via" ? text1(v, 20) : k === "cannotSee" ? strs(v, 6, 20) : k === "columns" ? (Array.isArray(v) ? v.slice(0, 3).map((c) => strs(c, 8, 40)) : []) : null]).filter(([, v]) => v !== null)) : null);
 const QUESTION_LINE = /\?\s*$/;
 const yours = async ({ seo, subject, lic, groups }) => { const topic = topicForSubject(subject, await allTopics({ seo, groups })); if (!topic) return { ok: false, status: 404, why: "No such subject here yet." }; if (!lic.owner && !(topic.owner === "client" && (topic.clients ?? []).includes(accountHash(lic.account)))) return { ok: false, status: 403, why: "That subject is not yours." }; return { ok: true, topic }; };
-export async function saveBought({ seo, subject, searches = [], pages = [], lic, groups = [], at }) {
+export async function saveBought({ seo, subject, searches = [], pages = [], failHosts = null, lic, groups = [], at }) {
   const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
   const today = dayOf(at), rows = [], confirmed = [], refused = [], pagesConfirmed = [];
   for (const s of (Array.isArray(searches) ? searches : []).slice(0, BOUGHT.perCall)) {
-    const key = String(s?.key ?? ""); if (!key || key.length > 400) { refused.push({ key: key.slice(0, 80), why: "no usable search key" }); continue; }
+    const key = String(s?.key ?? ""); if (!key || key.length > 400 || key.startsWith(FAIL_KEY)) { refused.push({ key: key.slice(0, 80), why: "no usable search key" }); continue; }
     const results = (Array.isArray(s.results) ? s.results : []).filter((r) => /^https?:\/\//.test(r?.url ?? "")).slice(0, BOUGHT.results).map((r, i) => ({ url: String(r.url).slice(0, 2000), title: text1(r.title, 300), rank: num(r.rank) || i + 1 }));
     rows.push({ topic: y.topic.id, key, kind: s.kind === "auto" ? "auto" : "serp", day: dayIn(s.on, today), data: { ok: true, ...(s.empty ? { empty: true } : {}), results, paa: strs(s.paa, BOUGHT.questions), related: strs(s.related, BOUGHT.questions), phrases: strs(s.phrases, BOUGHT.phrases) } }); confirmed.push(key);
   }
@@ -140,9 +141,12 @@ export async function saveBought({ seo, subject, searches = [], pages = [], lic,
   for (const p of (Array.isArray(pages) ? pages : []).slice(0, BOUGHT.perCall)) {
     const url = String(p?.url ?? ""); if (!/^https?:\/\//.test(url) || url.length > 2000) continue;
     const headings = strs(p.headings, BOUGHT.headings), read = Array.isArray(p.headings), blocks = cleanBoughtBlocks(p.blocks);
-    await seo.putPage({ url, day: dayIn(p.on, today), ok: read, why: read ? null : "the app could not read it", structure: read ? { headings, questions: headings.filter((h) => QUESTION_LINE.test(h)), tables: num(blocks?.tables), lists: 0, words: num(blocks?.words), date: null, droppedHeadings: 0, blocks } : null }); pagesConfirmed.push(url);
+    /* RR-369b item 5: a paid reading failed here: said on the page's own row, whatever the free read found */
+    const paidFail = p.paidFail === true;
+    await seo.putPage({ url, day: dayIn(p.on, today), ok: read, why: read ? null : `the app could not read it${paidFail ? `; ${PAID_FAIL}` : ""}`, structure: read ? { headings, questions: headings.filter((h) => QUESTION_LINE.test(h)), tables: num(blocks?.tables), lists: 0, words: num(blocks?.words), date: null, droppedHeadings: 0, blocks, ...(paidFail ? { paidFail: true } : {}) } : null }); pagesConfirmed.push(url);
   }
-  return { ok: true, confirmed, pages: pagesConfirmed, refused, held: { searches: await seo.searchCount(y.topic.id), pages: await seo.pageCount() } };
+  const hostRows = failHosts && typeof failHosts === "object" ? Object.entries(failHosts).filter(([h]) => /^[a-z0-9.-]{1,253}$/.test(h)).slice(0, 5000).map(([h, v]) => ({ topic: `fail:${y.topic.id}`, key: `${FAIL_KEY}${h}`, kind: "failhost", day: today, data: { ok: num(v?.ok), fail: num(v?.fail) } })) : null; if (hostRows?.length) await seo.putSearches(hostRows, { at });
+  return { ok: true, confirmed, pages: pagesConfirmed, refused, ...(hostRows ? { failHosts: hostRows.length } : {}), held: { searches: await seo.searchCount(y.topic.id), pages: await seo.pageCount() } };
 }
 /** before buying: what is already here and fresh (the same month as the collector). An outside client is sent none of it (ruling 2) */
 export async function heldBought({ seo, subject, keys = [], urls = [], lic, groups = [], at }) {
@@ -150,9 +154,14 @@ export async function heldBought({ seo, subject, keys = [], urls = [], lic, grou
   if (!lic.owner) return { ok: true, outside: true, searches: {}, pages: {} };
   const today = dayOf(at), fresh = (d) => (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`)) / 864e5 <= BOUGHT.keepDays, searches = {}, pages = {};
   for (const r of await seo.searches(y.topic.id, (Array.isArray(keys) ? keys : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(r.day)) searches[r.key] = { ...r.data, kind: r.kind, on: r.day };
-  for (const p of await seo.pages((Array.isArray(urls) ? urls : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(p.day)) pages[p.url] = { on: p.day, headings: p.ok ? p.structure?.headings ?? [] : null, blocks: p.ok ? p.structure?.blocks ?? null : null };
-  return { ok: true, searches, pages };
+  for (const p of await seo.pages((Array.isArray(urls) ? urls : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(p.day)) pages[p.url] = { on: p.day, headings: p.ok ? p.structure?.headings ?? [] : null, blocks: p.ok ? p.structure?.blocks ?? null : null, ...(p.structure?.paidFail || String(p.why ?? "").includes(PAID_FAIL) ? { paidFail: true } : {}) };
+  return { ok: true, searches, pages, failHosts: await sharedFailHosts(seo) };
 }
+/** each site's counts, added across everyone who reported */
+export async function sharedFailHosts(seo) { const out = {}; for (const r of (await seo.failHosts?.()) ?? []) { const h = String(r.key).slice(FAIL_KEY.length); out[h] = { ok: (out[h]?.ok ?? 0) + num(r.data?.ok), fail: (out[h]?.fail ?? 0) + num(r.data?.fail) }; } return out; }
+
+/* RR-369b item 4: what the server collector reused and did not pay for, for the owner's own read */
+export async function collectorReuse(seo) { const rows = (await seo.spendSince?.("2026-11-01").catch(() => [])) ?? [], sum = (job) => rows.filter((r) => r.job === job).reduce((t, r) => t + (Number(r.units) || 0), 0); return { reused: sum(TOP_PAGES_REUSED_JOB), readsSkipped: sum(TOP_PAGES_SKIPPED_JOB) }; }
 
 /* ── THE PLAN LIMITS ── */
 export async function planLimits(seo) { const s = await seo.setting("plan-limits").catch(() => null); return Object.fromEntries(PLANS.map((p) => [p.id, { ...(DEFAULT_PLAN_LIMITS[p.id] ?? { usdMonth: 0, countries: 0 }), ...(s?.[p.id] ?? {}) }])); }
@@ -326,6 +335,6 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   const review = (await seo.findings({ topic: topic.id, changed: true })).map((f) => ({ text: f.text, was: f.was, now: f.value, link: f.sourceUrl, on: f.on, kind: f.kind }));
   const facts = mine.filter((f) => f.part !== "questions" && SHOWN_STATUS.includes(f.status)), week = daysBefore(today, 7), newOn = (d) => mine.filter((f) => String(f.at ?? "").slice(0, 10) >= d).length;
   return { ...base, keywords: { total: kw.total, today: kw.today ?? 0, week: kw.week ?? 0, allowed }, questions: { groups: bank.groups.length, answered: bank.groups.filter((q) => q.answerKind === "official" && q.answer).length, asked: bank.asked.length },
-    countries: { held: order.length, allParts: order.filter((c) => done(topic.id, c)).length, waitingReview: stillWaiting(mine).length, facts: facts.length }, topPages: { lists: lists.length, read: read.length, coverageLists: coverage.length, on: env[ENV_NAMES.topPagesOn] === "1" }, plan: { pages: counterTotal(all, { topic }) }, arrived: { today: newOn(today), week: newOn(week) }, lastRefresh: mine.map((f) => String(f.at ?? "").slice(0, 10)).sort().at(-1) ?? null, review };
+    countries: { held: order.length, allParts: order.filter((c) => done(topic.id, c)).length, waitingReview: stillWaiting(mine).length, facts: facts.length }, topPages: { lists: lists.length, read: read.length, coverageLists: coverage.length, on: env[ENV_NAMES.topPagesOn] === "1", ...(await collectorReuse(seo)) }, plan: { pages: counterTotal(all, { topic }) }, arrived: { today: newOn(today), week: newOn(week) }, lastRefresh: mine.map((f) => String(f.at ?? "").slice(0, 10)).sort().at(-1) ?? null, review };
 }
 export { PLAN_LOCATIONS, CF_PROFESSIONS, councilFound };

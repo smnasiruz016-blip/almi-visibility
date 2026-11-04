@@ -16,9 +16,10 @@ import { cleanCoverage, junkWhy } from "../desktop/coverage.mjs";
 import { secondSearch } from "../desktop/recipe.mjs";
 import { blocksOfHtml, blueprintOf } from "../desktop/blocks.mjs"; // RR-363: R15
 import { COUNTRIES } from "../desktop/world.mjs";
-import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS, clientTopicsToWork, planLimits } from "./almiseo.mjs";
+import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS, clientTopicsToWork, planLimits, sharedFailHosts, FAIL_KEY, PAID_FAIL, TOP_PAGES_REUSED_JOB, TOP_PAGES_SKIPPED_JOB } from "./almiseo.mjs";
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
+import { readFailures, hostOf } from "../desktop/read-failures.mjs"; // RR-369b item 5
 
 const PRODUCT_CATEGORY = Object.freeze({ oet: "exam", prep: "exam", pte: "exam", toefl: "exam", det: "exam", celpip: "exam" });
 export const TOP_PAGES = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, maxHeadings: 40, location: "United States", language: "en" });
@@ -67,6 +68,8 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
     /* RR-362 item 9 (R14): AlmiWorld's products first. Later, by the owner's switch, a client's subject too, after them and inside its plan's monthly limit; the client still sees pages only */
     if (env[ENV_NAMES.topPagesClients] === "1") topics.push(...await clientTopicsToWork({ seo, topics: all, today, limits }));
     const facts = await cf.facts();
+    /* 🔴 RR-369b item 5: what is known to fail is not paid for; what fails here is remembered for everyone */
+    const fails = readFailures({ own: await sharedFailHosts(seo).catch(() => ({})) }) /* its own failures add to what everyone reported */, hostsHere = {}, noteHere = (u, ok, why) => { fails.note(u, { ok, why }); const h = hostOf(u); if (h && !/too long/i.test(String(why ?? ""))) { hostsHere[h] ??= { ok: 0, fail: 0 }; hostsHere[h][ok ? "ok" : "fail"]++; } };
     for (let pass = 0; ; pass++) {
     for (const topic of topics) {
       if (out.stoppedBy) break;
@@ -112,14 +115,17 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           let p = kept.get(u);
           if (!p || daysBetween(p.day, today) >= TOP_PAGES_CAPS.refreshDays) {
             /* RR-366: On-Page parsing first, inside the same money caps */
-            if (budget0.spent + out.cost + ONPAGE.price <= caps.budget + 1e-9 && spent.usd + out.cost + ONPAGE.price <= caps.usd + 1e-9) {
+            let paidFail = false;
+            if (!p?.structure?.paidFail && !String(p?.why ?? "").includes(PAID_FAIL) && !fails.skip(u) && budget0.spent + out.cost + ONPAGE.price <= caps.budget + 1e-9 && spent.usd + out.cost + ONPAGE.price <= caps.usd + 1e-9) {
               let said = null; try { const r = await fetchImpl(ONPAGE.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify([{ url: u, markdown_view: true, accept_language: "en" }]), signal: AbortSignal.timeout(60000) }); said = await r.json().catch(() => null); } catch { said = null; }
               const t = said?.tasks?.[0], item = t?.result?.[0]?.items?.[0];
-              if (said?.status_code === 20000 && t?.status_code === 20000 && item?.page_content) { const c = Number(t.cost) || ONPAGE.price, b = blocksOfContent(item, { title: list.results.find((x) => x.url === u)?.title ?? null }), head = [...new Set(b.headings)].filter((x) => !junkWhy(x, { now: new Date(now()).toISOString(), names: COUNTRIES })).slice(0, TOP_PAGES.maxHeadings); out.cost += c; await seo.addSpend(today, TOP_PAGES_JOB, { usd: c, units: 0 }); p = { url: u, day: today, ok: true, why: null, structure: { headings: head, questions: head.filter((x) => QUESTION.test(x) || x.endsWith("?")), tables: b.blocks.tables, lists: 0, words: b.blocks.words, date: null, droppedHeadings: 0, blocks: b.blocks } }; await seo.putPage(p); tops.push({ url: u, rank: list.results.findIndex((x) => x.url === u) + 1, blocks: b.blocks, title: list.results.find((x) => x.url === u)?.title ?? "", headings: head, text: "" }); continue; }
-            }
+              if (said?.status_code === 20000 && t?.status_code === 20000 && item?.page_content) { const c = Number(t.cost) || ONPAGE.price, b = blocksOfContent(item, { title: list.results.find((x) => x.url === u)?.title ?? null }), head = [...new Set(b.headings)].filter((x) => !junkWhy(x, { now: new Date(now()).toISOString(), names: COUNTRIES })).slice(0, TOP_PAGES.maxHeadings); out.cost += c; noteHere(u, true); await seo.addSpend(today, TOP_PAGES_JOB, { usd: c, units: 0 }); p = { url: u, day: today, ok: true, why: null, structure: { headings: head, questions: head.filter((x) => QUESTION.test(x) || x.endsWith("?")), tables: b.blocks.tables, lists: 0, words: b.blocks.words, date: null, droppedHeadings: 0, blocks: b.blocks } }; await seo.putPage(p); tops.push({ url: u, rank: list.results.findIndex((x) => x.url === u) + 1, blocks: b.blocks, title: list.results.find((x) => x.url === u)?.title ?? "", headings: head, text: "" }); continue; }
+              /* a failed reading is charged too: booked, and remembered */
+              { const c = Number(t?.cost) || 0; if (c > 0) { out.cost += c; await seo.addSpend(today, TOP_PAGES_JOB, { usd: c, units: 0 }); } noteHere(u, false, t?.status_message ?? said?.status_message); paidFail = !/too long/i.test(String(t?.status_message ?? "")); }
+            } else out.readsSkipped = (out.readsSkipped ?? 0) + 1;
             if (reader.requests() - reads0 + readsToday >= caps.reads) { stop("READS", `Today's ${caps.reads} page reads are used — tomorrow continues.`); break; }
             const h = await Promise.resolve(reader.raw(u, "text/html")).catch(() => null);
-            p = !h ? { url: u, day: today, ok: false, why: "it refused to be read (robots.txt, a security check or an error) — never gone around", structure: null } : walled(h) ? { url: u, day: today, ok: false, why: "behind a login or a paywall — left unread", structure: null } : { url: u, day: today, ok: true, why: null, structure: pageStructure(h, { now: new Date(now()).toISOString() }) };
+            p = !h ? { url: u, day: today, ok: false, why: `it refused to be read (robots.txt, a security check or an error) — never gone around${paidFail ? `; ${PAID_FAIL}` : ""}`, structure: null } : walled(h) ? { url: u, day: today, ok: false, why: `behind a login or a paywall — left unread${paidFail ? `; ${PAID_FAIL}` : ""}`, structure: null } : { url: u, day: today, ok: true, why: null, structure: { ...pageStructure(h, { now: new Date(now()).toISOString() }), ...(paidFail ? { paidFail: true } : {}) } };
             await seo.putPage(p);
           }
           if (p.ok && p.structure) tops.push({ url: u, rank: list.results.findIndex((x) => x.url === u) + 1, blocks: p.structure.blocks ?? null, title: list.results.find((x) => x.url === u)?.title ?? "", headings: p.structure.headings, text: "" });
@@ -137,7 +143,10 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
     }
     out.reads = reader.requests() - reads0;
     await seo.addSpend(today, TOP_PAGES_READS_JOB, { units: out.reads });
-    if (kv) await recordRun(kv, "top-pages", today, { progress: out.lists + out.coverage, code: ["TIME", "CAP", "BUDGET"].includes(out.stoppedBy) ? null : out.stoppedBy, why: out.why }).catch(() => null);
+    /* 🔴 RR-369b item 4: what it reused and what it did not pay for stay readable */
+    if (out.reused) await seo.addSpend(today, TOP_PAGES_REUSED_JOB, { units: out.reused }); if (out.readsSkipped) await seo.addSpend(today, TOP_PAGES_SKIPPED_JOB, { units: out.readsSkipped });
+    { const was = new Map(((await seo.failHosts?.()) ?? []).filter((r) => r.topic === "fail:collector").map((r) => [String(r.key).slice(FAIL_KEY.length), r.data])), rows = Object.entries(hostsHere).map(([h, v]) => ({ topic: "fail:collector", key: `${FAIL_KEY}${h}`, kind: "failhost", day: today, data: { ok: (was.get(h)?.ok ?? 0) + v.ok, fail: (was.get(h)?.fail ?? 0) + v.fail } })); if (rows.length) await seo.putSearches?.(rows, { at: new Date(now()).toISOString() }); }
+    if (kv) await recordRun(kv, "top-pages", today, { progress: out.lists + out.coverage, reused: out.reused ?? 0, readsSkipped: out.readsSkipped ?? 0, code: ["TIME", "CAP", "BUDGET"].includes(out.stoppedBy) ? null : out.stoppedBy, why: out.why }).catch(() => null);
     return out;
   } finally { if (kv) try { const [held] = await kv.run([["GET", "av:tp:lock"]]); if (held === id) await kv.run([["DEL", "av:tp:lock"]]); } catch { /* it expires by itself */ } }
 }

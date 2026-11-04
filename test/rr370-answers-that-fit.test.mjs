@@ -94,6 +94,13 @@ test("ITEM 3: whatever route brought it, a body's words are no answer for a prof
   assert.match(speech.items[0].claims[0].text, /^Ahpra does not regulate this profession/); assert.equal(speech.items[0].claims[0].gap, true); assert.doesNotMatch(speech.items[0].claims[0].text, /350/); assert.equal(asked.items.length, 0, "a question people asked goes");
 });
 
+test("ITEM 3, THE TABLE: the page's own table never shows a body's numbers for a profession it does not regulate (found on the built app: the plan's questions were clean, the table was not)", async () => {
+  const { examPlan } = await import("../desktop/exam-plan.mjs"), L = "https://www.ahpra.gov.au/Registration/x", T = "Australian Health Practitioner Regulation Agency (AHPRA) names OET on its own page among the English tests it accepts — Listening 350 · Reading 360 · Writing 350 · Speaking 360.";
+  const q = (prof) => ({ kind: "score", country: "Australia", question: `What OET score does AHPRA in Australia ask of ${prof}?`, regulator: { short: "AHPRA", name: "AHPRA", website: "https://www.ahpra.gov.au" }, also: [], answer: [{ text: `In Australia: ${T}`, fact: { text: T, link: L, on: "2026-11-04", readOn: "2026-11-04" } }], searched: [] });
+  const x = examPlan({ subject: "OET", professions: ["dietetics", "nursing"], countries: ["Australia"], facts: [], subjectFacts: {}, demand: [], research: { dietetics: [q("dietetics")], nursing: [q("nursing")] }, searchedOn: "2026-11-04" });
+  const of = (p) => JSON.stringify(x.pages.find((y) => y.kind === "profession" && y.profession === p)); assert.doesNotMatch(of("dietetics"), /Reading 360/, "not the dietitians' body"); assert.match(of("nursing"), /Reading 360/, "the nurses' body");
+});
+
 test("ITEM 2: grade B is a band, on OET's own guide; the old line is replaced wherever it stands", () => {
   const t = CORRECTIONS.subject.gradeB; assert.match(t.text, /grade B is 350 to 440/); assert.match(t.text, /grade A is 450 to 500/); assert.match(t.text, /grade C\+ is 300 to 340/); assert.match(t.text, /grade C is 200 to 290/); assert.match(t.link, /Understanding%20your%20score/);
   const plan = { pages: [{ title: "T", items: [{ part: "topic", question: "Grade?", claims: [claim("OET reports each sub-test as a grade from A to E, and Grade B corresponds to a scale score of 350. The grade you need is set by the organisation requiring the result, so check their requirements.")] }] }] }; applySources(plan); assert.match(plan.pages[0].items[0].claims[0].text, /350 to 440/); assert.doesNotMatch(plan.pages[0].items[0].claims[0].text, /corresponds to a scale score of 350/); assert.match(read("desktop/main.mjs"), /CORRECTIONS\.subject/);

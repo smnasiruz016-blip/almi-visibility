@@ -39,6 +39,8 @@ export const thirdPerson = (t) => FIRST_PERSON.reduce((s, [re, to]) => s.replace
  */
 const hostIn = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
 export const notCovered = (link, profession, { bodyCovers = {} } = CORRECTIONS) => { const list = bodyCovers[hostIn(link)]; return Array.isArray(list) && !list.includes(profession); };
+/** 🔴 RR-370 item 3: a page's table is written from the research, not from its questions, so the research is cleaned where it enters the plan: no score question for a body that does not regulate this profession */
+export const coveredResearch = (research = {}, corrections = CORRECTIONS) => Object.fromEntries(Object.entries(research).map(([prof, qs]) => [prof, Array.isArray(qs) ? qs.filter((q) => !(q.kind === "score" && [q.regulator?.website, q.regulator?.record?.officialUrl, ...(q.answer ?? []).map((a) => a.fact?.link)].some((u) => u && notCovered(u, prof, corrections)))) : qs]));
 const bodyOf = (link) => CORRECTIONS.bodyNames?.[hostIn(link)] ?? hostIn(link);
 export function applySources(plan, { corrections = CORRECTIONS, checks = {} } = {}) {
   const changed = [], removed = [];

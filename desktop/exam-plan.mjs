@@ -23,6 +23,7 @@ import { asksLine, officeLine } from "./council-truth.mjs";
 import { CURRENCY_OF } from "./rates.mjs";
 import { cleanFact, centralBankLink, SUBTESTS, plainScores, ownPart, topicOf as pageTopicOf } from "./page-quality.mjs";
 import { openOf, ledgerOf, STANDARD, TOPIC_ANSWERS } from "./research.mjs"; // RR-356
+import { coveredResearch } from "./source-links.mjs"; // RR-370 item 3
 import { viewsOf } from "./subject-demand.mjs"; // RR-363
 import { fitCard, staleNews } from "./truth-checks.mjs"; // RR-363: R15
 import { oldWording } from "./subject-facts.mjs"; // RR-363
@@ -297,6 +298,7 @@ export function settleLocal(plan, { onlyBefore = false } = {}) {
   return plan;
 }
 export function examPlan({ subject = null /* RR-359: no default subject */, professions = [], countries = [], facts = [], subjectFacts = {}, rates = null, demand = [], site = null, maxTopics = 10, research = {}, searchedOn = null, collector = [], maxCountries = 10, asked = {}, ladder = {} }) {
+  research = coveredResearch(research);
   /* a fact is used only when checked, sourced, dated — its notes taken out, a rate from a central bank (or any rate fact) never */
   const ok = usableFacts(facts);
   const cs = [...new Set([...(countries.length ? countries : [...new Set(ok.map((f) => f.country))]).slice(0, maxCountries), /* RR-362 (R3): a country with a council row gets its country page: the merged facts need a home, and a missing part is named (R5) */ ...collector.filter((r) => r.kind === "country" || r.kind === "country-profession").map((r) => r.country)])];

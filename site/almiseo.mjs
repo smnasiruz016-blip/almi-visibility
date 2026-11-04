@@ -16,6 +16,7 @@ import { PRODUCT_FACTS, FACT_PRODUCTS, templateOf, setClientTemplates } from "..
 import { PLANS } from "../desktop/licence.mjs";
 import { doneIn, pageCounts, countryPacket, CF_PROFESSIONS, councilFound, SHOWN_STATUS, productPartsOf, stillWaiting, isQuestion } from "../desktop/country-facts.mjs";
 import { recleanCoverage } from "../desktop/coverage.mjs";
+import { byMeaning, twinOf } from "../desktop/search-meaning.mjs"; // RR-370 item 11
 import { cleanBlueprint } from "../desktop/blocks.mjs"; // RR-363: R15, structure only
 import { COUNTRIES } from "../desktop/world.mjs";
 import { PRODUCT_NAMES } from "./owner-status.mjs";
@@ -153,7 +154,9 @@ export async function heldBought({ seo, subject, keys = [], urls = [], lic, grou
   const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
   if (!lic.owner) return { ok: true, outside: true, searches: {}, pages: {} };
   const today = dayOf(at), fresh = (d) => (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`)) / 864e5 <= BOUGHT.keepDays, searches = {}, pages = {};
-  for (const r of await seo.searches(y.topic.id, (Array.isArray(keys) ? keys : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(r.day)) searches[r.key] = { ...r.data, kind: r.kind, on: r.day };
+  /* RR-370 item 11: asked in other words, the saved one answers */
+  const asked = (Array.isArray(keys) ? keys : []).map(String).slice(0, BOUGHT.perCall), map = byMeaning((await seo.searchKeys?.(y.topic.id)) ?? []), lookFor = new Map(asked.map((k) => [k, twinOf(k, map) ?? k])), rows = new Map((await seo.searches(y.topic.id, [...new Set([...asked, ...lookFor.values()])])).map((r) => [r.key, r]));
+  for (const k of asked) { const r = rows.get(k) ?? rows.get(lookFor.get(k)); if (r && fresh(r.day)) searches[k] = { ...r.data, kind: r.kind, on: r.day }; }
   for (const p of await seo.pages((Array.isArray(urls) ? urls : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(p.day)) pages[p.url] = { on: p.day, headings: p.ok ? p.structure?.headings ?? [] : null, blocks: p.ok ? p.structure?.blocks ?? null : null, ...(p.structure?.paidFail || String(p.why ?? "").includes(PAID_FAIL) ? { paidFail: true } : {}) };
   return { ok: true, searches, pages, failHosts: await sharedFailHosts(seo) };
 }

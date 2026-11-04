@@ -1,28 +1,106 @@
 {
  "note": "RR-369 (owner, 3 Nov 2026). A body's own page, as read on the date given, or the honest line when it could not be read. These replace what the collectors hold for that country and profession until the collector reads the same.",
  "rows": [
-  { "country": "India", "profession": "nursing", "councilName": "Indian Nursing Council",
-    "text": "Nurses in India register with their State Nursing Council. The Indian Nursing Council sets nursing education standards and recognises qualifications: 8th Floor, NBCC Center, Plot No. 2, Community Center, Okhla Phase-I, New Delhi 110020; phone +91-11-66616800; email nodalofficer.inc@gov.in — https://indiannursingcouncil.org",
-    "stepsLine": "Nurses in India register with their State Nursing Council, not with the Indian Nursing Council.",
-    "link": "https://indiannursingcouncil.org/pio-details", "website": "https://indiannursingcouncil.org", "on": "2026-11-03" },
-  { "country": "India", "profession": "pharmacy", "councilName": "Pharmacy Council of India",
-    "text": "State Pharmacy Councils register pharmacists in India (Pharmacy Act, section 32(2)). The Pharmacy Council of India, the statutory body under the Ministry of Health and Family Welfare (Pharmacy Act 1948), is the national regulator — https://pci.gov.in (this new site may not open from outside India).",
-    "stepsLine": "Pharmacists in India register with their State Pharmacy Council, not with the Pharmacy Council of India.",
-    "link": "https://pci.nic.in/GenInfo_LatestNews.html", "website": "https://pci.gov.in", "on": "2026-11-03" },
-  { "country": "Malaysia", "profession": "medicine", "councilName": "Malaysian Medical Council",
-    "text": "Office for doctors in Malaysia: Malaysian Medical Council — https://www.mmc.gov.my. Its home page has a search for registered medical practitioners but does not state its own role, so whether it is the registering body is not confirmed yet.",
-    "link": "https://www.mmc.gov.my/", "website": "https://www.mmc.gov.my", "on": "2026-11-03" },
-  { "country": "Tanzania", "profession": "nursing", "councilName": "Tanzania Nursing and Midwifery Council",
-    "text": "Office for nurses in Tanzania: Tanzania Nursing and Midwifery Council — https://www.tnmc.go.tz. Its home page gives only its name, so whether it is the registering body is not confirmed yet.",
-    "link": "https://www.tnmc.go.tz/", "website": "https://www.tnmc.go.tz", "on": "2026-11-03" },
-  { "country": "United States", "profession": "nursing", "councilName": "National Council of State Boards of Nursing",
-    "text": "For nurses in the United States: the National Council of State Boards of Nursing's official page, checked 2026-11-03, is the place to read this. It says nursing is regulated together with its member boards; the board of your own state is the one to ask.",
-    "link": "https://www.ncsbn.org/about", "website": "https://www.ncsbn.org", "on": "2026-11-03" },
-  { "country": "United States", "profession": "medicine", "councilName": "Federation of State Medical Boards",
-    "text": "For doctors in the United States: the Federation of State Medical Boards' own page could not be read on 2026-11-03; this is still being looked for.",
-    "link": "https://www.fsmb.org/", "website": "https://www.fsmb.org", "on": "2026-11-03", "checkedWhy": "unread" },
-  { "country": "Iran", "profession": "nursing", "councilName": "Iranian Nursing Organization",
-    "text": "For nurses in Iran: the Iranian Nursing Organization's own page could not be read on 2026-11-03; this is still being looked for.",
-    "link": "https://ino.ir/", "website": "https://ino.ir", "on": "2026-11-03", "checkedWhy": "unread" }
+  {
+   "country": "India",
+   "profession": "nursing",
+   "councilName": "Indian Nursing Council",
+   "text": "Nurses in India register with their State Nursing Council. The Indian Nursing Council sets nursing education standards and recognises qualifications: 8th Floor, NBCC Center, Plot No. 2, Community Center, Okhla Phase-I, New Delhi 110020; phone +91-11-66616800; email nodalofficer.inc@gov.in — https://indiannursingcouncil.org",
+   "stepsLine": "Nurses in India register with their State Nursing Council, not with the Indian Nursing Council.",
+   "link": "https://indiannursingcouncil.org/pio-details",
+   "website": "https://indiannursingcouncil.org",
+   "on": "2026-11-03"
+  },
+  {
+   "country": "India",
+   "profession": "pharmacy",
+   "councilName": "Pharmacy Council of India",
+   "text": "State Pharmacy Councils register pharmacists in India (Pharmacy Act, section 32(2)). The Pharmacy Council of India, the statutory body under the Ministry of Health and Family Welfare (Pharmacy Act 1948), is the national regulator — https://pci.gov.in (this new site may not open from outside India).",
+   "stepsLine": "Pharmacists in India register with their State Pharmacy Council, not with the Pharmacy Council of India.",
+   "link": "https://pci.nic.in/GenInfo_LatestNews.html",
+   "website": "https://pci.gov.in",
+   "on": "2026-11-03"
+  },
+  {
+   "country": "Malaysia",
+   "profession": "medicine",
+   "councilName": "Malaysian Medical Council",
+   "text": "Office for doctors in Malaysia: Malaysian Medical Council — https://www.mmc.gov.my. Its home page has a search for registered medical practitioners but does not state its own role, so whether it is the registering body is not confirmed yet.",
+   "link": "https://www.mmc.gov.my/",
+   "website": "https://www.mmc.gov.my",
+   "on": "2026-11-03"
+  },
+  {
+   "country": "Tanzania",
+   "profession": "nursing",
+   "councilName": "Tanzania Nursing and Midwifery Council",
+   "text": "Office for nurses in Tanzania: Tanzania Nursing and Midwifery Council — https://www.tnmc.go.tz. Its home page gives only its name, so whether it is the registering body is not confirmed yet.",
+   "link": "https://www.tnmc.go.tz/",
+   "website": "https://www.tnmc.go.tz",
+   "on": "2026-11-03"
+  },
+  {
+   "country": "United States",
+   "profession": "nursing",
+   "councilName": "National Council of State Boards of Nursing",
+   "text": "For nurses in the United States: the National Council of State Boards of Nursing's official page, checked 2026-11-03, is the place to read this. It says nursing is regulated together with its member boards; the board of your own state is the one to ask.",
+   "link": "https://www.ncsbn.org/about",
+   "website": "https://www.ncsbn.org",
+   "on": "2026-11-03"
+  },
+  {
+   "country": "United States",
+   "profession": "medicine",
+   "councilName": "Federation of State Medical Boards",
+   "text": "For doctors in the United States: the Federation of State Medical Boards' own page could not be read on 2026-11-03; this is still being looked for.",
+   "link": "https://www.fsmb.org/",
+   "website": "https://www.fsmb.org",
+   "on": "2026-11-03",
+   "checkedWhy": "unread"
+  },
+  {
+   "country": "Iran",
+   "profession": "nursing",
+   "councilName": "Iranian Nursing Organization",
+   "text": "For nurses in Iran: the Iranian Nursing Organization's own page could not be read on 2026-11-03; this is still being looked for.",
+   "link": "https://ino.ir/",
+   "website": "https://ino.ir",
+   "on": "2026-11-03",
+   "checkedWhy": "unread"
+  },
+  {
+   "country": "Australia",
+   "profession": "veterinary science",
+   "councilName": "Australasian Veterinary Boards Council",
+   "text": "Vets in Australia register with the veterinary board of the state or territory where they will work. The Australasian Veterinary Boards Council is the council of those boards; it does not register vets itself — https://avbc.asn.au/about/avbc-member-registration-boards/",
+   "stepsLine": "Apply directly to the veterinary board of the state or territory where you will work; the Australasian Veterinary Boards Council lists them.",
+   "link": "https://avbc.asn.au/about/avbc-member-registration-boards/",
+   "website": "https://avbc.asn.au",
+   "on": "2026-11-04"
+  },
+  {
+   "country": "Pakistan",
+   "profession": "nursing",
+   "stepsOnly": true,
+   "stepsLine": "PNMC's own registration page sets out two ways: online through its portal, or on a paper form with a bank fee slip, two photos and attested copies of the CNIC, diplomas or degrees, Matric and domicile certificates.",
+   "link": "https://pnmc.gov.pk/pnmc-registration-2/",
+   "on": "2026-11-04"
+  },
+  {
+   "country": "Pakistan",
+   "profession": "medicine",
+   "stepsOnly": true,
+   "stepsLine": "PMDC's home page says registration is done through its online portal: https://portal.pmdc.pk",
+   "link": "https://pmdc.pk/",
+   "on": "2026-11-04"
+  },
+  {
+   "country": "Pakistan",
+   "profession": "dentistry",
+   "stepsOnly": true,
+   "stepsLine": "PMDC's home page says registration is done through its online portal: https://portal.pmdc.pk",
+   "link": "https://pmdc.pk/",
+   "on": "2026-11-04"
+  }
  ]
 }

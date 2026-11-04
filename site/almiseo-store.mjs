@@ -67,6 +67,7 @@ export function seoPgStore({ url, Pool = null, max = 3 }) {
     async coverage(topic) { await ensure(); return (await q("SELECT topic, intent, day::text AS day, coverage, second, read, blueprint FROM tp_coverage WHERE topic = $1 ORDER BY intent", [topic])); },
     /* RR-369: one statement per batch; a row never replaces a newer one */
     async putSearches(rows, { at }) { await ensure(); if (!rows.length) return; await q(`INSERT INTO seo_search (topic, key, kind, day, data, at) SELECT * FROM jsonb_to_recordset($1::jsonb) AS x(topic text, key text, kind text, day date, data jsonb, at timestamptz) ON CONFLICT (topic, key) DO UPDATE SET kind = EXCLUDED.kind, day = EXCLUDED.day, data = EXCLUDED.data, at = EXCLUDED.at WHERE seo_search.day <= EXCLUDED.day`, [JSON.stringify(rows.map((r) => ({ ...r, at })))]); },
+    async searchKeys(topic) { await ensure(); return (await q("SELECT key FROM seo_search WHERE topic = $1", [topic])).map((r) => r.key); },
     async searches(topic, keys) { await ensure(); if (!keys.length) return []; return q("SELECT topic, key, kind, day::text AS day, data FROM seo_search WHERE topic = $1 AND key = ANY($2::text[])", [topic, keys]); },
     async searchCount(topic) { await ensure(); const [r] = await q("SELECT count(*)::int AS n FROM seo_search WHERE topic = $1", [topic]); return r?.n ?? 0; },
     async pageCount() { await ensure(); const [r] = await q("SELECT count(*)::int AS n FROM tp_page"); return r?.n ?? 0; },
@@ -108,6 +109,7 @@ export function seoMemoryStore() {
     async putCoverage(c) { cov.set(`${c.topic}|${c.intent}`, copy(c)); },
     async coverage(topic) { return [...cov.values()].filter((c) => c.topic === topic).map(copy).sort((a, b) => a.intent.localeCompare(b.intent)); },
     async putSearches(rows) { for (const r of rows) { const k = `${r.topic}|${r.key}`, o = bought.get(k); if (!o || o.day <= r.day) bought.set(k, copy(r)); } },
+    async searchKeys(topic) { return [...bought.values()].filter((r) => r.topic === topic).map((r) => r.key); },
     async searches(topic, keys) { return keys.map((k) => bought.get(`${topic}|${k}`)).filter(Boolean).map(copy); },
     async searchCount(topic) { return [...bought.values()].filter((r) => r.topic === topic).length; },
     async pageCount() { return pages.size; },

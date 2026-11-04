@@ -1,0 +1,18 @@
+{
+ "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one.",
+ "subject": {
+  "gradeB": { "text": "OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200.", "link": "https://cdn-aus.aglty.io/oet/pdf-files/OET%20Understanding%20your%20score.pdf", "readOn": "2026-11-04", "source": "OET, Understanding your score" }
+ },
+ "text": [
+  { "has": "Grade B corresponds to a scale score of 350", "to": "OET reports each sub-test as a grade from A to E. OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200. The grade you need is set by the organisation asking for the result.", "link": "https://cdn-aus.aglty.io/oet/pdf-files/OET%20Understanding%20your%20score.pdf", "on": "2026-11-04", "source": "OET, Understanding your score", "intent": "grade", "why": "grade B is a band, not one score" }
+ ],
+ "cite": [
+  { "has": "Tests on/after 23 Apr 2026", "link": "https://www.ahpra.gov.au/documents/default.aspx?record=WD26/36006&dbid=AP&chksum=cfj%2b9cu%2fNODqTn37yTOzrw%3d%3d", "on": "2026-11-04", "source": "Ahpra, Transition arrangements policy (April 2026), Table 2 — its official page", "why": "the scores stand in this document" },
+  { "has": "Listening 350, Reading 360, Writing 350, Speaking 360", "link": "https://www.ahpra.gov.au/documents/default.aspx?record=WD26/36006&dbid=AP&chksum=cfj%2b9cu%2fNODqTn37yTOzrw%3d%3d", "on": "2026-11-04", "source": "Ahpra, Transition arrangements policy (April 2026), Table 2 — its official page", "why": "the scores stand in this document" }
+ ],
+ "links": [
+  { "from": "ahpra.gov.au/Error/500", "to": "https://www.ahpra.gov.au/Registration/Practitioner-Services/Certificate-of-Registration-Status.aspx", "on": "2026-11-04", "source": "ahpra.gov.au", "why": "the address was an error page; this page says the same" },
+  { "from": "oet.com/test/oet-test-at-home", "textHas": "full test costs", "to": "https://support.oet.com/articles/Knowledge/How-much-does-OET-cost", "on": "2026-11-04", "source": "support.oet.com", "why": "the fee's source is OET's fee page, not the OET@Home page" }
+ ],
+ "bodyCovers": { "note": "Ahpra's policy of April 2026 names the professions it regulates; a profession outside the list is never joined to its standard.", "ahpra.gov.au": ["medicine", "nursing", "dentistry", "pharmacy", "physiotherapy", "occupational therapy", "radiography", "optometry", "podiatry"] }
+}

@@ -22,7 +22,7 @@ const clean = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
 export const pairKey = (title, q, a) => createHash("sha1").update(`${clean(title)}\n${clean(q)}\n${clean(a)}`).digest("hex").slice(0, 20);
 const honest = (c) => c.gap === true || HONEST.test(String(c.text ?? ""));
 /** every pair on the plan's pages that wants a verdict */
-export function pairsOf(plan) { const out = []; for (const p of plan.pages ?? []) for (const it of p.items ?? []) for (const c of it.claims ?? []) if (!honest(c)) out.push({ key: pairKey(p.title, it.question, c.text), title: p.title, q: clean(it.question), a: clean(c.text) }); return out; }
+export function pairsOf(plan) { const out = []; for (const p of plan.pages ?? []) for (const it of p.items ?? []) for (const c of it.claims ?? []) /* 🔴 RR-370 item 8: a question people asked, with only an honest line under it, is still judged: is it of use, is it of this place. A part the page must keep needs no verdict */ if (!honest(c) || !FIXED_PART.test(it.part)) out.push({ key: pairKey(p.title, it.question, c.text), title: p.title, q: clean(it.question), a: clean(c.text) }); return out; }
 export const unjudged = (plan, verdicts) => { const seen = new Set(); return pairsOf(plan).filter((x) => !verdicts[x.key] && !seen.has(x.key) && seen.add(x.key)); };
 /** one batch → { verdicts: { key: verdict }, usage } or { fail } */
 export async function judgeBatch({ key, rows, fetchImpl = fetch, base = AI.origin }) {

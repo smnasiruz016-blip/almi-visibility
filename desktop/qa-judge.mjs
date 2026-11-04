@@ -9,6 +9,7 @@ import { INTENTS, misplaced, FIXED_PART } from "./fact-intent.mjs";
 import { HONEST } from "./answer-ladder.mjs";
 
 export const VERDICTS_FILE = "qa-verdicts.json", FIT_FILE = "Q-A fit check.txt";
+export const REFUSED_KEY = "Your AI refused the key: paste a new one in Settings → Your AI assistant, then press Create SEO pages.", NOT_ALLOWED = "Your AI account refused this request (403): check what this key may do at your AI provider, or paste another in Settings → Your AI assistant, then press Create SEO pages.";
 export const JUDGE = Object.freeze({ model: AI.model, batch: 30, side: 4, rounds: 3, sample: 30, maxTokens: 8000 });
 const SCHEMA = { type: "object", additionalProperties: false, required: ["verdicts"], properties: { verdicts: { type: "array", items: { type: "object", additionalProperties: false, required: ["i", "fits", "reason", "intent", "place", "worth"], properties: { i: { type: "integer" }, fits: { type: "boolean" }, reason: { type: "string" }, intent: { type: "string", enum: [...INTENTS] }, place: { type: "boolean" }, worth: { type: "boolean" } } } } } };
 export const SYSTEM = `You check questions and answers on web pages. Each row gives the page's title, a question and one answer on that page. Judge only from what is written there; add no knowledge of your own.
@@ -28,7 +29,9 @@ export const unjudged = (plan, verdicts) => { const seen = new Set(); return pai
 export async function judgeBatch({ key, rows, fetchImpl = fetch, base = AI.origin }) {
   const body = rows.map((r, i) => ({ i, page: r.title, question: r.q, answer: r.a }));
   let r; try { r = await fetchImpl(`${base}${AI.path}`, { method: "POST", signal: AbortSignal.timeout(180000), headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": AI.version, "anthropic-beta": AI.fallbackBeta }, body: JSON.stringify({ model: JUDGE.model, max_tokens: JUDGE.maxTokens, fallbacks: "default", system: SYSTEM, messages: [{ role: "user", content: JSON.stringify(body) }], output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } } }) }); } catch { return { fail: "Your AI did not answer." }; }
-  if (r.status === 401 || r.status === 403) return { fail: "Your AI refused the key.", stop: true };
+  /* 🔴 RR-372: never one line for both: a refused key and an account that may not do this have different fixes */
+  if (r.status === 401) return { fail: REFUSED_KEY, status: 401, stop: true };
+  if (r.status === 403) return { fail: NOT_ALLOWED, status: 403, stop: true };
   if (!r.ok) return { fail: `Your AI answered with an error (${r.status}).`, stop: r.status === 400 };
   const j = await r.json().catch(() => null), usage = j?.usage ? { input: j.usage.input_tokens, output: j.usage.output_tokens, model: j.model ?? JUDGE.model } : null;
   if (j?.stop_reason === "refusal") return { fail: "Your AI declined this batch.", usage };
@@ -39,9 +42,9 @@ export async function judgeBatch({ key, rows, fetchImpl = fetch, base = AI.origi
 /** all of them, a few batches side by side; `allowed()` is the month's cap; every verdict is kept at once */
 export async function judgeAll({ key, rows, fetchImpl = fetch, base = AI.origin, allowed = () => true, onUsage = () => {}, onDone = () => {}, batch = JUDGE.batch, side = JUDGE.side }) {
   const chunks = []; for (let i = 0; i < rows.length; i += batch) chunks.push(rows.slice(i, i + batch));
-  let at = 0, judged = 0, why = null, stop = false; const got = {};
-  await Promise.all(Array.from({ length: side }, async () => { while (at < chunks.length && !stop) { if (!allowed()) { why = "the month's AI budget is used"; stop = true; return; } const c = chunks[at++], r = await judgeBatch({ key, rows: c, fetchImpl, base }); if (r.usage) onUsage(r.usage); if (r.fail) { why = r.fail; if (r.stop) stop = true; continue; } Object.assign(got, r.verdicts); judged += Object.keys(r.verdicts).length; onDone(judged, rows.length, r.verdicts); } }));
-  return { verdicts: got, judged, why };
+  let at = 0, judged = 0, why = null, status = null, stop = false; const got = {};
+  await Promise.all(Array.from({ length: side }, async () => { while (at < chunks.length && !stop) { if (!allowed()) { why = "the month's AI budget is used"; stop = true; return; } const c = chunks[at++], r = await judgeBatch({ key, rows: c, fetchImpl, base }); if (r.usage) onUsage(r.usage); if (r.fail) { why = r.fail; status = r.status ?? status; if (r.stop) stop = true; continue; } Object.assign(got, r.verdicts); judged += Object.keys(r.verdicts).length; onDone(judged, rows.length, r.verdicts); } }));
+  return { verdicts: got, judged, why, status };
 }
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
 const COUNTRY_PAGE = /^(?:country|country-facts)$/;
@@ -80,7 +83,8 @@ export function applyVerdicts(plan, verdicts = {}) {
 /** 🔴 RR-370 (the built app: 7 ready pages still held a "no"): one pass can put back an answer already judged "no" (the part's own question, a replacement). The verdicts are applied until nothing moves */
 export function settleVerdicts(plan, verdicts = {}) { const log = []; for (let i = 0; i < 8; i++) { const more = applyVerdicts(plan, verdicts); if (!more.length) break; log.push(...more); } return log; }
 /** 🔴 RR-370 (the built app's screen: "0 pages are ready for you" above 308 ready): the count, and why the rest wait */
-export function readyLine(drafts = []) { const live = drafts.filter((d) => !d.improve), n = live.filter((d) => d.readyAsDraft).length, waiting = live.filter((d) => !d.readyAsDraft && (d.gates ?? []).some((g) => !g.pass && (g.failing ?? []).some((x) => /still being checked by your AI/.test(x)))).length; return `${n} ${n === 1 ? "page is" : "pages are"} ready for you.${waiting ? ` ${waiting} ${waiting === 1 ? "is" : "are"} waiting for your AI to check their answers; the next step does that.` : ""}`; }
+/** 🔴 RR-372: `judging`: this run is still checking them. `why`: why the check stopped. Otherwise a button is named: never "the next step" */
+export function readyLine(drafts = [], { judging = false, why = null } = {}) { const live = drafts.filter((d) => !d.improve), n = live.filter((d) => d.readyAsDraft).length, waiting = live.filter((d) => !d.readyAsDraft && (d.gates ?? []).some((g) => !g.pass && (g.failing ?? []).some((x) => /still being checked by your AI/.test(x)))).length; return `${n} ${n === 1 ? "page is" : "pages are"} ready for you.${waiting ? ` ${waiting} ${waiting === 1 ? "is" : "are"} waiting for your AI to check their answers. ${why ?? (judging ? "This run is doing that now." : "Press Create SEO pages to check them.")}` : ""}`; }
 /** how a page stands */
 export function markPages(plan, verdicts, { judging = true } = {}) { for (const p of plan.pages ?? []) { const rows = (p.items ?? []).flatMap((it) => (it.claims ?? []).filter((c) => !honest(c)).map((c) => verdicts[pairKey(p.title, it.question, c.text)])), un = rows.filter((v) => !v).length, no = rows.filter((v) => v?.fits === false).length; p.fitCheck = judging ? { judged: rows.length - un, unjudged: un, no } : { notJudged: true, judged: rows.length - un, unjudged: 0, no }; } return plan; }
 /** a fair sample: every type, then random, from a seed, so the same day's file can be read again */

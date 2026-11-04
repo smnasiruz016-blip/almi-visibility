@@ -186,7 +186,7 @@ test("B, NO 'NO' SURVIVES: a part's own question coming back with an answer alre
 
 test("THE SCREEN: never '0 pages are ready' with nothing said of the rest; both lines of the run give the count", () => {
   const wait = { readyAsDraft: false, gates: [{ pass: false, failing: ["3 answers are still being checked by your AI."] }] }, ok = { readyAsDraft: true, gates: [] }, other = { readyAsDraft: false, gates: [{ pass: false, failing: ["Missing: x."] }] };
-  assert.equal(readyLine([wait, wait]), "0 pages are ready for you. 2 are waiting for your AI to check their answers; the next step does that."); assert.equal(readyLine([ok, other]), "1 page is ready for you."); assert.equal(readyLine([{ ...ok, improve: true }]), "0 pages are ready for you.");
+  assert.equal(readyLine([wait, wait]), "0 pages are ready for you. 2 are waiting for your AI to check their answers. Press Create SEO pages to check them."); assert.equal(readyLine([ok, other]), "1 page is ready for you."); assert.equal(readyLine([{ ...ok, improve: true }]), "0 pages are ready for you.");
   assert.match(read("desktop/main.mjs"), /line: r\.refused \?\? readyLine\(/); assert.match(read("desktop/main.mjs"), /improved with Google's results\. \$\{readyLine\(/);
 });
 

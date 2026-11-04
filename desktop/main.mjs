@@ -37,7 +37,7 @@ import { googleConnect, importExport } from "./google-connect.mjs";
 import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./seo-pages.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, previewOf, checkTarget, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
+import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
 import { collectQueued, searchGoogle, searchPages, searchTermOf, SERP_OFF, SERP, QUEUE, serpKey, realPrice, runEstimate, RETRY, notForReading , CAP_LATER } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
@@ -89,7 +89,7 @@ import { TYPE_WORDS } from "./page-types.mjs"; // RR-362
 import { keywordService, usageLine, SERVICE_LOCATIONS, serviceOnLine, SERVICE_OFF_LINE, PLAN_REUSE_DAYS, collectForPlan, countryFactsForPlan, ownDb } from "./keyword-service.mjs"; // RR-326 E; RR-327 the plan reads it
 import { dataForSeo, DFS_KEYS, emptyLedger as emptyDfsLedger, PRICES as DFS_PRICES } from "./dataforseo.mjs"; // RR-324 C
 import { explainPagesAI, translatePagesAI, samplesAI } from "./web-ai.mjs"; // RR-322 A5, B4; RR-323 samples
-import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows, BROWSER, councilReads, stillFresh } from "./browser-list.mjs"; // RR-322 A2–A4, C2
+import { browserList, browserInstruction, takeBrowserReads, textReader, listFromRows, BROWSER, councilReads, stillFresh, splitAnswered, alreadyRead, keepReads, readsLine, fileRefusedLine } from "./browser-list.mjs"; // RR-322 A2–A4, C2
 import { CENTRAL_BANKS, PEGS } from "./rates.mjs"; // RR-322 A3
 import { mondayReport, nextBatch, beforeExpand, refreshDue } from "./indexing.mjs"; // RR-322 C3
 import { builtInList, HOWTO as LIST_HOWTO, WORLD_LISTS, draftList } from "./lists.mjs"; // RR-319 B
@@ -230,7 +230,7 @@ async function publishOne(id, url) {
   const refusal = publishRefusal(destOf(pread(id, "articles-go.json"), store.read(id).setup?.publishMode?.mode)); // RR-344 B
   if (refusal) return { ok: false, why: refusal };
   if (!ctaOf(store.read(id))) return { ok: false, needsCta: true, why: NO_CTA }; // RR-351: no page goes out without the client's own offer button
-  const conn = pread(id, "publish.json");
+  const conn = withKnownFolder(pread(id, "publish.json"));
   if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
   const { s, site, sc, files } = contextOf(id);
   if (!site) return { ok: false, why: "Check your product first — the gates need your site's latest read." };
@@ -376,11 +376,12 @@ async function councilChecksFor(id, subject, onRead = null, onWhat = null) {
  */
 const councilBrowserItems = (id) => { const kept = pread(id, "council-checks.json", {}), seen = new Set(), items = []; for (const [key, v] of Object.entries(kept)) { if (v.ok || v.why !== "unread" || stillFresh(v, COUNCIL_KEEP_DAYS) /* RR-370: the client's AI has just tried it */ || !/^https?:/.test(v.page ?? "") || seen.has(v.page)) continue; seen.add(v.page); items.push({ kind: "council", url: v.page, label: key.split("|").slice(2).join("|"), why: "our reader could not open it" }); } return items.slice(0, BROWSER.cap); };
 async function takeCouncilBrowser(id, hand) {
-  const items = councilBrowserItems(id), t = takeBrowserReads(hand, items); if (!t.ok) return { ok: false, line: `Refused: ${t.refusedFor.join(", ")}. Nothing from this file is kept.` };
-  const kept = pread(id, "council-checks.json", {}), readAt = new Map((hand.pages ?? []).map((p) => [p.url, p.readAt])), r = await councilReads({ pages: t.pages.map((p) => ({ ...p, readAt: readAt.get(p.url) })), kept, check: checkCouncil });
-  pwrite(id, "council-checks.json", kept); const read = r.pages.filter((p) => p.state === "read").length, cant = r.pages.length - read, line = `${read} pages read in your browser, ${cant} could not be read: ${r.confirmed} council lines confirmed on the body's own page, ${r.notSaid} not said there, ${r.gaps} shown as not read, with the reason.${t.notOnList.length ? ` ${t.notOnList.length} pages in the file were not on the list, and were not used.` : ""} Press Make your pages to use them.`;
-  pwrite(id, "council-browser-reads.json", { on: hand.date, pages: r.pages, notOnList: t.notOnList }); didIt(id, line);
-  return { ok: true, line, pages: r.pages, confirmed: r.confirmed, notSaid: r.notSaid, gaps: r.gaps, notOnList: t.notOnList };
+  const kept = pread(id, "council-checks.json", {}), readAt = new Map((hand.pages ?? []).map((p) => [p.url, p.readAt])), split = splitAnswered(hand.pages ?? [], kept), onList = [...councilBrowserItems(id), ...split.again.filter((p) => /^https?:/.test(p.url ?? "")).map((p) => ({ kind: "council", url: p.url }))], t = takeBrowserReads(hand, onList); if (!t.ok) return { ok: false, line: fileRefusedLine(t.refusedFor) };
+  const withTime = t.pages.map((p) => ({ ...p, readAt: readAt.get(p.url) })), { again: old, rest } = splitAnswered(withTime, kept), r = await councilReads({ pages: rest, kept, check: checkCouncil }), known = alreadyRead(old, kept), line = readsLine({ fresh: r, again: known, notOnList: t.notOnList }), before = pread(id, "council-browser-reads.json", null), pages = keepReads(before?.pages, [...known.pages, ...r.pages]);
+  /* 🔴 RR-371: a file that adds nothing changes nothing, and never wipes the page-by-page record */
+  if (rest.length) { pwrite(id, "council-checks.json", kept); didIt(id, line); }
+  pwrite(id, "council-browser-reads.json", { on: hand.date, line, pages, notOnList: t.notOnList });
+  return { ok: true, line, pages, confirmed: r.confirmed + known.confirmed, notSaid: r.notSaid + known.notSaid, gaps: r.gaps + known.gaps, notOnList: t.notOnList, added: rest.length };
 }
 const serpTest = () => (CONFIG.serpTestUrl ? { fetchImpl: (u2, init) => fetch(new URL(new URL(u2).pathname, CONFIG.serpTestUrl), init) } : {});
 /* RR-366 Part 3: what people of each country type, read from what the searches kept */
@@ -1357,7 +1358,7 @@ const server = createServer((req, res) => {
           }
           /* RR-355 · "Fix it for me" on a page already on the client's site — through its own connection, only where it can really be done */
           if (r[2] === "fix-existing" && req.method === "POST") {
-            const v = json(), plan = pread(id, "plan.json"), item = plan ? [...(plan.thisWeek ?? []), ...(plan.rest ?? [])].find((i) => i.id === v.item) : null, t = pread(id, "publish.json");
+            const v = json(), plan = pread(id, "plan.json"), item = plan ? [...(plan.thisWeek ?? []), ...(plan.rest ?? [])].find((i) => i.id === v.item) : null, t = withKnownFolder(pread(id, "publish.json"));
             if (publishBlocked(s)) return send(200, { ok: false, lines: [ALMIWORLD_NO] });
             if (!item || !t?.kind || !fixVia(t, item.id, { framework: siteFramework(id) })) return send(400, { refused: "Visibility cannot make this change through your site's connection — press \"Give me the content\" and paste it in your site's editor." });
             const keyName = TARGETS.find((x) => x.id === t.kind)?.keyName, key = keyName ? KEYS.get(publishKeyName(t.kind, id)) : null;
@@ -1854,7 +1855,7 @@ const server = createServer((req, res) => {
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
-          const s = store.read(id), conn = pread(id, "publish.json"), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
+          const s = store.read(id), conn = withKnownFolder(pread(id, "publish.json")), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
           if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, preview: conn?.kind ? previewOf(conn) : null /* RR-370 item 12 */, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (preadMemo(id, "pages.json")?.drafts ?? []).map(pageRow) /* RR-366 X5: a title and a status; details when a page is opened */, folder: downloadsFor(id) });
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };

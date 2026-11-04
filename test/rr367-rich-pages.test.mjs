@@ -121,6 +121,6 @@ test("what stayed green when broken on purpose: a score not found is an honest l
   assert.equal(office.text, "Diet Board (official page) asks dietitians: grade B in each sub-test."); /* RR-369 Part 3 */ assert.equal(office.link, "https://diet.example/"); assert.equal(office.readOn, ON);
 });
 test("what stayed green when broken on purpose: a hand-in that breaks the rules keeps nothing; research runs six side by side; the thread that cannot start falls back", () => {
-  const MAIN = read("desktop/main.mjs"); assert.ok(MAIN.includes('if (!t.ok) return { ok: false, line: `Refused: ${t.refusedFor.join(", ")}. Nothing from this file is kept.` };')); assert.ok(MAIN.indexOf("if (!t.ok) return { ok: false, line: `Refused:") < MAIN.indexOf("await councilReads("), "refused before anything is kept");
+  const MAIN = read("desktop/main.mjs"); assert.ok(MAIN.includes("if (!t.ok) return { ok: false, line: fileRefusedLine(t.refusedFor) };")); assert.ok(MAIN.indexOf("if (!t.ok) return { ok: false, line: fileRefusedLine") < MAIN.indexOf("await councilReads("), "refused before anything is kept");
   assert.match(MAIN, /const sideBySide = async \(work\) => \{[^\n]*Array\.from\(\{ length: 6 \}/); assert.match(read("desktop/pages-off.mjs"), /catch \{ return here\(\); \}/);
 });

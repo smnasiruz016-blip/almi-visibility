@@ -52,7 +52,7 @@ export async function findRegulator({ people, profession, place, search, read, o
   }
   return null;
 }
-export const openLine = ({ name, people, place, why, on, reason = null }) => (why === "unread" ? `Who registers ${people} in ${place} is still an open question: ${name}'s own page could not be read on ${on}${reason ? `: ${reason}; this is still being looked for` : ""}.` : why === "association" ? `${name} is a professional body, not shown here as the registering body: its own page, checked ${on}, does not say it registers ${people}. Who registers ${people} in ${place} is still an open question.` : `Who registers ${people} in ${place} is still an open question: ${name}'s own page, checked ${on}, does not say it registers them.`);
+export const openLine = ({ name, people, place, why, on, reason = null }) => (why === "not checked" ? `Who registers ${people} in ${place} is still an open question: ${name}'s own page has not been checked yet.` : why === "unread" ? `Who registers ${people} in ${place} is still an open question: ${name}'s own page could not be read on ${on}${reason ? `: ${reason}; this is still being looked for` : ""}.` : why === "association" ? `${name} is a professional body, not shown here as the registering body: its own page, checked ${on}, does not say it registers ${people}. Who registers ${people} in ${place} is still an open question.` : `Who registers ${people} in ${place} is still an open question: ${name}'s own page, checked ${on}, does not say it registers them.`);
 /* 🔴 RR-367 R-A + R-B (owner, 3 Nov 2026): an office not confirmed as the registering body, with an address or contact from a real source, is SHOWN with that source and date. It is no open question. One office may serve several professions: it stands on every page it serves. It never says "registers" unless the body's own page does */
 /* 🔴 RR-369 Part 3 (owner, 3 Nov 2026): a body's own page gives the score: that is said plainly, with no "not confirmed yet" for that body. "Not confirmed" stays only for a body whose role is truly not stated */
 export function asksLine({ name, people, scoreText }) {
@@ -79,20 +79,19 @@ const stateCouncil = (name) => /\bState\b/.test(String(name)) && !/\bStates\b/.t
 const keyOf = (f) => `${f.country}|${f.profession}|${f.councilName ?? f.text}`;
 export const councilKey = (country, profession, name) => `${country}|${profession}|${name}`;
 /**
- * The council facts as a page may show them. `checks` = { key: verdict }. With no check at all (no reading was possible) the line stands, unless its body is an association, which is never shown as registering on trust.
+ * The council facts as a page may show them. `checks` = { key: verdict }. A line says "registers" only when its own page was read and says so, or the owner's verified facts hold that page. With no check at all it is the honest office line.
  * → { facts, changes: [{ country, profession, before, after, source, on }] }
  */
 export function councilFacts(facts = [], checks = null, { inPlace = (c) => c, peopleOf = (p) => p, today = null } = {}) {
   const changes = [], out = facts.flatMap((f) => {
     if (f.part !== "home-council" || !f.profession || f.corrected) return [f];
     const name = f.councilName ?? String(f.text).split(/ registers /)[0], c = checks?.[keyOf({ ...f, councilName: name })] ?? null, place = inPlace(f.country), people = peopleOf(f.profession), on = c?.on ?? today ?? f.on;
+    /* 🔴 RR-371 (owner, 4 Nov 2026): EVERY line its own page does not confirm is the R-A line, never "registers": a line he approved earlier and a line never checked included. A body with no address and no contact has no office to show: it stays the honest open question (RR-367) */
     const open = (why, page) => { if (f.address || f.website) { const text = officeLine({ name, people, place, address: f.address, website: f.website, professional: NOT_A_REGISTRAR.test(name), unread: why === "unread" && c?.reason ? { on, reason: c.reason } : null }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: f.link, on: f.on, why }); return [{ ...f, text, office: true, checkedWhy: why, checkedOn: on }]; } const text = openLine({ name, people, place, why, on, reason: c?.reason ?? null }); changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: page ?? f.link, on }); return [{ ...f, part: "open-council", text, link: page ?? f.link, on }]; };
     /* the owner's verified facts already hold this body's own page for this profession (GMC refuses our reader, its OET page is in his file) */
     const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } }, verified = !NOT_A_REGISTRAR.test(name) ? facts.find((x) => x.part === "councils" && x.verified && x.country === f.country && x.profession === f.profession && [host(f.link), host(f.website)].filter(Boolean).includes(host(x.link))) : null;
     if (verified && !c?.ok) { changes.push({ country: f.country, profession: f.profession, before: f.text, after: f.text, source: verified.link, on: verified.on, kept: "its own page could not be read here, but the owner's verified facts hold that page" }); return [{ ...f, link: verified.link, on: verified.on }]; }
-    /* the owner reviewed this very line and approved it: it stands, said in the list, unless its body is an association */
-    if (f.approved && !c?.via && !NOT_A_REGISTRAR.test(name) && !c?.ok && !c?.found) { changes.push({ country: f.country, profession: f.profession, before: f.text, after: f.text, source: f.link, on: f.on, kept: `the app could not confirm it (${c?.why ?? "not checked"}): it stands on the owner's own approval` }); return [f]; }
-    if (!c) return NOT_A_REGISTRAR.test(name) ? open("association", f.link) : [f];
+    if (!c) return open(NOT_A_REGISTRAR.test(name) ? "association" : "not checked", f.link);
     if (c.found) { const text = `${c.found.name} registers ${people} in ${place}.`; changes.push({ country: f.country, profession: f.profession, before: f.text, after: text, source: c.found.link, on }); return [{ ...f, councilName: c.found.name, text, link: c.found.link, on, body: c.found.name }]; }
     if (!c.ok) return open(c.why, c.page);
     /* the page says so: its link is the source now, not its contact page. A state's council speaks for its own state; a body named a society says on its own page that it is the regulator */

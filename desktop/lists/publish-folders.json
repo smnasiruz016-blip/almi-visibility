@@ -1,0 +1,11 @@
+{
+ "note": "RR-371 (owner, 4 Nov 2026). Where a site's own code serves published pages from, when its connection names no folder. Each row is read from that repository's code, with where it was read.",
+ "rows": [
+  {
+   "repo": "smnasiruz016-blip/almi-oet",
+   "folder": "visibility-pages",
+   "source": "almi-oet PR #148, src/lib/visibility-pages.ts: VISIBILITY_DIR = \"visibility-pages\"; each page is <folder>/<slug>/index.html",
+   "on": "2026-11-04"
+  }
+ ]
+}

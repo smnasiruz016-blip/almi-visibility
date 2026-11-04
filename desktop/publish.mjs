@@ -12,7 +12,7 @@
  * Nothing here decides WHEN to publish: the app calls it after the client's "Approve & Publish", or by itself only when the client chose
  * "publish automatically after the gates" AND a connection exists.
  */
-import { mkdirSync, writeFileSync, existsSync, renameSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, renameSync, readFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { asPublished } from "../src/page/one-builder.mjs";
 
@@ -23,6 +23,9 @@ export const TARGETS = Object.freeze([
   Object.freeze({ id: "download", label: "Download the files, I'll add them myself", chooseIf: "your site is built another way, or you want to add the pages yourself.", needs: "nothing — each page is saved as a file in a folder on this computer, with where to put it.", keyName: null }),
 ]);
 /* 🔴 RR-370 item 12: a GitHub branch other than the site's main one is a preview: nothing there is live */
+/* 🔴 RR-371: a connection with no folder writes to the top of the repository, where a site that serves its pages from a folder of its own never shows them. Read from that site's own code (lists/publish-folders.json); a folder the client set stands */
+export const PUBLISH_FOLDERS = Object.freeze(JSON.parse(readFileSync(new URL("./lists/publish-folders.json", import.meta.url), "utf8")).rows);
+export const withKnownFolder = (t, rows = PUBLISH_FOLDERS) => { if (t?.kind !== "github" || String(t.folder ?? "").replace(/^\/+|\/+$/g, "")) return t; const r = rows.find((x) => x.repo.toLowerCase() === String(t.repo ?? "").toLowerCase()); return r ? { ...t, folder: r.folder } : t; };
 export const previewOf = (t) => (t?.kind === "github" && t.branch && !/^(?:main|master|production)$/i.test(String(t.branch)) ? { branch: t.branch, repo: t.repo, folder: String(t.folder ?? "").replace(/^\/+|\/+$/g, "") } : null);
 export const SHOPIFY_API_VERSION = "2026-07"; // Shopify's dated admin version — not yet tried against a live shop (none available to AlmiWorld)
 const slugOf = (url) => String(url).replace(/^https?:\/\/[^/]+/, "").replace(/^\/+|\/+$/g, "").replace(/[^a-z0-9/-]+/gi, "-").slice(0, 120) || "page";

@@ -83,17 +83,43 @@ export const stillFresh = (v, keepDays, now = Date.now()) => Boolean(v?.via) && 
  * each page read → checked exactly like a page our reader opened, with the date it was read; each "COULD NOT READ" → an honest gap with its reason. Never "registers" unless the page's text says so. The page's text is not kept.
  * `check` is council-truth's checkCouncil. → { kept, pages: [{ url, on, state, reason, lines: [{ key, result }] }], confirmed, notSaid, gaps }
  */
+const tally = (pages) => { const last = new Map(); for (const p of pages) for (const l of p.lines ?? []) last.set(l.key, l.result); const n = (x) => [...last.values()].filter((v) => v === x).length; return { confirmed: n("the page says it registers them"), notSaid: n("the page does not say it"), gaps: n("could not read") }; };
 export async function councilReads({ pages, kept, check }) {
-  const out = []; let confirmed = 0, notSaid = 0, gaps = 0;
+  const out = [];
   for (const p of pages) {
     const on = String(p.readAt ?? p.date ?? "").slice(0, 10) || p.date, cant = COULD_NOT.test(p.text ?? ""), empty = !cant && !String(p.text ?? "").trim(), reason = cant ? shortReason(p.text) : empty ? "the file holds no text for it" : null, lines = [];
     for (const [key, v] of Object.entries(kept)) {
       if (bare(v.page) !== bare(p.url) || v.ok) continue; const [, profession, ...rest] = key.split("|"), name = rest.join("|");
-      if (reason) { if (v.why !== "unread") continue; kept[key] = { ok: false, why: "unread", page: p.url, on, via: "read in your browser", reason }; gaps++; lines.push({ key, result: "could not read" }); continue; }
+      if (reason) { if (v.why !== "unread") continue; kept[key] = { ok: false, why: "unread", page: p.url, on, via: "read in your browser", reason }; lines.push({ key, result: "could not read" }); continue; }
       const r = await check({ name, profession, link: p.url, read: textReader(p.url, p.text, on).read, on, extra: 0 }); kept[key] = r.ok ? { ok: true, evidence: p.url, on, strict: r.strict, via: "read in your browser" } : { ok: false, why: r.why === "unread" ? "not stated" : r.why, page: p.url, on, via: "read in your browser" };
-      if (r.ok) confirmed++; else notSaid++; lines.push({ key, result: r.ok ? "the page says it registers them" : "the page does not say it" });
+      lines.push({ key, result: r.ok ? "the page says it registers them" : "the page does not say it" });
     }
     out.push({ url: p.url, on, state: reason ? "could not read" : "read", ...(reason ? { reason } : {}), lines });
   }
-  return { kept, pages: out, confirmed, notSaid, gaps };
+  return { kept, pages: out, ...tally(out) };
+}
+/* 🔴 RR-371 (owner's own run, 4 Nov 2026): his first pick was taken at 16:48:41. Three more picks of the same file answered "0 pages … 30 not on the list", because a page already answered leaves the day's list, and each one overwrote the page-by-page record with nothing. */
+const rowPage = (v) => v?.page ?? v?.evidence ?? null;
+/** of the pages in a file, those already answered by a read of that day or later (they stand as they are) and those that are new or newer */
+export function splitAnswered(pages = [], kept = {}) {
+  const lastRead = new Map(); for (const v of Object.values(kept)) if (v?.via && rowPage(v)) { const k = bare(rowPage(v)); if (String(v.on ?? "") > (lastRead.get(k) ?? "")) lastRead.set(k, String(v.on ?? "")); }
+  const dayOf = (p) => String(p.readAt ?? p.date ?? "").slice(0, 10), again = pages.filter((p) => lastRead.has(bare(p.url)) && dayOf(p) <= lastRead.get(bare(p.url))), seen = new Set(again);
+  return { again, rest: pages.filter((p) => !seen.has(p)) };
+}
+/** what is already known of pages read before: the same shape councilReads gives. Nothing is changed */
+export function alreadyRead(pages = [], kept = {}) {
+  const out = pages.map((p) => { const on = String(p.readAt ?? p.date ?? "").slice(0, 10) || p.date, cant = COULD_NOT.test(p.text ?? ""), empty = !cant && !String(p.text ?? "").trim(), reason = cant ? shortReason(p.text) : empty ? "the file holds no text for it" : null, lines = []; for (const [key, v] of Object.entries(kept)) { if (!v?.via || bare(rowPage(v)) !== bare(p.url)) continue; lines.push({ key, result: v.ok ? "the page says it registers them" : v.why === "unread" ? "could not read" : "the page does not say it" }); } return { url: p.url, on, state: reason ? "could not read" : "read", ...(reason ? { reason } : {}), lines }; });
+  return { pages: out, ...tally(out) };
+}
+/** a later file never wipes what an earlier one showed: the same page, the newest word; any other page stays */
+export const keepReads = (before = [], now = []) => { const m = new Map((before ?? []).map((p) => [p.url, p])); for (const p of now) m.set(p.url, p); return [...m.values()]; };
+/** why a file is refused, in plain words */
+const REFUSED_WORDS = Object.freeze({ NOT_A_BROWSER_READ: "it is not the file your AI writes from the app's instruction", NO_DATE: "it has no date", NOT_STARTED_BY_THE_CLIENT: "it does not say you started it", NO_NOTICE_GIVEN: "it does not say your AI told you before it started", OVER_THE_DAILY_CAP: `it holds more than ${BROWSER.cap} pages`, TOO_FAST: `its pages were read less than ${BROWSER.minPauseSeconds} seconds apart` });
+export const fileRefusedLine = (codes = []) => `Refused: ${codes.map((c) => REFUSED_WORDS[c] ?? c).join("; ")}. Nothing from this file is kept.`;
+/** the one line the screen shows and the record keeps */
+export function readsLine({ fresh, again, notOnList = [] }) {
+  const said = (r) => { const read = r.pages.filter((p) => p.state === "read").length; return `${read} pages read in your browser, ${r.pages.length - read} could not be read: ${r.confirmed} council lines confirmed on the body's own page, ${r.notSaid} not said there, ${r.gaps} shown as not read, with the reason.`; }, off = notOnList.length ? ` ${notOnList.length} pages in the file were not on the list, and were not used.` : "";
+  if (fresh.pages.length) return `${said(fresh)}${again.pages.length ? ` ${again.pages.length} other pages in the file were already added.` : ""}${off} Press Create SEO pages to use them.`;
+  if (again.pages.length) return `This file was already added, and nothing changed. ${said(again)}${off} Create SEO pages uses them.`;
+  return `Nothing was added: none of this file's pages are on the list.${off}`;
 }

@@ -120,6 +120,18 @@ test("THE WINDOW: the links are opened on a thread of their own, never the app's
   class Dead { constructor() { throw new Error("no thread"); } } assert.deepEqual(await checkLinksOff(["https://x.example/"], { Worker: Dead, kept: { a: 1 } }), { a: 1 });
 });
 
+test("A: a rule read on another profession's council site never stands in on this profession's page; the same site is welcome on its own profession's", () => {
+  const verdicts = {}, mk = (profession, title) => ({ kind: "local", country: "Zimbabwe", profession, title, items: [{ part: "standing", question: "How do they prove good standing?", claims: [{ claimId: "a", text: "Bad line", link: "https://own.example/x", intent: "good-standing" }] }] });
+  const vets = mk("vets", "Vets"), docs = mk("medicine", "Doctors"), home = { kind: "country", country: "Zimbabwe", title: "In Zimbabwe", items: [{ part: "rules", question: "Rules?", claims: [{ claimId: "b", text: "Ask the medical council for a certificate.", link: "https://www.mdc.example/cgs", intent: "good-standing" }] }] };
+  for (const p of [vets, docs]) verdicts[pairKey(p.title, "How do they prove good standing?", "Bad line")] = { fits: false, intent: "good-standing", reason: "no" };
+  const plan = { pages: [vets, docs, home], bodyHosts: { Zimbabwe: { "mdc.example": ["medicine"] } } }; applyVerdicts(plan, verdicts);
+  assert.ok(!JSON.stringify(vets.items).includes("mdc.example"), "not on the vets' page"); assert.ok(JSON.stringify(docs.items).includes("mdc.example"), "it is the doctors' own");
+});
+
+test("A: the plan's builder takes another profession's council's rules off this page, by whose site they were read on", () => {
+  assert.match(read("desktop/exam-plan.mjs"), /!ofAnotherBody\(f\.link\) && \(intentOfFact\(f\) === "good-standing"/); assert.match(read("desktop/exam-plan.mjs"), /!ofAnotherBody\(f\.link\) && intentOfFact\(f\) === "documents"/); assert.match(read("desktop/exam-plan.mjs"), /claims\.filter\(\(c\) => !ofAnotherBody\(c\.link\)\)/);
+});
+
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {
   assert.equal(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for nursing in Bangladesh")); assert.equal(meaningKey("cost of oet exam"), meaningKey("exam fee for oet")); assert.equal(meaningKey("oet centre near me"), meaningKey("oet exam center near me")); assert.equal(meaningKey("OET in Singapore: fee, centres and councils"), meaningKey("OET in Singapore")); assert.equal(meaningKey("OET in the Philippines"), meaningKey("OET in Philippines"));
   assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Nurses from Nepal")); assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Doctors from Bangladesh")); assert.notEqual(meaningKey("OET for Nurses"), meaningKey("OET for Nurses reddit")); assert.equal(twinOf("auto|oet fee|Ghana", byMeaning(["auto|oet cost|Ghana"])), null, "autocomplete stands apart");

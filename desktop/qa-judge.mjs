@@ -49,6 +49,8 @@ const openLine = (c) => { const on = String(c.readOn ?? "").slice(0, 10); return
 /**
  * Each verdict applied. A misplaced fact goes on its collected intent alone, no AI needed. A "no": the question's own intent names the facts that may fit (same country first); else the honest line (a part the page must keep); else the question goes. A heading renamed to a searcher's words returns to the part's own question first. → the log of what changed
  */
+/** 🔴 RR-370 A: a fact read on the site of another profession's council never stands in on this profession's page */
+const ofAnotherBody = (plan, p, c) => { if (!p.profession) return false; let host = null; try { host = new URL(c.link).hostname.replace(/^www\./, ""); } catch { return false; } const owners = plan.bodyHosts?.[p.country]?.[host]; return Array.isArray(owners) && !owners.includes(p.profession); };
 export function applyVerdicts(plan, verdicts = {}) {
   const log = [], facts = new Map(), said = (page, it, c, action, why) => log.push({ page: page.title, question: it.question, answer: String(c?.text ?? "").slice(0, 200), action, why });
   for (const p of plan.pages ?? []) for (const it of p.items ?? []) for (const c of it.claims ?? []) { const i = c.intent; if (i) (facts.get(i) ?? facts.set(i, []).get(i)).push({ page: p, c }); }
@@ -66,7 +68,7 @@ export function applyVerdicts(plan, verdicts = {}) {
       if (keep.length) { next.push({ ...it, claims: keep }); continue; }
       /* the part's own question comes back before its facts are given up */
       if (it.q0 && it.q0 !== it.question) { next.push({ ...it, question: it.q0, claims: lost }); continue; }
-      const intent = vs.find((v) => v.intent)?.intent, here = (facts.get(intent) ?? []).filter(({ page, c }) => page !== p && (page.country ?? null) === (p.country ?? null) && (!p.profession || !page.profession || page.profession === p.profession) && !lost.includes(c) && !honest(c) && verdicts[pairKey(page.title, it.question, c.text)]?.fits !== false).slice(0, 2);
+      const intent = vs.find((v) => v.intent)?.intent, here = (facts.get(intent) ?? []).filter(({ page, c }) => page !== p && !ofAnotherBody(plan, p, c) && (page.country ?? null) === (p.country ?? null) && (!p.profession || !page.profession || page.profession === p.profession) && !lost.includes(c) && !honest(c) && verdicts[pairKey(page.title, it.question, c.text)]?.fits !== false).slice(0, 2);
       if (here.length && !it.triedFacts) { next.push({ ...it, triedFacts: true, claims: here.map(({ c }) => ({ ...c, claimId: `fit-${c.claimId}-${p.title}`.replace(/\s+/g, "-") })) }); said(p, it, here[0].c, "a fitting fact put in its place", "same intent"); continue; }
       if (FIXED_PART.test(it.part)) { next.push({ ...it, claims: [openLine(lost[0])] }); said(p, it, lost[0], "the honest open line", "no fitting fact"); continue; }
       (plan.droppedQuestions ??= []).push({ page: p.title, question: it.question, why: "no fitting answer" }); said(p, it, lost[0], "question dropped: no fitting answer", "no fitting fact");

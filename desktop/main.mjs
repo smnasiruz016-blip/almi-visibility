@@ -74,7 +74,8 @@ import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, tr
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { failuresOfLedger, readFailures } from "./read-failures.mjs"; // RR-369b item 5
 import { VERDICTS_FILE, FIT_FILE, JUDGE, unjudged, judgeAll, applyVerdicts, markPages, fitCheckText } from "./qa-judge.mjs"; // RR-370 B
-import { LINKS_FILE, CORRECTIONS, linksToCheck, checkLinks, applySources, linksText } from "./source-links.mjs"; // RR-370 items 4, 7, 9
+import { Worker as LinkWorker } from "node:worker_threads";
+import { LINKS_FILE, CORRECTIONS, linksToCheck, checkLinksOff, applySources, linksText } from "./source-links.mjs"; // RR-370 items 4, 7, 9
 import { SAVED_FILE, OUTBOX_FILE, UPLOAD, emptySaved, uploadBought, askServerFirst, sendLists, savedCounts } from "./search-store.mjs"; // RR-369
 import { genericPlanPages, almiSeoClient, syncProduct, heldFor, keywordItems, questionItems, coverageRoutes, routeLine, coverageItems, coverageFromBrowser, reviewLinesFor, almiSeoView, searchedLists, searchCounts, ALMISEO_FILE, ALMISEO_KEYWORDS, BROWSER_COVERAGE, SYNC, ROUTES } from "./almiseo.mjs"; // RR-360 AlmiSEO Data
 import { spawn } from "node:child_process"; // RR-362: the watcher
@@ -976,7 +977,7 @@ async function makePages(id, key) {
   const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? [])), savedBefore = savedTotal();
   /* 🔴 RR-370 A + B + items 4, 7, 9: every claim's source and every question's answer, by meaning, on the plan before a page is written */
   const factsStep = async (plan, quick, step) => { if (!plan || CONFIG.testOffline === true) return; const a = aiOf(store.read(id)), key = a?.provider === "anthropic" ? a.key : null, verdicts = pread(id, VERDICTS_FILE, {}), checks = pread(id, LINKS_FILE, {}), usd0 = LEDGER.month()?.usd ?? 0;
-    if (!quick && CONFIG.linkCheck !== false) { const urls = linksToCheck(plan, checks); if (urls.length) { step({ done: 0, of: urls.length, unit: "source links", what: "Opening every source link" }); await checkLinks(urls, { kept: checks, onDone: () => step({ add: 1 }), ...(Number.isInteger(CONFIG.testLinkMs) ? { timeoutMs: CONFIG.testLinkMs } : {}), ...(CONFIG.testLinkFetch ? { fetchImpl: (u, i) => fetch(new URL(`/check?u=${encodeURIComponent(u)}`, CONFIG.testLinkFetch), { signal: i?.signal }) } : {}) }); pwrite(id, LINKS_FILE, checks); } }
+    if (!quick && CONFIG.linkCheck !== false) { const urls = linksToCheck(plan, checks); if (urls.length) { step({ done: 0, of: urls.length, unit: "source links", what: "Opening every source link" }); await checkLinksOff(urls, { kept: checks, Worker: LinkWorker, onDone: () => step({ add: 1 }), ...(Number.isInteger(CONFIG.testLinkMs) ? { timeoutMs: CONFIG.testLinkMs } : {}), ...(CONFIG.testLinkFetch ? { standin: CONFIG.testLinkFetch } : {}) }); pwrite(id, LINKS_FILE, checks); } }
     const sources = applySources(plan, { checks }); let log = applyVerdicts(plan, verdicts), why = null;
     for (let round = 0; !quick && key && round < JUDGE.rounds; round++) { const rows = unjudged(plan, verdicts); if (!rows.length) break; step({ done: 0, of: rows.length, unit: "answers", what: "Your AI is checking that each answer fits its question" }); const r = await judgeAll({ key, rows, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}), allowed: () => LEDGER.allowed().ok, onUsage: (u) => LEDGER.add(u), onDone: (n, _o, got) => { Object.assign(verdicts, got); step({ done: n }); } }); Object.assign(verdicts, r.verdicts); pwrite(id, VERDICTS_FILE, verdicts); why = r.why; if (r.why) break; log = [...log, ...applyVerdicts(plan, verdicts)]; }
     markPages(plan, verdicts, { judging: Boolean(key) });

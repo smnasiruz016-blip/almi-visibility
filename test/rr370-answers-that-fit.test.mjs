@@ -113,6 +113,13 @@ test("ITEM 9: an error page is broken, a robot's refusal is not; a broken link i
   assert.match(linksText({ checks: { "https://c.example/ok": { state: "ok" }, "https://d.example/403": { state: "unchecked", why: "it refuses automatic readers (403)" } }, plan, on: ON }), /opens 1, broken 0, a site that would not let the check in 1/);
 });
 
+test("THE WINDOW: the links are opened on a thread of their own, never the app's; a thread that dies leaves the links unchecked, and the run goes on", async () => {
+  const { checkLinksOff } = await import("../desktop/source-links.mjs"), { Worker } = await import("node:worker_threads"); assert.match(read("desktop/main.mjs"), /await checkLinksOff\(urls, \{ kept: checks, Worker: LinkWorker/); assert.doesNotMatch(read("desktop/main.mjs"), /await checkLinks\(/);
+  const server = (await import("node:http")).createServer((q, r) => { r.statusCode = /missing/.test(q.url) ? 404 : 200; r.end(JSON.stringify({})); }); await new Promise((ok) => server.listen(0, "127.0.0.1", ok)); const seen = [], base = `http://127.0.0.1:${server.address().port}`, kept = await checkLinksOff([`${base}/page`, `${base}/missing/page`], { Worker, onDone: (u) => seen.push(u) }); server.close();
+  assert.equal(kept[`${base}/page`].state, "ok"); assert.equal(kept[`${base}/missing/page`].state, "broken"); assert.equal(seen.length, 2, "progress crosses over");
+  class Dead { constructor() { throw new Error("no thread"); } } assert.deepEqual(await checkLinksOff(["https://x.example/"], { Worker: Dead, kept: { a: 1 } }), { a: 1 });
+});
+
 test("ITEM 11: a search is matched by meaning: the app reuses, the server answers, the collector buys nothing for it; another country or Reddit is another search", async () => {
   assert.equal(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for nursing in Bangladesh")); assert.equal(meaningKey("cost of oet exam"), meaningKey("exam fee for oet")); assert.equal(meaningKey("oet centre near me"), meaningKey("oet exam center near me")); assert.equal(meaningKey("OET in Singapore: fee, centres and councils"), meaningKey("OET in Singapore")); assert.equal(meaningKey("OET in the Philippines"), meaningKey("OET in Philippines"));
   assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Nurses from Nepal")); assert.notEqual(meaningKey("OET for Nurses from Bangladesh"), meaningKey("OET for Doctors from Bangladesh")); assert.notEqual(meaningKey("OET for Nurses"), meaningKey("OET for Nurses reddit")); assert.equal(twinOf("auto|oet fee|Ghana", byMeaning(["auto|oet cost|Ghana"])), null, "autocomplete stands apart");

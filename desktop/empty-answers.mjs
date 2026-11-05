@@ -5,6 +5,7 @@
  */
 import { STEP_LINK } from "./regulator-read.mjs";
 import { NOT_A_REGISTRAR } from "./council-truth.mjs";
+import { coreOf } from "./page-types.mjs";
 
 /* a work note: what we did, never what the reader asked */
 const NOTES = Object.freeze([/\bdoes not say this\b/i, /\bis the place to read this\b/i, /\bcould not be read\b/i, /\bstill being (?:looked|checked)\b/i, /\bbeing looked for\b/i, /\bhas not been checked yet\b/i, /\bwas not read yet\b/i, /\bstill an open question\b/i, /\bdoes not say it registers\b/i, /\b404\b/, /\banswered \d{3}\b/i, /\brobots\.txt\b/i, /\bsecurity service\b/i, /^Ask .{2,120} directly\.?$/i, /\bNo question from .* is held yet\b/i]);
@@ -40,10 +41,10 @@ export async function findAnswer(row, { read, on, extra = 4 }) {
   return { ok: false, on, why: readAny ? "no page of its own holds it" : "its pages could not be opened" };
 }
 /** where the test is taken: the official finder, as every other country's page. No AI: it is OET's own fact */
-export function applyFills(plan, { finder = null } = {}) {
+export function applyFills(plan, { finder = null, judgedNo = () => false } = {}) {
   for (const p of plan.pages ?? []) for (const it of p.items ?? []) {
     if (!emptyItem(it)) continue;
-    if (partOf(it) === "centres" && finder?.text && p.country) { it.claims = [{ claimId: `fill-centres-${p.country}`.replace(/\s+/g, "-"), card: null, text: `To find a test venue in ${finder.place(p.country)}, use Find a test on ${finder.subject}'s booking page.`, link: finder.link, readOn: finder.readOn, source: finder.source ?? "its own page", official: true, filled: true }]; continue; }
+    if (partOf(it) === "centres" && finder?.text && p.country) { const line = `To find a test venue in ${finder.place(p.country)}, use Find a test on ${finder.subject}'s booking page.`; /* 🔴 RR-376 (owner's run: "1 answer does not fit" on Oman, Iran, Tanzania): a line the judge said no to never comes back: the question goes down the ladder */ if (judgedNo(p.title, it.question, line)) continue; it.claims = [{ claimId: `fill-centres-${p.country}`.replace(/\s+/g, "-"), card: null, text: `To find a test venue in ${finder.place(p.country)}, use Find a test on ${finder.subject}'s booking page.`, link: finder.link, readOn: finder.readOn, source: finder.source ?? "its own page", official: true, filled: true }]; continue; }
   }
   return plan;
 }
@@ -69,6 +70,19 @@ export function fixNames(plan, checks = {}) {
 }
 /** a line that holds a work note and something real keeps the real part: done before the AI reads it */
 export function stripNotes(plan) { for (const p of plan.pages ?? []) for (const it of p.items ?? []) it.claims = (it.claims ?? []).map((c) => { const t = withoutNotes(c.text); return t.length >= 12 && t !== c.text ? { ...c, text: t } : c; }); return plan; }
+/** 🔴 RR-376: a page missing the questions people ask gets them from our own store first, free: an answer already checked as official stands; any other question goes down the normal ladder. At most four, never padded */
+export function addSavedQuestions(plan, { bank = [], paa = [], subject = null, link = null, on = null, max = 4 } = {}) {
+  if (!subject) return 0; /* RR-359: a product's own subject, never a guess */
+  let added = 0; const wordsIn = (t) => String(t ?? "").toLowerCase(), people = (p) => String(p.profession ?? "").toLowerCase().replace(/ science$/, "").replace(/^medicine$/, "doctor").slice(0, 6);
+  for (const p of plan.pages ?? []) {
+    if (!coreOf(p.kind)?.questions || (p.items ?? []).some((it) => /^questions/.test(partOf(it)) && (it.claims ?? []).length && it.claims.some((c) => withoutNotes(c.text)))) continue;
+    const has = new Set((p.items ?? []).map((it) => wordsIn(it.question))), mine = (t, country) => { if (has.has(wordsIn(t))) return false; if (country && country !== p.country) return false; const x = wordsIn(t); return (!p.country || country === p.country || x.includes(wordsIn(p.country))) && (!people(p) || x.includes(people(p))); };
+    const ready = bank.filter((q) => q.answerKind === "official" && q.answer && /^https?:/.test(q.source ?? "") && mine(q.question, q.country)).slice(0, max), rest = paa.filter((q) => wordsIn(q).includes(wordsIn(subject)) && mine(q, null) && !ready.some((r) => r.question === q)).slice(0, max - ready.length);
+    ready.forEach((q, i) => { (p.items ??= []).push({ part: `questionsa${80 + i}`, question: q.question, claims: [{ claimId: `saved-${added}`, card: null, text: q.answer, link: q.source, readOn: q.on ?? on, official: true, filled: true, source: "its official page" }] }); added++; });
+    rest.forEach((q, i) => { (p.items ??= []).push({ part: `questionsa${85 + i}`, question: q, claims: [{ claimId: `saved-gap-${added}`, card: null, text: `${subject}'s official page, checked ${on}, does not say this.`, link, readOn: on, official: true, gap: true }] }); added++; });
+  }
+  return added;
+}
 export const THIN_BELOW = 4;
 /**
  * The last word on a plan: work notes out of every line; a question left with no real answer leaves the page; the page stays, said thin below THIN_BELOW. → one row per page that changed or is thin.
@@ -86,8 +100,10 @@ export function dropEmptyAnswers(plan, { thinBelow = THIN_BELOW } = {}) {
       for (const c of claims) if (c.filled) filled.push({ part: it.part, question: it.question, source: c.link ?? null });
       items.push({ ...it, claims });
     }
-    p.items = items; p.leftOff = [...new Set([...p.leftOff ?? [], ...dropped.filter((d) => !items.some((it) => partOf(it) === partOf(d) && (it.claims ?? []).length)).map(partOf).map((x) => x.replace(/^questionsa$/, "questions")), ...cut])]; const real = items.filter((it) => (it.claims ?? []).length).length, thin = real < thinBelow; p.answerLog = { dropped: dropped.length, filled: filled.length, real, thin };
-    if (dropped.length || filled.length || thin) rows.push({ title: p.title, kind: p.kind ?? null, real, thin, dropped, filled });
+    /* 🔴 RR-376: a block no source could fill (a rule special to it; the questions people ask): the page stands without it, listed as needing more answers. Never filler */
+    const want = coreOf(p.kind) ?? {}, partsHeld = new Set(items.filter((it) => (it.claims ?? []).length).map((it) => partOf(it).replace(/^questionsa$/, "questions"))), withoutBlock = ["rules", "questions"].filter((k) => want[k] && !partsHeld.has(k) && !(k === "questions" && p.questionsWanted?.length));
+    p.items = items; p.leftOff = [...new Set([...p.leftOff ?? [], ...withoutBlock, ...dropped.filter((d) => !items.some((it) => partOf(it) === partOf(d) && (it.claims ?? []).length)).map(partOf).map((x) => x.replace(/^questionsa$/, "questions")), ...cut])]; const real = items.filter((it) => (it.claims ?? []).length).length, thin = real < thinBelow || withoutBlock.length > 0; p.answerLog = { dropped: dropped.length, filled: filled.length, real, thin };
+    if (dropped.length || filled.length || thin) rows.push({ title: p.title, kind: p.kind ?? null, real, thin, dropped, filled, ...(withoutBlock.length ? { withoutBlock } : {}) });
   }
   return rows;
 }

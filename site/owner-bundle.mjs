@@ -8,6 +8,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { VERCEL_JSON_LITE } from "../tools/bundle-site.mjs"; // RR-375
+/* 🔴 RR-375 (found by running this tool, CI cannot see it): the last folder's vercel.json has only the crons of its day, so a new collector was deployed and never ran. Its settings stay; the crons of this checkout are added, none lost */
+export const withCrons = (json, crons = []) => { const has = new Set((json.crons ?? []).map((c) => `${c.path} ${c.schedule}`)); return { ...json, crons: [...(json.crons ?? []), ...crons.filter((c) => !has.has(`${c.path} ${c.schedule}`))] }; };
 const OWN_FILES = new Set([".vercelignore", "package.json", "vercel.json", "api/index.mjs", "owner-google-sign-in.mjs"]);
 const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
 /** every local file a module imports, from HEAD's text */
@@ -23,7 +26,7 @@ export function bundle({ repo, like, out }) {
   const closure = importClosure(["site/app.mjs"], (f) => show(f)?.toString("utf8") ?? null);
   rmSync(out, { recursive: true, force: true });
   const put = (rel, b) => { const to = join(out, rel); mkdirSync(dirname(to), { recursive: true }); writeFileSync(to, b); };
-  for (const rel of list) { if (OWN_FILES.has(rel) || !inHead.has(rel)) { put(rel, readFileSync(join(like, rel))); kept.push(rel); } else { put(rel, show(rel)); fromHead.push(rel); } }
+  for (const rel of list) { if (OWN_FILES.has(rel) || !inHead.has(rel)) { put(rel, rel === "vercel.json" ? `${JSON.stringify(withCrons(JSON.parse(readFileSync(join(like, rel), "utf8")), VERCEL_JSON_LITE.crons), null, 2)}\n` : readFileSync(join(like, rel))); kept.push(rel); } else { put(rel, show(rel)); fromHead.push(rel); } }
   for (const rel of closure) if (!list.includes(rel)) { put(rel, show(rel)); added.push(rel); }
   return { head: execFileSync("git", ["-C", repo, "rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(), fromHead: fromHead.length, kept, added };
 }

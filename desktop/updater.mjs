@@ -6,7 +6,7 @@
  * A package that fails its hash or signature is refused and never installed.
  */
 import { createHash, verify, createPublicKey } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { spawn } from "node:child_process";
 
@@ -35,16 +35,36 @@ export async function checkForUpdate({ channelUrl, current, publicKeyPem, fetchI
 }
 
 /** Download and verify the package into the data folder's updates/ (an existing file is verified, never overwritten). */
-/* RR-362 item 6: the download shows how far it is (`onProgress(doneBytes, ofBytes)`) */
-async function fetchBytes(url, onProgress) { const r = await fetch(url); const of = Number(r.headers?.get?.("content-length")) || 0; if (!onProgress || !r.body?.getReader) return Buffer.from(await r.arrayBuffer()); const rd = r.body.getReader(), parts = []; let done = 0; for (;;) { const x = await rd.read(); if (x.done) break; parts.push(Buffer.from(x.value)); done += x.value.length; onProgress(done, of); } return Buffer.concat(parts); }
-export async function downloadUpdate({ channelUrl, manifest, dataDir, publicKeyPem, onProgress = null }) {
+/*
+ * 🔴 RR-375 item 11 (owner, 5 Nov 2026: weak internet in Pakistan, 10 Nov to 7 Jan) · THE UPDATE COMES IN SMALL PIECES AND A BROKEN CONNECTION LOSES NOTHING. Each piece is kept on disk as it arrives; the next try, even after a restart, goes on from there. A channel that gives only whole files still works. RR-362 item 6: it shows how far it is (`onProgress(doneBytes, ofBytes)`).
+ */
+export const PIECES = Object.freeze({ bytes: 524288, triesInARow: 8, pauseMs: 5000, pieceTimeoutMs: 90000 });
+const whole = async (r, part, onProgress) => { writeFileSync(part, Buffer.alloc(0)); const of = Number(r.headers?.get?.("content-length")) || 0; let done = 0; if (r.body?.getReader) { const rd = r.body.getReader(); for (;;) { const x = await rd.read(); if (x.done) break; appendFileSync(part, Buffer.from(x.value)); done += x.value.length; onProgress?.(done, of); } } else { const b = Buffer.from(await r.arrayBuffer()); appendFileSync(part, b); done = b.length; onProgress?.(done, of); } return done; };
+export async function fetchInPieces({ url, part, onProgress = null, fetchImpl = fetch, piece = PIECES.bytes, tries = PIECES.triesInARow, sleep = (ms) => new Promise((ok) => setTimeout(ok, ms)), pauseMs = PIECES.pauseMs }) {
+  let at = existsSync(part) ? statSync(part).size : 0, total = null, failed = 0, why = null;
+  for (;;) {
+    if (total !== null && at >= total) return { ok: true, bytes: at };
+    try {
+      const r = await fetchImpl(url, { headers: { range: `bytes=${at}-${at + piece - 1}` }, signal: AbortSignal.timeout(PIECES.pieceTimeoutMs) });
+      if (r.status === 416) return { ok: true, bytes: at }; /* nothing is left to send */
+      if (r.status === 200) { const n = await whole(r, part, onProgress); return { ok: true, bytes: n }; } /* this channel sends only whole files: started again, and kept as it comes */
+      if (r.status !== 206) { why = `the update channel answered ${r.status}`; failed++; }
+      else { total = Number(/\/(\d+)\s*$/.exec(r.headers?.get?.("content-range") ?? "")?.[1]) || total; const b = Buffer.from(await r.arrayBuffer()); appendFileSync(part, b); at += b.length; onProgress?.(at, total ?? at); failed = 0; if (total === null && b.length < piece) return { ok: true, bytes: at }; continue; }
+    } catch (e) { why = e?.name === "TimeoutError" ? "the connection stopped answering" : "the connection broke"; failed++; }
+    if (failed >= tries) return { ok: false, bytes: at, why: `${why}. ${Math.round(at / 1048576)} MB is kept: press Check for updates again and it goes on from there.` };
+    await sleep(pauseMs * failed);
+  }
+}
+export async function downloadUpdate({ channelUrl, manifest, dataDir, publicKeyPem, onProgress = null, fetchImpl = fetch, sleep }) {
   if (!verifyManifest(manifest, publicKeyPem)) return { ok: false, why: "the manifest's signature does not verify" };
   const dir = join(dataDir, "updates"); mkdirSync(dir, { recursive: true });
   const file = join(dir, `AlmiVisibility-${manifest.version}.zip`);
-  const bytes = existsSync(file) ? readFileSync(file) : await fetchBytes(new URL(manifest.package, channelUrl), onProgress);
-  const sha = createHash("sha256").update(bytes).digest("hex");
-  if (sha !== manifest.sha256) return { ok: false, why: "the downloaded package does not match its signed sha256 — refused, not installed" };
-  if (!existsSync(file)) writeFileSync(file, bytes, { flag: "wx" });
+  const part = `${file}.part`;
+  if (!existsSync(file)) { const got = await fetchInPieces({ url: new URL(manifest.package, channelUrl), part, onProgress, fetchImpl, ...(sleep ? { sleep } : {}) }); if (!got.ok) return { ok: false, why: got.why }; }
+  const from = existsSync(file) ? file : part, sha = createHash("sha256").update(readFileSync(from)).digest("hex");
+  /* a bad copy is thrown away, or the next try would only go on from it */
+  if (sha !== manifest.sha256) { if (from === part) rmSync(part, { force: true }); return { ok: false, why: "the downloaded package does not match its signed sha256 — refused, not installed" }; }
+  if (from === part) renameSync(part, file);
   return { ok: true, file, version: manifest.version };
 }
 

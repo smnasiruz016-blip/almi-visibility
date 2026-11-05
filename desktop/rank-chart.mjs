@@ -1,0 +1,20 @@
+/**
+ * 🔴 RR-375 item 8 (owner, 5 Nov 2026) · THE RANK CHART: for each published page, its clicks, impressions and average position, week by week, from the client's own Search Console history. Free. A plain picture that reads on a phone. Google's average position is an average, never a promise. Pure: the history in, an SVG out.
+ */
+const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const samePage = (a, b) => { const n = (u) => String(u ?? "").replace(/^https?:\/\/(?:www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase(); return n(a) === n(b); };
+/** the page's weeks: clicks and impressions added up, the position weighted by impressions. A week with nothing stays, at zero, so a gap shows */
+export function pageWeeks(history, url) {
+  return (history?.weeks ?? []).map((w) => { const rows = (w.rows ?? []).filter((r) => samePage(r.page, url)), impressions = rows.reduce((t, r) => t + num(r.impressions), 0), clicks = rows.reduce((t, r) => t + num(r.clicks), 0), position = impressions ? rows.reduce((t, r) => t + num(r.position) * num(r.impressions), 0) / impressions : null; return { to: w.to, clicks, impressions, position: position === null ? null : Math.round(position * 10) / 10 }; });
+}
+const line = (points, color, dash = "") => { const on = points.filter((p) => p); return on.length ? `<polyline fill="none" stroke="${color}" stroke-width="2.5"${dash ? ` stroke-dasharray="${dash}"` : ""} points="${on.map((p) => `${p.x},${p.y}`).join(" ")}"/>${on.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="2.5" fill="${color}"/>`).join("")}` : ""; };
+/** → { html, last } : a chart that shrinks to the phone's width, and the words beside it. No data: says so, with what to do */
+export function rankChart(history, url, { width = 340, height = 150 } = {}) {
+  const weeks = pageWeeks(history, url), seen = weeks.filter((w) => w.impressions > 0);
+  if (!seen.length) return { html: `<p class="meta" data-rank-empty>Google has shown this page no one yet in the weeks read. It can take some weeks after a page goes live. Press Read Search Console to read again.</p>`, last: null };
+  const pad = 8, inner = width - pad * 2, top = 14, h = height - top - 18, x = (i) => Math.round(pad + (weeks.length === 1 ? inner / 2 : (i * inner) / (weeks.length - 1))), maxI = Math.max(...weeks.map((w) => w.impressions), 1), maxC = Math.max(...weeks.map((w) => w.clicks), 1), pos = seen.map((w) => w.position), worst = Math.max(...pos), best = Math.min(...pos), yPos = (p) => Math.round(top + (worst === best ? h / 2 : ((p - best) * h) / (worst - best))), yI = (v) => Math.round(top + h - (v * h) / maxI), yC = (v) => Math.round(top + h - (v * h) / maxC);
+  const last = seen[seen.length - 1];
+  const svg = `<svg data-rank-chart viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(`Clicks, impressions and average position by week. Last week seen: ${last.clicks} clicks, ${last.impressions} impressions, position ${last.position}.`)}" style="width:100%;max-width:${width}px;height:auto;display:block"><rect width="${width}" height="${height}" fill="none"/>${line(weeks.map((w, i) => ({ x: x(i), y: yI(w.impressions) })), "#9aa5b1")}${line(weeks.map((w, i) => ({ x: x(i), y: yC(w.clicks) })), "#1a7f5a")}${line(weeks.map((w, i) => (w.position === null ? null : { x: x(i), y: yPos(w.position) })), "#2457c5", "5 3")}<text x="${pad}" y="${height - 4}" font-size="10" fill="currentColor">${esc(weeks[0].to)}</text><text x="${width - pad}" y="${height - 4}" font-size="10" text-anchor="end" fill="currentColor">${esc(weeks[weeks.length - 1].to)}</text></svg>`;
+  return { html: `${svg}<p class="meta" data-rank-words><span style="color:#1a7f5a">●</span> Clicks ${last.clicks} · <span style="color:#9aa5b1">●</span> Seen ${last.impressions} times · <span style="color:#2457c5">●</span> Average position ${last.position} (up on the chart is better), week to ${esc(last.to)}. Google's own average; it moves day to day.</p>`, last };
+}

@@ -67,7 +67,9 @@ export const GSC_CRONS = Object.freeze([Object.freeze({ path: "/cron/search-cons
 export const CR_CRONS = Object.freeze(Array.from({ length: 16 }, (_, h) => Object.freeze({ path: "/cron/creators", schedule: `47 ${8 + h} * * *` })));
 /* RR-360 C · the top-pages collector: four short runs a day (it does nothing until the owner's own switch and account) */
 export const TP_CRONS = Object.freeze(Array.from({ length: 4 }, (_, h) => Object.freeze({ path: "/cron/top-pages", schedule: `27 ${16 + h} * * *` })));
-export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: [...CRONS, ...CF_CRONS, ...TD_CRONS, ...GSC_CRONS, ...CR_CRONS, ...TP_CRONS] };
+/* 🔴 RR-375: the answers collector and its freshness check, six short runs a day */
+export const AN_CRONS = Object.freeze(Array.from({ length: 6 }, (_, h) => Object.freeze({ path: "/cron/answers", schedule: `57 ${(h * 4) % 24} * * *` })));
+export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: [...CRONS, ...CF_CRONS, ...TD_CRONS, ...GSC_CRONS, ...CR_CRONS, ...TP_CRONS, ...AN_CRONS] };
 export const LITE_DEPENDENCIES = Object.freeze({ pg: "8.23.1" });
 export const OWNER_SCRIPT = "site/owner-google-sign-in.mjs"; // the website's own deployment script — not engine code (F03 C2c's census is the engine's)
 

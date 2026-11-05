@@ -124,8 +124,17 @@ export async function saveFromApp({ seo, subject, lists = [], lic, groups = [], 
 export const FAIL_KEY = "failhost|", PAID_FAIL = "a paid reading of it failed", TOP_PAGES_REUSED_JOB = "top-pages-reused", TOP_PAGES_SKIPPED_JOB = "top-pages-reads-skipped";
 export const BOUGHT = Object.freeze({ routes: Object.freeze(["/v1/almiseo/searches", "/v1/almiseo/searches/held"]), maxBody: 1000000, perCall: 500, keepDays: 30, results: 10, questions: 20, phrases: 30, headings: 40 });
 /* 🔴 RR-374: a found answer, by the question's key, apart from the searches so no collector takes it for one: our own sentence, its address and who published it; a page's text never */
-const answersTopic = (id) => `answers:${id}`;
-const answerRow = (a, today) => ({ ok: a.ok === true, on: dayIn(a.on, today), cls: a.cls === "other" ? "other" : "truth", question: text1(a.question, 300), route: a.route === "c" ? "c" : a.route === "a" ? "a" : null, ...(a.ok === true ? { answer: text1(a.answer, 700), url: String(a.url ?? "").slice(0, 2000), title: text1(a.title, 200), official: a.official === true, kind: text1(a.kind, 40), name: text1(a.name, 120), reason: text1(a.reason, 200) } : { why: text1(a.why, 200) }) });
+export const answersTopic = (id) => `answers:${id}`;
+export const answerRow = (a, today) => ({ ok: a.ok === true, on: dayIn(a.on, today), cls: a.cls === "other" ? "other" : "truth", question: text1(a.question, 300), route: ["a", "c", "f", "v"].includes(a.route) ? a.route : null, ...(a.ok === true ? { answer: text1(a.answer, 700), url: String(a.url ?? "").slice(0, 2000), title: text1(a.title, 200), official: a.official === true, type: a.official === true ? "official" : "non-official", kind: text1(a.kind, 40), name: text1(a.name, 120), reason: text1(a.reason, 200), ...(a.confirmWith ? { confirmWith: text1(a.confirmWith, 120) } : {}), ...(Array.isArray(a.print) ? { print: a.print.filter((p) => /^[0-9a-f]{8}$/.test(p)).slice(0, 24) } : {}) } : { why: text1(a.why, 200) }) });
+/** 🔴 RR-375: one saved answer for every page, product and client of this subject. What a client gets is what its finished page shows: the answer, its source and its date; never how it was found */
+const answersHeld = async ({ seo, topic, answers, outside = false, today }) => { const held = {}, wanted = (Array.isArray(answers) ? answers : []).map(String).filter((k) => /^answer\|[0-9a-f]{24}$/.test(k)).slice(0, BOUGHT.perCall), fresh = (d) => (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`)) / 864e5 <= 400; if (wanted.length) for (const r of await seo.searches(answersTopic(topic.id), wanted)) if (fresh(r.day) && !(outside && !r.data?.ok)) { const { route: _r, reason: _w, ...shown } = r.data ?? {}; held[r.key] = outside ? shown : r.data; } return held; };
+/** 🔴 RR-375 item 6: the owner's money lines and the queue; a client only hears which of its answers changed */
+export async function answersStatus({ seo, cf = null, topic, lic, env = process.env, today }) {
+  const t = answersTopic(topic.id), rows = await seo.searches(t, (await seo.searchKeys?.(t)) ?? []), changed = Object.fromEntries(rows.filter((r) => r.data?.changed).map((r) => [r.key, r.data])), counts = { answered: rows.filter((r) => r.data?.ok).length, official: rows.filter((r) => r.data?.ok && r.data.official).length, nonOfficial: rows.filter((r) => r.data?.ok && !r.data.official).length, noSource: rows.filter((r) => r.data && !r.data.ok && !r.data.again).length, waiting: rows.filter((r) => r.data?.again).length, changed: Object.keys(changed).length };
+  if (!lic.owner) return { changed, counts };
+  const month = today.slice(0, 7), sumOf = (xs, day, k) => xs.filter((x) => (day ? x.day === day : String(x.day).startsWith(month))).reduce((s, x) => s + (Number(x[k]) || 0), 0), cfDays = cf ? await cf.spendSince(`${month}-01`).catch(() => []) : [], seoDays = ((await seo.spendSince?.(`${month}-01`).catch(() => [])) ?? []).filter((x) => x.job === TOP_PAGES_JOB), budget = await topPagesBudget({ seo, env }).catch(() => ({ spent: 0 })), tp = topPagesCaps(env), ai = capsOf(env), usage = await seo.setting("free-search-usage").catch(() => null), last = await seo.setting("answers-last-run").catch(() => null);
+  return { changed, counts, last, usage: usage?.months?.[month] ?? {}, money: { collectorsAi: { today: sumOf(cfDays, today, "aiUsd"), month: sumOf(cfDays, null, "aiUsd"), cap: ai.aiUsd }, dataForSeo: { today: sumOf(seoDays, today, "usd"), month: sumOf(seoDays, null, "usd"), total: Number(budget.spent) || 0, capDay: tp.usd, capTotal: tp.budget } } };
+}
 const text1 = (x, n) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const strs = (xs, n, len = 200) => (Array.isArray(xs) ? xs : []).map((x) => text1(x, len)).filter(Boolean).slice(0, n);
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
@@ -156,13 +165,13 @@ export async function saveBought({ seo, subject, searches = [], pages = [], fail
 /** before buying: what is already here and fresh (the same month as the collector). An outside client is sent none of it (ruling 2) */
 export async function heldBought({ seo, subject, keys = [], urls = [], answers = [], lic, groups = [], at }) {
   const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
-  if (!lic.owner) return { ok: true, outside: true, searches: {}, pages: {} };
+  if (!lic.owner) return { ok: true, outside: true, searches: {}, pages: {}, answers: await answersHeld({ seo, topic: y.topic, answers, outside: true, today: dayOf(at) }) };
   const today = dayOf(at), fresh = (d) => (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`)) / 864e5 <= BOUGHT.keepDays, searches = {}, pages = {};
   /* RR-370 item 11: asked in other words, the saved one answers */
   const asked = (Array.isArray(keys) ? keys : []).map(String).slice(0, BOUGHT.perCall), map = byMeaning((await seo.searchKeys?.(y.topic.id)) ?? []), lookFor = new Map(asked.map((k) => [k, twinOf(k, map) ?? k])), rows = new Map((await seo.searches(y.topic.id, [...new Set([...asked, ...lookFor.values()])])).map((r) => [r.key, r]));
   for (const k of asked) { const r = rows.get(k) ?? rows.get(lookFor.get(k)); if (r && fresh(r.day)) searches[k] = { ...r.data, kind: r.kind, on: r.day }; }
   for (const p of await seo.pages((Array.isArray(urls) ? urls : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(p.day)) pages[p.url] = { on: p.day, headings: p.ok ? p.structure?.headings ?? [] : null, blocks: p.ok ? p.structure?.blocks ?? null : null, ...(p.structure?.paidFail || String(p.why ?? "").includes(PAID_FAIL) ? { paidFail: true } : {}) };
-  const held = {}; { const wanted = (Array.isArray(answers) ? answers : []).map(String).filter((k) => /^answer\|[0-9a-f]{24}$/.test(k)).slice(0, BOUGHT.perCall); if (wanted.length) for (const r of await seo.searches(answersTopic(y.topic.id), wanted)) if (fresh(r.day)) held[r.key] = r.data; }
+  const held = await answersHeld({ seo, topic: y.topic, answers, today });
   return { ok: true, searches, pages, answers: held, failHosts: await sharedFailHosts(seo) };
 }
 /** each site's counts, added across everyone who reported */
@@ -279,7 +288,7 @@ export async function spendLedger({ cf, seo, env = process.env, now = () => Date
 /** may this licence see Google's keyword data? AlmiWorld's own licence: yes. An outside client: only after the owner's switch (the terms above) */
 export const keywordsAllowed = (lic) => Boolean(lic.owner);
 /* 🔴 RULING 2 · THE ONLY THINGS AN OUTSIDE CLIENT'S APP IS EVER SENT */
-export const CLIENT_PARTS = Object.freeze(["summary", "pages"]);
+export const CLIENT_PARTS = Object.freeze(["summary", "pages", "answers"]);
 export const NOT_FOR_CLIENTS = "This is not part of your plan: AlmiWorld's research reaches you as finished pages.";
 /* each question in OUR OWN words, by the need it asks about (never the words of a search) */
 const OWN_WORDS = Object.freeze({ fees: "How much does {S} cost in {C}?", dates: "When can people in {C} take {S}?", results: "When do {S} results come in {C}?", scores: "What {S} score do people in {C} need?", centres: "Where can I take {S} in {C}?", booking: "How do I book {S} in {C}?", validity: "How long does a {S} result last for people in {C}?", home: "Can people in {C} take {S} online or at home?", requirements: "What does {S} ask of people in {C}?", practice: "How can people in {C} practise for {S}?", preparation: "How should people in {C} prepare for {S}?", remark: "How do people in {C} ask for a {S} re-mark?" });
@@ -316,11 +325,13 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   if (!lic.owner) {
     if (!CLIENT_PARTS.includes(part)) return { ok: false, status: 403, why: NOT_FOR_CLIENTS };
     if (!topic) return { ok: true, outside: true, subject, topic: null, pages: 0, line: "AlmiWorld's research on this subject has started. Your pages appear here when they are ready." };
+    if (part === "answers") return { ok: true, outside: true, subject, ...(await answersStatus({ seo, topic, lic, env, today })) }; /* RR-375: only which answers of its own subject changed */
     useClientTemplates(topics.filter((t) => t.owner === "client"));
     const kit = clientPagesOf({ topic, facts: cf ? await cf.facts() : [] }), who = { name: topic.owner === "client" ? topic.name : subject };
     return part === "pages" ? { ok: true, outside: true, subject, topic: who, on: today, ...kit } : { ok: true, outside: true, subject, topic: who, on: today, pages: kit.plan.length };
   }
   if (!topic) return { ok: true, subject, topic: null, line: `AlmiSEO Data holds nothing about "${subject}" yet — the collectors start on it when your product is added.` };
+  if (part === "answers") return { ok: true, subject, ...(await answersStatus({ seo, cf, topic, lic, env, today })) }; // RR-375
   useClientTemplates(topics.filter((t) => t.owner === "client"));
   const allowed = keywordsAllowed(lic), base = { ok: true, subject, topic: { id: topic.id, name: topic.name, subject: topic.subject, owner: topic.owner, countries: topic.countries ?? [], jobs: topic.jobs }, keywordsAllowed: allowed, on: today };
   if (part === "keywords") {

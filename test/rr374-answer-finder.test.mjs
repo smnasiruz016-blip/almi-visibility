@@ -40,7 +40,7 @@ test("the questions: one row each, most pages first; a question with a real answ
 
 test("what is held, by meaning: official first; a truth question takes no other", () => {
   const cache = { "how vets register ireland||": { results: [{ url: "https://someinstitute.com/register-vets" }, { url: "https://vci.ie/register" }, { url: "https://www.reddit.com/r/vets" }] }, "OET for Nurses||": { results: [{ url: "https://vci.ie/unrelated" }] } };
-  assert.deepEqual(heldAddresses(row(), cache, OFFICIAL), ["https://vci.ie/register"]); assert.deepEqual(heldAddresses(row({ cls: "other" }), cache, OFFICIAL), ["https://vci.ie/register", "https://someinstitute.com/register-vets"]);
+  assert.deepEqual(heldAddresses(row({ part: "scores", question: "What score do vets register in Ireland with?" }), { "what score vets register ireland||": cache["how vets register ireland||"] }, OFFICIAL), ["https://vci.ie/register"], "a score: official only"); assert.deepEqual(heldAddresses(row(), cache, OFFICIAL), ["https://vci.ie/register", "https://someinstitute.com/register-vets"], "RR-375: a rule question keeps the other for the very end"); assert.deepEqual(heldAddresses(row({ cls: "other" }), cache, OFFICIAL), ["https://vci.ie/register", "https://someinstitute.com/register-vets"]);
   assert.equal(pageHolds("How do vets register in Ireland?", { ok: true, text: "Vets register in Ireland with the council." }), true); assert.equal(pageHolds("How do vets register in Ireland?", { ok: true, text: "Contact us by telephone." }), false); assert.equal(pageHolds("How do vets register in Ireland?", { ok: false }), false);
 });
 

@@ -75,6 +75,18 @@ export const GUIDES = Object.freeze({
  * shows "Windows protected your PC" for a program that is not yet known — "More info" shows "Run anyway".
  */
 export const HELP_GUIDES = Object.freeze({
+  "data-screen": {
+    title: "The Data screen: money, answers, pages to read",
+    for: "One place to see what things cost, which answers changed and which pages need your own browser.",
+    steps: [
+      "Press Data. The money lines show each service: spent today, spent this month, and its limit. At a limit the work stops, keeps what it found, and tells you. Visibility never raises a limit.",
+      "Your monthly AI limit is in Settings, under Your AI assistant. Only you change it.",
+      "Needs rebuild: a saved answer changed at its source. The pages that use it are rebuilt by themselves, and wait for you to press Publish. Nothing goes live by itself.",
+      "Read these pages myself: sites that refused our reader. Copy the instruction, give it to your own AI in your own browser (with your VPN if the site needs it), then add the file it gives you. It stops at any captcha.",
+      "Add your free key: optional. Each one gives some free searches a month, and each has its own counter that stops before any bill. Everything works without them.",
+      "Rank chart: under each published page in Pages. It shows clicks, how often Google showed it, and its average position, from your Search Console. It is free.",
+    ],
+  },
   "promotion-code": {
     title: "How to use a promotion code",
     for: "A promotion code from AlmiWorld lowers the price of your plan. You type it on the payment page, before you pay.",

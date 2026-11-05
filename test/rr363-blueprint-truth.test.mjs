@@ -192,7 +192,7 @@ test("the server collector saves the blueprint too; a client never gets it", asy
   const c = (await seo.coverage("visibility")).find((x) => x.intent === "AlmiVisibility pricing"); assert.ok(c.blueprint.blocks.some((b) => b.block === "steps"), JSON.stringify(c.blueprint).slice(0, 200));
   assert.equal(typeof pageStructure(FULL).blocks.steps, "number");
   assert.equal(almiSeoAnswer.length >= 0, true);
-  const SRC2 = readFileSync(new URL("../site/almiseo.mjs", import.meta.url), "utf8"); assert.match(SRC2, /CLIENT_PARTS = (?:Object\.freeze\()?\["summary", "pages"\]/, "a client's parts are unchanged: no coverage, no blueprint");
+  const SRC2 = readFileSync(new URL("../site/almiseo.mjs", import.meta.url), "utf8"); assert.match(SRC2, /CLIENT_PARTS = (?:Object\.freeze\()?\["summary", "pages", "answers"\]/, "a client's parts are unchanged: no coverage, no blueprint");
 });
 
 /* the proof run on the owner's data found these: a truth check is wrong in both directions */

@@ -11,7 +11,7 @@ const dir = (data) => { const d = join(data, CRASH_DIR); mkdirSync(d, { recursiv
 const put = (file, obj) => { writeFileSync(`${file}.tmp`, JSON.stringify(obj, null, 1)); renameSync(`${file}.tmp`, file); };
 const get = (file) => { try { return JSON.parse(readFileSync(file, "utf8")); } catch { return null; } };
 /** a key, a token or a password never reaches a crash file, whatever wrote the line */
-export const scrub = (t) => String(t ?? "").replace(/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{8,}/g, "[hidden]").replace(/\bgh[pousr]_[A-Za-z0-9]{10,}/g, "[hidden]").replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, "Bearer [hidden]").replace(/\b(x-api-key|api[_-]?key|authorization|password|secret|token)(["']?\s*[:=]\s*["']?)[^\s"',;&]{4,}/gi, "$1$2[hidden]");
+export const scrub = (t) => String(t ?? "").replace(/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{8,}/g, "[hidden]").replace(/\bgh[pousr]_[A-Za-z0-9]{10,}/g, "[hidden]").replace(/\bgithub_pat_[A-Za-z0-9_]{10,}/g, "[hidden]").replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, "Bearer [hidden]").replace(/\b(x-api-key|api[_-]?key|authorization|password|secret|token)(["']?\s*[:=]\s*["']?)[^\s"',;&]{4,}/gi, "$1$2[hidden]");
 /** what an exit code means, in plain words */
 export function exitWords(code, signal) {
   const hex = Number.isInteger(code) ? `0x${(code >>> 0).toString(16).toUpperCase()}` : null;

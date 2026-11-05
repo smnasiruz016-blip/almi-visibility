@@ -210,7 +210,7 @@ test("D IN THE APP: the plan after the check; Do it for me creates the pages, pu
     assert.equal((await a.post(`/api/products/${id}/do`, { what: "publish" })).open, "publish-settings");
     assert.equal((await a.post(`/api/products/${id}/publish/connect`, { kind: "wordpress", site: base, user: "owner", key: "test app password" })).http, 200);
     const pub = await a.post(`/api/products/${id}/do`, { what: "publish" });
-    assert.match(pub.line, /Published ✓ — live at http:\/\/127\.0\.0\.1:\d+\//);
+    assert.match(pub.line, /^(\d+) of \1 published\.$/); assert.equal(pub.ok, true);
     /* no key file on the site yet: Bing is NOT sent, said; Google is sent through the sitemap */
     const sub1 = await a.post(`/api/products/${id}/do`, { what: "submit" });
     assert.equal(sub1.ok, true); assert.equal(s.st.indexnow.length, 0, "IndexNow without the key file on the site");

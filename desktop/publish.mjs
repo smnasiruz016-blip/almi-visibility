@@ -34,6 +34,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 export const mainOf = (html) => (/<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(html)?.[1] ?? /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(html)?.[1] ?? String(html)).trim();
 export const titleOf = (html, fallback = "") => (/<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? fallback).trim();
 
+/** 🔴 RR-373 item 8: a site names its own sitemap in robots.txt (AlmiOET: /sitemap-index.xml; /sitemap.xml is a 404 there) */
+export function sitemapAddress(origin, robotsTxt = null) { for (const m of String(robotsTxt ?? "").matchAll(/^\s*sitemap:\s*(\S+)/gim)) { try { if (new URL(m[1]).origin === origin) return m[1]; } catch { /* not an address */ } } return `${origin}/sitemap.xml`; }
 /** Is this address one the key may go to? */
 export function keyMayGo(target, url, { allowLocal = false } = {}) {
   let u; try { u = new URL(url); } catch { return false; }
@@ -68,11 +70,16 @@ export function refusedWhy(target, status, body = {}, what = null) {
   if (target?.kind === "github") {
     const repo = target.repo ?? "your repository", branch = target.branch || "main";
     if (status === 401) return `GitHub says your token is not valid or has expired — make a new token on GitHub (Settings → Developer settings → Personal access tokens), give it "Contents: Read and write" for ${repo}, and paste it in Publish settings.${none}`;
-    if (status === 403 && /rate limit/i.test(msg)) return `GitHub asks to wait a little (too many requests in a short time) — try again in an hour.${none}`;
+    /* 🔴 RR-373 item 4: 403 is two things: said which */
+    if (status === 429 || (status === 403 && /rate limit/i.test(msg))) return `GitHub's limit on how fast a token may write was reached: your token is fine. Wait about an hour, then press Publish all ready: it goes on from where it stopped.${none}`;
     if (status === 403) return `Your token cannot write files in ${repo} — on GitHub, give the token "Contents: Read and write" permission for this repository, then paste it again in Publish settings.${none}`;
+    /* 🔴 RR-373 item 4: a 404 on a write while the repository can be read and the branch is there: GitHub hides a write this token may not make. Never "branch missing" */
+    if (status === 404 && what === "no-access") return `Your token has no access to write in ${repo} — the repository and the branch "${branch}" are there. On GitHub, open the token, and under Repository access choose ${repo}, with "Contents: Read and write". Then press Test connection.${none}`;
     if (status === 404 && what === "branch") return `The branch "${branch}" does not exist in ${repo} — check the branch name in Publish settings (it is often "main").${none}`;
     if (status === 404) return `GitHub cannot find the repository "${repo}" with this token — check its name (owner/name) in Publish settings, or give the token access to that repository.${none}`;
+    if (/secret/i.test(msg)) return `GitHub's secret protection stopped this page: it found something in the page that looks like a password or key. Open the page and remove it.${none}`;
     if ((status === 409 || status === 422) && /branch/i.test(msg)) return `The branch "${branch}" does not exist in ${repo} or is protected — check the branch name in Publish settings.${none}`;
+    if (status === 409 || status === 422) return `GitHub refused the file even when tried again with its newest version (${status}${msg ? `: ${msg.slice(0, 160)}` : ""}).${none}`;
   }
   if (target?.kind === "wordpress") {
     if (status === 401) return `WordPress did not accept the user name and application password — make a new application password (Users → Profile → Application Passwords) and paste it in Publish settings.${none}`;
@@ -88,6 +95,25 @@ export function refusedWhy(target, status, body = {}, what = null) {
   return `Your site answered with an error (${status}${msg ? `: ${msg.slice(0, 80)}` : ""}).${none}`;
 }
 
+/* 🔴 RR-373: one call to the site: every failure keeps the status and the site's own message. Never a header, never the key */
+const netWords = (e) => (/header|ByteString/i.test(`${e?.message ?? ""} ${e?.cause?.message ?? ""}`) && e?.name === "TypeError" ? "the saved key holds a hidden character" : String(e?.cause?.code ?? e?.name ?? "no answer"));
+const isRate = (status, msg, headers) => status === 429 || (status === 403 && (/rate limit/i.test(msg) || headers?.get?.("x-ratelimit-remaining") === "0"));
+const caller = ({ target, fetchImpl, allowLocal }) => async (url, init, timeoutMs = 20000) => {
+  if (!keyMayGo(target, url, { allowLocal })) return { ok: false, status: 0, message: "refused here", why: "Refused: the key may go only to your own site's address." };
+  let r; try { r = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) }); } catch (e) { const message = netWords(e); return { ok: false, status: 0, message, why: /hidden character/.test(message) ? "The saved key holds a hidden character, so it cannot be sent: copy it again and paste it in Publish settings. Nothing was published." : "Your site did not answer — nothing was published." }; }
+  const body = await r.json().catch(() => ({}));
+  if (r.ok) return { ok: true, status: r.status, body };
+  const message = String(body?.message ?? body?.code ?? "").slice(0, 300), rate = isRate(r.status, message, r.headers);
+  return { ok: false, status: r.status, message, rate, body, why: refusedWhy(target, r.status, rate ? { message: "rate limit" } : body) };
+};
+/* 🔴 RR-373 item 6: an answer that says every next page gets the same: the run stops at the first */
+export const stopsTheRun = (o) => o?.status === 0 || o?.status === 401 || o?.status === 403 || o?.status === 404 || o?.status === 429 || o?.rate === true;
+const clean = ({ body, ...o }) => o;
+const ghPath = (target, url) => [String(target.folder ?? "").replace(/^\/+|\/+$/g, ""), slugOf(url).split("/").pop(), "index.html"].filter(Boolean).join("/");
+/* 🔴 RR-373 item 4: GitHub answers 404 for a repository the token cannot see, for a missing branch, and for a write it hides: asked which */
+const read404 = async (target, key, send, api) => { const repo = await send(`${api}/repos/${target.repo}`, { method: "GET", headers: ghHeaders(key) }); if (!repo.ok) return refusedWhy(target, 404, { message: "Not Found" }, "repo"); const br = await send(`${api}/repos/${target.repo}/branches/${target.branch}`, { method: "GET", headers: ghHeaders(key) }); return refusedWhy(target, 404, { message: "Not Found" }, br.ok || br.status !== 404 ? "no-access" : "branch"); };
+const ghHeaders = (key) => ({ authorization: `Bearer ${key}`, accept: "application/vnd.github+json", "user-agent": "AlmiVisibility" });
+
 export async function publishDraft({ draft, target, key, fetchImpl = fetch, downloadsDir, allowLocal = false, testBase = null }) {
   /* only a draft the five gates passed (as judged again right before, by the caller) ever leaves — here too, never only in the caller */
   if (draft.readyAsDraft !== true) return { ok: false, why: "Not published — this draft has not passed the five checks." };
@@ -95,13 +121,7 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
   /* the page as it goes live: the draft stamp and the "do not index" mark removed, its own address as canonical (the same text the gates judged) */
   const html = asPublished(draft.html, draft.url);
   const title = titleOf(html, draft.title);
-  const send = async (url, init) => {
-    if (!keyMayGo(target, url, { allowLocal })) return { ok: false, why: "Refused: the key may go only to your own site's address." };
-    let r; try { r = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(20000) }); } catch { return { ok: false, why: "Your site did not answer — nothing was published." }; }
-    const body = await r.json().catch(() => ({}));
-    if (!r.ok) return { ok: false, status: r.status, body, why: refusedWhy(target, r.status, body) };
-    return { ok: true, body };
-  };
+  const send = caller({ target, fetchImpl, allowLocal });
   if (target.kind === "download") {
     const dir = resolve(downloadsDir, slug);
     if (!dir.startsWith(resolve(downloadsDir) + sep)) return { ok: false, why: "Refused: a page name that leaves the folder." };
@@ -113,29 +133,33 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
   if (target.kind === "wordpress") {
     const base = testBase ?? new URL(target.site).origin;
     const r = await send(`${base}/wp-json/wp/v2/pages`, { method: "POST", headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${target.user}:${key}`).toString("base64")}` }, body: JSON.stringify({ title, content: mainOf(html), status: "publish", slug }) });
-    if (!r.ok) return r;
-    return { ok: true, live: r.body.link ?? `${base}/${slug}/`, remote: { id: r.body.id } };
+    if (!r.ok) return clean(r);
+    return { ok: true, status: r.status, live: r.body.link ?? `${base}/${slug}/`, remote: { id: r.body.id } };
   }
   if (target.kind === "github") {
     const api = testBase ?? "https://api.github.com";
-    const path = [String(target.folder ?? "").replace(/^\/+|\/+$/g, ""), slug, "index.html"].filter(Boolean).join("/");
-    const gh = { authorization: `Bearer ${key}`, accept: "application/vnd.github+json", "user-agent": "AlmiVisibility" };
+    const path = ghPath(target, draft.url);
+    const gh = ghHeaders(key);
     const put = (sha = null) => send(`${api}/repos/${target.repo}/contents/${path}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `${sha ? "Update" : "Add"} page ${slug} (AlmiVisibility)`, content: Buffer.from(html).toString("base64"), branch: target.branch, ...(sha ? { sha } : {}) }) });
     let r = await put();
+    if (!r.ok && r.status === 0 && r.message !== "refused here" && !/hidden/.test(r.message ?? "")) r = await put(); /* 🔴 RR-373: a connection dropped on the way, once more */
     /* RR-355: the page is already in the repository (published before) — GitHub asks for its current version; it is updated, never refused */
-    if (!r.ok && (r.status === 422 || r.status === 409) && /\bsha\b/i.test(String(r.body?.message ?? ""))) { const cur = await send(`${api}/repos/${target.repo}/contents/${path}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh }); if (cur.ok && cur.body?.sha) r = await put(cur.body.sha); }
+    /* 🔴 RR-373 item 4: any 409 or 422 is a conflict: once more, with the newest version GitHub has */
+    if (!r.ok && (r.status === 422 || r.status === 409)) { const cur = await send(`${api}/repos/${target.repo}/contents/${path}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh }); r = await put(cur.ok ? cur.body?.sha ?? null : null); }
     /* RR-355 (owner: "say exactly why — repository not found / no permission / branch not found / token expired"): GitHub answers 404 both for
      * a repository the token cannot see and for a missing branch — asked which, so the client knows what to change */
-    if (!r.ok && r.status === 404) { const repo = await send(`${api}/repos/${target.repo}`, { method: "GET", headers: gh }); r = { ...r, why: !repo.ok ? refusedWhy(target, 404, { message: "Not Found" }, "repo") : refusedWhy(target, 404, { message: "Branch not found" }, "branch") }; }
-    if (!r.ok) return { ok: false, why: r.why };
+    if (!r.ok && r.status === 404) r = { ...r, why: await read404(target, key, send, api) };
+    if (!r.ok) return clean(r);
+    /* 🔴 RR-373 item 1: published only when GitHub names the file it wrote */
+    if (!r.body?.content?.sha && !r.body?.commit?.sha) return { ok: false, status: r.status, message: "no file named in the answer", why: "GitHub answered without confirming the file was written. Nothing is counted as published." };
     const preview = previewOf(target); /* 🔴 RR-370 item 12: never said as live, never sent to a search engine */
-    return { ok: true, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${slug}/`, ...(preview ? { preview: { ...preview, path } } : {}), remote: { path, sha: r.body.content?.sha ?? null } };
+    return { ok: true, status: r.status, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${slug}/`, ...(preview ? { preview: { ...preview, path } } : {}), remote: { path, sha: r.body.content?.sha ?? null } };
   }
   if (target.kind === "shopify") {
     const base = testBase ?? `https://${target.shop}`;
     const r = await send(`${base}/admin/api/${SHOPIFY_API_VERSION}/pages.json`, { method: "POST", headers: { "content-type": "application/json", "x-shopify-access-token": key }, body: JSON.stringify({ page: { title, body_html: mainOf(html), handle: slug, published: true } }) });
-    if (!r.ok) return r;
-    return { ok: true, live: `https://${target.shop}/pages/${r.body.page?.handle ?? slug}`, remote: { id: r.body.page?.id } };
+    if (!r.ok) return clean(r);
+    return { ok: true, status: r.status, live: `https://${target.shop}/pages/${r.body.page?.handle ?? slug}`, remote: { id: r.body.page?.id } };
   }
   return { ok: false, why: "Choose where your site is built." };
 }
@@ -248,4 +272,58 @@ export function editDraft(draft, { title, main }) {
     html = /<main\b[^>]*>[\s\S]*?<\/main>/i.test(html) ? html.replace(/(<main\b[^>]*>)[\s\S]*?(<\/main>)/i, `$1${clean}$2`) : html.replace(/(<body\b[^>]*>)[\s\S]*?(<\/body>)/i, `$1${clean}$2`);
   }
   return { ...draft, html, title: typeof title === "string" && title.trim() ? title.trim() : draft.title, edited: true };
+}
+
+/**
+ * 🔴 RR-373 item 6 · MANY PAGES, ONE COMMIT. A file written alone is a commit, and every commit starts one site build and one test run: 295 pages would be 295 builds. A group of pages goes as one commit,
+ * with GitHub's own tree calls. Counted as written only when GitHub moved the branch to that commit. A conflict (409, 422: someone else moved the branch) is tried once more from the newest commit.
+ */
+export async function publishPagesGithub({ drafts, target, key, fetchImpl = fetch, allowLocal = false, testBase = null, message = null }) {
+  const api = testBase ?? "https://api.github.com", repo = `${api}/repos/${target.repo}`, gh = ghHeaders(key), send = caller({ target, fetchImpl, allowLocal }), post = (url, body, ms) => send(url, { method: "POST", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify(body) }, ms);
+  const files = drafts.map((d) => ({ url: d.url, path: ghPath(target, d.url), content: asPublished(d.html, d.url) })), preview = previewOf(target);
+  const attempt = async () => {
+    const ref = await send(`${repo}/git/ref/heads/${target.branch}`, { method: "GET", headers: gh }); if (!ref.ok) return ref;
+    const head = ref.body?.object?.sha, base = await send(`${repo}/git/commits/${head}`, { method: "GET", headers: gh }); if (!base.ok) return base;
+    const tree = await post(`${repo}/git/trees`, { base_tree: base.body?.tree?.sha, tree: files.map((f) => ({ path: f.path, mode: "100644", type: "blob", content: f.content })) }, 120000); if (!tree.ok) return tree;
+    const commit = await post(`${repo}/git/commits`, { message: message ?? `Add ${files.length} page${files.length === 1 ? "" : "s"} (AlmiVisibility)`, tree: tree.body?.sha, parents: [head] }, 60000); if (!commit.ok) return commit;
+    const up = await send(`${repo}/git/refs/heads/${target.branch}`, { method: "PATCH", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ sha: commit.body?.sha, force: false }) }); if (!up.ok) return up;
+    if (!commit.body?.sha || up.body?.object?.sha !== commit.body.sha) return { ok: false, status: up.status, message: "the branch did not move to the new commit", why: "GitHub answered without moving the branch to these pages. Nothing is counted as published." };
+    return { ok: true, status: up.status, commit: commit.body.sha };
+  };
+  let r = await attempt();
+  /* 🔴 RR-373: (the built app's own proof: ECONNRESET between two groups) a connection dropped on the way is tried once more; the same files again change nothing */
+  if (!r.ok && (r.status === 409 || r.status === 422 || (r.status === 0 && r.message !== "refused here" && !/hidden/.test(r.message ?? "")))) r = await attempt();
+  if (!r.ok && r.status === 404) r = { ...r, why: await read404(target, key, send, api) };
+  if (!r.ok) return { ...clean(r), paths: files.map((f) => ({ url: f.url, path: f.path })) };
+  return { ok: true, status: r.status, commit: r.commit, pages: files.map((f) => ({ url: f.url, ok: true, status: r.status, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${f.path.split("/").slice(-2, -1)[0]}/`, ...(preview ? { preview: { ...preview, path: f.path } } : {}), remote: { path: f.path, commit: r.commit } })) };
+}
+
+/**
+ * 🔴 RR-373 item 3 · TEST CONNECTION: the token, the repository, the branch, and the right to write, each said in plain words, and NOTHING written. The write check asks GitHub to make a branch from a commit that
+ * cannot exist: a token that may write is answered 422 ("Object does not exist": seen on the real almi-oet, 5 Nov 2026, nothing made), one that may not is stopped before that, 403 or 404.
+ */
+export const NO_COMMIT = "0".repeat(40);
+export async function testGithubConnection({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  const api = testBase ?? "https://api.github.com", repo = target?.repo ?? "your repository", branch = target?.branch ?? "main", rows = [], gh = ghHeaders(key), send = caller({ target, fetchImpl, allowLocal });
+  const row = (check, ok, r, line) => { rows.push({ check, ok, status: r?.status ?? null, message: r?.ok ? null : r?.message || null, line }); return ok; };
+  const done = (ok, line) => ({ ok, rows, line });
+  if (!key) { row("token", false, null, "No token is saved. Paste it in Publish settings and press Save."); return done(false, rows[0].line); }
+  if (/[^\x21-\x7e]/.test(key)) { row("token", false, null, "The saved token holds a hidden character. Copy it again from GitHub, paste it here and press Save."); return done(false, rows[0].line); }
+  const rate = "GitHub's limit on how fast a token may call it was reached: your token is not the problem. Wait about an hour and test again.";
+  const a = await send(`${api}/repos/${repo}`, { method: "GET", headers: gh });
+  if (a.rate) { row("token", false, a, rate); return done(false, rate); }
+  if (a.status === 0) { row("token", false, a, "GitHub did not answer from this computer. Check the internet connection and test again."); return done(false, rows[0].line); }
+  if (a.status === 401) { row("token", false, a, "GitHub does not accept this token: it is wrong or has expired. Make a new one and paste it here."); return done(false, rows[0].line); }
+  row("token", true, a, "GitHub accepts the token.");
+  if (!a.ok) { row("repository", false, a, `The token cannot see ${repo}. Check the name (owner/name), or give the token access to that repository.`); return done(false, rows.at(-1).line); }
+  row("repository", true, a, `The token can see ${repo}.`);
+  const b = await send(`${api}/repos/${repo}/branches/${branch}`, { method: "GET", headers: gh });
+  if (!b.ok) { if (b.rate) row("branch", false, b, rate); else row("branch", false, b, b.status === 404 ? `The branch "${branch}" does not exist in ${repo}. Check its name here in Publish settings.` : `GitHub would not show the branch "${branch}" (${b.status}).`); return done(false, rows.at(-1).line); }
+  row("branch", true, b, `The branch "${branch}" is there.`);
+  const w = await send(`${api}/repos/${repo}/git/refs`, { method: "POST", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ ref: "refs/heads/almivisibility-access-check", sha: NO_COMMIT }) });
+  if (w.status === 422) { row("write", true, w, `The token may write in ${repo}.${b.body?.protected ? ` But the branch "${branch}" is protected: GitHub may still refuse direct writes to it.` : ""} Nothing was written by this test.`); return done(true, "All good: the token, the repository, the branch and the right to write. Nothing was written."); }
+  if (w.rate) { row("write", false, w, rate); return done(false, rate); }
+  if (w.ok) { row("write", false, w, "GitHub gave an answer this test does not expect. Tell support."); return done(false, rows.at(-1).line); }
+  row("write", false, w, `The token may read ${repo} but not write in it. On GitHub, open the token, under Repository access choose ${repo}, and give it "Contents: Read and write". Then test again.`);
+  return done(false, rows.at(-1).line);
 }

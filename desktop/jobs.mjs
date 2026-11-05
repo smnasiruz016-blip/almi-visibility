@@ -17,13 +17,15 @@ export function jobBoard({ now = () => Date.now(), keepFinishedMs = 15 * 60e3, o
   const jobs = new Map();
   const view = (j) => {
     const seconds = Math.round(((j.ended ?? now()) - j.started) / 1000), /* the time left is this step's own pace (a run has several steps, each with its own count) */ inStep = (now() - (j.stepAt ?? j.started)) / 1000, quiet = now() - (j.movedAt ?? j.stepAt ?? j.started), still = j.running && quiet >= STILL_MS /* 🔴 RR-368: nothing has moved: no number is made up from a pace that stopped */, left = !still && j.running && j.done > 0 && j.of > j.done ? Math.round((inStep / j.done) * (j.of - j.done)) : null, long = j.running && (j.long || seconds + (left ?? 0) >= LONG_SECONDS);
-    return { key: j.key, product: j.product, kind: j.kind, label: j.label, done: j.done, of: j.of, unit: j.unit, what: j.what, seconds, secondsLeft: left, leftLine: j.running ? (still ? stillWords(quiet) : j.of ? leftWords(left) : null) : null, running: j.running, ok: j.ok, line: j.line, canClose: long, percent: j.of ? Math.min(j.running ? 99 : 100, Math.round((j.done / j.of) * 100)) : j.running ? null : 100 };
+    return { key: j.key, product: j.product, kind: j.kind, label: j.label, done: j.done, of: j.of, unit: j.unit, what: j.what, seconds, secondsLeft: left, leftLine: j.running ? (still ? stillWords(quiet) : j.of ? leftWords(left) : null) : null, running: j.running, ok: j.ok, line: j.line, canClose: long, stoppable: j.running && j.stoppable === true, percent: j.of ? Math.min(j.running ? 99 : 100, Math.round((j.done / j.of) * 100)) : j.running ? null : 100 };
   };
   return Object.freeze({
-    start(key, { product = null, kind = key, label, of = 0, what = "Starting", long = false, unit = "" }) { const j = { key, product, kind, label, done: 0, of, what, long, unit, started: now(), running: true, ok: null, line: null }; jobs.set(key, j); return view(j); },
+    start(key, { product = null, kind = key, label, of = 0, what = "Starting", long = false, unit = "", stoppable = false }) { const j = { key, product, kind, label, done: 0, of, what, long, unit, stoppable, started: now(), running: true, ok: null, line: null }; jobs.set(key, j); return view(j); },
     step(key, { done = null, add = 0, of = null, what = null, unit = null } = {}) { const j = jobs.get(key); if (!j?.running) return; if (of != null) { j.of = of; j.stepAt = now(); } if (unit != null) j.unit = unit; const was = j.done; if (done != null) j.done = done; j.done = Math.min(j.of || Infinity, j.done + add); if (j.done !== was || of != null || (what != null && what !== j.what)) j.movedAt = now(); if (what != null) j.what = what; },
     finish(key, { ok = true, line = null } = {}) { const j = jobs.get(key); if (!j?.running) return; const took = (now() - j.started) / 1000; j.running = false; j.ok = ok; j.line = line; j.ended = now(); if (j.of && ok) j.done = j.of; onFinish?.({ ...view(j), tookSeconds: took }); },
     running(key) { return jobs.get(key)?.running === true; },
+    /** 🔴 RR-373 item 7: a finished job's line, when what it said stopped being true */
+    amend(key, change) { const j = jobs.get(key); if (j?.line) j.line = change(j.line); },
     list({ product = undefined } = {}) { for (const [k, j] of jobs) if (!j.running && now() - j.ended > keepFinishedMs) jobs.delete(k); return [...jobs.values()].filter((j) => product === undefined || j.product === product || j.product === null).map(view); },
   });
 }

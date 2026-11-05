@@ -16,6 +16,12 @@ import { allTopics, answersTopic, almiSeoAnswer } from "../site/almiseo.mjs";
 import { seoMemoryStore } from "../site/almiseo-store.mjs";
 import { cfMemoryStore } from "../site/cf-store.mjs";
 import { RS_CRONS, VERCEL_JSON_LITE } from "../tools/bundle-site.mjs";
+import { withCrons } from "../site/owner-bundle.mjs";
+
+test("THE DEPLOY FOLDER carries the new collectors: the last folder's settings stay, no cron is lost or doubled", () => {
+  const old = { functions: { "api/index.mjs": { maxDuration: 300 } }, crons: [{ path: "/cron/keywords", schedule: "7 0 * * *" }, { path: "/cron/old", schedule: "1 1 * * *" }] }, j = withCrons(old, VERCEL_JSON_LITE.crons); assert.equal(j.functions["api/index.mjs"].maxDuration, 300); assert.ok(j.crons.some((c) => c.path === "/cron/answers")); assert.ok(j.crons.some((c) => c.path === "/cron/research")); assert.ok(j.crons.some((c) => c.path === "/cron/old"), "none lost"); assert.equal(j.crons.filter((c) => c.path === "/cron/keywords" && c.schedule === "7 0 * * *").length, 1, "none doubled");
+  assert.match(read("site/owner-bundle.mjs"), /rel === "vercel\.json" \? /, "the tool the owner runs uses it");
+});
 
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), ON = "2026-11-05", ENV = { ANTHROPIC_API_KEY: "x".repeat(30) };
 const NOTE = { text: "OET's official page, checked 2026-11-03, does not say this.", link: "https://oet.com/x", readOn: "2026-11-03", official: true, gap: true };

@@ -167,14 +167,15 @@ export const COUNTRY_PARTS = CORE.exam[KIND.country];
 /* Rule 4 · a profession page's three: the score each council asks (by country), what the Writing letter is for it, its own questions */
 export const PROFESSION_PARTS = CORE.exam[KIND.profession];
 /* RR-362 (R3, R5, R6): the core questions of every page type, read from the page itself; a heading that is a question people ask (`asked`) answers "the questions people ask" */
-export function partsMissing(html, kind, { localCurrency = null, asked = [], questionsWanted = false } = {}) {
+export function partsMissing(html, kind, { localCurrency = null, asked = [], questionsWanted = false, leftOff = [] } = {}) {
   const want = coreOf(kind); if (!want) return [];
   const p = readPage(html), have = new Set(p.items.filter((i) => i.answers.length).map((i) => (/--([a-z]+)\d*$/.exec(i.id) ?? [])[1]?.replace(/^questionsa$/, "questions")).filter(Boolean));
   if (p.items.some((i) => i.answers.length && asked.includes(i.question))) have.add("questions");
   /* RR-369 Part 4: marked for the collector: no question of ours stands in for it, and the page stays */
-  const missing = Object.entries(want).filter(([k]) => !have.has(k) && !(k === "questions" && questionsWanted)).map(([, v]) => v);
+  /* 🔴 RR-374: a part left off because no official page answers it: the page stays, and is on the owner's list */
+  const missing = Object.entries(want).filter(([k]) => !have.has(k) && !(k === "questions" && questionsWanted) && !leftOff.includes(k) && !leftOff.includes(k.replace(/s$/, ""))).map(([, v]) => v);
   /* 🔴 RR-365 + the owner's rule of 27 Oct (a country's councils = nursing and medicine first): the United States listed six other councils and stood ✅: a list without them is named, never invented */
-  if (kind === "country" && have.has("councils")) { const lines = p.items.filter((i) => /--councils\d*$/.test(i.id)).flatMap((i) => i.answers), lack = [["nursing", "the nurses' council"], ["medicine", "the doctors' council"]].filter(([k]) => !lines.some((l) => professionsRegistered(l).includes(k))).map(([, w]) => w); if (lack.length) missing.push(lack.join(" and ")); }
+  if (kind === "country" && have.has("councils") && !leftOff.includes("councils")) { const lines = p.items.filter((i) => /--councils\d*$/.test(i.id)).flatMap((i) => i.answers), lack = [["nursing", "the nurses' council"], ["medicine", "the doctors' council"]].filter(([k]) => !lines.some((l) => professionsRegistered(l).includes(k))).map(([, w]) => w); if (lack.length) missing.push(lack.join(" and ")); }
   /* the fee in the country's own currency is the FIRST card */
   if (kind === "country" && localCurrency && !missing.includes(want.fee) && !new RegExp(`^${localCurrency}\\b`).test(p.cards[0]?.value ?? "")) missing.unshift(`${want.fee} as the first fact card`);
   return missing;

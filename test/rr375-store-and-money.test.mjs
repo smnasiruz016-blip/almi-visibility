@@ -13,7 +13,7 @@ import { recheck, isDue, recheckClass, RECHECK_DAYS, takeChanged, settleChanged,
 import { rankChart, pageWeeks } from "../desktop/rank-chart.mjs";
 import { fetchInPieces, downloadUpdate, signedBytes } from "../desktop/updater.mjs";
 import { configFault, manifest, storeVersion, TEST_VALUES } from "../tools/build-msix.mjs";
-import { runAnswers, runFreshness, questionsOf, readBing, ANSWERS } from "../site/answers-collector.mjs";
+import { runAnswers, runFreshness, questionsOf, readBing, ownSiteOf, ANSWERS } from "../site/answers-collector.mjs";
 import { allTopics, answersTopic, saveBought, heldBought, almiSeoAnswer, registerClient } from "../site/almiseo.mjs";
 import { seoMemoryStore } from "../site/almiseo-store.mjs";
 import { cfMemoryStore } from "../site/cf-store.mjs";
@@ -108,6 +108,7 @@ test("questionsOf: the queue's countries first, each question once; Bing's own q
   const q = questionsOf({ bank: { groups: [{ question: "How do I book OET in Kenya?" }], asked: [{ question: "How do I book OET in India?" }] }, lists: [{ paa: ["How do I book OET in India?", "cheap"] }], bing: [{ query: "what is oet" }, { query: "oet" }], countries: ["India", "Kenya"] }); assert.equal(q[0].question, "How do I book OET in India?"); assert.equal(q[1].question, "How do I book OET in Kenya?"); assert.deepEqual(q.map((x) => x.question), ["How do I book OET in India?", "How do I book OET in Kenya?", "what is oet?"]); assert.equal(q[2].source, "Bing");
 });
 test("BING: the Webmaster API for our own site, once a day; no key, nothing; never a Bing page", async () => {
+  assert.match(ownSiteOf({ id: "oet" }), /^https:\/\/[a-z]+\.almiworld\.com\//, "each product's own site"); assert.equal(ownSiteOf({ id: "nobody" }), null);
   const { seo, topics } = await world(), topic = topics[0], at = "2026-11-05T01:00:00.000Z"; let asked = 0; const f = async (u) => { asked++; assert.match(String(u), /^https:\/\/ssl\.bing\.com\/webmaster\/api\.svc\/json\/GetQueryStats\?siteUrl=/); return { ok: true, status: 200, json: async () => ({ d: [{ Query: "what is oet", Impressions: 5, Clicks: 1, Date: "/Date(1790000000000)/" }] }) }; };
   assert.equal((await readBing({ seo, env: {}, topic, site: "https://oet.example/", fetchImpl: f, at })).read, false); assert.equal(asked, 0);
   const a = await readBing({ seo, env: { BING_WEBMASTER_API_KEY: "k" }, topic, site: "https://oet.example/", fetchImpl: f, at }); assert.equal(a.read, true); assert.equal(a.rows[0].query, "what is oet"); const b = await readBing({ seo, env: { BING_WEBMASTER_API_KEY: "k" }, topic, site: "https://oet.example/", fetchImpl: f, at }); assert.equal(asked, 1, "once a day"); assert.equal(b.rows[0].query, "what is oet");

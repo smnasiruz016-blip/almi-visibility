@@ -15,12 +15,15 @@ import { BING_API, bingRows } from "../desktop/bing-webmaster.mjs";
 import { allTopics, answersTopic, answerRow, questionBank, LIVE_JOBS } from "./almiseo.mjs";
 import { capsOf } from "./cf-collector.mjs";
 import { aiConfigured, CF_AI } from "./cf-ai.mjs";
+import { FAMILY } from "./family.mjs"; // our own sites, for Bing's report
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { pathwayQuestions, OFFICIAL_HOSTS } from "./pathway-data.mjs"; // RR-376
 import { recordRun } from "./health.mjs";
 
 export const ANSWERS = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, marginUsd: 0.05, recheckPerRun: 80, queuedIntentsPerTopic: 60, offEnv: "ALMISEO_ANSWERS_OFF", bingKey: "BING_WEBMASTER_API_KEY", job: "answers" });
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
+/** our own site for a product: Bing's report answers only for a site we own */
+export const ownSiteOf = (topic) => topic.site ?? FAMILY.products.find((p) => p.key === topic.id)?.href ?? null;
 const LOCK = "av:answers:lock", INTENTS = (id) => `answer-intents:${id}`, USAGE = "free-search-usage", BING = (id) => `bing-queries:${id}`;
 const looksAsked = (q) => /\?\s*$/.test(q) || /^(?:how|what|which|who|where|when|why|can|does|do|is|are|should)\b/i.test(q);
 
@@ -55,7 +58,7 @@ export async function runFreshness({ seo, topic, reader, today, at, keep = () =>
   }
   return out;
 }
-export async function runAnswers({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, aiFetch = fetchImpl, aiBase = undefined, now = () => Date.now(), budgetMs = ANSWERS.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, siteOf = () => null, freeBases = undefined }) {
+export async function runAnswers({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, aiFetch = fetchImpl, aiBase = undefined, now = () => Date.now(), budgetMs = ANSWERS.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, siteOf = ownSiteOf, freeBases = undefined }) {
   const start = now(), at = new Date(start).toISOString(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (env[ANSWERS.offEnv] === "1") return { ok: false, day: today, why: `The answers collector is switched off (${ANSWERS.offEnv}).` };
   if (!aiConfigured(env)) return { ok: false, day: today, why: `${CF_AI.keyName} is not set in Vercel yet.` };

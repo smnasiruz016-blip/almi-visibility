@@ -62,12 +62,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   /* as installed: the launcher beside its app folder */
   execFileSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -LiteralPath ${psq(ZIP)} -DestinationPath ${psq(join(tmp, "app"))}`], { stdio: "pipe" });
   cpSync(join(tmp, "app", "launcher", "AlmiVisibility.exe"), join(tmp, "AlmiVisibility.exe")); rmSync(join(tmp, "app", "launcher"), { recursive: true, force: true });
-  writeFileSync(join(tmp, "app", "store-build.txt"), "Updates come from the Microsoft Store.\n"); writeFileSync(join(tmp, "AppxManifest.xml"), manifest({ c, version }));
+  writeFileSync(join(tmp, "app", "microsoft-package.txt"), "Updates come from the Microsoft Store.\n"); writeFileSync(join(tmp, "AppxManifest.xml"), manifest({ c, version }));
   drawImages(join(REPO, "desktop", "brand", "almiworld-logo.png"), join(tmp, "Assets"));
   const packed = execFileSync(MAKEAPPX, ["pack", "/d", tmp, "/p", file, "/o"], { encoding: "utf8", stdio: "pipe" });
   /* MakeAppx checks the manifest against Microsoft's schema when it packs; unpacking proves the file reads back */
   execFileSync(MAKEAPPX, ["unpack", "/p", file, "/d", un, "/o"], { encoding: "utf8", stdio: "pipe" });
-  for (const f of ["AppxManifest.xml", "AlmiVisibility.exe", "AppxBlockMap.xml", join("app", "version.txt"), join("app", "store-build.txt"), join("app", "desktop", "main.mjs"), join("app", "runtime", "node.exe")]) if (!existsSync(join(un, f))) { console.error(`NOT VALID: ${f} is not in the package.`); process.exit(5); }
+  for (const f of ["AppxManifest.xml", "AlmiVisibility.exe", "AppxBlockMap.xml", join("app", "version.txt"), join("app", "microsoft-package.txt"), join("app", "desktop", "main.mjs"), join("app", "runtime", "node.exe")]) if (!existsSync(join(un, f))) { console.error(`NOT VALID: ${f} is not in the package.`); process.exit(5); }
   rmSync(un, { recursive: true, force: true }); rmSync(tmp, { recursive: true, force: true });
   console.log(`built ${file}${TEST ? " (TEST VALUES: never for Partner Center)" : ""}. ${String(packed).trim().split(/\r?\n/).pop()}`);
 }

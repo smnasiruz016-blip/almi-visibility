@@ -114,7 +114,7 @@ setDefaultAutoSelectFamily(false); setDefaultResultOrder("ipv4first");
 const DATA = arg("data");
 if (!DATA) { console.error("usage: node desktop/main.mjs --data=<dir>"); process.exit(1); }
 const INSTALL = arg("install", join(HERE, "..", ".."));
-const STORE_BUILD = existsSync(join(HERE, "..", "store-build.txt")); // RR-375 item 10
+const STORE_BUILD = existsSync(join(HERE, "..", "microsoft-package.txt")); // RR-375 item 10
 const VERSION = existsSync(join(HERE, "..", "version.txt")) ? readFileSync(join(HERE, "..", "version.txt"), "utf8").trim() : "0.0.0-dev";
 mkdirSync(DATA, { recursive: true });
 const store = productStore(DATA);

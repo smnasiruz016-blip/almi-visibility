@@ -71,7 +71,8 @@ export function fixNames(plan, checks = {}) {
 /** a line that holds a work note and something real keeps the real part: done before the AI reads it */
 export function stripNotes(plan) { for (const p of plan.pages ?? []) for (const it of p.items ?? []) it.claims = (it.claims ?? []).map((c) => { const t = withoutNotes(c.text); return t.length >= 12 && t !== c.text ? { ...c, text: t } : c; }); return plan; }
 /** 🔴 RR-376: a page missing the questions people ask gets them from our own store first, free: an answer already checked as official stands; any other question goes down the normal ladder. At most four, never padded */
-export function addSavedQuestions(plan, { bank = [], paa = [], subject = "OET", link = null, on = null, max = 4 } = {}) {
+export function addSavedQuestions(plan, { bank = [], paa = [], subject = null, link = null, on = null, max = 4 } = {}) {
+  if (!subject) return 0; /* RR-359: a product's own subject, never a guess */
   let added = 0; const wordsIn = (t) => String(t ?? "").toLowerCase(), people = (p) => String(p.profession ?? "").toLowerCase().replace(/ science$/, "").replace(/^medicine$/, "doctor").slice(0, 6);
   for (const p of plan.pages ?? []) {
     if (!coreOf(p.kind)?.questions || (p.items ?? []).some((it) => /^questions/.test(partOf(it)) && (it.claims ?? []).length && it.claims.some((c) => withoutNotes(c.text)))) continue;

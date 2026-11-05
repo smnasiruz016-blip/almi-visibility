@@ -30,7 +30,7 @@ const ok = (q, cost = 0.00015) => ({ on: NOW, what: "top page read", q, cost, ok
 
 test("ITEM 1: an open Pages screen is drawn again when a run or its improving line ends; summary, list and buttons are one answer; the words say new and existing", () => {
   const UI = read("desktop/ui.html");
-  assert.match(UI, /const PAGES_JOB = \/\^\(\?:make\|improve\)\$\//);
+  assert.match(UI, /const PAGES_JOB = \/\^\(\?:make\|improve\|publish\)\$\//);
   assert.match(UI, /function pagesAfterJobs\(jobs\) \{ const ended = jobs\.some\(\(j\) => PAGES_JOB\.test\(j\.kind\) && j\.product === P && !j\.running && JOBS_RUNNING\.has\(j\.key\)\)/, "only a job seen running here, now ended");
   assert.match(UI, /if \(ended && \$\("#pubbox"\)\) pagesBox\(PAGES_WAITING\)/); assert.match(UI, /if \(J\) \{ pagesAfterJobs\(J\.jobs\);/); assert.match(UI, /PAGES_WAITING = waitingOnly;/);
   const f = /const readyWords = (\(n\) => `[^\n]*`);/.exec(UI)?.[1]; assert.ok(f); const words = new Function(`return ${f}`)();

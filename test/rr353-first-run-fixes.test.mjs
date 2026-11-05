@@ -131,7 +131,7 @@ test("RR-353 · 9 · social media pages: each on its own network; the posts are 
 });
 
 test("RR-353 · 10 + 11 · IndexNow on publish; the Search engines panel; two help guides in the app and on the site", () => {
-  assert.ok(MAIN.includes('if (out.live && inx?.verified === true) {') && MAIN.includes('note: "IndexNow, on publish"'));
+  assert.ok(MAIN.includes('if (lives.length && inx?.verified === true) {') && MAIN.includes('note: "IndexNow, on publish"'));
   for (const s of ['r[2] === "search-engines" && req.method === "GET"', 'r[2] === "bing" && req.method === "POST"', 'r[2] === "social-links" && req.method === "POST"']) assert.ok(MAIN.includes(s), s);
   assert.ok(UI.includes("async function enginesScreen() {\n  if (!(await here(\"enginesScreen\"))) return;"));
   assert.ok(UI.includes("Object.assign(SCREENS, { enginesScreen, bingScreen, socialLinksScreen, helpScreen });"));

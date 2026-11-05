@@ -165,6 +165,6 @@ test("RR-351 · the UI: the button's two fields in Your product; the facts-file 
   assert.ok(readFileSync(join(REPO, "desktop", "build.mjs"), "utf8").includes('"facts-file.mjs"'));
   const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8");
   assert.ok(!main.includes("Try a free ${aboutOf(s)"), "the made-up button is gone");
-  for (const m of ['if (!ctaOf(store.read(id))) return { ok: false, needsCta: true, why: NO_CTA };', 'if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true,', 'if (!ctaOf(s)) return { refused: NO_CTA, needsCta: true };']) assert.ok(main.includes(m), m);
+  for (const m of ['if (!ctaOf(store.read(id))) return { refused: { ok: false, needsCta: true, why: NO_CTA } };', 'if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true,', 'if (!ctaOf(s)) return { refused: NO_CTA, needsCta: true };']) assert.ok(main.includes(m), m);
   assert.equal((main.match(/(?:seoPages\(\{|const args = \{)[^\n]*cta: ctaOf\(/g) ?? []).length, 6 /* RR-356: + the repair round; RR-360: + a product of any kind judged again with its coverage; RR-366 X5: the run and its repair round share one */, "every page made carries the client's button");
 });

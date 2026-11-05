@@ -142,6 +142,7 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
     const gh = ghHeaders(key);
     const put = (sha = null) => send(`${api}/repos/${target.repo}/contents/${path}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `${sha ? "Update" : "Add"} page ${slug} (AlmiVisibility)`, content: Buffer.from(html).toString("base64"), branch: target.branch, ...(sha ? { sha } : {}) }) });
     let r = await put();
+    if (!r.ok && r.status === 0 && r.message !== "refused here" && !/hidden/.test(r.message ?? "")) r = await put(); /* 🔴 RR-373: a connection dropped on the way, once more */
     /* RR-355: the page is already in the repository (published before) — GitHub asks for its current version; it is updated, never refused */
     /* 🔴 RR-373 item 4: any 409 or 422 is a conflict: once more, with the newest version GitHub has */
     if (!r.ok && (r.status === 422 || r.status === 409)) { const cur = await send(`${api}/repos/${target.repo}/contents/${path}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh }); r = await put(cur.ok ? cur.body?.sha ?? null : null); }
@@ -290,7 +291,8 @@ export async function publishPagesGithub({ drafts, target, key, fetchImpl = fetc
     return { ok: true, status: up.status, commit: commit.body.sha };
   };
   let r = await attempt();
-  if (!r.ok && (r.status === 409 || r.status === 422)) r = await attempt();
+  /* 🔴 RR-373: (the built app's own proof: ECONNRESET between two groups) a connection dropped on the way is tried once more; the same files again change nothing */
+  if (!r.ok && (r.status === 409 || r.status === 422 || (r.status === 0 && r.message !== "refused here" && !/hidden/.test(r.message ?? "")))) r = await attempt();
   if (!r.ok && r.status === 404) r = { ...r, why: await read404(target, key, send, api) };
   if (!r.ok) return { ...clean(r), paths: files.map((f) => ({ url: f.url, path: f.path })) };
   return { ok: true, status: r.status, commit: r.commit, pages: files.map((f) => ({ url: f.url, ok: true, status: r.status, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${f.path.split("/").slice(-2, -1)[0]}/`, ...(preview ? { preview: { ...preview, path: f.path } } : {}), remote: { path: f.path, commit: r.commit } })) };

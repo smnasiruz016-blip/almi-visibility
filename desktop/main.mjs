@@ -250,7 +250,7 @@ function gateStops(id, url, d) {
   if ((pread(id, "published.json", [])).some((x) => x.url === url && x.state === "LIVE")) return { ok: false, why: "This page is already published." };
   return null;
 }
-const recordWrite = (id, d, out, t, made) => pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => !(x.url === d.url && x.state === "PREVIEW")), { url: d.url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on: new Date().toISOString(), made, state: out.preview ? "PREVIEW" : "LIVE", ...(out.preview ? { preview: out.preview } : {}) }]);
+const recordWrites = (id, rows, t, made) => { const urls = new Set(rows.map(([d]) => d.url)), on = new Date().toISOString(); pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => !(urls.has(x.url) && x.state === "PREVIEW")), ...rows.map(([d, out]) => ({ url: d.url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on, made, state: out.preview ? "PREVIEW" : "LIVE", ...(out.preview ? { preview: out.preview } : {}) }))]); };
 /* D4 and RR-353: what the search engines are told about pages now live */
 async function tellEngines(id, site, sc, lives) {
   let sitemap = null, bing = null; const map = sitemapAddress(site.origin, site.robotsTxt);
@@ -275,7 +275,7 @@ async function publishAll(id) {
   BOARD.start(key, { product: id, kind: "publish", label: "Publishing your pages", of: N, unit: "pages", what: "Checking every page again, once", long: true, stoppable: true }); PUB_STOP.delete(id);
   pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: true, written: 0, of: N });
   let written = 0, stop = null, stopped = false, preview = null; const failed = [], lives = [];
-  const saved = (d, o, t, made) => { recordWrite(id, d, o, t, made); written++; if (o.preview) preview = o.preview; if (o.live) lives.push(o.live); };
+  const saved = (rows, t, made) => { recordWrites(id, rows, t, made); for (const [, o] of rows) { written++; if (o.preview) preview = o.preview; if (o.live) lives.push(o.live); } };
   try {
     await new Promise((r) => setTimeout(r, 20)); /* the bar says so before the pages are made again */
     const built = readyToPublish(id);
@@ -289,7 +289,7 @@ async function publishAll(id) {
           if (PUB_STOP.has(id)) { stopped = true; break; }
           const group = send.slice(i, i + PUBLISH_GROUP); BOARD.step(key, { what: `Sending ${group.length} pages to GitHub as one commit` });
           const r = await publishPagesGithub({ drafts: group, target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null });
-          if (r.ok) { publishLog(id, r.pages); const byPage = new Map(group.map((d) => [d.url, d])); for (const o of r.pages) saved(byPage.get(o.url), o, conn, made); BOARD.step(key, { add: group.length }); pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: true, written, of: N }); }
+          if (r.ok) { publishLog(id, r.pages); const byPage = new Map(group.map((d) => [d.url, d])); saved(r.pages.map((o) => [byPage.get(o.url), o]), conn, made); BOARD.step(key, { add: group.length }); pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: true, written, of: N }); }
           else if (stopsTheRun(r)) { stop = r; publishLog(id, r.paths.map((p) => ({ ...p, ok: false, status: r.status, message: r.message, why: r.why }))); }
           /* one page in the group is refused (GitHub's secret protection, say): one at a time, so each says for itself */
           else for (const d of group) { if (stop) break; if (PUB_STOP.has(id)) { stopped = true; break; } await one(d); await new Promise((res) => setTimeout(res, CONFIG.testSecretsInMemory === true ? 0 : 1000)); }
@@ -324,7 +324,7 @@ async function publishOneTried(id, url, built = null) {
   const t = conn, keyNeeded = TARGETS.find((x) => x.id === t.kind).keyName;
   const out = await publishDraft({ draft: d, target: t, key: keyNeeded ? KEYS.get(publishKeyName(t.kind, id)) : null, downloadsDir: downloadsFor(id), allowLocal, testBase: CONFIG.testPublishBase ?? null });
   if (!out.ok) return out;
-  recordWrite(id, d, out, t, made);
+  recordWrites(id, [[d, out]], t, made);
   const { sitemap, bing } = await tellEngines(id, site, sc, out.live ? [out.live] : []);
   if (out.preview) return { ok: true, status: out.status, path: out.remote?.path, live: null, preview: out.preview, sitemap: null, bing: null, line: `In the preview ✓ — written to branch ${out.preview.branch} of ${out.preview.repo}, file ${out.preview.path}. It is NOT live, and nothing was sent to Google or Bing: it goes live only when that branch is merged.` };
   return { ok: true, status: out.status, path: out.remote?.path, live: out.live, saved: out.saved ?? null, sitemap, bing, line: out.live ? `Published ✓ — live at ${out.live}` : `Saved ✓ — the page's files are in ${out.saved}. Put index.html on your site at ${url} (the folder has a note saying where).` };

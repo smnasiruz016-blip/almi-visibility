@@ -37,7 +37,7 @@ import { googleConnect, importExport } from "./google-connect.mjs";
 import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./seo-pages.mjs";
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
+import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
 import { collectQueued, searchGoogle, searchPages, searchTermOf, SERP_OFF, SERP, QUEUE, serpKey, realPrice, runEstimate, RETRY, notForReading , CAP_LATER } from "./serp.mjs"; // RR-356 G1/G5 (OFF by default)
@@ -74,7 +74,7 @@ import { localKeywordStore, mergeFile, mergeObservations, itemsOf, summaryOf, tr
 import { googleAds, ADS_KEYS } from "./google-ads.mjs"; // RR-324 B
 import { failuresOfLedger, readFailures } from "./read-failures.mjs"; // RR-369b item 5
 import { refusedLine } from "./dfs-task.mjs"; // RR-370b
-import { writeLastError, writeState, logLine, trimLog, clearLastError, unseenCrash, crashSeen, crashLine, supportText } from "./crash-record.mjs"; // RR-372
+import { scrub, writeLastError, writeState, logLine, trimLog, clearLastError, unseenCrash, crashSeen, crashLine, supportText } from "./crash-record.mjs"; // RR-372
 import { VERDICTS_FILE, FIT_FILE, JUDGE, unjudged, judgeAll, settleVerdicts, markPages, fitCheckText, readyLine } from "./qa-judge.mjs"; // RR-370 B
 import { Worker as LinkWorker } from "node:worker_threads";
 import { LINKS_FILE, CORRECTIONS, linksToCheck, checkLinksOff, applySources, linksText } from "./source-links.mjs"; // RR-370 items 4, 7, 9
@@ -222,25 +222,97 @@ function contextOf(id) {
 /* each product's connection key has its own NAME in Windows' secure store (two products may be two WordPress sites) */
 const publishKeyName = (kind, id) => { const k = TARGETS.find((x) => x.id === kind)?.keyName; return k ? `${k}_${id.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`.slice(0, 64) : null; }; // "Download the files" has no key
 const downloadsFor = (id) => join(CONFIG.downloadsDir ?? join(homedir(), "Downloads", "AlmiVisibility"), id);
-/** Approve & Publish ONE draft: the five gates judge it again right before (as the client edited it); a failing gate stops it, said */
-async function publishOne(id, url) {
-  /* RR-358: an existing page to improve is never published as a second page */
-  const mine = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === url);
-  if (mine?.improve) return { ok: false, improve: true, why: IMPROVE_NOT_PUBLISHED };
-  if (publishBlocked(store.read(id))) return { ok: false, why: ALMIWORLD_NO }; // RR-310 D5
+/* 🔴 RR-373 item 1 · THE PUBLISH LOG: every attempt, per page: the status and the site's own message. Never a header, never the key (each line passes scrub) */
+const PUBLISH_LOG = "publish-log.json", PUBLISH_LAST = "publish-last.json", PUBLISH_GROUP = CONFIG.testSecretsInMemory === true && CONFIG.testPublishGroup ? CONFIG.testPublishGroup : 50 /* one commit, so one site build, per group: 295 pages are 6 builds, not 295 */, PUB_STOP = new Set();
+const publishLog = (id, rows) => { const on = new Date().toISOString(); pwrite(id, PUBLISH_LOG, [...pread(id, PUBLISH_LOG, []), ...rows.map((r) => ({ on, url: r.url ?? null, path: r.path ?? r.remote?.path ?? null, check: r.check ?? null, ok: r.ok === true, status: r.status ?? null, message: scrub(r.message ?? "") || null, why: r.ok ? null : scrub(r.why ?? r.line ?? "") || null }))].slice(-5000)); };
+/* the reason on the screen: what to do, then the site's own words */
+const reasonOf = (o) => { const w = scrub(o?.why ?? ""), m = scrub(o?.message ?? ""); return `${w}${o?.status && m && !w.includes(m) ? ` (${o.status}: "${m}")` : ""}`.trim(); };
+/* a page written to the preview is done until the pages are made again */
+const waitingToPublish = (pages, records) => { const live = new Set(records.filter((x) => x.state === "LIVE").map((x) => x.url)), shown = new Set(records.filter((x) => x.state === "PREVIEW" && pages?.madeOn && x.made === pages.madeOn).map((x) => x.url)); return (pages?.drafts ?? []).filter((x) => x.readyAsDraft && !x.improve && !live.has(x.url) && !shown.has(x.url)); };
+/* what holds for every page, and the pages made again: once per press (RR-373 item 5) */
+function readyToPublish(id) {
+  if (publishBlocked(store.read(id))) return { refused: { ok: false, why: ALMIWORLD_NO } }; // RR-310 D5
   const refusal = publishRefusal(destOf(pread(id, "articles-go.json"), store.read(id).setup?.publishMode?.mode)); // RR-344 B
-  if (refusal) return { ok: false, why: refusal };
-  if (!ctaOf(store.read(id))) return { ok: false, needsCta: true, why: NO_CTA }; // RR-351: no page goes out without the client's own offer button
+  if (refusal) return { refused: { ok: false, why: refusal } };
+  if (!ctaOf(store.read(id))) return { refused: { ok: false, needsCta: true, why: NO_CTA } }; // RR-351: no page goes out without the client's own offer button
   const conn = withKnownFolder(pread(id, "publish.json"));
-  if (!conn?.kind) return { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." };
+  if (!conn?.kind) return { refused: { ok: false, needsConnection: true, why: "First choose where your site is built (Publish settings)." } };
   const { s, site, sc, files } = contextOf(id);
-  if (!site) return { ok: false, why: "Check your product first — the gates need your site's latest read." };
+  if (!site) return { refused: { ok: false, why: "Check your product first — the gates need your site's latest read." } };
   const again = seoPages({ site, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: s.setup?.youtube?.confirmed ? YT.foundFor(id) : null, on: new Date().toISOString(), overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), ...seoExtras(id), ...madePlanOf(id) });
-  const d = again.drafts.find((x) => x.url === url);
+  return { conn, site, sc, again, made: pread(id, "pages.json")?.madeOn ?? null };
+}
+/* a page the checks stop right before it goes */
+function gateStops(id, url, d) {
   if (!d) return { ok: false, why: "This draft is out of date — what Visibility knows changed since it was made. Press Create SEO pages again." };
   if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true, why: `Not published — the page has no offer button. ${NO_CTA}` };
   if (!d.readyAsDraft) return { ok: false, gates: d.gates, why: `Not published — a check failed right before publishing: ${d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `${g.words}: ${g.failing.join("; ")}`).join(" · ")}` };
   if ((pread(id, "published.json", [])).some((x) => x.url === url && x.state === "LIVE")) return { ok: false, why: "This page is already published." };
+  return null;
+}
+const recordWrite = (id, d, out, t, made) => pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => !(x.url === d.url && x.state === "PREVIEW")), { url: d.url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on: new Date().toISOString(), made, state: out.preview ? "PREVIEW" : "LIVE", ...(out.preview ? { preview: out.preview } : {}) }]);
+/* D4 and RR-353: what the search engines are told about pages now live */
+async function tellEngines(id, site, sc, lives) {
+  let sitemap = null, bing = null; const map = sitemapAddress(site.origin, site.robotsTxt);
+  if (lives.length && sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true) { const g = await GOOGLE.submitSitemap(sc.site, map); sitemap = g.ok ? `Your sitemap was sent to Google Search Console (${map}).` : g.why; }
+  else if (lives.length) sitemap = "Tell Google about the new page: Search Console → Sitemaps → submit your sitemap (or connect Google with \"also tell Google about my new pages\").";
+  const inx = pread(id, "indexnow.json");
+  if (lives.length && inx?.verified === true) {
+    const b = await indexNow({ urls: lives, key: inx.key, origin: site.origin, endpoint: allowLocal && CONFIG.indexNowEndpoint ? CONFIG.indexNowEndpoint : INDEXNOW_ENDPOINT, fetchImpl: fetch }).catch(() => ({ ok: false, why: "IndexNow did not answer" }));
+    const subs = pread(id, "submissions.json", {}); for (const l of lives) subs[l] = { ...subs[l], bing: b.ok ? { state: "SUBMITTED", on: new Date().toISOString(), note: "IndexNow, on publish" } : { state: "FAILED", on: new Date().toISOString(), why: b.why } }; pwrite(id, "submissions.json", subs);
+    bing = b.ok ? "Sent to Bing at once (IndexNow)." : `Bing (IndexNow): ${b.why} — press Submit to try again.`;
+  } else if (lives.length) bing = "Bing: not sent yet — put your IndexNow key file on your site (Search engines), then every new page is sent at once.";
+  return { sitemap, bing };
+}
+/**
+ * 🔴 RR-373 item 6 · PUBLISH ALL READY means all: with a live count, a Stop, and on from where it stopped (what is written stays written, and is not sent again). It stops at the first answer that would be the same for
+ * every next page (401, 403, 404, a limit, no answer) instead of failing every page. Good only when every page was confirmed written.
+ */
+async function publishAll(id) {
+  const key = `publish:${id}`; if (BOARD.running(key)) return { ok: false, busy: true, line: "Your pages are being published now." };
+  const pages = pread(id, "pages.json"), go = waitingToPublish(pages, pread(id, "published.json", [])), N = go.length;
+  if (!N) return { ok: true, of: 0, written: 0, line: "Nothing new to publish — make pages first (line 1)." };
+  BOARD.start(key, { product: id, kind: "publish", label: "Publishing your pages", of: N, unit: "pages", what: "Checking every page again, once", long: true, stoppable: true }); PUB_STOP.delete(id);
+  pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: true, written: 0, of: N });
+  let written = 0, stop = null, stopped = false, preview = null; const failed = [], lives = [];
+  const saved = (d, o, t, made) => { recordWrite(id, d, o, t, made); written++; if (o.preview) preview = o.preview; if (o.live) lives.push(o.live); };
+  try {
+    await new Promise((r) => setTimeout(r, 20)); /* the bar says so before the pages are made again */
+    const built = readyToPublish(id);
+    if (built.refused) { stop = built.refused; publishLog(id, [stop]); }
+    else {
+      const { conn, again, made } = built, byUrl = new Map(again.drafts.map((d) => [d.url, d])), send = [];
+      for (const x of go) { const d = byUrl.get(x.url), no = gateStops(id, x.url, d); if (no) { failed.push({ url: x.url, ...no }); publishLog(id, [{ url: x.url, ...no }]); BOARD.step(key, { add: 1 }); } else send.push(d); }
+      const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, one = async (d) => { BOARD.step(key, { what: `Publishing ${d.title}` }); const o = await publishOne(id, d.url, built); if (o.ok) { written++; if (o.preview) preview = o.preview; if (o.live) lives.push(o.live); } else if (stopsTheRun(o)) stop = o; else failed.push({ url: d.url, ...o }); BOARD.step(key, { add: 1 }); };
+      if (conn.kind === "github") {
+        for (let i = 0; i < send.length && !stop; i += PUBLISH_GROUP) {
+          if (PUB_STOP.has(id)) { stopped = true; break; }
+          const group = send.slice(i, i + PUBLISH_GROUP); BOARD.step(key, { what: `Sending ${group.length} pages to GitHub as one commit` });
+          const r = await publishPagesGithub({ drafts: group, target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null });
+          if (r.ok) { publishLog(id, r.pages); const byPage = new Map(group.map((d) => [d.url, d])); for (const o of r.pages) saved(byPage.get(o.url), o, conn, made); BOARD.step(key, { add: group.length }); pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: true, written, of: N }); }
+          else if (stopsTheRun(r)) { stop = r; publishLog(id, r.paths.map((p) => ({ ...p, ok: false, status: r.status, message: r.message, why: r.why }))); }
+          /* one page in the group is refused (GitHub's secret protection, say): one at a time, so each says for itself */
+          else for (const d of group) { if (stop) break; if (PUB_STOP.has(id)) { stopped = true; break; } await one(d); await new Promise((res) => setTimeout(res, CONFIG.testSecretsInMemory === true ? 0 : 1000)); }
+          if (stopped) break;
+        }
+      } else for (const d of send) { if (stop) break; if (PUB_STOP.has(id)) { stopped = true; break; } await one(d); }
+      if (lives.length) await tellEngines(id, built.site, built.sc, lives);
+    }
+  } catch (e) { stop = { why: `Publishing stopped by an error in the app: ${scrub(e?.message ?? e)}. What is written stays written: press Publish all ready to go on.`, status: null }; publishLog(id, [stop]); }
+  PUB_STOP.delete(id); if (written) didIt(id, `Published ${written} page(s).`);
+  const ok = !stop && !stopped && !failed.length && written === N, why = stop ? reasonOf(stop) : failed.length ? `${failed.length} ${failed.length === 1 ? "page was" : "pages were"} not published. The first: ${failed[0].url}: ${reasonOf(failed[0])}` : stopped ? `Stopped by you. Press Publish all ready to go on from there.` : null, words = preview ? `${written} of ${N} written to the preview (branch ${preview.branch}). Not live.` : `${written} of ${N} published.`, line = `${words}${why ? ` ${why}` : ""}`;
+  pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: false, ok, written, of: N, status: stop?.status ?? null, stopped, why, line, ...(stop?.needsCta ? { needsCta: true } : {}), ...(stop?.needsConnection ? { needsConnection: true } : {}) });
+  BOARD.finish(key, { ok, line }); logLine(DATA, `publish: ${scrub(line)}`);
+  return { ok, written, of: N, stopped, why, line, ...(stop?.needsConnection ? { needsConnection: true } : {}), ...(stop?.needsCta ? { needsCta: true } : {}) };
+}
+/** Approve & Publish ONE draft: the five gates judge it again right before (as the client edited it); a failing gate stops it, said */
+async function publishOne(id, url, built = null) { const o = await publishOneTried(id, url, built); publishLog(id, [{ url, ...o }]); return o; }
+async function publishOneTried(id, url, built = null) {
+  /* RR-358: an existing page to improve is never published as a second page */
+  const mine = (pread(id, "pages.json")?.drafts ?? []).find((x) => x.url === url);
+  if (mine?.improve) return { ok: false, improve: true, why: IMPROVE_NOT_PUBLISHED };
+  const b = built ?? readyToPublish(id); if (b.refused) return b.refused;
+  const { conn, site, sc, again, made } = b, d = again.drafts.find((x) => x.url === url), no = gateStops(id, url, d); if (no) return no;
   /* RR-370 item 12: a page in the preview is written again, its record once */
   /* RR-356 PART B: a topic the client already has a page for is IMPROVED on that page — never published as a second page */
   if (d.improve) {
@@ -252,21 +324,10 @@ async function publishOne(id, url) {
   const t = conn, keyNeeded = TARGETS.find((x) => x.id === t.kind).keyName;
   const out = await publishDraft({ draft: d, target: t, key: keyNeeded ? KEYS.get(publishKeyName(t.kind, id)) : null, downloadsDir: downloadsFor(id), allowLocal, testBase: CONFIG.testPublishBase ?? null });
   if (!out.ok) return out;
-  pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => !(x.url === url && x.state === "PREVIEW")), { url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on: new Date().toISOString(), state: out.preview ? "PREVIEW" : "LIVE", ...(out.preview ? { preview: out.preview } : {}) }]);
-  /* D4: Search Console — the sitemap submitted only with the client's extra permission; otherwise said what to do */
-  let sitemap = null;
-  if (out.live && sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true) { const g = await GOOGLE.submitSitemap(sc.site, `${site.origin}/sitemap.xml`); sitemap = g.ok ? `Your sitemap was sent to Google Search Console (${site.origin}/sitemap.xml).` : g.why; }
-  else if (out.live) sitemap = "Tell Google about the new page: Search Console → Sitemaps → submit your sitemap (or connect Google with \"also tell Google about my new pages\").";
-  /* RR-353 (owner: "IndexNow on publish"): a live page is sent to Bing at once — once the key file on the site is checked (Search engines) */
-  let bing = null;
-  const inx = pread(id, "indexnow.json");
-  if (out.live && inx?.verified === true) {
-    const b = await indexNow({ urls: [out.live], key: inx.key, origin: site.origin, endpoint: allowLocal && CONFIG.indexNowEndpoint ? CONFIG.indexNowEndpoint : INDEXNOW_ENDPOINT, fetchImpl: fetch }).catch(() => ({ ok: false, why: "IndexNow did not answer" }));
-    const subs = pread(id, "submissions.json", {}); subs[out.live] = { ...subs[out.live], bing: b.ok ? { state: "SUBMITTED", on: new Date().toISOString(), note: "IndexNow, on publish" } : { state: "FAILED", on: new Date().toISOString(), why: b.why } }; pwrite(id, "submissions.json", subs);
-    bing = b.ok ? "Sent to Bing at once (IndexNow)." : `Bing (IndexNow): ${b.why} — press Submit to try again.`;
-  } else if (out.live) bing = "Bing: not sent yet — put your IndexNow key file on your site (Search engines), then every new page is sent at once.";
-  if (out.preview) return { ok: true, live: null, preview: out.preview, sitemap: null, bing: null, line: `In the preview ✓ — written to branch ${out.preview.branch} of ${out.preview.repo}, file ${out.preview.path}. It is NOT live, and nothing was sent to Google or Bing: it goes live only when that branch is merged.` };
-  return { ok: true, live: out.live, saved: out.saved ?? null, sitemap, bing, line: out.live ? `Published ✓ — live at ${out.live}` : `Saved ✓ — the page's files are in ${out.saved}. Put index.html on your site at ${url} (the folder has a note saying where).` };
+  recordWrite(id, d, out, t, made);
+  const { sitemap, bing } = await tellEngines(id, site, sc, out.live ? [out.live] : []);
+  if (out.preview) return { ok: true, status: out.status, path: out.remote?.path, live: null, preview: out.preview, sitemap: null, bing: null, line: `In the preview ✓ — written to branch ${out.preview.branch} of ${out.preview.repo}, file ${out.preview.path}. It is NOT live, and nothing was sent to Google or Bing: it goes live only when that branch is merged.` };
+  return { ok: true, status: out.status, path: out.remote?.path, live: out.live, saved: out.saved ?? null, sitemap, bing, line: out.live ? `Published ✓ — live at ${out.live}` : `Saved ✓ — the page's files are in ${out.saved}. Put index.html on your site at ${url} (the folder has a note saying where).` };
 }
 /** the product's to-do: steps skipped, sources missing */
 function todoOf(id) {
@@ -988,7 +1049,7 @@ async function makePages(id, key) {
     for (let round = 0; !quick && key && round < JUDGE.rounds; round++) { const rows = unjudged(plan, verdicts); if (!rows.length) break; step({ done: 0, of: rows.length, unit: "answers", what: "Your AI is checking that each answer fits its question" }); const r = await judgeAll({ key, rows, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}), allowed: () => LEDGER.allowed().ok, onUsage: (u) => LEDGER.add(u), onDone: (n, _o, got) => { Object.assign(verdicts, got); /* 🔴 RR-372: on disk the moment it returns: a crash never loses a verdict that was paid for */ pwrite(id, VERDICTS_FILE, verdicts); step({ done: n }); } }); Object.assign(verdicts, r.verdicts); pwrite(id, VERDICTS_FILE, verdicts); why = r.why; code = r.status ?? code; if (r.why) break; log = [...log, ...settleVerdicts(plan, verdicts)]; }
     markPages(plan, verdicts, { judging: Boolean(key) });
     runUsd += Math.max(0, (LEDGER.month()?.usd ?? 0) - usd0); /* 🔴 RR-372: the run's cost: the later pass that judged nothing wrote $0 over $7.71 */
-    const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: runUsd, why, code, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); };
+    const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: runUsd, why, code, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); if (why) BOARD.amend(`make:${id}`, (l) => l.replace("This run is doing that now.", why)) /* 🔴 RR-373 item 7: the first pass's line, once the AI has refused */; };
   const pass = async (quick, step, sayingWhat, clock) => {
     const reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
     if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
@@ -1038,7 +1099,7 @@ async function makePages(id, key) {
     pages.improved = writePacks(id, pages.drafts); // RR-356 PART B
     /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now; with pages first, once Google's answers are in */
     let auto = null;
-    if (!quick && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+    if (!quick && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind && !publishBlocked(s)) { auto = []; const built = readyToPublish(id); for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url, built)) }); }
     /* RR-353: where the searches came from, said; nothing known → what to add, each with its one-click way */
     pages.sources = own.lines;
     /* RR-359: the councils' own pages found through Google's results are searches too — counted, and their cost, in the run's line */
@@ -1102,9 +1163,9 @@ async function submitAll(id) {
   const fx = fetch;
   /* Google: the sitemap, sent through the client's own connection; each page said "in it" or not */
   if (sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true) {
-    const g = await GOOGLE.submitSitemap(sc.site, `${origin}/sitemap.xml`);
+    const map = sitemapAddress(origin, site?.robotsTxt), g = await GOOGLE.submitSitemap(sc.site, map);
     for (const r of live) subs[r.live] = { ...subs[r.live], google: g.ok ? ((await inSitemap({ origin, url: r.live, fetchImpl: fx })) ? { state: "SUBMITTED", on, note: "through your sitemap" } : { state: "FAILED", on, why: "your sitemap was sent, but this page is not in it yet — most website builders add it within a day; press Submit again then" }) : { state: "FAILED", on, why: g.why } };
-    lines.push(g.ok ? `Google: your sitemap was sent through your Search Console (${origin}/sitemap.xml).` : `Google: ${g.why}`);
+    lines.push(g.ok ? `Google: your sitemap was sent through your Search Console (${map}).` : `Google: ${g.why}`);
   } else { for (const r of live) subs[r.live] = { ...subs[r.live], google: { state: "NOT_YET", why: "connect Google Search Console with \"also tell Google about my new pages\"" } }; lines.push("Google: not sent — connect Google Search Console with \"also tell Google about my new pages\" (Home → Connect Google)."); }
   /* Bing: IndexNow, after the key file is checked on the site */
   const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx);
@@ -1405,14 +1466,10 @@ const server = createServer((req, res) => {
               if (aw) return send(200, { ok: false, refused: ALMIWORLD_NO });
               if (!pread(id, "publish.json")?.kind) return send(200, { ok: false, open: "publish-settings", line: "First tell Visibility where your site is built." });
               if ((s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST && json().approved !== true /* RR-354: "Publish all ready" is the client's OK */) return send(200, { ok: true, open: "approvals", line: "You chose to approve each page first — they wait for you under Approvals." });
-              const live = new Set(pread(id, "published.json", []).filter((x) => x.state === "LIVE").map((x) => x.url)), out = [];
-              /* RR-362 item 6: publishing is on the board too */
-              const batch = (pread(id, "pages.json")?.drafts ?? []).filter((x) => x.readyAsDraft && !x.improve && !live.has(x.url)).slice(0, BATCH) /* G19: a small batch at a time */, pubKey = `publish:${id}`;
-              BOARD.start(pubKey, { product: id, kind: "publish", label: "Publishing your pages", of: batch.length, unit: "pages" });
-              for (const d of batch) { BOARD.step(pubKey, { what: `Publishing ${d.title}` }); out.push({ url: d.url, ...(await publishOne(id, d.url)) }); BOARD.step(pubKey, { add: 1 }); }
-              BOARD.finish(pubKey, { ok: !out.length || out.some((x) => x.ok), line: `${out.filter((x) => x.ok).length} of ${out.length} published.` });
-              if (out.some((x) => x.ok)) didIt(id, `Published ${out.filter((x) => x.ok).length} page(s).`);
-              return send(200, { ok: true, line: out.length ? out.map((x) => (x.ok ? x.line : `${x.url}: ${x.why}`)).join(" · ") : "Nothing new to publish — make pages first (line 1)." });
+              /* 🔴 RR-373: the window hands it over and watches the bar: all the pages take longer than one answer may wait */
+              if (json().background === true) { publishAll(id).catch((e) => writeLastError(DATA, "publish", e)); return send(200, { ok: true, started: true, line: "Publishing started." }); }
+              const done = await publishAll(id); if (done.needsConnection) return send(200, { ok: false, open: "publish-settings", line: done.line });
+              return send(200, done);
             }
             if (what === "submit") { const x = await submitAll(id); return send(200, x.ok ? x : { ok: false, refused: x.why }); }
             if (what === "weekly") { const w = pread(id, "weekly.json", {}); const on = typeof json().on === "boolean" ? json().on : w.on === false; pwrite(id, "weekly.json", { ...w, on }); /* RR-353: a ticked job turns it ON (never a toggle) */return send(200, { ok: true, line: on ? "Weekly check: on — Visibility checks again a week after the last check, while it is open." : "Weekly check: off." }); }
@@ -1447,7 +1504,7 @@ const server = createServer((req, res) => {
             if (!ctx.hasSite) return send(400, { refused: "Search engines need a website." });
             const inx = pread(id, "indexnow.json") ?? { key: newIndexNowKey() }; pwrite(id, "indexnow.json", inx);
             const origin = site?.origin ?? new URL(s.product.site).origin, live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), b = pread(id, "bing.json");
-            return send(200, { blocked: publishBlocked(s) ? ALMIWORLD_NO : null, sitemap: `${origin}/sitemap.xml`, pages: submissionLines(live, pread(id, "submissions.json", {})),
+            return send(200, { blocked: publishBlocked(s) ? ALMIWORLD_NO : null, sitemap: sitemapAddress(origin, site?.robotsTxt), pages: submissionLines(live, pread(id, "submissions.json", {})),
               google: { connected: sc?.kind === "CONNECTED", export: sc?.kind === "EXPORT", canSubmit: sc?.kind === "CONNECTED" && CONFIG.googleCanSubmit === true, site: sc?.site ?? null, line: sc?.kind === "CONNECTED" ? (CONFIG.googleCanSubmit === true ? "Connected ✓ — your sitemap is sent to Google after each publish." : "Connected ✓ to read your searches — to also send your sitemap after each publish, connect Google again with \"also tell Google about my new pages\".") : "Not connected — connect Google Search Console so your sitemap is sent after each publish." },
               indexNow: { verified: inx.verified === true, key: inx.key, url: keyFileUrl(origin, inx.key), howTo: keyFileHowTo(origin, inx.key), line: inx.verified === true ? "Ready ✓ — every page Visibility publishes is sent to Bing (and the AI search that reads Bing) at once." : "Not ready — put the key file on your site, then press Check my key file." },
               bing: { connected: KEYS.status(bingKeyName(id)).saved, last: b, steps: BING_SETUP_STEPS, done: pread(id, "bing-setup.json")?.done === true } });
@@ -1501,7 +1558,7 @@ const server = createServer((req, res) => {
               pwrite(id, "pages.json", pages);
               /* RR-308 D5: the client chose "publish automatically after the gates" AND connected a site → each draft that passes is published now */
               let auto = null;
-              if (f === "seo-pages" && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) { auto = []; for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url)) }); }
+              if (f === "seo-pages" && (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.AUTO_AFTER_GATES && pread(id, "publish.json")?.kind) { auto = []; const built = readyToPublish(id); for (const d of pages.drafts.filter((x) => x.readyAsDraft && !x.improve).slice(0, BATCH) /* G19: a small batch at a time */) auto.push({ url: d.url, ...(await publishOne(id, d.url, built)) }); }
               if (f === "seo-pages") return send(200, { pages: { ...pages, drafts: pages.drafts.map(({ html, ...d }) => d) }, autoPublished: auto });
               const made = pread(id, "articles.json", []);
               const a = articleOfDay({ pages, earlier: made.map((x) => x.url), day: new Date().toISOString().slice(0, 10) });
@@ -1866,21 +1923,28 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-308 D · PUBLISH: where the site is built, Approve & Publish (the five gates again, right before), Edit, Unpublish ── */
-      { const r = /^\/api\/products\/([^/]+)\/(publish|publish\/connect|publish\/draft|publish\/undo|draft\/edit)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(publish|publish\/connect|publish\/draft|publish\/undo|publish\/test|publish\/stop|publish\/last\/close|draft\/edit)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
           const s = store.read(id), conn = withKnownFolder(pread(id, "publish.json")), keyName = conn?.kind ? publishKeyName(conn.kind, id) : null;
-          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, preview: conn?.kind ? previewOf(conn) : null /* RR-370 item 12 */, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), drafts: (preadMemo(id, "pages.json")?.drafts ?? []).map(pageRow) /* RR-366 X5: a title and a status; details when a page is opened */, folder: downloadsFor(id) });
+          if (r[2] === "publish" && req.method === "GET") return send(200, { submitted: submissionLines(pread(id, "published.json", []), pread(id, "submissions.json", {})), almiworld: publishBlocked(s), targets: TARGETS, target: conn, keySaved: keyName ? KEYS.status(keyName).saved : false, preview: conn?.kind ? previewOf(conn) : null /* RR-370 item 12 */, mode: s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */, records: pread(id, "published.json", []), waiting: waitingToPublish(preadMemo(id, "pages.json"), pread(id, "published.json", [])).length /* RR-373 */, lastPublish: (() => { const l = pread(id, PUBLISH_LAST), now = BOARD.running(`publish:${id}`); if (!l || l.closed || now) return null; if (l.running) return { ...l, line: `Publishing stopped when the app closed, at ${l.written} of ${l.of}. Press Publish all ready to go on from there.`, interrupted: true }; return l.ok ? null : l; })(), drafts: (preadMemo(id, "pages.json")?.drafts ?? []).map(pageRow) /* RR-366 X5: a title and a status; details when a page is opened */, folder: downloadsFor(id) });
+          /* 🔴 RR-373: Stop; the reason closed by the owner; Test connection (nothing written) */
+          if (r[2] === "publish/stop" && req.method === "POST") { PUB_STOP.add(id); return send(200, { ok: true, line: "Stopping after the pages being sent now." }); }
+          if (r[2] === "publish/last/close" && req.method === "POST") { pwrite(id, PUBLISH_LAST, { ...pread(id, PUBLISH_LAST, {}), running: false, closed: true }); return send(200, { ok: true }); }
+          if (r[2] === "publish/test" && req.method === "POST") { if (conn?.kind !== "github") return send(200, { ok: false, rows: [], line: "Test connection checks a GitHub connection." }); const t = await testGithubConnection({ target: conn, key: KEYS.get(keyName), allowLocal, testBase: CONFIG.testPublishBase ?? null }); publishLog(id, t.rows.map((x) => ({ check: x.check, ok: x.ok, status: x.status, message: x.message, why: x.ok ? null : x.line }))); return send(200, t); }
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });
+            /* 🔴 RR-373: a token copied with a hidden character cannot be sent at all: said when it is pasted. And the answer says whether the key changed */
+            if (/[^\x20-\x7e]/.test(String(v.key ?? "").trim())) return send(400, { refused: "That key holds a hidden character. Copy it again, paste it here, and press Save." });
+            const newKey = Boolean(String(v.key ?? "").trim());
             const k = TARGETS.find((x) => x.id === t.kind).keyName;
             /* a WordPress application password is shown with spaces ("abcd efgh …"); WordPress takes it without them */
             if (k && String(v.key ?? "").trim()) { const saved = KEYS.set(publishKeyName(t.kind, id), t.kind === "wordpress" ? String(v.key).replace(/\s+/g, "") : v.key); if (!saved.ok) return send(400, { refused: saved.why }); }
             if (k && !KEYS.status(publishKeyName(t.kind, id)).saved) return send(400, { refused: "Paste the key for this connection — it is kept safely on this computer." });
             pwrite(id, "publish.json", t);
-            return send(200, { ok: true, line: `Connected: ${TARGETS.find((x) => x.id === t.kind).label}. Drafts can now be published${t.kind === "download" ? ` as files in ${downloadsFor(id)}` : ""}.` });
+            return send(200, { ok: true, keySaved: k ? newKey : null, line: `Connected: ${TARGETS.find((x) => x.id === t.kind).label}. Drafts can now be published${t.kind === "download" ? ` as files in ${downloadsFor(id)}` : ""}.${k ? (newKey ? " The new key is saved." : " The saved key was kept: nothing was pasted.") : ""}${t.kind === "github" ? " Press Test connection to check it." : ""}` });
           }
           if (r[2] === "draft/edit" && req.method === "POST") {
             const v = json(), p = pread(id, "pages.json"); const d = p?.drafts?.find((x) => x.url === v.url); if (!d) return send(404, { refused: "no such draft" });

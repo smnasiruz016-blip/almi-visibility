@@ -212,8 +212,8 @@ test("B8 · THE AI PRICE: shown only for a model whose price was read from Anthr
     L.add({ input: 1000, output: 500, model: "claude-opus-5-5" });
     assert.equal(L.line(), "AI used today: 1 request (model: claude-opus-5-5), about $0.01. This month: about $0.01 of your $10.00 limit. Price: claude-opus-5-5 $4 per million tokens in, $20 out — from Anthropic's pricing page (platform.claude.com/docs/en/about-claude/pricing), read 2026-10-22.");
     const M = aiLedger(join(dir, "ai2.json"));
-    M.add({ input: 1000, output: 500, model: "claude-sonnet-5-5" });
-    assert.equal(M.line(), "AI used today: 1 request (model: claude-sonnet-5-5). The price is not shown — Visibility has no published price for this model.");
+    M.add({ input: 1000, output: 500, model: "claude-haiku-5-5" });
+    assert.equal(M.line(), "AI used today: 1 request (model: claude-haiku-5-5). The price is not shown — Visibility has no published price for this model.");
     assert.doesNotMatch(readFileSync(join(REPO, "desktop", "ai-coach.mjs"), "utf8"), /source: "Anthropic's price for Claude Opus 5\.5 — \$4/);
     for (const f of ["ai-write.mjs", "ai-coach.mjs"]) assert.match(readFileSync(join(REPO, "desktop", f), "utf8"), /model: body\.model \?\? AI\.model/, `${f} does not record the model that answered`);
   } finally { rmSync(dir, { recursive: true, force: true }); }

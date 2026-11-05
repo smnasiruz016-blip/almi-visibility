@@ -3,6 +3,36 @@
  "rows": [
   {
    "country": "India",
+   "profession": "dentistry",
+   "councilName": "National Dental Commission (formerly Dental Council of India)",
+   "text": "In India, dentists register with their State Dental Council; the National Dental Commission's Ethics and Dental Registration Board keeps the national register (formerly the Dental Council of India; its site is still dciindia.gov.in).",
+   "stepsLine": "Dentists in India register with their State Dental Council.",
+   "link": "https://www.indiacode.nic.in/bitstream/123456789/19795/1/A2023-21.pdf",
+   "website": "https://dciindia.gov.in",
+   "on": "2026-11-05"
+  },
+  {
+   "country": "India",
+   "profession": "medicine",
+   "councilName": "National Medical Commission",
+   "text": "In India, doctors register with their State Medical Council; the National Medical Commission's Ethics and Medical Registration Board keeps the National Medical Register.",
+   "stepsLine": "Doctors in India register with their State Medical Council.",
+   "link": "https://nmc.org.in/210357_NMC_Act-1-1.pdf",
+   "website": "https://nmc.org.in",
+   "on": "2026-11-05"
+  },
+  {
+   "country": "India",
+   "profession": "veterinary science",
+   "councilName": "Veterinary Council of India",
+   "text": "In India, vets are entered on their State Veterinary Register where the state has a council; the Veterinary Council of India keeps the Indian Veterinary Practitioners Register.",
+   "stepsLine": "Vets in India apply to be entered on their State Veterinary Register.",
+   "link": "https://animalhusbandry.punjab.gov.in/pages/ivca.htm",
+   "website": "https://vci.dahd.gov.in",
+   "on": "2026-11-05"
+  },
+  {
+   "country": "India",
    "profession": "nursing",
    "councilName": "Indian Nursing Council",
    "text": "Nurses in India register with their State Nursing Council. The Indian Nursing Council sets nursing education standards and recognises qualifications: 8th Floor, NBCC Center, Plot No. 2, Community Center, Okhla Phase-I, New Delhi 110020; phone +91-11-66616800; email nodalofficer.inc@gov.in — https://indiannursingcouncil.org",

@@ -123,6 +123,9 @@ export async function saveFromApp({ seo, subject, lists = [], lic, groups = [], 
  */
 export const FAIL_KEY = "failhost|", PAID_FAIL = "a paid reading of it failed", TOP_PAGES_REUSED_JOB = "top-pages-reused", TOP_PAGES_SKIPPED_JOB = "top-pages-reads-skipped";
 export const BOUGHT = Object.freeze({ routes: Object.freeze(["/v1/almiseo/searches", "/v1/almiseo/searches/held"]), maxBody: 1000000, perCall: 500, keepDays: 30, results: 10, questions: 20, phrases: 30, headings: 40 });
+/* 🔴 RR-374: a found answer, by the question's key, apart from the searches so no collector takes it for one: our own sentence, its address and who published it; a page's text never */
+const answersTopic = (id) => `answers:${id}`;
+const answerRow = (a, today) => ({ ok: a.ok === true, on: dayIn(a.on, today), cls: a.cls === "other" ? "other" : "truth", question: text1(a.question, 300), route: a.route === "c" ? "c" : a.route === "a" ? "a" : null, ...(a.ok === true ? { answer: text1(a.answer, 700), url: String(a.url ?? "").slice(0, 2000), title: text1(a.title, 200), official: a.official === true, kind: text1(a.kind, 40), name: text1(a.name, 120), reason: text1(a.reason, 200) } : { why: text1(a.why, 200) }) });
 const text1 = (x, n) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const strs = (xs, n, len = 200) => (Array.isArray(xs) ? xs : []).map((x) => text1(x, len)).filter(Boolean).slice(0, n);
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
@@ -130,7 +133,7 @@ const dayIn = (d, today) => (/^\d{4}-\d{2}-\d{2}$/.test(String(d ?? "")) && d <=
 const cleanBoughtBlocks = (b) => (b && typeof b === "object" ? Object.fromEntries(Object.entries(b).filter(([k]) => /^[a-zA-Z]{1,20}$/.test(k)).map(([k, v]) => [k, typeof v === "boolean" ? v : typeof v === "number" ? v : k === "via" ? text1(v, 20) : k === "cannotSee" ? strs(v, 6, 20) : k === "columns" ? (Array.isArray(v) ? v.slice(0, 3).map((c) => strs(c, 8, 40)) : []) : null]).filter(([, v]) => v !== null)) : null);
 const QUESTION_LINE = /\?\s*$/;
 const yours = async ({ seo, subject, lic, groups }) => { const topic = topicForSubject(subject, await allTopics({ seo, groups })); if (!topic) return { ok: false, status: 404, why: "No such subject here yet." }; if (!lic.owner && !(topic.owner === "client" && (topic.clients ?? []).includes(accountHash(lic.account)))) return { ok: false, status: 403, why: "That subject is not yours." }; return { ok: true, topic }; };
-export async function saveBought({ seo, subject, searches = [], pages = [], failHosts = null, lic, groups = [], at }) {
+export async function saveBought({ seo, subject, searches = [], pages = [], failHosts = null, answers = [], lic, groups = [], at }) {
   const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
   const today = dayOf(at), rows = [], confirmed = [], refused = [], pagesConfirmed = [];
   for (const s of (Array.isArray(searches) ? searches : []).slice(0, BOUGHT.perCall)) {
@@ -147,10 +150,11 @@ export async function saveBought({ seo, subject, searches = [], pages = [], fail
     await seo.putPage({ url, day: dayIn(p.on, today), ok: read, why: read ? null : `the app could not read it${paidFail ? `; ${PAID_FAIL}` : ""}`, structure: read ? { headings, questions: headings.filter((h) => QUESTION_LINE.test(h)), tables: num(blocks?.tables), lists: 0, words: num(blocks?.words), date: null, droppedHeadings: 0, blocks, ...(paidFail ? { paidFail: true } : {}) } : null }); pagesConfirmed.push(url);
   }
   const hostRows = failHosts && typeof failHosts === "object" ? Object.entries(failHosts).filter(([h]) => /^[a-z0-9.-]{1,253}$/.test(h)).slice(0, 5000).map(([h, v]) => ({ topic: `fail:${y.topic.id}`, key: `${FAIL_KEY}${h}`, kind: "failhost", day: today, data: { ok: num(v?.ok), fail: num(v?.fail) } })) : null; if (hostRows?.length) await seo.putSearches(hostRows, { at });
-  return { ok: true, confirmed, pages: pagesConfirmed, refused, ...(hostRows ? { failHosts: hostRows.length } : {}), held: { searches: await seo.searchCount(y.topic.id), pages: await seo.pageCount() } };
+  const answerRows = (Array.isArray(answers) ? answers : []).filter((a) => /^answer\|[0-9a-f]{24}$/.test(String(a?.key ?? "")) && a.question && (a.ok !== true || /^https?:\/\//.test(a.url ?? ""))).slice(0, BOUGHT.perCall).map((a) => ({ topic: answersTopic(y.topic.id), key: a.key, kind: "answer", day: dayIn(a.on, today), data: answerRow(a, today) })); if (answerRows.length) await seo.putSearches(answerRows, { at });
+  return { ok: true, confirmed, pages: pagesConfirmed, refused, ...(answerRows.length ? { answers: answerRows.map((a) => a.key) } : {}), ...(hostRows ? { failHosts: hostRows.length } : {}), held: { searches: await seo.searchCount(y.topic.id), pages: await seo.pageCount() } };
 }
 /** before buying: what is already here and fresh (the same month as the collector). An outside client is sent none of it (ruling 2) */
-export async function heldBought({ seo, subject, keys = [], urls = [], lic, groups = [], at }) {
+export async function heldBought({ seo, subject, keys = [], urls = [], answers = [], lic, groups = [], at }) {
   const y = await yours({ seo, subject, lic, groups }); if (!y.ok) return y;
   if (!lic.owner) return { ok: true, outside: true, searches: {}, pages: {} };
   const today = dayOf(at), fresh = (d) => (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`)) / 864e5 <= BOUGHT.keepDays, searches = {}, pages = {};
@@ -158,7 +162,8 @@ export async function heldBought({ seo, subject, keys = [], urls = [], lic, grou
   const asked = (Array.isArray(keys) ? keys : []).map(String).slice(0, BOUGHT.perCall), map = byMeaning((await seo.searchKeys?.(y.topic.id)) ?? []), lookFor = new Map(asked.map((k) => [k, twinOf(k, map) ?? k])), rows = new Map((await seo.searches(y.topic.id, [...new Set([...asked, ...lookFor.values()])])).map((r) => [r.key, r]));
   for (const k of asked) { const r = rows.get(k) ?? rows.get(lookFor.get(k)); if (r && fresh(r.day)) searches[k] = { ...r.data, kind: r.kind, on: r.day }; }
   for (const p of await seo.pages((Array.isArray(urls) ? urls : []).map(String).slice(0, BOUGHT.perCall))) if (fresh(p.day)) pages[p.url] = { on: p.day, headings: p.ok ? p.structure?.headings ?? [] : null, blocks: p.ok ? p.structure?.blocks ?? null : null, ...(p.structure?.paidFail || String(p.why ?? "").includes(PAID_FAIL) ? { paidFail: true } : {}) };
-  return { ok: true, searches, pages, failHosts: await sharedFailHosts(seo) };
+  const held = {}; { const wanted = (Array.isArray(answers) ? answers : []).map(String).filter((k) => /^answer\|[0-9a-f]{24}$/.test(k)).slice(0, BOUGHT.perCall); if (wanted.length) for (const r of await seo.searches(answersTopic(y.topic.id), wanted)) if (fresh(r.day)) held[r.key] = r.data; }
+  return { ok: true, searches, pages, answers: held, failHosts: await sharedFailHosts(seo) };
 }
 /** each site's counts, added across everyone who reported */
 export async function sharedFailHosts(seo) { const out = {}; for (const r of (await seo.failHosts?.()) ?? []) { const h = String(r.key).slice(FAIL_KEY.length); out[h] = { ok: (out[h]?.ok ?? 0) + num(r.data?.ok), fail: (out[h]?.fail ?? 0) + num(r.data?.fail) }; } return out; }

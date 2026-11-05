@@ -47,6 +47,8 @@ const esc = (w) => String(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /* AlmiVisibility has keywords and questions and no country template; every other product has its own */
 const VIS = Object.freeze({ id: "visibility", name: "AlmiVisibility", subject: "AlmiVisibility", words: Object.freeze(["seo", "keyword research", "website audit", "ai search", "almivisibility"]) });
 /* RR-362 item 8: almiworld.com itself is a topic, third in the order */
+/* 🔴 RR-376 item 5 */
+const PATH = Object.freeze({ id: "pathway", name: "AlmiPathway", subject: "AlmiPathway", words: Object.freeze(["almipathway"]) });
 const WORLD = Object.freeze({ id: "almiworld", name: "AlmiWorld", subject: "AlmiWorld", site: "https://almiworld.com", words: Object.freeze(["almiworld", "almiworld.com"]) });
 const FALLBACK_TEMPLATE = Object.freeze({ parts: Object.freeze(["questions"]) });
 const tplOf = (id) => templateOf(id) ?? FALLBACK_TEMPLATE;
@@ -54,7 +56,7 @@ const tplOf = (id) => templateOf(id) ?? FALLBACK_TEMPLATE;
 export function ownTopics(groups = []) {
   const seedsOf = (p, d) => groups.find((g) => g.kind === "product" && g.key === p)?.seeds ?? d;
   return [...FACT_PRODUCTS.map((p) => ({ id: p, name: PRODUCT_NAMES[p] ?? p, subject: PRODUCT_FACTS[p].name, words: PRODUCT_FACTS[p].subject, seeds: seedsOf(p, PRODUCT_FACTS[p].subject), countries: [], languages: ["en"], jobs: [...LIVE_JOBS], owner: "almiworld", paused: false })),
-    ...[VIS, WORLD].map((t) => ({ ...t, words: [...t.words], seeds: seedsOf(t.id, [...t.words]), countries: [], languages: ["en"], jobs: ["keywords", "questions", "top-pages"], owner: "almiworld", paused: false }))];
+    ...[VIS, WORLD].map((t) => ({ ...t, words: [...t.words], seeds: seedsOf(t.id, [...t.words]), countries: [], languages: ["en"], jobs: ["keywords", "questions", "top-pages"], owner: "almiworld", paused: false })), { ...PATH, words: [...PATH.words], seeds: [...PATH.words], countries: [], languages: ["en"], jobs: ["pathway"], owner: "almiworld", paused: false }];
 }
 /** the owner's one line: Name | seed, seed | countries (or empty for the first 15) | jobs (or empty for all that are built) */
 export function parseTopicLine(line) {
@@ -131,9 +133,11 @@ const answersHeld = async ({ seo, topic, answers, outside = false, today }) => {
 /** 🔴 RR-375 item 6: the owner's money lines and the queue; a client only hears which of its answers changed */
 export async function answersStatus({ seo, cf = null, topic, lic, env = process.env, today }) {
   const t = answersTopic(topic.id), rows = await seo.searches(t, (await seo.searchKeys?.(t)) ?? []), changed = Object.fromEntries(rows.filter((r) => r.data?.changed).map((r) => [r.key, r.data])), counts = { answered: rows.filter((r) => r.data?.ok).length, official: rows.filter((r) => r.data?.ok && r.data.official).length, nonOfficial: rows.filter((r) => r.data?.ok && !r.data.official).length, noSource: rows.filter((r) => r.data && !r.data.ok && !r.data.again).length, waiting: rows.filter((r) => r.data?.again).length, changed: Object.keys(changed).length };
+  const verify = rows.filter((r) => r.data?.verify).map((r) => ({ url: r.data.verify, question: r.data.question, corridor: r.data.corridor ?? null }));
   if (!lic.owner) return { changed, counts };
   const month = today.slice(0, 7), sumOf = (xs, day, k) => xs.filter((x) => (day ? x.day === day : String(x.day).startsWith(month))).reduce((s, x) => s + (Number(x[k]) || 0), 0), cfDays = cf ? await cf.spendSince(`${month}-01`).catch(() => []) : [], seoDays = ((await seo.spendSince?.(`${month}-01`).catch(() => [])) ?? []).filter((x) => x.job === TOP_PAGES_JOB), budget = await topPagesBudget({ seo, env }).catch(() => ({ spent: 0 })), tp = topPagesCaps(env), ai = capsOf(env), usage = await seo.setting("free-search-usage").catch(() => null), last = await seo.setting("answers-last-run").catch(() => null);
-  return { changed, counts, last, usage: usage?.months?.[month] ?? {}, money: { collectorsAi: { today: sumOf(cfDays, today, "aiUsd"), month: sumOf(cfDays, null, "aiUsd"), cap: ai.aiUsd }, dataForSeo: { today: sumOf(seoDays, today, "usd"), month: sumOf(seoDays, null, "usd"), total: Number(budget.spent) || 0, capDay: tp.usd, capTotal: tp.budget } } };
+  const researchDays = ((await seo.spendSince?.(`${month}-01`).catch(() => [])) ?? []).filter((x) => x.job === "research"), research = { today: sumOf(researchDays, today, "usd"), month: sumOf(researchDays, null, "usd"), cap: 1 };
+  return { changed, counts, last, verify, research, usage: usage?.months?.[month] ?? {}, money: { collectorsAi: { today: sumOf(cfDays, today, "aiUsd"), month: sumOf(cfDays, null, "aiUsd"), cap: ai.aiUsd }, dataForSeo: { today: sumOf(seoDays, today, "usd"), month: sumOf(seoDays, null, "usd"), total: Number(budget.spent) || 0, capDay: tp.usd, capTotal: tp.budget } } };
 }
 const text1 = (x, n) => String(x ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const strs = (xs, n, len = 200) => (Array.isArray(xs) ? xs : []).map((x) => text1(x, len)).filter(Boolean).slice(0, n);
@@ -332,6 +336,7 @@ export async function almiSeoAnswer({ part = "summary", subject, page = 0, lic, 
   }
   if (!topic) return { ok: true, subject, topic: null, line: `AlmiSEO Data holds nothing about "${subject}" yet — the collectors start on it when your product is added.` };
   if (part === "answers") return { ok: true, subject, ...(await answersStatus({ seo, cf, topic, lic, env, today })) }; // RR-375
+  if (part === "research") { const { researchHeld, researchReport } = await import("./research-collector.mjs"), h = await researchHeld({ seo, today }); return { ok: true, subject, text: h.sheets.length || h.last ? researchReport({ ...h, on: today }) : null, money: h.money }; } // RR-376: the owner's only
   useClientTemplates(topics.filter((t) => t.owner === "client"));
   const allowed = keywordsAllowed(lic), base = { ok: true, subject, topic: { id: topic.id, name: topic.name, subject: topic.subject, owner: topic.owner, countries: topic.countries ?? [], jobs: topic.jobs }, keywordsAllowed: allowed, on: today };
   if (part === "keywords") {

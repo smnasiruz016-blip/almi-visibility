@@ -16,6 +16,7 @@ import { allTopics, answersTopic, answerRow, questionBank, LIVE_JOBS } from "./a
 import { capsOf } from "./cf-collector.mjs";
 import { aiConfigured, CF_AI } from "./cf-ai.mjs";
 import { DEFAULT_QUEUE } from "./queue.mjs";
+import { pathwayQuestions, OFFICIAL_HOSTS } from "./pathway-data.mjs"; // RR-376
 import { recordRun } from "./health.mjs";
 
 export const ANSWERS = Object.freeze({ runBudgetMs: 240000, lockSeconds: 290, marginUsd: 0.05, recheckPerRun: 80, queuedIntentsPerTopic: 60, offEnv: "ALMISEO_ANSWERS_OFF", bingKey: "BING_WEBMASTER_API_KEY", job: "answers" });
@@ -61,8 +62,8 @@ export async function runAnswers({ seo, cf, kv = null, env = process.env, reader
   if (kv) { const [locked] = await kv.run([["SET", LOCK, id, "NX", "EX", ANSWERS.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another answers run is working: this one did nothing." }; }
   const out = { ok: true, day: today, answered: 0, noSource: 0, waiting: 0, checked: 0, changed: 0, usd: 0, stoppedBy: null, why: null, topic: null, left: 0 };
   try {
-    const caps = capsOf(env), spent0 = (await cf.spend(today)).aiUsd ?? 0, facts = await cf.facts(), rank = (t) => { const i = queue.products.indexOf(t.id); return i < 0 ? 1e6 : i; };
-    const topics = (await allTopics({ seo, groups })).filter((t) => t.owner === "almiworld" && !t.paused && (t.jobs ?? LIVE_JOBS).includes("questions")).sort((a, b) => rank(a) - rank(b));
+    const caps = capsOf(env), spent0 = (await cf.spend(today)).aiUsd ?? 0, facts = await cf.facts(), order = (() => { const list = queue.products.filter((p) => p !== "pathway"), at = list.indexOf("visibility"); list.splice(at + 1, 0, "pathway"); return list; })() /* RR-376: right after AlmiVisibility */, rank = (t) => { const i = order.indexOf(t.id); return i < 0 ? 1e6 : i; };
+    const topics = (await allTopics({ seo, groups })).filter((t) => t.owner === "almiworld" && !t.paused && ((t.jobs ?? LIVE_JOBS).includes("questions") || t.id === "pathway")).sort((a, b) => rank(a) - rank(b));
     const room = () => spent0 + out.usd + ANSWERS.marginUsd < caps.aiUsd, inTime = () => now() - start < budgetMs;
     const usage = (await seo.setting(USAGE).catch(() => null)) ?? {}, free = freeSearch({ keyOf: (n) => env[n] || null, usage, fetchImpl, now, ...(freeBases ? { bases: freeBases } : {}) });
     let spendQueue = Promise.resolve();
@@ -71,6 +72,8 @@ export async function runAnswers({ seo, cf, kv = null, env = process.env, reader
       const fresh = await runFreshness({ seo, topic, reader, today, at, keep: inTime }); out.checked += fresh.checked; out.changed += fresh.changed;
       if (!room()) { out.stoppedBy = "CAP"; out.why = `Today's collector AI cap ($${caps.aiUsd}) is reached: saved, and tomorrow continues.`; break; }
       if (!inTime()) { out.stoppedBy = "TIME"; out.why = "This run's time is used: the next run continues."; break; }
+      /* 🔴 RR-376 item 5: official only, for every line; a blocked official site is "verify on official", with its link, for the owner's own browser */
+      if (topic.id === "pathway") { const t = answersTopic("pathway"), hosts = new Set(OFFICIAL_HOSTS), rows = pathwayQuestions(), keys = rows.map((r) => keyOf(r.question)), held = new Map((await seo.searches(t, keys)).map((r) => [r.key, r])), todo = rows.filter((r) => { const h = held.get(keyOf(r.question))?.data; return !h || h.changed || (!h.ok && isDue(h, today)); }); out.left += todo.length; for (const r of todo) { if (!inTime()) { out.stoppedBy = "TIME"; out.why = "This run's time is used: the next run continues."; break; } if (!room()) { out.stoppedBy = "CAP"; out.why = `Today's collector AI cap ($${caps.aiUsd}) is reached: saved, and tomorrow continues.`; break; } const key = keyOf(r.question); let verify = null; const v = await findOne({ key, part: "fee", question: r.question, cls: "truth", pages: [], country: r.to, link: null, body: null }, { read: (u) => reader.read(u), on: today, key: env[CF_AI.keyName], officialHosts: hosts, allowed: room, onUnread: (u) => { verify ??= u; }, onUsage: (u) => { const c = costOf(u); out.usd += c; spendQueue = spendQueue.then(() => cf.addSpend(today, { aiUsd: c })); }, moreAddresses: () => r.pages, fetchImpl: aiFetch, ...(aiBase ? { base: aiBase } : {}) }); if (v.stopped) { out.stoppedBy = v.stopped === "cap" ? "CAP" : "AI"; out.why = v.stopped === "cap" ? `Today's collector AI cap ($${caps.aiUsd}) is reached: saved, and tomorrow continues.` : v.stopped; break; } await seo.putSearches([{ topic: t, key, kind: "answer", day: today, data: { ...answerRow({ ...v, key }, today), corridor: r.corridor, partOf: r.part, ...(!v.ok && verify ? { verify } : {}) } }], { at }); if (v.ok) out.answered++; else out.noSource++; out.left--; } continue; }
       const bing = await readBing({ seo, env, topic, site: siteOf(topic), fetchImpl, at }).catch(() => ({ rows: [] })), lists = await seo.lists(topic.id), bank = await questionBank({ cf, topic, keywords: true }), asked = questionsOf({ bank, lists, bing: bing.rows ?? [], countries: queue.countries });
       if (!asked.length) continue;
       const t = answersTopic(topic.id), held = new Map(); for (let i = 0; i < asked.length; i += 500) for (const r of await seo.searches(t, asked.slice(i, i + 500).map((x) => x.key))) held.set(r.key, r);

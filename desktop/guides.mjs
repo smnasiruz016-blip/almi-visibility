@@ -84,6 +84,8 @@ export const HELP_GUIDES = Object.freeze({
       "Needs rebuild: a saved answer changed at its source. The pages that use it are rebuilt by themselves, and wait for you to press Publish. Nothing goes live by itself.",
       "Read these pages myself: sites that refused our reader. Copy the instruction, give it to your own AI in your own browser (with your VPN if the site needs it), then add the file it gives you. It stops at any captcha.",
       "Add your free key: optional. Each one gives some free searches a month, and each has its own counter that stops before any bill. Everything works without them.",
+      "Research report: once a week, what the top products in each market offer. A target for us, never a fact on our pages. AlmiPrep and AlmiPTE come first.",
+      "AlmiPathway: official facts for each study corridor. A blocked official page is marked verify on official, and is listed for your own browser.",
       "Rank chart: under each published page in Pages. It shows clicks, how often Google showed it, and its average position, from your Search Console. It is free.",
     ],
   },

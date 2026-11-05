@@ -131,7 +131,7 @@ export async function findOne(row, ctx) {
     return null;
   };
   /* (a) what is held: the page the question already points at, the body's own pages named for this need, the searches already bought */
-  const own = []; if (NEEDS[row.part] && row.link && row.body) { let origin = null; try { origin = new URL(row.link).origin; } catch { /* no address */ } if (origin) { const f = await findAnswer({ part: row.part, body: row.body, origin, link: row.link }, { read, on }).catch(() => null); if (f?.ok) own.push(f.url); } } if (row.link) own.push(row.link);
+  const own = []; if (!prev?.triedA && NEEDS[row.part] && row.link && row.body) { let origin = null; try { origin = new URL(row.link).origin; } catch { /* no address */ } if (origin) { const f = await findAnswer({ part: row.part, body: row.body, origin, link: row.link }, { read, on }).catch(() => null); if (f?.ok) own.push(f.url); } } if (row.link) own.push(row.link);
   /* a question only waiting for Google's queue is not paid for again on pages already judged */
   const a = prev?.triedA ? null : await tryPages([...own, ...moreAddresses(row), ...heldAddresses(row, serpCache, officialHosts)], "a"); if (a) return a;
   /* the free allowances, each inside its own counter */

@@ -51,6 +51,7 @@ import { ownerReview, decideTicked, REVIEW_JS } from "./owner-review.mjs"; // RR
 import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 import { runAnswers } from "./answers-collector.mjs"; // RR-375
+import { runResearch } from "./research-collector.mjs"; // RR-376
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -712,7 +713,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (req.method === "POST" && u.pathname === "/v1/almiseo/searches/held") { const v = form(); const r = await heldBought({ seo, subject: String(v.subject ?? "").slice(0, 80), keys: v.keys, urls: v.urls, answers: v.answers, lic, groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : r.status, r); }
         if (req.method !== "GET" || u.pathname !== "/v1/almiseo") return json(405, { ok: false, why: "Not here." });
         const part = String(u.searchParams.get("part") ?? "summary"), subject = String(u.searchParams.get("subject") ?? "").slice(0, 80);
-        if (!["summary", "pages", "keywords", "questions", "countries", "plan", "coverage", "answers"].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });
+        if (!["summary", "pages", "keywords", "questions", "countries", "plan", "coverage", "answers", "research"].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });
         const seoAns = await almiSeoAnswer({ part, subject, page: Math.max(0, Number(u.searchParams.get("page")) || 0), lic, stores: seoStores(), env, now, groups: await seoGroups() });
         return json(seoAns.status ?? 200, seoAns);
       }
@@ -771,6 +772,12 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!seo || !cf) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
         return send(200, JSON.stringify(await runTopPages({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), fetchImpl: tpFetch ?? fetchImpl, now, groups: await seoGroups(), queue: await queueNow(kv) })), "application/json", { "cache-control": "no-store" });
+      }
+      /* 🔴 RR-376 · the research collector: its own $1 a day */
+      if (req.method === "GET" && u.pathname === "/cron/research") {
+        if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!seo) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
+        return send(200, JSON.stringify(await runResearch({ seo, kv, env, now })), "application/json", { "cache-control": "no-store" });
       }
       /* 🔴 RR-375 · the answers collector and its freshness check */
       if (req.method === "GET" && u.pathname === "/cron/answers") {

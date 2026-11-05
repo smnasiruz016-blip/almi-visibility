@@ -1,0 +1,110 @@
+/**
+ * 🔴 RR-374: the ladder for a missing answer. Truth from official sources only; other from a named, reputable source; never a forum; the AI extracts, code checks the words and numbers on the page, the judge confirms; the AI's limit stops the search and is never raised; every result is saved only as the server names it back; a page is never dropped.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { questionClass, sourceClass, officialHostsOf, wantedAnswers, heldAddresses, pageHolds, refuseWhy, findOne, findAll, applyFound, foundSummary, sendFound, reportText, keyOf, CAP_LINE, ROUTE_B_LINE, FOUND_FILE } from "../desktop/answer-finder.mjs";
+import { dropEmptyAnswers } from "../desktop/empty-answers.mjs";
+import { pairKey } from "../desktop/qa-judge.mjs";
+import { saveBought, heldBought, allTopics } from "../site/almiseo.mjs";
+import { seoMemoryStore } from "../site/almiseo-store.mjs";
+
+const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), ON = "2026-11-05", OFFICIAL = new Set(["vci.ie", "oet.com"]);
+const site = (pages) => async (u) => pages[u] ?? { ok: false };
+const QUOTE = "A vet applies to the Veterinary Council of Ireland using the registration form.";
+const page = (url, text = QUOTE, title = "Registering with the Veterinary Council of Ireland") => ({ ok: true, url, title, text });
+const body = (data) => ({ ok: true, status: 200, json: async () => ({ model: "x", usage: { input_tokens: 10, output_tokens: 5 }, content: [{ type: "text", text: JSON.stringify(data) }] }) });
+/* a stand-in AI: the extractor's and the judge's answers by the system prompt */
+const ai = ({ extract = {}, judge = {} } = {}) => { const calls = { extract: 0, judge: 0 }; return { calls, fetchImpl: async (_u, init) => { const b = JSON.parse(init.body); if (b.system.startsWith("You read one")) { calls.extract++; return body({ found: true, answer: "A vet applies to the council using its registration form.", quote: QUOTE, publisher: "", kind: "other", ...extract }); } calls.judge++; return body({ fits: true, sourceOk: true, conflict: false, reason: "It answers it.", ...judge }); } }; };
+const row = (o = {}) => ({ key: keyOf("How do vets register in Ireland?"), part: "regulator", question: "How do vets register in Ireland?", cls: "truth", pages: ["OET for Vets in Ireland"], link: "https://vci.ie/contact", body: "Veterinary Council of Ireland", country: "Ireland", ...o });
+const ctx = (o = {}) => ({ on: ON, key: "stand-in", officialHosts: OFFICIAL, read: site({}), ...o });
+
+test("truth or other: the owner's lists; unsure is truth", () => {
+  for (const [p, q] of [["fee", "How much does OET cost in India?"], ["scores", "What OET score does the board ask?"], ["regulator", "How do vets register in Ireland?"], ["questionsa1", "How long is an OET result valid?"], ["questionsa2", "Which council accepts OET?"], ["questionsa3", "Is there a date for OET in Kenya?"], ["questionsa4", "What is a sitting area for?"]]) assert.equal(questionClass(p, q), "truth", q);
+  for (const [p, q] of [["questionsa1", "How should I prepare for OET?"], ["questionsa2", "Is computer or paper better for OET?"], ["questionsa3", "How long is the real waiting time?"], ["documents", "How do dentists from India get their documents attested?"], ["questionsa4", "Any tips for OET writing?"]]) assert.equal(questionClass(p, q), "other", q);
+});
+
+test("whose source: official hosts, government addresses; never a forum, a social site, Google's or Bing's own page", () => {
+  for (const u of ["https://vci.ie/x", "https://www.oet.com/x", "https://sub.oet.com/x", "https://mohfw.gov.in/x", "https://health.gov.au/x"]) assert.equal(sourceClass(u, OFFICIAL), "official", u);
+  for (const u of ["https://www.reddit.com/r/oet", "https://quora.com/x", "https://www.facebook.com/x", "https://www.youtube.com/x", "https://oetblog.blogspot.com/x", "https://www.google.com/search?q=oet", "https://www.bing.com/search?q=oet", "https://someinstitute.com/forum/x", "https://someinstitute.com/community/y", "not an address"]) assert.equal(sourceClass(u, OFFICIAL), "never", u);
+  assert.equal(sourceClass("https://someinstitute.com/oet-prep", OFFICIAL), "open");
+  const plan = { pages: [{ items: [{ claims: [{ official: true, link: "https://www.vci.ie/a" }, { official: false, link: "https://blog.example/a" }, { official: true, ownProduct: true, link: "https://almioet.example/a" }, { official: true, view: true, link: "https://view.example/a" }] }] }], bodyHosts: { Ireland: { "www.ahpra.example": ["nursing"], "almioet.example": ["x"] } } };
+  assert.deepEqual([...officialHostsOf(plan, { own: "almioet.example" })].sort(), ["ahpra.example", "vci.ie"], "our own site is never official");
+});
+
+test("the questions: one row each, most pages first; a question with a real answer or our own placeholder is not looked for", () => {
+  const note = { text: "Veterinary Council of Ireland's official page, checked 2026-11-03, does not say this.", link: "https://vci.ie/contact" }, plan = { pages: [{ title: "A", country: "Ireland", items: [{ part: "regulator", question: "How do vets register in Ireland?", claims: [note] }, { part: "scores", question: "What score?", claims: [note] }, { part: "fee", question: "How much?", claims: [{ text: "The full test costs AUD 587." }] }, { part: "questionsa99", question: "What do vets ask about OET?", claims: [note] }] }, { title: "B", items: [{ part: "scores", question: "what  score?", claims: [note] }] }] };
+  const r = wantedAnswers(plan); assert.deepEqual(r.map((x) => x.question), ["What score?", "How do vets register in Ireland?"]); assert.deepEqual(r[0].pages, ["A", "B"]); assert.equal(r[1].body, "Veterinary Council of Ireland");
+});
+
+test("what is held, by meaning: official first; a truth question takes no other", () => {
+  const cache = { "how vets register ireland||": { results: [{ url: "https://someinstitute.com/register-vets" }, { url: "https://vci.ie/register" }, { url: "https://www.reddit.com/r/vets" }] }, "OET for Nurses||": { results: [{ url: "https://vci.ie/unrelated" }] } };
+  assert.deepEqual(heldAddresses(row(), cache, OFFICIAL), ["https://vci.ie/register"]); assert.deepEqual(heldAddresses(row({ cls: "other" }), cache, OFFICIAL), ["https://vci.ie/register", "https://someinstitute.com/register-vets"]);
+  assert.equal(pageHolds("How do vets register in Ireland?", { ok: true, text: "Vets register in Ireland with the council." }), true); assert.equal(pageHolds("How do vets register in Ireland?", { ok: true, text: "Contact us by telephone." }), false); assert.equal(pageHolds("How do vets register in Ireland?", { ok: false }), false);
+});
+
+test("code's word on the AI: the quote and every number on the page; a work note, a fee from a non-official source, an unnamed or forum source all refused", () => {
+  const p = page("https://x.example/a", "Most candidates study for eight weeks at the Example Institute before they sit the test."), good = { answer: "Most candidates at the institute study for eight weeks.", quote: "Most candidates study for eight weeks at the Example Institute", kind: "training institute", publisher: "Example Institute" }, ask = (x, o = {}) => refuseWhy({ ...good, ...x }, { page: p, url: p.url, cls: "other", official: false, ...o });
+  assert.equal(ask({}), null);
+  assert.match(ask({ quote: "These words appear nowhere on that page at all" }), /quoted words/); assert.match(ask({ answer: "Most candidates study for 12 weeks at this institute." }), /states 12/); assert.match(ask({ answer: "Its official page, checked 2026-11-03, does not say this." }), /work note/); assert.match(ask({ kind: "forum" }), /not reputable/); assert.match(ask({ kind: "anonymous blog" }), /not reputable/); assert.match(ask({ publisher: "" }), /does not name itself/); assert.match(ask({ publisher: "Famous Hospital Group" }), /name is not on its own page/); assert.match(ask({}, { cls: "truth" }), /official sources only/); assert.equal(ask({}, { cls: "truth", official: true }), null);
+  const fee = page("https://x.example/a", "Most candidates pay AUD 587 at the Example Institute before they sit it."); assert.match(refuseWhy({ ...good, answer: "Candidates pay AUD 587 for the test.", quote: "Most candidates pay AUD 587 at the Example Institute" }, { page: fee, url: fee.url, cls: "other", official: false }), /only with an official source/);
+});
+
+test("the ladder: (a) found, the search is never bought; the answer comes back with its route; the AI read the page only after the page held the words", async () => {
+  const A = ai(); let searched = 0; const r = await findOne(row(), ctx({ ...A, read: site({ "https://vci.ie/contact": page("https://vci.ie/contact") }), search: async () => { searched++; return []; } }));
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.route, "a"); assert.equal(r.official, true); assert.equal(r.name, "Veterinary Council of Ireland"); assert.equal(searched, 0, "(c) only when (a) found nothing"); assert.deepEqual(A.calls, { extract: 1, judge: 1 });
+  const none = ai(), r2 = await findOne(row(), ctx({ ...none, read: site({ "https://vci.ie/contact": page("https://vci.ie/contact", "Call us on the telephone.", "Contact") }) })); assert.equal(r2.ok, false); assert.deepEqual(none.calls, { extract: 0, judge: 0 }, "no money on a page without the words");
+});
+
+test("the ladder: (c) only after (a); no answer yet is asked again and (a) is not paid for twice; the judge can say no; a truth question never takes a non-official result", async () => {
+  const off = "https://mohfw.gov.in/vets-register", A = ai(); let asked = 0; const c = await findOne(row({ link: null }), ctx({ ...A, read: site({ [off]: page(off), "https://blog.example/vets": page("https://blog.example/vets") }), search: async () => { asked++; return [{ url: "https://blog.example/vets" }, { url: off }]; } })); assert.equal(c.route, "c"); assert.equal(c.url, off); assert.equal(asked, 1); assert.equal(A.calls.extract, 1, "the blog was not read for a truth question");
+  const B = ai(), wait = await findOne(row(), ctx({ ...B, read: site({ "https://vci.ie/contact": page("https://vci.ie/contact") }), fetchImpl: async () => body({ found: false, answer: "", quote: "", publisher: "", kind: "other" }), search: async () => [] })); assert.equal(wait.again, true); assert.equal(wait.triedA, true);
+  let paid = 0; const later = await findOne(row(), ctx({ read: site({ "https://vci.ie/contact": page("https://vci.ie/contact") }), fetchImpl: async () => { paid++; return body({ found: false }); }, search: async () => [], prev: wait })); assert.equal(later.again, true); assert.equal(paid, 0, "the same page is not paid for again while Google's queue answers");
+  const no = ai({ judge: { fits: false, reason: "It is about nurses." } }), r = await findOne(row(), ctx({ ...no, read: site({ "https://vci.ie/contact": page("https://vci.ie/contact") }) })); assert.equal(r.ok, false); assert.match(r.why, /judge said no: It is about nurses/);
+  for (const judge of [{ sourceOk: false }, { conflict: true }]) { const x = ai({ judge }), v = await findOne(row(), ctx({ ...x, read: site({ "https://vci.ie/contact": page("https://vci.ie/contact") }) })); assert.equal(v.ok, false, JSON.stringify(judge)); }
+});
+
+test("an OTHER question: a named reputable source answers, named; a forum never; official first", async () => {
+  const u = "https://someinstitute.example/how-to-prepare-oet", text = "Candidates prepare for OET at the Some Institute with mock tests every week of their course.", q = row({ question: "How should I prepare for OET?", cls: "other", part: "questionsa1", link: null, body: null }), P = { [u]: { ok: true, url: u, title: "Prepare for OET", text } }, cache = { "how should i prepare oet||": { results: [{ url: u }, { url: "https://www.reddit.com/r/oet/x" }] } };
+  const A = ai({ extract: { answer: "Candidates prepare with weekly mock tests.", quote: text, publisher: "Some Institute", kind: "training institute" } }), r = await findOne(q, ctx({ ...A, read: site(P), serpCache: cache })); assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.official, false); assert.equal(r.kind, "training institute"); assert.equal(r.name, "Some Institute");
+  const plan = { pages: [{ title: "T", items: [{ part: "questionsa1", question: q.question, claims: [{ text: "OET's official page, checked 2026-11-03, does not say this.", link: "https://oet.com/x" }] }] }] }, verdicts = {}; assert.equal(applyFound(plan, { [q.key]: r }, { verdicts, pairKey }), 0, "the key is the question's own");
+  const k = { [keyOf(q.question)]: r }; assert.equal(applyFound(plan, k, { verdicts, pairKey }), 1); const c = plan.pages[0].items[0].claims[0]; assert.equal(c.text, "Candidates prepare with weekly mock tests. (Source: Some Institute.)", "the source is named"); assert.equal(c.official, false); assert.match(c.source, /not an official source/); assert.equal(c.link, u); assert.equal(verdicts[pairKey("T", q.question, c.text)].fits, true, "judged once, not paid again");
+  const f = ai({ extract: { answer: "Candidates prepare with weekly mock tests.", quote: text, publisher: "Some Institute", kind: "forum" } }), bad = await findOne(q, ctx({ ...f, read: site(P), serpCache: cache })); assert.equal(bad.ok, false); assert.match(bad.why, /not reputable/);
+  /* the official source wins: the judge is handed the official lines, and "conflict" is a no */
+  let lines = null; const W = await findOne(q, ctx({ read: site(P), serpCache: cache, officialLines: () => ["OET's own line."], fetchImpl: async (_u, init) => { const b = JSON.parse(init.body); if (b.system.startsWith("You read one")) return body({ found: true, answer: "Candidates prepare with weekly mock tests.", quote: text, publisher: "Some Institute", kind: "training institute" }); lines = JSON.parse(b.messages[0].content).officialLines; return body({ fits: true, sourceOk: true, conflict: true, reason: "OET says otherwise." }); } })); assert.deepEqual(lines, ["OET's own line."]); assert.equal(W.ok, false);
+});
+
+test("the AI's limit: the search stops, what it holds stays, nothing is kept for the rest, the owner is told; no cap is written anywhere here", async () => {
+  const rows = [row({ question: "How do vets register in Ireland?", key: keyOf("How do vets register in Ireland?") }), row({ question: "How do vets register in Ireland today?", key: keyOf("How do vets register in Ireland today?") })], P = site({ "https://vci.ie/contact": page("https://vci.ie/contact") }); let left = 2, saves = 0; const A = ai(), kept = {};
+  const r = await findAll(rows, { kept, today: ON, save: () => saves++, side: 1, ...ctx({ ...A, read: P, allowed: () => left-- > 0 }) }); assert.equal(r.stopped, "cap"); assert.equal(Object.keys(kept).length, 1, "the one finished is kept; the rest is tried again"); assert.ok(saves >= 1);
+  const text = reportText({ on: ON, s: foundSummary(kept, rows), rows: rows.map((x) => ({ question: x.question, v: kept[x.key] })), dropped: 1, thin: [{ title: "Page", real: 2 }], usd: 0.5, searchUsd: 0, stopped: "cap" }); assert.ok(text.includes(CAP_LINE)); assert.ok(text.includes(ROUTE_B_LINE)); assert.match(text, /Truth answers: 1\. Other answers: 0\./); assert.match(text, /Page \(2\)/); assert.match(text, /AI \$0\.50/); assert.match(text, /Not looked for yet: 1\./);
+  const F = read("desktop/answer-finder.mjs"), m = read("desktop/main.mjs"); assert.doesNotMatch(F, /aiMonthlyCapUSD|capDay\s*=|capMonth\s*=/); assert.match(m, /allowed: \(\) => LEDGER\.allowed\(\)\.ok && Number\(CONFIG\.aiMonthlyCapUSD \?\? DEFAULT_CAP_USD\) - \(LEDGER\.month\(\)\?\.usd \?\? 0\) >= FINDER\.marginUsd/, "stops before the limit, with requests side by side still running"); assert.match(m, /foundUsd \+= looked\.usd/, "a second pass never writes the money over"); assert.match(m, /mayBuy\(dfsLedger\(\), \{ now: on, cap: st\.capDay, capMonth: st\.capMonth/);
+  const key401 = await findOne(row(), ctx({ read: P, fetchImpl: async () => ({ ok: false, status: 401 }) })); assert.match(key401.stopped, /refused/, "a refused key stops the run at once");
+});
+
+test("kept results are not asked twice; the server's are free; a page is never dropped: an unanswered question leaves, the page stays and is listed", async () => {
+  const k = row(), A = ai(), kept = { [k.key]: { ok: false, on: ON, cls: "truth", question: k.question, why: "x" } }, out = await findAll([k], { kept, today: ON, ...ctx({ ...A }) }); assert.equal(out.tried, 0); assert.equal(A.calls.extract, 0);
+  const B = ai(), kept2 = {}, got = await findAll([k], { kept: kept2, today: ON, held: async () => ({ [k.key]: { ok: true, on: ON, cls: "truth", question: k.question, answer: "A vet applies with the council's form.", url: "https://vci.ie/r", official: true, name: "VCI" } }), ...ctx({ ...B }) }); assert.equal(got.fromServer, 1); assert.equal(B.calls.extract, 0); assert.equal(kept2[k.key].route, "a");
+  const note = { text: "VCI's official page, checked 2026-11-03, does not say this.", link: "https://vci.ie/x" }, plan = { pages: [{ title: "P", items: [{ part: "regulator", question: k.question, claims: [note] }, { part: "scores", question: "What score?", claims: [note] }] }] }; applyFound(plan, kept2); const rows = dropEmptyAnswers(plan); assert.equal(plan.pages.length, 1); assert.deepEqual(plan.pages[0].items.map((i) => i.part), ["regulator"]); assert.equal(rows[0].dropped[0].question, "What score?"); assert.equal(rows[0].thin, true); assert.equal(rows[0].filled.length, 1);
+});
+
+test("AlmiSEO Data: each result saved on the real handler, read back; only what it names is marked; an old server keeps them waiting; an outside client gets none; the quote never travels", async () => {
+  const NOW = "2026-11-05T01:00:00.000Z", seo = seoMemoryStore(), groups = [], topics = (await allTopics({ seo })).filter((t) => t.id === "oet"); assert.ok(topics.length, "the test's subject exists");
+  const lic = { owner: true, account: "owner" }, client = { saveBought: (b) => saveBought({ seo, ...b, lic, groups, at: NOW }) }, a = keyOf("Q one?"), b = keyOf("Q two?"), kept = { [a]: { ok: true, on: ON, route: "a", cls: "truth", question: "Q one?", answer: "A real answer of good length.", quote: "SECRET WORDS OF THE PAGE", url: "https://vci.ie/r", title: "T", official: true, kind: "official", name: "VCI" }, [b]: { ok: false, on: ON, cls: "other", question: "Q two?", why: "no page held it" }, [keyOf("Q three?")]: { ok: false, on: ON, again: true, question: "Q three?" } };
+  const s = await sendFound({ client, subject: "OET", kept, today: ON }); assert.equal(s.saved, 2, JSON.stringify(s)); assert.equal(kept[a].sent, ON); assert.equal(kept[keyOf("Q three?")].sent, undefined, "a question waiting for Google is no result yet");
+  const held = await heldBought({ seo, subject: "OET", answers: [a, b, "answer|nothex"], lic, groups, at: NOW }); assert.equal(held.answers[a].answer, "A real answer of good length."); assert.equal(held.answers[b].ok, false); assert.equal(Object.keys(held.answers).length, 2); assert.ok(!JSON.stringify(held.answers).includes("SECRET WORDS"), "never a page's text");
+  assert.equal((await seo.searchKeys(topics[0].id)).filter((k) => k.startsWith("answer|")).length, 0, "no collector takes an answer for a search");
+  const old = { k: { ok: true, on: ON, question: "Q", answer: "x".repeat(30), url: "https://a.b/c" } }, r = await sendFound({ client: { saveBought: async () => ({ ok: true, confirmed: [] }) }, subject: "OET", kept: old, today: ON }); assert.equal(r.saved, 0); assert.equal(r.left, 1); assert.match(r.why, /not deployed/); assert.equal(old.k.sent, undefined);
+  const two = { x: { ok: false, on: ON, question: "Q", why: "a" }, y: { ok: false, on: ON, question: "R", why: "b" } }, part = await sendFound({ client: { saveBought: async () => ({ ok: true, answers: ["x"] }) }, subject: "OET", kept: two, today: ON }); assert.equal(part.saved, 1); assert.equal(two.x.sent, ON); assert.equal(two.y.sent, undefined, "what the server did not name stays to send");
+  const down = await sendFound({ client: { saveBought: async () => { throw new Error("no"); } }, subject: "OET", kept: { k: { ok: false, on: ON, question: "Q", why: "x" } }, today: ON }); assert.equal(down.left, 1);
+});
+
+test("the wiring: judge, then the ladder, then the last word, then the marks; the quick pass spends nothing; the bundle carries the module; the screen tells the numbers and the stop; the found file reaches the uploader", () => {
+  const m = read("desktop/main.mjs"), u = read("desktop/ui.html"), j = m.indexOf("await judgeAll("), l = m.indexOf("const looked = quick ? null : await lookForFound(", j), f = m.indexOf("applyFound(plan, looked?.kept", l), d = m.indexOf("const rows = dropEmptyAnswers(plan)", f), k = m.indexOf("markPages(plan, verdicts,", d); assert.ok(j > 0 && j < l && l < f && f < d && d < k, "in that order");
+  assert.match(read("desktop/build.mjs"), /"answer-finder\.mjs"/); assert.match(m, /sendFound\(\{ client, subject: p\.subject, kept/); assert.match(m, new RegExp(`REPORT_FILE`)); assert.equal(FOUND_FILE, "answers-found.json");
+  assert.match(u, /data-finder>/); assert.match(u, /data-finder-stopped><b>${esc(A.finder.stopped)}/, "the AI limit is told on the screen"); assert.match(u, /Google and Bing connections: 0/); assert.match(u, /Answers found\.txt/);
+  const s = read("site/app.mjs"); assert.match(s, /failHosts: v\.failHosts, answers: v\.answers/); assert.match(s, /urls: v\.urls, answers: v\.answers/);
+  /* never Google's or Bing's own pages, never the old pointer line */
+  const F = read("desktop/answer-finder.mjs"); assert.doesNotMatch(F, /https?:\/\/(?:www\.)?(?:google|bing)\./); assert.doesNotMatch(read("desktop/empty-answers.mjs"), /sets out the registration steps/);
+});

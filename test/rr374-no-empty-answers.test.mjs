@@ -1,11 +1,11 @@
 /**
  * 🔴 RR-374 (owner, 5 Nov 2026: 240 of 297 preview pages "does not say this", 37 "could not be read … 404 … still being looked for", in the page and its FAQ data; "National Dental Commission" beside dciindia.gov.in):
- * a question is shown only with a real answer. Another official page is looked for; found and named for the need, it fills; else the question leaves the page and its FAQ data, and goes on the owner's list. A page is never dropped, never padded.
+ * a question is shown only with a real answer. desktop/answer-finder.mjs looks for one (test/rr374-answer-finder.test.mjs); else the question leaves the page and its FAQ data, and goes on the owner's list. A page is never dropped, never padded.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { holdsNote, withoutNotes, noteOnPage, pageWords, answersWanted, findAnswer, applyFills, namesToCheck, checkName, fixNames, stripNotes, dropEmptyAnswers, answersSummary, nameInAddress, THIN_BELOW } from "../desktop/empty-answers.mjs";
+import { holdsNote, withoutNotes, noteOnPage, pageWords, findAnswer, applyFills, namesToCheck, checkName, fixNames, stripNotes, dropEmptyAnswers, answersSummary, nameInAddress, THIN_BELOW } from "../desktop/empty-answers.mjs";
 import { partsMissing } from "../desktop/page-quality.mjs";
 import { officeLine } from "../desktop/council-truth.mjs";
 
@@ -31,7 +31,7 @@ test("a question with only a note leaves the page, with why; a question with a r
 
 const site = (pages) => async (u) => pages[u] ?? { ok: false };
 const row = { key: "steps|https://kmpdc.go.ke", part: "regulator", need: "steps", body: "KMPDC", origin: "https://kmpdc.go.ke", link: "https://kmpdc.go.ke/contact" };
-test("another official page fills only when it is about the need: a form for a committee, a home page, a PDF or a page that lacks the words fill nothing; an association is not looked for", async () => {
+test("the body's own page named for the need: only when it is about the need: a form for a committee, a home page, a PDF or a page that lacks the words fill nothing; an association is not looked for", async () => {
   const good = { ok: true, url: "https://kmpdc.go.ke/registering-as-a-practitioner/", title: "Registering as a practitioner", text: "How to apply for registration: the application form, the fee and the documents." };
   const links = [{ href: good.url, text: "How to register" }], home = { ok: true, url: "https://kmpdc.go.ke/", title: "KMPDC", text: "Registration and application forms and fees for every applicant.", links };
   const r = await findAnswer(row, { read: site({ "https://kmpdc.go.ke/contact": { ok: true, url: row.link, title: "Contact", text: "Call us.", links: [] }, "https://kmpdc.go.ke/": home, [good.url]: good }), on: ON }); assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.url, good.url); assert.equal(r.how, "own");
@@ -39,22 +39,14 @@ test("another official page fills only when it is about the need: a form for a c
   for (const [name, href, title] of [["a committee's form", "https://kmpdc.go.ke/form/application-form-for-experts-committee-member/", "Application form for experts committee member"], ["a screening test", "https://kmpdc.go.ke/ScreeningTestApplication", "How to apply for the screening test"], ["a PDF", "https://kmpdc.go.ke/how-to-apply.pdf", "How to apply"]]) { const x = await findAnswer(row, { read: site({ "https://kmpdc.go.ke/": { ...home, links: [{ href, text: "How to apply" }] }, [href]: { ok: true, url: href, title, text: "How to apply for registration: the application form, the fee and the documents." } }), on: ON }); assert.equal(x.ok, false, name); }
   const empty = await findAnswer(row, { read: site({ "https://kmpdc.go.ke/": home, [good.url]: { ...good, text: "Nothing about it here." } }), on: ON }); assert.equal(empty.ok, false, "the page's own words must hold it"); assert.equal(empty.why, "no page of its own holds it");
   const none = await findAnswer(row, { read: site({}), on: ON }); assert.equal(none.why, "its pages could not be opened");
-  const plan = { pages: [pageOf([{ part: "regulator", question: "How?", claims: [note("Indian Society of Radiographers", "https://isrt.org.in/x")] }, { part: "standing", question: "How?", claims: [note("KMPDC", "https://kmpdc.go.ke/x")] }])] }, w = answersWanted(plan); assert.deepEqual(w.map((x) => x.key), ["standing|https://kmpdc.go.ke"], "an association's page registers no one");
+  const assoc = await findAnswer({ ...row, body: "Indian Society of Radiographers" }, { read: site({ "https://kmpdc.go.ke/": home, [good.url]: good }), on: ON }); assert.equal(assoc.ok, false, "an association's page registers no one"); assert.match(assoc.why, /association/);
 });
 
-test("the capped search only on an official address; a search not answered yet is asked again, not kept as 'not found'", async () => {
-  const off = "https://ministry.gov.ke/nurses-how-to-apply", other = { ok: true, url: off, title: "How to apply for registration", text: "How to apply for registration: the form, the fee and the documents." }, asked = [];
-  const yes = await findAnswer(row, { read: site({ [off]: other, "https://blog.example/how-to-apply": { ...other, url: "https://blog.example/how-to-apply" } }), on: ON, search: async (q) => { asked.push(q); return [{ url: "https://blog.example/how-to-apply" }, { url: off }]; } }); assert.equal(yes.ok, true); assert.equal(yes.url, off, "a blog is no official page"); assert.equal(yes.how, "another official page"); assert.deepEqual(asked, ["KMPDC how to apply for registration"]);
-  const wait = await findAnswer(row, { read: site({}), on: ON, search: async () => [] }); assert.equal(wait.ok, false); assert.equal(wait.again, true);
-  const plan = { pages: [pageOf([{ part: "regulator", question: "How?", claims: [note("KMPDC", "https://kmpdc.go.ke/contact")] }])] }; applyFills(plan, { "steps|https://kmpdc.go.ke": yes }); assert.equal(plan.pages[0].items[0].claims[0].text, "The official page at ministry.gov.ke sets out how to apply for registration."); assert.equal(plan.pages[0].items[0].claims[0].filled, true);
-  assert.match(read("desktop/main.mjs"), /fresh = \(v\) => v && !v\.again &&/); assert.match(read("desktop/main.mjs"), /search = cappedSearch\(id, null, ""\)/); assert.match(read("desktop/main.mjs"), /const cappedSearch = [^\n]*askOneFirst\(id, keyword, ledger\)/, "through the ledger's cap");
-});
-
-test("what is found fills under its question and is counted; where to take the test: the official finder; the rest stays empty and leaves", () => {
-  const plan = { pages: [pageOf([{ part: "regulator", question: "How do dentists register in India?", claims: [note("KMPDC", "https://kmpdc.go.ke/x")] }, { part: "standing", question: "How?", claims: [note("KMPDC", "https://kmpdc.go.ke/x")] }, { part: "centres", question: "Where can I take OET in India?", claims: [note("OET", "https://oet.com/x")] }, { part: "scores", question: "What score?", claims: [note("KMPDC", "https://kmpdc.go.ke/x")] }])] };
-  applyFills(plan, { "steps|https://kmpdc.go.ke": { ok: true, url: "https://kmpdc.go.ke/registering/", on: ON, how: "own" }, "standing|https://kmpdc.go.ke": { ok: false } }, { finder: { text: "x", link: "https://oet.com/book", readOn: ON, subject: "OET", place: (c) => c } });
-  const [a, b, c] = plan.pages[0].items; assert.equal(a.claims[0].text, "KMPDC's own page about applying sets out the registration steps."); assert.equal(a.claims[0].link, "https://kmpdc.go.ke/registering/"); assert.match(a.claims[0].source, /kmpdc\.go\.ke — its official page/); assert.ok(holdsNote(b.claims[0].text)); assert.equal(c.claims[0].text, "To find a test venue in India, use Find a test on OET's booking page.");
-  const rows = dropEmptyAnswers(plan); assert.equal(rows[0].filled.length, 2); assert.equal(rows[0].dropped.length, 2); assert.deepEqual(plan.pages[0].items.map((i) => i.part), ["regulator", "centres"]);
+test("where to take the test: the official finder, no AI; the rest stays empty and leaves", () => {
+  const plan = { pages: [pageOf([{ part: "regulator", question: "How do dentists register in India?", claims: [note("KMPDC", "https://kmpdc.go.ke/x")] }, { part: "centres", question: "Where can I take OET in India?", claims: [note("OET", "https://oet.com/x")] }])] };
+  applyFills(plan, { finder: { text: "x", link: "https://oet.com/book", readOn: ON, subject: "OET", place: (c) => c } });
+  const [a, c] = plan.pages[0].items; assert.ok(holdsNote(a.claims[0].text)); assert.equal(c.claims[0].text, "To find a test venue in India, use Find a test on OET's booking page.");
+  const rows = dropEmptyAnswers(plan); assert.equal(rows[0].filled.length, 1); assert.equal(rows[0].dropped.length, 1); assert.deepEqual(plan.pages[0].items.map((i) => i.part), ["centres"]);
 });
 
 test("rule 2: the name and its source: named on the page, the reader is told whose site it is, once; a government address unread stays; a site that does not name it takes it off, for the owner", async () => {
@@ -75,7 +67,7 @@ test("a finished page: the page and its FAQ data are read; a part left off is no
 
 test("the wiring: found before the AI, last word after it; every way of building a page; publish refuses a note; the build carries the module; the screen says it, per page", () => {
   const m = read("desktop/main.mjs"), s = read("desktop/seo-pages.mjs"), u = read("desktop/ui.html");
-  const a = m.indexOf("const nameRows = fixNames(plan, fills); stripNotes(plan);"), b = m.indexOf("applyFills(plan, fills,", a), c = m.indexOf("await judgeAll(", b), d = m.indexOf("const rows = dropEmptyAnswers(plan);", c), e = m.indexOf("markPages(plan, verdicts,", d); assert.ok(a > 0 && a < b && b < c && c < d && d < e, "names and notes, then fills, then the AI, then the last word, then the marks");
+  const a = m.indexOf("const nameRows = fixNames(plan, fills); stripNotes(plan);"), b = m.indexOf("applyFills(plan, { finder", a), c = m.indexOf("await judgeAll(", b), d = m.indexOf("const rows = dropEmptyAnswers(plan), sum", c), e = m.indexOf("markPages(plan, verdicts,", d); assert.ok(a > 0 && a < b && b < c && c < d && d < e, "names and notes, then fills, then the AI, then the last word, then the marks");
   assert.equal(m.split("noWorkNotes: CONFIG.testOffline !== true").length - 1, 3, "the worker's arguments too: seoExtras never reached it"); assert.match(m, /const n = CONFIG\.testOffline === true \? null : noteOnPage\(d\.html\); if \(n\) return \{ ok: false, why: `Not published — this page still shows a work note/);
   assert.match(s, /if \(noWorkNotes\) parts = parts\.flatMap\(/, "the last net on a built page"); assert.match(s, /d\.leftQuestions = m\.leftQuestions/); assert.match(read("desktop/build.mjs"), /"empty-answers\.mjs"/);
   assert.match(u, /data-answers/); assert.match(u, /filled from a new source/); assert.match(u, /left off/); assert.match(u, /needs more answers/); assert.match(u, /id="answersbox"/); assert.match(u, /id="answerslist"/); assert.match(m, /\/\(overview\|next\|plan-summary\|answers-log\|check\|/);

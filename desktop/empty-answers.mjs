@@ -1,8 +1,7 @@
 /**
  * 🔴 RR-374 (owner, 5 Nov 2026: 240 of 297 preview pages held "<Council>'s official page, checked <date>, does not say this", 37 showed "could not be read … 404 … still being looked for", in the page and in its FAQ data).
- * A QUESTION IS SHOWN ONLY WITH A REAL ANSWER. For each empty answer the answer is looked for on another official page, by the normal fact path (the body's own pages, robots obeyed; Google through the capped route when the client
- * switched it on); what is found is checked by the client's AI like every other answer. Not found: the question leaves the page and its FAQ data, and is kept for the owner in the needs-work list. A page is never dropped, and never padded.
- * R-A stands: "Whether it is the registering body is not confirmed yet", with its address and source, is a real answer. Only the work note behind it goes. Pure apart from the `read` and `search` handed in.
+ * A QUESTION IS SHOWN ONLY WITH A REAL ANSWER. desktop/answer-finder.mjs looks for each missing one. Not found: the question leaves the page and its FAQ data, and is kept for the owner in the needs-work list. A page is never dropped, and never padded.
+ * R-A stands: "Whether it is the registering body is not confirmed yet", with its address and source, is a real answer. Only the work note behind it goes. Pure apart from the `read` handed in.
  */
 import { STEP_LINK } from "./regulator-read.mjs";
 import { NOT_A_REGISTRAR } from "./council-truth.mjs";
@@ -21,38 +20,30 @@ export const pageWords = (html) => String(html ?? "").replace(/<style[\s\S]*?<\/
 export function noteOnPage(html) { const t = pageWords(html); for (const re of [/\bdoes not say this\b/i, /\bcould not be read\b/i, /\bstill being looked for\b/i, /\bis the place to read this\b/i, /\b404 Page not found\b/i, /\bhas not been checked yet\b/i]) { const m = re.exec(t); if (m) return m[0]; } return null; }
 
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
-const originOf = (u) => { try { return new URL(u).origin; } catch { return null; } };
 const partOf = (it) => String(it.part ?? "").replace(/\d+$/, "");
-const BODY_OF_NOTE = /^(.{2,120}?)'s (?:official|contact|home|own) page\b/;
 /* which empty answers another official page can fill */
 export const NEEDS = Object.freeze({
-  regulator: Object.freeze({ need: "steps", anchor: STEP_LINK, also: /\b(?:registration|register|apply|licen[cs]e|licen[cs]ing)\b/i, says: /\b(?:appl(?:y|ication|icants?)|regist(?:er|ration))\b[\s\S]{0,400}\b(?:forms?|fees?|documents?|requirements?|steps?|procedures?|process)\b|\b(?:forms?|fees?|documents?|requirements?|steps?|procedures?|process)\b[\s\S]{0,400}\b(?:appl(?:y|ication|icants?)|regist(?:er|ration))\b/i, query: "how to apply for registration", line: (b) => `${b}'s own page about applying sets out the registration steps.`, other: (h) => `The official page at ${h} sets out how to apply for registration.`, named: STEP_LINK, intent: "registration" }),
-  standing: Object.freeze({ need: "standing", anchor: /\bgood standing\b|\bverification\b|\bcertificate of (?:status|registration)\b|\bcertificates?\b|\bservices?\b/i, also: /\bgood standing\b|\bverification\b/i, says: /\bgood standing\b|\bverification of registration\b|\bregistration verification\b|\bcertificate of status\b/i, query: "certificate of good standing", line: (b) => `${b}'s own page covers the certificate of good standing and how to ask for it.`, other: (h) => `The official page at ${h} covers the certificate of good standing and how to ask for it.`, named: /\bgood standing\b|\bverification of registration\b|\bregistration verification\b|\bcertificate of status\b/i, intent: "good-standing" }),
+  regulator: Object.freeze({ need: "steps", anchor: STEP_LINK, also: /\b(?:registration|register|apply|licen[cs]e|licen[cs]ing)\b/i, says: /\b(?:appl(?:y|ication|icants?)|regist(?:er|ration))\b[\s\S]{0,400}\b(?:forms?|fees?|documents?|requirements?|steps?|procedures?|process)\b|\b(?:forms?|fees?|documents?|requirements?|steps?|procedures?|process)\b[\s\S]{0,400}\b(?:appl(?:y|ication|icants?)|regist(?:er|ration))\b/i, named: STEP_LINK }),
+  standing: Object.freeze({ need: "standing", anchor: /\bgood standing\b|\bverification\b|\bcertificate of (?:status|registration)\b|\bcertificates?\b|\bservices?\b/i, also: /\bgood standing\b|\bverification\b/i, says: /\bgood standing\b|\bverification of registration\b|\bregistration verification\b|\bcertificate of status\b/i, named: /\bgood standing\b|\bverification of registration\b|\bregistration verification\b|\bcertificate of status\b/i }),
 });
 /* the proof run read these as "applying": a committee's form, a screening test's form, a specialist's form, a page of forms */
 const NOT_THE_NEED = /\bcommittee\b|\bexperts?\b|\bscreening\b|\bspecialists?\b|\btenders?\b|\brecruit\w*|\bvacanc\w*|\bjobs?\b|\bmembership\b|\bstudents?\b|\bcolleges?\b|\binstitutions?\b|\bcourses?\b|\bcme\b|\bcpd\b|\brenewal\b|\brenew\b|\bcomplaints?\b|\bdownload\b|\bforms?\b|\badditional\b|\bdual\b|\bcredentials?\b/i;
 const emptyItem = (it) => (it.claims ?? []).length > 0 && it.claims.every((c) => !withoutNotes(c.text));
-/** the answers to look for: one per body and need */
-export function answersWanted(plan) { const out = new Map(); for (const p of plan.pages ?? []) for (const it of p.items ?? []) { const n = NEEDS[partOf(it)]; if (!n || !emptyItem(it)) continue; const c = it.claims[0], body = BODY_OF_NOTE.exec(c.text ?? "")?.[1], origin = originOf(c.link); if (!body || !origin || NOT_A_REGISTRAR.test(body) /* an association's page registers no one */) continue; const key = `${n.need}|${origin}`; if (!out.has(key)) out.set(key, { key, part: partOf(it), need: n.need, body, origin, link: c.link, country: p.country ?? null }); } return [...out.values()]; }
 const usesThis = (u, origin) => { const a = hostOf(u), b = hostOf(origin); return Boolean(a && b) && (a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`)); };
 const OFFICIAL_HOST = /(?:^|\.)(?:gov|govt|go|gob|gouv|nic|mil)(?:\.[a-z]{2,3})?$|\.gov\.[a-z]{2}$/i;
-/** one answer: the body's own pages (the page held, its home, the links named for this need), then Google's results on an official address. Found only when the page's own words hold it */
-export async function findAnswer(row, { read, search = null, on, extra = 4 }) {
+/** the page of the body's own that is named for this need (the page held, its home, the links named for it), or not found. An association's page registers no one */
+export async function findAnswer(row, { read, on, extra = 4 }) {
+  if (NOT_A_REGISTRAR.test(row.body ?? "")) return { ok: false, on, why: "an association's page registers no one" };
   const n = NEEDS[row.part], seen = new Set(), anchors = new Map(), notHome = (u) => { try { return new URL(u).pathname.replace(/\/+$/, "") !== ""; } catch { return false; } }, ok = (p, u) => { if (!p?.ok || !notHome(p.url ?? u)) return false; const all = `${p.title ?? ""} ${p.h1 ?? ""} ${p.text ?? ""}`; const about = `${anchors.get(u) ?? ""} ${p.title ?? ""} ${p.h1 ?? ""} ${decodeURIComponent(String(p.url ?? u)).replace(/[-_/]+/g, " ")}`; if (/\.pdf(?:$|\?)/i.test(String(p.url ?? u)) || NOT_THE_NEED.test(about)) return false; return n.says.test(all) && n.also.test(all) && n.named.test(`${anchors.get(u) ?? ""} ${p.title ?? ""} ${p.h1 ?? ""} ${decodeURIComponent(String(p.url ?? u)).replace(/[-_/]+/g, " ")}`); }, found = (p, u, how) => ({ ok: true, url: p.url ?? u, on, how });
   let more = extra; const queue = [...new Set([row.link, `${row.origin}/`])]; let readAny = false;
   while (queue.length) { const u = queue.shift(); if (seen.has(u)) continue; seen.add(u); const p = await Promise.resolve(read(u)).catch(() => null); if (!p?.ok) continue; readAny = true; if (ok(p, u)) return found(p, u, "own"); const links = (p.links ?? []).filter((l) => /^https?:/.test(l.href ?? "") && usesThis(l.href, row.origin) && !seen.has(l.href) && n.anchor.test(`${l.text ?? ""} ${l.href}`)); for (const l of links) { if (more <= 0) break; anchors.set(l.href, l.text ?? ""); queue.push(l.href); more--; } }
-  let searched = false; if (search) { const results = await Promise.resolve(search(`${row.body} ${n.query}`)).catch(() => []); searched = !(results ?? []).length; for (const r of (results ?? []).slice(0, 4)) { if (!usesThis(r.url, row.origin) && !OFFICIAL_HOST.test(hostOf(r.url) ?? "")) continue; if (seen.has(r.url)) continue; seen.add(r.url); const p = await Promise.resolve(read(r.url)).catch(() => null); if (ok(p, r.url)) return found(p, r.url, usesThis(r.url, row.origin) ? "own" : "another official page"); } }
-  return { ok: false, on, why: readAny ? "no page of its own holds it" : "its pages could not be opened", ...(searched ? { again: true } : {}) };
+  return { ok: false, on, why: readAny ? "no page of its own holds it" : "its pages could not be opened" };
 }
-/** what was found goes under its question, before the AI checks it */
-export function applyFills(plan, fills = {}, { finder = null } = {}) {
+/** where the test is taken: the official finder, as every other country's page. No AI: it is OET's own fact */
+export function applyFills(plan, { finder = null } = {}) {
   for (const p of plan.pages ?? []) for (const it of p.items ?? []) {
     if (!emptyItem(it)) continue;
-    /* where the test is taken: the official finder, as every other country's page */
     if (partOf(it) === "centres" && finder?.text && p.country) { it.claims = [{ claimId: `fill-centres-${p.country}`.replace(/\s+/g, "-"), card: null, text: `To find a test venue in ${finder.place(p.country)}, use Find a test on ${finder.subject}'s booking page.`, link: finder.link, readOn: finder.readOn, source: finder.source ?? "its own page", official: true, filled: true }]; continue; }
-    const n = NEEDS[partOf(it)], c = it.claims[0], origin = originOf(c.link), f = n && origin ? fills[`${n.need}|${origin}`] : null; if (!f?.ok) continue;
-    const body = BODY_OF_NOTE.exec(c.text ?? "")?.[1]; if (!body) continue;
-    it.claims = [{ claimId: `fill-${n.need}-${hostOf(f.url)}`, card: null, text: f.how === "own" ? n.line(body) : n.other(hostOf(f.url)), link: f.url, readOn: f.on, source: `${hostOf(f.url)} — its official page`, official: true, filled: true, intent: n.intent }];
   }
   return plan;
 }

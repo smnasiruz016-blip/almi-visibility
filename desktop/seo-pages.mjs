@@ -163,6 +163,11 @@ export function answersFromSite(text, site, max = 3) {
  * The plan and the drafts. Returns { plan:[{ kind: NEW|SECTION|REFUSED, question, demand, answers, into?, why? }], drafts:[{ url, title, html,
  * gates, pass }], design: "your site's look" | "a plain look", notEnough }.
  */
+/** 🔴 RR-374b: two pages with one description: the later one opens with its own title, cut at a word. A description the client wrote is left as it is */
+export function uniqueDescriptions(built, { keep = () => false, max = 160 } = {}) {
+  const RE = /(<meta name="description" content=")([^"]*)(">)/, seen = new Set(); for (const b of built) { const m = RE.exec(b.html); if (m && keep(b)) seen.add(m[2]); }
+  return built.map((b) => { const m = RE.exec(b.html); if (!m || keep(b)) return b; if (!seen.has(m[2])) { seen.add(m[2]); return b; } const room = (t) => { if (t.length <= max) return t; const cut = t.slice(0, max - 1); return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 40)).replace(/&[a-z#0-9]*$/i, "").replace(/[\s,;:]+$/, "")}…`; }; let t = room(`${escH(b.title)}: ${m[2]}`); if (seen.has(t)) t = room(`${escH(b.title)} (${escH(b.url)}): ${m[2]}`); seen.add(t); return { ...b, html: b.html.replace(RE, (_, a, __, c) => `${a}${t}${c}`) }; });
+}
 export function seoPages({ site, searchConsole = null, files = [], youtube = null, on, max = 12, overrides = {}, official = {}, planned = [], own = [], subject = null, pagePlan = null, noWorkNotes = false, cta = null, target = null, coverageFor = null, reviewFor = null /* RR-360 */, bodies = [] /* RR-363 */, fitSubject = null /* RR-364 */, officialHost = null /* RR-366: the subject's own site, when it is not the client's */, answerFor = null /* RR-366: the ladder */ }) {
   const askAbout = fitSubject ?? subject;
   /* RR-318 B6 (owner's sourcing law: "the fact's owner answers it, with date"): a search about a country is answered FIRST by the official
@@ -334,6 +339,7 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   if (cta?.label && cta?.href) built = built.map((b) => (/data-cta>/.test(b.html) ? b : { ...b, html: withCta(b.html, cta) }));
   /* RR-355 Rule 1: in the site's own look (its header, footer and styles), read from the site */
   built = built.map((b) => ({ ...b, html: inSiteLook(b.html, site.shell ?? null) }));
+  built = uniqueDescriptions(built, { keep: (b) => typeof overrides[b.url] === "string" }); /* RR-374b: before the gates read them */
   const now = new Date(on).toISOString();
   /* RR-333 (buyer walk: ONE new article could never be published — "it links to no other page of the set" while it linked the buyer's own
    * Prices and Implants pages): the site's existing pages are link targets for the gates (their links IN to a new page come after publishing) */

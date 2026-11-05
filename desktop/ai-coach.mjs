@@ -17,6 +17,8 @@ import { AI } from "./ai-write.mjs";
  */
 export const PRICES = Object.freeze({
   "claude-opus-5-5": Object.freeze({ inPerMillion: 4, outPerMillion: 20, source: "Anthropic's pricing page (platform.claude.com/docs/en/about-claude/pricing)", read: "2026-10-22" }),
+  /* 🔴 RR-374b: extraction runs on Sonnet. A model with no price here counts as $0, and the month's limit would never see it */
+  "claude-sonnet-5-5": Object.freeze({ inPerMillion: 2, outPerMillion: 10, source: "Anthropic's pricing page (platform.claude.com/docs/en/about-claude/pricing)", read: "2026-11-05" }),
 });
 export const PRICE = Object.freeze({ model: AI.model, ...PRICES[AI.model] }); // the model Visibility asks for
 export const DEFAULT_CAP_USD = 10;

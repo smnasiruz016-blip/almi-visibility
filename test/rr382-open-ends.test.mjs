@@ -119,6 +119,13 @@ test("1d · WIRED: the lists fill the data items that said 'not built'; their cr
   assert.match(readFileSync(join(REPO, "site", "almiseo.mjs"), "utf8"), /lists: \(await seo\.searchCount\?\.\(`lists:\$\{p\}`\)/);
 });
 
+/* ── found by starting the built 1.15.37: every HELP guide page answered 500 (since RR-375) ── */
+test("GUIDES: every guide page the app serves renders, each step's own words shown (a help guide's steps are plain sentences, with no drawing)", async () => {
+  const { guidePage, guideList } = await import("../desktop/guides.mjs");
+  for (const g of guideList()) { let h; assert.doesNotThrow(() => { h = guidePage(g.id); }, `${g.id} must not crash`); assert.ok(h && !/>undefined</.test(h), `${g.id}: every step has its words`); }
+  assert.match(guidePage("seo-reviews"), /once a day while it is open/); assert.match(guidePage("data-screen"), /Step 1 of/);
+});
+
 /* ── 1e ── */
 test("1e · the Guide says plainly that speech is never turned into text (captions or the host's file only)", () => {
   assert.ok(HELP_GUIDES["seo-video"].steps.some((s) => /does not turn speech into text/.test(s))); assert.ok(HELP_GUIDES["seo-podcast"].steps.some((s) => /does not turn speech into text/.test(s)));

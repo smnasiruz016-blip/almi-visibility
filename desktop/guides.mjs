@@ -14,7 +14,10 @@ import { cssVariables } from "./theme.mjs";
 const NEVER = "Never send a key in chat or email — not to AlmiWorld, not to anyone. You paste it only into Visibility, on your own computer.";
 
 /* a simple drawing of the screen the step is about: a window, its path, and the button to press (highlighted) */
-function draw({ title, path = [], press = null, fields = [] }) {
+function draw(d) {
+  /* 🔴 RR-382 (found by starting the built 1.15.37): a help guide's steps are plain sentences with no drawing; every help page answered 500 since RR-375 */
+  if (!d) return "";
+  const { title, path = [], press = null, fields = [] } = d;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const rows = fields.map((f, i) => `<rect x="24" y="${92 + i * 34}" width="300" height="24" rx="6" fill="#fff" stroke="#E7CDB8"/><text x="32" y="${108 + i * 34}" font-size="12" fill="#6B5E52">${esc(f)}</text>`).join("");
   const by = 92 + fields.length * 34 + 6;
@@ -230,7 +233,7 @@ main{max-width:760px;margin:18px auto;padding:0 16px} h1{font-size:21px;color:va
 <main><h1>${esc(g.title)}</h1><p class="meta">${esc(g.for)}${help ? "" : " The steps the AlmiWorld owner followed on 22 October 2026. Keep this window open beside Visibility while you paste."}</p>
 ${help ? "" : `<p class="never" id="never">${esc(NEVER)}</p>`}
 <div class="bar"><button class="ghost" id="prev" type="button">← Back</button><span id="count" class="meta"></span><button id="next" type="button">Next →</button><button class="ghost" id="all" type="button">Show all steps</button></div>
-${g.steps.map((s, i) => `<section class="step" id="s${i + 1}" ${i ? "hidden" : ""}><h2>Step ${i + 1} of ${n}</h2><p>${esc(s.do)}</p>${draw(s.draw)}</section>`).join("\n")}
+${g.steps.map((s, i) => `<section class="step" id="s${i + 1}" ${i ? "hidden" : ""}><h2>Step ${i + 1} of ${n}</h2><p>${esc(typeof s === "string" ? s : s.do)}</p>${typeof s === "string" ? "" : draw(s.draw)}</section>`).join("\n")}
 <div class="bar"><button class="ghost" id="prev2" type="button">← Back</button><button id="next2" type="button">Next →</button></div>
 ${help ? "" : `<p class="never">${esc(NEVER)}</p>`}</main>
 <script>

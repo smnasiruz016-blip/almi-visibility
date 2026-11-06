@@ -1,7 +1,7 @@
 /**
  * 🔴 RR-377 item 4 (owner, 6 Nov 2026): a new route, AI web search. The app's own Anthropic key with Claude's web search tool (the
  * official API feature): Sonnet searches and writes the answer with the pages it cites; code checks every number and every
- * "registers/licenses" against the cited words; Opus, the judge, confirms the answer says only what those words say. In the ladder after
+ * "registers/licenses" against the cited words; the judge (Sonnet since RR-378e) confirms the answer says only what those words say. In the ladder after
  * our own data and before DataForSEO. Its money is its own line, inside the Monthly AI limit, and is never raised here.
  * Google's and Bing's own pages are never read by the app: the search is Anthropic's.
  */

@@ -215,8 +215,8 @@ test("LAW 4 FOR EVERY LINE: each line shown is judged on its full source page; a
   const seen = [], fetchImpl = async (_u, o) => { const b = JSON.parse(o.body), body = JSON.parse(b.messages[0].content); seen.push({ model: b.model, page: body.source.page }); const ok = !/350/.test(body.line); return new Response(JSON.stringify({ model: b.model, stop_reason: "end_turn", usage: { input_tokens: 5000, output_tokens: 80 }, content: [{ type: "text", text: JSON.stringify({ answersQuestion: true, onlySource: ok, exact: ok, registersOk: true, notOldNews: true, noConflict: true, pass: ok, reason: ok ? "as the source says" : "the source gives Grade B with no number" }) }] }), { status: 200 }); };
   const read = async (u) => ({ ok: true, url: u, title: "T", text: u.includes("coru") ? "OET (Podiatry) A minimum of Grade B in three components." : "OET costs AUD 587 for all four parts." });
   const tv = {}, t = await truthAll({ rows, verdicts: tv, key: "k", read, today: ON, fetchImpl });
-  assert.deepEqual([t.judged, t.failed], [2, 1]); assert.equal(seen[0].model, "claude-opus-5-5"); assert.match(seen[1].page, /Grade B in three components/, "the judge read the whole page");
-  const gone = applyTruth(plan, tv);
+  assert.deepEqual([t.judged, t.failed], [2, 1]); assert.equal(seen[0].model, "claude-sonnet-5-5", "RR-378e: Sonnet only"); assert.match(seen[1].page, /Grade B in three components/, "the judge read the whole page");
+  const gone = applyTruth(plan, tv).removed;
   assert.equal(gone.length, 1); assert.deepEqual(plan.pages[0].items.map((it) => it.question), ["How much is OET?"], "nothing true was left under it: the question went");
   assert.deepEqual(truthRows(plan, tv, ON), [], "judged lines are not asked again before their recheck day");
   assert.ok(truthRows(plan, tv, "2026-12-07").length >= 1, "a fee line is asked again after a month (Q&A LAW 7)");
@@ -231,4 +231,56 @@ test("LAW 4.3 · a score only where the source gives one; LAW 5.3 · an office l
   assert.equal(plainScores("Grade B (350) in three components and C+ (300) in one"), "B (350) in three sub-tests and C+ (300) in one");
   const l = officeLine({ name: "Association X", people: "occupational therapists", place: "Canada", website: "https://x.example/", professional: true });
   assert.doesNotMatch(l, /professional body/); assert.match(l, /not confirmed yet/); assert.doesNotMatch(l, /\bregisters\b/);
+});
+
+/* ══ RR-378e · the owner's decisions of 6 Nov 2026, 04:40 ══ */
+test("RR-378e 1 · HIDE UNCHECKED: a line the truth pass has not checked is hidden, in Q&A and in the page's own blocks; shown once it passes; a table made from hidden lines goes", async () => {
+  const { applyTruth, truthKey, truthRows } = await import("../desktop/truth-pass.mjs");
+  const mk = () => ({ pages: [{ title: "OET Booking", items: [{ part: "fee", question: "How much is OET?", claims: [{ text: "OET costs AUD 587.", link: "https://oet.example/fee" }] }, { part: "questions0", question: "Where do I book?", claims: [{ text: "On OET's booking page.", link: "https://oet.example/book" }] }, { part: "questions1", question: "Found by the ladder?", claims: [{ text: "Yes, judged on its full page.", link: "https://x.example/", filled: true }] }], content: { tips: [{ text: "Have your card ready.", link: "https://oet.example/book" }], table: [["a", "b"]], answer: "short" } }] });
+  const none = mk(), r0 = applyTruth(none, {});
+  assert.deepEqual(none.pages[0].items.map((it) => it.question), ["Found by the ladder?"], "nothing checked yet: only the ladder's own judged answer shows");
+  assert.equal(r0.hidden.length, 3); assert.deepEqual(none.pages[0].content.tips, []); assert.equal(none.pages[0].content.table, undefined, "a table made from hidden lines goes");
+  const tv = {}; for (const r of truthRows(mk(), {}, ON)) tv[r.key] = { pass: true, on: ON };
+  assert.equal(truthRows(mk(), {}, ON).length, 3, "the tip is a line to check too");
+  const all = mk(), r1 = applyTruth(all, tv);
+  assert.deepEqual([r1.hidden.length, r1.removed.length], [0, 0]); assert.equal(all.pages[0].items.length, 3); assert.equal(all.pages[0].content.tips.length, 1); assert.deepEqual(all.pages[0].content.table, [["a", "b"]], "all checked: the table stays");
+  const shown = mk(); applyTruth(shown, {}, { hideUnchecked: false }); assert.equal(shown.pages[0].items.length, 3, "the switch off: as before");
+  tv[truthKey("How much is OET?", "OET costs AUD 587.", "https://oet.example/fee")] = { pass: false, on: ON, reason: "no" }; const one = mk(); assert.equal(applyTruth(one, tv).removed.length, 1);
+});
+
+test("RR-378e 2 · SONNET ONLY: every judge in the app asks Sonnet", async () => {
+  const { FINDER } = await import("../desktop/answer-finder.mjs"), { JUDGE } = await import("../desktop/qa-judge.mjs"), { TRUTH } = await import("../desktop/truth-pass.mjs");
+  assert.deepEqual([FINDER.judgeModel, FINDER.extractModel, JUDGE.model, TRUTH.model], ["claude-sonnet-5-5", "claude-sonnet-5-5", "claude-sonnet-5-5", "claude-sonnet-5-5"]);
+  const calls = []; await confirmAnswer({ key: "k", question: "Q?", answer: "A.", quotes: ["A."], url: "https://x.org", title: "T", fetchImpl: async (_u, o) => { calls.push(JSON.parse(o.body).model); return new Response(JSON.stringify({ model: "claude-sonnet-5-5", stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 }, content: [{ type: "text", text: "{}" }] }), { status: 200 }); } });
+  assert.deepEqual(calls, ["claude-sonnet-5-5"]);
+  for (const f of ["desktop/truth-pass.mjs", "desktop/qa-judge.mjs", "desktop/answer-finder.mjs"]) assert.doesNotMatch(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), /model: AI\.model|claude-opus/, f);
+});
+
+test("RR-378e 3 · COST FIRST: the estimate is lines × the measured Sonnet cost; the pass runs only after Start; the screen asks and shows x of y and $", async () => {
+  const { truthEstimate, TRUTH } = await import("../desktop/truth-pass.mjs");
+  assert.deepEqual(truthEstimate(Array.from({ length: 1000 }, () => ({}))), { lines: 1000, usd: 8.8, perLineUsd: 0.0088, model: "claude-sonnet-5-5" });
+  const M = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), U = readFileSync(new URL("../desktop/ui.html", import.meta.url), "utf8");
+  assert.match(M, /pread\(id, TRUTH_GO, null\)\?\.go === true && rows\.length/, "it runs only after the owner's Start");
+  assert.match(M, /\$\{o\.judged\} of \$\{rows\.length\} checked, \$\$\{o\.usd\.toFixed\(2\)\} spent/);
+  assert.match(U, /Start the truth check\?/); assert.match(U, /lines checked, \$\{\$m\(r\.usd\)\} spent/); assert.match(U, /if \(!\(await truthAsk\(\)\)\) return;/);
+  assert.ok(TRUTH.perLineUsd > 0);
+});
+
+test("RR-378e 4 · LAW 4.6: two non-official sources disagree → the newer wins and the older is still named; an official one wins outright", async () => {
+  const { settleSources } = await import("../desktop/truth-pass.mjs");
+  const plan = { pages: [{ title: "P", items: [{ part: "fee", question: "How much is OET in Kenya?", claims: [{ text: "OET costs KES 60,000.", link: "https://a.example/", readOn: "2025-01-02", source: "Blog A — its own page" }, { text: "OET costs KES 66,000.", link: "https://b.example/", readOn: "2026-10-01", source: "Blog B — its own page" }] }] }] };
+  assert.equal(settleSources(plan)[0].won, "newer");
+  assert.deepEqual(plan.pages[0].items[0].claims.map((c) => c.text), ["OET costs KES 66,000.", "Earlier (checked 2025-01-02), Blog A said: OET costs KES 60,000."]);
+  const off = { pages: [{ title: "P", items: [{ part: "fee", question: "How much is OET?", claims: [{ text: "OET costs AUD 499.", link: "https://blog.example/", readOn: "2026-11-01" }, { text: "OET costs AUD 587.", link: "https://oet.com/fee", readOn: "2026-10-01", official: true }] }] }] };
+  assert.equal(settleSources(off)[0].won, "official"); assert.deepEqual(off.pages[0].items[0].claims.map((c) => c.text), ["OET costs AUD 587."]);
+  const agree = { pages: [{ title: "P", items: [{ part: "fee", question: "How much is OET?", claims: [{ text: "AUD 587.", link: "https://a.example/" }, { text: "It is AUD 587.", link: "https://b.example/" }] }] }] };
+  assert.deepEqual(settleSources(agree), [], "the same numbers: nothing to settle");
+});
+
+test("RR-378e 5 · the Ontario line: numbers no OET result can be (another test's row in a mixed table) are never shown as OET's", async () => {
+  const { oetPlausible } = await import("../desktop/official.mjs");
+  assert.equal(oetPlausible("Listening 249 · Reading 207 · Writing 310 · Speaking 310", "OET"), false);
+  assert.equal(oetPlausible("Listening 350 · Reading 360 · Writing 350 · Speaking 360", "OET"), true);
+  assert.equal(oetPlausible("Listening 249", "IELTS"), true, "another subject: not judged here");
+  assert.match(readFileSync(new URL("../desktop/research.mjs", import.meta.url), "utf8"), /oetPlausible\(got\.scores\.text, subject\)/);
 });

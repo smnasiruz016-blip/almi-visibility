@@ -16,6 +16,7 @@ import { PEOPLE_WORD, inCountry, isRegulator, callNames } from "./recognition.mj
 import { readFileSync as readList } from "node:fs";
 const BODY_COVERS = Object.freeze(JSON.parse(readList(new URL("./lists/fact-corrections.json", import.meta.url), "utf8")).bodyCovers ?? {});
 import { readRegulator, validityIn, combiningIn, STEP_LINK } from "./regulator-read.mjs";
+import { oetPlausible } from "./official.mjs"; // RR-378e
 import { OTHER_TESTS } from "./page-types.mjs";
 
 /* the standard questions of each page type, per product CATEGORY (an exam; any other product) — never one client's list */
@@ -151,7 +152,7 @@ export async function searchMissing({ questions, subject, reader, cache, budget 
         cache.set(url, got);
       }
       /* a page that only says it accepts the exam answers no score question: the scores themselves must stand on it */
-      const hasScores = Boolean(got.scores) && scoresTied(got.scores.text), place = placeOf(q.country, body.name).label;
+      const hasScores = Boolean(got.scores) && scoresTied(got.scores.text) && oetPlausible(got.scores.text, subject) /* RR-378e */, place = placeOf(q.country, body.name).label;
       q.searched.push({ url: got.url ?? url, body: body.name, on: got.on, found: hasScores, why: hasScores ? null : got.scores ? (UNTIED.test(got.scores.text) ? `its page gives numbers without saying which sub-test each is for — no number is shown` : `its page says it accepts ${subject} but states no scores`) : got.why ?? `its page does not state the ${subject} scores` });
       /* accepted, but no score tied to a sub-test: said with its page linked, never a number — the question stays open */
       if (!hasScores && got.scores && !q.partial) q.partial = { text: `In ${place}: ${body.name} names ${subject} on its own page among the English tests it accepts; the page does not say which score is for which sub-test — see its page.`, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) };
@@ -170,7 +171,7 @@ export async function searchMissing({ questions, subject, reader, cache, budget 
           got = { on: String(now).slice(0, 10), at: String(now), ok: r.ok, url: r.url ?? url, why: r.why ?? null, scores: r.ok ? (r.claims ?? []).find((c) => c.fact === "scores") ?? null : null, foundBy: "google" };
           cache.set(url, got);
         }
-        const hasScores = Boolean(got.scores) && scoresTied(got.scores.text), place = placeOf(q.country, body.name).label;
+        const hasScores = Boolean(got.scores) && scoresTied(got.scores.text) && oetPlausible(got.scores.text, subject) /* RR-378e */, place = placeOf(q.country, body.name).label;
         q.searched.push({ url: got.url ?? url, body: body.name, on: got.on, found: hasScores, how: "found through Google's results", why: hasScores ? null : got.why ?? `its page does not state the ${subject} scores` });
         if (hasScores) { q.answer = [{ fact: { id: `read-${got.scores.claimId}`, text: got.scores.text, link: got.scores.link, on: got.scores.readOn, source: hostOf(got.scores.link) }, read: true, text: `In ${place}: ${got.scores.text}` }]; q.how = `read on ${body.name}'s own page (found through Google's results)`; q.partial = null; break; }
       }

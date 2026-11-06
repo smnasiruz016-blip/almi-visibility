@@ -317,6 +317,8 @@ export function seoJobs(d) {
     async due(id) { const x = load(id, "rank"); if (!x.chosen?.length) return null; const t = today(now), last = x.last ?? null; if (last && (Date.parse(t) - Date.parse(last)) / 864e5 < (x.every === "day" ? 1 : 7)) return null; return rankRun(id, {}); },
     /** the Data screen: one money line per job that spends */
     kinds,
+    /** RR-382 item 1a: the daily review watch (→ the new bad reviews) and the alerts waiting */
+    reviewsDue: (id) => more.reviewsDue(id), alerts: (id) => more.alerts(id),
     moneyLines() { const l = d.dfs.ledger(), n = new Date(now()).toISOString(), rows = ["aso", "local", "rank", "aiv", "reviews", "backlinks", "shop"].map((j) => { const s = jobSpent(l, j, n); return { what: `${JOBS[j].title} (search data)`, today: $(s.today, 4), month: $(s.month, 4), cap: `at most ${$(RUN_BUDGET[j])} a run, inside your search-data caps` }; }); return [...rows, { what: "AI assistants checked (ChatGPT, Perplexity, Gemini; your own keys)", today: "–", month: $(engineSpent()), cap: `${$(d.engines.cap())} a month` }]; },
   });
 }

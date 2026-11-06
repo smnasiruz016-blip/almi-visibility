@@ -89,8 +89,8 @@ test("GENERAL MARKET DATA: the seed list's categories and YouTube niches become 
 });
 
 test("CRONS + HEALTH + SONNET: three new crons behind CRON_SECRET, on the health page; every collector asks Sonnet", () => {
-  assert.deepEqual(MC_CRONS.map((c) => c.path), ["/cron/places", "/cron/rules", "/cron/trends"]); for (const c of MC_CRONS) assert.ok(VERCEL_JSON_LITE.crons.some((x) => x.path === c.path && x.schedule === c.schedule));
-  const app = readFileSync(join(REPO, "site", "app.mjs"), "utf8"); assert.match(app, /"\/cron\/places" \|\| u\.pathname === "\/cron\/rules" \|\| u\.pathname === "\/cron\/trends"\)\) \{\n\s+if \(!cronAuth\(\)\)/);
+  assert.deepEqual(MC_CRONS.map((c) => c.path), ["/cron/places", "/cron/rules", "/cron/trends", /* RR-382 */ "/cron/lists"]); for (const c of MC_CRONS) assert.ok(VERCEL_JSON_LITE.crons.some((x) => x.path === c.path && x.schedule === c.schedule));
+  const app = readFileSync(join(REPO, "site", "app.mjs"), "utf8"); assert.match(app, /"\/cron\/places" \|\| u\.pathname === "\/cron\/rules" \|\| u\.pathname === "\/cron\/trends" \|\| u\.pathname === "\/cron\/lists"\)\) \{\n\s+if \(!cronAuth\(\)\)/);
   for (const k of ["places", "rules", "trends"]) assert.ok(COLLECTORS[k]);
   assert.equal(CF_AI.model, "claude-sonnet-5-5"); assert.equal(CF_AI.price.inPerM, 2);
 });

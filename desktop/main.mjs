@@ -37,6 +37,7 @@ import { readSite, readShell, addressOpens, USER_AGENT } from "./site-read.mjs";
 import { scoreCard, foundInfo, fixForMe } from "./product-check.mjs";
 import { googleConnect, importExport } from "./google-connect.mjs";
 import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./seo-pages.mjs";
+import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 item 1c
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting } from "./publish.mjs";
@@ -1328,6 +1329,8 @@ async function weeklyRound() {
   for (const p of store.list()) {
     /* RR-379 item 4: the client's chosen words, measured each week (or day) by themselves, inside the caps */
     if (CONFIG.testOffline !== true && !jobBusy.has(`${p.id}|rank`)) { jobBusy.add(`${p.id}|rank`); CURRENT_JOB_PRODUCT = p.id; try { await JOBS_RUN().due(p.id); } catch { /* said on the screen next time */ } finally { jobBusy.delete(`${p.id}|rank`); } }
+    /* 🔴 RR-382 item 1a: the daily review watch; a new 1–2 star review → a Windows notification (the first screen shows it too) */
+    if ((CONFIG.testOffline !== true || CONFIG.testJobBases) && !jobBusy.has(`${p.id}|reviews`)) { jobBusy.add(`${p.id}|reviews`); CURRENT_JOB_PRODUCT = p.id; try { const a = await JOBS_RUN().reviewsDue(p.id); if (a?.length && CONFIG.toasts !== false) windowsToast({ title: `AlmiVisibility: ${a.length} new bad review${a.length === 1 ? "" : "s"}`, line: `${p.product?.name ?? p.name ?? ""}: ${a[0].stars}★ on ${a[0].source}. A reply draft is ready in Reviews and reputation.` }); } catch { /* said on the screen next time */ } finally { jobBusy.delete(`${p.id}|reviews`); } }
     const id = p.id; if (!weeklyOf(id).on || checking.has(id)) continue;
     /* RR-322 C3: the Monday report — Google's own index state of the live pages, once each Monday (independent of the weekly check) */
     if (new Date().getUTCDay() === 1 && pread(id, "batches.json", []).length && !(Date.now() - Date.parse(pread(id, "index-report.json")?.on ?? 0) < 6 * 864e5)) await indexReport(id).catch(() => null);
@@ -1404,7 +1407,7 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
-        return send(200, { version: VERSION, company: store.company(), products: products.map((s) => ({ ...productCard(s), ...cardCounts(s.id), next: nextStepFor(s), sameSiteAs: products.find((o) => o.id !== s.id && o.created < s.created && s.product.site && o.product.site && hostOf(o.product.site) === hostOf(s.product.site))?.product.name ?? null })), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus() });
+        return send(200, { version: VERSION, company: store.company(), products: products.map((s) => ({ ...productCard(s), ...cardCounts(s.id), next: nextStepFor(s), reviewAlerts: (pread(s.id, "seo-reviews.json", {})?.alerts ?? []).length /* RR-382 item 1a */, sameSiteAs: products.find((o) => o.id !== s.id && o.created < s.created && s.product.site && o.product.site && hostOf(o.product.site) === hostOf(s.product.site))?.product.name ?? null })), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus() });
       }
       /* RR-313 B1: ONE place to switch Google sign-in on (YouTube AND Search Console use the same client) — the client id is shown, the secret never */
       if (req.method === "GET" && u.pathname === "/api/google/client") return send(200, googleClientStatus());
@@ -1684,7 +1687,7 @@ const server = createServer((req, res) => {
             store.remove(id);
             return send(200, { ok: true, line: `${s.product?.name} was deleted from this computer, with its saved data.` });
           }
-          if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`, { submit: json().submit === true }); if (g.ok) CONFIG.googlePendingProduct = id; return send(g.ok ? 200 : 400, g.ok ? { ...g, opened: openInBrowser(g.url) } : { refused: g.why }); }
+          if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`, { submit: json().submit === true, merchant: json().merchant === true /* RR-382 item 1b */ }); if (g.ok) CONFIG.googlePendingProduct = id; return send(g.ok ? 200 : 400, g.ok ? { ...g, opened: openInBrowser(g.url) } : { refused: g.why }); }
           if (r[2] === "google/site" && req.method === "POST") { const q = await GOOGLE.queries(json().site); if (!q) return send(400, { refused: "Google did not give the searches for that site — press Connect again." }); pwrite(id, "search-console.json", q); return send(200, { ok: true, line: `Connected ✓ — ${q.queries.length} searches read from Google Search Console (${q.window}).` }); }
           if (r[2] === "google/export" && req.method === "POST") { const x = importExport(json().files ?? [], { exportedOn: new Date().toISOString().slice(0, 10), source: `${s.product?.name} Search Console` }); if (!x.ok) return send(400, { refused: x.why }); pwrite(id, "search-console.json", x.data); return send(200, { ok: true, line: x.line }); }
           if (r[2].startsWith("feature/") && req.method === "POST") {
@@ -1728,7 +1731,10 @@ const server = createServer((req, res) => {
             /* RR-310 B6: a YouTube-only product: posts from its newest videos (their own words), from the action plan */
             if (f === "social" && !pread(id, "pages.json")?.drafts?.length && ctx.noWebsite) { const p = pread(id, "plan.json"); return send(200, { socialVideos: p?.social ?? [], none: p ? null : "Press Check now first — the posts are made from your videos." }); }
             if (f === "social") { const p = pread(id, "pages.json"); const d = p?.drafts?.[0]; return send(200, { social: socialFor(d, p?.plan?.find((x) => x.kind === "NEW" && d?.title === x.question) ?? p?.plan?.find((x) => x.kind === "NEW")) }); }
-            if (f === "monthly") { const month = new Date().toISOString().slice(0, 7), rep = monthReport({ product: s.product?.name, month, drafts: pread(id, "pages.json")?.drafts ?? [], articles: pread(id, "articles.json", []) /* RR-381: the articles list was always empty */, kinds: JOBS_RUN().kinds(id) /* RR-381 item 10: every kind of SEO */, searchRecord: sc?.record ?? null, youtube: ctx.youtubeConfirmed ? { connected: true, lines: await YT.lines(id) } : null }); return send(200, /* the phone copy is downloaded from the screen; an .html file in the product folder is a page (rr307) */ { report: { lines: rep.lines, attention: rep.attention, html: rep.html } }); }
+            if (f === "monthly") { const month = new Date().toISOString().slice(0, 7), gsc = sc?.kind === "CONNECTED" ? sc.site ?? null : null, dd = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+              /* RR-382 item 1c: Search Console's live numbers when it is connected (the last 28 days with data); the export file otherwise */
+              const searchLive = gsc ? searchFromLive({ site: gsc, from: dd(30), to: dd(3), pages: (await GOOGLE.analytics(gsc, { startDate: dd(30), endDate: dd(3), dimensions: ["page"], rowLimit: 1000 }).catch(() => null)) ?? [], queries: (await GOOGLE.analytics(gsc, { startDate: dd(30), endDate: dd(3), dimensions: ["query"], rowLimit: 50 }).catch(() => null)) ?? [] }) : null;
+              const rep = monthReport({ searchLive, product: s.product?.name, month, drafts: pread(id, "pages.json")?.drafts ?? [], articles: pread(id, "articles.json", []) /* RR-381: the articles list was always empty */, kinds: JOBS_RUN().kinds(id) /* RR-381 item 10: every kind of SEO */, searchRecord: sc?.record ?? null, youtube: ctx.youtubeConfirmed ? { connected: true, lines: await YT.lines(id) } : null }); return send(200, /* the phone copy is downloaded from the screen; an .html file in the product folder is a page (rr307) */ { report: { lines: rep.lines, attention: rep.attention, html: rep.html } }); }
             return send(404, { refused: "not a feature of this version" });
           }
         } }

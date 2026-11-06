@@ -136,10 +136,10 @@ export function mergeFacts(rows) {
 }
 
 /* ───────── THE COLLECTOR PAGE (per product: what is collected, how fresh, what is missing, money) ───────── */
-export const COLLECTOR_JOBS = Object.freeze(["keywords", "facts", "answers", "top-pages", "research", "places", "rules", "trends"]);
+export const COLLECTOR_JOBS = Object.freeze(["keywords", "facts", "answers", "top-pages", "research", "places", "rules", "trends", /* RR-382 */ "lists"]);
 export async function collectorsStatus({ seo, cf = null, today, counts = {}, caps = {} }) {
   const month = today.slice(0, 7), spend = (await seo.spendSince?.(`${month}-01`).catch(() => [])) ?? [], money = (job) => ({ today: spend.filter((x) => x.job === job && x.day === today).reduce((t, x) => t + (Number(x.usd) || 0), 0), month: spend.filter((x) => x.job === job).reduce((t, x) => t + (Number(x.usd) || 0), 0), cap: caps[job] ?? null });
-  const last = Object.fromEntries(await Promise.all(["places", "rules", "trends", "research", "answers"].map(async (j) => [j, (await seo.setting(`${j}-last-run`).catch(() => null))?.on ?? null])));
+  const last = Object.fromEntries(await Promise.all(["places", "rules", "trends", "research", "answers", "lists"].map(async (j) => [j, (await seo.setting(`${j}-last-run`).catch(() => null))?.on ?? null])));
   const products = PRODUCT_DATA.map((p) => { const c = counts[p.key] ?? {}; return { key: p.key, name: p.name, data: p.data.map((item) => { const n = c[item.job] ?? null; const state = !item.built ? "not built yet" : n == null ? "not counted" : n > 0 ? "collected" : "missing"; return { what: item.what, job: item.job, every: `${item.recheckDays} days`, state, rows: n ?? 0 }; }) }; });
   /* the country facts' and answers' AI money is the "AI (the collectors)" line the app already shows (answers status); places, rules and trends are free */
   return { on: today, last, money: Object.fromEntries(["top-pages", "research", "places", "rules", "trends"].map((j) => [j, money(j)])), products };

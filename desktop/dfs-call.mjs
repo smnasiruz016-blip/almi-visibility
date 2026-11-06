@@ -65,9 +65,9 @@ export function dfsBuyer({ job, ledger, save = () => {}, creds, settings, runBud
       return { ok: t.ok, result: t.result, cost: t.cost, why: t.why };
     },
     /** a standard-queue method (App Data): post, then collect (free) for at most waitMs. → { ok, result, cost, fromKept, why, later } */
-    async queued(pathBase, task, { worst, what, waitMs: wait = waitMs, getPath = "/task_get/advanced/" /* Business Data reviews: "/task_get/" (docs.dataforseo.com, RR-379 proof: 40400 on /advanced) */ }) {
+    async queued(pathBase, task, { worst, what, waitMs: wait = waitMs, getPath = "/task_get/advanced/" /* Business Data reviews: "/task_get/" (docs.dataforseo.com, RR-379 proof: 40400 on /advanced) */, fresh = false /* RR-382: the daily review watch must read today's reviews, never the 7-day copy */ }) {
       const waitMs0 = wait;
-      const k = kept(pathBase, task); if (k) return { ok: true, result: k.result, cost: 0, fromKept: true };
+      const k = fresh ? null : kept(pathBase, task); if (k) return { ok: true, result: k.result, cost: 0, fromKept: true };
       const pending = ledger.jobPending?.[keyOf(pathBase, task)];
       let id = pending?.id ?? null, cost = 0;
       if (!id) {

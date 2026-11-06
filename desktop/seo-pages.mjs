@@ -520,7 +520,7 @@ export function socialFor(draft, planRow) {
 }
 
 /** The MONTHLY REPORT, the engine's own: what was made, the search data, the YouTube part — bad news first. */
-export function monthReport({ product, month, drafts = [], articles = [], kinds = null, searchRecord = null, youtube = null }) {
+export function monthReport({ product, month, drafts = [], articles = [], kinds = null, searchRecord = null, searchLive = null /* RR-382 item 1c: the live connection first, the export file as fallback */, youtube = null }) {
   /* RR-381: the day's articles (articles.json) of this month are listed; before, the list was always empty (SEO map row 16) */
-  return monthlyReport({ product, month, made: { pages: drafts.map((d) => ({ url: d.url, title: d.title })), articles: articles.filter((a) => String(a.day ?? "").startsWith(month)).map((a) => ({ url: a.url, question: a.title ?? a.question ?? a.url, day: a.day })) }, search: searchFromExport(searchRecord), youtube, kinds });
+  return monthlyReport({ product, month, made: { pages: drafts.map((d) => ({ url: d.url, title: d.title })), articles: articles.filter((a) => String(a.day ?? "").startsWith(month)).map((a) => ({ url: a.url, question: a.title ?? a.question ?? a.url, day: a.day })) }, search: searchLive ?? searchFromExport(searchRecord), youtube, kinds });
 }

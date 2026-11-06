@@ -18,11 +18,24 @@ export const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 /* RR-308 D4: ONE extra permission, asked only when the client ticks "also let Visibility tell Google about my new pages": it can submit a
  * sitemap (it can also change other Search Console settings — Google offers nothing narrower; Visibility only ever submits a sitemap) */
 export const SUBMIT_SCOPE = "https://www.googleapis.com/auth/webmasters";
-export const GOOGLE = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", api: "https://www.googleapis.com/webmasters/v3/", inspect: "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect" });
+/* 🔴 RR-382 item 1b: the client's own Merchant Center, read through the same Google sign-in, only when he ticks it (Merchant API, read only in
+ * Visibility: products and their problems; Google offers no narrower scope than "content") */
+export const MERCHANT_SCOPE = "https://www.googleapis.com/auth/content";
+export const GOOGLE = Object.freeze({ auth: "https://accounts.google.com/o/oauth2/v2/auth", token: "https://oauth2.googleapis.com/token", api: "https://www.googleapis.com/webmasters/v3/", inspect: "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", merchant: "https://merchantapi.googleapis.com/" });
 export const KEYS = Object.freeze({ secret: "GOOGLE_CLIENT_SECRET", refresh: "GOOGLE_REFRESH_TOKEN" });
 const b64url = (b) => Buffer.from(b).toString("base64url");
 /* only Google's own addresses — or, in tests, a stand-in on this computer */
-const allowed = (u) => /^https:\/\/(accounts\.google\.com|oauth2\.googleapis\.com|www\.googleapis\.com|searchconsole\.googleapis\.com)\//.test(u) || /^http:\/\/127\.0\.0\.1:\d+\//.test(u);
+const allowed = (u) => /^https:\/\/(accounts\.google\.com|oauth2\.googleapis\.com|www\.googleapis\.com|searchconsole\.googleapis\.com|merchantapi\.googleapis\.com)\//.test(u) || /^http:\/\/127\.0\.0\.1:\d+\//.test(u);
+/** the Merchant API's documented products (products_v1) → the client's products with their problems */
+export function merchantIssues(products) {
+  const byCode = new Map(); let disapproved = 0;
+  for (const p of products ?? []) {
+    if ((p.productStatus?.destinationStatuses ?? []).some((d) => (d.disapprovedCountries ?? []).length)) disapproved++;
+    for (const i of p.productStatus?.itemLevelIssues ?? []) { const k = `${i.code}|${i.attribute ?? ""}`, x = byCode.get(k) ?? { code: i.code, attribute: i.attribute ?? null, severity: i.severity ?? null, description: i.description ?? null, detail: i.detail ?? null, resolution: i.resolution ?? null, documentation: i.documentation ?? null, products: [] }; x.products.push(p.productAttributes?.title ?? p.offerId ?? p.name); byCode.set(k, x); }
+  }
+  const rank = { DISAPPROVED: 0, DEMOTED: 1, NOT_IMPACTED: 2 };
+  return { products: (products ?? []).length, disapproved, issues: [...byCode.values()].sort((a, b) => (rank[a.severity] ?? 3) - (rank[b.severity] ?? 3) || b.products.length - a.products.length) };
+}
 
 /** A ZIP's files (Search Console's own download) — stored or deflated entries; names → text. */
 export function unzip(buf) {
@@ -84,12 +97,12 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
   return Object.freeze({
     status() { return { ready: ready(), signedIn: Boolean(keys.get(KEYS.refresh)), clientIdSet: Boolean(clientId()) }; },
     /** the address of Google's own sign-in page, opened in the client's browser */
-    start(redirect, { submit = false } = {}) {
+    start(redirect, { submit = false, merchant = false } = {}) {
       if (!ready()) return { ok: false, why: "Google sign-in is not set up in this copy of AlmiVisibility yet (AlmiWorld's Google sign-in client is missing). Meanwhile, add a Search Console export file — it works today." };
       const verifier = b64url(randomBytes(32)), state = b64url(randomBytes(16));
       pending.set(state, { verifier, redirect, at: now() });
       const u = new URL(ep.auth);
-      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: submit ? `${SCOPE} ${SUBMIT_SCOPE}` : SCOPE, access_type: "offline", prompt: "select_account consent", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
+      for (const [k, v] of Object.entries({ client_id: clientId(), redirect_uri: redirect, response_type: "code", scope: [SCOPE, ...(submit ? [SUBMIT_SCOPE] : []), ...(merchant ? [MERCHANT_SCOPE] : [])].join(" "), include_granted_scopes: "true" /* RR-382: adding Merchant Center keeps what was given before */, access_type: "offline", prompt: "select_account consent", state, code_challenge: b64url(createHash("sha256").update(verifier).digest()), code_challenge_method: "S256" })) u.searchParams.set(k, v);
       return { ok: true, url: u.href };
     },
     /** Google sends the browser back here with a one-time code; it is exchanged for the read-only access, kept in the secure store */
@@ -103,7 +116,24 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       if (!j.refresh_token) return { ok: false, why: "Google gave no lasting access — press Connect again." };
       const k = keys.set(KEYS.refresh, j.refresh_token); if (!k.ok) return { ok: false, why: k.why };
       access = { token: j.access_token, until: now() + (j.expires_in ?? 3600) * 1000 };
-      return { ok: true, canSubmit: String(j.scope ?? "").split(/\s+/).includes(SUBMIT_SCOPE) };
+      return { ok: true, canSubmit: String(j.scope ?? "").split(/\s+/).includes(SUBMIT_SCOPE), canMerchant: String(j.scope ?? "").split(/\s+/).includes(MERCHANT_SCOPE) };
+    },
+    /** RR-382 item 1b: the Merchant Center accounts this sign-in may read, then one account's products with their problems (read only) */
+    async merchantAccounts() {
+      const t = await token(); if (!t) return { ok: false, why: "Not signed in to Google." };
+      const r = await fetchImpl(`${ep.merchant}accounts/v1/accounts?pageSize=100`, { headers: { authorization: `Bearer ${t}` } }).catch(() => null);
+      if (!r) return { ok: false, why: "Google did not answer." }; if (r.status === 401 || r.status === 403) return { ok: false, why: "Google refused: Merchant Center was not allowed in this sign-in. Settings → Google → Also connect Merchant Center." };
+      if (!r.ok) return { ok: false, why: `Merchant Center answered with an error (${r.status}).` };
+      const j = await r.json().catch(() => null); return { ok: true, accounts: (j?.accounts ?? []).map((a) => ({ id: String(a.accountId ?? String(a.name ?? "").split("/").pop()), name: a.accountName ?? a.name })) };
+    },
+    async merchantProducts(accountId, { max = 2000 } = {}) {
+      const t = await token(); if (!t) return { ok: false, why: "Not signed in to Google." }; const out = []; let page = "";
+      for (let n = 0; n < 10 && out.length < max; n++) {
+        const r = await fetchImpl(`${ep.merchant}products/v1/accounts/${encodeURIComponent(accountId)}/products?pageSize=1000${page ? `&pageToken=${encodeURIComponent(page)}` : ""}`, { headers: { authorization: `Bearer ${t}` } }).catch(() => null);
+        if (!r?.ok) return out.length ? { ok: true, products: out, partial: true } : { ok: false, why: r ? (r.status === 403 ? "Google refused: this sign-in may not read that Merchant Center account." : `Merchant Center answered with an error (${r.status}).`) : "Google did not answer." };
+        const j = await r.json().catch(() => null); out.push(...(j?.products ?? [])); page = j?.nextPageToken ?? ""; if (!page) break;
+      }
+      return { ok: true, products: out.slice(0, max) };
     },
     /** RR-308 D4: after publishing, tell Google the sitemap's address — only with the extra permission the client gave */
     async submitSitemap(siteUrl, sitemapUrl) {

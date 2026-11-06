@@ -135,6 +135,7 @@ export const HELP_GUIDES = Object.freeze({
     "Open your product → Every kind of SEO → More kinds of SEO → Reviews and reputation. Fill in your business name and city (to find your Google listing), and your Trustpilot or Tripadvisor page if you have one.",
     "Press Read my reviews: one score across every source, each source's own average and total, and what people write about (problems, prices, wishes, praise). Reading uses your search-data account (a cent or two a source).",
     "Press Draft replies: polite reply drafts for the low reviews without an answer. Approve each one, then post it where the review is.",
+    "After the first read, Visibility reads your reviews once a day while it is open (Daily watch: on). A new 1–2 star review shows on the first screen and in a Windows notification, with a reply draft ready. Each daily read costs a cent or two per source.",
     "Copy the review-request texts (email, SMS, in-store card). Ask every customer, never only the happy ones, and offer nothing in return: Google's rules forbid both.",
     "Copy the review box to your site: it shows your numbers with the date they were read. Read again each month for the trend.",
   ] },
@@ -148,6 +149,7 @@ export const HELP_GUIDES = Object.freeze({
     "Open Every kind of SEO → More kinds of SEO → Video and press Check my videos: each video's markup and captions.",
     "Paste the video's captions (WebVTT) or their address and press Make chapters from captions: chapters and a transcript, only from what is said.",
     "Fill in the video's title, thumbnail and first publish date and press Make my video markup; copy it and the video sitemap to your site.",
+    "Visibility does not turn speech into text: transcripts and chapters come only from captions you give (a WebVTT file or its address).",
   ] },
   "seo-pinterest": { title: "Pinterest: a pin for each page", for: "Visibility writes the text; you post the pins (or connect Pinterest's own scheduler).", steps: [
     "Open Every kind of SEO → More kinds of SEO → Pinterest. Give up to 6 pages (or leave it empty for your main pages) and press Write my pins.",
@@ -158,6 +160,7 @@ export const HELP_GUIDES = Object.freeze({
     "Open Every kind of SEO → More kinds of SEO → Podcasts. Paste your feed address (your host shows it) and your Spotify show link, and press Check my podcast.",
     "Fix what the feed lacks (artwork, category, descriptions, transcripts). Apple Podcasts is checked through Apple's own search; Spotify by your link.",
     "Copy the PodcastEpisode markup to each episode's page on your site.",
+    "Visibility does not turn speech into text: a transcript comes from your podcast host (most can make one and add it to the feed as podcast:transcript).",
   ] },
   "seo-entity": { title: "Brand facts: help search engines know who you are", for: "Your markup, your profiles and Wikidata, with the same facts everywhere. Never a fact you cannot source.", steps: [
     "Open Every kind of SEO → More kinds of SEO → Brand facts. Check your exact name, website, logo, a one-line description and your official profiles, then press Check my brand facts.",
@@ -176,7 +179,8 @@ export const HELP_GUIDES = Object.freeze({
     "Give your best page on the topic and press Draft outreach emails. Read each one and send it yourself.",
   ] },
   "seo-shop": { title: "Shop and marketplaces: feed, product pages, listings", for: "Google Merchant Center, Amazon, Etsy, eBay and others.", steps: [
-    "Open Every kind of SEO → More kinds of SEO → Shop and marketplaces. Give your Merchant Center feed's address (or paste it) and press Check my feed: every product against Google's product data rules.",
+    "Merchant Center: in Settings → Google press Also connect Merchant Center (your own sign-in), then Read my Merchant Center: every product and Google's own problems for it. Visibility changes nothing there.",
+    "Open Every kind of SEO → More kinds of SEO → Shop and marketplaces. Or give your Merchant Center feed's address (or paste it) and press Check my feed: every product against Google's product data rules.",
     "Give product pages and press Check my product pages: the Product markup Google reads.",
     "Give your Amazon product link (or ASIN) and the words buyers search, and press Read my listing: the listing and where it stands. Etsy is read with your own Etsy app key; eBay and others are pasted.",
     "Press Write a better listing: title, bullet points, description and tags from your own listing only. Copy what you like into the marketplace.",

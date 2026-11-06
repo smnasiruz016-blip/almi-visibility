@@ -44,7 +44,9 @@ export function buildGuides({ guides, keyFacts, rates, quotationOf, design, stam
 }
 
 /** The page as it would go live: its noindex line made a canonical link to its own address, its test stamps taken out (as publish-page does). */
-export const asPublished = (html, url) => String(html).replace(/<meta name="robots" content="noindex, nofollow">/, `<link rel="canonical" href="${url}">`).replace(/<p class="stamp">[\s\S]*?<\/p>\n?/g, "");
+export const asPublished = (html, url) => { const thin = String(html).includes(THIN_MARK); return String(html).replace(THIN_MARK, "").replace(/<meta name="robots" content="noindex, nofollow">/, `<link rel="canonical" href="${url}">${thin ? THIN_ROBOTS : ""}`).replace(/<p class="stamp">[\s\S]*?<\/p>\n?/g, ""); };
+/* 🔴 RR-378 item 2 (owner: a page that needs more answers is not in Google yet): its draft carries THIN_MARK; published, it says noindex,follow (visitors still read it, its links are still followed) and the site leaves it out of its sitemap. The next build with enough real answers has no mark, and the page goes to Google by itself on its next publish */
+export const THIN_MARK = '<meta name="av-thin" content="needs more answers">', THIN_ROBOTS = '<meta name="robots" content="noindex,follow">';
 
 /* ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  * 🔴 THE NEW-PAGE PATH (RR-296, owner decision 2: "fix the builder or build a new one" — the ONE builder now makes NEW pages too).
@@ -125,7 +127,7 @@ export function servedBy(pages) {
 }
 
 /** A page in the shape the five gates read: in the form it would go live, with its items, questions, answer and facts. */
-export const gateInput = (p) => Object.freeze({ id: p.url ?? p.id, url: p.url, html: asPublished(p.html, p.url), needs: [], mainQuery: p.title, questions: p.questions, answer: p.answer, items: p.items,
+export const gateInput = (p) => Object.freeze({ id: p.url ?? p.id, url: p.url, html: asPublished(String(p.html ?? "").replace(THIN_MARK, ""), p.url) /* RR-378: a thin page's noindex is the owner's decision, not a fault: the gates judge it as a full page would go live */, needs: [], mainQuery: p.title, questions: p.questions, answer: p.answer, items: p.items,
   facts: p.items.flatMap((it) => it.claims.map((c) => ({ hasSource: Boolean(c.link), hasDate: /^\d{4}-\d{2}-\d{2}$/.test(c.readOn ?? "") }))) });
 
 /** The site's own index of a set of pages (a listing, e.g. its articles): a plain page of links, so each listed page is reached by a crawlable

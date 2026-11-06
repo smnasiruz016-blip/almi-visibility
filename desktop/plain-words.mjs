@@ -66,4 +66,4 @@ export function jobReport({ drafts = [], live = [], approval = "review", connect
 }
 
 /* 🔴 RR-366 X5: the Pages screen's list: a title and a status. Each page's details are asked for only when it is opened (204 pages sent 2.9 MB each time) */
-export const pageRow = ({ url, title, type, edited, readyAsDraft, improve, madeAt, checkLater }) => ({ url, title, type, edited, readyAsDraft, improve, madeAt, checkLater });
+export const pageRow = ({ url, title, type, edited, readyAsDraft, improve, madeAt, checkLater, notInGoogleYet }) => ({ url, title, type, edited, readyAsDraft, improve, madeAt, checkLater, ...(notInGoogleYet === true ? { notInGoogleYet: true } : {}) /* RR-378 item 2: said only when it is so; the row stays short */ });

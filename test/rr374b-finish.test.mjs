@@ -17,7 +17,7 @@ const reply = (data, model) => ({ ok: true, status: 200, json: async () => ({ mo
 test("extraction asks Sonnet, the judge and the page judge ask Opus; Sonnet has a price, so the month's limit sees it", async () => {
   const asked = []; const fetchImpl = async (_u, init) => { const b = JSON.parse(init.body); asked.push([b.system.slice(0, 12), b.model]); return reply({ found: false, fits: true, sourceOk: true, conflict: false, reason: "x", answer: "", quote: "", publisher: "", kind: "other" }, b.model); };
   const x = await extractAnswer({ key: "k", question: "Q?", page: { title: "T", text: "words" }, url: "https://a.b/c", fetchImpl }), y = await confirmAnswer({ key: "k", question: "Q?", answer: "A", quote: "B", url: "https://a.b/c", title: "T", fetchImpl });
-  assert.deepEqual(asked.map((a) => a[1]), ["claude-sonnet-5-5", AI.model]); assert.equal(AI.model, "claude-opus-5-5"); assert.equal(JUDGE.model, "claude-opus-5-5"); assert.equal(x.usage.model, "claude-sonnet-5-5"); assert.equal(y.usage.model, "claude-opus-5-5");
+  assert.deepEqual(asked.map((a) => a[1]), ["claude-sonnet-5-5", "claude-sonnet-5-5"]) /* RR-378e: Sonnet only in judging */; assert.equal(JUDGE.model, "claude-sonnet-5-5"); assert.equal(x.usage.model, "claude-sonnet-5-5"); assert.equal(y.usage.model, "claude-sonnet-5-5");
   assert.ok(PRICES[FINDER.extractModel], "no price would count as $0"); assert.equal(costOf({ model: "claude-sonnet-5-5", input: 1e6, output: 1e6 }), 12); assert.equal(costOf({ model: "claude-opus-5-5", input: 1e6, output: 1e6 }), 24);
 });
 
@@ -38,7 +38,7 @@ test("India, the United States, Canada: every path that used to say 'registers' 
   const viaSearch = councilFacts([fact("Canada", "nursing", "National Nursing Assessment Service")], { [councilKey("Canada", "nursing", "National Nursing Assessment Service")]: { ok: false, why: "not stated", found: { name: "Another National Body", link: "https://x.example/f" } } }).facts[0]; assert.doesNotMatch(viaSearch.text, /\bregisters\b/);
   const state = councilFacts([fact("India", "medicine", "Karnataka State Medical Council")], ok("India", "medicine", "Karnataka State Medical Council")).facts[0]; assert.match(state.text, /registers medicine in its own state of India/);
   const uk = councilFacts([fact("United Kingdom", "medicine", "General Medical Council")], ok("United Kingdom", "medicine", "General Medical Council")).facts[0]; assert.match(uk.text, /General Medical Council registers/); assert.equal(uk.office, undefined);
-  const assoc = councilFacts([fact("India", "dietetics", "Indian Dietetic Association")], { [councilKey("India", "dietetics", "Indian Dietetic Association")]: { ok: false, why: "association", page: "https://x.example/p", on: "2026-11-01" } }).facts[0]; assert.match(assoc.text, /\(a professional body\)/, "a reason already read stays the reason");
+  const assoc = councilFacts([fact("India", "dietetics", "Indian Dietetic Association")], { [councilKey("India", "dietetics", "Indian Dietetic Association")]: { ok: false, why: "association", page: "https://x.example/p", on: "2026-11-01" } }).facts[0]; assert.match(assoc.text, /not confirmed yet/, "a reason already read stays: not confirmed"); assert.doesNotMatch(assoc.text, /\(a professional body\)|\bregisters\b/, "Q&A LAW 5.3 (RR-378b): name, address or site and 'not confirmed yet' only — no label its source does not give");
   assert.equal(REGISTERS_BELOW_NATION.test("Australia"), false, "Ahpra is the national registering body");
 });
 

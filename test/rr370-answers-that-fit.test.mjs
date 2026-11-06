@@ -167,7 +167,7 @@ test("the checks that stayed green when broken: each now read", async () => {
   /* autocomplete stands apart from a search */
   const { byMeaning, twinOf } = await import("../desktop/search-meaning.mjs"); assert.equal(byMeaning(["auto|nurses|en"]).size, 0); assert.equal(twinOf("auto|nurses|en", byMeaning(["nurses|x|en"])), null);
   /* the page's own gate, its family, the words on the screen */
-  const pages = read("desktop/seo-pages.mjs"), ui = read("desktop/ui.html"); assert.match(pages, /push\("P", [^\n]*it\.answers\.filter\(\(a\) => firstPersonIn\(a\)\)/); assert.match(pages, /if \(m\.profession && other === m\.profession\) return true;/); assert.match(ui, /id="previewline"><b>Approve &amp; Publish and Publish all ready write to a preview, not your live site:/);
+  const pages = read("desktop/seo-pages.mjs"), ui = read("desktop/ui.html"); assert.match(pages, /push\("P", [^\n]*it\.answers\.filter\(\(a\) => firstPersonIn\(a\)\)/); { const { linkFitsPage } = await import("../desktop/seo-pages.mjs"), me = { country: "Iran", profession: "nursing", kind: "origin-profession" }; assert.equal(linkFitsPage(me, "OET for Nurses from Jordan", { country: "Jordan", profession: "nursing", kind: "origin-profession" }), true, "its family"); assert.equal(linkFitsPage(me, "OET Pakistan 2026: Fees in PKR for Nurses", null), false, "RR-378 item 6: no longer 'wherever'"); } assert.match(ui, /id="previewline"><b>Approve &amp; Publish and Publish all ready write to a preview, not your live site:/);
 });
 
 test("ITEM 8: a question people asked goes when it is of no use, even with only an honest line under it; the page is not held for it", () => {
@@ -208,5 +208,5 @@ test("ITEM 12: a GitHub branch other than the main one is a preview: written to 
 });
 
 test("ITEM 10: no link twice, none to another profession's or country's page, the family first", () => {
-  const S = read("desktop/seo-pages.mjs"), E = read("desktop/exam-plan.mjs"); assert.match(S, /const fitsLink = \(np, l\) =>/); assert.match(S, /other && other !== m\.profession/); assert.match(S, /!names\.has\(nameOfLink\(l\)\)/); assert.match(E, /p\.links = \[p\.home, p\.prof, \.\.\.\[\.\.\.kin\.slice/);
+  const S = read("desktop/seo-pages.mjs"), E = read("desktop/exam-plan.mjs"); assert.match(S, /const fitsLink = \(np, l\) =>[^\n]*linkFitsPage\(/); assert.match(S, /other && other !== page\.profession/); /* RR-378 item 6: the rule is linkFitsPage, tested by its behaviour in rr378 */ assert.match(S, /!names\.has\(nameOfLink\(l\)\)/); assert.match(E, /p\.links = \[p\.home, p\.prof, \.\.\.\[\.\.\.kin\.slice/);
 });

@@ -69,7 +69,7 @@ test("what still says registers: its own page said so, or the owner's verified f
 
 test("Iran: no DataForSEO autocomplete; the judge is Opus and its verdicts are kept", () => {
   assert.equal(servedPlace("Iran"), false); assert.match(taskFault("auto", autoTask("oet iran", "Iran")[0]), /does not serve Iran/);
-  assert.equal(JUDGE.model, "claude-opus-5-5"); assert.match(read("desktop/main.mjs"), /const rows = unjudged\(plan, verdicts\)/, "only pairs with no verdict go to the AI");
+  assert.equal(JUDGE.model, "claude-sonnet-5-5" /* RR-378e: owner, 6 Nov 2026: Sonnet only in judging */); assert.match(read("desktop/main.mjs"), /const rows = unjudged\(plan, verdicts\)/, "only pairs with no verdict go to the AI");
 });
 
 test("AlmiOET's folder: from its own code; a folder the client set stands; no other site is touched; the page lands where the route reads it", async () => {

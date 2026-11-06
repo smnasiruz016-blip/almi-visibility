@@ -37,7 +37,8 @@ const GRADE_SCORE = { A: 450, B: 350, "C+": 300, C: 200 };
 export function plainScores(text) {
   return String(text ?? "").replace(/(?:minimum |at least )?grade ([ABC]\+?)(?: \((\d{3})\))? in three (?:components|sub-tests|sections) and ([ABC]\+?)(?: \((\d{3})\))? in (?:one|any one)(?: \(table: ([^)]*)\))?/i, (m, g1, s1, g2, s2, table) => {
     const odd = table ? [...table.matchAll(/(Listening|Reading|Writing|Speaking) ([ABC]\+?)/g)].find((x) => x[2] === g2)?.[1] ?? null : null;
-    const low = `${g2} (${s2 ?? GRADE_SCORE[g2]})`, high = `${g1} (${s1 ?? GRADE_SCORE[g1]})`;
+    /* 🔴 Q&A LAW 4.3 (RR-378b; supersedes RR-356 here): a score only where the source gives it. CORU's podiatry line says "Grade B" with no number: the page said "B (350)", and the second judge failed it */
+    const low = s2 ? `${g2} (${s2})` : g2, high = s1 ? `${g1} (${s1})` : g1;
     return odd ? `${odd} ${low}, the other three ${high}` : `${high} in three sub-tests and ${low} in one`;
   });
 }

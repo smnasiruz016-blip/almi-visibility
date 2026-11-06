@@ -11,6 +11,8 @@ export const WITHDRAWN = Object.freeze({
   [keyOf("How do occupational therapists register in India?")]: Object.freeze({ why: "AIOTA is a professional association, not a regulator; the source was a branch blog", on: "2026-11-06", words: "All India Occupational Therapists" }),
   [keyOf("What OET score does CORU - Regulating Health and Social Care Professional ask of speech pathologists?")]: Object.freeze({ why: "the line was garbled and named OET as its publisher; rechecked on coru.ie on 2026-11-06", on: "2026-11-06", words: "who register through the Speech",
     replace: Object.freeze({ ok: true, route: "a", cls: "truth", answer: "CORU asks speech and language therapists for OET Speech Pathology with at least 400 in three of the four parts (listening, reading, writing and speaking) and at least 350 in the fourth. CORU's page calls both of these grade B.", quotes: Object.freeze(["OET (Speech Pathology) A minimum of Grade B (400) in three components and B (350) in one component"]), url: "https://www.coru.ie/health-and-social-care-professionals/registration/registration-requirements/language/", title: "Language requirements — CORU", official: true, type: "official", kind: "official", name: "CORU", reason: "rechecked against coru.ie by hand, 2026-11-06" }) }),
+  /* RR-378 item 3 (beta-g on the preview, 6 Nov 2026) */
+  [keyOf("How do nurses register in Iran?")]: Object.freeze({ why: "an old Tehran Times news report about a plan for 2021; it does not name who registers nurses", on: "2026-11-06", words: "through the registered nurse (RN) program" }),
 });
 /** the answer still holds what was withdrawn */
 export const isWithdrawnAnswer = (k, answer) => Boolean(WITHDRAWN[k] && clean(answer).includes(WITHDRAWN[k].words));

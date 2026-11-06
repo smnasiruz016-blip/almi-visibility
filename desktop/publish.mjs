@@ -14,7 +14,14 @@
  */
 import { mkdirSync, writeFileSync, existsSync, renameSync, readFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
-import { asPublished } from "../src/page/one-builder.mjs";
+import { asPublished, THIN_MARK } from "../src/page/one-builder.mjs";
+import { visibleQa } from "./page-law.mjs";
+/* 🔴 RR-383 item 2 (Q&A LAW 6): the PAGE carries noindex when it shows fewer than 6 real Q&A (the fee question not counted). Counted on the
+ * finished page, the last word before it goes, so no page is indexable on a count made elsewhere (the real proof: 8 drafts with 5 went out "index") */
+export const REAL_QA_MIN = 6;
+const FEE_Q = /\bhow much (?:does|is|do)\b[^?]*\b(?:cost|fees?)\b|\b(?:exam|test) fees?\b/i;
+export const realQa = (html) => visibleQa(html).filter((q) => q.answers.length && !FEE_Q.test(q.q)).length;
+export const asPublishedGuarded = (html, url) => asPublished(realQa(html) < REAL_QA_MIN ? asNoindex(html) : html, url);
 
 export const TARGETS = Object.freeze([
   Object.freeze({ id: "wordpress", label: "WordPress", chooseIf: "your site is built with WordPress (you sign in at your-site/wp-admin).", needs: "your site's address, your WordPress user name, and an application password (WordPress → Users → Profile → Application Passwords → Add new).", keyName: "WORDPRESS_APP_PASSWORD" }),
@@ -119,7 +126,7 @@ export async function publishDraft({ draft, target, key, fetchImpl = fetch, down
   if (draft.readyAsDraft !== true) return { ok: false, why: "Not published — this draft has not passed the five checks." };
   const slug = slugOf(draft.url).split("/").pop();
   /* the page as it goes live: the draft stamp and the "do not index" mark removed, its own address as canonical (the same text the gates judged) */
-  const html = asPublished(draft.html, draft.url);
+  const html = asPublishedGuarded(draft.html, draft.url);
   const title = titleOf(html, draft.title);
   const send = caller({ target, fetchImpl, allowLocal });
   if (target.kind === "download") {
@@ -280,7 +287,7 @@ export function editDraft(draft, { title, main }) {
  */
 export async function publishPagesGithub({ drafts, target, key, fetchImpl = fetch, allowLocal = false, testBase = null, message = null }) {
   const api = testBase ?? "https://api.github.com", repo = `${api}/repos/${target.repo}`, gh = ghHeaders(key), send = caller({ target, fetchImpl, allowLocal }), post = (url, body, ms) => send(url, { method: "POST", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify(body) }, ms);
-  const files = drafts.map((d) => ({ url: d.url, path: ghPath(target, d.url), content: asPublished(d.html, d.url) })), preview = previewOf(target);
+  const files = drafts.map((d) => ({ url: d.url, path: ghPath(target, d.url), content: asPublishedGuarded(d.html, d.url) })), preview = previewOf(target);
   const attempt = async () => {
     const ref = await send(`${repo}/git/ref/heads/${target.branch}`, { method: "GET", headers: gh }); if (!ref.ok) return ref;
     const head = ref.body?.object?.sha, base = await send(`${repo}/git/commits/${head}`, { method: "GET", headers: gh }); if (!base.ok) return base;
@@ -297,6 +304,70 @@ export async function publishPagesGithub({ drafts, target, key, fetchImpl = fetc
   if (!r.ok) return { ...clean(r), paths: files.map((f) => ({ url: f.url, path: f.path })) };
   return { ok: true, status: r.status, commit: r.commit, pages: files.map((f) => ({ url: f.url, ok: true, status: r.status, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${f.path.split("/").slice(-2, -1)[0]}/`, ...(preview ? { preview: { ...preview, path: f.path } } : {}), remote: { path: f.path, commit: r.commit } })) };
 }
+
+/**
+ * 🔴 RR-383 item 1 (beta-g's scan of the AlmiOET preview, 6 Nov 22:40: the app held 131 pages as ready, the branch held 311; 180 kept their
+ * 01:59 version with lines the truth pass had not checked) · PUBLISH MIRRORS THE APP. After every publish the target's folder equals what the app
+ * holds now: a page the app holds as ready is written; a page it does not is REWRITTEN from its current draft (only checked lines; noindex,
+ * follow, so it stays for visitors and out of search) when the only gates it fails are about having too few answers, or REMOVED otherwise
+ * (a duplicate, a copy, a work note, no draft any more). Nothing older stays.
+ */
+export const REWRITE_GATES = Object.freeze(["answers its core questions", "technically ready for search and AI engines"]);
+const DRAFT_ROBOTS = '<meta name="robots" content="noindex, nofollow">';
+/** may a not-ready draft stand on the site (noindex) as it is now? → null, or why it may not */
+export function rewriteRefusal(d, { noteOf = () => null, faultsOf = () => [] } = {}) {
+  if (!d?.html) return "the app no longer makes this page";
+  const failing = (d.gates ?? []).filter((g) => !g.pass), other = failing.filter((g) => !REWRITE_GATES.includes(g.words) || (g.words === "technically ready for search and AI engines" && (g.failing ?? []).length));
+  if (other.length) return `a check failed: ${other.map((g) => g.words).join(", ")}`;
+  if (!/data-cta>/.test(d.html)) return "it has no offer button";
+  const n = noteOf(d.html); if (n) return `it still shows a work note ("${n}")`;
+  const f = faultsOf(d.html, d.url) ?? []; if (f.length) return `the page law: ${f[0]}`; /* Q&A LAW 5 and 5A, as for a ready page */
+  if (!d.html.includes(DRAFT_ROBOTS) && !d.html.includes(THIN_MARK)) return "it cannot be marked noindex";
+  return null;
+}
+/** a not-ready draft as it may stand: noindex, follow (asPublished turns THIN_MARK into it) */
+export const asNoindex = (html) => (String(html).includes(THIN_MARK) ? String(html) : String(html).replace(DRAFT_ROBOTS, (m) => `${m}${THIN_MARK}`));
+/**
+ * held: the target's page addresses (slug → path); drafts: the app's current drafts; readyUrls: what the app holds as ready (written now or before).
+ * → { keep: [path], rewrite: [{ url, path, html }], remove: [{ path, slug, why }] }
+ */
+export function mirrorPlan({ held, drafts, readyUrls, noteOf = () => null, faultsOf = () => [] }) {
+  const bySlug = new Map((drafts ?? []).map((d) => [slugOf(d.url).split("/").pop(), d])), out = { keep: [], rewrite: [], remove: [] };
+  for (const [slug, path] of held) {
+    const d = bySlug.get(slug);
+    if (d && readyUrls.has(d.url)) { out.keep.push(path); continue; }
+    const why = rewriteRefusal(d, { noteOf, faultsOf });
+    if (why) out.remove.push({ path, slug, why }); else out.rewrite.push({ url: d.url, path, html: asNoindex(d.html) });
+  }
+  return out;
+}
+/** the pages a GitHub target's folder holds now (one tree read) → Map(slug → path) */
+export async function githubFolderPages({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  const api = testBase ?? "https://api.github.com", send = caller({ target, fetchImpl, allowLocal }), folder = String(target.folder ?? "").replace(/^\/+|\/+$/g, "");
+  const t = await send(`${api}/repos/${target.repo}/git/trees/${encodeURIComponent(target.branch)}?recursive=1`, { method: "GET", headers: ghHeaders(key) }, 60000);
+  if (!t.ok) return { ok: false, why: t.why, status: t.status };
+  const re = new RegExp(`^${folder ? `${folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/` : ""}([^/]+)/index\\.html$`), held = new Map();
+  for (const e of t.body?.tree ?? []) { const m = e.type === "blob" ? re.exec(e.path) : null; if (m) held.set(m[1], e.path); }
+  return { ok: true, held, truncated: t.body?.truncated === true };
+}
+/** the rewrites and removals as ONE commit (a removal is a tree entry with no content: sha null) */
+export async function mirrorGithub({ target, key, rewrite = [], remove = [], fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  if (!rewrite.length && !remove.length) return { ok: true, rewritten: 0, removed: 0, commit: null };
+  const api = testBase ?? "https://api.github.com", repo = `${api}/repos/${target.repo}`, gh = ghHeaders(key), send = caller({ target, fetchImpl, allowLocal }), post = (url, body, ms) => send(url, { method: "POST", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify(body) }, ms);
+  const attempt = async () => {
+    const ref = await send(`${repo}/git/ref/heads/${target.branch}`, { method: "GET", headers: gh }); if (!ref.ok) return ref;
+    const head = ref.body?.object?.sha, base = await send(`${repo}/git/commits/${head}`, { method: "GET", headers: gh }); if (!base.ok) return base;
+    const tree = await post(`${repo}/git/trees`, { base_tree: base.body?.tree?.sha, tree: [...rewrite.map((f) => ({ path: f.path, mode: "100644", type: "blob", content: asPublishedGuarded(f.html, f.url) })), ...remove.map((f) => ({ path: f.path, mode: "100644", type: "blob", sha: null }))] }, 120000); if (!tree.ok) return tree;
+    const commit = await post(`${repo}/git/commits`, { message: `Mirror the app: rewrite ${rewrite.length} page${rewrite.length === 1 ? "" : "s"} (noindex), remove ${remove.length} (AlmiVisibility)`, tree: tree.body?.sha, parents: [head] }, 60000); if (!commit.ok) return commit;
+    const up = await send(`${repo}/git/refs/heads/${target.branch}`, { method: "PATCH", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ sha: commit.body?.sha, force: false }) }); if (!up.ok) return up;
+    if (!commit.body?.sha || up.body?.object?.sha !== commit.body.sha) return { ok: false, status: up.status, why: "GitHub answered without moving the branch. Nothing is counted as changed." };
+    return { ok: true, commit: commit.body.sha };
+  };
+  let r = await attempt(); if (!r.ok && (r.status === 409 || r.status === 422)) r = await attempt();
+  return r.ok ? { ok: true, rewritten: rewrite.length, removed: remove.length, commit: r.commit } : { ...clean(r), rewritten: 0, removed: 0 };
+}
+/** 🔴 RR-383 item 2: the site's own sitemap still lists pages marked noindex (the site's code must leave them out) → those addresses */
+export const sitemapNoindexed = (sitemapXml, noindexUrls) => { const listed = new Set([...String(sitemapXml ?? "").matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1].replace(/\/+$/, ""))); return [...noindexUrls].filter((u) => listed.has(String(u).replace(/\/+$/, ""))); };
 
 /**
  * 🔴 RR-373 item 3 · TEST CONNECTION: the token, the repository, the branch, and the right to write, each said in plain words, and NOTHING written. The write check asks GitHub to make a branch from a commit that

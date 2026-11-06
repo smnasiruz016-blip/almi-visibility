@@ -14,13 +14,17 @@ export const isNoteSentence = (s) => NOTES.some((re) => re.test(s));
 /** a claim's words with the work notes out; "" when nothing real is left */
 /* 🔴 RR-378b (Q&A LAW 5.2 and 4.2; found scanning the owner's 311 preview pages: 26 said "the pages checked show no …"): an answer that reports what WE read is a note about our work, and what stands beside it is not from its source. The whole answer goes */
 const OUR_READING = /\bthe pages? (?:we )?(?:checked|read) (?:show|shows|say|says|do not|does not|did not)\b/i;
-export function withoutNotes(text) { if (OUR_READING.test(String(text ?? ""))) return ""; const kept = sentences(text).filter((s) => !isNoteSentence(s)); return kept.join(" ").trim(); }
+/* 🔴 RR-383 item 3 (beta-g's preview scan, 6 Nov): two superseded rules left words behind. "Confirm with <body> …" (RR-374b; the owner's 5 Nov source
+ * rule says: the source is named and linked, never "confirm with") is advice the source did not give: the sentence goes. "(Source: X.)" inside the
+ * answer doubles the source line every answer already shows (Q&A LAW 5.5: written once): it goes */
+const CONFIRM_WITH = /^(?:please\s+)?(?:always\s+)?confirm (?:this |the (?:details|fee|rules?) )?with\b/i, INLINE_SOURCE = /\s*\((?:Source|Sources|source):\s*[^()]{1,160}\)\.?/g;
+export function withoutNotes(text) { if (OUR_READING.test(String(text ?? ""))) return ""; const kept = sentences(String(text ?? "").replace(INLINE_SOURCE, "")).filter((s) => !isNoteSentence(s) && !CONFIRM_WITH.test(s)); return kept.join(" ").trim(); }
 /** does this text show the customer a work note? */
 export const holdsNote = (text) => sentences(text).some(isNoteSentence);
 /** the words a customer reads on a page */
 export const pageWords = (html) => String(html ?? "").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<script(?![^>]*ld\+json)[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, "\"").replace(/\s+/g, " ").trim();
 /** the first work note a finished page shows, or null. Its FAQ data is read too */
-export function noteOnPage(html) { const t = pageWords(html); for (const re of [/\bdoes not say this\b/i, /\bcould not be read\b/i, /\bstill being looked for\b/i, /\bis the place to read this\b/i, /\b404 Page not found\b/i, /\bhas not been checked yet\b/i]) { const m = re.exec(t); if (m) return m[0]; } return null; }
+export function noteOnPage(html) { const t = pageWords(html); for (const re of [/\bdoes not say this\b/i, /\bcould not be read\b/i, /\bstill being looked for\b/i, /\bis the place to read this\b/i, /\b404 Page not found\b/i, /\bhas not been checked yet\b/i, /* RR-383 item 3: superseded rules' leftovers stop a page until it is made again */ /\b(?:Please\s+)?Confirm (?:this |the (?:details|fee|rules?) )?with\b/, /\(Source: [^()]{1,160}\)/]) { const m = re.exec(t); if (m) return m[0].trim(); } return null; }
 
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
 const partOf = (it) => String(it.part ?? "").replace(/\d+$/, "");

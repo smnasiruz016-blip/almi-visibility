@@ -59,10 +59,10 @@ export const truthEstimate = (rows) => ({ lines: rows.length, usd: Math.round(ro
 export async function truthAll({ rows, verdicts, key, read, allowed = () => true, onUsage = () => {}, save = () => {}, onDone = () => {}, today, base, fetchImpl, perRun = TRUTH.perRun, spent = () => 0, skip = new Map(), onUnread = () => {} }) {
   const out = { judged: 0, failed: 0, unread: [], stopped: null, of: Math.min(rows.length, perRun) }, usd0 = spent();
   for (const r of rows.slice(0, perRun)) {
-    if (skip.has(r.link)) { out.unread.push({ link: r.link, why: skip.get(r.link), earlier: true }); onUnread(r, out); continue; } /* free: no read, no AI */
+    if (skip.has(r.link)) { out.unread.push({ link: r.link, why: skip.get(r.link), earlier: true, question: r.question }); onUnread(r, out); continue; } /* free: no read, no AI */
     if (!allowed(TRUTH.worstUsd)) { out.stopped = "cap"; break; }
     const page = await Promise.resolve(read(r.link)).catch(() => null);
-    if (!page?.ok) { out.unread.push({ link: r.link, why: page?.why ?? "it did not open" }); onUnread(r, out); continue; }
+    if (!page?.ok) { out.unread.push({ link: r.link, why: page?.why ?? "it did not open", question: r.question }); onUnread(r, out); continue; }
     const y = await askJson({ key, model: TRUTH.model, system: TRUTH_SYSTEM, schema: SCHEMA, maxTokens: 600, body: { question: r.question, line: r.answer, others: r.others, source: { address: r.link, title: clean(page.title), page: clean(page.text).slice(0, TRUTH.pageChars) } }, base, fetchImpl });
     if (y.usage) onUsage({ ...y.usage, route: "t" }); if (y.fail) { if (y.stop) { out.stopped = y.fail; break; } continue; }
     verdicts[r.key] = { pass: y.data?.pass === true, reason: clean(y.data?.reason).slice(0, 240), on: today, q: r.question.slice(0, 200), a: r.answer.slice(0, 300), link: r.link, checks: Object.fromEntries(Object.entries(y.data ?? {}).filter(([k]) => !["pass", "reason"].includes(k))) };

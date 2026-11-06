@@ -37,7 +37,11 @@ const SHARED = {
   "desktop/seo-pages.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["const plan = planNewPages({ needs, existing });", "const news = plan.filter((p) => p.kind === \"NEW\")", "allGates(built.map((b) => gateInput(b))"]), why: "the app's page drafts are built only for NEW rows of the existing-page-first plan and every draft is judged by all five gates; nothing is published" }),
   /* RR-308 D (owner: "the Publish button is missing"): the app publishes ONLY a draft the five gates passed — judged again right before by its
    * caller (desktop/main.mjs publishOne, on the client's edited text) and refused here too; the page that leaves is the gated text (asPublished) */
-  "desktop/publish.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["if (draft.readyAsDraft !== true) return { ok: false", "const html = asPublished(draft.html, draft.url);"]), why: "publishes only a draft the five gates passed (judged again right before publishing), and only its gated text; it builds no page" }),
+  /* 🔴 RR-383 (owner's command, 6 Nov 2026: "PUBLISH MIRRORS THE APP … every page the app does not hold as ready is either rewritten with ONLY its
+   * checked lines (and noindex) or removed"): besides the gated publish, the mirror may REWRITE a page already on the site from its current draft,
+   * only when the gates it fails are about too few answers, only as noindex,follow, and only when it passes the page law (main.mjs faultsOf).
+   * The page that leaves is the guarded text (asPublishedGuarded: noindex below 6 real Q&A) */
+  "desktop/publish.mjs": Object.freeze({ class: "ROUTED", marks: Object.freeze(["if (draft.readyAsDraft !== true) return { ok: false", "const html = asPublishedGuarded(draft.html, draft.url);", "const why = rewriteRefusal(d, { noteOf, faultsOf });", "else out.rewrite.push({ url: d.url, path, html: asNoindex(d.html) });"]), why: "publishes only a draft the five gates passed (judged again right before publishing), and only its guarded text; the RR-383 mirror rewrites a page already on the site only as noindex and only past the page law, or removes it; it builds no page" }),
   "bin/crawl.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "stores the bodies of pages a crawl FETCHED, as served — evidence of an existing page, never a new one" }),
   "bin/report.mjs": Object.freeze({ class: "NOT_PAGE_PRODUCTION", why: "the owner's report view about the evidence store — not a page of any subject" }),
 };

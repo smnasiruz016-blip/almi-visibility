@@ -85,7 +85,17 @@ export function addFactsFile(store, read, { on }) {
 }
 /** every fact of the product's store, one per id (the newest file first) */
 /* RR-354: a fact's profession is read again from its key — a file added before the name fix keeps working without being added again */
-export const factsOfStore = (store) => { const seen = new Set(); return [...(store?.files ?? [])].reverse().flatMap((x) => x.facts).filter((f) => !seen.has(f.id) && seen.add(f.id)).map((f) => { const k = keyOf(f.key); return k?.part === "councils" && k.profession !== f.profession ? { ...f, profession: k.profession } : f; }); };
+export const factsOfStore = (store) => { const seen = new Set(); return [...(store?.files ?? [])].reverse().flatMap((x) => x.facts).filter((f) => !seen.has(f.id) && seen.add(f.id)).map((f) => { const k = keyOf(f.key); return k?.part === "councils" && k.profession !== f.profession ? { ...f, profession: k.profession } : f; }).map(fixedFact); };
+/* 🔴 RR-378 item 5 (beta-g on the preview; rechecked on hcpc-uk.org 2026-11-06): a fact's words said more than its page. HCPC's OET section gives the scores and "We accept both the OET Test on Computer and the OET Test on Paper"; "at an official test centre and not at home" stands under IELTS and TOEFL only. Fixed where the facts are read, so a file added before stays right */
+export const FACT_FIXES = Object.freeze([
+  Object.freeze({ host: "hcpc-uk.org", from: /^(HCPC accepts OET [A-Za-z ]+?) at a test centre \(not at home\):/, to: "$1, on computer or on paper:", back: [/(HCPC accepts OET [A-Za-z ]+?), on computer or on paper:/, "$1 at a test centre (not at home):"], quote: "We accept both the OET Test on Computer and the OET Test on Paper", on: "2026-11-06" }),
+]);
+/** a line as it read before its fix: its judge's verdict on the meaning stands (a fix only takes out what the page did not say) */
+export const unfixedText = (text) => FACT_FIXES.reduce((t, x) => t.replace(x.back[0], x.back[1]), String(text ?? ""));
+export function fixedFact(f) {
+  for (const x of FACT_FIXES) { let h = ""; try { h = new URL(f?.link).hostname.replace(/^www\./, ""); } catch { continue; } if (h !== x.host || !x.from.test(String(f.text ?? ""))) continue; return { ...f, text: String(f.text).replace(x.from, x.to), fixed: x.on, fixQuote: x.quote }; }
+  return f;
+}
 
 /** VERIFIED facts as the app's official answers (desktop/main.mjs officialOf): country → claims, each with its page and the day it was checked */
 export function officialClaimsOf(store) {

@@ -33,7 +33,7 @@ test("THE SOURCE RULE: any readable source may answer a truth question, named; s
   const p2 = page("https://blog.example/fees", "The OET fee in Kenya is paid at the centre. Our office opened in 455 Main Street years ago.");
   assert.match(refuseWhy({ answer: "The OET fee in Kenya is USD 455, paid at the centre.", quotes: ["The OET fee in Kenya is paid at the centre."] }, { page: p2 }), /states 455/, "a number elsewhere on the page is not the quoted words");
   assert.match(refuseWhy({ answer: "The OET fee in Kenya is paid at the centre.", quotes: ["The OET fee in Kenya is paid at the centre.", "These words were never written on that page."] }, { page: p2 }), /quoted words are not on the page/, "every quote, not one of them");
-  assert.match(EXTRACT_SYSTEM, /registers" or "licenses"/); assert.match(CONFIRM_SYSTEM, /ONLY what the source's words say/); assert.doesNotMatch(read("desktop/answer-finder.mjs"), /a truth question takes official sources only|Confirm with \$\{v\.confirmWith\}/, "the old official-only rule is gone");
+  assert.match(EXTRACT_SYSTEM, /registers" or "licenses"/); assert.match(CONFIRM_SYSTEM, /ONLY what the source says/) /* RR-378b: the full page, not only the quoted words */; assert.doesNotMatch(read("desktop/answer-finder.mjs"), /a truth question takes official sources only|Confirm with \$\{v\.confirmWith\}/, "the old official-only rule is gone");
 });
 
 test("AIOTA: an answer that says a body registers or licenses stands only when its source's words say so", () => {

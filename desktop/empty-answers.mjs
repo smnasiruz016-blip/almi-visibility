@@ -12,7 +12,9 @@ const NOTES = Object.freeze([/\bdoes not say this\b/i, /\bis the place to read t
 const sentences = (t) => String(t ?? "").split(/(?<=[.!?])\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
 export const isNoteSentence = (s) => NOTES.some((re) => re.test(s));
 /** a claim's words with the work notes out; "" when nothing real is left */
-export function withoutNotes(text) { const kept = sentences(text).filter((s) => !isNoteSentence(s)); return kept.join(" ").trim(); }
+/* 🔴 RR-378b (Q&A LAW 5.2 and 4.2; found scanning the owner's 311 preview pages: 26 said "the pages checked show no …"): an answer that reports what WE read is a note about our work, and what stands beside it is not from its source. The whole answer goes */
+const OUR_READING = /\bthe pages? (?:we )?(?:checked|read) (?:show|shows|say|says|do not|does not|did not)\b/i;
+export function withoutNotes(text) { if (OUR_READING.test(String(text ?? ""))) return ""; const kept = sentences(text).filter((s) => !isNoteSentence(s)); return kept.join(" ").trim(); }
 /** does this text show the customer a work note? */
 export const holdsNote = (text) => sentences(text).some(isNoteSentence);
 /** the words a customer reads on a page */
@@ -83,17 +85,32 @@ export function addSavedQuestions(plan, { bank = [], paa = [], subject = null, l
   }
   return added;
 }
-export const THIN_BELOW = 4;
+export const THIN_BELOW = 6; /* Q&A LAW 6 (RR-378b): was 4 */
+/* 🔴 RR-378 item 4 (beta-g: "Should I book my test for 13 May?" on /oet-for-nurses-from-pakistan): a question tied to a fixed day, or to a year now past, stands only when its answer names that same day as current (its year this year or later, the day still to come). Otherwise the question goes */
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"], MON = MONTHS.join("|");
+const DAY_MONTH = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${MON})\\b|\\b(${MON})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`, "i");
+export function datedQuestionWhy(question, answer = "", today = new Date().toISOString().slice(0, 10)) {
+  const q = String(question ?? ""), a = String(answer ?? ""), year = Number(String(today).slice(0, 4)), m = DAY_MONTH.exec(q);
+  if (m) {
+    const day = Number(m[1] ?? m[4]), month = MONTHS.indexOf(String(m[2] ?? m[3]).toLowerCase()), same = new RegExp(`\\b0?${day}(?:st|nd|rd|th)?\\s+${MONTHS[month]}\\s+(20\\d\\d)\\b|\\b${MONTHS[month]}\\s+0?${day}(?:st|nd|rd|th)?,?\\s+(20\\d\\d)\\b`, "i").exec(a);
+    const y = same ? Number(same[1] ?? same[2]) : null, when = y ? Date.UTC(y, month, day) : null;
+    return when && when >= Date.parse(today) ? null : `it asks about one fixed day (${m[0]}) and its answer does not show that day as still to come`;
+  }
+  const past = [...q.matchAll(/\b(20\d\d)\b/g)].map((x) => Number(x[1])).filter((y) => y < year);
+  return past.length ? `it asks about ${past[0]}, a year now past` : null;
+}
 /**
  * The last word on a plan: work notes out of every line; a question left with no real answer leaves the page; the page stays, said thin below THIN_BELOW. → one row per page that changed or is thin.
  * A question with no claims at all is left alone: the page's own builder decides those.
  */
-export function dropEmptyAnswers(plan, { thinBelow = THIN_BELOW } = {}) {
+export function dropEmptyAnswers(plan, { thinBelow = THIN_BELOW, today = new Date().toISOString().slice(0, 10) } = {}) {
   const rows = [];
   for (const p of plan.pages ?? []) {
     const dropped = [], filled = [], items = [], cut = [];
     for (const it of p.items ?? []) {
-      const had = it.claims ?? []; if (!had.length) { items.push(it); continue; }
+      const had = it.claims ?? [];
+      { const why = datedQuestionWhy(it.question, had.map((c) => c.text).join(" "), today); if (why) { dropped.push({ part: it.part, question: it.question, why, link: had[0]?.link ?? null, dated: true }); continue; } } /* RR-378 item 4 */
+      if (!had.length) { items.push(it); continue; }
       const claims = had.flatMap((c) => { const text = withoutNotes(c.text); return text.length >= 12 ? [text === c.text ? c : { ...c, text }] : []; });
       if (!claims.length) { const c = had[0]; dropped.push({ part: it.part, question: it.question, why: c.text, link: c.link ?? null }); continue; }
       if (claims.length < had.length) cut.push(partOf(it)); /* one body's line left a list */
@@ -102,7 +119,7 @@ export function dropEmptyAnswers(plan, { thinBelow = THIN_BELOW } = {}) {
     }
     /* 🔴 RR-376: a block no source could fill (a rule special to it; the questions people ask): the page stands without it, listed as needing more answers. Never filler */
     const want = coreOf(p.kind) ?? {}, partsHeld = new Set(items.filter((it) => (it.claims ?? []).length).map((it) => partOf(it).replace(/^questionsa$/, "questions"))), withoutBlock = ["rules", "questions"].filter((k) => want[k] && !partsHeld.has(k) && !(k === "questions" && p.questionsWanted?.length));
-    p.items = items; p.leftOff = [...new Set([...p.leftOff ?? [], ...withoutBlock, ...dropped.filter((d) => !items.some((it) => partOf(it) === partOf(d) && (it.claims ?? []).length)).map(partOf).map((x) => x.replace(/^questionsa$/, "questions")), ...cut])]; const real = items.filter((it) => (it.claims ?? []).length).length, thin = real < thinBelow || withoutBlock.length > 0; p.answerLog = { dropped: dropped.length, filled: filled.length, real, thin };
+    p.items = items; p.leftOff = [...new Set([...p.leftOff ?? [], ...withoutBlock, ...dropped.filter((d) => !items.some((it) => partOf(it) === partOf(d) && (it.claims ?? []).length)).map(partOf).map((x) => x.replace(/^questionsa$/, "questions")), ...cut])]; const real = items.filter((it) => (it.claims ?? []).length).length, realNoFee = items.filter((it) => (it.claims ?? []).length && partOf(it) !== "fee").length, thin = realNoFee < thinBelow /* 🔴 Q&A LAW 6 (RR-378b): fewer than 6 real Q&A, the fee not counted */; p.answerLog = { dropped: dropped.length, filled: filled.length, real, realNoFee, thin };
     if (dropped.length || filled.length || thin) rows.push({ title: p.title, kind: p.kind ?? null, real, thin, dropped, filled, ...(withoutBlock.length ? { withoutBlock } : {}) });
   }
   return rows;

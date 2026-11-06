@@ -132,6 +132,6 @@ test("RR-356 · B · improve, don't duplicate: the client's page on the same pro
 });
 
 test("RR-356 · the Ireland line in plain words: 'Writing C+ (300), the other three B (350)'", () => {
-  assert.equal(plainScores("NMBI accepts OET (Nursing): Grade B in three components and C+ in one (table: Listening B, Reading B, Writing C+, Speaking B); one result only."), "NMBI accepts OET (Nursing): Writing C+ (300), the other three B (350); one result only.");
+  assert.equal(plainScores("NMBI accepts OET (Nursing): Grade B in three components and C+ in one (table: Listening B, Reading B, Writing C+, Speaking B); one result only."), "NMBI accepts OET (Nursing): Writing C+, the other three B; one result only." /* Q&A LAW 4.3 (RR-378b): no score the line's source does not give */); assert.equal(plainScores("NMBI accepts OET (Nursing): Grade B (350) in three components and C+ (300) in one (table: Listening B, Reading B, Writing C+, Speaking B); one result only."), "NMBI accepts OET (Nursing): Writing C+ (300), the other three B (350); one result only.", "the scores its source gives stay");
   assert.equal(plainScores("NMC accepts OET: Listening B (350+)."), "NMC accepts OET: Listening B (350+).", "a plain line is unchanged");
 });

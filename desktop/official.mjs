@@ -30,6 +30,14 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const has = (text, word) => new RegExp(`(?<![\\p{L}\\p{N}])${esc(word)}(?![\\p{L}\\p{N}])`, word.length <= 3 ? "u" : "iu").test(text);
 const day = (d) => String(d ?? "").slice(0, 10);
 
+/** 🔴 RR-378 item 3: the day a page says it was published and last changed, from its own head (article:published_time / modified_time, JSON-LD datePublished / dateModified, <time datetime>). → { published, modified } (null when it does not say) */
+export function datesOf(html) {
+  const h = String(html ?? "").slice(0, 400000), meta = (p) => new RegExp(`<meta\\b[^>]*(?:property|name|itemprop)\\s*=\\s*["'](?:${p})["'][^>]*>`, "i").exec(h)?.[0] ?? null, content = (t) => /\bcontent\s*=\s*["']([^"']+)["']/i.exec(t ?? "")?.[1] ?? null, ld = (k) => new RegExp(`"${k}"\\s*:\\s*"([^"]+)"`, "i").exec(h)?.[1] ?? null;
+  const ok = (x) => (x && Number.isFinite(Date.parse(x)) ? new Date(Date.parse(x)).toISOString().slice(0, 10) : null);
+  const published = ok(content(meta("article:published_time|datePublished|pubdate|publish-date|date"))) ?? ok(ld("datePublished")) ?? ok(/<time\b[^>]*datetime\s*=\s*["']([^"']+)["']/i.exec(h)?.[1]);
+  const modified = ok(content(meta("article:modified_time|og:updated_time|dateModified|last-modified"))) ?? ok(ld("dateModified"));
+  return { published, modified };
+}
 /**
  * A reader for official pages, paced and robots-obedient. `read(url)` → { ok, url, title, h1, text, checkedOn } or { ok:false, why }.
  * `allowLocal` is for TESTS ONLY (a stand-in official site on this computer).
@@ -76,7 +84,7 @@ export function officialReader({ fetchImpl = fetch, on = new Date().toISOString(
       /* RR-321: a site's security service answering in the page's place (SBP: "Sorry, you have been blocked") is a refusal, never the page */
       if (/<title>\s*(Attention Required!|Just a moment\.\.\.)|Sorry, you have been blocked|cf-error-details/i.test(html.slice(0, 20000))) return { ok: false, url, why: "its security service refused the reading (a block page answered, not the page) — not read", blocked: true, checkedOn: day(on) };
       const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].map((m) => { try { return { href: new URL(decode(m[1]), final).href, text: decode(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() }; } catch { return null; } }).filter(Boolean).slice(0, 3000); // RR-319: a regulator's page can carry hundreds of menu links before its own
-      return { ok: true, url: final, title: one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, html), h1: one(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, html), text: pageText(html), links, checkedOn: day(on) };
+      return { ok: true, url: final, title: one(/<title\b[^>]*>([\s\S]*?)<\/title>/i, html), h1: one(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, html), text: pageText(html), links, dates: datesOf(html), checkedOn: day(on) };
     })();
     /* RR-368 (the proof: "The operation was aborted due to timeout" stood where a reader needs plain words): a read that breaks halfway is a page that could not be read */
     const limited = withLimit(url, run.catch(() => ({ ok: false, url, why: "could not be read (it stopped answering)", checkedOn: day(on) })), () => ({ ok: false, url, why: `could not be read (no answer within ${Math.round(readLimitMs / 1000)} seconds)`, timedOut: true, checkedOn: day(on) }));

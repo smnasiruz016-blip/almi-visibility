@@ -41,7 +41,7 @@ import { chainFetch } from "./chain-fetch.mjs"; // RR-330
 import { runTestDates, datesTask } from "./cf-dates.mjs"; // RR-331
 import { runSearchConsole } from "./gsc.mjs"; // RR-331
 import { DATE_TESTS, NO_DATES, upcoming } from "../desktop/test-dates.mjs"; // RR-331
-import { daysOf } from "./health.mjs"; // RR-331
+import { daysOf, recordRun } from "./health.mjs"; // RR-331; RR-380
 import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, withMeaning } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
@@ -52,6 +52,7 @@ import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerCli
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 import { runAnswers } from "./answers-collector.mjs"; // RR-375
 import { runResearch } from "./research-collector.mjs"; // RR-376
+import { runPlaces, runRules, runTrends } from "./more-collectors.mjs"; // RR-380
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SITE_KEY_NAMES = Object.freeze({ setupUrl: "VISIBILITY_SETUP_URL", updateBase: "VISIBILITY_UPDATE_BASE_URL", signingKey: "LICENCE_SIGNING_KEY", storeUrl: "VISIBILITY_STORE_URL" });
@@ -713,7 +714,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (req.method === "POST" && u.pathname === "/v1/almiseo/searches/held") { const v = form(); const r = await heldBought({ seo, subject: String(v.subject ?? "").slice(0, 80), keys: v.keys, urls: v.urls, answers: v.answers, lic, groups: await seoGroups(), at: new Date(now()).toISOString() }); return json(r.ok ? 200 : r.status, r); }
         if (req.method !== "GET" || u.pathname !== "/v1/almiseo") return json(405, { ok: false, why: "Not here." });
         const part = String(u.searchParams.get("part") ?? "summary"), subject = String(u.searchParams.get("subject") ?? "").slice(0, 80);
-        if (!["summary", "pages", "keywords", "questions", "countries", "plan", "coverage", "answers", "research"].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });
+        if (!["summary", "pages", "keywords", "questions", "countries", "plan", "coverage", "answers", "research", "collectors" /* RR-380 */].includes(part) || !subject.trim()) return json(400, { ok: false, why: "Say the subject and the part." });
         const seoAns = await almiSeoAnswer({ part, subject, page: Math.max(0, Number(u.searchParams.get("page")) || 0), lic, stores: seoStores(), env, now, groups: await seoGroups() });
         return json(seoAns.status ?? 200, seoAns);
       }
@@ -778,6 +779,14 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!seo) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
         return send(200, JSON.stringify(await runResearch({ seo, kv, env, now })), "application/json", { "cache-control": "no-store" });
+      }
+      /* 🔴 RR-380 · places (OpenStreetMap, links only), rules that change (rechecks on their own source pages, free), trends (monthly) */
+      if (req.method === "GET" && (u.pathname === "/cron/places" || u.pathname === "/cron/rules" || u.pathname === "/cron/trends")) {
+        if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
+        if (!seo || (u.pathname === "/cron/rules" && !cf)) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
+        const r = u.pathname === "/cron/places" ? await runPlaces({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/rules" ? await runRules({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), now }) : await runTrends({ seo, kw: db, env, now });
+        if (kv) await recordRun(kv, u.pathname.slice(6), new Date(now()).toISOString().slice(0, 10), { progress: r.ok ? 1 : 0, code: r.ok ? null : "STOPPED", why: r.why ?? null }).catch(() => null);
+        return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       /* 🔴 RR-375 · the answers collector and its freshness check */
       if (req.method === "GET" && u.pathname === "/cron/answers") {

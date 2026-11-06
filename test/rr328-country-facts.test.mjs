@@ -299,15 +299,15 @@ test("D · RR-328 addition (owner, 26 Oct, rule R1): a council not found is sear
     ["embassy or consulate", "ministry or department of health", "health professions council", "medical, nursing, pharmacy or dental council", "board", "licensing body", "registration authority", "regulatory authority", "council", null]);
 });
 
-test("D · RR-329 (rule R7, replaces RR-328's Opus): the cheapest capable model — Claude Haiku 5.5, its price counted from its own usage (and web search); no server-side fallback (Haiku has none); the key by its name only, structured output and the basic web search tool; a paused search goes on", async () => {
-  assert.ok(Math.abs(costOf({ input_tokens: 1e6, output_tokens: 1e5, server_tool_use: { web_search_requests: 10 } }) - (0.1 + 0.05 + 0.1)) < 1e-9);
-  assert.equal(CF_AI.model, "claude-haiku-5-5");
+test("D · RR-380 (owner: Sonnet only; replaces RR-329 R7 Haiku): Claude Sonnet 5.5, its price counted from its own usage (and web search); no server-side fallback (Haiku has none); the key by its name only, structured output and the basic web search tool; a paused search goes on", async () => {
+  assert.ok(Math.abs(costOf({ input_tokens: 1e6, output_tokens: 1e5, server_tool_use: { web_search_requests: 10 } }) - (2 + 1 + 0.1)) < 1e-9);
+  assert.equal(CF_AI.model, "claude-sonnet-5-5");
   const seen = []; let turn = 0;
   const fetchImpl = async (url, init) => { const b = JSON.parse(init.body); seen.push({ url, key: init.headers["x-api-key"] === ENV_AI.ANTHROPIC_API_KEY, version: init.headers["anthropic-version"], tools: b.tools, format: b.output_config.format.type, n: b.messages.length, model: b.model, fallbacks: b.fallbacks, beta: init.headers["anthropic-beta"] });
     return new Response(JSON.stringify(turn++ === 0 ? { stop_reason: "pause_turn", content: [{ type: "server_tool_use", id: "s1", name: "web_search", input: { query: "x" } }], usage: { input_tokens: 1000, output_tokens: 100, server_tool_use: { web_search_requests: 1 } } } : { stop_reason: "end_turn", content: [{ type: "text", text: '{"councils":[]}' }], usage: { input_tokens: 2000, output_tokens: 50 } }), { status: 200 }); };
   const r = await askAi({ env: ENV_AI, fetchImpl, system: "s", prompt: "p", schema: { type: "object" }, search: true });
-  assert.deepEqual(r.data, { councils: [] }); assert.equal(r.searches, 1); assert.ok(Math.abs(r.usd - (3000 * 0.1 / 1e6 + 150 * 0.5 / 1e6 + 0.01)) < 1e-9);
-  assert.equal(seen[0].url, "https://api.anthropic.com/v1/messages"); assert.ok(seen.every((x) => x.key && x.version === "2023-06-01" && x.format === "json_schema" && x.model === "claude-haiku-5-5" && x.fallbacks === undefined && x.beta === undefined));
+  assert.deepEqual(r.data, { councils: [] }); assert.equal(r.searches, 1); assert.ok(Math.abs(r.usd - (3000 * 2 / 1e6 + 150 * 10 / 1e6 + 0.01)) < 1e-9);
+  assert.equal(seen[0].url, "https://api.anthropic.com/v1/messages"); assert.ok(seen.every((x) => x.key && x.version === "2023-06-01" && x.format === "json_schema" && x.model === "claude-sonnet-5-5" && x.fallbacks === undefined && x.beta === undefined));
   assert.deepEqual(seen[0].tools, [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }]); assert.equal(seen[1].n, 2, "the paused turn sent back");
   const refused = await askAi({ env: ENV_AI, fetchImpl: async () => new Response(JSON.stringify({ stop_reason: "refusal", content: [] }), { status: 200 }), system: "", prompt: "", schema: {} });
   assert.equal(refused.why, "the AI declined this question");

@@ -18,6 +18,7 @@ import { secondSearch } from "../desktop/recipe.mjs";
 import { blocksOfHtml, blueprintOf } from "../desktop/blocks.mjs"; // RR-363: R15
 import { COUNTRIES } from "../desktop/world.mjs";
 import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPagesCaps, topPagesBudget, collectorPlan, allTopics, useClientTemplates, LIVE_JOBS, clientTopicsToWork, planLimits, sharedFailHosts, FAIL_KEY, PAID_FAIL, TOP_PAGES_REUSED_JOB, TOP_PAGES_SKIPPED_JOB } from "./almiseo.mjs";
+import { generalTopics, GENERAL_OFF } from "./more-collectors.mjs"; // RR-380
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { byMeaning, twinOf, meaningKey } from "../desktop/search-meaning.mjs"; // RR-370 item 11
@@ -47,6 +48,7 @@ export const walled = (html) => /<(?:input)[^>]+type=["']password["']/i.test(Str
 /** the intents of a topic: what its plan will ask (its pages), without a question already asked for another page */
 export function intentsOf({ topic, facts }) {
   const seen = new Set();
+  if (topic.plainIntents) return [...new Set(topic.intents ?? [])];
   return [...collectorPlan({ topic, facts }).map((p) => p.title), ...(topic.intents ?? [])].filter((t) => { const k = t.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
@@ -69,6 +71,8 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
     const rank = (t) => { const i = queue.products.indexOf(t.id); return i < 0 ? 1e6 : i; }, all = await allTopics({ seo, groups }), limits = await planLimits(seo), month = today.slice(0, 7), topics = all.filter((t) => t.owner === "almiworld" && !t.paused && (t.jobs ?? LIVE_JOBS).includes("top-pages")).sort((a, b) => rank(a) - rank(b));
     /* RR-362 item 9 (R14): AlmiWorld's products first. Later, by the owner's switch, a client's subject too, after them and inside its plan's monthly limit; the client still sees pages only */
     if (env[ENV_NAMES.topPagesClients] === "1") topics.push(...await clientTopicsToWork({ seo, topics: all, today, limits }));
+    /* 🔴 RR-380 item 5: general market data for outside clients (categories, YouTube niches), slowly, after everything above, inside the same caps */
+    if (env[GENERAL_OFF] !== "1") topics.push(...generalTopics(groups));
     const facts = await cf.facts();
     /* 🔴 RR-369b item 5: what is known to fail is not paid for; what fails here is remembered for everyone */
     const fails = readFailures({ own: await sharedFailHosts(seo).catch(() => ({})) }) /* its own failures add to what everyone reported */, hostsHere = {}, noteHere = (u, ok, why) => { fails.note(u, { ok, why }); const h = hostOf(u); if (h && !/too long/i.test(String(why ?? ""))) { hostsHere[h] ??= { ok: 0, fail: 0 }; hostsHere[h][ok ? "ok" : "fail"]++; } };

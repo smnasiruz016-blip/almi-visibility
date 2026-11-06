@@ -7,7 +7,7 @@
 import { randomBytes } from "node:crypto";
 import { askAi, aiConfigured, CF_AI } from "./cf-ai.mjs";
 
-export const RESEARCH = Object.freeze({ job: "research", capPerDay: 1, reserveUsd: 0.12, lockSeconds: 290, refreshDays: 30, offEnv: "ALMISEO_RESEARCH_OFF", maxSearches: 5, callsPerRun: 2 });
+export const RESEARCH = Object.freeze({ job: "research", capPerDay: 1, reserveUsd: 0.4 /* RR-380: Sonnet, 5 searches and their pages */, lockSeconds: 290, refreshDays: 30, offEnv: "ALMISEO_RESEARCH_OFF", maxSearches: 5, callsPerRun: 2 });
 export const MARKETS = Object.freeze([
   Object.freeze({ id: "prep", name: "AlmiPrep (IELTS)", market: "IELTS preparation" }), Object.freeze({ id: "pte", name: "AlmiPTE", market: "PTE Academic preparation" }), Object.freeze({ id: "toefl", name: "AlmiTOEFL", market: "TOEFL iBT preparation" }), Object.freeze({ id: "det", name: "AlmiDET", market: "Duolingo English Test preparation" }), Object.freeze({ id: "celpip", name: "AlmiCELPIP", market: "CELPIP preparation" }), Object.freeze({ id: "oet", name: "AlmiOET", market: "OET preparation" }), Object.freeze({ id: "cv", name: "AlmiCV", market: "online CV and resume builders" }),
 ]);

@@ -154,6 +154,11 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
       const j = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate: d(93), endDate: d(3), dimensions: ["page"], rowLimit: 5000 }) });
       return j ? (j.rows ?? []).map((r) => ({ page: r.keys[0], clicks: r.clicks, impressions: r.impressions, position: r.position })) : null;
     },
+    /** RR-379 items 4 + 5: one Search Analytics read with the caller's own dimensions and dates (rank tracking per country, CTR before/after). → rows or null */
+    async analytics(siteUrl, { startDate, endDate, dimensions = ["query"], rowLimit = 5000, filters = null }) {
+      const j = await api(`sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate, endDate, dimensions, rowLimit, type: "web", ...(filters ? { dimensionFilterGroups: [{ filters }] } : {}) }) });
+      return j ? (j.rows ?? []).map((r) => ({ keys: r.keys, clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position })) : null;
+    },
     signOut() { keys.remove(KEYS.refresh); access = null; },
   });
 }

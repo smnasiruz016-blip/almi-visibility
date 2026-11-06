@@ -23,7 +23,9 @@ export const PRICES = Object.freeze({
 export const PRICE = Object.freeze({ model: AI.model, ...PRICES[AI.model] }); // the model Visibility asks for
 export const DEFAULT_CAP_USD = 10;
 const priceOf = (u) => PRICES[u?.model ?? AI.model] ?? null;
-export const costOf = (u) => { const p = priceOf(u); return p ? ((u?.input ?? 0) * p.inPerMillion + (u?.output ?? 0) * p.outPerMillion) / 1e6 : 0; };
+/* 🔴 RR-377: Claude's web search is billed per search on top of its tokens: "$10 USD per 1,000 searches", Anthropic's web search tool page, read 2026-11-06 */
+export const WEB_SEARCH_USD = 0.01;
+export const costOf = (u) => { const p = priceOf(u); return (p ? ((u?.input ?? 0) * p.inPerMillion + (u?.output ?? 0) * p.outPerMillion) / 1e6 : 0) + (Number(u?.searches) || 0) * WEB_SEARCH_USD; };
 const money = (x) => (x < 0.01 ? "under $0.01" : `$${x.toFixed(2)}`);
 
 /** the ledger of the client's AI use — this computer only; the month's total against the cap */
@@ -33,9 +35,11 @@ export function aiLedger(file, { now = () => Date.now(), cap = () => DEFAULT_CAP
   const self = {
     month() { const l = read(); return Object.entries(l.days).filter(([d]) => d.startsWith(month())).reduce((t, [, x]) => ({ requests: t.requests + x.requests, usd: t.usd + x.usd }), { requests: 0, usd: 0 }); },
     today() { return read().days[today()] ?? { requests: 0, usd: 0 }; },
+    /** RR-377: one route's own money (e.g. "w", AI web search), today and this month */
+    route(r) { const l = read(), d = today(), sum = (xs) => xs.reduce((t, x) => ({ usd: t.usd + (x?.usd ?? 0), searches: t.searches + (x?.searches ?? 0), requests: t.requests + (x?.requests ?? 0) }), { usd: 0, searches: 0, requests: 0 }); return { today: sum([l.days[d]?.routes?.[r]]), month: sum(Object.entries(l.days).filter(([k]) => k.startsWith(month())).map(([, x]) => x.routes?.[r])) }; },
     /** may AI be called now? (the month is under the cap) */
     allowed() { const m = self.month(); return m.usd < cap() ? { ok: true } : { ok: false, why: `Your AI limit for this month is reached (${money(m.usd)} of ${money(cap())}). Raise it in Settings → Your AI connection, or wait for next month. The template options stay.` }; },
-    add(usage) { const l = read(), d = today(), x = l.days[d] ?? { requests: 0, usd: 0, input: 0, output: 0 }; const c = costOf(usage), m = usage?.model ?? AI.model; l.days[d] = { requests: x.requests + 1, usd: x.usd + c, input: x.input + (usage?.input ?? 0), output: x.output + (usage?.output ?? 0), models: { ...(x.models ?? {}), [m]: (x.models?.[m] ?? 0) + 1 } }; writeFileSync(`${file}.tmp`, JSON.stringify(l)); renameSync(`${file}.tmp`, file); return c; },
+    add(usage) { const l = read(), d = today(), x = l.days[d] ?? { requests: 0, usd: 0, input: 0, output: 0 }; const c = costOf(usage), m = usage?.model ?? AI.model; l.days[d] = { requests: x.requests + 1, usd: x.usd + c, input: x.input + (usage?.input ?? 0), output: x.output + (usage?.output ?? 0), models: { ...(x.models ?? {}), [m]: (x.models?.[m] ?? 0) + 1 }, ...(x.routes || usage?.route ? { routes: { ...(x.routes ?? {}), ...(usage?.route ? { [usage.route]: { requests: (x.routes?.[usage.route]?.requests ?? 0) + 1, usd: (x.routes?.[usage.route]?.usd ?? 0) + c, searches: (x.routes?.[usage.route]?.searches ?? 0) + (Number(usage.searches) || 0) } } : {}) } } : {}) }; writeFileSync(`${file}.tmp`, JSON.stringify(l)); renameSync(`${file}.tmp`, file); return c; },
     line() {
       const t = self.today(), m = self.month(), models = Object.keys(t.models ?? {}), used = models.length ? models : [AI.model];
       const unpriced = used.filter((x) => !PRICES[x]), priced = used.filter((x) => PRICES[x]);

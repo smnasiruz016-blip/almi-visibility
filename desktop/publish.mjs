@@ -18,10 +18,12 @@ import { asPublished, THIN_MARK } from "../src/page/one-builder.mjs";
 import { visibleQa } from "./page-law.mjs";
 /* 🔴 RR-383 item 2 (Q&A LAW 6): the PAGE carries noindex when it shows fewer than 6 real Q&A (the fee question not counted). Counted on the
  * finished page, the last word before it goes, so no page is indexable on a count made elsewhere (the real proof: 8 drafts with 5 went out "index") */
+export { THIN_MARK }; /* RR-383: main reads the mark through here (it never imports the builder) */
 export const REAL_QA_MIN = 6;
 const FEE_Q = /\bhow much (?:does|is|do)\b[^?]*\b(?:cost|fees?)\b|\b(?:exam|test) fees?\b/i;
 export const realQa = (html) => visibleQa(html).filter((q) => q.answers.length && !FEE_Q.test(q.q)).length;
-export const asPublishedGuarded = (html, url) => asPublished(realQa(html) < REAL_QA_MIN ? asNoindex(html) : html, url);
+/* only a Q&A page is counted (Q&A LAW 6); a page with no question blocks (an article, a client's own page) goes out as it was made */
+export const asPublishedGuarded = (html, url) => asPublished(visibleQa(html).length && realQa(html) < REAL_QA_MIN ? asNoindex(html) : html, url);
 
 export const TARGETS = Object.freeze([
   Object.freeze({ id: "wordpress", label: "WordPress", chooseIf: "your site is built with WordPress (you sign in at your-site/wp-admin).", needs: "your site's address, your WordPress user name, and an application password (WordPress → Users → Profile → Application Passwords → Add new).", keyName: "WORDPRESS_APP_PASSWORD" }),

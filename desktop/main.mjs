@@ -41,7 +41,7 @@ import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 ite
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed } from "./publish.mjs"; /* RR-383: the site equals the app */
-import { THIN_MARK, asPublished as asPublishedPage } from "../src/page/one-builder.mjs";
+import { THIN_MARK, asPublishedGuarded as asPublishedPage } from "./publish.mjs"; // RR-383: through the classified publisher, never the builder itself (F34 C5 census)
 import { pageFaults } from "./page-law.mjs"; // RR-383: a page that needs more answers carries this mark and goes out noindex
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
@@ -339,7 +339,7 @@ async function liveSitemapNoindexed(site, noindexUrls) {
   while (queue.length && seen.size < 12) { const u = queue.shift(); if (seen.has(u)) continue; seen.add(u); const t = await get(u); if (!t) continue; if (/<sitemapindex/i.test(t)) { for (const m of t.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) queue.push(m[1]); } else xml += t; }
   return seen.size ? sitemapNoindexed(xml, noindexUrls) : null;
 }
-const mirrorWords = (m) => (!m ? "" : `${m.ok ? ` The site now equals the app: ${m.kept ?? 0} kept, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : ` ${m.why}`}${m.sitemapNoindex?.count ? ` Warning: your site's sitemap still lists ${m.sitemapNoindex.count} page${m.sitemapNoindex.count === 1 ? "" : "s"} marked noindex (e.g. ${m.sitemapNoindex.sample[0]}): your site's code must leave them out of its sitemap.` : ""}`);
+const mirrorWords = (m) => (!m ? "" : `${m.ok ? (m.rewritten || m.removed ? ` The site now equals the app: ${m.kept ?? 0} kept, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "") : ` ${m.why}`}${m.sitemapNoindex?.count ? ` Warning: your site's sitemap still lists ${m.sitemapNoindex.count} page${m.sitemapNoindex.count === 1 ? "" : "s"} marked noindex (e.g. ${m.sitemapNoindex.sample[0]}): your site's code must leave them out of its sitemap.` : ""}`);
 async function publishAll(id) {
   const key = `publish:${id}`; if (BOARD.running(key)) return { ok: false, busy: true, line: "Your pages are being published now." };
   const pages = pread(id, "pages.json"), go = waitingToPublish(pages, pread(id, "published.json", [])), N = go.length;

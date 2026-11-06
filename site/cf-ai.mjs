@@ -12,8 +12,11 @@ import { NAME_TYPES } from "../desktop/country-facts.mjs";
 /* RR-329 C (rule R7): the CHEAPEST capable model collects — Claude Haiku 5.5 ($0.10 per million input tokens, $0.50 per million output, for a
  * prompt of 100K tokens or fewer; web search $10 per 1,000 — Anthropic's model and pricing pages, read 2026-10-26). Haiku 5.5 has no
  * server-side fallback (no `fallbacks`), and its web search is the basic tool (web_search_20250305; dynamic filtering is not on Haiku). */
-export const CF_AI = Object.freeze({ origin: "https://api.anthropic.com", path: "/v1/messages", version: "2023-06-01", model: "claude-haiku-5-5", keyName: "ANTHROPIC_API_KEY", search: "web_search_20250305", maxSearches: 6,
-  price: Object.freeze({ inPerM: 0.1, outPerM: 0.5, perSearch: 0.01 }) });
+/* 🔴 RR-380 (owner, 6 Nov 2026: "Sonnet only" for every AI in AlmiVisibility, collectors included; replaces R7's Haiku). Sonnet 5.5: $2 per
+ * million input tokens, $10 per million output (Anthropic's pricing page, read 2026-11-05, as desktop/ai-coach.mjs). The same daily caps
+ * buy fewer facts a day; the ETA on /owner says how many days. */
+export const CF_AI = Object.freeze({ origin: "https://api.anthropic.com", path: "/v1/messages", version: "2023-06-01", model: "claude-sonnet-5-5", keyName: "ANTHROPIC_API_KEY", search: "web_search_20250305", maxSearches: 6,
+  price: Object.freeze({ inPerM: 2, outPerM: 10, perSearch: 0.01 }) });
 export const aiConfigured = (env = process.env) => String(env[CF_AI.keyName] ?? "").length > 20;
 /** a call's price in US dollars, from its own usage counts */
 export const costOf = (u) => (Number(u?.input_tokens ?? 0) + Number(u?.cache_creation_input_tokens ?? 0) + Number(u?.cache_read_input_tokens ?? 0) * 0.1) * CF_AI.price.inPerM / 1e6 + Number(u?.output_tokens ?? 0) * CF_AI.price.outPerM / 1e6 + Number(u?.server_tool_use?.web_search_requests ?? 0) * CF_AI.price.perSearch;

@@ -22,8 +22,9 @@ export const QUEUE_COUNTRIES = Object.freeze([...FIRST_15, ...NEXT_15, ...COUNTR
 export const QUEUE_PRODUCTS = Object.freeze([
   /* RR-333 D (owner, 27 Oct): AlmiVisibility SECOND, right after AlmiOET — it needs its own pages at launch */
   /* RR-362 item 8 (owner, 2 Nov): AlmiOET → AlmiVisibility → AlmiWorld → AlmiCV → AlmiJob → AlmiSalary → then the rest */
-  ["oet", 1], ["visibility", 1], ["almiworld", 1], ["cv", 2], ["jobs", 3], ["salary", 3], ["study", 3], ["prep", 4], ["pte", 4], ["toefl", 4], ["det", 4], ["celpip", 4],
-  ["french", 5], ["goethe", 5], ["spanish", 5], ["italian", 5], ["portuguese", 5], ["dutch", 5], ["japanese", 5], ["korean", 5], ["danish", 5], ["norwegian", 5], ["swedish", 5], ["icelandic", 5], ["swiss", 5],
+  /* 🔴 RR-380 item 1 (the plan's section 0 order): AlmiPathway after AlmiStudy, AlmiGoethe before the language products, EBooks last; the local directories after */
+  ["oet", 1], ["visibility", 1], ["almiworld", 1], ["cv", 2], ["jobs", 3], ["salary", 3], ["study", 3], ["pathway", 3], ["prep", 4], ["pte", 4], ["toefl", 4], ["det", 4], ["celpip", 4], ["goethe", 4],
+  ["french", 5], ["spanish", 5], ["japanese", 5], ["korean", 5], ["italian", 5], ["portuguese", 5], ["dutch", 5], ["icelandic", 5], ["danish", 5], ["norwegian", 5], ["swedish", 5], ["swiss", 5], ["ebooks", 6], ["halal", 6], ["health", 6], ["architect", 6],
 ].map(([key, tier]) => Object.freeze({ key, tier })));
 export const DEFAULT_QUEUE = Object.freeze({ products: Object.freeze(QUEUE_PRODUCTS.map((p) => p.key)), countries: QUEUE_COUNTRIES });
 

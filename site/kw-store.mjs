@@ -157,6 +157,8 @@ export function pgStore({ url, Pool = null, max = 3 }) {
       return { ...t, groups, locations: locs, fetchesToday: Object.fromEntries(fetches.map((r) => [r.kind, { fetches: r.n, ops: r.ops }])) };
     },
     /** RR-333 D · the keywords collected for some groups (a product, our Search Console), each with its newest figure per location */
+    /** 🔴 RR-380 item 4 (trends): a group's keywords with their 12 months (the newest observation), the most searched first */
+    async monthly(groups, { limit = 3000 } = {}) { await ensure(); return (await q("SELECT gk.keyword, gk.location, o.months FROM kw_group_keyword gk JOIN LATERAL (SELECT months, avg_monthly_searches FROM kw_observation x WHERE x.keyword = gk.keyword AND x.location = gk.location AND x.months IS NOT NULL ORDER BY x.day DESC LIMIT 1) o ON true WHERE gk.grp = ANY($1::text[]) ORDER BY o.avg_monthly_searches DESC NULLS LAST LIMIT $2", [groups, limit])).map((r) => ({ text: r.keyword, location: r.location, months: unpackMonths(r.months) })); },
     async groupKeywords(groups) { await ensure(); return (await q("SELECT gk.keyword, gk.location, o.avg_monthly_searches::text AS volume, gk.grp FROM kw_group_keyword gk LEFT JOIN LATERAL (SELECT avg_monthly_searches FROM kw_observation x WHERE x.keyword = gk.keyword AND x.location = gk.location ORDER BY x.day DESC LIMIT 1) o ON true WHERE gk.grp = ANY($1::text[])", [groups])).map((r) => ({ keyword: r.keyword, location: r.location, volume: r.volume === null ? null : Number(r.volume), group: r.grp })); },
     /** RR-360 A · ALL of a topic's keywords by relevance: those holding its own words, the most searched first (All locations' figure, else the
      *  largest), never another product's; limit 0 = the counts only. → { total, today, week, rows: [{ keyword, volume, places, last }] } */
@@ -255,6 +257,7 @@ export function memoryStore({ sizeMb = null } = {}) {
       return [...best.values()].sort((a, b) => (a.volume === null) - (b.volume === null) || (b.volume ?? 0) - (a.volume ?? 0) || a.keyword.localeCompare(b.keyword)).slice(0, limit).map((o) => ({ keyword: o.keyword, volume: o.volume, day: o.day, period: o.period }));
     },
     /* the tests hand a size in (a number, or a function of what is held) */
+    async monthly(groups, { limit = 3000 } = {}) { const out = []; for (const x of gk.values()) { if (!groups.includes(x.grp)) continue; let best = null; for (const o of obs.values()) if (o.keyword === x.keyword && o.location === x.location && o.months && (!best || o.day > best.day)) best = o; if (best) out.push({ text: x.keyword, location: x.location, months: unpackMonths(best.months), v: best.volume ?? -1 }); } return out.sort((a, b) => b.v - a.v).slice(0, limit).map(({ v, ...r }) => r); },
     async groupKeywords(groups) { return [...gk.values()].filter((x) => groups.includes(x.grp)).map((x) => { let best = null; for (const o of obs.values()) if (o.keyword === x.keyword && o.location === x.location && (!best || o.day > best.day)) best = o; return { keyword: x.keyword, location: x.location, volume: best?.volume ?? null, group: x.grp }; }); },
     async sizeMb() { return typeof sizeMb === "function" ? sizeMb({ observations: obs.size, fetches: fetches.size }) : sizeMb; },
     /* RR-360 A · the same contract as on Postgres (\m…\M, Postgres' word ends, become the regular expression's own) */

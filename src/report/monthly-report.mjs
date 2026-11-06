@@ -17,8 +17,19 @@ export function searchFromExport(exportRecord, phrases = []) {
     queryNumbers: "the export records the queries' words; its per-query numbers are not in the stored record" });
 }
 
+/** 🔴 RR-382 item 1c: the search part from the LIVE Search Console connection (Search Analytics rows by page and by query, the last 28 days with
+ *  data). The export file stays the fallback when no connection is made. Google's own numbers, never ours. */
+export function searchFromLive({ site, from, to, pages = [], queries = [] }) {
+  if (!site || (!pages.length && !queries.length)) return null;
+  const sum = (k) => pages.reduce((t, r) => t + (Number(r[k]) || 0), 0), days = Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1;
+  return Object.freeze({ connected: true, live: true, source: `Search Console, live (${site})`, window: { days, from, to }, clicks: sum("clicks"), impressions: sum("impressions"),
+    topPages: Object.freeze([...pages].sort((a, b) => b.impressions - a.impressions || b.clicks - a.clicks).slice(0, 5).map((r) => ({ url: r.keys?.[0] ?? r.url, impressions: r.impressions, clicks: r.clicks }))),
+    topQueries: Object.freeze([...queries].sort((a, b) => b.impressions - a.impressions).slice(0, 5).map((r) => `${r.keys?.[0] ?? r.query} (${r.impressions} impressions, ${r.clicks} clicks)`)),
+    queryNumbers: "read live from your Search Console" });
+}
+
 /** The report: { product, month, made: { pages: [{url,title}], articles: [{url,question,day}] }, refresh: { notes, reported }, refused: [lines], search, nextTopics: [questions] } */
-export function monthlyReport({ product, month, made = { pages: [], articles: [] }, refresh = { notes: [], reported: [] }, refused = [], search = null, nextTopics = [], youtube = null }) {
+export function monthlyReport({ product, month, made = { pages: [], articles: [] }, refresh = { notes: [], reported: [] }, refused = [], search = null, nextTopics = [], youtube = null, kinds = null }) {
   const s = search ?? { connected: false, line: NOT_CONNECTED };
   /* a long list is counted by its reason, so a phone page stays readable — every one is still counted, none dropped */
   const rep = refresh.reported;
@@ -31,6 +42,8 @@ export function monthlyReport({ product, month, made = { pages: [], articles: []
     ["Search (your Search Console)", s.connected ? [`${s.source}: ${s.impressions} impressions, ${s.clicks} clicks over ${s.window?.days} days (${s.window?.from} to ${s.window?.to}).`, ...s.topPages.map((p) => `Top page: ${p.url} — ${p.impressions} impressions, ${p.clicks} clicks`), ...s.topQueries.map((q) => `Query seen: ${q}`), `Note: ${s.queryNumbers}.`] : [s.line]],
     /* RR-301: the client's YouTube channel (src/video/youtube.mjs youtubeForReport), or NOT CONNECTED — never zero */
     ["YouTube", youtube?.connected ? youtube.lines : [youtube?.line ?? "YouTube: NOT CONNECTED — no YouTube API key and no Studio export imported (this is not zero)"]],
+    /* RR-381 item 10: every kind of SEO the app holds, one plain line each; a kind never run says "not run yet" (never zero) */
+    ...(kinds?.length ? [["Every kind of SEO", kinds]] : []),
     ["Planned for next month", nextTopics.length ? nextTopics.map((q) => `Topic: ${q}`) : ["No unanswered real question is recorded yet — no topic is planned (none is made up)."]],
   ];
   const lines = [`${product} — monthly report, ${month}`, ...sections.flatMap(([h, xs]) => [`## ${h}`, ...xs.map((x) => `- ${x}`)]), "This report states what happened; it promises no ranking or result."];

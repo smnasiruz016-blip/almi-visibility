@@ -21,4 +21,8 @@ export function nextStepOf(c) {
 export const checksDue = (pending, { today, running = false }) => Boolean(pending?.titles?.length) && !running && String(pending.day) < today;
 /* item 3: the 17 big cards become a short list of one-line links, the most important on top (per the features' own ids) */
 export const TOP_JOBS = Object.freeze(["seo-pages", "publish", "check", "articles", "keywords"]);
-export const MORE_JOBS = Object.freeze(["page-count", "seo-check", "aeo", "geo", "links", "languages", "search-power", "google", "youtube", "tiktok-instagram", "social", "monthly"]);
+/* 🔴 RR-379 item 7: the new kinds of SEO, in a short group of their own, open on the first screen */
+export const SEO_KINDS = Object.freeze(["tech", "rank", "ctr", "aiv", "local", "aso", /* RR-381: wave 2, under "More kinds of SEO" so the first screen stays short */ "reviews", "backlinks", "entity", "image", "video", "news", "shop", "pinterest", "podcast"]);
+/** how many kinds show open; the rest sit under "More kinds of SEO" */
+export const SEO_KINDS_OPEN = 6;
+export const MORE_JOBS =Object.freeze(["page-count", "seo-check", "aeo", "geo", "links", "languages", "search-power", "google", "youtube", "tiktok-instagram", "social", "monthly"]);

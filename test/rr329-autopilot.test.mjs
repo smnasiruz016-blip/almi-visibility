@@ -52,8 +52,8 @@ test("A · RR-329 (rule R4): the owner's product order and country order — his
   assert.deepEqual(FIRST_15.slice(0, 3), ["India", "Philippines", "Pakistan"]); assert.equal(NEXT_15.at(-1), "Iran");
   assert.equal(QUEUE_COUNTRIES.length, 197); assert.deepEqual([...QUEUE_COUNTRIES].sort(), [...COUNTRIES].sort(), "every country once");
   assert.deepEqual(QUEUE_COUNTRIES.slice(30, 33), ["Afghanistan", "Albania", "Algeria"], "then the rest, A–Z");
-  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 12), ["oet", "visibility", "almiworld", "cv", "jobs", "salary", "study", "prep", "pte", "toefl", "det", "celpip"], "RR-333 D: AlmiVisibility second; RR-362 item 8: the owner's order");
-  assert.deepEqual(QUEUE_PRODUCTS.filter((p) => p.tier === 5).map((p) => p.key), ["french", "goethe", "spanish", "italian", "portuguese", "dutch", "japanese", "korean", "danish", "norwegian", "swedish", "icelandic", "swiss"]);
+  assert.deepEqual(DEFAULT_QUEUE.products.slice(0, 14), ["oet", "visibility", "almiworld", "cv", "jobs", "salary", "study", "pathway", "prep", "pte", "toefl", "det", "celpip", "goethe"], "RR-333 D: AlmiVisibility second; RR-362 item 8; RR-380 (the plan's order): AlmiPathway after AlmiStudy, AlmiGoethe before the languages");
+  assert.deepEqual(QUEUE_PRODUCTS.filter((p) => p.tier === 5).map((p) => p.key), ["french", "spanish", "japanese", "korean", "italian", "portuguese", "dutch", "icelandic", "danish", "norwegian", "swedish", "swiss"], "RR-380: the plan's order of the language products");
   /* editable: his order first, a new product or country always there, an unknown one dropped */
   const q = queueOf({ products: ["cv", "nope", "oet", "cv"], countries: ["Kenya"] });
   assert.deepEqual(q.products.slice(0, 3), ["cv", "oet", "visibility"], "his order first, then the default (RR-333 D: AlmiVisibility second)"); assert.equal(q.products.length, DEFAULT_QUEUE.products.length); assert.equal(q.countries[0], "Kenya"); assert.equal(q.countries.length, 197);
@@ -101,7 +101,7 @@ test("B · RR-329 (rule R6): each product's own template — the five parts for 
   assert.deepEqual(PRODUCT_FACTS.salary.parts, ["questions", "minimumWage", "averageSalary", "tax", "currency"]); assert.deepEqual(PRODUCT_FACTS.jobs.parts, ["questions", "employment", "workPermit", "recognition"]);
   assert.deepEqual(bodyParts("study"), ["universities", "studentVisa"]); assert.deepEqual(searchedParts("salary"), ["minimumWage", "averageSalary", "tax"]);
   assert.ok(FACT_PRODUCTS.every((p) => PRODUCT_FACTS[p].parts.every((k) => PART_INFO[k])), "every part is defined");
-  assert.ok(DEFAULT_QUEUE.products.filter((p) => p !== "visibility" && p !== "almiworld").every((p) => FACT_PRODUCTS.includes(p)), "every queued product has facts (AlmiVisibility and AlmiWorld: keywords and questions only)");
+  assert.ok(DEFAULT_QUEUE.products.filter((p) => !["visibility", "almiworld", "pathway", "ebooks", "halal", "health", "architect"].includes(p)).every((p) => FACT_PRODUCTS.includes(p)), "every queued product has facts (AlmiVisibility and AlmiWorld: keywords and questions only; RR-380: AlmiPathway has its own corridor collector, EBooks keywords only, the directories places only)");
   assert.ok(ownerSite("det", "englishtest.duolingo.com") && ownerSite("prep", "www.ielts.org") && !ownerSite("prep", "ielts-blog.example"));
   const rows = [{ keyword: "duolingo english test fee", volume: 900 }, { keyword: "pearson pte fee", volume: 500 }, { keyword: "pte exam fee", volume: 300 }, { keyword: "duolingo app", volume: 9000 }];
   const skip = (own) => ({ test: (t) => /\b(duolingo|pearson)\b/.test(t) && !own.test(t) });

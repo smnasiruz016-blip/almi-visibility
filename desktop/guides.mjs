@@ -14,7 +14,10 @@ import { cssVariables } from "./theme.mjs";
 const NEVER = "Never send a key in chat or email — not to AlmiWorld, not to anyone. You paste it only into Visibility, on your own computer.";
 
 /* a simple drawing of the screen the step is about: a window, its path, and the button to press (highlighted) */
-function draw({ title, path = [], press = null, fields = [] }) {
+function draw(d) {
+  /* 🔴 RR-382 (found by starting the built 1.15.37): a help guide's steps are plain sentences with no drawing; every help page answered 500 since RR-375 */
+  if (!d) return "";
+  const { title, path = [], press = null, fields = [] } = d;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const rows = fields.map((f, i) => `<rect x="24" y="${92 + i * 34}" width="300" height="24" rx="6" fill="#fff" stroke="#E7CDB8"/><text x="32" y="${108 + i * 34}" font-size="12" fill="#6B5E52">${esc(f)}</text>`).join("");
   const by = 92 + fields.length * 34 + 6;
@@ -89,6 +92,102 @@ export const HELP_GUIDES = Object.freeze({
       "Rank chart: under each published page in Pages. It shows clicks, how often Google showed it, and its average position, from your Search Console. It is free.",
     ],
   },
+  /* 🔴 RR-379: one guide per new kind of SEO (each job screen links "How this works") */
+  "seo-aso": { title: "App stores (ASO): get your app found", for: "For an app on Google Play, the Apple App Store or the Microsoft Store. Visibility never changes your store listing: you copy what you like.", steps: [
+    "Open your product → Every kind of SEO → App stores (ASO). Paste your app's store link and press Read my listing. Apple's listing is read free from Apple's own Lookup service; Google Play's through your search-data account (about a cent). The Microsoft Store has no listing service, so paste its title, description and keywords.",
+    "Read the listing score. Each problem says what is wrong, how to fix it, and the store's own limit (with the store page it comes from).",
+    "Type the words people search for your app (or let Visibility pick them from your keywords) and press Check my words and competitors: your rank for each word, the apps above you, and which words are worth going for.",
+    "Press Write a better listing with AI: a new title, subtitle or short description, description, Apple keyword field, screenshot captions and What's new, inside the limits, only from what your listing already says. Check it, then copy it into the store's own console.",
+    "Press Read reviews and draft replies: reviews grouped (bugs, prices, wishes, praise) and polite reply drafts. Post the ones you approve in the store's console.",
+    "Press Check my words again each week to follow your rank; the chart shows the trend.",
+  ] },
+  "seo-local": { title: "Local SEO: be found nearby", for: "For a business with a place customers visit, and for directories of places (mosques, halal food, doctors, architects).", steps: [
+    "Open your product → Every kind of SEO → Local SEO. Fill in your business's name, address, phone, hours and categories exactly as you want them everywhere, and press Save my business.",
+    "Press Check my name, address and phone. Visibility compares your website, its markup and your Google listing (Google's map data through your search-data account), plus any listing you paste (Bing Places, Apple Business Connect, Facebook). Each difference says what to change.",
+    "Copy the LocalBusiness markup to your site, and the Google Business Profile sheet if you have several places. Bing Places can import your Google profile; Apple Business Connect and Facebook are linked with what to fill in.",
+    "Type the words customers search and your cities, and press Where am I on the map? to see your place in Google's local results per city.",
+    "Press Read reviews and draft replies (your Google reviews, or paste them). Answer the ones you approve in Google Business Profile.",
+    "Directory: choose what to list and a city, and press Make a directory page. The places come from OpenStreetMap (open data, named with its date), links only. A page with fewer than 6 places stays out of Google.",
+  ] },
+  "seo-tech": { title: "Technical SEO: speed, markup, redirects, indexed", for: "Free: Google's PageSpeed Insights and your own Search Console.", steps: [
+    "Open your product → Every kind of SEO → Technical SEO and press Test my pages. Your home page and main pages are tested (about a minute each).",
+    "Speed: Core Web Vitals from real Chrome users (where Google has them) and the lab test's score on a phone, with the biggest fixes.",
+    "Structured data: every markup block checked against the fields Google needs, with the fix.",
+    "Redirects: chains, temporary redirects, http without https, dead ends.",
+    "Indexed: whether Google has each page (needs Search Console connected). Canonical, robots, sitemap and hreflang stay in SEO check and Languages.",
+  ] },
+  "seo-rank": { title: "Rank tracking: follow your words", for: "Your position for the words you choose, each week (or each day), on Google and Bing, per country.", steps: [
+    "Open your product → Every kind of SEO → Rank tracking. Press Suggest from Search Console, or type your words, one per line: words | country (e.g. oet for nurses | gb).",
+    "Press Check my positions. Google's own average position comes free from your Search Console; the live position on Google and Bing comes from your search-data account (under a cent a word).",
+    "The chart shows each word over time; the table shows the change and who is above you. Visibility checks again by itself each week (or day) while it is open, inside your caps.",
+  ] },
+  "seo-ctr": { title: "Click-rate fixes: more clicks from the same searches", for: "Pages Google shows often but people rarely click.", steps: [
+    "Open your product → Every kind of SEO → Click-rate fixes and press Find pages to fix. Each page is compared with your OWN pages at the same position, from your Search Console (free).",
+    "Give a page and press Write a better title and description: three of each, from the page's own words (no promises, no number the page does not hold).",
+    "Change the title and description on your site, then give the page and the day and press I changed it. After 28 days press Compare before and after.",
+  ] },
+  "seo-aiv": { title: "AI search visibility: do the assistants name you?", for: "ChatGPT, Claude, Perplexity, Gemini and Google's AI Overviews, asked real questions. What they say is an observation on that day, never a promise.", steps: [
+    "Open your product → Every kind of SEO → AI search visibility. Check your brand's name, other names, your domain and your competitors.",
+    "Press Suggest questions (from the searches and questions Visibility holds), or type your own: real questions your customers ask.",
+    "Add your own keys for ChatGPT (OpenAI), Perplexity and Gemini on this screen; Claude uses your AI connection; Google's AI Overviews use your search-data account. An assistant with no key is skipped and said.",
+    "Press Ask the assistants. You get a score (half for being named, half for being cited), each answer with the sites it cited, and for each answer you are missing, what page would win it (Create SEO pages makes it).",
+    "Ask again each month to see the trend.",
+  ] },
+  /* 🔴 RR-381: one guide per kind of SEO of wave 2 (each job screen links "How this works") */
+  "seo-reviews": { title: "Reviews and reputation: one score from every source", for: "Google, Trustpilot, Tripadvisor, the app stores and reviews you paste (Facebook, others). Visibility never changes, hides or posts a review.", steps: [
+    "Open your product → Every kind of SEO → More kinds of SEO → Reviews and reputation. Fill in your business name and city (to find your Google listing), and your Trustpilot or Tripadvisor page if you have one.",
+    "Press Read my reviews: one score across every source, each source's own average and total, and what people write about (problems, prices, wishes, praise). Reading uses your search-data account (a cent or two a source).",
+    "Press Draft replies: polite reply drafts for the low reviews without an answer. Approve each one, then post it where the review is.",
+    "After the first read, Visibility reads your reviews once a day while it is open (Daily watch: on). A new 1–2 star review shows on the first screen and in a Windows notification, with a reply draft ready. Each daily read costs a cent or two per source.",
+    "Copy the review-request texts (email, SMS, in-store card). Ask every customer, never only the happy ones, and offer nothing in return: Google's rules forbid both.",
+    "Copy the review box to your site: it shows your numbers with the date they were read. Read again each month for the trend.",
+  ] },
+  "seo-image": { title: "Images: alt text, names, size and image sitemap", for: "For any website with pictures. Free; alt text uses your AI.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Images and press Check my images: alt text, file names, size, format, width and height on your main pages.",
+    "Press Write alt text with AI: your AI looks at each image without alt text and describes only what it shows. Check it, then paste it in your site.",
+    "Copy the image sitemap to your site and add it in Search Console.",
+    "For your own photos, give the owner (and licence page) and copy the ImageObject markup.",
+  ] },
+  "seo-video": { title: "Video: markup, sitemap, transcripts and chapters", for: "For videos on your own website (YouTube channels have their own job).", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Video and press Check my videos: each video's markup and captions.",
+    "Paste the video's captions (WebVTT) or their address and press Make chapters from captions: chapters and a transcript, only from what is said.",
+    "Fill in the video's title, thumbnail and first publish date and press Make my video markup; copy it and the video sitemap to your site.",
+    "Visibility does not turn speech into text: transcripts and chapters come only from captions you give (a WebVTT file or its address).",
+  ] },
+  "seo-pinterest": { title: "Pinterest: a pin for each page", for: "Visibility writes the text; you post the pins (or connect Pinterest's own scheduler).", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Pinterest. Give up to 6 pages (or leave it empty for your main pages) and press Write my pins.",
+    "Each page gets a pin title (Pinterest allows 100 characters), a description, a board name and image alt text, with the words people search where they are true.",
+    "Make a tall image (2:3) for each pin and post it with the page's link.",
+  ] },
+  "seo-podcast": { title: "Podcasts: feed, episodes and listings", for: "For a podcast with an RSS feed.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Podcasts. Paste your feed address (your host shows it) and your Spotify show link, and press Check my podcast.",
+    "Fix what the feed lacks (artwork, category, descriptions, transcripts). Apple Podcasts is checked through Apple's own search; Spotify by your link.",
+    "Copy the PodcastEpisode markup to each episode's page on your site.",
+    "Visibility does not turn speech into text: a transcript comes from your podcast host (most can make one and add it to the feed as podcast:transcript).",
+  ] },
+  "seo-entity": { title: "Brand facts: help search engines know who you are", for: "Your markup, your profiles and Wikidata, with the same facts everywhere. Never a fact you cannot source.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Brand facts. Check your exact name, website, logo, a one-line description and your official profiles, then press Check my brand facts.",
+    "Fix each gap: Organization markup on your home page, profile links that open (sameAs), one name everywhere.",
+    "Wikidata: if it has your item, link it from your markup. If not, it accepts an item only for something notable with serious public sources; create it only with those sources.",
+  ] },
+  "seo-news": { title: "News and Discover: articles Google can show", for: "For sites that publish articles or news.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → News and Discover. Give your article pages and your publication's name, and press Check my articles.",
+    "Fix each article: Article markup with headline, image, dates and author; large image previews allowed; an image at least 1200 px wide; a title that says what the article is.",
+    "If you publish news, copy the news sitemap (only articles of the last two days) and submit it in Search Console.",
+  ] },
+  "seo-backlinks": { title: "Backlinks: who links to you", for: "New, lost and suspicious links, and link ideas. You write to sites yourself; nothing is offered for a link.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Backlinks and press Check my links (DataForSEO's links data, about 4 cents). For free data, paste Search Console's Top linking sites export, and add your Bing key in Bing's screen.",
+    "Read the new and lost links. Suspicious links: Google ignores most by itself; use the disavow file only after a manual action.",
+    "Give up to 5 competitors and press Find link ideas: sites that link to them and not to you.",
+    "Give your best page on the topic and press Draft outreach emails. Read each one and send it yourself.",
+  ] },
+  "seo-shop": { title: "Shop and marketplaces: feed, product pages, listings", for: "Google Merchant Center, Amazon, Etsy, eBay and others.", steps: [
+    "Merchant Center: in Settings → Google press Also connect Merchant Center (your own sign-in), then Read my Merchant Center: every product and Google's own problems for it. Visibility changes nothing there.",
+    "Open Every kind of SEO → More kinds of SEO → Shop and marketplaces. Or give your Merchant Center feed's address (or paste it) and press Check my feed: every product against Google's product data rules.",
+    "Give product pages and press Check my product pages: the Product markup Google reads.",
+    "Give your Amazon product link (or ASIN) and the words buyers search, and press Read my listing: the listing and where it stands. Etsy is read with your own Etsy app key; eBay and others are pasted.",
+    "Press Write a better listing: title, bullet points, description and tags from your own listing only. Copy what you like into the marketplace.",
+  ] },
   "promotion-code": {
     title: "How to use a promotion code",
     for: "A promotion code from AlmiWorld lowers the price of your plan. You type it on the payment page, before you pay.",
@@ -134,7 +233,7 @@ main{max-width:760px;margin:18px auto;padding:0 16px} h1{font-size:21px;color:va
 <main><h1>${esc(g.title)}</h1><p class="meta">${esc(g.for)}${help ? "" : " The steps the AlmiWorld owner followed on 22 October 2026. Keep this window open beside Visibility while you paste."}</p>
 ${help ? "" : `<p class="never" id="never">${esc(NEVER)}</p>`}
 <div class="bar"><button class="ghost" id="prev" type="button">← Back</button><span id="count" class="meta"></span><button id="next" type="button">Next →</button><button class="ghost" id="all" type="button">Show all steps</button></div>
-${g.steps.map((s, i) => `<section class="step" id="s${i + 1}" ${i ? "hidden" : ""}><h2>Step ${i + 1} of ${n}</h2><p>${esc(s.do)}</p>${draw(s.draw)}</section>`).join("\n")}
+${g.steps.map((s, i) => `<section class="step" id="s${i + 1}" ${i ? "hidden" : ""}><h2>Step ${i + 1} of ${n}</h2><p>${esc(typeof s === "string" ? s : s.do)}</p>${typeof s === "string" ? "" : draw(s.draw)}</section>`).join("\n")}
 <div class="bar"><button class="ghost" id="prev2" type="button">← Back</button><button id="next2" type="button">Next →</button></div>
 ${help ? "" : `<p class="never">${esc(NEVER)}</p>`}</main>
 <script>

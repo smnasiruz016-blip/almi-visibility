@@ -11,6 +11,7 @@ import { fixForMe, aiReadiness, FIXES, directAnswer } from "./product-check.mjs"
 import { readyFromFix } from "./action-plan.mjs";
 import { AI_SEARCH_BOTS } from "../src/page/page-gates.mjs";
 import { LANGUAGES } from "../src/page/languages.mjs";
+import { JOBS } from "./seo-jobs.mjs";
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -35,11 +36,13 @@ export const FEATURES = Object.freeze([
   /* RR-318 C + D */
   { id: "page-count", title: "How many pages can I make for this product?", does: "You choose what to make pages for — countries, universities, professions, subjects, cities or your own list. Visibility keeps only what an official page confirms, then says honestly how many pages are possible AND good.", youGet: "The number, the list with each official source and date, and \"Make these pages (drafts)\".", time: "A few minutes (it reads official pages slowly, one every 2 seconds). Free.", needs: (c) => (!c.hasSite ? [{ what: "your website", action: "settings" }] : []) },
   { id: "search-power", title: "Search Console: positions, opportunities and alerts", does: "Reads your own Search Console week by week: where each search phrase and page stands, which phrases are close to page 1, and what dropped.", youGet: "Rank tracking with the trend, opportunity phrases with ready text, and alerts with a refresh suggestion.", time: "A minute. Free (Google's own data).", needs: (c) => (c.searchConsoleKind !== "CONNECTED" ? [{ what: "Google Search Console, connected", action: "google" }] : []) },
+  /* 🔴 RR-379 (owner, 6 Nov 2026: every kind of SEO, wave 1) — each opens its own screen (desktop/seo-jobs.mjs) */
+  ...Object.entries(JOBS).map(([id, j]) => ({ id, title: j.title, does: j.does, youGet: j.youGet, time: j.time, needs: (c) => (["tech", "rank", "ctr", "image", "video", "news", "pinterest", "backlinks"].includes(id) && !c.hasSite ? [{ what: "your website", action: "settings" }] : []) })),
   { id: "google", title: "Connect Google Search Console", does: "Brings in the searches people really make before they find you.", youGet: "Your real searches and the pages they open — the base for new pages.", time: "2 minutes, once. Free.", needs: () => [] },
 ].map(Object.freeze));
 
 /* the cards that only work with a website */
-export const WEBSITE_ONLY = new Set(["seo-pages", "seo-check", "aeo", "geo", "articles", "links", "languages", "publish", "google", "page-count", "search-power"]);
+export const WEBSITE_ONLY = new Set(["seo-pages", "seo-check", "aeo", "geo", "articles", "links", "languages", "publish", "google", "page-count", "search-power", "tech", "rank", "ctr", "image", "video", "news", "pinterest", "backlinks" /* RR-381 */]);
 /** The cards for one product: each with its needs, and the top 3 recommended from its check. */
 export function menuFor(ctx) {
   /* RR-318 B7 (owner: "after Search Console connected, the Connect card still showed"): once connected, the Connect card is gone */

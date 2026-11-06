@@ -130,6 +130,57 @@ export const HELP_GUIDES = Object.freeze({
     "Press Ask the assistants. You get a score (half for being named, half for being cited), each answer with the sites it cited, and for each answer you are missing, what page would win it (Create SEO pages makes it).",
     "Ask again each month to see the trend.",
   ] },
+  /* 🔴 RR-381: one guide per kind of SEO of wave 2 (each job screen links "How this works") */
+  "seo-reviews": { title: "Reviews and reputation: one score from every source", for: "Google, Trustpilot, Tripadvisor, the app stores and reviews you paste (Facebook, others). Visibility never changes, hides or posts a review.", steps: [
+    "Open your product → Every kind of SEO → More kinds of SEO → Reviews and reputation. Fill in your business name and city (to find your Google listing), and your Trustpilot or Tripadvisor page if you have one.",
+    "Press Read my reviews: one score across every source, each source's own average and total, and what people write about (problems, prices, wishes, praise). Reading uses your search-data account (a cent or two a source).",
+    "Press Draft replies: polite reply drafts for the low reviews without an answer. Approve each one, then post it where the review is.",
+    "Copy the review-request texts (email, SMS, in-store card). Ask every customer, never only the happy ones, and offer nothing in return: Google's rules forbid both.",
+    "Copy the review box to your site: it shows your numbers with the date they were read. Read again each month for the trend.",
+  ] },
+  "seo-image": { title: "Images: alt text, names, size and image sitemap", for: "For any website with pictures. Free; alt text uses your AI.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Images and press Check my images: alt text, file names, size, format, width and height on your main pages.",
+    "Press Write alt text with AI: your AI looks at each image without alt text and describes only what it shows. Check it, then paste it in your site.",
+    "Copy the image sitemap to your site and add it in Search Console.",
+    "For your own photos, give the owner (and licence page) and copy the ImageObject markup.",
+  ] },
+  "seo-video": { title: "Video: markup, sitemap, transcripts and chapters", for: "For videos on your own website (YouTube channels have their own job).", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Video and press Check my videos: each video's markup and captions.",
+    "Paste the video's captions (WebVTT) or their address and press Make chapters from captions: chapters and a transcript, only from what is said.",
+    "Fill in the video's title, thumbnail and first publish date and press Make my video markup; copy it and the video sitemap to your site.",
+  ] },
+  "seo-pinterest": { title: "Pinterest: a pin for each page", for: "Visibility writes the text; you post the pins (or connect Pinterest's own scheduler).", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Pinterest. Give up to 6 pages (or leave it empty for your main pages) and press Write my pins.",
+    "Each page gets a pin title (Pinterest allows 100 characters), a description, a board name and image alt text, with the words people search where they are true.",
+    "Make a tall image (2:3) for each pin and post it with the page's link.",
+  ] },
+  "seo-podcast": { title: "Podcasts: feed, episodes and listings", for: "For a podcast with an RSS feed.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Podcasts. Paste your feed address (your host shows it) and your Spotify show link, and press Check my podcast.",
+    "Fix what the feed lacks (artwork, category, descriptions, transcripts). Apple Podcasts is checked through Apple's own search; Spotify by your link.",
+    "Copy the PodcastEpisode markup to each episode's page on your site.",
+  ] },
+  "seo-entity": { title: "Brand facts: help search engines know who you are", for: "Your markup, your profiles and Wikidata, with the same facts everywhere. Never a fact you cannot source.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Brand facts. Check your exact name, website, logo, a one-line description and your official profiles, then press Check my brand facts.",
+    "Fix each gap: Organization markup on your home page, profile links that open (sameAs), one name everywhere.",
+    "Wikidata: if it has your item, link it from your markup. If not, it accepts an item only for something notable with serious public sources; create it only with those sources.",
+  ] },
+  "seo-news": { title: "News and Discover: articles Google can show", for: "For sites that publish articles or news.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → News and Discover. Give your article pages and your publication's name, and press Check my articles.",
+    "Fix each article: Article markup with headline, image, dates and author; large image previews allowed; an image at least 1200 px wide; a title that says what the article is.",
+    "If you publish news, copy the news sitemap (only articles of the last two days) and submit it in Search Console.",
+  ] },
+  "seo-backlinks": { title: "Backlinks: who links to you", for: "New, lost and suspicious links, and link ideas. You write to sites yourself; nothing is offered for a link.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Backlinks and press Check my links (DataForSEO's links data, about 4 cents). For free data, paste Search Console's Top linking sites export, and add your Bing key in Bing's screen.",
+    "Read the new and lost links. Suspicious links: Google ignores most by itself; use the disavow file only after a manual action.",
+    "Give up to 5 competitors and press Find link ideas: sites that link to them and not to you.",
+    "Give your best page on the topic and press Draft outreach emails. Read each one and send it yourself.",
+  ] },
+  "seo-shop": { title: "Shop and marketplaces: feed, product pages, listings", for: "Google Merchant Center, Amazon, Etsy, eBay and others.", steps: [
+    "Open Every kind of SEO → More kinds of SEO → Shop and marketplaces. Give your Merchant Center feed's address (or paste it) and press Check my feed: every product against Google's product data rules.",
+    "Give product pages and press Check my product pages: the Product markup Google reads.",
+    "Give your Amazon product link (or ASIN) and the words buyers search, and press Read my listing: the listing and where it stands. Etsy is read with your own Etsy app key; eBay and others are pasted.",
+    "Press Write a better listing: title, bullet points, description and tags from your own listing only. Copy what you like into the marketplace.",
+  ] },
   "promotion-code": {
     title: "How to use a promotion code",
     for: "A promotion code from AlmiWorld lowers the price of your plan. You type it on the payment page, before you pay.",

@@ -159,7 +159,7 @@ let updateFound = null, updateReady = null, updateDownloading = null; // RR-355:
 /* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
  * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
 const KEYS = keyStore({ backend: CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
-const KEY_ALLOWED = new Set([...FREE_KEY_NAMES, KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName), ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password, "PERPLEXITY_API_KEY", "PAGESPEED_API_KEY" /* RR-379 */]); // RR-324 B/C: by name only
+const KEY_ALLOWED = new Set([...FREE_KEY_NAMES, KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName), ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password, "PERPLEXITY_API_KEY", "PAGESPEED_API_KEY" /* RR-379 */, "ETSY_API_KEY" /* RR-381 */]); // RR-324 B/C: by name only
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
 /* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
 const LEDGER = aiLedger(join(DATA, "ai-usage.json"), { cap: () => Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD) });
@@ -515,6 +515,7 @@ const hostOfSite = (id) => { try { return new URL(store.read(id)?.product?.site)
 /* 🔴 RR-379: the six new SEO jobs, on this app's own stores, keys, ledgers and connections */
 const jobBusy = new Set(), ENGINES_FILE = join(DATA, "ai-engines-usage.json");
 const JOBS_RUN = () => seoJobs({ pread, pwrite, offline: CONFIG.testOffline === true && !CONFIG.testJobBases,
+  bingKey: (id) => (KEYS.status(bingKeyName(id)).saved ? KEYS.get(bingKeyName(id)) : null) /* RR-381: Backlinks reads Bing's link counts with the client's own key */,
   productOf: (id) => { const s = store.read(id); return { name: s.product?.name ?? null, site: s.product?.site ?? null, subject: seedOf(s) }; },
   sitePages: (id) => (pread(id, "site-read.json")?.pages ?? []).map((p) => p.url).filter(Boolean), gscSite: (id) => { const sc = searchConsoleOf(id); return sc?.kind === "CONNECTED" ? sc.site ?? null : null; },
   phrases: (id) => phraseItems(id), asked: (id) => askedOf(id),
@@ -1501,7 +1502,7 @@ const server = createServer((req, res) => {
       if (u.pathname === "/api/ai-limit" && req.method === "POST") { const usd = Number(json().usd); if (!(usd >= 0 && usd <= 500)) return send(400, { refused: "Give a monthly limit between $0 and $500." }); CONFIG.aiMonthlyCapUSD = usd; saveConfig(); return send(200, { ok: true, cap: usd, today: LEDGER.today().usd ?? 0, month: LEDGER.month().usd ?? 0 }); }
       /* 🔴 RR-375 items 6, 7, 2, 4, 8: the Data screen's lines, the pages to read yourself, the rank chart */
       /* ── RR-379 · the six new SEO jobs: GET the screen, POST a step (desktop/seo-jobs.mjs) ── */
-      { const r = /^\/api\/products\/([^/]+)\/job\/(aso|local|tech|rank|ctr|aiv)(?:\/([a-z]+))?$/.exec(u.pathname);
+      { const r = new RegExp(`^/api/products/([^/]+)/job/(${JOB_IDS.join("|")})(?:/([a-z]+))?$`).exec(u.pathname); /* RR-381: every job id, the six and the nine */
         if (r && store.list().some((p) => p.id === r[1])) { const id = r[1];
           if (req.method === "GET" && !r[3]) return send(200, JOBS_RUN().view(id, r[2]));
           if (req.method === "POST" && r[3]) { if (jobBusy.has(`${id}|${r[2]}`)) return send(409, { refused: "This job is already running — wait for it to finish." }); jobBusy.add(`${id}|${r[2]}`); CURRENT_JOB_PRODUCT = id; try { const x = await JOBS_RUN().press(id, r[2], r[3], json()); return send(x.refused ? 400 : 200, x); } finally { jobBusy.delete(`${id}|${r[2]}`); } }
@@ -1727,7 +1728,7 @@ const server = createServer((req, res) => {
             /* RR-310 B6: a YouTube-only product: posts from its newest videos (their own words), from the action plan */
             if (f === "social" && !pread(id, "pages.json")?.drafts?.length && ctx.noWebsite) { const p = pread(id, "plan.json"); return send(200, { socialVideos: p?.social ?? [], none: p ? null : "Press Check now first — the posts are made from your videos." }); }
             if (f === "social") { const p = pread(id, "pages.json"); const d = p?.drafts?.[0]; return send(200, { social: socialFor(d, p?.plan?.find((x) => x.kind === "NEW" && d?.title === x.question) ?? p?.plan?.find((x) => x.kind === "NEW")) }); }
-            if (f === "monthly") { const rep = monthReport({ product: s.product?.name, month: new Date().toISOString().slice(0, 7), drafts: pread(id, "pages.json")?.drafts ?? [], searchRecord: sc?.record ?? null, youtube: ctx.youtubeConfirmed ? { connected: true, lines: await YT.lines(id) } : null }); return send(200, { report: { lines: rep.lines, attention: rep.attention } }); }
+            if (f === "monthly") { const month = new Date().toISOString().slice(0, 7), rep = monthReport({ product: s.product?.name, month, drafts: pread(id, "pages.json")?.drafts ?? [], articles: pread(id, "articles.json", []) /* RR-381: the articles list was always empty */, kinds: JOBS_RUN().kinds(id) /* RR-381 item 10: every kind of SEO */, searchRecord: sc?.record ?? null, youtube: ctx.youtubeConfirmed ? { connected: true, lines: await YT.lines(id) } : null }); return send(200, /* the phone copy is downloaded from the screen; an .html file in the product folder is a page (rr307) */ { report: { lines: rep.lines, attention: rep.attention, html: rep.html } }); }
             return send(404, { refused: "not a feature of this version" });
           }
         } }

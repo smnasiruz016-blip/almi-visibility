@@ -135,8 +135,9 @@ test("RR-353 · 10 + 11 · IndexNow on publish; the Search engines panel; two he
   for (const s of ['r[2] === "search-engines" && req.method === "GET"', 'r[2] === "bing" && req.method === "POST"', 'r[2] === "social-links" && req.method === "POST"']) assert.ok(MAIN.includes(s), s);
   assert.ok(UI.includes("async function enginesScreen() {\n  if (!(await here(\"enginesScreen\"))) return;"));
   assert.ok(UI.includes("Object.assign(SCREENS, { enginesScreen, bingScreen, socialLinksScreen, helpScreen });"));
-  assert.deepEqual(Object.keys(HELP_GUIDES), ["data-screen", "seo-aso", "seo-local", "seo-tech", "seo-rank", "seo-ctr", "seo-aiv", "promotion-code", "windows-protected"]); /* RR-375: the Data screen's guide; RR-379: one guide per new kind of SEO */
-  assert.deepEqual(guideList().map((g) => g.id), [...Object.keys(GUIDES), "data-screen", "seo-aso", "seo-local", "seo-tech", "seo-rank", "seo-ctr", "seo-aiv", "promotion-code", "windows-protected"]);
+  const SEO_GUIDES = ["seo-aso", "seo-local", "seo-tech", "seo-rank", "seo-ctr", "seo-aiv", /* RR-381 */ "seo-reviews", "seo-image", "seo-video", "seo-pinterest", "seo-podcast", "seo-entity", "seo-news", "seo-backlinks", "seo-shop"];
+  assert.deepEqual(Object.keys(HELP_GUIDES), ["data-screen", ...SEO_GUIDES, "promotion-code", "windows-protected"]); /* RR-375: the Data screen's guide; RR-379 + RR-381: one guide per kind of SEO */
+  assert.deepEqual(guideList().map((g) => g.id), [...Object.keys(GUIDES), "data-screen", ...SEO_GUIDES, "promotion-code", "windows-protected"]);
   const w = guidePage("windows-protected"), p = guidePage("promotion-code");
   assert.ok(/More info/.test(w) && /Run anyway/.test(w) && !/Never send a key/.test(w) && /<title>Help — /.test(w));
   assert.ok(/Add promotion code/.test(p) && /Apply/.test(p));

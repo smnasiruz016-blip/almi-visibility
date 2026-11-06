@@ -14,10 +14,16 @@ import { RANK, chosenKeywords, suggestKeywords, scPositions, serpPosition, serpT
 import { ENGINES, askClaude, askChatGpt, askPerplexity, askGemini, aiOverviewOf, aioTask, readAnswer, visibilityScore, byEngine, suggestions, trendOf, questionSet } from "./ai-visibility.mjs";
 import { dfsBuyer, jobSpent, WORST } from "./dfs-call.mjs";
 import { USER_AGENT } from "./user-agent.mjs";
+import { moreJobs, MORE_IDS, MORE_JOBS, MORE_BUDGET } from "./seo-jobs-more.mjs"; // RR-381: nine more kinds of SEO
 
-export const JOB_IDS = Object.freeze(["aso", "local", "tech", "rank", "ctr", "aiv"]);
+export const JOB_IDS = Object.freeze(["aso", "local", "tech", "rank", "ctr", "aiv", ...MORE_IDS]);
 /** the most one run of a job may spend on search data (the client's DataForSEO caps still apply on top) */
-export const RUN_BUDGET = Object.freeze({ aso: 0.5, local: 0.3, rank: 0.2, aiv: 0.25 });
+export const RUN_BUDGET = Object.freeze({ aso: 0.5, local: 0.3, rank: 0.2, aiv: 0.25, ...MORE_BUDGET });
+/** 🔴 RR-381 item 11: DataForSEO's own server error on an AI Overview (40101 in the RR-379 proof, 7 of 20) is asked once more later, and if it fails again
+ * the answer is "could not be read today", never "not mentioned" */
+export const AIO_RETRY_MS = 60000;
+export const AIO_UNREAD = "Google AI Overview could not be read today";
+const serverError = (why) => /\b(?:40101|50\d{3}|5\d\d)\b/.test(String(why ?? ""));
 export const ENGINE_CAP_DEFAULT = 5;
 export const JOBS = Object.freeze({
   aso: { title: "App stores (ASO)", does: "Checks your app's listing on Google Play, the App Store or the Microsoft Store, finds the words people search there, shows your competitors and writes a better listing.", youGet: "A listing score with fixes and ready text, keywords with your rank, 5 competitors, a rewritten listing inside each store's limits, review groups and reply drafts.", time: "A few minutes. Apple's data is free; Google Play data and store rankings use your search-data account (cents); writing uses your AI." },
@@ -26,6 +32,7 @@ export const JOBS = Object.freeze({
   rank: { title: "Rank tracking", does: "Follows the words you choose, each week (or day), on Google and Bing, per country.", youGet: "A chart and a table: your position, the change, and who is above you.", time: "A minute. Search Console is free; Google and Bing positions use your search-data account (under a cent a word)." },
   ctr: { title: "Click-rate fixes", does: "Finds pages Google shows often but few people click, writes a better title and description from the page's own words, and measures before and after.", youGet: "The pages to fix, three titles and three descriptions each, and the before/after click rate.", time: "A minute. Free (Search Console); writing uses your AI." },
   aiv: { title: "AI search visibility", does: "Asks ChatGPT, Claude, Perplexity, Gemini and Google's AI Overviews real questions about your field and records whether they name or cite you.", youGet: "A score and its trend, each answer with who was cited, and what page would win the answers you are missing.", time: "A few minutes. Each assistant uses your own key; Google's AI Overviews use your search-data account." },
+  ...MORE_JOBS,
 });
 const clean = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return null; } };
@@ -258,16 +265,18 @@ export function seoJobs(d) {
     if (input.suggest) { x.setup.questions = questionSet({ own: x.setup.questions, asked: d.asked(id) ?? [], phrases: (d.phrases(id) ?? []).sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)), brand: x.setup.brand, max: 10 }).map((q) => q.question); keep(id, "aiv", x); return { ok: true, line: `${x.setup.questions.length} questions suggested from the searches and questions Visibility holds. Change them if you like, then press Ask the assistants.` }; }
     if (!x.setup.brand) return { refused: "Give your brand's name." }; if (!x.setup.questions.length) { keep(id, "aiv", x); return { refused: "Give the questions (one per line), or press Suggest questions." }; }
     const qs = x.setup.questions.slice(0, Number(input.max) > 0 ? Math.min(Number(input.max), 30) : 30), rows = [], on = today(now), cap = d.engines.cap(), skipped = new Set(), b = buyer("aiv");
-    const opts = { brand: x.setup.brand, aliases: x.setup.aliases, domain: x.setup.domain, competitors: x.setup.competitors };
+    const opts = { brand: x.setup.brand, aliases: x.setup.aliases, domain: x.setup.domain, competitors: x.setup.competitors }, later = [];
     for (const q of qs) for (const e of x.setup.engines) {
       if (skipped.has(e)) continue; let a = null;
-      if (e === "aio") { const r = await b.live(ENGINES.aio.path, aioTask(q), { worst: WORST.organicAiLive, what: `AI Overview "${q.slice(0, 60)}"` }); if (!r.ok) { if (r.off || /cap|budget/i.test(r.why ?? "")) skipped.add(e); rows.push({ question: q, engine: e, on, fail: r.why }); continue; } a = aiOverviewOf(r.result); if (a.none) { rows.push({ question: q, engine: e, on, none: true, line: "Google showed no AI Overview for this search." }); continue; } }
+      if (e === "aio") { const r = await b.live(ENGINES.aio.path, aioTask(q), { worst: WORST.organicAiLive, what: `AI Overview "${q.slice(0, 60)}"` }); if (!r.ok) { if (serverError(r.why)) { later.push(q); continue; } if (r.off || /cap|budget/i.test(r.why ?? "")) skipped.add(e); rows.push({ question: q, engine: e, on, fail: r.why }); continue; } a = aiOverviewOf(r.result); if (a.none) { rows.push({ question: q, engine: e, on, none: true, line: "Google showed no AI Overview for this search." }); continue; } }
       else if (e === "claude") { if (!d.ai.key()) { skipped.add(e); rows.push({ question: q, engine: e, on, fail: "No Anthropic key." }); continue; } if (!d.ai.allowed(ENGINES.claude.worstUsd)) { skipped.add(e); rows.push({ question: q, engine: e, on, fail: "Your Monthly AI limit is reached." }); continue; } a = await askClaude({ key: d.ai.key(), question: q, fetchImpl, ...(d.claudeUrl ? { url: d.claudeUrl } : {}) }); if (a.usage) d.ai.add(a.usage); }
       else { const ek = ENGINES[e].keyName; if (!d.keys.saved(ek)) { skipped.add(e); rows.push({ question: q, engine: e, on, fail: `No ${ENGINES[e].name} key saved (Settings → Your AI connection).` }); continue; } if (engineSpent() + ENGINES[e].worstUsd > cap) { skipped.add(e); rows.push({ question: q, engine: e, on, fail: `The assistants' monthly cap ($${cap}) is reached.` }); continue; }
         const fn = e === "chatgpt" ? askChatGpt : e === "perplexity" ? askPerplexity : askGemini; a = await fn({ key: d.keys.get(ek), question: q, fetchImpl, ...(d.engineUrls?.[e] ? { url: d.engineUrls[e] } : {}), ...(d.engineModels?.[e] ? { model: d.engineModels[e] } : {}) }); if (a.usage?.usd != null) { const l = d.engines.read(); (l.spent ??= []).push({ on: new Date(now()).toISOString(), usd: a.usage.usd, engine: e }); d.engines.write(l); } }
       if (a.fail) { if (a.stop) skipped.add(e); rows.push({ question: q, engine: e, on, fail: a.fail }); continue; }
       rows.push({ question: q, engine: e, on, ...readAnswer(a, opts), excerpt: clean(a.text).slice(0, 400), cites: (a.cites ?? []).slice(0, 8) });
     }
+    /* RR-381 item 11: each AI Overview that met DataForSEO's own server error is asked ONCE more, later; a second failure is "could not be read today" (not counted) */
+    if (later.length) { await pace(d.aioRetryMs ?? AIO_RETRY_MS); for (const q of later) { const r = await b.live(ENGINES.aio.path, aioTask(q), { worst: WORST.organicAiLive, what: `AI Overview "${q.slice(0, 60)}" (asked again)` }); if (!r.ok) { rows.push({ question: q, engine: "aio", on, fail: AIO_UNREAD, unread: true }); continue; } const a = aiOverviewOf(r.result); rows.push(a.none ? { question: q, engine: "aio", on, none: true, line: "Google showed no AI Overview for this search." } : { question: q, engine: "aio", on, ...readAnswer(a, opts), excerpt: clean(a.text).slice(0, 400), cites: (a.cites ?? []).slice(0, 8) }); } }
     const run = { on, score: visibilityScore(rows), engines: byEngine(rows), rows }; x.runs = [...(x.runs ?? []).filter((r) => r.on !== on), run].slice(-52); keep(id, "aiv", x);
     return { ok: true, line: `Score ${run.score ?? "–"} of 100 from ${rows.filter((r) => !r.fail && !r.none).length} answers (${qs.length} questions × ${x.setup.engines.length} assistants).${skipped.size ? ` Not asked: ${[...skipped].map((e) => ENGINES[e].name).join(", ")}.` : ""}` };
   }
@@ -276,7 +285,7 @@ export function seoJobs(d) {
     if (last) {
       sections.push({ title: `AI visibility score: ${last.score ?? "–"} of 100 (${last.on})`, read: "Half for being named, half for being cited, over every answer read. What an assistant says is an observation on that day, not a promise.", table: { cols: ["Assistant", "Asked", "Answered", "Named you", "Cited your site", "Score", "Not read"], rows: last.engines.map((e) => [ENGINES[e.engine]?.name ?? e.engine, e.asked, e.answered, e.mentioned, e.cited, e.score ?? "–", e.failed + e.none]) } });
       if ((x.runs ?? []).length > 1) sections.push({ title: "Trend", chart: { series: [{ name: "Score", points: trendOf(x.runs).map((r) => ({ on: r.on, rank: r.score })) }], invert: false } });
-      sections.push({ title: "Each answer", table: { cols: ["Question", "Assistant", "Named you", "Cited", "Your pages cited", "Other sites cited", "Competitors named"], rows: last.rows.map((r) => [r.question, ENGINES[r.engine]?.name ?? r.engine, r.fail ? `not read: ${r.fail}` : r.none ? "no AI answer shown" : r.mentioned ? "yes" : "no", r.cited ? "yes" : r.fail || r.none ? "–" : "no", (r.citedUrls ?? []).join(" "), (r.otherSites ?? []).join(", "), (r.competitorsNamed ?? []).join(", ")]) } });
+      sections.push({ title: "Each answer", table: { cols: ["Question", "Assistant", "Named you", "Cited", "Your pages cited", "Other sites cited", "Competitors named"], rows: last.rows.map((r) => [r.question, ENGINES[r.engine]?.name ?? r.engine, r.unread ? AIO_UNREAD : r.fail ? `not read: ${r.fail}` : r.none ? "no AI answer shown" : r.mentioned ? "yes" : "no", r.cited ? "yes" : r.fail || r.none ? "–" : "no", (r.citedUrls ?? []).join(" "), (r.otherSites ?? []).join(", "), (r.competitorsNamed ?? []).join(", ")]) } });
       const sg = suggestions(last.rows, { site: prod.site }); if (sg.length) sections.push({ title: "To win the answers you are missing", lines: sg.map((g) => ({ ok: false, line: `"${g.question}": not named by ${g.engines.map((e) => ENGINES[e]?.name ?? e).join(", ")}.`, problem: `The assistants answer "${g.question}" without you.${g.citedInstead.length ? ` They cite: ${g.citedInstead.join(", ")}.` : ""}`, solution: g.do, ready: [] })) });
     }
     return { job: "aiv", ...JOBS.aiv, money: `${moneyLine("aiv")} Claude: inside your Monthly AI limit. ChatGPT, Perplexity, Gemini: your own keys, ${$(engineSpent())} of ${$(d.engines.cap())} this month (estimated from their published prices).`,
@@ -284,14 +293,30 @@ export function seoJobs(d) {
       buttons: [{ press: "suggest", label: "Suggest questions", cost: "Free" }, { press: "run", label: "Ask the assistants", cost: "About $0.05 a question on Claude; your own keys for the others; $0.004 for Google's AI Overview" }], sections };
   }
 
-  const VIEW = { aso: asoView, local: localView, tech: techView, rank: rankView, ctr: ctrView, aiv: aivView };
-  const PRESS = { aso: { read: asoRead, keywords: asoKeywords, write: asoWrite, reviews: asoReviews }, local: { save: localSave, check: localCheck, rank: localRank, reviews: localReviews, directory: localDirectory }, tech: { run: techRun }, rank: { suggest: (id, i) => rankRun(id, { ...i, suggest: true }), run: rankRun }, ctr: { find: ctrFind, write: ctrWrite, changed: ctrChanged, compare: ctrCompare }, aiv: { suggest: (id, i) => aivRun(id, { ...i, suggest: true }), run: aivRun } };
+  const more = moreJobs({ d, load, keep, buyer, getJson, getHtml, aiArgs, today, now, pace, moneyLine, fetchImpl, pageOf, clean, hostOf, listOf, $ });
+  const VIEW = { aso: asoView, local: localView, tech: techView, rank: rankView, ctr: ctrView, aiv: aivView, ...more.VIEW };
+  const PRESS = { aso: { read: asoRead, keywords: asoKeywords, write: asoWrite, reviews: asoReviews }, local: { save: localSave, check: localCheck, rank: localRank, reviews: localReviews, directory: localDirectory }, tech: { run: techRun }, rank: { suggest: (id, i) => rankRun(id, { ...i, suggest: true }), run: rankRun }, ctr: { find: ctrFind, write: ctrWrite, changed: ctrChanged, compare: ctrCompare }, aiv: { suggest: (id, i) => aivRun(id, { ...i, suggest: true }), run: aivRun }, ...more.PRESS };
+  /** 🔴 RR-381 item 10: one plain line per kind of SEO, for the monthly report (a kind never run says so, never zero) */
+  function kinds(id) {
+    const bad = (l) => (l ?? []).filter((y) => y.ok === false).length, a = load(id, "aso"), app = a.current ? a.apps?.[a.current] : null, lo = load(id, "local"), te = load(id, "tech"), rk = load(id, "rank"), h = d.pread(id, "rank-history.json", null), ct = load(id, "ctr"), av = load(id, "aiv"), run = av.runs?.[av.runs.length - 1];
+    const line = (t, x) => (x ? `${t}: ${x}` : `${t}: not run yet.`);
+    return [
+      line(JOBS.tech.title, te.on && `score ${te.score ?? "–"} of 100, ${bad(te.lines)} problems on ${te.pages.length} pages (${te.on}).`),
+      line(JOBS.rank.title, rk.last && `${(h?.points ?? []).filter((p) => p.on === rk.last).length} positions read ${rk.last}; ${(h?.points ?? []).filter((p) => p.on === rk.last && p.rank && p.rank <= 10).length} in the top 10.`),
+      line(JOBS.ctr.title, ct.found && `${ct.found.pages.length} pages shown often and clicked rarely (${ct.found.on}); ${Object.keys(ct.changes ?? {}).length} changed and followed.`),
+      line(JOBS.aiv.title, run && `score ${run.score ?? "–"} of 100 (${run.on}); named in ${run.rows.filter((r) => r.mentioned).length} of ${run.rows.filter((r) => !r.fail && !r.none).length} answers.`),
+      line(JOBS.local.title, lo.nap && `name, address and phone ${lo.nap.score ?? "–"}% the same (${lo.nap.on}).`),
+      line(JOBS.aso.title, app?.score && `${app.listing?.title ?? app.id}: listing score ${app.score.score} of 100 (${app.read}).`),
+      ...more.summary(id),
+    ];
+  }
   return Object.freeze({
     view(id, job) { return VIEW[job] ? VIEW[job](id) : null; },
     async press(id, job, what, input = {}) { const f = PRESS[job]?.[what]; if (!f) return { refused: "That is not a step of this job." }; if (d.offline && what !== "save" && what !== "changed") return { refused: "This app is offline (test)." }; const r = await f(id, input ?? {}); return { ...r, view: VIEW[job](id) }; },
     /** the weekly (or daily) round: rank tracking that is due, by itself */
     async due(id) { const x = load(id, "rank"); if (!x.chosen?.length) return null; const t = today(now), last = x.last ?? null; if (last && (Date.parse(t) - Date.parse(last)) / 864e5 < (x.every === "day" ? 1 : 7)) return null; return rankRun(id, {}); },
     /** the Data screen: one money line per job that spends */
-    moneyLines() { const l = d.dfs.ledger(), n = new Date(now()).toISOString(), rows = ["aso", "local", "rank", "aiv"].map((j) => { const s = jobSpent(l, j, n); return { what: `${JOBS[j].title} (search data)`, today: $(s.today, 4), month: $(s.month, 4), cap: `at most ${$(RUN_BUDGET[j])} a run, inside your search-data caps` }; }); return [...rows, { what: "AI assistants checked (ChatGPT, Perplexity, Gemini; your own keys)", today: "–", month: $(engineSpent()), cap: `${$(d.engines.cap())} a month` }]; },
+    kinds,
+    moneyLines() { const l = d.dfs.ledger(), n = new Date(now()).toISOString(), rows = ["aso", "local", "rank", "aiv", "reviews", "backlinks", "shop"].map((j) => { const s = jobSpent(l, j, n); return { what: `${JOBS[j].title} (search data)`, today: $(s.today, 4), month: $(s.month, 4), cap: `at most ${$(RUN_BUDGET[j])} a run, inside your search-data caps` }; }); return [...rows, { what: "AI assistants checked (ChatGPT, Perplexity, Gemini; your own keys)", today: "–", month: $(engineSpent()), cap: `${$(d.engines.cap())} a month` }]; },
   });
 }

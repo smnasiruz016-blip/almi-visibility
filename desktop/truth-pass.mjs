@@ -53,12 +53,16 @@ export function truthRows(plan, verdicts = {}, today = new Date().toISOString().
 /** what the owner is asked before it runs: the lines to check and their cost with Sonnet */
 export const truthEstimate = (rows) => ({ lines: rows.length, usd: Math.round(rows.length * TRUTH.perLineUsd * 100) / 100, perLineUsd: TRUTH.perLineUsd, model: TRUTH.model });
 /** judge them, one at a time, each kept at once → { judged, failed, unread, stopped, usd } */
-export async function truthAll({ rows, verdicts, key, read, allowed = () => true, onUsage = () => {}, save = () => {}, onDone = () => {}, today, base, fetchImpl, perRun = TRUTH.perRun, spent = () => 0 }) {
+/* 🔴 RR-382 (the owner's 1.15.36 run, 6 Nov 22:04: "0 of 208 · no change for 3 minutes", then "Last run: 0 checked, $0.00"): all 208 lines left had a
+ * source page the reader could not open. The run spent 7 minutes reading them again and the screen never said why. Now a page that would not open
+ * TODAY is not read again today (`skip`), every unread page is kept with its reason, and the screen says it */
+export async function truthAll({ rows, verdicts, key, read, allowed = () => true, onUsage = () => {}, save = () => {}, onDone = () => {}, today, base, fetchImpl, perRun = TRUTH.perRun, spent = () => 0, skip = new Map(), onUnread = () => {} }) {
   const out = { judged: 0, failed: 0, unread: [], stopped: null, of: Math.min(rows.length, perRun) }, usd0 = spent();
   for (const r of rows.slice(0, perRun)) {
+    if (skip.has(r.link)) { out.unread.push({ link: r.link, why: skip.get(r.link), earlier: true }); onUnread(r, out); continue; } /* free: no read, no AI */
     if (!allowed(TRUTH.worstUsd)) { out.stopped = "cap"; break; }
     const page = await Promise.resolve(read(r.link)).catch(() => null);
-    if (!page?.ok) { out.unread.push({ link: r.link, why: page?.why ?? "it did not open" }); continue; }
+    if (!page?.ok) { out.unread.push({ link: r.link, why: page?.why ?? "it did not open" }); onUnread(r, out); continue; }
     const y = await askJson({ key, model: TRUTH.model, system: TRUTH_SYSTEM, schema: SCHEMA, maxTokens: 600, body: { question: r.question, line: r.answer, others: r.others, source: { address: r.link, title: clean(page.title), page: clean(page.text).slice(0, TRUTH.pageChars) } }, base, fetchImpl });
     if (y.usage) onUsage({ ...y.usage, route: "t" }); if (y.fail) { if (y.stop) { out.stopped = y.fail; break; } continue; }
     verdicts[r.key] = { pass: y.data?.pass === true, reason: clean(y.data?.reason).slice(0, 240), on: today, q: r.question.slice(0, 200), a: r.answer.slice(0, 300), link: r.link, checks: Object.fromEntries(Object.entries(y.data ?? {}).filter(([k]) => !["pass", "reason"].includes(k))) };

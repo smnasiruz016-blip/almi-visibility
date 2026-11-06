@@ -126,6 +126,21 @@ test("GUIDES: every guide page the app serves renders, each step's own words sho
   assert.match(guidePage("seo-reviews"), /once a day while it is open/); assert.match(guidePage("data-screen"), /Step 1 of/);
 });
 
+/* ── the owner's 1.15.36 run (6 Nov 22:04): "0 of 208, no change", "Last run: 0 checked, $0.00" — every page left would not open ── */
+test("TRUTH PASS: a page that would not open is kept with its reason and NOT read again the same day (free, no AI); the screen says why instead of '0 checked, $0.00'", async () => {
+  const { truthAll } = await import("../desktop/truth-pass.mjs");
+  const rows = [{ key: "k1", question: "q", answer: "a", link: "https://blocked.example/a" }, { key: "k2", question: "q", answer: "b", link: "https://gone.example/b" }];
+  let reads = 0, ai = 0; const read = async (u) => { reads++; return { ok: false, why: /blocked/.test(u) ? "the page answered 403" : "the page answered 404" }; };
+  const fetchImpl = async () => { ai++; return res({}); };
+  const first = await truthAll({ rows, verdicts: {}, key: "k", read, today: "2026-11-06", fetchImpl });
+  assert.equal(reads, 2); assert.equal(ai, 0); assert.deepEqual(first.unread.map((u) => u.why), ["the page answered 403", "the page answered 404"]);
+  const unread = []; const again = await truthAll({ rows, verdicts: {}, key: "k", read, today: "2026-11-06", fetchImpl, skip: new Map(first.unread.map((u) => [u.link, u.why])), onUnread: (r) => unread.push(r.link), allowed: () => false });
+  assert.equal(reads, 2, "not read again today"); assert.equal(again.unread.length, 2); assert.equal(again.stopped, null, "a page known not to open is not a money stop"); assert.equal(unread.length, 2, "the screen's counter moves");
+  const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"), ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8");
+  assert.match(main, /unreadLinks: t\.unread\.slice\(0, 500\)/); assert.match(main, /String\(was\?\.on \?\? ""\)\.slice\(0, 10\) === today \? \(was\.unreadLinks/);
+  assert.match(ui, /lines were not checked because their source page would not open/); assert.match(ui, /money is not the reason/);
+});
+
 /* ── 1e ── */
 test("1e · the Guide says plainly that speech is never turned into text (captions or the host's file only)", () => {
   assert.ok(HELP_GUIDES["seo-video"].steps.some((s) => /does not turn speech into text/.test(s))); assert.ok(HELP_GUIDES["seo-podcast"].steps.some((s) => /does not turn speech into text/.test(s)));

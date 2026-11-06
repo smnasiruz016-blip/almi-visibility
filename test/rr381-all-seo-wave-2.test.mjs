@@ -209,6 +209,7 @@ test("MONTHLY REPORT (item 10): every kind of SEO has its line (never run = 'not
 });
 test("HOME + GUIDE (item 12): the fifteen kinds are jobs; six open on the first screen, nine one click away; each has its guide; the app routes every job id", () => {
   assert.equal(JOB_IDS.length, 15); assert.deepEqual([...SEO_KINDS].sort(), [...JOB_IDS].sort()); assert.equal(SEO_KINDS_OPEN, 6);
+  for (const f of FEATURES.filter((x) => JOB_IDS.includes(x.id))) assert.doesNotMatch(`${f.title} ${f.does} ${f.youGet} ${f.time}`, /Google Ads|Keyword Planner|DataForSEO|Ads API|keyword service|search volumes?/i, `${f.id}: a card never names a data source (RR-361 ruling 3)`);
   for (const id of JOB_IDS) { assert.ok(FEATURES.some((f) => f.id === id), id); assert.ok(guideList().some((g) => g.id === `seo-${id}`), `guide seo-${id}`); }
   const ui = readFileSync(join(REPO, "desktop", "ui.html"), "utf8"), main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"), build = readFileSync(join(REPO, "desktop", "build.mjs"), "utf8");
   assert.match(ui, /More kinds of SEO/); assert.match(ui, /const SEO_KINDS_OPEN = 6/); assert.match(main, /job\/\(\$\{JOB_IDS\.join\("\|"\)\}\)/);

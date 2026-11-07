@@ -40,7 +40,7 @@ import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./se
 import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 item 1c
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed, notYetEqual, githubBlobText, unsafeIndexable } from "./publish.mjs"; /* RR-383: the site equals the app */
+import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed, notYetEqual, githubBlobText, unsafeIndexable, wrongIndexState, linkedSlugs } from "./publish.mjs"; /* RR-383: the site equals the app */
 import { THIN_MARK, asPublishedGuarded as asPublishedPage } from "./publish.mjs"; // RR-383: through the classified publisher, never the builder itself (F34 C5 census)
 import { pageFaults } from "./page-law.mjs"; // RR-383: a page that needs more answers carries this mark and goes out noindex
 import { improvePack } from "./improve.mjs"; // RR-356
@@ -271,13 +271,17 @@ function readyToPublish(id) {
   return { conn, site, sc, again, made: pread(id, "pages.json")?.madeOn ?? null };
 }
 /* a page the checks stop right before it goes */
-function gateStops(id, url, d) {
+/** RR-385: what the app's pages may link to: every draft (the mirror writes it) and every page on the site; a page the mirror took away with no draft left is not there */
+const linkContext = (id, drafts) => { const slug = (u) => { try { return new URL(u).pathname.replace(/^\/+|\/+$/g, "").split("/").pop(); } catch { return null; } }, recs = pread(id, "published.json", []), exists = new Set([...drafts.map((d) => slug(d.url)), ...recs.filter((x) => x.state === "LIVE" || x.state === "PREVIEW").map((x) => slug(x.url))].filter(Boolean)); let origin = null; try { origin = new URL(drafts[0]?.url).origin; } catch { origin = null; } return { exists, managed: new Set([...exists, ...recs.map((x) => slug(x.url)).filter(Boolean)]), origin }; };
+function gateStops(id, url, d, links = null) {
   if (!d) return { ok: false, why: "This draft is out of date — what Visibility knows changed since it was made. Press Create SEO pages again." };
   if (!/data-cta>/.test(d.html ?? "")) return { ok: false, needsCta: true, why: `Not published — the page has no offer button. ${NO_CTA}` };
   if (!d.readyAsDraft) return { ok: false, gates: d.gates, why: `Not published — a check failed right before publishing: ${d.gates.filter((g) => !g.pass && g.failing.length).map((g) => `${g.words}: ${g.failing.join("; ")}`).join(" · ")}` };
   if ((pread(id, "published.json", [])).some((x) => x.url === url && x.state === "LIVE")) return { ok: false, why: "This page is already published." };
   /* 🔴 RR-374: a work note never reaches a customer */
   { const n = CONFIG.testOffline === true ? null : noteOnPage(d.html); if (n) return { ok: false, why: `Not published — this page still shows a work note ("${n}"). Press Create SEO pages to make it again.` }; }
+  /* 🔴 RR-385 item d · the link guard: a page that links to one of the app's pages that is gone from the site and has no draft any more is never published; the links are listed */
+  if (links) { const dead = [...linkedSlugs(d.html, links.managed, links.origin)].filter((s) => !links.exists.has(s)); if (dead.length) return { ok: false, links: dead, why: `Not published — it links to ${dead.length === 1 ? "a page" : `${dead.length} pages`} that ${dead.length === 1 ? "is" : "are"} not on your site: ${dead.slice(0, 6).map((s) => `/${s}`).join(", ")}. Press Create SEO pages, or make the site equal the app first.` }; }
   return null;
 }
 const recordWrites = (id, rows, t, made) => { const urls = new Set(rows.map(([d]) => d.url)), on = new Date().toISOString(); pwrite(id, "published.json", [...pread(id, "published.json", []).filter((x) => !(urls.has(x.url) && x.state === "PREVIEW")), ...rows.map(([d, out]) => ({ url: d.url, title: d.title, target: t, remote: out.remote, live: out.live, saved: out.saved ?? null, on, made, state: out.preview ? "PREVIEW" : "LIVE", ...(out.preview ? { preview: out.preview } : {}) }))]); };
@@ -319,12 +323,16 @@ async function mirrorTarget(id, conn, { dry = false } = {}) {
       const rewrite = notYetEqual(plan.rewrite, f.shas), refresh = [];
       /* RR-384: a READY page written before the RR-383 guard that still says "index" with fewer than 6 real Q&A is written again as the guarded publish
        * writes it now. Only those: a ready page's file is otherwise what the publish wrote (from its fresh rebuild), never rewritten from the saved draft */
-      for (const x of notYetEqual(plan.keepItems ?? [], f.shas).slice(0, 300)) { const sha = f.shas.get(x.path), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase }).catch(() => null) : null; if (text && unsafeIndexable(text)) refresh.push(x); }
-      if (dry) return { ok: true, dry: true, kept: plan.keep.length, refresh: refresh.length, refreshList: refresh.slice(0, 100).map((x) => x.url), equal: plan.rewrite.length - rewrite.length, rewrite: rewrite.length, remove: plan.remove.length, removeList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })) };
+      for (const x of notYetEqual(plan.keepItems ?? [], f.shas).slice(0, 300)) { const sha = f.shas.get(x.path), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase }).catch(() => null) : null; if (text && (unsafeIndexable(text) || wrongIndexState(text, x))) refresh.push(x); }
+      /* RR-385: pages kept back because they are linked but cannot stand, and links that would point to a page not on the site */
+      const extra = { added: rewrite.filter((x) => x.added).length, blocked: plan.blocked.length, blockedList: plan.blocked.slice(0, 100), broken: plan.broken.length, brokenList: plan.broken.slice(0, 200) };
+      if (dry) return { ok: true, dry: true, kept: plan.keep.length, refresh: refresh.length, refreshList: refresh.slice(0, 100).map((x) => x.url), equal: plan.rewrite.length - rewrite.length, rewrite: rewrite.length, remove: plan.remove.length, removeList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })), ...extra };
+      /* 🔴 RR-385 item d · the link guard: nothing is written while a page that stays would link to a page not on the site */
+      if (plan.broken.length) { out = { ok: false, why: `Nothing was changed: ${plan.broken.length} link${plan.broken.length === 1 ? "" : "s"} would point to a page that is not on your site (e.g. ${plan.broken[0].from} → /${plan.broken[0].to}). Make that page first (Create SEO pages), then press again.`, ...extra }; out = { on, ...out }; pwrite(id, PUBLISH_MIRROR, out); return out; }
       const r0 = await mirrorGithub({ target: conn, key: token, rewrite: [...rewrite, ...refresh], remove: plan.remove, allowLocal, testBase }), r = r0.ok ? { ...r0, rewritten: rewrite.length, refreshed: refresh.length } : r0;
       if (r.ok && (rewrite.length || plan.remove.length)) { const gone = new Set(plan.remove.map((x) => x.slug)), redone = new Set(rewrite.map((x) => x.url)), pv = previewOf(conn), slugOfUrl = (u) => { try { return new URL(u).pathname.replace(/^\/+|\/+$/g, "").split("/").pop(); } catch { return null; } };
-        pwrite(id, "published.json", [...recs.map((x) => (gone.has(slugOfUrl(x.url)) && (x.state === "PREVIEW" || x.state === "LIVE") ? { ...x, state: "REMOVED", removedOn: on } : x)).filter((x) => !(redone.has(x.url) && (x.state === "PREVIEW" || x.state === "LIVE"))), ...rewrite.map((x) => ({ url: x.url, title: (pages?.drafts ?? []).find((d) => d.url === x.url)?.title ?? x.url, target: conn, remote: { path: x.path, commit: r.commit }, on, made, state: pv ? "PREVIEW" : "LIVE", noindexRewrite: true, ...(pv ? { preview: { ...pv, path: x.path } } : {}) }))]); }
-      out = { ok: r.ok, why: r.ok ? null : r.why, kept: plan.keep.length, refreshed: r.refreshed ?? 0, equal: plan.rewrite.length - rewrite.length, rewritten: r.rewritten, removed: r.removed, removedList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })), commit: r.commit ?? null };
+        pwrite(id, "published.json", [...recs.map((x) => (gone.has(slugOfUrl(x.url)) && (x.state === "PREVIEW" || x.state === "LIVE") ? { ...x, state: "REMOVED", removedOn: on } : x)).filter((x) => !(redone.has(x.url) && (x.state === "PREVIEW" || x.state === "LIVE"))), ...rewrite.map((x) => ({ url: x.url, title: (pages?.drafts ?? []).find((d) => d.url === x.url)?.title ?? x.url, target: conn, remote: { path: x.path, commit: r.commit }, on, made, state: pv ? "PREVIEW" : "LIVE", noindexRewrite: x.ready !== true, ...(pv ? { preview: { ...pv, path: x.path } } : {}) }))]); }
+      out = { ok: r.ok, why: r.ok ? null : r.why, ...extra, kept: plan.keep.length, refreshed: r.refreshed ?? 0, equal: plan.rewrite.length - rewrite.length, rewritten: r.rewritten, removed: r.removed, removedList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })), commit: r.commit ?? null };
     }
   } else {
     let removed = 0; const removedList = [], keep = [];
@@ -360,8 +368,8 @@ async function publishAll(id) {
     const built = readyToPublish(id);
     if (built.refused) { stop = built.refused; publishLog(id, [stop]); }
     else {
-      const { conn, again, made } = built, byUrl = new Map(again.drafts.map((d) => [d.url, d])), send = [];
-      for (const x of go) { const d = byUrl.get(x.url), no = gateStops(id, x.url, d); if (no) { failed.push({ url: x.url, ...no }); publishLog(id, [{ url: x.url, ...no }]); BOARD.step(key, { add: 1 }); } else send.push(d); }
+      const { conn, again, made } = built, byUrl = new Map(again.drafts.map((d) => [d.url, d])), send = [], links = linkContext(id, again.drafts);
+      for (const x of go) { const d = byUrl.get(x.url), no = gateStops(id, x.url, d, links); if (no) { failed.push({ url: x.url, ...no }); publishLog(id, [{ url: x.url, ...no }]); BOARD.step(key, { add: 1 }); } else send.push(d); }
       const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, one = async (d) => { BOARD.step(key, { what: `Publishing ${d.title}` }); const o = await publishOne(id, d.url, built); if (o.ok) { written++; if (o.preview) preview = o.preview; if (o.live) lives.push(o.live); } else if (stopsTheRun(o)) stop = o; else failed.push({ url: d.url, ...o }); BOARD.step(key, { add: 1 }); };
       if (conn.kind === "github") {
         for (let i = 0; i < send.length && !stop; i += PUBLISH_GROUP) {

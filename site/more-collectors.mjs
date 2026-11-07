@@ -144,3 +144,35 @@ export async function collectorsStatus({ seo, cf = null, today, counts = {}, cap
   /* the country facts' and answers' AI money is the "AI (the collectors)" line the app already shows (answers status); places, rules and trends are free */
   return { on: today, last, money: Object.fromEntries(["top-pages", "research", "places", "rules", "trends"].map((j) => [j, money(j)])), products };
 }
+
+/* 🔴 RR-387 PART C · D6 WHOIS / DOMAIN AGE: RDAP, the registries' own protocol (free, official): the IANA bootstrap file names the RDAP server of
+ * each top-level domain; each domain is asked once in 180 days, at most 20 a run, paced. The domains are the ones our collectors already hold
+ * (the top results of every topic). Kept as a "whois" record with its source and date; nothing is guessed when a registry gives no date. */
+export const WHOIS = Object.freeze({ job: "whois", offEnv: "ALMISEO_WHOIS_OFF", lockSeconds: 290, perRun: 20, refreshDays: 180, bootstrap: "https://data.iana.org/rdap/dns.json", userAgent: "AlmiVisibility/1.0 (+https://almivisibility.almiworld.com)" });
+const TWO_PART = /\.(?:co|com|org|net|ac|gov|edu|nic|or|ne|go)\.[a-z]{2}$/i;
+export const registrable = (host) => { const h = String(host ?? "").toLowerCase().replace(/^www\./, "").replace(/\.$/, ""); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)) return null; const p = h.split("."); return p.slice(TWO_PART.test(h) ? -3 : -2).join("."); };
+export const rdapBase = (boot, domain) => { const tld = String(domain).split(".").pop(); for (const [tlds, urls] of boot?.services ?? []) if (tlds.includes(tld)) return (urls.find((u) => u.startsWith("https://")) ?? urls[0]).replace(/\/?$/, "/"); return null; };
+export function whoisRow(domain, j, { on, url }) {
+  const ev = (a) => (j?.events ?? []).find((e) => e.eventAction === a)?.eventDate ?? null, reg = ev("registration"), exp = ev("expiration");
+  const registrar = (j?.entities ?? []).find((e) => (e.roles ?? []).includes("registrar"));
+  const name = registrar?.vcardArray?.[1]?.find((v) => v[0] === "fn")?.[3] ?? registrar?.handle ?? null;
+  const years = reg ? Math.floor((Date.parse(on) - Date.parse(reg)) / (365.25 * 864e5)) : null;
+  return { topic: "whois", key: domain, kind: "whois", day: on, data: { domain, registered: reg ? reg.slice(0, 10) : null, expires: exp ? exp.slice(0, 10) : null, ageYears: years, registrar: name ? String(name).slice(0, 120) : null, status: (j?.status ?? []).slice(0, 6), source: { name: "RDAP — the registry's own record", url, on } } };
+}
+export async function runWhois({ seo, kv = null, env = process.env, fetchImpl = fetch, now = () => Date.now(), domains = null, pace = (ms) => new Promise((r) => setTimeout(r, ms)), paceMs = 1000 }) {
+  const start = now(), at = new Date(start).toISOString(), today = dayOf(start), out = { ok: true, day: today, read: 0, kept: 0, usd: 0, why: null };
+  if (env[WHOIS.offEnv] === "1") return { ok: false, day: today, why: `The whois collector is switched off (${WHOIS.offEnv}).` };
+  return lockRun(kv, "whois", randomBytes(8).toString("hex"), WHOIS.lockSeconds, async () => {
+    let list = domains; if (!list) { const hosts = new Set(); for (const t of await seo.topics().catch(() => [])) for (const l of await seo.lists(t.id).catch(() => [])) for (const r of l.results ?? []) { try { hosts.add(new URL(r.url ?? r).hostname); } catch { /* not an address */ } } list = [...hosts]; }
+    const doms = [...new Set(list.map(registrable).filter(Boolean))], done = (await seo.setting("whois-done").catch(() => null)) ?? {};
+    const todo = doms.filter((d) => !done[d] || daysBetween(done[d], today) >= WHOIS.refreshDays).slice(0, WHOIS.perRun); if (!todo.length) return out;
+    const boot = await fetchImpl(WHOIS.bootstrap, { headers: { "user-agent": WHOIS.userAgent }, signal: AbortSignal.timeout(30000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (!boot) return { ...out, ok: false, why: "The IANA RDAP list did not answer: tried again next run." };
+    const rows = [];
+    for (const d of todo) { const base = rdapBase(boot, d); if (!base) { done[d] = today; continue; } const url = `${base}domain/${d}`; out.read++;
+      const j = await fetchImpl(url, { headers: { accept: "application/rdap+json", "user-agent": WHOIS.userAgent }, signal: AbortSignal.timeout(30000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (j) { rows.push(whoisRow(d, j, { on: today, url })); done[d] = today; } await pace(paceMs); }
+    if (rows.length) await seo.putSearches(rows, { at }); out.kept = rows.length;
+    await seo.setSetting("whois-done", done, { at }); await seo.setSetting("whois-last-run", { on: at, ...out }, { at }).catch(() => null); return out;
+  });
+}

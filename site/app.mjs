@@ -53,7 +53,7 @@ import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerCli
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 import { runAnswers } from "./answers-collector.mjs"; // RR-375
 import { runResearch } from "./research-collector.mjs"; // RR-376
-import { runPlaces, runRules, runTrends } from "./more-collectors.mjs"; // RR-380
+import { runPlaces, runRules, runTrends, runWhois } from "./more-collectors.mjs"; // RR-380; RR-387 C (whois)
 import { runLists } from "./data-lists.mjs"; // RR-382: the data lists (ESCO, ILOSTAT, World Bank, Wikidata, College Scorecard, AlAdhan)
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -792,10 +792,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         return send(200, JSON.stringify(await runResearch({ seo, kv, env, now })), "application/json", { "cache-control": "no-store" });
       }
       /* 🔴 RR-380 · places (OpenStreetMap, links only), rules that change (rechecks on their own source pages, free), trends (monthly) */
-      if (req.method === "GET" && (u.pathname === "/cron/places" || u.pathname === "/cron/rules" || u.pathname === "/cron/trends" || u.pathname === "/cron/lists")) {
+      if (req.method === "GET" && (u.pathname === "/cron/places" || u.pathname === "/cron/rules" || u.pathname === "/cron/trends" || u.pathname === "/cron/lists" || u.pathname === "/cron/whois")) {
         if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!seo || (u.pathname === "/cron/rules" && !cf)) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
-        const r = u.pathname === "/cron/lists" ? await runLists({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/places" ? await runPlaces({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/rules" ? await runRules({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), now }) : await runTrends({ seo, kw: db, env, now });
+        const r = u.pathname === "/cron/whois" ? await runWhois({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/lists" ? await runLists({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/places" ? await runPlaces({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/rules" ? await runRules({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), now }) : await runTrends({ seo, kw: db, env, now });
         if (kv) await recordRun(kv, u.pathname.slice(6), new Date(now()).toISOString().slice(0, 10), { progress: r.ok ? 1 : 0, code: r.ok ? null : "STOPPED", why: r.why ?? null }).catch(() => null);
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }

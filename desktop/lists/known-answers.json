@@ -1,0 +1,198 @@
+{
+ "note": "RR-387 A2 + A3: answers written in our own words from the facts of OET's own pages (the topic pages) and TruMerit's own VisaScreen page (the US pages, never 'registers'), each judged PASS by the real truth pass (Sonnet) on its whole source page on 7 Nov 2026 (Desktop/oet test/RR-379 proof/proof-rr387-known-*.json). The app adds each to the page of that title when the page lacks the question.",
+ "judgedOn": "2026-11-07",
+ "rows": [
+  {
+   "title": "OET Reading",
+   "question": "How are marks shared across OET Reading?",
+   "text": "OET's own page: Reading has 42 marks in all: 20 in Part A, 6 in Part B and 16 in Part C.",
+   "link": "https://oet.com/ready/reading",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Reading",
+   "question": "Where do I write my answers in OET Reading?",
+   "text": "OET's own page: in Part A you write your answers in the spaces in the question booklet; in Parts B and C you shade the circle beside your answer. Answers written anywhere else are not marked.",
+   "link": "https://oet.com/ready/reading",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Reading",
+   "question": "Do spelling mistakes lose marks in OET Reading?",
+   "text": "OET's own page: yes. An answer that is not spelled correctly gets no marks in Reading; American and British spellings are both accepted.",
+   "link": "https://oet.com/ready/reading",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Reading",
+   "question": "Is there extra time to check answers in OET Reading?",
+   "text": "OET's own page: no extra time is given at the end. Part A is collected after 15 minutes, so its answers cannot be checked later in the test.",
+   "link": "https://oet.com/ready/reading",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Writing",
+   "question": "How long is OET Writing, and what is the task?",
+   "text": "OET's own page: Writing takes 45 minutes: a formal letter on a matter of your own profession, written from case notes.",
+   "link": "https://oet.com/ready/writing",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Writing",
+   "question": "How is OET Writing marked?",
+   "text": "OET's own page: two OET assessors mark your letter against the official OET Writing criteria, six in all.",
+   "link": "https://oet.com/ready/writing",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Writing",
+   "question": "What happens if my OET letter is too long or too short?",
+   "text": "OET's own page: there is no automatic penalty for going outside the 180–200 word range, but a letter much longer or shorter usually shows weaknesses that the six criteria scores reflect.",
+   "link": "https://oet.com/ready/writing",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Writing",
+   "question": "Do spelling mistakes count in OET Writing?",
+   "text": "OET's own page: yes. Spelling is part of Language, one of the six Writing criteria, so spelling mistakes are taken into account in your Language score.",
+   "link": "https://oet.com/ready/writing",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Speaking",
+   "question": "How long is OET Speaking?",
+   "text": "OET's own page: about 20 minutes, with two role-plays of about 5 minutes each, specific to your profession.",
+   "link": "https://oet.com/ready/speaking",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Speaking",
+   "question": "How is OET Speaking assessed?",
+   "text": "OET's own page: the Speaking sub-test is recorded, and two OET assessors mark the recording using the official Linguistic and Clinical Communication criteria.",
+   "link": "https://oet.com/ready/speaking",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Speaking",
+   "question": "Can I write on the OET role-play card?",
+   "text": "OET's own page: yes, you may make notes on the role-play card and look at it at any time during the role-play; you give it back to the interlocutor at the end.",
+   "link": "https://oet.com/ready/speaking",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Speaking",
+   "question": "What if I do not finish the OET role-play?",
+   "text": "OET's own page: there is no penalty for not covering every element on the role card; a role-play usually ends at about 5 minutes, and the interlocutor signals when to finish.",
+   "link": "https://oet.com/ready/speaking",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "Online OET",
+   "question": "In which ways can I take OET?",
+   "text": "OET's own page: in three ways: OET Test on Paper at a test centre, OET Test on Computer, and OET@Home on your own computer.",
+   "link": "https://oet.com/test/oet-test",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "Online OET",
+   "question": "Can I take OET at home?",
+   "text": "OET's own page: yes. OET@Home lets you take the OET Test remotely on your own computer.",
+   "link": "https://oet.com/test/oet-test",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "Online OET",
+   "question": "How fast are the results of OET on Computer and OET@Home?",
+   "text": "OET's own page: results are typically available within 6 days for the OET Test on Computer and OET@Home, and within 12 days for the OET Test on Paper.",
+   "link": "https://oet.com/test/oet-test",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "Online OET",
+   "question": "Are there practice tests for OET on Computer and OET@Home?",
+   "text": "OET's own page: yes. Free interactive sample tests for all four sub-tests are available for OET Test on Computer and OET@Home.",
+   "link": "https://oet.com/ready/sample-tests",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Preparation Material",
+   "question": "Where can I find official OET sample tests?",
+   "text": "OET's own page: OET's free library of sample tests covers all four sub-tests, for OET Test on Paper and for OET Test on Computer / OET@Home.",
+   "link": "https://oet.com/ready/sample-tests",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Preparation Material",
+   "question": "How often should I take an OET sample test?",
+   "text": "OET's own page: about one practice test every 2–3 weeks, working in between on the skills that caused your mistakes in the last one.",
+   "link": "https://oet.com/ready/sample-tests",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Preparation Material",
+   "question": "Where should I begin preparing for OET?",
+   "text": "OET's own page: start with OET's free 'Intro to OET' online course, then use the OET Study Guide.",
+   "link": "https://oet.com/ready",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Preparation Material",
+   "question": "Which OET preparation materials should I use?",
+   "text": "OET's own page: the materials on OET's own website and in the OET Store; it warns that unofficial materials from the internet often do not reflect the real test.",
+   "link": "https://oet.com/ready",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET Preparation Material",
+   "question": "How can I check my English level before OET?",
+   "text": "OET's own page: OET Pulse, a 30-minute check of reading, listening and language knowledge for healthcare professionals, gives your current English level.",
+   "link": "https://oet.com/ready",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET for Occupational Therapists in the United States",
+   "question": "Do occupational therapists need an English test for a US work visa?",
+   "text": "In the United States, an occupational therapist trained abroad needs a VisaScreen certificate from TruMerit before an occupational visa; it includes passing an English language proficiency exam, unless your professional education was in English (TruMerit names this exemption), and TruMerit names OET among the approved exams (not the at-home versions). The minimum score depends on the profession.",
+   "link": "https://www.cgfns.org/visascreen/",
+   "source": "TruMerit — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET for Physiotherapists in the United States",
+   "question": "Do physiotherapists need an English test for a US work visa?",
+   "text": "In the United States, a physical therapist trained abroad needs a VisaScreen certificate from TruMerit before an occupational visa; it includes passing an English language proficiency exam, unless your professional education was in English (TruMerit names this exemption), and TruMerit names OET among the approved exams (not the at-home versions). The minimum score depends on the profession.",
+   "link": "https://www.cgfns.org/visascreen/",
+   "source": "TruMerit — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET for Speech Pathologists in the United States",
+   "question": "Do speech pathologists need an English test for a US work visa?",
+   "text": "In the United States, a speech language pathologist trained abroad needs a VisaScreen certificate from TruMerit before an occupational visa; it includes passing an English language proficiency exam, unless your professional education was in English (TruMerit names this exemption), and TruMerit names OET among the approved exams (not the at-home versions). The minimum score depends on the profession.",
+   "link": "https://www.cgfns.org/visascreen/",
+   "source": "TruMerit — its own page",
+   "on": "2026-11-07"
+  }
+ ]
+}

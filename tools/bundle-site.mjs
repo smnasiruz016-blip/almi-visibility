@@ -71,7 +71,7 @@ export const TP_CRONS = Object.freeze(Array.from({ length: 4 }, (_, h) => Object
 export const AN_CRONS = Object.freeze(Array.from({ length: 6 }, (_, h) => Object.freeze({ path: "/cron/answers", schedule: `57 ${(h * 4) % 24} * * *` })));
 export const RS_CRONS = Object.freeze([Object.freeze({ path: "/cron/research", schedule: "37 22 * * *" })]); /* RR-376 */
 /* 🔴 RR-380: places (OpenStreetMap), rules that change (rechecks), trends (monthly): one short run a day each, outside the other collectors' hours */
-export const MC_CRONS = Object.freeze([["/cron/places", "17 2 * * *"], ["/cron/rules", "17 3 * * *"], ["/cron/trends", "17 4 * * *"], /* RR-382 */ ["/cron/lists", "17 5 * * *"]].map(([path, schedule]) => Object.freeze({ path, schedule })));
+export const MC_CRONS = Object.freeze([["/cron/places", "17 2 * * *"], ["/cron/rules", "17 3 * * *"], ["/cron/trends", "17 4 * * *"], /* RR-382 */ ["/cron/lists", "17 5 * * *"], /* RR-387 C: D6 */ ["/cron/whois", "17 6 * * *"]].map(([path, schedule]) => Object.freeze({ path, schedule })));
 export const VERCEL_JSON_LITE = { ...VERCEL_JSON, functions: { "api/index.mjs": { ...VERCEL_JSON.functions["api/index.mjs"], maxDuration: 300 } }, crons: [...CRONS, ...CF_CRONS, ...TD_CRONS, ...GSC_CRONS, ...CR_CRONS, ...TP_CRONS, ...AN_CRONS, ...RS_CRONS, ...MC_CRONS] };
 export const LITE_DEPENDENCIES = Object.freeze({ pg: "8.23.1" });
 export const OWNER_SCRIPT = "site/owner-google-sign-in.mjs"; // the website's own deployment script — not engine code (F03 C2c's census is the engine's)

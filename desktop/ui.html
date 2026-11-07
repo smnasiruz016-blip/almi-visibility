@@ -825,6 +825,15 @@ const TABS = {
  * Overview links it. Plain steps, the two keys saved in Windows' secure store (never shown), "Test the connection" (one search, its cost
  * shown), the switch, the caps (never more than $1 a day) and what was spent. The same switch serves the keyword data.
  */
+/* 🔴 RR-387 PART D · the ONE Issues list on Home: what was found, where, who acts, when found and fixed */
+async function issuesCard(pid, fresh = false) {
+  const I = await get(`/api/products/${encodeURIComponent(pid)}/issues${fresh ? "?fresh=1" : ""}`).catch(() => null); if (!I || P !== pid || !$("#ov")) return;
+  const row = (x) => `<li><b>${esc(x.what)}</b> <span class="meta">— ${esc(x.where)} · found ${esc(x.found)}${x.fixed ? ` · fixed ${esc(x.fixed)}` : ""}</span><br>${esc(x.who)}${x.step ? `: ${esc(x.step)}` : ""}${x.bugFile ? ` <span class="meta">(bug report ready: ${esc(x.bugFile)} in this product's folder)</span>` : ""}</li>`;
+  const you = I.open.filter((x) => x.who === "You" || x.who === "A developer"), app = I.open.filter((x) => !you.includes(x));
+  const html = `<div class="card" id="issues"><h3>Issues (${I.open.length} open)</h3>${!I.open.length ? '<p class="ok">Nothing open: the app found no issue on your site.</p>' : ""}${you.length ? `<h4>Needs you or a developer</h4><ul>${you.map(row).join("")}</ul>` : ""}${app.length ? `<h4>The app handles these</h4><ul>${app.map(row).join("")}</ul>` : ""}${I.fixed.length ? `<details><summary>Fixed (${I.fixed.length})</summary><ul>${I.fixed.map(row).join("")}</ul></details>` : ""}<p><button class="ghost" id="issuesfresh" type="button">Check again now</button></p></div>`;
+  const was = $("#issues"); if (was) was.outerHTML = html; else $("#ov").insertAdjacentHTML("afterbegin", html);
+  $("#issuesfresh").onclick = () => { $("#issuesfresh").textContent = "Reading every page of your site…"; issuesCard(pid, true); };
+}
 /* 🔴 RR-386 · AUTOPILOT ("enter your product and go to sleep"): the switch, the whole job's cost first, the cycles, the scan, our server */
 async function autopilotBox() {
   const box = $("#apbox"); if (!box) return; const id = encodeURIComponent(P);
@@ -1025,6 +1034,7 @@ async function overview() {
   /* 🔴 RR-363 A1 (owner: "Home shows only a heading": the first Home after a start took 24 s on his data, with nothing on the screen) */
   if ($("#ov") && !$("#ov").innerHTML) $("#ov").innerHTML = `<p id="ovloading">Reading your product… a few seconds.</p><div class="progress"><div style="width:20%"></div></div>`;
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`), NEXT = await get(`/api/products/${encodeURIComponent(P)}/next`).catch(() => null);
+  issuesCard(pid); // RR-387 PART D: the one Issues list, on Home
   FIXVIA = O.fixVia ?? [];
   if (!$("#ov") || P !== pid) return; // the client moved to another screen meanwhile — nothing to draw
   const c = O.card;
@@ -1467,6 +1477,7 @@ async function googleSignInScreen(back = null) {
     ${G.on ? `<p class="ok">Google sign-in is ON ✓ — client ${esc(G.clientId)} (its secret is kept safely on this computer).</p>` : `<p><b>Google sign-in is off.</b> Switch it on once, with your own Google sign-in client. Then each product can sign in to YouTube and to Search Console.</p>`}
     <h3>How to get your client (once, in Google Cloud) ${guideLink("google-client")}</h3>
     <ol class="howto"><li>Open console.cloud.google.com and pick your project.</li><li>APIs &amp; Services → Credentials → <b>Create credentials</b> → the sign-in client ID, type <b>Desktop app</b>.</li><li>Press Google's download button for that client — or copy the <b>Client ID</b> and <b>Client secret</b>.</li><li>Your consent screen (in Google Cloud) must list you (and anyone else who signs in) as a <b>test user</b> while it is in Testing.</li></ol>
+    <p class="meta" id="gownclient"><b>Why your own client:</b> Google shows "Google hasn't verified this app" for any sign-in app it has not verified yet. With your own client that screen names <b>your own</b> app, and you press Continue; it goes away for everyone only once Google verifies the app. Your Google data stays on this computer either way.</p>
     <h3>Way 1 — choose the file Google Cloud downloaded</h3><label>The file Google Cloud downloaded (client_secret_….json)<input id="gjson" type="file" accept=".json,application/json"></label><button id="gjsave">Use this file</button>
     <h3 style="margin-top:14px">Way 2 — paste them</h3><form autocomplete="off" onsubmit="return false"><label>Client ID (ends with .apps.googleusercontent.com)<input id="gid" name="av-client-${Date.now()}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></label><label>Client secret<input id="gsec" name="av-secret-${Date.now()}" type="password" autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></label><button class="ghost" id="gsave" type="button">Save</button></form>
     <div class="err" id="err"></div>

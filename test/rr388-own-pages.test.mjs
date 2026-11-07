@@ -77,6 +77,9 @@ test("A2 · a noindex page is served but never on the list the sitemap reads; ev
     assert.equal(spawnSync(process.execPath, ["build.mjs"], { cwd: d }).status, 0);
     assert.deepEqual(JSON.parse(readFileSync(join(d, "out", "visibility-pages", "index.json"), "utf8")).pages, [{ slug: "a-page" }]); assert.ok(existsSync(join(d, "out", "visibility-pages", "thin-page", "index.html")));
   } finally { rmSync(d, { recursive: true, force: true }); }
+  const { findIssues, WHO } = await import("../desktop/issues.mjs");
+  const waiting = findIssues({ ownPages: { count: 17, publishSet: false } }).find((x) => x.source === "publish"); assert.equal(waiting.who, WHO.YOU); assert.match(waiting.step, /smnasiruz016-blip\/almivisibility-pages, branch main, folder visibility-pages/);
+  assert.equal(findIssues({ ownPages: { count: 17, publishSet: true } }).some((x) => /pages of your own/.test(x.what)), false, "connected: no line");
   const { managePage } = await import("../site/pages.mjs");
   assert.match(managePage({ sales: true }), /<meta name="robots" content="noindex, nofollow"><link rel="canonical" href="https:\/\/almivisibility\.almiworld\.com\/manage">/);
 });

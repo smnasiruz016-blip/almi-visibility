@@ -6,6 +6,12 @@
    "folder": "visibility-pages",
    "source": "almi-oet PR #148, src/lib/visibility-pages.ts: VISIBILITY_DIR = \"visibility-pages\"; each page is <folder>/<slug>/index.html",
    "on": "2026-11-04"
+  },
+  {
+   "repo": "smnasiruz016-blip/almivisibility-pages",
+   "folder": "visibility-pages",
+   "source": "RR-388 A2: site/pages-repo-template/build.mjs reads visibility-pages/<slug>/index.html; the main site serves each at /<slug> (site/own-pages-proxy.mjs)",
+   "on": "2026-11-07"
   }
  ]
 }

@@ -54,7 +54,8 @@ import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 import { runAnswers } from "./answers-collector.mjs"; // RR-375
 import { runResearch } from "./research-collector.mjs"; // RR-376
 import { runPlaces, runRules, runTrends, runWhois } from "./more-collectors.mjs"; // RR-380; RR-387 C (whois)
-import { runDfs, dfsTable, setSwitch, DFS, DFS_IDS } from "./dfs-collectors.mjs"; // RR-388 B2: the ten DataForSEO collectors, each off until the owner switches it on
+import { runDfs, dfsTable, setSwitch, DFS, DFS_IDS } from "./dfs-collectors.mjs";
+import { ownPage, ownPageSlugs } from "./own-pages-proxy.mjs"; // RR-388 A2: AlmiVisibility's own pages, published by the app to GitHub, built by Vercel // RR-388 B2: the ten DataForSEO collectors, each off until the owner switches it on
 import { runLists } from "./data-lists.mjs"; // RR-382: the data lists (ESCO, ILOSTAT, World Bank, Wikidata, College Scorecard, AlAdhan)
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -445,7 +446,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /title-check\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
-      if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published()].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
+      if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published(), ...(await ownPageSlugs({ env, fetchImpl }).catch(() => [])).map((x) => `/${x}`) /* RR-388 A2 */].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
       if (req.method === "POST" && u.pathname === "/score") {
         const f = form();
         const values = { url: typeof f.url === "string" ? f.url.slice(0, 300) : "" };
@@ -821,6 +822,8 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }
       if (sales && isSalesPath(req.method, u.pathname)) return salesHandle(req, res, body); // RR-338: selling, by the full handler
+      /* RR-388 A2: one of AlmiVisibility's own pages (off until ALMIVISIBILITY_PAGES_ORIGIN is set) */
+      if (req.method === "GET") { const own = await ownPage(u.pathname, { env, fetchImpl }); if (own) return send(200, own.html, "text/html; charset=utf-8", { "cache-control": "public, max-age=300" }); }
       send(404, P.notFound(u.pathname, { lite: true }));
     } catch { send(503, "The free score is not available just now. Please try again later.", "text/plain"); }
   };

@@ -191,7 +191,7 @@ const openInBrowser = browserOpener({ origins: [CONFIG.youtubeTestEndpoints?.aut
 /* RR-340: the buyer's own Stripe page (the customer portal) — only Stripe's billing address is ever opened; tests never open a browser */
 const openBilling = browserOpener({ only: [STRIPE_BILLING_ORIGIN, CONFIG.testBillingOrigin], mode: CONFIG.testSecretsInMemory === true ? "none" : null });
 /* RR-313 B1: is Google sign-in switched on — the client id (not a secret) and whether its secret is saved; never the secret */
-const googleClientStatus = () => ({ signin: gsRead() /* RR-387 B1: the last sign-in, step by step */, on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved, signedIn: GOOGLE.status().signedIn });
+const googleClientStatus = () => ({ on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved, signedIn: GOOGLE.status().signedIn });
 const allowLocal = CONFIG.testAllowLocalSites === true; // TESTS ONLY: a stand-in site on this computer
 const pfile = (id, name) => join(store.dirOf(id), name);
 const pread = (id, name, d = null) => { try { return JSON.parse(readFileSync(pfile(id, name), "utf8")); } catch { return d; } };
@@ -1681,6 +1681,7 @@ const server = createServer((req, res) => {
       }
       /* RR-313 B1: ONE place to switch Google sign-in on (YouTube AND Search Console use the same client) — the client id is shown, the secret never */
       if (req.method === "GET" && u.pathname === "/api/google/client") return send(200, googleClientStatus());
+      if (req.method === "GET" && u.pathname === "/api/google/signin") return send(200, { signin: gsRead() }); /* RR-387 B1: the last sign-in, step by step (no code, token or secret) */
       if (req.method === "POST" && u.pathname === "/api/company") {
         const c = json();
         /* RR-305 B1: "www.almiworld.com" and "almiworld.com" are accepted; https:// is added */

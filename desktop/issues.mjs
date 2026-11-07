@@ -95,6 +95,8 @@ export function findIssues(h) {
   if (h.bing?.why) { const ex = explainOutside("Bing", h.bing.status ?? 0, h.bing.why); out.push(issue("Bing", ex.exact, "Search engines", /next cycle|wait/i.test(ex.fix) && !/Put your/.test(ex.fix) ? WHO.NEXT : WHO.YOU, ex.fix)); }
   /* 🔴 D3 · money, once, before it bites */
   if (h.budget && typeof h.nextCycleUsd === "number" && h.nextCycleUsd > h.budget.left + 1e-9) { const next = new Date(h.now ?? Date.now()); next.setUTCMonth(next.getUTCMonth() + 1, 1); out.push(issue("money", `Next cycle about $${h.nextCycleUsd.toFixed(2)}, left $${Math.max(0, h.budget.left).toFixed(2)}. The rest waits for ${next.toISOString().slice(0, 10)}.`, "Home", WHO.NEXT, null, { money: true })); }
+  /* 🔴 RR-387b · the planned full re-judge (the second judge failed 6 of 50 shown answers; judging all ~1,380 on their sources costs about $12) */
+  if (h.rejudge && !h.rejudge.done) out.push(issue("plan", `Full re-judge of all shown answers against their sources: about $${h.rejudge.usd}, scheduled for the first autopilot cycle in December.`, "Autopilot", WHO.NEXT, null, { from: h.rejudge.from }));
   /* the last cycle's own steps that did not pass and are not said above */
   for (const s of h.cycle?.steps ?? []) if (!s.ok && !["goLive", "liveScan"].includes(s.key)) out.push(issue("cycle", `${s.name}: ${String(s.line).slice(0, 200)}`, "Autopilot", WHO.NEXT));
   return out;

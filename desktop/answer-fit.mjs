@@ -55,7 +55,12 @@ const REG = new Map();
 export const registerFit = (verdicts = {}) => { for (const [k, v] of Object.entries(verdicts)) if (v && typeof v.fits === "boolean") REG.set(k, v); };
 export const fitOf = (k) => REG.get(k) ?? null;
 export const SHIPPED = (() => { try { const j = JSON.parse(readFileSync(new URL("./lists/answer-fit.json", import.meta.url), "utf8")); const v = {}; for (const k of j.pass ?? []) v[k] = { fits: true }; for (const [k, reason] of Object.entries(j.fail ?? {})) v[k] = { fits: false, reason }; registerFit(v); return { on: j.on ?? null, pass: (j.pass ?? []).length, fail: Object.keys(j.fail ?? {}).length }; } catch { return { on: null, pass: 0, fail: 0 }; } })();
-export const unfit = (q, a) => fitOf(fitKey(q, a))?.fits === false;
+/* 🔴 RR-387b: answers hidden by their TEXT, wherever they stand (the second judge's source failures), or only under questions they do not
+ * answer (onlyUnder: a pattern of the question) — lists/answer-fit.json "failText" */
+export const textKey = (a) => createHash("sha1").update(norm(a)).digest("hex").slice(0, 20);
+const TEXT_FAILS = (() => { try { return JSON.parse(readFileSync(new URL("./lists/answer-fit.json", import.meta.url), "utf8")).failText ?? {}; } catch { return {}; } })();
+export const textUnfit = (q, a) => { const r = TEXT_FAILS[textKey(a)]; if (!r) return false; return !r.onlyUnder || new RegExp(r.onlyUnder, "i").test(String(q)); };
+export const unfit = (q, a) => fitOf(fitKey(q, a))?.fits === false || textUnfit(q, a);
 
 /** the page as it may be shown: every answer judged "does not answer its question" taken out of the page AND its FAQ data; a question with nothing left goes */
 export function hideUnfit(html, isUnfit = unfit) {

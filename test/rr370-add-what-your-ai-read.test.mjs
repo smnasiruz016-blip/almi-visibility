@@ -69,6 +69,6 @@ test("THE REAL ROUTE: the reason reaches the page's line through the plan's own 
 
 test("the wiring: the button beside the list; the route is async; a day's list skips what was tried; our reader failing again keeps what your AI read", () => {
   const ui = read("desktop/ui.html"), m = read("desktop/main.mjs");
-  assert.match(ui, /<b>Add what your AI read<\/b> <input type="file" id="handinfile" accept="\.json,application\/json"/); assert.match(ui, /e\.target\?\.id !== "handinfile"/); assert.match(ui, /councils\/browser`, hand\)/); assert.match(ui, /could not read: \$\{esc\(p\.reason\)\}/);
+  assert.match(ui, /<b>Add what your AI read<\/b> <input type="file" id="handinfile" accept="\.json,application\/json[,"]/) /* RR-388 E4: the owner's documents too */; assert.match(ui, /e\.target\?\.id !== "handinfile"/); assert.match(ui, /councils\/browser`, hand\)/); assert.match(ui, /could not read: \$\{esc\(p\.reason\)\}/);
   assert.match(m, /const v = await takeCouncilBrowser\(id, json\(\)\)/); assert.match(m, /stillFresh\(v, COUNCIL_KEEP_DAYS\)/); assert.match(m, /v\.why === "unread" && kept\[r\.key\]\?\.via \? \{ \.\.\.kept\[r\.key\], recheckedOn: today \}/); assert.doesNotMatch(read("desktop/council-truth.mjs"), /f\.approved/, "RR-371: no line stands on approval");
 });

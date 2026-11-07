@@ -21,6 +21,7 @@ import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPages
 import { generalTopics, GENERAL_OFF } from "./more-collectors.mjs"; // RR-380
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
+import { collectorsCapOf, collectorsSpentToday } from "./collectors-day.mjs"; // RR-388 B
 import { byMeaning, twinOf, meaningKey } from "../desktop/search-meaning.mjs"; // RR-370 item 11
 import { readFailures, hostOf } from "../desktop/read-failures.mjs"; // RR-369b item 5
 
@@ -55,11 +56,12 @@ export function intentsOf({ topic, facts }) {
 /** one run. → { ok, day, searches, cost, reads, lists, coverage, stoppedBy, why } */
 /* 🔴 RR-366 Part 7: the Standard queue. A list is posted and paid once; its task id is kept (kv) until its answer is collected, free, by this run or the next: never paid twice. Each top page's blocks through On-Page parsing, once, kept in tp_page; a page it cannot read goes to the polite reader as before */
 const PENDING_KEY = "av:tp:pending";
+const sharedToday = async (seo, today) => { const own = await seo.spend(today, TOP_PAGES_JOB), rows = (await seo.spendSince?.(today).catch(() => [])) ?? []; return { usd: own.usd + rows.filter((r) => r.day === today && String(r.job).startsWith("dfs-")).reduce((t, r) => t + (Number(r.usd) || 0), 0), units: own.units }; };
 export async function runTopPages({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, now = () => Date.now(), budgetMs = TOP_PAGES.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), pollMs = QUEUE.everyMs }) {
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (!topPagesConnected(env)) return { ok: false, day: today, why: `The top-pages collector is off (${ENV_NAMES.topPagesOn}, ${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}) — the owner's decision.` };
   if (kv) { const [locked] = await kv.run([["SET", "av:tp:lock", id, "NX", "EX", TOP_PAGES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another top-pages run is working — this one did nothing." }; }
-  const caps = topPagesCaps(env), spent = await seo.spend(today, TOP_PAGES_JOB), readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
+  const caps = topPagesCaps(env), spent = await sharedToday(seo, today) /* RR-388 B2: the $1 a day is shared with the ten DataForSEO collectors */, cfAiToday = await collectorsSpentToday({ seo, cf, kv, today }).then((d) => d.total - d.dataforseo) /* every other collector's money today */, collectorsCap = collectorsCapOf(env) /* RR-388 B: one $2 a day for every collector */, readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
   const auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
   const reads0 = reader.requests();
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; };
@@ -106,6 +108,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           if (budget0.spent + out.cost + Math.max(price, TOP_PAGES_CAPS.searchReserveUsd) > caps.budget + 1e-9) { stop("BUDGET", `The top-pages budget is spent ($${caps.budget} in total) — the collector has stopped by itself.`); break; }
           if (topic.payer && (await seo.accountSpend(month, topic.payer)) + price > payerLimit + 1e-9) break; // this client's month is used: the next topic
           if (spent.usd + out.cost + price > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
+          if (cfAiToday + spent.usd + out.cost + price > collectorsCap + 1e-9) { stop("CAP", `Today's cap for all collectors together ($${collectorsCap}) is reached — tomorrow continues.`); break; } /* RR-388 B */
           /* 🔴 RR-370b: checked before it is sent; a bad one is counted, never sent */
           if (taskFault("serp", serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })[0])) { out.refused = (out.refused ?? 0) + 1; continue; }
           let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify(serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }

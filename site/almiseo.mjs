@@ -277,7 +277,7 @@ export async function syncFindings({ seo, cf, at }) {
 export const topPagesCaps = (env = process.env) => ({ budget: Number(env[ENV_NAMES.topPagesBudget]) > 0 ? Number(env[ENV_NAMES.topPagesBudget]) : TOP_PAGES_CAPS.budgetUsd, usd: Number(env[ENV_NAMES.topPagesUsd]) > 0 ? Number(env[ENV_NAMES.topPagesUsd]) : TOP_PAGES_CAPS.usdPerDay, reads: Number(env[ENV_NAMES.topPagesReads]) > 0 ? Math.floor(Number(env[ENV_NAMES.topPagesReads])) : TOP_PAGES_CAPS.readsPerDay });
 /** RULING 1: what the top-pages collector has spent in ALL its days, and the total → { spent, budget, left, line } */
 export async function topPagesBudget({ seo, env = process.env }) {
-  const b = topPagesCaps(env).budget, spent = Math.round((await seo.spendSince("2000-01-01")).filter((r) => r.job === TOP_PAGES_JOB).reduce((a, r) => a + r.usd, 0) * 1e4) / 1e4;
+  const b = topPagesCaps(env).budget, spent = Math.round((await seo.spendSince("2000-01-01")).filter((r) => r.job === TOP_PAGES_JOB || String(r.job).startsWith("dfs-") /* RR-388 B2: one $50 total for every DataForSEO collector */).reduce((a, r) => a + r.usd, 0) * 1e4) / 1e4;
   return { spent, budget: b, left: Math.max(0, b - spent), line: `DataForSEO: $${spent.toFixed(2)} spent / $${b}` };
 }
 export async function spendLedger({ cf, seo, env = process.env, now = () => Date.now() }) {

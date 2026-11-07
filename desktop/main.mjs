@@ -58,6 +58,10 @@ import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
+import { secureBackendFor, selfUpdates } from "./platform.mjs";
+import { ownPlanPages } from "./own-pages.mjs"; // RR-388 A
+import { guardComparisons } from "./comparison-guard.mjs"; // RR-388 A3
+import { documentText, researchRows, addOwnerResearch } from "./owner-research.mjs"; // RR-388 E4 // RR-388 C: one layer for Windows and a Mac
 import { youtubeApp } from "./youtube-app.mjs";
 import { SOCIAL_PLATFORMS, socialSetup, socialPlan, writeCaptionsAI } from "./social-app.mjs"; // RR-348 b
 import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name → its code for the creator data
@@ -169,7 +173,7 @@ let updateFound = null, updateReady = null, updateDownloading = null; // RR-355:
 /* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
  * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
 /* 🔴 RR-386: the runner's headless app (secretsFromEnvOnly) never opens a secure store — not even on Windows: its keys come from its own process only */
-const KEYS = keyStore({ backend: CONFIG.secretsFromEnvOnly === true ? null : CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
+const KEYS = keyStore({ backend: CONFIG.secretsFromEnvOnly === true ? null : CONFIG.testSecretsInMemory === true ? memoryBackend() : secureBackendFor(process.platform, { windows: () => windowsBackend() }) /* RR-388 C: Windows unchanged; the Keychain on a Mac */, env: process.env });
 const KEY_ALLOWED = new Set([...FREE_KEY_NAMES, KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName), ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password, "PERPLEXITY_API_KEY", "PAGESPEED_API_KEY" /* RR-379 */, "ETSY_API_KEY" /* RR-381 */]); // RR-324 B/C: by name only
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
 /* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
@@ -649,7 +653,7 @@ async function issuesNow(id, { fresh = false } = {}) {
   const scan = fresh ? await scanFor(id, null, { preview: false }).catch(() => pread(id, SCAN_FILE, null)) : pread(id, SCAN_FILE, null);
   const st = GOOGLE.status(), sc = searchConsoleOf(id), counts = await pageCounts(id, { fresh }).catch(() => null), ap = apRead(id), cost = ap.mode === MODES.AUTO ? costPlan(apEstimate(id), apBudget().left) : null;
   const inx = pread(id, "indexnow.json", null), qa = pread(id, "qa-run.json", null), truth = pread(id, TRUTH_RUN, null);
-  const found = findIssues({ scan, appPages, counts, google: { connected: sc?.kind === "CONNECTED", signedIn: st.signedIn, lastError: st.lastError, signin: gsRead() }, truthRun: truth ? { unread: truth.unread ?? 0, failed: truth.failed ?? 0 } : null, rejudge: { ...REJUDGE, done: Boolean(pread(id, REJUDGE.file, null)?.done) }, publishLast: pread(id, PUBLISH_LAST, null), goLive: pread(id, "go-live.json", null), cycle: pread(id, AP_RUNS, []).at(-1) ?? null, budget: apBudget(), nextCycleUsd: cost ? cost.total : undefined, aiWhy: qa?.why ?? null, bing: inx && inx.verified === false ? { why: "the IndexNow key file was not found on your site", status: 403 } : null });
+  const found = findIssues({ scan, appPages, counts, google: { connected: sc?.kind === "CONNECTED", signedIn: st.signedIn, lastError: st.lastError, signin: gsRead() }, truthRun: truth ? { unread: truth.unread ?? 0, failed: truth.failed ?? 0 } : null, rejudge: { ...REJUDGE, done: Boolean(pread(id, REJUDGE.file, null)?.done) }, dfsBalance: pread(id, "collectors-status.json", null)?.dfs ?? null /* RR-388 B: owner only (pulled only with the owner's licence) */, ownPages: (() => { const o = ownPlanPages({ site: store.read(id).product?.site ?? null }); return o?.pages.length ? { count: o.pages.length, publishSet: Boolean(pread(id, "publish.json", null)?.kind) } : null; })() /* RR-388 A */, ads: { connected: (() => { try { const s = ads().status(); return Boolean((CONFIG.googleAds ?? {}).on) && s.ready === true; } catch { return false; } })() } /* RR-388 A3 */, publishLast: pread(id, PUBLISH_LAST, null), goLive: pread(id, "go-live.json", null), cycle: pread(id, AP_RUNS, []).at(-1) ?? null, budget: apBudget(), nextCycleUsd: cost ? cost.total : undefined, aiWhy: qa?.why ?? null, bing: inx && inx.verified === false ? { why: "the IndexNow key file was not found on your site", status: 403 } : null });
   const list = issuesMerge(pread(id, ISSUES_FILE, []), found); pwrite(id, ISSUES_FILE, list);
   /* D4: a fault only code can fix → its bug report, once */
   const made = pread(id, "issues-bugs.json", {}); let n = Object.keys(made).length;
@@ -679,7 +683,7 @@ const withFactsFile = (id, cfs) => { const out = { ...cfs }; for (const [c, x] o
 /* RR-319: once the client made pages from "How many pages", THAT plan is the page list everywhere (one page per different answer) */
 /* RR-354: else the exam plan Create SEO pages made by itself (auto-plan.json: profession pages, country pages, topics) — the same plan every call reads */
 /* RR-359: the exam plan only for the subject it was made for (a plan made under another subject — or under a guessed one — is not this product's) */
-const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
+const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */ || a.fromOwnList === true /* RR-388 A */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
 const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null)?.length ? pread(id, "made-plan.json", null) : autoPlanOf(id)?.pages; return p?.length ? { pagePlan: p, max: p.length } : {}; };
 const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
 const plannedOf = (id) => pread(id, "planned.json", []);
@@ -1417,8 +1421,10 @@ async function makePages(id, key) {
   const handMade = Boolean(pread(id, "made-plan.json", null)?.length), own = handMade ? { lines: [] } : await gatherOwnDemand(id);
   if (!handMade && examProduct(s, id)) { const sf = await subjectFactsFor(id, seedOf(s)), rt = await oneRatesFor(id); const research = await examResearch(id, seedOf(s), reading, sayingWhat); clock.mark("reading official pages"); await councilChecksFor(id, seedOf(s), reading, sayingWhat); clock.mark("checking each council on its own page"); examExtras.set(id, { subjectFacts: sf.facts, rates: rt, research, searchedOn: new Date().toISOString() }); if (sf.line) own.lines.push(sf.line); own.lines.push(rt ? `Exchange rates: ${OPEN_RATES.short}, ${rt.date} — the same one service for every page` : `Exchange rates: ${OPEN_RATES.short} could not be read just now — the fee is shown in AUD only`); }
   /* RR-360 B: a product of any kind: what AlmiSEO Data planned for its subject (desktop/almiseo.mjs genericPlanPages) */
+  /* 🔴 RR-388 PART A: a product with its own subject pages (lists/own-pages.json, by its site): those pages, judged before they were listed */
+  const buildOwn = () => { const x = ownPlanPages({ site: site?.origin ?? s.product?.site ?? null }); if (!x?.pages.length) return null; savePlan(id, x); return x; };
   const buildGeneric = () => { const f = seoFileOf(id), x = f?.plan?.length ? genericPlanPages({ file: f, subject: seedOf(s) }) : null; if (!x?.pages.length) return null; x.fromAlmiSeo = true; savePlan(id, x); return x; };
-  let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
+  let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() /* RR-388 A: the product's own subject pages */;
   /* 🔴 RR-369 Part 2 (owner: "a run can wait up to 15 minutes for Google's queue before pages are made"): PAGES FIRST. The quick pass makes every page from what is in hand: our own data, checked facts, collectors, Google's answers already kept; new searches are posted and kept, nothing waits, no site of the results is read. The pages are shown at once. Then, on its own line on the board, the app collects Google's answers as they come, reads the top results and improves the pages by itself; what comes later still is used on the next run. The client never waits for Google to see pages. (REPLACES RR-368's one wait of 15 minutes) */
   /* no Google to wait for (the switch off, nothing kept): one pass, as before */
   const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? [])), savedBefore = savedTotal();
@@ -1447,7 +1453,7 @@ async function makePages(id, key) {
     const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: runUsd, why, code, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); if (why) BOARD.amend(`make:${id}`, (l) => l.replace("This run is doing that now.", why)) /* 🔴 RR-373 item 7: the first pass's line, once the AI has refused */; };
   const pass = async (quick, step, sayingWhat, clock) => {
     const reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
-    if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric();
+    if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() /* RR-388 A: the product's own subject pages */;
     /* 🔴 RR-360 D · G5's order for every intent: saved in AlmiSEO Data → your own AI in your own browser → your own paid service, only if you switched it on */
     /* R13: saved in AlmiSEO Data first; then a search this app already made, free; then the client's own paid switch */
     const routeOf = (list) => coverageRoutes({ pages: list, file: seoFileOf(id), forcePaid: Array.isArray(CONFIG.testSerpOnly) ? CONFIG.testSerpOnly : null, browser: pread(id, BROWSER_COVERAGE, {}), paidOn: serpSettings().on === true || hasKeptSearch(list), paid: (left, askOnly = []) => { step({ done: 0, of: left.length, unit: "pages", what: quick ? "Asking Google in the background" : "Looking at what Google shows" }); return serpStep(id, { pages: left }, (p, state) => (state === "done" ? step({ add: 1 }) : step({ what: quick ? "Asking Google in the background" : `Looking at what Google shows for ${p.title}` })), sayingWhat, { quick, inHand: pagesFirst, askOnly }).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })); } });
@@ -1456,7 +1462,11 @@ async function makePages(id, key) {
     /* 🔴 RR-362 (R3): with what the searches brought, each C and D page stays a page or its facts go into the bigger pages */
     const searchedPages = exam ? [...exam.pages] : [];
     if (exam?.bigger) settleLocal(exam);
-    if (exam) addKnownAnswers(exam); /* 🔴 RR-387 A2 + A3: answers judged on their whole source page (lists/known-answers.json) */
+    if (exam) addKnownAnswers(exam);
+    /* 🔴 RR-388 A3: a comparison page says a competitor's price or feature only from that company's own page; none read → no comparison */
+    if (exam) { const o = addOwnerResearch(exam, pread(id, "owner-research.json", [])); pwrite(id, "owner-research-joined.json", { on: new Date().toISOString(), ...o }); } /* RR-388 E4: the owner's research, unchecked: the truth pass decides */
+    if (exam) { const g = guardComparisons(exam, { ownName: s.product?.name ?? "", ownHost: s.product?.site ?? "" }); pwrite(id, "comparison-guard.json", { on: new Date().toISOString(), ...g }); }
+    /* 🔴 RR-387 A2 + A3: answers judged on their whole source page (lists/known-answers.json) */
     if (exam && examProduct(s, id)) { applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-366 Part 3 */ applyPairQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-369 Part 4 */ pwrite(id, "questions-wanted.json", { on: new Date().toISOString(), pages: exam.questionsWanted ?? [] }); }
     await factsStep(exam, quick, step);
     if (exam) savePlan(id, exam);
@@ -2030,7 +2040,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|keywords\/service|keywords\/service\/usage|official|official\/suggest|official\/page|search|search\/read|facts-file)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/document|research\/handin|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|keywords\/service|keywords\/service\/usage|official|official\/suggest|official\/page|search|search\/read|facts-file)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -2177,6 +2187,14 @@ const server = createServer((req, res) => {
           }
           /* RR-320 B · the browser search (F11 source a): what the client's OWN AI saw in Google in his OWN browser — accepted only by the F11
            * rules (client-started, notice first, ≥20 s apart, ≤30 a day, stopped at once on a captcha); the plan is made again at once from it */
+          /* 🔴 RR-388 E4: the owner's own research document (.odt .docx .txt .md): each question with its page kept as an UNCHECKED line; no page or an AI summary refused; the truth pass decides what is shown */
+          if (r[2] === "research/document" && req.method === "POST") {
+            const v = json(), text = documentText(String(v.name ?? ""), Buffer.from(String(v.base64 ?? ""), "base64"));
+            if (text === null) return send(400, { refused: "That file could not be read: give a .odt, .docx, .txt or .md document." });
+            const t = researchRows(text), on = new Date().toISOString().slice(0, 10), was = pread(id, "owner-research.json", []), key = (x) => `${x.question.toLowerCase()}|${x.link}`, have = new Set(was.map(key)), add = t.rows.filter((x) => !have.has(key(x))).map((x) => ({ ...x, on, file: String(v.name ?? "").slice(0, 120) }));
+            pwrite(id, "owner-research.json", [...was, ...add]); if (add.length) replan(id);
+            return send(add.length || t.rows.length ? 200 : 400, { ok: t.rows.length > 0, kept: add.length, again: t.rows.length - add.length, refused: t.refused, line: `${add.length} answer${add.length === 1 ? "" : "s"} with their page kept from ${String(v.name ?? "the file")}${t.rows.length - add.length ? ` (${t.rows.length - add.length} already here)` : ""}. Each is shown only after the truth check judges it on its page (Create SEO pages, or the next autopilot cycle).${t.refused.length ? ` Not used: ${t.refused.length} — ${[...new Set(t.refused.map((x) => x.why))].join("; ")}.` : ""}` });
+          }
           if (r[2] === "research/handin" && req.method === "POST") {
             let hand; try { hand = JSON.parse(Buffer.from(String(json().base64 ?? ""), "base64").toString("utf8")); } catch { return send(400, { refused: "That file is not the file your AI gave you after its search." }); }
             const runs = pread(id, "phrase-runs.json", []), t = takeHandIn(hand, { runsBefore: runs });
@@ -2688,6 +2706,7 @@ const server = createServer((req, res) => {
       if (req.method === "POST" && u.pathname === "/api/update/install") {
         const { agree } = json();
         if (!updateFound) return send(400, { refused: "Check for updates first — no newer version is waiting." });
+        if (!selfUpdates(process.platform) && CONFIG.testUpdateArgs === undefined) return send(400, { refused: `Version ${updateFound.version} is ready. On a Mac, download it from almivisibility.almiworld.com and open it; your data is kept.` }); /* RR-388 C */
         let d; try { d = updateReady && updateReady.version === updateFound.version ? { ok: true, ...updateReady } : await downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }); } catch { return send(400, { refused: "The update could not be downloaded — check the internet connection and try again. Nothing was changed." }); }
         if (!d.ok) return send(400, { refused: d.why });
         askedToStop();

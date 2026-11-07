@@ -60,7 +60,9 @@ export const SHIPPED = (() => { try { const j = JSON.parse(readFileSync(new URL(
 export const textKey = (a) => createHash("sha1").update(norm(a)).digest("hex").slice(0, 20);
 const TEXT_FAILS = (() => { try { return JSON.parse(readFileSync(new URL("./lists/answer-fit.json", import.meta.url), "utf8")).failText ?? {}; } catch { return {}; } })();
 export const textUnfit = (q, a) => { const r = TEXT_FAILS[textKey(a)]; if (!r) return false; return !r.onlyUnder || new RegExp(r.onlyUnder, "i").test(String(q)); };
-export const unfit = (q, a) => fitOf(fitKey(q, a))?.fits === false || textUnfit(q, a);
+/* RR-388 (owner, notes item 18 Q6): the product's OWN line ("<product> is our own practice site: …", made from the product's own words) is our product text — Q&A LAW 5A.5 — never hidden as an outside fact */
+export const ownLine = (a) => /^[\p{L}\p{N}][\p{L}\p{N}.&'-]*(?: [\p{L}\p{N}.&'-]+)? is our own practice site:/u.test(String(a ?? "").trim()); /* a product name of one or two words, at the start */
+export const unfit = (q, a) => !ownLine(a) && (fitOf(fitKey(q, a))?.fits === false || textUnfit(q, a));
 
 /** the page as it may be shown: every answer judged "does not answer its question" taken out of the page AND its FAQ data; a question with nothing left goes */
 export function hideUnfit(html, isUnfit = unfit) {

@@ -16,7 +16,7 @@ import { isQuestionForm } from "../desktop/real-questions.mjs";
 import { LOCATIONS } from "./kw-seeds.mjs";
 import { recordRun } from "./health.mjs";
 
-export const GSC = Object.freeze({ api: "https://www.googleapis.com/webmasters/v3", scope: "https://www.googleapis.com/auth/webmasters.readonly", days: 28, lagDays: 3, rowLimit: 25000, maxPages: 2, everyDays: 7, ours: /(^|\.)almiworld\.com\/?$|almiworld\.com/ });
+export const GSC = Object.freeze({ api: "https://www.googleapis.com/webmasters/v3", scope: "https://www.googleapis.com/auth/webmasters.readonly", days: 28, lagDays: 3, rowLimit: 25000, maxPages: 2, everyDays: 1 /* RR-388 B (the collectors spec: Search Console daily; the 7 Nov census: it was read once in 7 days) */, ours: /(^|\.)almiworld\.com\/?$|almiworld\.com/ });
 /* a site's product (its subdomain: almi<name>.almiworld.com) */
 const NAME_KEY = { job: "jobs" };
 export function productOfHost(host) { const m = /^almi([a-z]+)\.almiworld\.com$/.exec(String(host ?? "").toLowerCase().replace(/^www\./, "")); return m ? NAME_KEY[m[1]] ?? m[1] : null; }

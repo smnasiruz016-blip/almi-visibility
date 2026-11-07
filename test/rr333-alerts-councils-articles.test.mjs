@@ -36,7 +36,7 @@ test("B4 · RR-333: the test-dates collector and the Search Console reader have 
   /* not signed in to Google: no Search Console red line (the sign-in has its own line) */
   assert.equal((await ownerStatus({ kv: K.kv, cf: cfMemoryStore(), env: {}, now: () => T0 })).red.some((r) => r.collector === "gsc"), false);
   /* the weekly read already done: the day is recorded as a good one (never a false red line after 3 quiet days) */
-  const G = fakeKv(); G.m.set("av:gsc:last", JSON.stringify({ at: `${dayBefore(2)}T15:17:00Z`, ok: true }));
+  const G = fakeKv(); G.m.set("av:gsc:last", JSON.stringify({ at: `${ON}T03:17:00Z` /* RR-388 B: read daily — the read of today already done */, ok: true }));
   const r = await runSearchConsole({ env: GSC_ENV, kv: G.kv, now: () => T0, fetchImpl: async () => { throw new Error("no network in this test"); } });
   assert.equal(r.skipped, true); assert.equal(JSON.parse(G.m.get(`av:health:gsc:${ON}`)).progress, 1);
 });

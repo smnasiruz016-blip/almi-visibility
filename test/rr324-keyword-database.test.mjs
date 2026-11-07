@@ -125,7 +125,7 @@ test("B Â· Google's documented request and answer: generateKeywordIdeas (v26) â†
   assert.equal(q.url, "https://googleads.googleapis.com/v26/customers/1234567890:generateKeywordIdeas");
   assert.deepEqual(q.body, { language: "languageConstants/1000", geoTargetConstants: ["geoTargetConstants/2826"], includeAdultKeywords: false, keywordPlanNetwork: "GOOGLE_SEARCH", pageSize: 1000, keywordSeed: { keywords: ["oet", "oet practice"] } });
   assert.deepEqual(ideasRequest({ customerId: "1234567890", url: "https://x.example/" }).body.urlSeed, { url: "https://x.example/" }); assert.throws(() => ideasRequest({ customerId: "123" }), /10 digits/);
-  const rows = rowsOfIdeas(IDEAS); assert.deepEqual(rows[0], { text: "oet practice test", said: 12100, months: { "2026-08": 9900, "2026-09": 14800 }, competition: "Medium", change3m: null, yoy: null }); assert.equal(rows[1].said, null);
+  const rows = rowsOfIdeas(IDEAS); assert.deepEqual(rows[0], { text: "oet practice test", said: 12100, months: { "2026-08": 9900, "2026-09": 14800 }, competition: "Medium", change3m: null, yoy: null, bidLow: 1.45, bidHigh: 4.8 /* RR-388 A3: Google's own top-of-page bids in this documented answer, kept */ }); assert.equal(rows[1].said, null);
   assert.equal(periodOfRows(rows), "2026-08-01..2026-09-30");
   assert.equal(errorOf(GERR("CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION")), "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION"); assert.equal(errorOf({}, 500), "HTTP_500");
   assert.match(errorLine("CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION"), /Test access only/);

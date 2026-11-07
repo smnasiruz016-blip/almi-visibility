@@ -1,5 +1,5 @@
 {
- "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one. RR-385 (7 Nov 2026): the Ahpra board lines, as Ahpra's own page says them. RR-386 (7 Nov 2026): the Alabama Board of Nursing line, as its own page says it.",
+ "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one. RR-385 (7 Nov 2026): the Ahpra board lines, as Ahpra's own page says them. RR-386 (7 Nov 2026): the Alabama Board of Nursing line, as its own page says it. RR-388: the CORU dietitians line in CORU's own terms.",
  "subject": {
   "gradeB": {
    "text": "OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200.",
@@ -107,6 +107,15 @@
    "source": "Alabama Board of Nursing — its own page",
    "intent": "scores",
    "why": "RR-386: the line said the page gives no score per sub-test; the Board's own page lists OET Reading 340, Listening 320, Writing 350, Speaking 360, so the truth pass failed it"
+  },
+  {
+   "has": "CORU (Dietitians Registration Board) accepts OET (Dietetics)",
+   "to": "In Ireland: for dietitians, CORU's own page lists OET (Dietetics) with a minimum of grade B (350) in three components and a minimum of grade C+ (300) in one component.",
+   "link": "https://www.coru.ie/health-and-social-care-professionals/registration/registration-requirements/language/",
+   "on": "2026-11-07",
+   "source": "CORU, English language requirements",
+   "intent": "scores",
+   "why": "RR-388 (owner's research, notes item 18 Q5): CORU's own page names the board 'Dietitians RB'; the line said 'Dietitians Registration Board' and the second judge failed it; now in the page's own terms, judged PASS"
   }
  ],
  "cite": [

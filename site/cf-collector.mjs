@@ -82,7 +82,7 @@ export const finishedIn = (tasks) => (product, country) => tasksOf(product).ever
 export const costKey = (p) => `av:cf:cost:${p}`;
 
 /** one run. → { ok, day, saved, unconfirmed, kept, done: ["Pakistan · councils", …], searching, finished, stoppedBy, why, aiUsd, reads, searches } */
-export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS, youtube = null, youtubeFetch = fetch, countriesOf = null /* RR-360 B: a client topic has its own countries */ }) {
+export async function runCountryFacts({ store, kwStore = null, kv = null, env = process.env, reader, ai = askAi, now = () => Date.now(), budgetMs = CF_COLLECTOR.runBudgetMs, countries = null, subject = CF_SUBJECT, queue = DEFAULT_QUEUE, products = FACT_PRODUCTS, youtube = null, youtubeFetch = fetch, countriesOf = null /* RR-360 B: a client topic has its own countries */, otherUsd = 0 /* RR-388 B: today's DataForSEO money (top pages + the ten): ALL collectors share the one daily cap */ }) {
   const start = now(), today = dayOf(start), at = () => new Date(now()).toISOString(), id = randomBytes(8).toString("hex");
   reader = refuseBlocked(reader); // RR-333 C: the owner's blocked private sites are never read
   if (kv) { const [locked] = await kv.run([["SET", "av:cf:lock", id, "NX", "EX", CF_COLLECTOR.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another country-facts run is working — this one did nothing." }; }
@@ -99,7 +99,7 @@ export async function runCountryFacts({ store, kwStore = null, kv = null, env = 
   const room = (needAi = false) => {
     if (now() - start > budgetMs) return stop("TIME", "This run's time is used — the next run continues.");
     if (spent.reads + reader.requests() - r0 >= caps.reads - share.reads) return stop("READS", `Today's ${caps.reads - share.reads} page reads for country facts are used (${share.reads} stay for the test dates) — the next day continues.`);
-    if (needAi && spent.aiUsd + out.aiUsd + CF_COLLECTOR.aiReserveUsd > caps.aiUsd - share.aiUsd) return stop("AI_BUDGET", `Today's AI budget for country facts ($${(caps.aiUsd - share.aiUsd).toFixed(2)}) is used ($${share.aiUsd.toFixed(2)} stays for the test dates) — the next day continues.`);
+    if (needAi && spent.aiUsd + otherUsd + out.aiUsd + CF_COLLECTOR.aiReserveUsd > caps.aiUsd - share.aiUsd) return stop("AI_BUDGET", `Today's AI budget for country facts ($${(caps.aiUsd - share.aiUsd).toFixed(2)}) is used ($${share.aiUsd.toFixed(2)} stays for the test dates) — the next day continues.`);
     return true;
   };
   const put = async (f) => { const r = await store.putFact({ proposedBy: "official", aiWritten: false, ...f }, { at: at() }); if (r.saved) { out.saved++; if (f.status === "unconfirmed") out.unconfirmed++; const by = f.status === "confirmed" ? foundBy(f) : null; if (by === "answers:guidance") tpl("answers").guidance++; else if (by) tpl(by).found++; } else if (/owner/.test(r.why ?? "")) out.kept++; return r; };

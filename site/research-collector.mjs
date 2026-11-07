@@ -4,6 +4,7 @@
  * A figure stands only on a page the search really returned; anything else becomes "not found". Competitors' pages are never facts on our sites: this is a target sheet for us.
  * ITS MONEY: its own line, $1 a day, read before each call; on the cap it stops, says so, and goes on tomorrow. AlmiPrep (IELTS) and AlmiPTE first, one product at a time. Anthropic's own web search tool only: no Google or Bing page is read. Weekly report: researchReport, short, for a phone, bad news first.
  */
+import { collectorsCapOf, collectorsSpentToday } from "./collectors-day.mjs"; // RR-388 B
 import { randomBytes } from "node:crypto";
 import { askAi, aiConfigured, CF_AI } from "./cf-ai.mjs";
 
@@ -29,7 +30,7 @@ export function cleanSheet(data, results = [], on) {
 }
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
-export async function runResearch({ seo, kv = null, env = process.env, fetchImpl = fetch, base = undefined, now = () => Date.now(), markets = MARKETS }) {
+export async function runResearch({ seo, cf = null, kv = null, env = process.env, fetchImpl = fetch, base = undefined, now = () => Date.now(), markets = MARKETS }) {
   const start = now(), at = new Date(start).toISOString(), today = dayOf(start), id = randomBytes(8).toString("hex"), out = { ok: true, day: today, read: [], usd: 0, stoppedBy: null, why: null };
   if (env[RESEARCH.offEnv] === "1") return { ok: false, day: today, why: `The research collector is switched off (${RESEARCH.offEnv}).` };
   if (!aiConfigured(env)) return { ok: false, day: today, why: `${CF_AI.keyName} is not set in Vercel yet.` };
@@ -38,6 +39,7 @@ export async function runResearch({ seo, kv = null, env = process.env, fetchImpl
     let spent = (await seo.spend(today, RESEARCH.job)).usd ?? 0, calls = 0;
     for (const m of markets) {
       if (calls >= RESEARCH.callsPerRun) break; const key = `research:${m.id}`, held = await seo.setting(key).catch(() => null); if (held?.on && daysBetween(held.on, today) < RESEARCH.refreshDays) continue;
+      if ((await collectorsSpentToday({ seo, cf, kv, today })).total + RESEARCH.reserveUsd > collectorsCapOf(env)) { out.stoppedBy = "CAP"; out.why = `Today's cap for all collectors together ($${collectorsCapOf(env)}) is reached: saved, and tomorrow continues.`; break; } /* RR-388 B */
       if (spent + RESEARCH.reserveUsd > RESEARCH.capPerDay) { out.stoppedBy = "CAP"; out.why = `The research collector's cap ($${RESEARCH.capPerDay} a day) is reached: saved, and tomorrow continues.`; break; }
       calls++; const r = await askAi({ env, fetchImpl, ...(base ? { base } : {}), system: SYSTEM, prompt: `Market: ${m.market}. Find the 4 or 5 top products in this market and measure each.`, schema: SCHEMA, search: true, maxSearches: RESEARCH.maxSearches, maxTokens: 4000 }); const usd = Number(r.usd) || 0; spent += usd; out.usd += usd; if (usd || r.searches) await seo.addSpend(today, RESEARCH.job, { usd, units: 1 });
       if (!r.ok) { out.why = r.why ?? "The AI did not answer."; continue; }

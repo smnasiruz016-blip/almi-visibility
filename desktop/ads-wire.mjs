@@ -35,10 +35,13 @@ export function ideasRequest({ customerId, seeds = [], url = null, geo = [], lan
 
 const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
 /** Google's answer → the database's rows: { text, said, months, competition } (int64 numbers come as strings in JSON) */
+/** 🔴 RR-388 B1 · A3 CPC: Keyword Planner's own top-of-page bid range (keywordIdeaMetrics.lowTopOfPageBidMicros / highTopOfPageBidMicros, in the Ads
+ * account's own currency, micros), kept as Google gives it; none given → none written */
+export const bidsOf = (m = {}) => { const v = (x) => (x === undefined || x === null || x === "" || !Number.isFinite(Number(x)) ? null : Math.round(Number(x) / 1e4) / 100); return { bidLow: v(m.lowTopOfPageBidMicros), bidHigh: v(m.highTopOfPageBidMicros) }; };
 export function rowsOfIdeas(answer) {
   return (answer?.results ?? []).filter((r) => r?.text).map((r) => {
     const m = r.keywordIdeaMetrics ?? {}, ms = Object.fromEntries((m.monthlySearchVolumes ?? []).filter((x) => x.year && MONTHS.includes(x.month)).map((x) => [`${x.year}-${String(MONTHS.indexOf(x.month) + 1).padStart(2, "0")}`, Number(x.monthlySearches ?? 0)]));
-    return { text: r.text, said: m.avgMonthlySearches === undefined ? null : Number(m.avgMonthlySearches), months: Object.keys(ms).length ? ms : null, competition: m.competition ? m.competition[0] + m.competition.slice(1).toLowerCase() : null, change3m: null, yoy: null };
+    return { text: r.text, said: m.avgMonthlySearches === undefined ? null : Number(m.avgMonthlySearches), months: Object.keys(ms).length ? ms : null, competition: m.competition ? m.competition[0] + m.competition.slice(1).toLowerCase() : null, change3m: null, yoy: null, ...bidsOf(m) };
   });
 }
 /** the period an answer's months cover ("2025-10-01..2026-09-30") */

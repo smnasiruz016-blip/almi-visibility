@@ -4,6 +4,7 @@
  * app's window; Google sends the browser back to this app on 127.0.0.1 and the app finishes on its own. Only Google's own sign-in address
  * (or, in tests, the stand-in the config names) is ever opened. The address carries no secret.
  */
+import { openUrlCommand, chromePathsFor } from "./platform.mjs"; // RR-388 C
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -20,7 +21,8 @@ export const CHROME_PATHS = Object.freeze([
 ]);
 
 /** an opener for these sign-in addresses only. `mode` "fetch" is TESTS ONLY: a request plays the browser and follows the redirects back */
-export function browserOpener({ origins = [], only = null, mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = CHROME_PATHS, platform = process.platform } = {}) {
+export function browserOpener({ origins = [], only = null, mode = null, spawnImpl = spawn, fetchImpl = fetch, exists = existsSync, chromePaths = null, platform = process.platform } = {}) {
+  chromePaths ??= platform === "darwin" ? chromePathsFor(platform) : CHROME_PATHS; /* RR-388 C: Windows' list unchanged */
   const originOf = (x) => { try { return new URL(x).origin; } catch { return null; } };
   const allowed = new Set(only ? only.filter(Boolean).map(originOf).filter(Boolean) : [GOOGLE_SIGNIN_ORIGIN, ...origins.filter(Boolean).map(originOf).filter(Boolean)]);
   return function openInBrowser(url) {
@@ -33,8 +35,8 @@ export function browserOpener({ origins = [], only = null, mode = null, spawnImp
     const run = (file, args, opts) => { const c = spawnImpl(file, args, opts); c.on?.("error", () => {}); c.unref(); };
     try {
       if (chrome) { run(chrome, [u.href], { detached: true, stdio: "ignore" }); return "Chrome"; } // the address is one argument — no shell reads it
-      if (platform !== "win32") return false;
-      run("rundll32.exe", ["url.dll,FileProtocolHandler", u.href], { detached: true, stdio: "ignore", windowsHide: true });
+      const o = openUrlCommand(platform, u.href); if (!o) return false; /* RR-388 C: Windows rundll32 exactly as before; /usr/bin/open on a Mac */
+      run(o.file, o.args, { detached: true, stdio: "ignore", windowsHide: true });
       return true;
     } catch { return false; }
   };

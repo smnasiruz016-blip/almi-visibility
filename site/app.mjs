@@ -46,6 +46,7 @@ import { ownerLines } from "../desktop/real-questions.mjs"; // RR-330
 import { COUNTRIES } from "../desktop/world.mjs";
 import { TITLE_TOOL, TITLE_COUNTS, checkCaption, captionInput, betterCaptions, withMeaning } from "./title-check.mjs"; // RR-347 ADD-2 · RR-348 captions
 import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the official icons the home shows
+import { apHandle, apPgStore, AP_LIMITS } from "./autopilot-server.mjs"; // RR-386
 import { seoPgStore } from "./almiseo-store.mjs"; // RR-360 AlmiSEO Data
 import { ownerReview, decideTicked, REVIEW_JS } from "./owner-review.mjs"; // RR-362
 import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
@@ -118,11 +119,11 @@ export const modeOf = (env = process.env, mode = null) => { const m = mode ?? en
 export const SALES_PATHS = Object.freeze({ GET: ["/pricing", "/download", "/download/AlmiVisibility-Setup.exe", "/buy/success", "/v1/licence", "/manage"], POST: ["/api/billing/checkout", "/api/webhooks/stripe", "/manage", "/v1/manage", "/v1/licence"] }); // RR-342: the licence check, key in the body
 export const isSalesPath = (method, path) => (SALES_PATHS[method] ?? []).includes(path) || (method === "GET" && /^\/updates\/(manifest\.json|packages\/[\w.-]+)$/.test(path));
 
-export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null, finderPublicForOldTests = false /* never passed by the live function */ } = {}) {
+export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site-data"), setupFile = null, now = () => Date.now(), fetchImpl = fetch, freeTest = runFreeTest, mode = null, kvFetch = fetch, resolve = null, adsFetch = fetch, kwStore = null, apStore = null /* RR-386 */, sleep = null, cfStore = null, cfReader = null, cfAi = null, gscFetch = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null, finderPublicForOldTests = false /* never passed by the live function */ } = {}) {
   const m = modeOf(env, mode);
-  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch, finderPublicForOldTests });
+  if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, apStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch, finderPublicForOldTests });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
-  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch, finderPublicForOldTests,
+  if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, apStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch, finderPublicForOldTests,
     salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
@@ -315,7 +316,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null, finderPublicForOldTests = false }) { // RR-348 c: creatorAi, ytFetch (tests)
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, apStore = null, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null, finderPublicForOldTests = false }) { // RR-348 c: creatorAi, ytFetch (tests)
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
@@ -331,6 +332,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
   const cfFetch = chainFetch(fetchImpl, { allowed: async (url) => (await testableUrl(url, resolve ? { resolve } : {})).ok });
   /* RR-360 · ALMISEO DATA (site/almiseo.mjs): its own store; every client's topic joins BOTH collectors' one queue, inside the same AI cap and its plan's month */
   const seo = seoStore ?? (dbUrlOf(env) ? seoPgStore({ url: dbUrlOf(env) }) : null), seoStores = () => ({ db, cf, seo });
+  const ap = apStore ?? (dbUrlOf(env) ? apPgStore({ url: dbUrlOf(env) }) : null); /* 🔴 RR-386: autopilot's keeping, same database */
   const seoGroups = async () => { try { return db ? (await currentGroups(db)).groups : []; } catch { return []; } };
   const clientWork = async () => { if (!seo) return { topics: [], work: [], limits: {} }; const today = new Date(now()).toISOString().slice(0, 10), limits = await planLimits(seo), topics = await allTopics({ seo, groups: await seoGroups() }), work = await clientTopicsToWork({ seo, topics, today, limits }); useClientTemplates(topics.filter((t) => t.owner === "client")); return { topics, work, limits, today }; };
   const seoAfterFacts = async () => { if (!seo || !cf) return null; try { const n = await syncFindings({ seo, cf, at: new Date(now()).toISOString() }); const a = await alertChanged({ seo, env, send: (m) => sendEmail({ ...m, env, fetchImpl: emailFetch ?? fetch }), now }); return { ...n, alert: a }; } catch { return null; } };
@@ -422,7 +424,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     const send = (code, body, type = "text/html; charset=utf-8", extra = {}) => { res.writeHead(code, { "content-type": type, ...SECURITY, ...extra }); res.end(body); };
     /* RR-326 I: the body as BYTES (a UTF-16 upload must not be decoded as text); the owner's file upload alone may be larger */
     /* RR-329 D: the owner's "Add what I know" may carry one photo (PHOTO.maxBytes) */
-    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : sales && path0 === "/api/webhooks/stripe" ? 200000 : req.method === "POST" && BOUGHT.routes.includes(path0) ? BOUGHT.maxBody /* RR-369: a batch of bought searches; each is whole, nothing else is let this large */ : 64000;
+    const path0 = String(req.url ?? "").split("?")[0], big = req.method === "POST" && ["/owner/import", "/owner/countries/know"].includes(path0) && owner(req), max = /^\/(?:v1|runner)\/autopilot\//.test(path0) && (req.method === "POST") ? AP_LIMITS.chunkBytes + 1024 /* RR-386: one chunk of a product's bundle */ : big ? (path0 === "/owner/import" ? IMPORT.maxBodyBytes : PHOTO.maxBytes + 64000) : sales && path0 === "/api/webhooks/stripe" ? 200000 : req.method === "POST" && BOUGHT.routes.includes(path0) ? BOUGHT.maxBody /* RR-369: a batch of bought searches; each is whole, nothing else is let this large */ : 64000;
     const chunks = []; let size = 0;
     for await (const c of req) { const b = Buffer.isBuffer(c) ? c : Buffer.from(c); size += b.length; if (size > max) return send(413, "Too large", "text/plain"); chunks.push(b); }
     const raw = Buffer.concat(chunks), body = raw.toString("utf8");
@@ -737,6 +739,12 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       }
       /* RR-328 C · the app's country facts — the same licence as the keywords (while sales are not open: the owner's only); ONLY facts a page may
        * show (confirmed, or approved/edited by the owner) — never an unconfirmed one */
+      /* 🔴 RR-386 · autopilot: the app (its licence) keeps its product here; the runner (its own key) takes the due ones (site/autopilot-server.mjs) */
+      if (u.pathname.startsWith("/v1/autopilot/") || u.pathname.startsWith("/runner/autopilot/")) {
+        const lic = u.pathname.startsWith("/v1/") ? checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: false }) : null;
+        const r = await apHandle({ method: req.method, path: u.pathname, query: u.searchParams, raw, headers: req.headers, env, store: ap, lic, now: now(), sendWeekly: sendingOn(env) ? ({ to, text }) => sendEmail({ to, subject: "Your AlmiVisibility week", text, html: `<pre style=\"font:15px system-ui;white-space:pre-wrap\">${text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`, env, fetchImpl }) : null });
+        if (r) return r.bytes ? send(r.status, r.bytes, "application/octet-stream", { ...r.headers, "cache-control": "no-store", "x-robots-tag": "noindex" }) : send(r.status, JSON.stringify(r.json), "application/json", { "cache-control": "no-store", "x-robots-tag": "noindex" });
+      }
       if (u.pathname === "/v1/countries/facts") {
         const json = (code, o) => send(code, JSON.stringify(o), "application/json; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex" });
         if (!cf) return json(503, { ok: false, why: "The country facts are not connected yet." });

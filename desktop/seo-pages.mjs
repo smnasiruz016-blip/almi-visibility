@@ -28,6 +28,7 @@ import { tokens } from "./youtube-advice.mjs";
 import { properNames } from "./youtube-niche.mjs";
 import { countriesIn, destinationsIn } from "./world.mjs";
 import { cleanAnswer, wholeSentences } from "./web-text.mjs";
+import { datesOf } from "./site-scan.mjs"; // RR-386: "Last checked" = the oldest fact date
 import { KIND, TYPE_OF_KIND, clearQuestion } from "./page-types.mjs"; // RR-362
 import { firstPersonIn } from "./source-links.mjs"; // RR-370 item 7
 import { summaryFault, fitCard, fitParts, answerFitWhy, partFitWhy, cardFaultOf, ownSiteAnswer, bodyOfUnknownPlace, ownSiteFactWhy, mergeSameNeeds, oneFactOnce, oneSentenceOnce, numbersWithoutFact, BUILT_FOR_THE_PAGE } from "./truth-checks.mjs"; // RR-363: R15; RR-366
@@ -343,7 +344,8 @@ export function seoPages({ site, searchConsole = null, files = [], youtube = nul
   /* RR-363: a block links a page built with it, by its title */
   const hrefOf = (t) => (built0.has(t) ? `${base}${built0.get(t).path}` : null);
   built = built.map((b) => richPage(b, meta.get(b.needId), String(on).slice(0, 10), hrefOf));
-  built = built.map((b) => { const lc = meta.get(b.needId)?.lastChecked; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
+  /* 🔴 RR-386 (Q&A LAW 5A.6; beta-g 7 Nov: "Last checked 2026-11-06" over facts checked 2026-10-31): the page says the OLDEST check date among the facts it shows */
+  built = built.map((b) => { const lc0 = meta.get(b.needId)?.lastChecked, old = lc0 ? datesOf(b.html).oldest : null, lc = old && old < lc0 ? old : lc0; return lc ? { ...b, html: b.html.replace(/<\/h1>/, `</h1><p class="checked" data-last-checked="${lc}">Last checked ${lc}</p>`) } : b; });
   /* RR-308 D1 "Edit": a draft the client edited is judged AS EDITED — the five gates read the client's text, not the one Visibility wrote */
   built = built.map((b) => (typeof overrides[b.url] === "string" ? { ...b, html: overrides[b.url], title: /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(overrides[b.url])?.[1] ?? b.title } : b));
   /* RR-351 (owner, 31 Oct 2026): EVERY draft ends with the client's own offer button — a page planned from the list carries it already; a

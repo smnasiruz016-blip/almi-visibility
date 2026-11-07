@@ -1,5 +1,5 @@
 {
- "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one. RR-385 (7 Nov 2026): the Ahpra board lines, as Ahpra's own page says them.",
+ "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one. RR-385 (7 Nov 2026): the Ahpra board lines, as Ahpra's own page says them. RR-386 (7 Nov 2026): the Alabama Board of Nursing line, as its own page says it.",
  "subject": {
   "gradeB": {
    "text": "OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200.",
@@ -98,6 +98,15 @@
    "source": "Ahpra, Accepted English language tests",
    "intent": "scores",
    "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "Alabama Board of Nursing names OET on its own page among the English tests it accepts; the page does not say which score",
+   "to": "In the United States — Alabama (state board): the Alabama Board of Nursing names OET on its own page among the English tests it accepts from graduates of foreign nursing programs, with these scores: Reading 340, Listening 320, Writing 350 and Speaking 360.",
+   "link": "https://www.abn.alabama.gov/licensing/apply/licensure-by-exam/graduates-of-foreign-nursing-schools-exam/",
+   "on": "2026-11-07",
+   "source": "Alabama Board of Nursing — its own page",
+   "intent": "scores",
+   "why": "RR-386: the line said the page gives no score per sub-test; the Board's own page lists OET Reading 340, Listening 320, Writing 350, Speaking 360, so the truth pass failed it"
   }
  ],
  "cite": [

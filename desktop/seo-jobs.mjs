@@ -55,7 +55,7 @@ export function seoJobs(d) {
   const now = d.now ?? (() => Date.now()), fetchImpl = d.fetchImpl ?? fetch, pace = d.pace ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   const file = (job) => `seo-${job}.json`, load = (id, job) => d.pread(id, file(job), {}) ?? {}, keep = (id, job, x) => d.pwrite(id, file(job), x);
   const buyer = (job) => { const l = d.dfs.ledger(); return dfsBuyer({ job, ledger: l, save: d.dfs.save, creds: d.dfs.creds, settings: d.dfs.settings(), runBudget: RUN_BUDGET[job] ?? 0.2, fetchImpl, now: () => new Date(now()).toISOString(), ...(d.dfsWait ?? {}) }); };
-  const getJson = async (url, init = {}) => { try { const r = await fetchImpl(url, { ...init, headers: { "user-agent": USER_AGENT, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(60000) }); return r.ok ? await r.json().catch(() => null) : { error: { code: r.status, message: `answered ${r.status}` } }; } catch { return null; } };
+  const getJson = async (url, init = {}) => { try { const r = await fetchImpl(url, { ...init, headers: { "user-agent": USER_AGENT, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(60000) }); if (r.ok) return await r.json().catch(() => null); /* 🔴 RR-386 item 2: Google's OWN reason (its JSON error), never only "answered 400" */ const e = await r.json().catch(() => null); return { error: { code: r.status, message: e?.error?.message ? `answered ${r.status}: ${String(e.error.message).slice(0, 200)}` : `answered ${r.status}` } }; } catch { return null; } };
   const getHtml = async (url) => { try { const r = await fetchImpl(url, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(30000) }); return r.ok ? (await r.text()).slice(0, 1500000) : null; } catch { return null; } };
   const aiArgs = (route) => ({ ask: d.askJson, key: d.ai.key(), allowed: (w) => Boolean(d.ai.key()) && d.ai.allowed(w), onUsage: (u) => d.ai.add({ ...u, route }) });
   const moneyLine = (job) => { const s = jobSpent(d.dfs.ledger(), job, new Date(now()).toISOString()); return `Search data for this job: ${$(s.today, 4)} today, ${$(s.month, 4)} this month (inside your search-data caps; at most ${$(RUN_BUDGET[job] ?? 0.2)} a run).`; };
@@ -183,16 +183,18 @@ export function seoJobs(d) {
   /* ───────────── TECHNICAL ───────────── */
   async function techRun(id, input) {
     const site = d.productOf(id)?.site; if (!site) return { refused: "Add your website first." };
-    const urls = [...new Set([site, ...listOf(input.pages), ...(d.sitePages(id) ?? []).slice(0, 4)])].slice(0, Number(input.max) > 0 ? Math.min(10, Number(input.max)) : 5), psiKey = d.keys.saved("PAGESPEED_API_KEY") ? d.keys.get("PAGESPEED_API_KEY") : null, gsc = d.gscSite(id), lines = [], speed = [];
+    /* 🔴 RR-386 item 2: one address per page (the home was tested twice: with and without "/") */
+    const norm = (u) => { try { const x = new URL(String(u).trim()); x.hash = ""; return `${x.origin}${x.pathname.replace(/\/+$/, "") || ""}${x.search}`; } catch { return null; } };
+    const urls = [...new Map([site, ...listOf(input.pages), ...(d.sitePages(id) ?? []).slice(0, 4)].map((u) => [norm(u), u]).filter(([k]) => k)).keys()].slice(0, Number(input.max) > 0 ? Math.min(10, Number(input.max)) : 5), psiKey = d.keys.saved("PAGESPEED_API_KEY") ? d.keys.get("PAGESPEED_API_KEY") : null, gsc = d.gscSite(id), lines = [], speed = [];
     for (const u of urls) {
-      const p = psiResult(await getJson(psiUrl(u, { key: psiKey })), u); speed.push(p); lines.push(...speedLines(p));
+      let p = psiResult(await getJson(psiUrl(u, { key: psiKey })), u); if (!p.ok) { await pace(d.pageMs ?? 1000); p = psiResult(await getJson(psiUrl(u, { key: psiKey })), u); } /* RR-386 item 2: tried once more */ speed.push(p); lines.push(...speedLines(p));
       const c = await redirectChain(u, { fetchImpl, ua: USER_AGENT }); lines.push(...redirectLines(u, c));
       const h = c.status === 200 ? await getHtml(c.final) : null; if (h) lines.push(...schemaLines(u, schemaCheck(h)));
       if (gsc && d.google) lines.push(indexLine(u, await d.google.inspect(gsc, c.final).catch(() => null)));
       await pace(d.pageMs ?? 1000);
     }
     const x = { on: today(now), pages: urls, lines, score: linesScore(lines), speed: speed.filter((s) => s.ok).map((s) => ({ page: s.page, score: s.score, vitals: s.vitals })), indexed: Boolean(gsc) }; keep(id, "tech", x);
-    return { ok: true, line: `${urls.length} pages tested: ${lines.filter((l) => l.ok === false).length} problems.` };
+    { const n = lines.filter((l) => l.ok === false).length; return { ok: true, line: `${urls.length} page${urls.length === 1 ? "" : "s"} tested: ${n} problem${n === 1 ? "" : "s"}.` }; }
   }
   function techView(id) {
     const x = load(id, "tech"), sections = [];
@@ -301,7 +303,7 @@ export function seoJobs(d) {
     const bad = (l) => (l ?? []).filter((y) => y.ok === false).length, a = load(id, "aso"), app = a.current ? a.apps?.[a.current] : null, lo = load(id, "local"), te = load(id, "tech"), rk = load(id, "rank"), h = d.pread(id, "rank-history.json", null), ct = load(id, "ctr"), av = load(id, "aiv"), run = av.runs?.[av.runs.length - 1];
     const line = (t, x) => (x ? `${t}: ${x}` : `${t}: not run yet.`);
     return [
-      line(JOBS.tech.title, te.on && `score ${te.score ?? "–"} of 100, ${bad(te.lines)} problems on ${te.pages.length} pages (${te.on}).`),
+      line(JOBS.tech.title, te.on && `score ${te.score ?? "–"} of 100, ${bad(te.lines)} problem${bad(te.lines) === 1 ? "" : "s"} on ${te.pages.length} page${te.pages.length === 1 ? "" : "s"} (${te.on}).`),
       line(JOBS.rank.title, rk.last && `${(h?.points ?? []).filter((p) => p.on === rk.last).length} positions read ${rk.last}; ${(h?.points ?? []).filter((p) => p.on === rk.last && p.rank && p.rank <= 10).length} in the top 10.`),
       line(JOBS.ctr.title, ct.found && `${ct.found.pages.length} pages shown often and clicked rarely (${ct.found.on}); ${Object.keys(ct.changes ?? {}).length} changed and followed.`),
       line(JOBS.aiv.title, run && `score ${run.score ?? "–"} of 100 (${run.on}); named in ${run.rows.filter((r) => r.mentioned).length} of ${run.rows.filter((r) => !r.fail && !r.none).length} answers.`),

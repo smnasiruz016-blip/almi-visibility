@@ -88,7 +88,7 @@ test("6 · OUR SERVER KEEPS IT SEALED: the licence's own product, the bundle in 
   assert.equal((await call(store, { method: "POST", path: "/v1/autopilot/almioet/state", lic, query: new URLSearchParams({ version: "2", n: "0", of: "1" }), raw: parts[0] })).status, 423, "the app waits while the runner holds it");
   const keys = await call(store, { method: "GET", path: `/runner/autopilot/${due.json.due[0].key}/secrets`, headers: { "x-autopilot-runner": env.AUTOPILOT_RUNNER_KEY } }); assert.equal(keys.json.keys.ANTHROPIC_API_KEY, "sk-ant-secret-1234567890");
   const sent = []; await call(store, { method: "POST", path: `/runner/autopilot/${due.json.due[0].key}/done`, headers: { "x-autopilot-runner": env.AUTOPILOT_RUNNER_KEY }, raw: j({ cycle: { on: "2026-11-08T01:40:00Z", ok: true, usd: 0.4, steps: [] }, weekly: { on: "2026-11-08", text: "Your week" } }), sendWeekly: async (m) => { sent.push(m); return { ok: true }; } });
-  assert.deepEqual(sent, [{ to: "a@b.c", text: "Your week" }]); assert.equal((await store.get(productKey("acct-1", "almioet"))).lease_until, null);
+  assert.equal(sent.length, 1); assert.equal(sent[0].to, "a@b.c"); assert.match(sent[0].text, /^Your week\n\nFrom your phone \(see the last cycle, turn autopilot OFF\): https:\/\/\S+\/autopilot#k=[0-9a-f]{32}&t=/, "RR-387 B3: the week's mail carries a fresh phone link"); assert.equal((await store.get(productKey("acct-1", "almioet"))).lease_until, null);
   assert.equal((await call(store, { method: "GET", path: "/v1/autopilot/x", lic, env: {} })).status, 503, "no key → not connected, said");
   assert.ok(sealKey(env).length === 32);
 });
@@ -133,7 +133,7 @@ test("9 · \"LAST CHECKED\" IS THE OLDEST FACT DATE (Q&A LAW 5A.6), set as the p
   /* the site's own guides: a plain "Last checked: date"; an exchange rate's date is not a check */
   const guide = '<main><p>Last checked: <b>2026-10-16</b></p><p>Fee. <a class="src" href="https://x">s</a> checked 2026-10-14</p><p>1 AUD = 0.7 USD, 2026-10-12</p></main>';
   assert.match(oldestLastChecked(guide), /Last checked: <b>2026-10-14<\/b>/);
-  assert.match(readFileSync(join(REPO, "desktop", "publish.mjs"), "utf8"), /const next = oldestLastChecked\(withSection\(/, "an improved page goes out with the right date");
+  assert.match(readFileSync(join(REPO, "desktop", "publish.mjs"), "utf8"), /const next = oldestLastChecked\(hideUnfit\(withSection\(/, "an improved page goes out with the right date (RR-387: after the unfit answers left)");
 });
 
 test("11 · THE SERVER'S OWN APP HANDS ITS STORE ON (found by the real proof: createApp dropped it, so /v1/autopilot said \"not connected\"): an owner licence reaches the product", async () => {

@@ -41,6 +41,7 @@ import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 ite
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
 import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed, notYetEqual, githubBlobText, unsafeIndexable, wrongIndexState, linkedSlugs, oldestLastChecked } from "./publish.mjs"; /* RR-383: the site equals the app */
+import { FIT, fitRowsOf, fitJudgeAll, registerFit, fitOf } from "./answer-fit.mjs"; // RR-387 A1
 import { apState, isDue, runCycle, weeklyReport, costPlan, AP_FILE, AP_RUNS, AP_WEEKLY, EVERY_MS, MODES } from "./autopilot.mjs"; // RR-386
 import { githubApi, goLive } from "./go-live.mjs"; // RR-386
 import { apClient, packFiles, unpackFiles, joinBundles, hashesOf, baseOf } from "./autopilot-sync.mjs"; // RR-386
@@ -189,7 +190,7 @@ const openInBrowser = browserOpener({ origins: [CONFIG.youtubeTestEndpoints?.aut
 /* RR-340: the buyer's own Stripe page (the customer portal) — only Stripe's billing address is ever opened; tests never open a browser */
 const openBilling = browserOpener({ only: [STRIPE_BILLING_ORIGIN, CONFIG.testBillingOrigin], mode: CONFIG.testSecretsInMemory === true ? "none" : null });
 /* RR-313 B1: is Google sign-in switched on — the client id (not a secret) and whether its secret is saved; never the secret */
-const googleClientStatus = () => ({ on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved, signedIn: GOOGLE.status().signedIn });
+const googleClientStatus = () => ({ signin: gsRead() /* RR-387 B1: the last sign-in, step by step */, on: Boolean(CONFIG.googleClientId && KEYS.status("GOOGLE_CLIENT_SECRET").saved), clientId: CONFIG.googleClientId ?? null, secretSaved: KEYS.status("GOOGLE_CLIENT_SECRET").saved, signedIn: GOOGLE.status().signedIn });
 const allowLocal = CONFIG.testAllowLocalSites === true; // TESTS ONLY: a stand-in site on this computer
 const pfile = (id, name) => join(store.dirOf(id), name);
 const pread = (id, name, d = null) => { try { return JSON.parse(readFileSync(pfile(id, name), "utf8")); } catch { return d; } };
@@ -592,6 +593,8 @@ async function apSyncProduct(id) {
   try {
     let was = {}; try { was = JSON.parse(readFileSync(apSyncFile(id), "utf8")); } catch { was = {}; }
     const info = await c.info(id); if (info.status && info.status >= 400) return { ok: false, why: info.why ?? `the server answered ${info.status}` };
+    /* 🔴 RR-387 B3: turned OFF from the owner's phone while this computer was off → this app follows, said */
+    { const st0 = apRead(id); if (info.mode === "review" && st0.mode === MODES.AUTO && st0.server?.on) { pwrite(id, AP_FILE, { ...st0, mode: MODES.REVIEW, since: new Date().toISOString(), offFrom: "phone" }); didIt(id, "Autopilot was turned off from your phone."); } }
     if (info.lease && info.lease.by === "runner") return { ok: true, waiting: true, line: "A cycle is running on our server now: your app takes its results when it ends." };
     const app = packFiles(DATA, id); let files = app, from = null;
     if ((info.version ?? 0) > (was.version ?? 0)) { const srv = await c.pull(id); if (srv) { const j = joinBundles({ base: was.base ?? null, app, server: srv.files }); files = j.files; from = j.from; unpackFiles(DATA, id, files); } }
@@ -604,6 +607,7 @@ async function apSyncProduct(id) {
 /** GET: what the server keeps; POST { on, keys, email }: autopilot on our server on/off, the keys the runner needs (typed here once, sealed there, never shown again) */
 async function autopilotServer(id, body) {
   const c = apServer(); if (!c) return { ok: false, why: "No licence: the server cannot keep your product." };
+  if (body?.phone === true) { const p = await c.phone(id).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })); return p.ok ? { ok: true, link: p.link, until: p.until, mailed: p.mailed, line: `Your phone link (works until ${String(p.until).slice(0, 10)}; a new one replaces it): open it on your phone to see the last cycle and the weekly report, and to turn autopilot OFF.${p.mailed ? " It was also sent to your report e-mail." : ""} It is shown only now — keep it to yourself.` } : { ok: false, why: p.why ?? "Turn on our server first." }; }
   if (!body) { const info = await c.info(id).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })); return { ...info, local: (() => { try { return JSON.parse(readFileSync(apSyncFile(id), "utf8")).version; } catch { return 0; } })() }; }
   const st = apRead(id), keys = body.keys && typeof body.keys === "object" ? Object.fromEntries(Object.entries(body.keys).filter(([, v]) => typeof v === "string")) : undefined;
   const r = await c.set(id, { ...(body.on === true ? { mode: "autopilot" } : body.on === false ? { mode: "review" } : {}), ...(keys ? { keys } : {}), ...(typeof body.email === "string" ? { email: body.email } : {}) }).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) }));
@@ -614,6 +618,19 @@ async function autopilotServer(id, body) {
 }
 function autopilotSyncTick() { for (const p of store.list()) { try { if (apRead(p.id).server?.on) apSyncProduct(p.id).catch(() => null); } catch { /* no folder */ } } }
 const planStarted = new Map(); // RR-386 item 3
+/* 🔴 RR-387 A1 · the strict "answers its own question" check for every pair from now on (desktop/answer-fit.mjs); its verdicts kept in the product folder and held in memory for the publish guard */
+async function fitStep(id, drafts) {
+  const kept = pread(id, FIT.file, {}); registerFit(kept);
+  const seen = new Set(), rows = []; for (const d of drafts ?? []) for (const r of fitRowsOf(d.html, d.title)) if (!fitOf(r.key) && !seen.has(r.key)) { seen.add(r.key); rows.push(r); }
+  if (!rows.length || CONFIG.testOffline === true) return { judged: 0, failed: 0, waiting: rows.length };
+  const a = aiOf(store.read(id)), key = a?.provider === "anthropic" ? a.key : null; if (!key) return { judged: 0, failed: 0, waiting: rows.length, why: "no AI connected" };
+  const t = await fitJudgeAll({ key, rows, ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}), allowed: () => LEDGER.allowed().ok, onUsage: (u) => LEDGER.add({ ...u, route: "f" }), onDone: (got) => { pwrite(id, FIT.file, { ...kept, ...got }); } });
+  pwrite(id, FIT.file, { ...kept, ...t.verdicts }); registerFit(t.verdicts);
+  return { judged: t.judged, failed: t.failed, waiting: rows.length - t.judged, why: t.why };
+}
+/* the product folders' verdicts, held from the start */
+setTimeout(() => { for (const p of store.list()) { try { registerFit(pread(p.id, FIT.file, {})); } catch { /* no folder */ } } }, 0).unref?.();
+const GS_FILE = join(DATA, "google-signin.json"), gsRead = () => { try { return JSON.parse(readFileSync(GS_FILE, "utf8")); } catch { return {}; } }, gsLog = (x) => { try { writeFileSync(GS_FILE, JSON.stringify(x)); } catch { /* the screen still says it */ } }; // RR-387 B1
 const ANSWER_ORDER = new Map(); // RR-386: title → answers still needed, set by an autopilot cycle
 /** RR-358: the plan's sources — the keyword database, the search-data files, the pages, the research — newer than the plan itself */
 const planTried = new Map();
@@ -1465,6 +1482,7 @@ async function makePages(id, key) {
     clock.mark("the rest"); pages.timing = clock.done(); pwrite(id, quick ? "run-timing-first.json" : "run-timing.json", { on: new Date().toISOString(), ...pages.timing });
     if (pages.noDemand) pages.add = DEMAND_ADDS.filter((a) => !(a.action === "google" && sc) && !(a.action === "ai" && aiOf(s)));
     pwrite(id, "pages.json", pages); // RR-360: what the run says about its sources and routes stays with the drafts
+    if (!quick) { const f = await fitStep(id, pages.drafts).catch(() => null); if (f) pages.fit = f; } /* 🔴 RR-387 A1: every NEW question and answer judged "does it answer its own question" (cheap: no source page); a no is hidden as the page goes out */
     /* RR-355 (owner: "Keywords to use (0)" and "Articles to make (0)" beside 529 search phrases): the plan is made again from the same data */
     await buildPlan(id).catch(() => null);
     return { pages, auto };
@@ -1925,7 +1943,7 @@ const server = createServer((req, res) => {
             store.remove(id);
             return send(200, { ok: true, line: `${s.product?.name} was deleted from this computer, with its saved data.` });
           }
-          if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`, { submit: json().submit === true, merchant: json().merchant === true /* RR-382 item 1b */ }); if (g.ok) CONFIG.googlePendingProduct = id; return send(g.ok ? 200 : 400, g.ok ? { ...g, opened: openInBrowser(g.url) } : { refused: g.why }); }
+          if (r[2] === "google/start" && req.method === "POST") { const g = GOOGLE.start(`http://127.0.0.1:${server.address().port}/oauth/google`, { submit: json().submit === true, merchant: json().merchant === true /* RR-382 item 1b */ }); if (g.ok) { CONFIG.googlePendingProduct = id; gsLog({ started: new Date().toISOString(), port: server.address().port, callback: null, result: null, sites: null }); } return send(g.ok ? 200 : 400, g.ok ? { ...g, opened: openInBrowser(g.url) } : { refused: g.why }); }
           if (r[2] === "google/site" && req.method === "POST") { const q = await GOOGLE.queries(json().site); if (!q) return send(400, { refused: "Google did not give the searches for that site — press Connect again." }); pwrite(id, "search-console.json", q); return send(200, { ok: true, line: `Connected ✓ — ${q.queries.length} searches read from Google Search Console (${q.window}).` }); }
           if (r[2] === "google/export" && req.method === "POST") { const x = importExport(json().files ?? [], { exportedOn: new Date().toISOString().slice(0, 10), source: `${s.product?.name} Search Console` }); if (!x.ok) return send(400, { refused: x.why }); pwrite(id, "search-console.json", x.data); return send(200, { ok: true, line: x.line }); }
           if (r[2].startsWith("feature/") && req.method === "POST") {
@@ -2442,10 +2460,14 @@ const server = createServer((req, res) => {
         return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${r.ok ? "Signed in to Google Ads ✓" : "Not connected"}</h2><p>${r.ok ? "Go back to AlmiVisibility." : String(r.why).replace(/</g, "&lt;")}</p><p><a href="/#count=${encodeURIComponent(CONFIG.googleAdsPendingProduct ?? "")}">Back to AlmiVisibility</a></p></body>`, "text/html; charset=utf-8");
       }
       if (req.method === "GET" && u.pathname === "/oauth/google") {
+        /* 🔴 RR-387 B1: every step of the sign-in written down (never a code, a token or the secret) and shown on the Google screen */
+        gsLog({ ...gsRead(), callback: new Date().toISOString(), hadCode: Boolean(u.searchParams.get("code")), googleError: u.searchParams.get("error") });
         const r = await GOOGLE.finish({ code: u.searchParams.get("code"), state: u.searchParams.get("state"), error: u.searchParams.get("error") });
         const pid = CONFIG.googlePendingProduct ?? "";
+        let sitesLine = null; if (r.ok) { const sites = await GOOGLE.sites().catch(() => null); sitesLine = sites ? `${sites.length} Search Console site${sites.length === 1 ? "" : "s"} listed` : `the sites could not be listed: ${GOOGLE.lastError() ?? "no reason given"}`; }
+        gsLog({ ...gsRead(), result: r.ok ? "signed in" : `${r.step ?? "?"}: ${r.why}`, sites: sitesLine, on: new Date().toISOString() });
         if (r.ok) { CONFIG.googleCanSubmit = r.canSubmit === true; saveConfig(); }
-        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${r.ok ? "Signed in to Google ✓" : "Not connected"}</h2><p>${r.ok ? "Go back to AlmiVisibility and pick your site." : String(r.why).replace(/</g, "&lt;")}</p><p><a href="/#google=${encodeURIComponent(pid)}">Back to AlmiVisibility</a></p></body>`, "text/html; charset=utf-8");
+        return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${r.ok ? "Signed in to Google ✓" : "Not connected"}</h2><p>${r.ok ? `Go back to AlmiVisibility and pick your site (${String(sitesLine).replace(/</g, "&lt;")}).` : String(r.why).replace(/</g, "&lt;")}</p><p><a href="/#google=${encodeURIComponent(pid)}">Back to AlmiVisibility</a></p></body>`, "text/html; charset=utf-8");
       }
       if (req.method === "GET" && u.pathname === "/api/google/sites") { const sites = await GOOGLE.sites(); /* 🔴 RR-386 item 1: the real reason, and Connect again */ return send(sites ? 200 : 400, sites ? { sites } : { refused: GOOGLE.lastError() ? `${GOOGLE.lastError()} Press Connect to sign in again.` : "Not signed in to Google — press Connect.", connect: true }); }
       if (req.method === "POST" && u.pathname === "/api/google/client") { const v = json(); if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(String(v.clientId ?? "").trim())) return send(400, { refused: "That is not a Google sign-in client id (it ends with .apps.googleusercontent.com)." }); const k = KEYS.set("GOOGLE_CLIENT_SECRET", v.secret); if (!k.ok) return send(400, { refused: k.why }); CONFIG.googleClientId = String(v.clientId).trim(); saveConfig(); return send(200, { ok: true, status: GOOGLE.status() }); }

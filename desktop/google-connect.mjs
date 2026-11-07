@@ -112,13 +112,15 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
     /** Google sends the browser back here with a one-time code; it is exchanged for the read-only access, kept in the secure store */
     async finish({ code, state, error }) {
       const p = pending.get(state); pending.delete(state);
-      if (error) return { ok: false, why: error === "access_denied" ? "You did not allow the access — nothing was connected." : "Google did not connect." };
-      if (!p || now() - p.at > 15 * 60000) return { ok: false, why: "That sign-in was not started here, or it is too old — press Connect again." };
+      if (error) return { ok: false, step: "consent", googleError: String(error).slice(0, 80), why: error === "access_denied" ? "You did not allow the access — nothing was connected." : `Google did not connect (Google said: ${String(error).slice(0, 80)}).` };
+      if (!p || now() - p.at > 15 * 60000) return { ok: false, step: "state", why: p ? "That sign-in is older than 15 minutes — press Connect again." : "Google sent you back, but this app did not start that sign-in (the app was restarted, or another copy of it is open) — press Connect again and finish the sign-in in the same app." };
       const r = await fetchImpl(ep.token, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, client_id: clientId(), client_secret: keys.get(KEYS.secret), redirect_uri: p.redirect, grant_type: "authorization_code", code_verifier: p.verifier }) });
-      if (!r.ok) return { ok: false, why: "Google did not accept the sign-in — press Connect again." };
+      /* 🔴 RR-387 B1 (owner, 7 Nov 05:52: consent accepted twice, the app stayed "Not connected" with no error): Google's OWN words, and which step */
+      if (!r.ok) { const e = await r.json().catch(() => ({})); lastError = `Google said: ${String(e.error_description ?? e.error ?? `error ${r.status}`).slice(0, 200)} (${r.status}${e.error ? `, ${e.error}` : ""}).`; return { ok: false, step: "exchange", status: r.status, googleError: e.error ?? null, why: `Google did not accept the sign-in at the token step. ${lastError}${e.error === "redirect_uri_mismatch" ? " Your Google client must be of type \"Desktop app\" (it allows this app's 127.0.0.1 address)." : e.error === "invalid_client" ? " The client secret saved in AlmiVisibility is not the client's current secret: paste the new one under Google sign-in." : ""} Press Connect again.` }; }
       const j = await r.json();
-      if (!j.refresh_token) return { ok: false, why: "Google gave no lasting access — press Connect again." };
-      const k = keys.set(KEYS.refresh, j.refresh_token); if (!k.ok) return { ok: false, why: k.why };
+      if (!j.refresh_token) return { ok: false, step: "refresh", why: "Google signed you in but gave no lasting access (no refresh token). Remove AlmiVisibility from your Google account's third-party access (myaccount.google.com → Security → Third-party access), then press Connect again." };
+      const k = keys.set(KEYS.refresh, j.refresh_token); if (!k.ok) return { ok: false, step: "save", why: `The sign-in worked, but Windows' secure store did not keep it: ${k.why}` };
+      expired = false; lastError = null;
       access = { token: j.access_token, until: now() + (j.expires_in ?? 3600) * 1000 };
       return { ok: true, canSubmit: String(j.scope ?? "").split(/\s+/).includes(SUBMIT_SCOPE), canMerchant: String(j.scope ?? "").split(/\s+/).includes(MERCHANT_SCOPE) };
     },

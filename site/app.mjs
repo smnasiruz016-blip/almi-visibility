@@ -740,9 +740,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       /* RR-328 C · the app's country facts — the same licence as the keywords (while sales are not open: the owner's only); ONLY facts a page may
        * show (confirmed, or approved/edited by the owner) — never an unconfirmed one */
       /* 🔴 RR-386 · autopilot: the app (its licence) keeps its product here; the runner (its own key) takes the due ones (site/autopilot-server.mjs) */
-      if (u.pathname.startsWith("/v1/autopilot/") || u.pathname.startsWith("/runner/autopilot/")) {
+      if (u.pathname.startsWith("/v1/autopilot/") || u.pathname.startsWith("/runner/autopilot/") || u.pathname === "/autopilot" || u.pathname.startsWith("/autopilot/")) { /* RR-387 B3: + the phone page */
         const lic = u.pathname.startsWith("/v1/") ? checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: false }) : null;
-        const r = await apHandle({ method: req.method, path: u.pathname, query: u.searchParams, raw, headers: req.headers, env, store: ap, lic, now: now(), sendWeekly: sendingOn(env) ? ({ to, text }) => sendEmail({ to, subject: "Your AlmiVisibility week", text, html: `<pre style=\"font:15px system-ui;white-space:pre-wrap\">${text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`, env, fetchImpl }) : null });
+        const r = await apHandle({ method: req.method, path: u.pathname, query: u.searchParams, raw, headers: req.headers, env, store: ap, lic, now: now(), origin: `https://${String(req.headers.host ?? "almivisibility.almiworld.com").replace(/[^a-z0-9.:-]/gi, "")}`, sendWeekly: sendingOn(env) ? ({ to, text, subject = "Your AlmiVisibility week" }) => sendEmail({ to, subject, text, html: `<pre style=\"font:15px system-ui;white-space:pre-wrap\">${text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`, env, fetchImpl }) : null });
+        if (r?.js) return send(r.status, r.js, "text/javascript; charset=utf-8", { "cache-control": "no-store" });
+        if (r?.html) return send(r.status, r.html, "text/html; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex", "referrer-policy": "no-referrer" });
         if (r) return r.bytes ? send(r.status, r.bytes, "application/octet-stream", { ...r.headers, "cache-control": "no-store", "x-robots-tag": "noindex" }) : send(r.status, JSON.stringify(r.json), "application/json", { "cache-control": "no-store", "x-robots-tag": "noindex" });
       }
       if (u.pathname === "/v1/countries/facts") {

@@ -681,7 +681,7 @@ const withFactsFile = (id, cfs) => { const out = { ...cfs }; for (const [c, x] o
 /* RR-319: once the client made pages from "How many pages", THAT plan is the page list everywhere (one page per different answer) */
 /* RR-354: else the exam plan Create SEO pages made by itself (auto-plan.json: profession pages, country pages, topics) — the same plan every call reads */
 /* RR-359: the exam plan only for the subject it was made for (a plan made under another subject — or under a guessed one — is not this product's) */
-const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
+const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */ || a.fromOwnList === true /* RR-388 A */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
 const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null)?.length ? pread(id, "made-plan.json", null) : autoPlanOf(id)?.pages; return p?.length ? { pagePlan: p, max: p.length } : {}; };
 const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
 const plannedOf = (id) => pread(id, "planned.json", []);

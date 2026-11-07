@@ -58,3 +58,25 @@ test("A2 · the pages repo's own build: copies the published pages, writes the l
     const v = JSON.parse(readFileSync(join(d, "vercel.json"), "utf8")); assert.equal(v.headers[0].headers[0].value, "noindex"); assert.equal(v.outputDirectory, "out");
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
+
+test("A · the real list: 17 pages from the owners' own pages, every line judged PASS (proof named), a card standing in its sentence, our own site's lines as our own text", () => {
+  const l = JSON.parse(readFileSync(new URL("../desktop/lists/own-pages.json", import.meta.url), "utf8")).sites["almivisibility.almiworld.com"];
+  assert.equal(l.pages.length, 17); assert.match(l.proof, /proof-rr388-own-truth\.json$/); assert.equal(l.cta.label, "Get AlmiVisibility"); assert.equal(l.cta.href, "https://almivisibility.almiworld.com/pricing");
+  for (const p of l.pages) { assert.ok(p.items.length >= 6, p.title); for (const it of p.items) for (const a of it.answers) { assert.match(a.link, /^https:\/\//); assert.equal(a.readOn, "2026-11-07"); if (a.card) assert.ok(a.text.includes(a.card)); assert.doesNotMatch(a.text, /DataForSEO|leapscholar/i); } }
+  const x = ownPlanPages({ site: "https://almivisibility.almiworld.com/" }), own = x.pages.flatMap((p) => p.items.flatMap((it) => it.claims)).filter((c) => /almivisibility\.almiworld\.com/.test(c.link));
+  assert.ok(own.length > 0 && own.every((c) => c.ownProduct === true && !c.filled)); assert.ok(x.pages.every((p) => p.links.length >= 3), "at least 3 internal links");
+  assert.ok(x.pages.filter((p) => p.kind === "comparison").every((p) => !p.items.some((it) => /^How much does AlmiVisibility cost/.test(it.question))), "the price question names both (the writer joined two 'how much' questions)");
+  assert.match(readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), /a\.fromOwnList === true \/\* RR-388 A \*\//, "the writer takes the own plan");
+});
+
+test("A2 · a noindex page is served but never on the list the sitemap reads; every site page carries a canonical", async () => {
+  const d = mkdtempSync(join(tmpdir(), "pagesrepo2-"));
+  try {
+    writeFileSync(join(d, "build.mjs"), readFileSync(new URL("../site/pages-repo-template/build.mjs", import.meta.url)));
+    for (const [s, h] of [["a-page", '<meta name="robots" content="index, follow"><h1>A</h1>'], ["thin-page", '<meta name="robots" content="noindex, follow"><h1>T</h1>']]) { mkdirSync(join(d, "visibility-pages", s), { recursive: true }); writeFileSync(join(d, "visibility-pages", s, "index.html"), h); }
+    assert.equal(spawnSync(process.execPath, ["build.mjs"], { cwd: d }).status, 0);
+    assert.deepEqual(JSON.parse(readFileSync(join(d, "out", "visibility-pages", "index.json"), "utf8")).pages, [{ slug: "a-page" }]); assert.ok(existsSync(join(d, "out", "visibility-pages", "thin-page", "index.html")));
+  } finally { rmSync(d, { recursive: true, force: true }); }
+  const { managePage } = await import("../site/pages.mjs");
+  assert.match(managePage({ sales: true }), /<meta name="robots" content="noindex, nofollow"><link rel="canonical" href="https:\/\/almivisibility\.almiworld\.com\/manage">/);
+});

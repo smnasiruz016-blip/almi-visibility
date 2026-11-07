@@ -205,7 +205,7 @@ const footerCols = () => footerColumns().map((c) => (c.title === "Legal & Contac
 export function frame({ path, title, description, body, noindex = false, lite = false }) {
   const strip = familyStrip(), NAVS = lite === "sales" ? SALES_NAV : lite ? LITE_NAV : NAV, cta = lite ? ["/#score", "Get my score"] : ["/#test", "Test my site"];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
-<title>${esc(title)}</title><meta name="description" content="${esc(description)}">${noindex ? '<meta name="robots" content="noindex, nofollow">' : `<link rel="canonical" href="${ORIGIN}${path === "/" ? "/" : path}">`}
+<title>${esc(title)}</title><meta name="description" content="${esc(description)}">${noindex ? '<meta name="robots" content="noindex, nofollow">' : ""}<link rel="canonical" href="${ORIGIN}${path === "/" ? "/" : path}"> ${""/* RR-388 A4: the app's own scan wants a canonical on EVERY page (the live /manage had none); a noindex page points to itself */}
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico">
 <style>${CSS}</style></head><body><a class="skip" href="#main">Skip to content</a>
 <header class="site-header" data-testid="global-header"><div class="wrap bar">

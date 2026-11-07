@@ -954,7 +954,7 @@ async function work(tab) {
   $("#home").onclick = home; wireTabs();
   if (tab === "Overview") await overview(); // RR-348: openFeature waits for the overview and its #featbox
   if (tab === "YouTube") youtubeTab();
-  if ($("#apwrap")) $("#apwrap").addEventListener("toggle", () => { if ($("#apwrap").open) autopilotBox(); }); // RR-386: the Autopilot box sits on the Pages tab (four tabs stay four)
+  if ($("#apwrap")) $("#apwrap").ontoggle = () => { if ($("#apwrap").open) autopilotBox(); }; // RR-386: the Autopilot box sits on the Pages tab (four tabs stay four)
   if ($("#pubbox")) pagesBox(tab === "Approvals");
   if ($("#pubset")) $("#pubset").onclick = publishScreen;
   if ($("#ffile")) $("#ffile").onclick = factsFileBox; // RR-351

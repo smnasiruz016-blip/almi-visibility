@@ -45,7 +45,7 @@ function contentLines(p) {
 export function truthRows(plan, verdicts = {}, today = new Date().toISOString().slice(0, 10)) {
   const by = new Map(), add = (question, text, link, others) => { const k = truthKey(question, text, link), r = by.get(k) ?? { key: k, question: clean(question), answer: clean(text), link, others: others.map(clean).slice(0, 6), pages: 0, cls: "truth" }; r.pages++; by.set(k, r); };
   for (const p of plan.pages ?? []) {
-    for (const it of p.items ?? []) { const cs = (it.claims ?? []).filter((c) => linked(c) && withoutNotes(c.text) && !c.filled /* an answer the ladder found was judged on its full page already */); for (const c of cs) add(it.question, c.text, c.link, cs.filter((x) => x !== c).map((x) => x.text)); }
+    for (const it of p.items ?? []) { const cs = (it.claims ?? []).filter((c) => linked(c) && withoutNotes(c.text) && !c.filled /* an answer the ladder found was judged on its full page already */ && !c.ownProduct /* RR-388: our own product line (LAW 5A.5) is not judged against an outside source */); for (const c of cs) add(it.question, c.text, c.link, cs.filter((x) => x !== c).map((x) => x.text)); }
     for (const x of contentLines(p)) if (linked(x.line) && withoutNotes(x.line.text)) add(x.where, x.line.text, x.line.link, []);
   }
   return [...by.values()].filter((r) => due(verdicts[r.key], r, today)).sort((a, b) => b.pages - a.pages || (a.key < b.key ? -1 : 1));
@@ -75,7 +75,7 @@ export async function truthAll({ rows, verdicts, key, read, allowed = () => true
  * the lines (a table, the short answer at the top) stay only on a page where nothing was hidden or removed. → { removed, hidden } */
 export function applyTruth(plan, verdicts = {}, { hideUnchecked = true } = {}) {
   const removed = [], hidden = [];
-  const shown = (question, c, page) => { if (c.filled) return true; const v = linked(c) ? verdicts[truthKey(question, c.text, c.link)] : null; if (v?.pass === false) { removed.push({ page, question, line: c.text, why: v.reason }); return false; } if (v?.pass === true || !hideUnchecked) return true; if (!withoutNotes(c.text)) return true; /* a note: other nets take it out */ hidden.push({ page, question, line: c.text, why: linked(c) ? "not checked yet" : "no source page to check it against" }); return false; };
+  const shown = (question, c, page) => { if (c.filled || c.ownProduct) return true; /* RR-388: the product's own line stands as its own product text */ const v = linked(c) ? verdicts[truthKey(question, c.text, c.link)] : null; if (v?.pass === false) { removed.push({ page, question, line: c.text, why: v.reason }); return false; } if (v?.pass === true || !hideUnchecked) return true; if (!withoutNotes(c.text)) return true; /* a note: other nets take it out */ hidden.push({ page, question, line: c.text, why: linked(c) ? "not checked yet" : "no source page to check it against" }); return false; };
   for (const p of plan.pages ?? []) {
     const before = removed.length + hidden.length, items = [];
     for (const it of p.items ?? []) { const had = it.claims ?? [], keep = had.filter((c) => shown(it.question, c, p.title)); if (had.length && !keep.length) continue; /* nothing true is left under it: the question goes (Q&A LAW 5.1) */ items.push(keep.length === had.length ? it : { ...it, claims: keep }); }

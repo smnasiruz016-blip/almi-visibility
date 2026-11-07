@@ -1,5 +1,5 @@
 {
- "note": "RR-387 A2 + A3: answers written in our own words from the facts of OET's own pages (the topic pages) and TruMerit's own VisaScreen page (the US pages, never 'registers'), each judged PASS by the real truth pass (Sonnet) on its whole source page on 7 Nov 2026 (Desktop/oet test/RR-379 proof/proof-rr387-known-*.json). The app adds each to the page of that title when the page lacks the question.",
+ "note": "RR-387 A2 + A3: answers written in our own words from the facts of OET's own pages (the topic pages) and TruMerit's own VisaScreen page (the US pages, never 'registers'), each judged PASS by the real truth pass (Sonnet) on its whole source page on 7 Nov 2026 (Desktop/oet test/RR-379 proof/proof-rr387-known-*.json). The app adds each to the page of that title when the page lacks the question. RR-388 (owner's research, notes item 18): Q1 MDS (Ghana, Canada) and Q4 Kenya booking from OET's own pages, judged PASS.",
  "judgedOn": "2026-11-07",
  "rows": [
   {
@@ -192,6 +192,30 @@
    "text": "In the United States, a speech language pathologist trained abroad needs a VisaScreen certificate from TruMerit before an occupational visa; it includes passing an English language proficiency exam, unless your professional education was in English (TruMerit names this exemption), and TruMerit names OET among the approved exams (not the at-home versions). The minimum score depends on the profession.",
    "link": "https://www.cgfns.org/visascreen/",
    "source": "TruMerit — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET in Ghana: fee, centres and councils",
+   "question": "Can an MDS graduate apply to sit the OET in Ghana?",
+   "text": "OET's own page: OET is designed for healthcare professionals in 12 professions, dentistry among them; the page does not name the MDS degree. It can be taken on paper, on computer or as OET@Home, though not every way is offered in every country.",
+   "link": "https://oet.com/test/oet-test",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET in Canada: fee, centres and councils",
+   "question": "Can an MDS graduate apply for the OET Exam in Canada?",
+   "text": "OET's own page: OET is designed for healthcare professionals in 12 professions, dentistry among them; the page does not name the MDS degree. It can be taken on paper, on computer or as OET@Home, though not every way is offered in every country.",
+   "link": "https://oet.com/test/oet-test",
+   "source": "OET — its own page",
+   "on": "2026-11-07"
+  },
+  {
+   "title": "OET for Doctors from Kenya",
+   "question": "How do I book the OET in Kenya?",
+   "text": "OET's own help page: to book, find a testing location near you on OET's website and book there; to rebook OET on Computer or OET@Home, log in to your existing OET account and press Book Now or Book Your Test on your dashboard.",
+   "link": "https://support.oet.com/articles/Knowledge/How-do-I-book-OET",
+   "source": "OET — its own page",
    "on": "2026-11-07"
   }
  ]

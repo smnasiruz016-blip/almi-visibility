@@ -1,5 +1,5 @@
 {
- "note": "RR-387 A1: every answer shown on the live AlmiOET pages (read 7 Nov 2026), judged by the strict 'does it answer its own question' check (desktop/answer-fit.mjs, Sonnet, question and answers only). fail: hidden from the page and its FAQ data. The app judges every new pair itself from now on. RR-387b: failText — the 6 answers the second judge failed, hidden by their text wherever they stand (the 12-professions line only under questions it does not answer).",
+ "note": "RR-387 A1: every answer shown on the live AlmiOET pages (read 7 Nov 2026), judged by the strict 'does it answer its own question' check (desktop/answer-fit.mjs, Sonnet, question and answers only). fail: hidden from the page and its FAQ data. The app judges every new pair itself from now on. RR-387b: failText — the 6 answers the second judge failed, hidden by their text wherever they stand (the 12-professions line only under questions it does not answer). RR-388 (owner, notes item 18): the product's own line (\"X is our own practice site: …\") is our product text (LAW 5A.5): never hidden by this check.",
  "on": "2026-11-07",
  "model": "claude-sonnet-5-5",
  "judged": 1772,
@@ -838,6 +838,7 @@
   "9865e008379a3099f104",
   "988ee57f7870edeb9456",
   "98ccbda7470a84edca51",
+  "98edcd2e8c678fcbc87e",
   "98fb8b2b41b6f2a4e741",
   "99a9664f3070314354c7",
   "99edc36674f3ece1a245",
@@ -917,6 +918,7 @@
   "a6df78885112ee7a5ad6",
   "a6e95638d07d4bb5e685",
   "a7345bd4cff959fd8b5f",
+  "a73e0ab1bc31773e6b4d",
   "a76d4f33af32869dda3b",
   "a7945ce3955d4bc8bd97",
   "a7aa8069c2a78389cf17",
@@ -1218,6 +1220,7 @@
   "daa0f178930217cf0781",
   "daa367704b88aa59d998",
   "dac5e548dcce4ecd9d84",
+  "dae0b3447f83f54f653f",
   "daf0676e46460dea0749",
   "db31d81540bde7f894dc",
   "dbc25deba9b894425562",
@@ -1330,6 +1333,7 @@
   "eee4bec884b952ddf39c",
   "ef0d25f92957f4c6428b",
   "ef7ed672c58dfdc374d6",
+  "efda82612b6ffe9f3152",
   "f07a8f8f490a4137e135",
   "f08b82fc47b9815bd361",
   "f0944eda6c8cb3dcb6c1",
@@ -1821,10 +1825,6 @@
   "d6e8a63e1a4946f1cc93": {
    "why": "RR-387b second judge: The line calls CORU the \"Dietitians Registration Board\", but the page's name is the \"Dietitians RB\" within CORU. The scores match the page, but the page does no",
    "sample": "In Ireland: CORU (Dietitians Registration Board) accepts OET (Dietetics): B (350) in three"
-  },
-  "2ec933d642a22b68ac85": {
-   "why": "RR-387b second judge: The line says 'see if you're Clear or Borderline', but the page body never says this; the page only gives a range and most-likely grade per sub-test, so the lin",
-   "sample": "AlmiOET is our own practice site: OET practice on the real 0–500 scale with a grade of A, "
   }
  }
 }

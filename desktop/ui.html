@@ -826,12 +826,14 @@ const TABS = {
  * shown), the switch, the caps (never more than $1 a day) and what was spent. The same switch serves the keyword data.
  */
 /* 🔴 RR-387 PART D · the ONE Issues list on Home: what was found, where, who acts, when found and fixed */
+const ISSUES_SEEN = new Map(); /* RR-388: pid → { at, html }: drawn again at once from what it showed, asked again at most once a minute */
 async function issuesCard(pid, fresh = false) {
+  const was = ISSUES_SEEN.get(pid); if (was && !fresh) { if ($("#ov") && !$("#issues")) $("#ov").insertAdjacentHTML("afterbegin", was.html); if (Date.now() - was.at < 60000) { if ($("#issuesfresh")) $("#issuesfresh").onclick = () => issuesCard(pid, true); return; } }
   const I = await get(`/api/products/${encodeURIComponent(pid)}/issues${fresh ? "?fresh=1" : ""}`).catch(() => null); if (!I || P !== pid || !$("#ov")) return;
   const row = (x) => `<li><b>${esc(x.what)}</b> <span class="meta">— ${esc(x.where)} · found ${esc(x.found)}${x.fixed ? ` · fixed ${esc(x.fixed)}` : ""}</span><br>${esc(x.who)}${x.step ? `: ${esc(x.step)}` : ""}${x.bugFile ? ` <span class="meta">(bug report ready: ${esc(x.bugFile)} in this product's folder)</span>` : ""}</li>`;
   const you = I.open.filter((x) => x.who === "You" || x.who === "A developer"), app = I.open.filter((x) => !you.includes(x));
   const html = `<div class="card" id="issues"><h3>Issues (${I.open.length} open)</h3>${!I.open.length ? '<p class="ok">Nothing open: the app found no issue on your site.</p>' : ""}${you.length ? `<h4>Needs you or a developer</h4><ul>${you.map(row).join("")}</ul>` : ""}${app.length ? `<h4>The app handles these</h4><ul>${app.map(row).join("")}</ul>` : ""}${I.fixed.length ? `<details><summary>Fixed (${I.fixed.length})</summary><ul>${I.fixed.map(row).join("")}</ul></details>` : ""}<p><button class="ghost" id="issuesfresh" type="button">Check again now</button></p></div>`;
-  const was = $("#issues"); if (was) was.outerHTML = html; else $("#ov").insertAdjacentHTML("afterbegin", html);
+  ISSUES_SEEN.set(pid, { at: Date.now(), html }); const on = $("#issues"); if (on) { if (on.outerHTML !== html) on.outerHTML = html; } else $("#ov").insertAdjacentHTML("afterbegin", html);
   $("#issuesfresh").onclick = () => { $("#issuesfresh").textContent = "Reading every page of your site…"; issuesCard(pid, true); };
 }
 /* 🔴 RR-386 · AUTOPILOT ("enter your product and go to sleep"): the switch, the whole job's cost first, the cycles, the scan, our server */
@@ -1021,7 +1023,7 @@ function updateLoop() { setTimeout(async () => { try { await checkUpdates(false)
 function checkingHtml(p) {
   const pct = p && p.of ? Math.min(99, Math.round((p.done / p.of) * 100)) : 2;
   const left = p?.secondsLeft ? (p.secondsLeft >= 90 ? `About ${Math.round(p.secondsLeft / 60)} minutes left.` : `About ${Math.max(10, p.secondsLeft)} seconds left.`) : "";
-  return `<p><b>Checking your product now…</b> ${esc(p?.stage ?? "Starting")}${p?.of > 1 ? ` — ${p.done} of ${p.of}` : ""}. ${esc(left)}</p><div class="progress"><div style="width:${pct}%"></div></div>
+  return `<div id="ckprog"><p><b>Checking your product now…</b> ${esc(p?.stage ?? "Starting")}${p?.of > 1 ? ` — ${p.done} of ${p.of}` : ""}. ${esc(left)}</p><div class="progress"><div style="width:${pct}%"></div></div></div>
   <p class="meta">Visibility reads one page a second, so it never slows your site down. You can leave this screen — the check goes on, and the score appears here when it is done.${p?.seconds ? ` Running for ${p.seconds >= 60 ? `${Math.floor(p.seconds / 60)} min ${p.seconds % 60} s` : `${p.seconds} s`}.` : ""}</p>`;
 }
 /* RR-355 (owner: "The biggest gains now: website and website."): each gain by what it is, never its area twice */
@@ -1034,7 +1036,7 @@ async function overview() {
   /* 🔴 RR-363 A1 (owner: "Home shows only a heading": the first Home after a start took 24 s on his data, with nothing on the screen) */
   if ($("#ov") && !$("#ov").innerHTML) $("#ov").innerHTML = `<p id="ovloading">Reading your product… a few seconds.</p><div class="progress"><div style="width:20%"></div></div>`;
   const O = await get(`/api/products/${encodeURIComponent(P)}/overview`), NEXT = await get(`/api/products/${encodeURIComponent(P)}/next`).catch(() => null);
-  issuesCard(pid); // RR-387 PART D: the one Issues list, on Home
+  /* RR-387 PART D: the Issues list is drawn after the page (RR-388: never wiped by the page drawn after it) */
   FIXVIA = O.fixVia ?? [];
   if (!$("#ov") || P !== pid) return; // the client moved to another screen meanwhile — nothing to draw
   const c = O.card;
@@ -1074,8 +1076,12 @@ async function overview() {
     <h4 style="margin-top:10px">Before a page goes live</h4><label class="choice"><input type="radio" class="nodirty" name="appr" value="review" ${O.review ? "checked" : ""}> <b>Show me before publishing</b></label><label class="choice"><input type="radio" class="nodirty" name="appr" value="publish" ${O.review ? "" : "checked"}> <b>Publish for me</b> <span class="meta">— each page goes live once it passes every check</span></label>
     <p><button class="big" id="jobsgo" type="button">Start</button> <span id="jobsmsg"></span></p><div id="jobrep">${O.report ? reportHtml(O.report) : ""}</div></div>`;
   const more = `<details class="card more" id="more"><summary><b>More</b> — each job on its own, the page count, and the full plan</summary>${O.noWebsite ? "" : `<p><button class="alt" id="pcbtn">How many pages can I make for this product?</button></p>`}${willHtml}</details>`;
+  /* 🔴 RR-388 (owner, 7 Nov 07:39: the window BLINKED on each poll of a running check): the page drawn once; on each poll only the progress line changes */
+  if (O.checking && $("#ckprog") && $("#ov")?.dataset.pid === pid) { $("#ckprog").outerHTML = checkingHtml(O.progress); setTimeout(() => { if ($("#scorebox") && P === pid) overview(); }, 2000); return; }
   $("#ov").innerHTML = `${gscBar}${S.started ? "" : `<div class="warn"><b>Finish setting up ${esc(S.product.name)}</b> — a few quick questions, so Visibility shows you only what fits. <button id="contsetup">Continue setup</button></div>`}<div id="scorebox">${scoreHtml}</div>${summary}${whatNowHtml(NEXT, O.google)}<div id="scoredetails">${scoreMore}</div>${O.checking ? "" : `<p><button id="chk" class="${c ? "ghost" : "big"}">${c ? "Check now" : checkWord}</button></p>`}${jobsHtml}<div id="planbox">${fix}</div>${todo}${more}
     <h2 style="margin-top:18px">${esc(O.menu.question)}</h2>${jobListHtml(O.menu.cards, { topJobs: O.topJobs ?? [], moreJobs: O.moreJobs ?? [], seoKinds: O.seoKinds ?? [] }, { checking: O.checking })}${O.menu.websiteOnly ? `<details class="card" id="webonly"><summary><b>${esc(O.menu.websiteOnly.title)}</b> (${O.menu.websiteOnly.cards.length})</summary>${cardsHtml(O.menu.websiteOnly.cards, { checking: O.checking })}</details>` : ""}<div id="featbox"></div>`;
+  if ($("#ov")) $("#ov").dataset.pid = pid; // RR-388
+  issuesCard(pid); // RR-387 PART D: the one Issues list, on Home
   if ($("#whatgo")) $("#whatgo").onclick = () => goNext(P, $("#whatgo").dataset.action);
   if ($("#contsetup")) $("#contsetup").onclick = continueSetup;
   if ($("#gscpower")) $("#gscpower").onclick = searchScreen;

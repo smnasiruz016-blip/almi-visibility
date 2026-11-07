@@ -59,14 +59,13 @@ test("A2 · the pages repo's own build: copies the published pages, writes the l
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
-test("A · the real list: 17 pages from the owners' own pages, every line judged PASS (proof named), a card standing in its sentence, our own site's lines as our own text", () => {
-  const l = JSON.parse(readFileSync(new URL("../desktop/lists/own-pages.json", import.meta.url), "utf8")).sites["almivisibility.almiworld.com"];
-  assert.equal(l.pages.length, 17); assert.match(l.proof, /proof-rr388-own-truth\.json$/); assert.equal(l.cta.label, "Get AlmiVisibility"); assert.equal(l.cta.href, "https://almivisibility.almiworld.com/pricing");
-  for (const p of l.pages) { assert.ok(p.items.length >= 6, p.title); for (const it of p.items) for (const a of it.answers) { assert.match(a.link, /^https:\/\//); assert.equal(a.readOn, "2026-11-07"); if (a.card) assert.ok(a.text.includes(a.card)); assert.doesNotMatch(a.text, /DataForSEO|leapscholar/i); } }
-  const x = ownPlanPages({ site: "https://almivisibility.almiworld.com/" }), own = x.pages.flatMap((p) => p.items.flatMap((it) => it.claims)).filter((c) => /almivisibility\.almiworld\.com/.test(c.link));
-  assert.ok(own.length > 0 && own.every((c) => c.ownProduct === true && !c.filled)); assert.ok(x.pages.every((p) => p.links.length >= 3), "at least 3 internal links");
-  assert.ok(x.pages.filter((p) => p.kind === "comparison").every((p) => !p.items.some((it) => /^How much does AlmiVisibility cost/.test(it.question))), "the price question names both (the writer joined two 'how much' questions)");
-  assert.match(readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), /a\.fromOwnList === true \/\* RR-388 A \*\//, "the writer takes the own plan");
+test("A · NO page ships in this round (owner, 7 Nov 08:34: he makes AlmiVisibility's pages in his own app): no list; the mechanism stays inert, and a line from the product's own site counts as its own text", () => {
+  assert.equal(existsSync(new URL("../desktop/lists/own-pages.json", import.meta.url)), false);
+  assert.equal(ownPlanPages({ site: "https://almivisibility.almiworld.com/" }), null);
+  const L = { sites: { "example-tool.com": { on: "2026-11-07", pages: [{ title: "T", items: [{ question: "Q?", answers: [{ text: "Example Tool's own site: x.", link: "https://example-tool.com/pricing", readOn: "2026-11-07" }, { text: "Rival's own page: y.", link: "https://rival.example/p", readOn: "2026-11-07" }] }] }] } } };
+  const [own, theirs] = ownPlanPages({ site: "https://example-tool.com/", list: L }).pages[0].items[0].claims;
+  assert.equal(own.ownProduct, true); assert.equal(own.filled, undefined); assert.equal(theirs.filled, true); assert.equal(theirs.ownProduct, undefined);
+  assert.match(readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), /a\.fromOwnList === true \/\* RR-388 A \*\//);
 });
 
 test("A2 · a noindex page is served but never on the list the sitemap reads; every site page carries a canonical", async () => {

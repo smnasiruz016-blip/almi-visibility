@@ -59,7 +59,8 @@ import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { secureBackendFor, selfUpdates } from "./platform.mjs";
-import { ownPlanPages } from "./own-pages.mjs"; // RR-388 A // RR-388 C: one layer for Windows and a Mac
+import { ownPlanPages } from "./own-pages.mjs"; // RR-388 A
+import { guardComparisons } from "./comparison-guard.mjs"; // RR-388 A3 // RR-388 C: one layer for Windows and a Mac
 import { youtubeApp } from "./youtube-app.mjs";
 import { SOCIAL_PLATFORMS, socialSetup, socialPlan, writeCaptionsAI } from "./social-app.mjs"; // RR-348 b
 import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name → its code for the creator data
@@ -1460,7 +1461,10 @@ async function makePages(id, key) {
     /* 🔴 RR-362 (R3): with what the searches brought, each C and D page stays a page or its facts go into the bigger pages */
     const searchedPages = exam ? [...exam.pages] : [];
     if (exam?.bigger) settleLocal(exam);
-    if (exam) addKnownAnswers(exam); /* 🔴 RR-387 A2 + A3: answers judged on their whole source page (lists/known-answers.json) */
+    if (exam) addKnownAnswers(exam);
+    /* 🔴 RR-388 A3: a comparison page says a competitor's price or feature only from that company's own page; none read → no comparison */
+    if (exam) { const g = guardComparisons(exam, { ownName: s.product?.name ?? "", ownHost: s.product?.site ?? "" }); pwrite(id, "comparison-guard.json", { on: new Date().toISOString(), ...g }); }
+    /* 🔴 RR-387 A2 + A3: answers judged on their whole source page (lists/known-answers.json) */
     if (exam && examProduct(s, id)) { applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-366 Part 3 */ applyPairQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-369 Part 4 */ pwrite(id, "questions-wanted.json", { on: new Date().toISOString(), pages: exam.questionsWanted ?? [] }); }
     await factsStep(exam, quick, step);
     if (exam) savePlan(id, exam);

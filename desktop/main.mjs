@@ -58,6 +58,7 @@ import { homedir } from "node:os";
 import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
+import { secureBackendFor, selfUpdates } from "./platform.mjs"; // RR-388 C: one layer for Windows and a Mac
 import { youtubeApp } from "./youtube-app.mjs";
 import { SOCIAL_PLATFORMS, socialSetup, socialPlan, writeCaptionsAI } from "./social-app.mjs"; // RR-348 b
 import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name → its code for the creator data
@@ -169,7 +170,7 @@ let updateFound = null, updateReady = null, updateDownloading = null; // RR-355:
 /* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
  * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
 /* 🔴 RR-386: the runner's headless app (secretsFromEnvOnly) never opens a secure store — not even on Windows: its keys come from its own process only */
-const KEYS = keyStore({ backend: CONFIG.secretsFromEnvOnly === true ? null : CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
+const KEYS = keyStore({ backend: CONFIG.secretsFromEnvOnly === true ? null : CONFIG.testSecretsInMemory === true ? memoryBackend() : secureBackendFor(process.platform, { windows: () => windowsBackend() }) /* RR-388 C: Windows unchanged; the Keychain on a Mac */, env: process.env });
 const KEY_ALLOWED = new Set([...FREE_KEY_NAMES, KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName), ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password, "PERPLEXITY_API_KEY", "PAGESPEED_API_KEY" /* RR-379 */, "ETSY_API_KEY" /* RR-381 */]); // RR-324 B/C: by name only
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
 /* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
@@ -2688,6 +2689,7 @@ const server = createServer((req, res) => {
       if (req.method === "POST" && u.pathname === "/api/update/install") {
         const { agree } = json();
         if (!updateFound) return send(400, { refused: "Check for updates first — no newer version is waiting." });
+        if (!selfUpdates(process.platform) && CONFIG.testUpdateArgs === undefined) return send(400, { refused: `Version ${updateFound.version} is ready. On a Mac, download it from almivisibility.almiworld.com and open it; your data is kept.` }); /* RR-388 C */
         let d; try { d = updateReady && updateReady.version === updateFound.version ? { ok: true, ...updateReady } : await downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }); } catch { return send(400, { refused: "The update could not be downloaded — check the internet connection and try again. Nothing was changed." }); }
         if (!d.ok) return send(400, { refused: d.why });
         askedToStop();

@@ -1,0 +1,69 @@
+# RR-388 PART C · THE GROUND FOR THE MAC VERSION. Runs the same suite on a macOS runner and builds an UNSIGNED AlmiVisibility.app as a CI
+# artifact, then proves it starts (its home page answers 200). Nothing is signed, notarised, released or deployed here: the Apple account is
+# still pending (C:\Projects\_handoffs\MAC_STORE_PLAN.md). Minutes: this repository is PUBLIC, so GitHub's standard runners (macOS too) cost
+# no Actions minutes.
+# ⚠️ No deploy step, no write permission, no provider token.
+
+name: mac
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: almi-visibility
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: almi-visibility
+      - uses: actions/checkout@v4
+        with:
+          repository: smnasiruz016-blip/almi-visibility-data-public
+          path: almi-visibility-data
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: smnasiruz016-blip/almi-visibility-data
+          ssh-key: ${{ secrets.ALMI_VISIBILITY_DATA_KEY }}
+          path: almi-visibility-sources
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.2'
+      - name: node --test on macOS
+        run: npm test
+
+  app:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.2'
+      - name: build the UNSIGNED app (CI proof only)
+        run: node tools/build-mac-app.mjs --version=0.0.0 "--node=$(command -v node)" --out="$RUNNER_TEMP/mac"
+      - name: it starts (home page 200), then stops by its pid
+        run: |
+          APP="$RUNNER_TEMP/mac/AlmiVisibility.app"
+          DATA="$RUNNER_TEMP/av-data"
+          "$APP/Contents/MacOS/AlmiVisibility" "--data=$DATA" --nowindow
+          PORT=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).port)" "$DATA/run.json")
+          PID=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).pid)" "$DATA/run.json")
+          CODE=$(curl -s -o "$RUNNER_TEMP/home.html" -w '%{http_code}' "http://127.0.0.1:$PORT/")
+          echo "home: HTTP $CODE, $(wc -c < "$RUNNER_TEMP/home.html") bytes, version $(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).version)" "$DATA/run.json")"
+          kill "$PID"
+          test "$CODE" = "200"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AlmiVisibility-mac-UNSIGNED
+          path: ${{ runner.temp }}/mac
+          retention-days: 7

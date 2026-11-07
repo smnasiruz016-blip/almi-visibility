@@ -38,7 +38,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.22.2'
-      - name: node --test on macOS
+      # RR-388 C: what does not pass on a Mac yet is MEASURED here, not hidden: the count is the report's (the first run: 4,929 tests,
+      # 49 fail: 127.0.0.2 loopback fixtures, git grep -P, POSIX paths). The PR's gate stays test.yml; this job reports and does not block.
+      - name: node --test on macOS (measured, not a gate yet)
+        continue-on-error: true
         run: npm test
 
   app:
@@ -55,7 +58,7 @@ jobs:
         run: |
           APP="$RUNNER_TEMP/mac/AlmiVisibility.app"
           DATA="$RUNNER_TEMP/av-data"
-          "$APP/Contents/MacOS/AlmiVisibility" "--data=$DATA" --nowindow
+          "$APP/Contents/MacOS/AlmiVisibility" "--data=$DATA" --nowindow || { echo "--- what the app said ---"; cat "$DATA/mac-launch.log" || true; exit 1; }
           PORT=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).port)" "$DATA/run.json")
           PID=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).pid)" "$DATA/run.json")
           CODE=$(curl -s -o "$RUNNER_TEMP/home.html" -w '%{http_code}' "http://127.0.0.1:$PORT/")

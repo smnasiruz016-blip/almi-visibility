@@ -36,7 +36,7 @@ export function buildMacApp({ version, node, out }) {
   const app = join(out, "AlmiVisibility.app"), C = join(app, "Contents");
   mkdirSync(join(C, "MacOS"), { recursive: true }); mkdirSync(join(C, "Resources", "runtime"), { recursive: true });
   cpSync(join(REPO, "desktop"), join(C, "Resources", "app", "desktop"), { recursive: true });
-  for (const d of ["src", "site", "installer"]) if (existsSync(join(REPO, d))) cpSync(join(REPO, d), join(C, "Resources", "app", d), { recursive: true });
+  for (const d of ["src", "site", "config", "installer"]) if (existsSync(join(REPO, d))) cpSync(join(REPO, d), join(C, "Resources", "app", d), { recursive: true });
   writeFileSync(join(C, "Resources", "app", "version.txt"), version);
   copyFileSync(node, join(C, "Resources", "runtime", "node")); chmodSync(join(C, "Resources", "runtime", "node"), 0o755);
   writeFileSync(join(C, "Info.plist"), infoPlist(version));

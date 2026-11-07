@@ -6,7 +6,7 @@
  * UNSIGNED until the Apple account is approved (MAC_STORE_PLAN.md). Windows never runs this file.
  */
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dataDirFor, windowCommand } from "./platform.mjs";
@@ -22,7 +22,7 @@ export async function launch() {
   let run = runOf();
   if (!run || !alive(run.pid)) {
     const before = run?.pid ?? null;
-    const c = spawn(process.execPath, [join(HERE, "main.mjs"), `--data=${DATA}`, `--install=${join(HERE, "..", "..")}`], { detached: true, stdio: "ignore" }); c.on("error", () => {}); c.unref();
+    const log = openSync(join(DATA, "mac-launch.log"), "a"), c = spawn(process.execPath, [join(HERE, "main.mjs"), `--data=${DATA}`, `--install=${join(HERE, "..", "..")}`], { detached: true, stdio: ["ignore", log, log] }); /* what the app says on start, kept (no secret is ever printed by it) */ c.on("error", () => {}); c.unref();
     for (let i = 0; i < 120; i++) { await sleep(250); run = runOf(); if (run && run.pid !== before && alive(run.pid)) break; }
   }
   if (!run || !alive(run.pid)) { console.error("AlmiVisibility did not start (no run.json)."); return { ok: false }; }

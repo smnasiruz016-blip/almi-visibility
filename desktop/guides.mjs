@@ -66,7 +66,49 @@ export const GUIDES = Object.freeze({
       { do: "The sign-in client: Clients → + Create client → Application type \"Desktop app\" → name it AlmiVisibility desktop → Create.", draw: { title: "Create client", path: ["Google Auth Platform", "Clients"], fields: ["Application type: Desktop app", "Name: AlmiVisibility desktop"], press: "Create" } },
       { do: "Download its file: in the window that opens press \"Download JSON\" (later: open the client → the download button). Keep the file on your own computer.", draw: { title: "Client created", path: ["Clients", "AlmiVisibility desktop"], press: "Download JSON" } },
       { do: "Add it in Visibility: All products → \"Google sign-in: switch it on\" → Way 1 → choose the downloaded file → Use this file. The screen says \"Google sign-in is ON ✓\".", draw: { title: "Visibility › Google sign-in", path: ["All products", "Google sign-in"], fields: ["The file Google Cloud downloaded"], press: "Use this file" } },
+      { do: "A new client secret later (Google says \"The provided client secret is invalid\"): open console.cloud.google.com/auth/clients → AlmiVisibility desktop → Add secret → copy it → in Visibility: All products → Google sign-in → change the client → paste the Client ID and the new Client secret. Then disable and delete the old secret in Google Cloud.", draw: { title: "Clients › AlmiVisibility desktop", path: ["Google Auth Platform", "Clients"], press: "Add secret" } },
       { do: "Sign in, and CHOOSE THE RIGHT CHANNEL: your product → YouTube tab → Sign in to YouTube. Chrome opens Google. Choose your Google account. If your channel is a brand channel, Google then lists the account's channels (brand accounts under your email) — choose THIS product's channel, not your personal or default channel. Google says \"Google hasn't verified this app\" while you are in Testing: press Continue (or Advanced → Go to AlmiVisibility). Allow, and Visibility shows \"Signed in to YouTube ✓\". If another channel came back, Visibility says which one and offers \"Try again — choose …\".", draw: { title: "Google › Choose an account or brand account", path: ["accounts.google.com"], fields: ["Your personal channel", "Your brand channel  ← choose this one"], press: "Continue" } },
+    ],
+  },
+  /* 🔴 RR-389 PART 5.3 (owner, 7 Nov: "which token, which branch"): every field that needs outside knowledge has its guide: where to get it, a few short steps, the exact address */
+  "github-token": {
+    title: "Your GitHub token (for publishing your pages)",
+    for: "Visibility writes your pages into your site's GitHub repository and opens the pull request that takes them live. The token lets it do only that, on the repositories you choose.",
+    steps: [
+      { do: "Open github.com/settings/personal-access-tokens/new (GitHub → your picture → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token).", draw: { title: "Fine-grained tokens", path: ["Settings", "Developer settings", "Personal access tokens"], press: "Generate new token" } },
+      { do: "Token name: AlmiVisibility. Expiration: the longest GitHub offers you (or none, if it offers that). Visibility reads the date from GitHub and warns you 7 days before it ends.", draw: { title: "New token", path: ["Fine-grained tokens", "New"], fields: ["Token name: AlmiVisibility", "Expiration: the longest offered"] } },
+      { do: "Repository access: Only select repositories → your site's repository (and your pages repository, if you have one).", draw: { title: "Repository access", path: ["New token", "Repository access"], fields: ["Only select repositories", "your site's repository"] } },
+      { do: "Permissions → Repository permissions: Contents: Read and write; Pull requests: Read and write. Nothing else is needed.", draw: { title: "Repository permissions", path: ["New token", "Permissions"], fields: ["Contents: Read and write", "Pull requests: Read and write"] } },
+      { do: "Generate token → copy it (GitHub shows it once) → in Visibility: Publish settings → \"Paste your GitHub access token here\" → Save → Test connection. It should say \"All good\".", draw: { title: "Visibility › Publish settings", path: ["Your product", "Publish settings"], fields: ["Paste your GitHub access token here"], press: "Test connection" } },
+    ],
+  },
+  "publish-branch": {
+    title: "Repository, branch and folder (Publish settings)",
+    for: "Where your pages are written. The branch is a preview branch of its own, so nothing reaches your live site before the preview passes the checks.",
+    steps: [
+      { do: "Repository: owner/name as it appears in the address github.com/owner/name (for example smnasiruz016-blip/almi-oet).", draw: { title: "Visibility › Publish settings", path: ["Publish settings", "GitHub + Vercel"], fields: ["Repository (owner/name)"] } },
+      { do: "Branch: a preview branch for the pages, for example visibility-pages. Do not use main: the app takes pages to main itself, through a pull request, after the preview passes. If the branch is missing, Visibility makes it again from main by itself.", draw: { title: "Visibility › Publish settings", path: ["Publish settings"], fields: ["Branch: visibility-pages"] } },
+      { do: "Folder for new pages: the folder in the repository your site serves the pages from, for example visibility-pages. Leave it as Visibility suggests unless your web developer says otherwise.", draw: { title: "Visibility › Publish settings", path: ["Publish settings"], fields: ["Folder for new pages: visibility-pages"] } },
+      { do: "Press Save, then Test connection: it checks the token, the repository, the branch and the right to write, and writes nothing.", draw: { title: "Visibility › Publish settings", path: ["Publish settings"], press: "Test connection" } },
+    ],
+  },
+  "vercel-bypass": {
+    title: "Vercel's \"Protection Bypass for Automation\" secret",
+    for: "Your previews on Vercel are protected. With this secret, Visibility's scan can read your preview before anything goes live. It reads only; it changes nothing on Vercel.",
+    steps: [
+      { do: "Open vercel.com, sign in, and open the project of your site.", draw: { title: "Vercel", path: ["vercel.com", "your project"], press: "Sign in" } },
+      { do: "Settings → Deployment Protection → Protection Bypass for Automation → Add (or Create) secret.", draw: { title: "Deployment Protection", path: ["Settings", "Deployment Protection"], press: "Add secret" } },
+      { do: "Copy the secret Vercel shows.", draw: { title: "Protection Bypass for Automation", path: ["Deployment Protection"], fields: ["the secret"], press: "Copy" } },
+      { do: "In Visibility: Pages → Autopilot → \"While this computer is off\" → paste it in the Vercel box → Turn on our server (or Save the keys). The scan then reads your preview by itself.", draw: { title: "Visibility › Autopilot", path: ["Pages", "Autopilot", "While this computer is off"], fields: ["Vercel's Protection Bypass secret"], press: "Turn on our server" } },
+    ],
+  },
+  "dataforseo-login": {
+    title: "Your DataForSEO login and password for apps (optional, paid)",
+    for: "Only if you want Google's results from your own DataForSEO account. AlmiSEO Data and the free sources need no other service.",
+    steps: [
+      { do: "Open app.dataforseo.com and sign in (or press Try for free: a new account gets a small free credit for testing).", draw: { title: "DataForSEO", path: ["app.dataforseo.com"], press: "Sign in" } },
+      { do: "Open app.dataforseo.com/api-access. The login and the password shown there are the ones for apps: they are NOT your sign-in e-mail and password.", draw: { title: "API Access", path: ["app.dataforseo.com", "api-access"], fields: ["API login", "API password"] } },
+      { do: "In Visibility: Search results data → paste the login and the password → Save → set the most it may spend → switch it on.", draw: { title: "Visibility › Search results data", path: ["Search results data"], fields: ["DataForSEO login for apps", "DataForSEO password for apps"], press: "Save" } },
     ],
   },
 });

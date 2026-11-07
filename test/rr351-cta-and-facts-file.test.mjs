@@ -103,14 +103,14 @@ test("RR-351 · reading a facts file: verified facts carry their value; the rest
   const v = factsFileView(store); assert.deepEqual(v.files.map((f) => [f.file, f.verified, f.check]), [["uk-pk.verified.json", 2, 2], ["in.json", 1, 0]]); assert.equal(v.notShown.length, 2);
 });
 
-test("RR-351 · a country page prints the unproved facts as 'check the official page' with the link, and the file's own facts with their note", () => {
+test("RR-351 + RR-389 Part 2.3 · a country page HIDES the unproved facts (Q&A LAW 5.2: no 'check the official page'), and shows the file's own facts with their note", () => {
   const p = { kind: "country", country: "Pakistan", venue: true, cities: [{ city: "Lahore" }], centres: { link: "https://example.org/venues", on: "2026-10-31" }, fee: "AUD 587 — about 113,000 PKR", councils: [], rules: [], answered: [],
     own: [{ part: "file-fee", text: "AUD 587 for the full test.", link: "https://example.org/fees", on: "2026-10-31", note: "read on its official page" }],
     checkOfficial: [{ label: "The exchange rate", link: "https://bank.example.org/rates", on: "2026-10-31" }], whereTitle: "Where to take OET" };
   const c = localContent(p, { subject: "OET", fit: (xs) => xs.filter(Boolean).join(" "), cta: null });
   const own = c.sections.find((s) => s.heading === "AlmiWorld's own checks"), chk = c.sections.find((s) => s.heading === "Check on the official page");
   assert.deepEqual(own.lines, [{ text: "AUD 587 for the full test.", link: "https://example.org/fees", on: "2026-10-31", note: "read on its official page" }]);
-  assert.deepEqual(chk.lines, [{ text: "The exchange rate: check the official page before you book or apply.", link: "https://bank.example.org/rates", on: "2026-10-31", note: null }]);
+  assert.equal(chk, undefined, "no 'Check on the official page' block"); assert.doesNotMatch(JSON.stringify(c), /check the official page/i);
 });
 
 test("RR-351 · THE APP: no page without the offer button (refused, sent to Settings); the button and the description saved in Settings; a facts file added, its counts shown", async () => {
@@ -148,7 +148,7 @@ test("RR-351 · THE APP: no page without the offer button (refused, sent to Sett
     const bad = await call("/facts-file", { name: "x.json", text: "{}" }); assert.deepEqual([bad.status, /no "countries" list/.test(bad.j.refused)], [400, true]);
     const add = await call("/facts-file", { name: "C:\\folder\\uk-pk.verified.json", text: JSON.stringify(FILE) });
     assert.equal(add.status, 200, JSON.stringify(add.j));
-    assert.match(add.j.line, /^uk-pk\.verified\.json: 3 facts proved on their official page go on your pages; 4 not proved show only "check the official page" with the link\./);
+    assert.match(add.j.line, /^uk-pk\.verified\.json: 3 facts proved on their official page go on your pages; 4 not proved yet stay hidden until their page proves them\./); /* RR-389 Part 2.3 */
     const stored = JSON.parse(readFileSync(join(st.dirOf(id), "facts-file.json"), "utf8"));
     assert.deepEqual(stored.files.map((f) => [f.file, f.counts.verified, f.counts.check]), [["uk-pk.verified.json", 3, 4]]);
     assert.ok(!existsSync(join(st.dirOf(id), "official.json")), "the read store of official pages is never written with the file's facts");
@@ -160,8 +160,8 @@ test("RR-351 · the UI: the button's two fields in Your product; the facts-file 
   assert.ok(ui.includes("<label>The button's words<input id=f4 maxlength=80"));
   assert.ok(ui.includes('...($("#f4") ? { ctaLabel: $("#f4").value, ctaHref: $("#f5").value } : {})'));
   assert.ok(ui.includes('if (r.needsCta) return (box.innerHTML = `<div class="card"><h3>First, your offer button</h3>'));
-  assert.ok(ui.includes('<button class="ghost" id="ffile">Add official facts file</button>') && ui.includes('if ($("#ffile")) $("#ffile").onclick = factsFileBox;'));
-  assert.ok(ui.includes('accept=".json,application/json" multiple'));
+  assert.ok(ui.includes('<button class="big alt" id="ffile">Add research or facts file</button>') && ui.includes('if ($("#addfilebox")) addFileBox($("#addfilebox"));'), "RR-389 Part 2.1: one button for every kind of file, always on the Pages tab");
+  assert.ok(ui.includes('const ADD_FILE_ACCEPT = ".json,application/json,.odt,.docx,.txt,.md";') && ui.includes('accept="${ADD_FILE_ACCEPT}" multiple'), "RR-389 Part 2.1: the one button takes several files of every kind");
   assert.ok(readFileSync(join(REPO, "desktop", "build.mjs"), "utf8").includes('"facts-file.mjs"'));
   const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8");
   assert.ok(!main.includes("Try a free ${aboutOf(s)"), "the made-up button is gone");

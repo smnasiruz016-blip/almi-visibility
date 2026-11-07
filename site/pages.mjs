@@ -202,11 +202,34 @@ export const MARKETING = Object.freeze({
 const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout — <a href='/help/promotion-code'>how to use a promotion code</a>.";
 /* RR-325 A: every footer links AlmiVisibility's own Privacy Policy and Terms of Service */
 const footerCols = () => footerColumns().map((c) => (c.title === "Legal & Contact" ? { ...c, links: [...c.links, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
-export function frame({ path, title, description, body, noindex = false, lite = false }) {
+/*
+ * 🔴 RR-389 PART 3.2 (the owner's app on almivisibility.almiworld.com, 7 Nov: 93/100; 6 of 7 pages without structured data, 1 without a
+ * description, nothing saying who we are). Every page says who we are in a machine-readable way: Organization (AlmiWorld, with the profiles
+ * AlmiWorld's own site names: almiworld.com's own markup and footer, read 7 Nov 2026) and SoftwareApplication with the real offer — PLANS, the
+ * one list the live /pricing page is drawn from, so the markup and the page can never differ. FAQPage stays only where the Q&A is visible
+ * (home-sales.mjs faqSection). Every description is 50 to 170 characters.
+ */
+export const ORG = Object.freeze({ name: "AlmiWorld", url: "https://almiworld.com/", sameAs: Object.freeze(["https://www.facebook.com/profile.php?id=61590590609258", "http://www.pinterest.com/almiworld"]) });
+export function siteLd({ offers = true } = {}) {
+  const org = { "@type": "Organization", "@id": `${ORG.url}#org`, name: ORG.name, url: ORG.url, logo: `${ORIGIN}/brand/almiworld-logo.png`, sameAs: [...ORG.sameAs] };
+  const app = { "@type": "SoftwareApplication", "@id": `${ORIGIN}/#app`, name: "AlmiVisibility", url: `${ORIGIN}/`, applicationCategory: "BusinessApplication", operatingSystem: "Windows", description: APP_LINE, publisher: { "@id": `${ORG.url}#org` },
+    /* the offer only where the site sells (a public-lite site shows no price, so its markup holds none) */
+    ...(offers ? { offers: PLANS.map((p) => ({ "@type": "Offer", name: `${p.products}: $${p.price} a month`, price: String(p.price), priceCurrency: "USD", url: `${ORIGIN}/pricing`, priceSpecification: { "@type": "UnitPriceSpecification", price: String(p.price), priceCurrency: "USD", unitText: "MONTH" } })) } : {}) };
+  return `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": [org, app] }).replace(/</g, "\\u003c")}</script>`;
+}
+export const DESC_MIN = 50, DESC_MAX = 170;
+export function fitDescription(d) {
+  let t = String(d ?? "").replace(/\s+/g, " ").trim();
+  if (t.length < DESC_MIN) t = `${t ? `${t.replace(/[.\s]*$/, ".")} ` : ""}AlmiVisibility helps any business get found on Google, Bing and in AI answers.`;
+  if (t.length > DESC_MAX) { const cut = t.slice(0, DESC_MAX); const end = Math.max(cut.lastIndexOf(". "), -1); t = end >= DESC_MIN ? cut.slice(0, end + 1) : `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:\s—-]+$/, "")}.`; }
+  return t;
+}
+export function frame({ path, title, description: description0, body, noindex = false, lite = false }) {
+  const description = fitDescription(description0);
   const strip = familyStrip(), NAVS = lite === "sales" ? SALES_NAV : lite ? LITE_NAV : NAV, cta = lite ? ["/#score", "Get my score"] : ["/#test", "Test my site"];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">${noindex ? '<meta name="robots" content="noindex, nofollow">' : ""}<link rel="canonical" href="${ORIGIN}${path === "/" ? "/" : path}"> ${""/* RR-388 A4: the app's own scan wants a canonical on EVERY page (the live /manage had none); a noindex page points to itself */}
-<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico">
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico">${noindex ? "" : siteLd({ offers: lite !== true })}
 <style>${CSS}</style></head><body><a class="skip" href="#main">Skip to content</a>
 <header class="site-header" data-testid="global-header"><div class="wrap bar">
 <a class="brand" href="/" aria-label="AlmiVisibility home"><img src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully" width="96" height="40"><span class="name">AlmiVisibility</span></a>
@@ -394,7 +417,7 @@ ${scoreOn && ticket ? form : off}</div>`;
 }
 export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, download = "/download" } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
   title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
-  description: sales ? `One app grows your website and your YouTube channel: pages, articles, video titles and ideas. Free title & caption checker for YouTube, TikTok and Instagram. ${MARKETING.data} Free site score; plans from $30 a month.` :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
+  description: sales ? `One app grows your website and your YouTube channel: pages, articles, titles and ideas. Free title & caption checker. ${MARKETING.data} From $30 a month.` /* RR-389 Part 3.2: 170 characters at most */ :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
    * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
   body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}

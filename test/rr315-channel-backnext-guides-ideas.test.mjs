@@ -182,7 +182,7 @@ test("B2 + B3 · BACK RETURNS TO WHERE THE CLIENT WAS (product + tab), and typed
 
 /* ── C ── */
 test("C1 · THREE GUIDES, part of the app (offline): numbered steps with a drawing, their own Back / Next, and \"Never send a key in chat or email\"", () => {
-  assert.deepEqual(Object.keys(GUIDES).sort(), ["anthropic-key", "google-client", "youtube-key"]);
+  assert.deepEqual(Object.keys(GUIDES).sort(), ["anthropic-key", "dataforseo-login", "github-token", "google-client", "publish-branch", "vercel-bypass", "youtube-key"]); /* RR-389 Part 5.3: every field that needs outside knowledge */
   for (const name of Object.keys(GUIDES)) {
     const h = guidePage(name);
     assert.match(h, /Never send a key in chat or email/);

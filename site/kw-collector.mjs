@@ -12,7 +12,8 @@
  *     says stop — said in plain words for the owner's page, and recorded for the 3-day health check (health.mjs).
  */
 import { randomBytes } from "node:crypto";
-import { DEFAULT_SEEDS, parseSeeds, unitsOf, LANGUAGES, withMoreSeeds } from "./kw-seeds.mjs";
+import { DEFAULT_SEEDS, parseSeeds, unitsOf, LANGUAGES, withMoreSeeds, LOCATIONS, seedKeyOf } from "./kw-seeds.mjs";
+import { languageUnits, MORE_LANGUAGES } from "./rr389-collectors.mjs"; // RR-389 Part 4
 import { DEFAULT_QUEUE, FRONT, orderWork } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
 import { isQuestion } from "../desktop/country-facts.mjs";
@@ -76,13 +77,13 @@ export async function runCollector({ store, ads, kv, now = () => Date.now(), bud
       } catch { out.tidied.error = "The clean-up could not run just now."; break; }
     }
     const { groups: listed } = await currentGroups(store), groups = [...listed, ...moreGroups];
-    const units = unitsOf(groups), fetched = await store.fetchedSince(daysBefore(today, 61));
-    const p = plan(units, fetched, today, { queue }), todo = out.stoppedBy ? [] : p.due;
+    const units = unitsOf(groups), langUnits = languageUnits(groups, { locations: LOCATIONS, seedKeyOf }) /* RR-389 Part 4: each product's own languages, after every English unit of the day */, fetched = await store.fetchedSince(daysBefore(today, 61));
+    const p = plan(units, fetched, today, { queue }), pl = plan(langUnits, fetched, today, { queue }), todo = out.stoppedBy ? [] : ((at) => [...p.due.slice(0, at), ...pl.due, ...p.due.slice(at)])((() => { const i = p.due.findIndex((u) => u.kind !== "product"); return i < 0 ? p.due.length : i; })()) /* the languages after every product, before the categories */;
     let i = 0;
     for (; i < todo.length; i++) {
       if (now() - start > budgetMs) { out.stoppedBy = "TIME"; out.why = "This run's time is used — the next run continues."; break; }
       const u = todo[i];
-      const r = await ads.ideas({ seeds: u.seeds, geo: u.geo, language: LANGUAGES[u.language].constant, purpose: "collector", maxPages: 1, waitMs: 10000 });
+      const r = await ads.ideas({ seeds: u.seeds, geo: u.geo, language: (LANGUAGES[u.language] ?? MORE_LANGUAGES[u.language]).constant, purpose: "collector", maxPages: 1, waitMs: 10000 });
       out.ops += r.ops ?? 0;
       if (!r.ok) {
         if (STOP.has(r.code)) { out.stoppedBy = r.code; out.why = r.ownerWhy ?? r.why; break; } // RR-327: the owner's words (an account not active yet is never "Google's known fault")

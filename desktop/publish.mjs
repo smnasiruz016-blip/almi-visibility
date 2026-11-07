@@ -121,7 +121,8 @@ const caller = ({ target, fetchImpl, allowLocal }) => async (url, init, timeoutM
   if (!keyMayGo(target, url, { allowLocal })) return { ok: false, status: 0, message: "refused here", why: "Refused: the key may go only to your own site's address." };
   let r; try { r = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) }); } catch (e) { const message = netWords(e); return { ok: false, status: 0, message, why: /hidden character/.test(message) ? "The saved key holds a hidden character, so it cannot be sent: copy it again and paste it in Publish settings. Nothing was published." : "Your site did not answer — nothing was published." }; }
   const body = await r.json().catch(() => ({}));
-  if (r.ok) return { ok: true, status: r.status, body };
+  const expires = (() => { try { return r.headers?.get?.("github-authentication-token-expiration") ?? null; } catch { return null; } })(); /* RR-389 Part 5.6: GitHub's own header names a token's expiry */
+  if (r.ok) return { ok: true, status: r.status, body, ...(expires ? { expires } : {}) };
   const message = String(body?.message ?? body?.code ?? "").slice(0, 300), rate = isRate(r.status, message, r.headers);
   return { ok: false, status: r.status, message, rate, body, why: refusedWhy(target, r.status, rate ? { message: "rate limit" } : body) };
 };
@@ -295,6 +296,23 @@ export function editDraft(draft, { title, main }) {
 }
 
 /**
+ * 🔴 RR-389 PART 3.1 (7 Nov 18:02: almi-oet's preview branch "visibility-pages" was deleted by GitHub after a go-live merge — "automatically delete head
+ * branches" — and every publish answered 404). A preview branch that is missing is made again from the production branch, by the app itself,
+ * through GitHub's own documented calls (git/refs). No repository setting is changed or relied on; the production branch is never touched.
+ * → { ok, created, from?, why? }. Only a preview target (a branch that is not main, master or production) is ever made.
+ */
+export async function ensurePreviewBranch({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  const pv = previewOf(target); if (!pv) return { ok: true, created: false };
+  const api = testBase ?? "https://api.github.com", repo = `${api}/repos/${target.repo}`, gh = ghHeaders(key), send = caller({ target, fetchImpl, allowLocal });
+  const ref = await send(`${repo}/git/ref/heads/${target.branch}`, { method: "GET", headers: gh }); if (ref.ok) return { ok: true, created: false }; if (ref.status !== 404) return { ok: false, created: false, why: ref.why };
+  const info = await send(repo, { method: "GET", headers: gh }); if (!info.ok) return { ok: false, created: false, why: info.why };
+  const prod = String(target.prod ?? info.body?.default_branch ?? "main"); if (prod === target.branch) return { ok: false, created: false, why: "the preview branch and the production branch are the same" };
+  const base = await send(`${repo}/git/ref/heads/${prod}`, { method: "GET", headers: gh }); if (!base.ok || !base.body?.object?.sha) return { ok: false, created: false, why: base.why ?? `the production branch "${prod}" could not be read` };
+  const made = await send(`${repo}/git/refs`, { method: "POST", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ ref: `refs/heads/${target.branch}`, sha: base.body.object.sha }) });
+  if (!made.ok && made.status !== 422 /* made meanwhile by another run */) return { ok: false, created: false, why: made.why };
+  return { ok: true, created: made.ok, from: prod, branch: target.branch, sha: base.body.object.sha };
+}
+/**
  * 🔴 RR-373 item 6 · MANY PAGES, ONE COMMIT. A file written alone is a commit, and every commit starts one site build and one test run: 295 pages would be 295 builds. A group of pages goes as one commit,
  * with GitHub's own tree calls. Counted as written only when GitHub moved the branch to that commit. A conflict (409, 422: someone else moved the branch) is tried once more from the newest commit.
  */
@@ -310,12 +328,14 @@ export async function publishPagesGithub({ drafts, target, key, fetchImpl = fetc
     if (!commit.body?.sha || up.body?.object?.sha !== commit.body.sha) return { ok: false, status: up.status, message: "the branch did not move to the new commit", why: "GitHub answered without moving the branch to these pages. Nothing is counted as published." };
     return { ok: true, status: up.status, commit: commit.body.sha };
   };
-  let r = await attempt();
+  let r = await attempt(), made = { created: false };
+  /* RR-389 Part 3.1: the branch answered 404 → a missing preview branch is made again from production, and the pages go once more (no extra call while it is there) */
+  if (!r.ok && r.status === 404) { made = await ensurePreviewBranch({ target, key, fetchImpl, allowLocal, testBase }); if (made.created) r = await attempt(); }
   /* 🔴 RR-373: (the built app's own proof: ECONNRESET between two groups) a connection dropped on the way is tried once more; the same files again change nothing */
   if (!r.ok && (r.status === 409 || r.status === 422 || (r.status === 0 && r.message !== "refused here" && !/hidden/.test(r.message ?? "")))) r = await attempt();
   if (!r.ok && r.status === 404) r = { ...r, why: await read404(target, key, send, api) };
-  if (!r.ok) return { ...clean(r), paths: files.map((f) => ({ url: f.url, path: f.path })) };
-  return { ok: true, status: r.status, commit: r.commit, pages: files.map((f) => ({ url: f.url, ok: true, status: r.status, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${f.path.split("/").slice(-2, -1)[0]}/`, ...(preview ? { preview: { ...preview, path: f.path } } : {}), remote: { path: f.path, commit: r.commit } })) };
+  if (!r.ok) return { ...clean(r), paths: files.map((f) => ({ url: f.url, path: f.path })), ...(made.created ? { branchMade: made } : {}) };
+  return { ok: true, status: r.status, commit: r.commit, ...(made.created ? { branchMade: made } : {}), pages: files.map((f) => ({ url: f.url, ok: true, status: r.status, live: preview ? null : `${String(target.site).replace(/\/+$/, "")}/${f.path.split("/").slice(-2, -1)[0]}/`, ...(preview ? { preview: { ...preview, path: f.path } } : {}), remote: { path: f.path, commit: r.commit } })) };
 }
 
 /**
@@ -375,11 +395,14 @@ export function mirrorPlan({ held, drafts, readyUrls, noteOf = () => null, fault
 /** the pages a GitHub target's folder holds now (one tree read) → Map(slug → path) */
 export async function githubFolderPages({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
   const api = testBase ?? "https://api.github.com", send = caller({ target, fetchImpl, allowLocal }), folder = String(target.folder ?? "").replace(/^\/+|\/+$/g, "");
-  const t = await send(`${api}/repos/${target.repo}/git/trees/${encodeURIComponent(target.branch)}?recursive=1`, { method: "GET", headers: ghHeaders(key) }, 60000);
+  const read = () => send(`${api}/repos/${target.repo}/git/trees/${encodeURIComponent(target.branch)}?recursive=1`, { method: "GET", headers: ghHeaders(key) }, 60000);
+  let t = await read(), made = { created: false };
+  /* RR-389 Part 3.1: the mirror reads the branch first: a missing preview branch (404) is made again from production, then read */
+  if (!t.ok && t.status === 404) { made = await ensurePreviewBranch({ target, key, fetchImpl, allowLocal, testBase }); if (made.created) t = await read(); }
   if (!t.ok) return { ok: false, why: t.why, status: t.status };
   const re = new RegExp(`^${folder ? `${folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/` : ""}([^/]+)/index\\.html$`), held = new Map();
   const shas = new Map(); for (const e of t.body?.tree ?? []) { const m = e.type === "blob" ? re.exec(e.path) : null; if (m) { held.set(m[1], e.path); if (e.sha) shas.set(e.path, e.sha); } }
-  return { ok: true, held, shas, truncated: t.body?.truncated === true };
+  return { ok: true, held, shas, truncated: t.body?.truncated === true, ...(made.created ? { branchMade: made } : {}) };
 }
 /** 🔴 RR-384: what the mirror writes for a rewrite, and Git's own name for that content (sha1 of "blob <bytes>\0<content>"): a file whose
  *  name on the branch is already this one is equal, so a second press changes nothing */
@@ -424,7 +447,7 @@ export const NO_COMMIT = "0".repeat(40);
 export async function testGithubConnection({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
   const api = testBase ?? "https://api.github.com", repo = target?.repo ?? "your repository", branch = target?.branch ?? "main", rows = [], gh = ghHeaders(key), send = caller({ target, fetchImpl, allowLocal });
   const row = (check, ok, r, line) => { rows.push({ check, ok, status: r?.status ?? null, message: r?.ok ? null : r?.message || null, line }); return ok; };
-  const done = (ok, line) => ({ ok, rows, line });
+  const done = (ok, line) => ({ ok, rows, line, ...(rows.expires ? { expires: rows.expires } : {}) });
   if (!key) { row("token", false, null, "No token is saved. Paste it in Publish settings and press Save."); return done(false, rows[0].line); }
   if (/[^\x21-\x7e]/.test(key)) { row("token", false, null, "The saved token holds a hidden character. Copy it again from GitHub, paste it here and press Save."); return done(false, rows[0].line); }
   const rate = "GitHub's limit on how fast a token may call it was reached: your token is not the problem. Wait about an hour and test again.";
@@ -432,7 +455,8 @@ export async function testGithubConnection({ target, key, fetchImpl = fetch, all
   if (a.rate) { row("token", false, a, rate); return done(false, rate); }
   if (a.status === 0) { row("token", false, a, "GitHub did not answer from this computer. Check the internet connection and test again."); return done(false, rows[0].line); }
   if (a.status === 401) { row("token", false, a, "GitHub does not accept this token: it is wrong or has expired. Make a new one and paste it here."); return done(false, rows[0].line); }
-  row("token", true, a, "GitHub accepts the token.");
+  row("token", true, a, a.expires ? `GitHub accepts the token. It expires on ${String(a.expires).slice(0, 10)}: the app warns you 7 days before.` : "GitHub accepts the token. It has no expiry date.");
+  if (a.expires) rows.expires = String(a.expires); /* RR-389 Part 5.6 */
   if (!a.ok) { row("repository", false, a, `The token cannot see ${repo}. Check the name (owner/name), or give the token access to that repository.`); return done(false, rows.at(-1).line); }
   row("repository", true, a, `The token can see ${repo}.`);
   const b = await send(`${api}/repos/${repo}/branches/${branch}`, { method: "GET", headers: gh });

@@ -64,7 +64,11 @@ export async function runRules({ seo, cf, kv = null, env = process.env, reader, 
   return lockRun(kv, "rules", randomBytes(8).toString("hex"), RULES.lockSeconds, async () => {
     /* the day each fact was last read again, and what changed, are the collector's own (the country-facts store keeps the fact itself) */
     const changed = (await seo.setting("rules-changed").catch(() => null)) ?? { rows: {} }, checked = (await seo.setting("rules-checked").catch(() => null)) ?? {};
-    const facts = await cf.facts(), reg = rulesRegister(facts, today, { checked, changed: changed.rows }), due = reg.filter((r) => r.due && !r.changed); out.due = due.length;
+    const facts = await cf.facts(), reg = rulesRegister(facts, today, { checked, changed: changed.rows });
+    /* 🔴 RR-389 Part 4: official news about a fee, date or rule on a site (site/rr389-collectors.mjs runNews) makes every fact read from that site due at once */
+    const newsHosts = (await seo.setting("rules-due-hosts").catch(() => null)) ?? {}, hostOfR = (u) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return null; } };
+    for (const r of reg) { const h = hostOfR(r.source), d = h && Object.entries(newsHosts).find(([k]) => h === k || h.endsWith(`.${k}`))?.[1]; if (d && String(checked[r.key] ?? r.readOn ?? "").slice(0, 10) < d) { r.due = true; r.byNews = d; } }
+    const due = reg.filter((r) => r.due && !r.changed); out.due = due.length; out.byNews = due.filter((r) => r.byNews).length;
     const order = { money: 0, date: 1, rule: 2, other: 3 };
     for (const r of due.sort((a, b) => order[a.cls] - order[b.cls]).slice(0, limit)) {
       const f = facts.find((x) => x.key === r.key), text = factText(f); if (!numbersOf(text).length) continue; /* a fact with no number is rechecked by the country-facts collector itself */
@@ -136,14 +140,15 @@ export function mergeFacts(rows) {
 }
 
 /* ───────── THE COLLECTOR PAGE (per product: what is collected, how fresh, what is missing, money) ───────── */
-export const COLLECTOR_JOBS = Object.freeze(["keywords", "facts", "answers", "top-pages", "research", "places", "rules", "trends", /* RR-382 */ "lists"]);
+export const COLLECTOR_JOBS = Object.freeze(["keywords", "facts", "answers", "top-pages", "research", "places", "rules", "trends", /* RR-382 */ "lists", /* RR-389 Part 4 */ "news", "jobs"]);
 export async function collectorsStatus({ seo, cf = null, today, counts = {}, caps = {} }) {
   const month = today.slice(0, 7), spend = (await seo.spendSince?.(`${month}-01`).catch(() => [])) ?? [], money = (job) => ({ today: spend.filter((x) => x.job === job && x.day === today).reduce((t, x) => t + (Number(x.usd) || 0), 0), month: spend.filter((x) => x.job === job).reduce((t, x) => t + (Number(x.usd) || 0), 0), cap: caps[job] ?? null });
-  const last = Object.fromEntries(await Promise.all(["places", "rules", "trends", "research", "answers", "lists"].map(async (j) => [j, (await seo.setting(`${j}-last-run`).catch(() => null))?.on ?? null])));
+  const last = Object.fromEntries(await Promise.all(["places", "rules", "trends", "research", "answers", "lists", "news", "jobs"].map(async (j) => [j, (await seo.setting(`${j}-last-run`).catch(() => null))?.on ?? null])));
   const products = PRODUCT_DATA.map((p) => { const c = counts[p.key] ?? {}; return { key: p.key, name: p.name, data: p.data.map((item) => { const n = c[item.job] ?? null; const state = !item.built ? "not built yet" : n == null ? "not counted" : n > 0 ? "collected" : "missing"; return { what: item.what, job: item.job, every: `${item.recheckDays} days`, state, rows: n ?? 0 }; }) }; });
   /* the country facts' and answers' AI money is the "AI (the collectors)" line the app already shows (answers status); places, rules and trends are free */
   const dfs = await seo.setting("dfs-balance").catch(() => null); /* RR-388 B: the owner's prepaid DataForSEO balance, as its own account call said */
-  return { on: today, last, money: Object.fromEntries(["top-pages", "research", "places", "rules", "trends"].map((j) => [j, money(j)])), products, dfs: dfs ? { balance: dfs.balance, low: dfs.low === true, on: dfs.on } : null };
+  const news = await seo.setting("news-last-run").catch(() => null); /* RR-389 Part 4: official news that may change a rule, for the Issues list */
+  return { on: today, last, news: news ? { on: news.on, items: news.items ?? 0, ruleItems: news.ruleItems ?? 0, skipped: (news.skipped ?? []).length } : null, money: Object.fromEntries(["top-pages", "research", "places", "rules", "trends"].map((j) => [j, money(j)])), products, dfs: dfs ? { balance: dfs.balance, low: dfs.low === true, on: dfs.on } : null };
 }
 
 /* 🔴 RR-387 PART C · D6 WHOIS / DOMAIN AGE: RDAP, the registries' own protocol (free, official): the IANA bootstrap file names the RDAP server of

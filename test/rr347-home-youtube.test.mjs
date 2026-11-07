@@ -44,7 +44,7 @@ test("RR-347 · the YouTube band right under the hero; its Example is marked; th
 test("RR-347 · title, description and the FAQ JSON-LD mention YouTube; the FAQ on the page says the same words; the title checker is in it", () => {
   assert.match(home, /<title>AlmiVisibility — get found on Google, ChatGPT and YouTube<\/title>/);
   assert.match(home, /<meta name="description" content="One app grows your website and your YouTube channel/);
-  const ld = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(home)[1]);
+  const ld = [...home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1])).find((x) => x["@type"] === "FAQPage") ?? {}; /* RR-389 Part 3.2: who we are (Organization, SoftwareApplication) comes first on every page */
   assert.equal(ld["@type"], "FAQPage");
   assert.deepEqual(ld.mainEntity.map((q) => q.name), FAQ.map(([q]) => q));
   assert.ok(ld.mainEntity.some((q) => /YouTube channel/.test(q.name)) && ld.mainEntity.some((q) => q.name === "Is the YouTube title checker free?"));

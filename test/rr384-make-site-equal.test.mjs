@@ -42,7 +42,7 @@ test("THE BUTTON'S WORK, TWICE: the first press rewrites, refreshes and removes 
   assert.deepEqual(await press(), { rewrite: 1, refresh: 1, remove: 1, commit: "c2" }); assert.equal(patches, 1, "one commit");
   assert.match(branch.get("vp/ready/index.html"), /content="noindex,follow"/, "a ready page with 5 real answers, written before the guard, is refreshed as noindex"); assert.match(branch.get("vp/thin/index.html"), /content="noindex,follow"/); assert.equal(branch.has("vp/dup/index.html"), false);
   assert.match(branch.get("vp/ok/index.html"), /written by an earlier rebuild/, "a ready page that is safe as it stands is never rewritten from the saved draft (no flip-flop with the publish's own rebuild)");
-  const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"); assert.match(main, /if \(text && unsafeIndexable\(text\)\) refresh\.push\(x\);/, "the app uses the same rule");
+  const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"); assert.match(main, /if \(text && \(unsafeIndexable\(text\) \|\| wrongIndexState\(text, x\)\)\) refresh\.push\(x\);/, "the app uses the same rule (RR-385: and a file in the wrong index state)");
   const second = await press(); assert.deepEqual([second.rewrite, second.refresh], [0, 0]); assert.equal(patches, 1, "the second press sends nothing");
 });
 test("IN THE APP: the box asks the site even with 0 new pages; the button names what changes; the removals are listed and Start is asked; the server refuses without Start", () => {

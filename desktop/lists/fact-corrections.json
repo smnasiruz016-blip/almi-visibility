@@ -1,19 +1,153 @@
 {
- "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one.",
+ "note": "RR-370 (4 Nov 2026). Each entry was read on its own page on the date given. text: wrong or incomplete words and the checked words. cite: a claim holding these words is cited to the document that says them. links: an address and the right one. RR-385 (7 Nov 2026): the Ahpra board lines, as Ahpra's own page says them.",
  "subject": {
-  "gradeB": { "text": "OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200.", "link": "https://cdn-aus.aglty.io/oet/pdf-files/OET%20Understanding%20your%20score.pdf", "readOn": "2026-11-04", "source": "OET, Understanding your score" }
+  "gradeB": {
+   "text": "OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200.",
+   "link": "https://cdn-aus.aglty.io/oet/pdf-files/OET%20Understanding%20your%20score.pdf",
+   "readOn": "2026-11-04",
+   "source": "OET, Understanding your score"
+  }
  },
  "text": [
-  { "has": "Grade B corresponds to a scale score of 350", "to": "OET reports each sub-test as a grade from A to E. OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200. The grade you need is set by the organisation asking for the result.", "link": "https://cdn-aus.aglty.io/oet/pdf-files/OET%20Understanding%20your%20score.pdf", "on": "2026-11-04", "source": "OET, Understanding your score", "intent": "grade", "why": "grade B is a band, not one score" }
+  {
+   "has": "Grade B corresponds to a scale score of 350",
+   "to": "OET reports each sub-test as a grade from A to E. OET's own guide: grade A is 450 to 500, grade B is 350 to 440, grade C+ is 300 to 340, grade C is 200 to 290; grades D and E are below 200. The grade you need is set by the organisation asking for the result.",
+   "link": "https://cdn-aus.aglty.io/oet/pdf-files/OET%20Understanding%20your%20score.pdf",
+   "on": "2026-11-04",
+   "source": "OET, Understanding your score",
+   "intent": "grade",
+   "why": "grade B is a band, not one score"
+  },
+  {
+   "has": "In Australia: Medical Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Medical Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Nursing and Midwifery Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Nursing and Midwifery Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Dental Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Dental Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Pharmacy Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Pharmacy Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Physiotherapy Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Physiotherapy Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Occupational Therapy Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Occupational Therapy Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Optometry Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Optometry Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Podiatry Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Podiatry Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  },
+  {
+   "has": "In Australia: Medical Radiation Practice Board of Australia (via Ahpra). Accepts OET.",
+   "to": "In Australia, all National Boards under Ahpra except the Aboriginal and Torres Strait Islander Health Practice Board accept the same English tests and minimum scores, the Medical Radiation Practice Board of Australia among them; OET is accepted, and for tests taken on or after 23 April 2026 it asks Listening 350, Reading 360, Writing 350 and Speaking 360, with no overall score.",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests",
+   "intent": "scores",
+   "why": "RR-385: the line said the board itself set the rule and cited a policy PDF that names no board, so the truth pass failed it on most pages; Ahpra's page says all National Boards except one share the same tests and scores, names each board, and holds Table 2"
+  }
  ],
  "cite": [
-  { "has": "Tests on/after 23 Apr 2026", "link": "https://www.ahpra.gov.au/documents/default.aspx?record=WD26/36006&dbid=AP&chksum=cfj%2b9cu%2fNODqTn37yTOzrw%3d%3d", "on": "2026-11-04", "source": "Ahpra, Transition arrangements policy (April 2026), Table 2 — its official page", "why": "the scores stand in this document" },
-  { "has": "Listening 350, Reading 360, Writing 350, Speaking 360", "link": "https://www.ahpra.gov.au/documents/default.aspx?record=WD26/36006&dbid=AP&chksum=cfj%2b9cu%2fNODqTn37yTOzrw%3d%3d", "on": "2026-11-04", "source": "Ahpra, Transition arrangements policy (April 2026), Table 2 — its official page", "why": "the scores stand in this document" }
+  {
+   "has": "Tests on/after 23 Apr 2026",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests (Table 2) — its official page",
+   "why": "RR-385: the scores stand in Table 2 of this page, and the same page names every National Board and says they all accept the same tests and minimum scores; the April 2026 policy PDF (cited before) names no board, so a line naming a board failed the truth check"
+  },
+  {
+   "has": "Listening 350, Reading 360, Writing 350, Speaking 360",
+   "link": "https://www.ahpra.gov.au/Registration/Registration-Standards/English-language-skills/Accepted-English-language-tests",
+   "on": "2026-11-07",
+   "source": "Ahpra, Accepted English language tests (Table 2) — its official page",
+   "why": "RR-385: the scores stand in Table 2 of this page, and the same page names every National Board and says they all accept the same tests and minimum scores; the April 2026 policy PDF (cited before) names no board, so a line naming a board failed the truth check"
+  }
  ],
  "links": [
-  { "from": "ahpra.gov.au/Error/500", "to": "https://www.ahpra.gov.au/Registration/Practitioner-Services/Certificate-of-Registration-Status.aspx", "on": "2026-11-04", "source": "ahpra.gov.au", "why": "the address was an error page; this page says the same" },
-  { "from": "oet.com/test/oet-test-at-home", "textHas": "full test costs", "to": "https://support.oet.com/articles/Knowledge/How-much-does-OET-cost", "on": "2026-11-04", "source": "support.oet.com", "why": "the fee's source is OET's fee page, not the OET@Home page" }
+  {
+   "from": "ahpra.gov.au/Error/500",
+   "to": "https://www.ahpra.gov.au/Registration/Practitioner-Services/Certificate-of-Registration-Status.aspx",
+   "on": "2026-11-04",
+   "source": "ahpra.gov.au",
+   "why": "the address was an error page; this page says the same"
+  },
+  {
+   "from": "oet.com/test/oet-test-at-home",
+   "textHas": "full test costs",
+   "to": "https://support.oet.com/articles/Knowledge/How-much-does-OET-cost",
+   "on": "2026-11-04",
+   "source": "support.oet.com",
+   "why": "the fee's source is OET's fee page, not the OET@Home page"
+  }
  ],
- "bodyNames": { "ahpra.gov.au": "Ahpra" },
- "bodyCovers": { "note": "Ahpra's policy of April 2026 names the professions it regulates; a profession outside the list is never joined to its standard.", "ahpra.gov.au": ["medicine", "nursing", "dentistry", "pharmacy", "physiotherapy", "occupational therapy", "radiography", "optometry", "podiatry"] }
+ "bodyNames": {
+  "ahpra.gov.au": "Ahpra"
+ },
+ "bodyCovers": {
+  "note": "Ahpra's policy of April 2026 names the professions it regulates; a profession outside the list is never joined to its standard.",
+  "ahpra.gov.au": [
+   "medicine",
+   "nursing",
+   "dentistry",
+   "pharmacy",
+   "physiotherapy",
+   "occupational therapy",
+   "radiography",
+   "optometry",
+   "podiatry"
+  ]
+ }
 }

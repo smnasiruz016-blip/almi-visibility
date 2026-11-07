@@ -30,9 +30,12 @@ test("1 · PUBLISH MIRRORS THE APP: ready+written is kept; a draft that only lac
   const held = new Map(["ready", "thin", "dup", "tech", "note", "law", "gone"].map((s) => [s, `visibility-pages/${s}/index.html`]));
   const p = mirrorPlan({ held, drafts, readyUrls: new Set(["https://ex.com/ready"]), noteOf: noteOnPage, faultsOf: (html, url) => (url.endsWith("/law") ? ["the FAQ data asks a question the page does not show"] : []) });
   assert.deepEqual(p.keep, ["visibility-pages/ready/index.html"]);
-  assert.deepEqual(p.rewrite.map((x) => x.path), ["visibility-pages/thin/index.html"]); assert.ok(p.rewrite[0].html.includes(THIN_MARK), "rewritten pages go out noindex");
-  assert.deepEqual(Object.fromEntries(p.remove.map((x) => [x.slug, x.why])), { dup: "a check failed: not a duplicate", tech: "a check failed: technically ready for search and AI engines", note: 'it still shows a work note ("Confirm with")', law: "the page law: the FAQ data asks a question the page does not show", gone: "the app no longer makes this page" });
-  assert.equal(p.keep.length + p.rewrite.length + p.remove.length, held.size, "nothing older stays: every page there is kept, rewritten or removed");
+  /* RR-385: a failing check is no longer a reason to remove (the page goes out noindex); a superseded "Confirm with" sentence is taken out, not a reason */
+  assert.deepEqual(p.rewrite.map((x) => x.path), ["visibility-pages/thin/index.html", "visibility-pages/tech/index.html", "visibility-pages/note/index.html"]); assert.ok(p.rewrite.every((x) => x.html.includes(THIN_MARK)), "rewritten pages go out noindex");
+  assert.ok(!p.rewrite[2].html.includes("Confirm with"), "the superseded sentence is gone from the rewrite");
+  assert.deepEqual(Object.fromEntries(p.remove.map((x) => [x.slug, x.why])), { dup: "a true duplicate (not a duplicate)", law: "the page law: the FAQ data asks a question the page does not show", gone: "the app no longer makes this page" });
+  assert.equal(p.keep.length + p.rewrite.length + p.remove.length + p.blocked.length, held.size, "nothing older stays: every page there is kept, rewritten, removed or held back");
+  assert.deepEqual(p.broken, []);
   assert.deepEqual([...REWRITE_GATES], ["answers its core questions", "technically ready for search and AI engines"]);
   assert.equal(rewriteRefusal({ url: "u", html: "<main>no button</main>", gates: [] }), "it has no offer button");
 });

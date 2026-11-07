@@ -23,8 +23,13 @@ export { THIN_MARK }; /* RR-383: main reads the mark through here (it never impo
 export const REAL_QA_MIN = 6;
 const FEE_Q = /\bhow much (?:does|is|do)\b[^?]*\b(?:cost|fees?)\b|\b(?:exam|test) fees?\b/i;
 export const realQa = (html) => visibleQa(html).filter((q) => q.answers.length && !FEE_Q.test(q.q)).length;
-/* only a Q&A page is counted (Q&A LAW 6); a page with no question blocks (an article, a client's own page) goes out as it was made */
-export const asPublishedGuarded = (html, url) => asPublished(visibleQa(html).length && realQa(html) < REAL_QA_MIN ? asNoindex(html) : html, url);
+/* 🔴 RR-385 item e (beta-g: /oet-exam-price, 1,578 words and 26 country fee fold-outs, went out noindex because fee rows were not counted): a fee
+ * row that shows its own source link and the day it was read is checked content and counts toward the 6 */
+export const checkedFeeRows = (html) => (mainOf(html).match(/<details\b[^>]*data-foldout[^>]*>[\s\S]*?<\/details>/gi) ?? []).filter((x) => /<span class="citation">[\s\S]*?<a\b[^>]*href="https?:\/\/[^"]+"[\s\S]*?read \d{4}-\d{2}-\d{2}/.test(x) && /\b(?:fee|costs?|price)\b/i.test(x)).length;
+export const indexCount = (html) => realQa(html) + checkedFeeRows(html);
+/* only a Q&A or fee page is counted (Q&A LAW 6); a page with neither (an article, a client's own page) goes out as it was made. Below 6 → noindex;
+ * a fee page that reaches 6 with its checked fee rows is indexed even when its draft was marked "needs more answers" */
+export const asPublishedGuarded = (html, url) => { const fees = checkedFeeRows(html), counted = visibleQa(html).length > 0 || fees > 0, n = indexCount(html); let h = String(html); if (counted && n < REAL_QA_MIN) h = asNoindex(h); else if (fees && n >= REAL_QA_MIN && h.includes(THIN_MARK)) h = h.replace(THIN_MARK, ""); return asPublished(h, url); };
 
 export const TARGETS = Object.freeze([
   Object.freeze({ id: "wordpress", label: "WordPress", chooseIf: "your site is built with WordPress (you sign in at your-site/wp-admin).", needs: "your site's address, your WordPress user name, and an application password (WordPress → Users → Profile → Application Passwords → Add new).", keyName: "WORDPRESS_APP_PASSWORD" }),
@@ -316,12 +321,17 @@ export async function publishPagesGithub({ drafts, target, key, fetchImpl = fetc
  * (a duplicate, a copy, a work note, no draft any more). Nothing older stays.
  */
 export const REWRITE_GATES = Object.freeze(["answers its core questions", "technically ready for search and AI engines"]);
+/* 🔴 RR-385 (beta-g's scan of the mirrored preview, 7 Nov 00:30: the 18 pages the mirror removed were linked from every page's menu and
+ * "Choose your country" list, so every page carried 404 links; Australia, the US, Reading, Writing, Speaking and Online OET were among them).
+ * The owner's rule: a page is never deleted; a page with few checked answers stays as noindex. Only a true duplicate (R-C) may go, and only
+ * when no page that stays links to it */
+export const DUPLICATE_GATES = Object.freeze(["not a duplicate", "not a copy of another page"]);
 const DRAFT_ROBOTS = '<meta name="robots" content="noindex, nofollow">';
-/** may a not-ready draft stand on the site (noindex) as it is now? → null, or why it may not */
+/** words of rules the owner superseded (RR-383 item 3): a "Confirm with …" sentence and an inline "(Source: X.)", taken out of the page and its FAQ data alike */
+export const cleanSuperseded = (html) => String(html ?? "").replace(/\s*\b(?:Please\s+)?Confirm (?:this |the (?:details|fee|rules?) )?with\b[^.<"\\]{0,200}\./g, "").replace(/\s*\((?:Source|Sources):\s*[^()<"\\]{1,160}\)\.?/g, "");
+/** may a not-ready draft stand on the site (noindex) as it is now? → null, or why it may not (its gates are NOT a reason: the page goes out noindex) */
 export function rewriteRefusal(d, { noteOf = () => null, faultsOf = () => [] } = {}) {
   if (!d?.html) return "the app no longer makes this page";
-  const failing = (d.gates ?? []).filter((g) => !g.pass), other = failing.filter((g) => !REWRITE_GATES.includes(g.words) || (g.words === "technically ready for search and AI engines" && (g.failing ?? []).length));
-  if (other.length) return `a check failed: ${other.map((g) => g.words).join(", ")}`;
   if (!/data-cta>/.test(d.html)) return "it has no offer button";
   const n = noteOf(d.html); if (n) return `it still shows a work note ("${n}")`;
   const f = faultsOf(d.html, d.url) ?? []; if (f.length) return `the page law: ${f[0]}`; /* Q&A LAW 5 and 5A, as for a ready page */
@@ -330,18 +340,31 @@ export function rewriteRefusal(d, { noteOf = () => null, faultsOf = () => [] } =
 }
 /** a not-ready draft as it may stand: noindex, follow (asPublished turns THIN_MARK into it) */
 export const asNoindex = (html) => (String(html).includes(THIN_MARK) ? String(html) : String(html).replace(DRAFT_ROBOTS, (m) => `${m}${THIN_MARK}`));
+/** the app's own pages a page links to: every link (menu, lists, answers) whose last path part is one of `slugs` → Set(slug) */
+export const linkedSlugs = (html, slugs, origin = null) => { const out = new Set(); for (const m of String(html ?? "").matchAll(/<a\b[^>]*href="([^"#?]+)/gi)) { let u; try { u = new URL(m[1].replace(/&amp;/g, "&"), origin ?? "https://x.invalid/"); } catch { continue; } if (origin && u.origin !== new URL(origin).origin) continue; const s = u.pathname.replace(/^\/+|\/+$/g, "").split("/").pop(); if (s && slugs.has(s)) out.add(s); } return out; };
 /**
  * held: the target's page addresses (slug → path); drafts: the app's current drafts; readyUrls: what the app holds as ready (written now or before).
- * → { keep: [path], rewrite: [{ url, path, html }], remove: [{ path, slug, why }] }
+ * → { keep: [path], keepItems, rewrite: [{ url, path, html }], remove: [{ path, slug, why }], blocked: [{ path, slug, why, linkedBy }], broken: [{ from, to }] }
  */
 export function mirrorPlan({ held, drafts, readyUrls, noteOf = () => null, faultsOf = () => [] }) {
-  const bySlug = new Map((drafts ?? []).map((d) => [slugOf(d.url).split("/").pop(), d])), out = { keep: [], rewrite: [], remove: [] };
+  const bySlug = new Map((drafts ?? []).map((d) => [slugOf(d.url).split("/").pop(), d])), out = { keep: [], keepItems: [], rewrite: [], remove: [], blocked: [], broken: [] }, gone = [];
+  let origin = null; try { origin = new URL((drafts ?? [])[0]?.url).origin; } catch { origin = null; }
   for (const [slug, path] of held) {
-    const d = bySlug.get(slug);
-    if (d && readyUrls.has(d.url)) { out.keep.push(path); (out.keepItems ??= []).push({ url: d.url, path, html: d.html }); continue; } /* RR-384: a kept page is refreshed when its file differs from what the guarded publish writes now */
-    const why = rewriteRefusal(d, { noteOf, faultsOf });
-    if (why) out.remove.push({ path, slug, why }); else out.rewrite.push({ url: d.url, path, html: asNoindex(d.html) });
+    const d0 = bySlug.get(slug);
+    if (d0 && readyUrls.has(d0.url)) { out.keep.push(path); out.keepItems.push({ url: d0.url, path, html: d0.html }); continue; } /* RR-384: refreshed when its file is in the wrong index state */
+    const d = d0 ? { ...d0, html: cleanSuperseded(d0.html) } : null, why = rewriteRefusal(d, { noteOf, faultsOf });
+    const dup = (d0?.gates ?? []).filter((g) => !g.pass && DUPLICATE_GATES.includes(g.words)).map((g) => g.words);
+    if (why) gone.push({ path, slug, why }); else if (dup.length) gone.push({ path, slug, why: `a true duplicate (${dup.join(", ")})`, canStand: { url: d.url, path, html: asNoindex(d.html) } }); else out.rewrite.push({ url: d.url, path, html: asNoindex(d.html) });
   }
+  /* 🔴 never remove a page that a staying page links to: a duplicate stays as noindex; a page that cannot stand at all is reported, never removed */
+  const managed = new Set([...held.keys(), ...bySlug.keys()]), staying = () => [...out.keepItems, ...out.rewrite], linkers = (slug) => staying().filter((p) => linkedSlugs(p.html, managed, origin).has(slug)).map((p) => p.url);
+  for (let changed = true; changed;) { changed = false; for (const g of [...gone]) { const by = linkers(g.slug); if (!by.length) continue; gone.splice(gone.indexOf(g), 1); changed = true; if (g.canStand) out.rewrite.push(g.canStand); else out.blocked.push({ path: g.path, slug: g.slug, why: g.why, linkedBy: by.slice(0, 20) }); } }
+  out.remove = gone.map(({ path, slug, why }) => ({ path, slug, why }));
+  /* an app page a staying page links to that is not on the site yet is ADDED as noindex when it can stand (its path as the site's other pages) */
+  const sample = [...held.values()][0] ?? null, pathOf = (slug) => (sample ? sample.replace(/[^/]+\/index\.html$/, `${slug}/index.html`) : `${slug}/index.html`), slugsOn = () => new Set([...out.keepItems, ...out.rewrite].map((p) => slugOf(p.url).split("/").pop()).concat(out.blocked.map((b) => b.slug)));
+  for (let added = true; added;) { added = false; const on = slugsOn(); for (const p of staying()) for (const s of linkedSlugs(p.html, managed, origin)) { if (on.has(s) || held.has(s)) continue; const d0 = bySlug.get(s); if (!d0) continue; const d = { ...d0, html: cleanSuperseded(d0.html) }; if (rewriteRefusal(d, { noteOf, faultsOf })) continue; out.rewrite.push({ url: d.url, path: pathOf(s), html: d0.readyAsDraft ? d.html : asNoindex(d.html), added: true, ready: d0.readyAsDraft === true /* a ready page goes out as the guarded publish writes it, and is recorded as published, not as a noindex rewrite */ }); on.add(s); added = true; } }
+  /* 🔴 RR-385 item d · the link guard: no page that stays may link to an app page that will not be on the site */
+  const onSite = slugsOn(); for (const p of staying()) for (const s of linkedSlugs(p.html, managed, origin)) if (!onSite.has(s) && !(held.has(s) && !out.remove.some((r) => r.slug === s))) out.broken.push({ from: p.url, to: s });
   return out;
 }
 /** the pages a GitHub target's folder holds now (one tree read) → Map(slug → path) */
@@ -359,7 +382,11 @@ export const mirrorContent = (f) => asPublishedGuarded(f.html, f.url);
 export const gitBlobSha = (text) => { const b = Buffer.from(String(text), "utf8"); return createHash("sha1").update(`blob ${b.length}\0`).update(b).digest("hex"); };
 export const notYetEqual = (rewrite, shas) => rewrite.filter((x) => shas?.get(x.path) !== gitBlobSha(mirrorContent(x)));
 /** is a page file on the site indexable while it shows fewer than 6 real Q&A (a ready page written before the RR-383 guard)? */
-export const unsafeIndexable = (text) => { const t = String(text ?? ""); return visibleQa(t).length > 0 && realQa(t) < REAL_QA_MIN && !/<meta\b[^>]*name="robots"[^>]*content="[^"]*noindex/i.test(t); };
+export const unsafeIndexable = (text) => { const t = String(text ?? ""); return (visibleQa(t).length > 0 || checkedFeeRows(t) > 0) && indexCount(t) < REAL_QA_MIN && !/<meta\b[^>]*name="robots"[^>]*content="[^"]*noindex/i.test(t); };
+/** 🔴 RR-385: a ready page's file says index where the guarded publish now says noindex, or the other way round (/oet-exam-price: noindex on the
+ *  site, indexed now that its checked fee rows count) → it is written again */
+const saysNoindex = (t) => /<meta\b[^>]*name="robots"[^>]*content="[^"]*noindex/i.test(String(t ?? ""));
+export const wrongIndexState = (fileText, item) => fileText != null && saysNoindex(fileText) !== saysNoindex(mirrorContent(item));
 /** one file's text from the branch (GitHub's documented git/blobs answer: base64 content) → text, or null */
 export async function githubBlobText({ target, key, sha, fetchImpl = fetch, allowLocal = false, testBase = null }) {
   const api = testBase ?? "https://api.github.com", send = caller({ target, fetchImpl, allowLocal }), r = await send(`${api}/repos/${target.repo}/git/blobs/${sha}`, { method: "GET", headers: ghHeaders(key) });

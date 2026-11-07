@@ -144,17 +144,17 @@ test("item 9: AlmiWorld's products first; a client's subject only by the owner's
   const who = accountHash("c1"), client = { id: "c-pets", name: "Pets", subject: "Pets", words: ["pets"], seeds: ["pets"], countries: [], languages: ["en"], jobs: ["top-pages"], owner: "client", clients: [who], planOf: { [who]: "visibility_1" }, intents: ["Pets in Ireland"], paused: false };
   const asked = [], fetchImpl = async (_u, init) => { asked.push(JSON.parse(init.body)[0].keyword); return { json: async () => answer(1.5) }; };
   const seo = seoMemoryStore(); await seo.putTopic(client, { at: NOW });
-  const go = (e) => runTopPages({ seo, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", ...e }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
+  const go = (e) => runTopPages({ seo, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", COUNTRY_FACTS_AI_USD_PER_DAY: "100" /* RR-388 B: the all-collectors day cap raised with it for this test */, ...e }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
   await go({}); assert.ok(!asked.includes("Pets in Ireland"), "off: a client's subject is not bought");
   await seo.putTopic({ ...ownTopics().find((t) => t.id === "visibility"), intents: ["AlmiVisibility pricing"] }, { at: NOW });
   asked.length = 0; await seo.addAccountSpend(NOW.slice(0, 7), who, 3); await go({ [ENV_NAMES.topPagesClients]: "1" });
   assert.ok(!asked.includes("Pets in Ireland"), "its plan's $3 is used this month");
   /* room for less than one search: the limit is judged before each search is sent, never after */
   const near = seoMemoryStore(); await near.putTopic(client, { at: NOW }); await near.addAccountSpend(NOW.slice(0, 7), who, 2.9995); asked.length = 0;
-  await runTopPages({ seo: near, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", [ENV_NAMES.topPagesClients]: "1" }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
+  await runTopPages({ seo: near, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", [ENV_NAMES.topPagesClients]: "1", COUNTRY_FACTS_AI_USD_PER_DAY: "100" }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
   assert.ok(!asked.includes("Pets in Ireland"), "less than one search of room: not sent");
   const fresh = seoMemoryStore(); await fresh.putTopic(client, { at: NOW }); await fresh.putTopic({ ...ownTopics().find((t) => t.id === "visibility"), intents: ["AlmiVisibility pricing"] }, { at: NOW });
-  asked.length = 0; await runTopPages({ seo: fresh, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", [ENV_NAMES.topPagesClients]: "1" }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
+  asked.length = 0; await runTopPages({ seo: fresh, cf: noFacts, env: { ...env, [ENV_NAMES.topPagesUsd]: "50", [ENV_NAMES.topPagesClients]: "1", COUNTRY_FACTS_AI_USD_PER_DAY: "100" }, reader: reader(), fetchImpl, now: () => Date.parse(NOW) });
   assert.ok(asked.indexOf("AlmiVisibility pricing") >= 0 && asked.indexOf("AlmiVisibility pricing") < asked.indexOf("Pets in Ireland"), `own first: ${asked}`);
   assert.equal(await fresh.accountSpend(NOW.slice(0, 7), who), 1.5, "the search is booked on its client");
 });

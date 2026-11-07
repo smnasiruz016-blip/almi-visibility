@@ -50,10 +50,11 @@ CREATE TABLE IF NOT EXISTS kw_observation (keyword text NOT NULL, location text 
 CREATE TABLE IF NOT EXISTS kw_fetch_keyword (fetch_id bigint NOT NULL REFERENCES kw_fetch(id), keyword text NOT NULL, PRIMARY KEY (fetch_id, keyword));
 CREATE TABLE IF NOT EXISTS kw_group_keyword (grp text NOT NULL, keyword text NOT NULL, location text NOT NULL, last_day date NOT NULL, PRIMARY KEY (grp, keyword, location));
 CREATE INDEX IF NOT EXISTS kw_observation_day ON kw_observation (day);
+CREATE TABLE IF NOT EXISTS kw_bid (keyword text NOT NULL, location text NOT NULL, language text NOT NULL, day date NOT NULL, low numeric, high numeric, at timestamptz NOT NULL, PRIMARY KEY (keyword, location, language, day));
 CREATE TABLE IF NOT EXISTS kw_creator_research (platform text NOT NULL, niche text NOT NULL, location text NOT NULL, day date NOT NULL, data jsonb NOT NULL, PRIMARY KEY (platform, niche, location));
 `; // RR-348 c: kw_creator_research — the creator AI research (and YouTube's titles and tags), one row per platform × niche × country, the newest
 
-const clean = (rows) => { const m = new Map(); for (const r of rows) { const k = String(r.text ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " "); if (k && k.length <= 200 && !m.has(k)) m.set(k, { keyword: k, volume: Number.isFinite(r.said) ? r.said : null, months: r.months ?? null }); } return [...m.values()]; };
+const clean = (rows) => { const m = new Map(); for (const r of rows) { const k = String(r.text ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " "); if (k && k.length <= 200 && !m.has(k)) m.set(k, { keyword: k, volume: Number.isFinite(r.said) ? r.said : null, months: r.months ?? null, bidLow: Number.isFinite(r.bidLow) ? r.bidLow : null, bidHigh: Number.isFinite(r.bidHigh) ? r.bidHigh : null /* RR-388 A3 */ }); } return [...m.values()]; };
 
 /** the database on Postgres. `Pool` is pg's (handed in, or loaded from the `pg` package on first use) */
 export function pgStore({ url, Pool = null, max = 3 }) {
@@ -93,6 +94,8 @@ export function pgStore({ url, Pool = null, max = 3 }) {
           await x("INSERT INTO kw_observation (keyword, location, language, day, avg_monthly_searches, months, period, at) SELECT t.k, $4, $5, $6, t.v, t.m::jsonb, $7, $8 FROM unnest($1::text[], $2::bigint[], $3::text[]) AS t(k, v, m) WHERE NOT EXISTS (SELECT 1 FROM (SELECT p.avg_monthly_searches, p.months FROM kw_observation p WHERE p.keyword = t.k AND p.location = $4 AND p.language = $5 AND p.day < $6 ORDER BY p.day DESC LIMIT 1) l WHERE l.avg_monthly_searches IS NOT DISTINCT FROM t.v AND l.months IS NOT DISTINCT FROM t.m::jsonb) ON CONFLICT (keyword, location, language, day) DO UPDATE SET avg_monthly_searches = EXCLUDED.avg_monthly_searches, months = EXCLUDED.months, period = EXCLUDED.period, at = EXCLUDED.at",
             [k, v, m, f.location, f.language, f.day, f.period ?? null, f.at]);
           await x("INSERT INTO kw_fetch_keyword (fetch_id, keyword) SELECT $1, unnest($2::text[]) ON CONFLICT DO NOTHING", [ins.id, k]);
+          /* RR-388 A3: the top-of-page bids Google gave (only rows that have them) */
+          const bid = rows.filter((r) => r.bidLow !== null || r.bidHigh !== null); if (bid.length) await x("INSERT INTO kw_bid (keyword, location, language, day, low, high, at) SELECT t.k, $4, $5, $6, t.lo, t.hi, $7 FROM unnest($1::text[], $2::numeric[], $3::numeric[]) AS t(k, lo, hi) ON CONFLICT (keyword, location, language, day) DO UPDATE SET low = EXCLUDED.low, high = EXCLUDED.high, at = EXCLUDED.at", [bid.map((r) => r.keyword), bid.map((r) => r.bidLow), bid.map((r) => r.bidHigh), f.location, f.language, f.day, f.at]);
           if (f.group) await x("INSERT INTO kw_group_keyword (grp, keyword, location, last_day) SELECT $1, unnest($2::text[]), $3, $4 ON CONFLICT (grp, keyword, location) DO UPDATE SET last_day = GREATEST(kw_group_keyword.last_day, EXCLUDED.last_day)", [f.group, k, f.location, f.day]);
         }
         return { duplicate: false, stored: rows.length };
@@ -110,6 +113,8 @@ export function pgStore({ url, Pool = null, max = 3 }) {
     /** was this file (its bytes' key) stored already — with any country or day? */
     async fileSeen(seedKey) { await ensure(); return (await q("SELECT 1 FROM kw_fetch WHERE seed_key = $1 LIMIT 1", [seedKey])).length > 0; },
     /** which of these keywords the database already holds at a location and language (any day) */
+    /** RR-388 A3: the newest top-of-page bids of these keywords → Map(keyword → { low, high, day }) */
+    async bids(keywords, { location, language }) { await ensure(); if (!keywords.length) return new Map(); return new Map((await q("SELECT DISTINCT ON (keyword) keyword, low::float8 AS low, high::float8 AS high, day::text AS day FROM kw_bid WHERE location = $1 AND language = $2 AND keyword = ANY($3::text[]) ORDER BY keyword, day DESC", [location, language, keywords])).map((r) => [r.keyword, { low: r.low, high: r.high, day: r.day }])); },
     async knownKeywords(keywords, { location, language }) { await ensure(); if (!keywords.length) return new Set(); return new Set((await q("SELECT DISTINCT keyword FROM kw_observation WHERE location = $1 AND language = $2 AND keyword = ANY($3::text[])", [location, language, keywords])).map((r) => r.keyword)); },
     /** keywords put under a product / category, per location (the last day kept) */
     async addGroupKeywords(grp, keywords, location, day) { await ensure(); if (keywords.length) await q("INSERT INTO kw_group_keyword (grp, keyword, location, last_day) SELECT $1, unnest($2::text[]), $3, $4 ON CONFLICT (grp, keyword, location) DO UPDATE SET last_day = GREATEST(kw_group_keyword.last_day, EXCLUDED.last_day)", [grp, keywords, location, day]); },
@@ -178,6 +183,7 @@ export function pgStore({ url, Pool = null, max = 3 }) {
 
 /** the SAME contract in memory — for the tests that run where nothing is installed (CI) */
 export function memoryStore({ sizeMb = null } = {}) {
+  const bidsMem = new Map(); /* RR-388 A3 */
   let list = null, nextId = 1, ideas = {};
   const creator = { settings: null, rows: new Map() }; // RR-348 c
   const fetches = new Map(), obs = new Map(), fk = new Map(), gk = new Map();
@@ -197,6 +203,7 @@ export function memoryStore({ sizeMb = null } = {}) {
       const m = new Map(); for (const f of fetches.values()) if (String(f.group ?? "").startsWith("creator:")) { const k = `${f.group}|${f.location}`, o = m.get(k) ?? { grp: f.group, location: f.location, keywords: 0, day: f.day }; o.keywords += [...fk.values()].filter((x) => x.id === f.id).length; if (f.day > o.day) o.day = f.day; m.set(k, o); }
       return { research, keywords: [...m.values()] }; },
     /* RR-333: the newest figure on or before a day (an unchanged figure is not stored again); the keywords fetched on a day */
+    async bids(keywords, { location, language }) { const out = new Map(); for (const b of [...bidsMem.values()].sort((a, c) => a.day.localeCompare(c.day))) if (b.location === location && b.language === language && keywords.includes(b.keyword)) out.set(b.keyword, { low: b.low, high: b.high, day: b.day }); return out; },
     async seedList() { return list ? { ...list } : null; },
     async setSeedList(text, at) { list = { text, at }; },
     async seedIdeas() { return JSON.parse(JSON.stringify(ideas)); },
@@ -211,6 +218,7 @@ export function memoryStore({ sizeMb = null } = {}) {
         const pm = packMonths(r.months); // RR-342: the short shape, as on Postgres
         if (!prev || prev.volume !== r.volume || JSON.stringify(prev.months ?? null) !== JSON.stringify(pm ?? null)) obs.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, volume: r.volume, months: pm, period: f.period ?? null });
         fk.set(`${id}|${r.keyword}`, { id, keyword: r.keyword });
+        if (r.bidLow !== null || r.bidHigh !== null) bidsMem.set(`${r.keyword}|${f.location}|${f.language}|${f.day}`, { keyword: r.keyword, location: f.location, language: f.language, day: f.day, low: r.bidLow, high: r.bidHigh }); /* RR-388 A3 */
         if (f.group) { const k = `${f.group}|${r.keyword}|${f.location}`, o = gk.get(k); gk.set(k, { grp: f.group, keyword: r.keyword, location: f.location, last: o && o.last > f.day ? o.last : f.day }); }
       }
       return { duplicate: false, stored: rows.length };

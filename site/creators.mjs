@@ -13,6 +13,7 @@
  *   · The owner's /owner "Creators" tab: the counts, "Collect now", each platform on or off, the niches and the countries to add or remove.
  *   · The website's checker and the app read it (creatorFor) when there is some.
  */
+import { collectorsCapOf, collectorsSpentToday } from "./collectors-day.mjs"; // RR-388 B
 import { askAi, aiConfigured } from "./cf-ai.mjs";
 import { locationOf } from "./kw-seeds.mjs";
 
@@ -110,7 +111,7 @@ export async function youtubeTop({ niche, country, env, fetchImpl = fetch }) {
  * at a time (a lock in the shared store). → { ok, day, saved, calls, youtube, aiUsd, ytUnits, stoppedBy, why, left }
  * `store` the keyword store (creatorDays, saveCreatorResearch); `kv` the shared store (the day's dollars, YouTube units, the lock).
  */
-export async function runCreatorResearch({ store, kv, env = process.env, now = () => Date.now(), budgetMs = 120000, ai = askAi, fetchImpl = fetch, settings }) {
+export async function runCreatorResearch({ store, kv, seo = null, cf = null, env = process.env, now = () => Date.now(), budgetMs = 120000, ai = askAi, fetchImpl = fetch, settings }) {
   const start = now(), day = new Date(start).toISOString().slice(0, 10), out = { ok: true, day, saved: 0, calls: 0, youtube: 0, aiUsd: 0, ytUnits: 0, stoppedBy: null, why: null, left: 0 };
   if (!aiConfigured(env) && ai === askAi) return { ...out, ok: false, stoppedBy: "NO_AI_KEY", why: "ANTHROPIC_API_KEY is not set in Vercel — the creator research cannot run." };
   const id = `${start}-${Math.random().toString(36).slice(2)}`;
@@ -120,10 +121,12 @@ export async function runCreatorResearch({ store, kv, env = process.env, now = (
     const cap = aiUsdCapOf(env), ytCap = ytUnitsOf(env), yt = ytConfigured(env);
     const [usd0, units0] = await kv.run([["GET", CREATORS.usdKey(day)], ["GET", CREATORS.ytKey(day)]]);
     let spent = Number(usd0 ?? 0) / 1e6, units = Number(units0 ?? 0);
+    const others = await collectorsSpentToday({ seo, cf, kv, today: day }).then((d) => d.total - d.creators).catch(() => 0); /* RR-388 B: every other collector's money today */
     const batches = dueBatches(settings, await store.creatorDays(), day);
     let i = 0;
     for (; i < batches.length; i++) {
       if (now() - start > budgetMs) { out.stoppedBy = "TIME"; out.why = "This run's time is used — the next run continues."; break; }
+      if (others + spent + CREATORS.aiUsdPerCallMax > collectorsCapOf(env)) { out.stoppedBy = "AI_BUDGET"; out.why = `Today's cap for all collectors together ($${collectorsCapOf(env)}) is reached — it goes on tomorrow.`; break; } /* RR-388 B */
       if (spent + CREATORS.aiUsdPerCallMax > cap) { out.stoppedBy = "AI_BUDGET"; out.why = `Today's creator research budget ($${cap.toFixed(2)}) is used — it goes on tomorrow.`; break; }
       const b = batches[i], list = b.locations.map((c) => `${c} = ${locationOf(c)?.name ?? c}`).join("; ");
       const r = await ai({ env, fetchImpl, system: SYSTEM(b.platform), schema: SCHEMA, search: true, maxSearches: CREATORS.searches, maxTokens: 8000, timeoutMs: 150000,

@@ -99,7 +99,9 @@ test("6 · ONE $2 A DAY FOR ALL COLLECTORS (the AI collectors' money counts), th
   const s2 = seoMemoryStore(); await s2.addSpend(TODAY, "dfs-a2", { usd: 2, units: 1 }); await s2.addSpend(TODAY, "top-pages", { usd: 3, units: 1 }); assert.equal((await topPagesBudget({ seo: s2, env: {} })).spent, 5);
   const read = (f) => readFileSync(new URL(`../site/${f}`, import.meta.url), "utf8");
   assert.match(read("cf-collector.mjs"), /spent\.aiUsd \+ otherUsd \+ out\.aiUsd/); assert.match(read("answers-collector.mjs"), /spent0 \+ otherUsd \+ out\.usd/); assert.match(read("top-pages.mjs"), /cfAiToday \+ spent\.usd \+ out\.cost \+ price > collectorsCap/);
-  assert.match(read("app.mjs"), /otherUsd: seo \? \(await dfsMoney\(seo/); assert.match(read("app.mjs"), /runAnswers\(\{ seo, cf, kv, otherUsd: \(await dfsMoney\(seo/);
+  assert.match(read("app.mjs"), /otherUsd: await collectorsSpentToday\(\{ seo, cf: null, kv,/); assert.match(read("app.mjs"), /runAnswers\(\{ seo, cf, kv, otherUsd: await collectorsSpentToday/);
+  assert.match(read("research-collector.mjs"), /\(await collectorsSpentToday\(\{ seo, cf, kv, today \}\)\)\.total \+ RESEARCH\.reserveUsd > collectorsCapOf\(env\)/); assert.match(read("creators.mjs"), /others \+ spent \+ CREATORS\.aiUsdPerCallMax > collectorsCapOf\(env\)/);
+  assert.match(read("app.mjs"), /runResearch\(\{ seo, cf, kv, env, now \}\)/); assert.match(read("app.mjs"), /runCreatorResearch\(\{ store: db, kv, seo, cf, env, now,/);
 });
 
 test("7 · THE BALANCE: read from DataForSEO's own account call (free) before buying; low → kept, and the owner's Issues list says so once", async () => {

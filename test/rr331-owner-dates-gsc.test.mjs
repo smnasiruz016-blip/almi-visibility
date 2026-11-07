@@ -122,8 +122,8 @@ test("C · RR-331: Search Console, read only — our almiworld.com sites only; a
   assert.equal((await kw.keywordsAt({ location: "PK", language: "en" })).length, 0, "never mixed with Google Ads' figures");
   assert.equal((await kw.keywordsAt({ location: "ALL", language: "gsc" })).length, 1, "a search with no country → all locations");
   assert.match(JSON.parse(K.m.get("av:gsc:last")).period, /^Search Console impressions, 2026-09-27\.\.2026-10-24$/);
-  const before = G.calls.length, skip = await runSearchConsole({ env: GENV, kv: K.kv, kwStore: kw, cfStore: cf, fetchImpl: G.fetchImpl, now: () => T0 + 864e5 });
-  assert.equal(skip.skipped, true); assert.equal(G.calls.length, before, "once a week");
+  const before = G.calls.length, skip = await runSearchConsole({ env: GENV, kv: K.kv, kwStore: kw, cfStore: cf, fetchImpl: G.fetchImpl, now: () => T0 + 3600e3 });
+  assert.equal(skip.skipped, true); assert.equal(G.calls.length, before, "once a day (RR-388 B; was once a week)"); const next = await runSearchConsole({ env: GENV, kv: K.kv, kwStore: kw, cfStore: cf, fetchImpl: G.fetchImpl, now: () => T0 + 864e5 }); assert.notEqual(next.skipped, true, "the next day reads again");
   const noScope = await runSearchConsole({ env: GENV, kwStore: kw, cfStore: cf, fetchImpl: fakeGoogle({ scope: "https://www.googleapis.com/auth/adwords" }).fetchImpl, now: () => T0 });
   assert.match(noScope.why, /no Search Console access yet — run the sign-in script again/);
   assert.match((await runSearchConsole({ env: GENV, fetchImpl: fakeGoogle({ status: 403 }).fetchImpl, now: () => T0 })).why, /refused \(403\)/);

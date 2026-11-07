@@ -16,12 +16,12 @@
  */
 import { randomBytes } from "node:crypto";
 import { ENV_NAMES, topPagesCaps } from "./almiseo.mjs";
+import { collectorsCapOf, collectorsSpentToday } from "./collectors-day.mjs";
 
 export const DFS_LIVE = "https://api.dataforseo.com/v3", DFS_SANDBOX = "https://sandbox.dataforseo.com/v3";
 export const DFS = Object.freeze({ balanceLowUsd: 5, balance: "dfs-balance", switches: "dfs-switches", pending: "dfs-pending", done: "dfs-done", last: "dfs-last-run", sandboxEnv: "ALMISEO_DATAFORSEO_SANDBOX", lockSeconds: 290, perDayUsd: 0.35, budgetMs: 240000 });
 export const PRICE_MAX_DAYS = 90;
-/** the one daily cap of ALL collectors together (the AI collectors' existing cap) */
-export const collectorsCapOf = (env = process.env) => (Number(env.COUNTRY_FACTS_AI_USD_PER_DAY) > 0 ? Number(env.COUNTRY_FACTS_AI_USD_PER_DAY) : 2);
+export { collectorsCapOf } from "./collectors-day.mjs"; /* the one daily cap of ALL collectors together */
 export const isOn = (sw, id) => sw?.[id] !== false; /* ON unless the owner turned it off */
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10), daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
@@ -137,7 +137,7 @@ export async function runDfs({ seo, cf = null, kv = null, env = process.env, fet
   try {
     const base = sandbox ? DFS_SANDBOX : DFS_LIVE, auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
     const call = async (path, body, method = "POST") => { try { const r = await fetchImpl(`${base}${path}`, { method, headers: { authorization: auth, "content-type": "application/json" }, ...(method === "POST" ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(60000) }); return await r.json().catch(() => ({ status_code: r.status })); } catch { return null; } };
-    const caps = topPagesCaps(env), collectorsCap = collectorsCapOf(env), otherToday = cf ? Number((await cf.spend(today).catch(() => ({ aiUsd: 0 }))).aiUsd ?? 0) : 0, money = await dfsMoney(seo, today), done = (await seo.setting(DFS.done).catch(() => null)) ?? {}, pending = (await seo.setting(DFS.pending).catch(() => null)) ?? {};
+    const caps = topPagesCaps(env), collectorsCap = collectorsCapOf(env), otherToday = await collectorsSpentToday({ seo, cf, kv, today }).then((d) => r4(d.total - d.dataforseo)) /* every other collector's money today */, money = await dfsMoney(seo, today), done = (await seo.setting(DFS.done).catch(() => null)) ?? {}, pending = (await seo.setting(DFS.pending).catch(() => null)) ?? {};
     /* the prepaid balance, from DataForSEO's own account call (free: docs.dataforseo.com/v3/appendix/user_data); low → kept for the Issues list, once */
     let balance = null; if (!sandbox) { const u = await call("/appendix/user_data", null, "GET"); const b = Number(u?.tasks?.[0]?.result?.[0]?.money?.balance); if (Number.isFinite(b)) { balance = b; out.balance = b; const was = (await seo.setting(DFS.balance).catch(() => null)) ?? {}; await seo.setSetting(DFS.balance, { on: at, balance: b, low: b < DFS.balanceLowUsd, lowSince: b < DFS.balanceLowUsd ? (was.lowSince ?? at) : null }, { at }).catch(() => null); } }
     const all = topics ?? (await seo.topics().catch(() => [])), lists = {}; for (const t of all) if (t.owner === "almiworld") lists[t.id] = await seo.lists(t.id).catch(() => []);

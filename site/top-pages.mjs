@@ -21,7 +21,7 @@ import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPages
 import { generalTopics, GENERAL_OFF } from "./more-collectors.mjs"; // RR-380
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
-import { collectorsCapOf } from "./dfs-collectors.mjs"; // RR-388 B
+import { collectorsCapOf, collectorsSpentToday } from "./collectors-day.mjs"; // RR-388 B
 import { byMeaning, twinOf, meaningKey } from "../desktop/search-meaning.mjs"; // RR-370 item 11
 import { readFailures, hostOf } from "../desktop/read-failures.mjs"; // RR-369b item 5
 
@@ -61,7 +61,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (!topPagesConnected(env)) return { ok: false, day: today, why: `The top-pages collector is off (${ENV_NAMES.topPagesOn}, ${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}) — the owner's decision.` };
   if (kv) { const [locked] = await kv.run([["SET", "av:tp:lock", id, "NX", "EX", TOP_PAGES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another top-pages run is working — this one did nothing." }; }
-  const caps = topPagesCaps(env), spent = await sharedToday(seo, today) /* RR-388 B2: the $1 a day is shared with the ten DataForSEO collectors */, cfAiToday = cf ? Number((await cf.spend(today).catch(() => ({ aiUsd: 0 }))).aiUsd ?? 0) : 0, collectorsCap = collectorsCapOf(env) /* RR-388 B: one $2 a day for every collector */, readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
+  const caps = topPagesCaps(env), spent = await sharedToday(seo, today) /* RR-388 B2: the $1 a day is shared with the ten DataForSEO collectors */, cfAiToday = await collectorsSpentToday({ seo, cf, kv, today }).then((d) => d.total - d.dataforseo) /* every other collector's money today */, collectorsCap = collectorsCapOf(env) /* RR-388 B: one $2 a day for every collector */, readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
   const auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
   const reads0 = reader.requests();
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; };

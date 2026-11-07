@@ -55,11 +55,12 @@ export function intentsOf({ topic, facts }) {
 /** one run. → { ok, day, searches, cost, reads, lists, coverage, stoppedBy, why } */
 /* 🔴 RR-366 Part 7: the Standard queue. A list is posted and paid once; its task id is kept (kv) until its answer is collected, free, by this run or the next: never paid twice. Each top page's blocks through On-Page parsing, once, kept in tp_page; a page it cannot read goes to the polite reader as before */
 const PENDING_KEY = "av:tp:pending";
+const sharedToday = async (seo, today) => { const own = await seo.spend(today, TOP_PAGES_JOB), rows = (await seo.spendSince?.(today).catch(() => [])) ?? []; return { usd: own.usd + rows.filter((r) => r.day === today && String(r.job).startsWith("dfs-")).reduce((t, r) => t + (Number(r.usd) || 0), 0), units: own.units }; };
 export async function runTopPages({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, now = () => Date.now(), budgetMs = TOP_PAGES.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), pollMs = QUEUE.everyMs }) {
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (!topPagesConnected(env)) return { ok: false, day: today, why: `The top-pages collector is off (${ENV_NAMES.topPagesOn}, ${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}) — the owner's decision.` };
   if (kv) { const [locked] = await kv.run([["SET", "av:tp:lock", id, "NX", "EX", TOP_PAGES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another top-pages run is working — this one did nothing." }; }
-  const caps = topPagesCaps(env), spent = await seo.spend(today, TOP_PAGES_JOB), readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
+  const caps = topPagesCaps(env), spent = await sharedToday(seo, today) /* RR-388 B2: the $1 a day is shared with the ten DataForSEO collectors */, readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
   const auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
   const reads0 = reader.requests();
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; };

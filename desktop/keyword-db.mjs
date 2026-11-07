@@ -45,7 +45,7 @@ export function mergeObservations(db0, file, rows) {
     const k = keyOf(r.text); if (!k) continue;
     if (inFile.has(k)) { dupInFile++; continue; } inFile.add(k);
     const range = rangeOf(r.said);
-    const o = { period: file.period ?? null, location, source, said: r.said ?? null, low: range?.low ?? null, high: range?.high ?? null, label: range?.label ?? null, months: r.months ?? null, change3m: r.change3m ?? null, yoy: r.yoy ?? null, competition: r.competition ?? null, on, at: file.at ?? on, file: file.id };
+    const o = { period: file.period ?? null, location, source, said: r.said ?? null, low: range?.low ?? null, high: range?.high ?? null, label: range?.label ?? null, months: r.months ?? null, change3m: r.change3m ?? null, yoy: r.yoy ?? null, competition: r.competition ?? null, bidLow: r.bidLow ?? null, bidHigh: r.bidHigh ?? null /* RR-388 A3: Keyword Planner's top-of-page bids (the Ads account's currency) */, on, at: file.at ?? on, file: file.id };
     const kw = db.keywords[k];
     if (!kw) { db.keywords[k] = { text: String(r.text).trim(), firstSeen: on, lastSeen: on, files: [file.id], now: { [obsKey(o)]: o }, history: [] }; added++; continue; }
     merged++; kw.files.push(file.id); if (on < kw.firstSeen) kw.firstSeen = on; if (on > kw.lastSeen) kw.lastSeen = on;

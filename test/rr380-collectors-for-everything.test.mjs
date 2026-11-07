@@ -89,9 +89,9 @@ test("GENERAL MARKET DATA: the seed list's categories and YouTube niches become 
 });
 
 test("CRONS + HEALTH + SONNET: three new crons behind CRON_SECRET, on the health page; every collector asks Sonnet", () => {
-  assert.deepEqual([...new Set(MC_CRONS.map((c) => c.path))], ["/cron/places", "/cron/rules", "/cron/trends", /* RR-382 */ "/cron/lists", /* RR-387 C */ "/cron/whois", /* RR-388 B2 */ "/cron/dfs"]);
+  assert.deepEqual([...new Set(MC_CRONS.map((c) => c.path))], ["/cron/places", "/cron/rules", "/cron/trends", /* RR-382 */ "/cron/lists", /* RR-387 C */ "/cron/whois", /* RR-389 Part 4 */ "/cron/news", "/cron/jobs", /* RR-388 B2 */ "/cron/dfs"]);
   for (const p of ["/cron/places", "/cron/rules", "/cron/trends", "/cron/lists", "/cron/whois"]) assert.equal(MC_CRONS.filter((c) => c.path === p).length, 2, `${p}: twice a day (RR-388 B: free collectors)`); for (const c of MC_CRONS) assert.ok(VERCEL_JSON_LITE.crons.some((x) => x.path === c.path && x.schedule === c.schedule));
-  const app = readFileSync(join(REPO, "site", "app.mjs"), "utf8"); assert.match(app, /"\/cron\/places" \|\| u\.pathname === "\/cron\/rules" \|\| u\.pathname === "\/cron\/trends" \|\| u\.pathname === "\/cron\/lists" \|\| u\.pathname === "\/cron\/whois" \|\| u\.pathname === "\/cron\/dfs"\)\) \{\n\s+if \(!cronAuth\(\)\)/);
+  const app = readFileSync(join(REPO, "site", "app.mjs"), "utf8"); assert.match(app, /"\/cron\/places" \|\| u\.pathname === "\/cron\/rules" \|\| u\.pathname === "\/cron\/trends" \|\| u\.pathname === "\/cron\/lists" \|\| u\.pathname === "\/cron\/whois" \|\| u\.pathname === "\/cron\/dfs" \|\| u\.pathname === "\/cron\/news" \|\| u\.pathname === "\/cron\/jobs"\)\) \{\n\s+if \(!cronAuth\(\)\)/); /* RR-389 Part 4 */
   for (const k of ["places", "rules", "trends"]) assert.ok(COLLECTORS[k]);
   assert.equal(CF_AI.model, "claude-sonnet-5-5"); assert.equal(CF_AI.price.inPerM, 2);
 });

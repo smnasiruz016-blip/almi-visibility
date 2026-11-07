@@ -36,7 +36,9 @@ import { SOCIAL_NETWORKS, socialFrom, socialShare, AUTO_POST_LINE } from "./soci
 import { readSite, readShell, addressOpens, USER_AGENT } from "./site-read.mjs";
 import { scoreCard, foundInfo, fixForMe } from "./product-check.mjs";
 import { googleConnect, importExport } from "./google-connect.mjs";
-import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./seo-pages.mjs";
+import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook, answersFromSite } from "./seo-pages.mjs";
+import { demandPlanPages } from "./demand-plan.mjs"; // RR-389 Part 1
+import { setupSteps, refusalFix } from "./setup-guide.mjs"; // RR-389 Part 5
 import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 item 1c
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
@@ -326,7 +328,7 @@ async function mirrorTarget(id, conn, { dry = false } = {}) {
   const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, testBase = CONFIG.testPublishBase ?? null;
   let out;
   if (conn.kind === "github") {
-    const f = await githubFolderPages({ target: conn, key: token, allowLocal, testBase });
+    const f = await githubFolderPages({ target: conn, key: token, allowLocal, testBase }); branchMadeNote(id, f.branchMade);
     if (!f.ok) out = { ok: false, why: `The site's folder could not be read, so nothing older was removed: ${f.why}` };
     else if (f.truncated) out = { ok: false, why: "GitHub listed only part of the folder, so nothing older was removed." };
     else {
@@ -411,7 +413,7 @@ async function publishAll(id) {
         for (let i = 0; i < send.length && !stop; i += PUBLISH_GROUP) {
           if (PUB_STOP.has(id)) { stopped = true; break; }
           const group = send.slice(i, i + PUBLISH_GROUP); BOARD.step(key, { what: `Sending ${group.length} pages to GitHub as one commit` });
-          const r = await publishPagesGithub({ drafts: group, target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null });
+          const r = await publishPagesGithub({ drafts: group, target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null }); branchMadeNote(id, r.branchMade);
           if (r.ok) { publishLog(id, r.pages); const byPage = new Map(group.map((d) => [d.url, d])); saved(r.pages.map((o) => [byPage.get(o.url), o]), conn, made); BOARD.step(key, { add: group.length }); pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: true, written, of: N }); }
           else if (stopsTheRun(r)) { stop = r; publishLog(id, r.paths.map((p) => ({ ...p, ok: false, status: r.status, message: r.message, why: r.why }))); }
           /* one page in the group is refused (GitHub's secret protection, say): one at a time, so each says for itself */
@@ -524,7 +526,7 @@ async function scanFor(id, origin, { preview = false, head = null } = {}) {
   else if (preview && bypass) { fetchImpl = (u, i) => fetch(u, { ...i, headers: { ...(i?.headers ?? {}), "x-vercel-protection-bypass": bypass, "x-vercel-set-bypass-cookie": "false" } }); }
   else if (preview && conn?.kind === "github" && live) {
     /* no bypass: the pages as they will go live = the branch's own files; robots, sitemaps and the site's own pages = the live site */
-    const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, f = await githubFolderPages({ target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null });
+    const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, f = await githubFolderPages({ target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null }); branchMadeNote(id, f.branchMade);
     if (!f.ok) return { ok: false, why: `The preview's files could not be read: ${f.why}`, rows: [] };
     at = live; through = "the preview read from the branch's own files (Vercel's protection is on: add the bypass secret to scan the preview itself)";
     fetchImpl = async (u, i) => { let p; try { p = new URL(u); } catch { return fetch(u, i); } const slug = p.pathname.replace(/^\/+|\/+$/g, ""); if (p.origin === live && slug && !slug.includes("/") && f.held.has(slug)) { const sha = f.shas.get(f.held.get(slug)), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase: CONFIG.testPublishBase ?? null }).catch(() => null) : null; if (text != null) return new Response(text, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }); } return fetch(u.replace(/^https?:\/\/[^/]+/, live), i); };
@@ -647,13 +649,24 @@ function handRead(id, u) { const h = pread(id, HAND_READ, {})[u]; if (!h?.text |
 const KNOWN = (() => { try { return JSON.parse(readFileSync(new URL("./lists/known-answers.json", import.meta.url), "utf8")).rows ?? []; } catch { return []; } })();
 function addKnownAnswers(plan) { let n = 0; for (const p of plan.pages ?? []) { const rows = KNOWN.filter((r) => r.title === p.title); if (!rows.length) continue; const have = new Set((p.items ?? []).map((it) => String(it.question).toLowerCase())); for (const [i, r] of rows.entries()) { if (have.has(r.question.toLowerCase())) continue; (p.items ??= []).push({ part: `known${i}`, question: r.question, claims: [{ claimId: `known-${p.title}-${i}`.replace(/\s+/g, "-"), text: r.text, link: r.link, readOn: r.on, source: r.source, official: true, body: /TruMerit/.test(r.source) ? "TruMerit" : "OET", filled: true, judgedOn: r.on }] }); n++; } } return n; }
 /* 🔴 RR-387 PART D · ONE Issues list per product (desktop/issues.mjs), from everything the app holds; kept with its dates; a fault only code can fix gets its bug report file */
+/* 🔴 RR-389 PART 5.2: the guided setup, from what the product holds now */
+function setupGuideOf(id) {
+  const s = store.read(id), sc = searchConsoleOf(id), ap = apRead(id), pub = pread(id, "publish.json", null);
+  return setupSteps({ site: s.product?.site ?? null, checked: Boolean(pread(id, "check.json", null)), searchConsole: sc?.kind === "CONNECTED", bing: Boolean(pread(id, "bing.json", null)) /* Bing read once with the saved key (a key Bing refused is not "connected") */, publishKind: pub?.kind ?? null, publishTested: pread(id, "publish-test.json", null)?.ok === true || (pub?.kind && pub.kind !== "github"), subject: productSubject(s), cta: ctaOf(s), research: pread(id, "owner-research.json", []).length > 0 || Boolean(pread(id, FACTS_FILE, null)), autopilot: ap.mode === MODES.AUTO, server: ap.server?.on === true });
+}
+/* 🔴 RR-389 PART 3.1: a preview branch the app made again, kept once for the Issues list */
+function branchMadeNote(id, made) { if (made?.created) pwrite(id, "branch-made.json", { on: new Date().toISOString(), branch: made.branch ?? null, from: made.from ?? null }); }
+/* 🔴 RR-389 PART 5.6: a token's expiry date as its service names it (never the token): kept per product, warned 7 days before */
+const EXPIRIES_FILE = "key-expiries.json";
+function keepExpiry(id, name, expires, { where = "Settings", fix = null } = {}) { const list = pread(id, EXPIRIES_FILE, []).filter((x) => x.name !== name); if (expires && Number.isFinite(Date.parse(expires))) list.push({ name, expires: new Date(Date.parse(expires)).toISOString(), where, fix, seen: new Date().toISOString() }); pwrite(id, EXPIRIES_FILE, list); }
 async function issuesNow(id, { fresh = false } = {}) {
   const pages = preadMemo(id, "pages.json"), recs = pread(id, "published.json", []), norm = (u) => String(u).replace(/\/+$/, "");
   const appPages = new Set(recs.filter((x) => x.state === "PREVIEW" || x.state === "LIVE").map((x) => norm(x.url)).concat((pages?.drafts ?? []).filter((d) => !d.improve && recs.some((r) => r.url === d.url && (r.state === "PREVIEW" || r.state === "LIVE"))).map((d) => norm(d.url))));
   const scan = fresh ? await scanFor(id, null, { preview: false }).catch(() => pread(id, SCAN_FILE, null)) : pread(id, SCAN_FILE, null);
   const st = GOOGLE.status(), sc = searchConsoleOf(id), counts = await pageCounts(id, { fresh }).catch(() => null), ap = apRead(id), cost = ap.mode === MODES.AUTO ? costPlan(apEstimate(id), apBudget().left) : null;
   const inx = pread(id, "indexnow.json", null), qa = pread(id, "qa-run.json", null), truth = pread(id, TRUTH_RUN, null);
-  const found = findIssues({ scan, appPages, counts, google: { connected: sc?.kind === "CONNECTED", signedIn: st.signedIn, lastError: st.lastError, signin: gsRead() }, truthRun: truth ? { unread: truth.unread ?? 0, failed: truth.failed ?? 0 } : null, rejudge: { ...REJUDGE, done: Boolean(pread(id, REJUDGE.file, null)?.done) }, dfsBalance: pread(id, "collectors-status.json", null)?.dfs ?? null /* RR-388 B: owner only (pulled only with the owner's licence) */, ownPages: (() => { const o = ownPlanPages({ site: store.read(id).product?.site ?? null }); return o?.pages.length ? { count: o.pages.length, publishSet: Boolean(pread(id, "publish.json", null)?.kind) } : null; })() /* RR-388 A */, ads: { connected: (() => { try { const s = ads().status(); return Boolean((CONFIG.googleAds ?? {}).on) && s.ready === true; } catch { return false; } })() } /* RR-388 A3 */, publishLast: pread(id, PUBLISH_LAST, null), goLive: pread(id, "go-live.json", null), cycle: pread(id, AP_RUNS, []).at(-1) ?? null, budget: apBudget(), nextCycleUsd: cost ? cost.total : undefined, aiWhy: qa?.why ?? null, bing: inx && inx.verified === false ? { why: "the IndexNow key file was not found on your site", status: 403 } : null });
+  const found = findIssues({ scan, appPages, counts, google: { connected: sc?.kind === "CONNECTED", signedIn: st.signedIn, lastError: st.lastError, signin: gsRead() }, truthRun: truth ? { unread: truth.unread ?? 0, failed: truth.failed ?? 0 } : null, rejudge: { ...REJUDGE, done: Boolean(pread(id, REJUDGE.file, null)?.done) }, dfsBalance: pread(id, "collectors-status.json", null)?.dfs ?? null /* RR-388 B: owner only (pulled only with the owner's licence) */, ownPages: (() => { const o = ownPlanPages({ site: store.read(id).product?.site ?? null }); return o?.pages.length ? { count: o.pages.length, publishSet: Boolean(pread(id, "publish.json", null)?.kind) } : null; })() /* RR-388 A */, ads: { connected: (() => { try { const s = ads().status(); return Boolean((CONFIG.googleAds ?? {}).on) && s.ready === true; } catch { return false; } })() } /* RR-388 A3 */, publishLast: pread(id, PUBLISH_LAST, null), goLive: pread(id, "go-live.json", null), cycle: pread(id, AP_RUNS, []).at(-1) ?? null, budget: apBudget(), nextCycleUsd: cost ? cost.total : undefined, aiWhy: qa?.why ?? null, bing: inx && inx.verified === false ? { why: "the IndexNow key file was not found on your site", status: 403 } : null,
+    /* RR-389 Parts 3 and 5 */ branchMade: pread(id, "branch-made.json", null), news: pread(id, "collectors-status.json", null)?.news ?? null, autopilot: { on: ap.mode === MODES.AUTO, server: ap.server?.on === true }, cta: store.read(id).setup?.product?.cta ?? null, expiries: pread(id, EXPIRIES_FILE, []), now: new Date().toISOString() });
   const list = issuesMerge(pread(id, ISSUES_FILE, []), found); pwrite(id, ISSUES_FILE, list);
   /* D4: a fault only code can fix → its bug report, once */
   const made = pread(id, "issues-bugs.json", {}); let n = Object.keys(made).length;
@@ -683,7 +696,7 @@ const withFactsFile = (id, cfs) => { const out = { ...cfs }; for (const [c, x] o
 /* RR-319: once the client made pages from "How many pages", THAT plan is the page list everywhere (one page per different answer) */
 /* RR-354: else the exam plan Create SEO pages made by itself (auto-plan.json: profession pages, country pages, topics) — the same plan every call reads */
 /* RR-359: the exam plan only for the subject it was made for (a plan made under another subject — or under a guessed one — is not this product's) */
-const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */ || a.fromOwnList === true /* RR-388 A */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
+const autoPlanOf = (id) => { const a = pread(id, "auto-plan.json", null), s = store.read(id); return a?.pages?.length && (examProduct(s, id) || a.fromAlmiSeo === true /* RR-360 */ || a.fromOwnList === true /* RR-388 A */ || a.fromDemand === true /* RR-389 Part 1 */) && String(a.subject ?? seedOf(s)).toLowerCase() === String(seedOf(s)).toLowerCase() ? a : null; };
 const madePlanOf = (id) => { const p = pread(id, "made-plan.json", null)?.length ? pread(id, "made-plan.json", null) : autoPlanOf(id)?.pages; return p?.length ? { pagePlan: p, max: p.length } : {}; };
 const counting = new Map(), countProgress = new Map(); // product id → a running count, and what it reads now
 const plannedOf = (id) => pread(id, "planned.json", []);
@@ -714,6 +727,19 @@ const ownItemsOf = (id) => {
     ...pread(id, "ai-research.json", []).map((x) => ({ text: x.text, source: x.source, weight: 1 })).filter(once),
   ];
 };
+/* 🔴 RR-389 PART 1: what people ask about this product's subject, from every source we hold (never invented), and the searched words that name the pages */
+const askedForDemand = (id) => { const s = store.read(id), subject = seedOf(s), sc = searchConsoleOf(id); return [
+  ...(sc?.queries ?? []).map((q) => ({ text: q.query, source: "your Search Console" })),
+  ...questionItems(preadMemo(id, ALMISEO_FILE), subject),
+  ...[...new Set(Object.values(dfsLedger().serpCache ?? {}).flatMap((v) => v?.paa ?? []))].filter((q) => String(q).toLowerCase().includes(String(subject).toLowerCase())).map((q) => ({ text: q, source: "Google's \"People also ask\"" })),
+  ...pread(id, "ai-research.json", []).map((x) => ({ text: x.text, source: x.source, on: x.on })),
+  ...askedOf(id),
+]; };
+function demandPlanFor(id, site) {
+  const s = store.read(id), subject = seedOf(s); if (!subject) return null;
+  const kw = [...keywordItems(preadMemo(id, ALMISEO_KEYWORDS), subject), ...phraseItems(id)].map((x) => ({ text: x.text, volume: x.volume ?? null }));
+  return demandPlanPages({ subject, productName: s.product?.name ?? null, home: s.product?.site ?? null, research: pread(id, "owner-research.json", []), asked: askedForDemand(id), keywords: kw, ownAnswer: (q) => (site?.ok ? answersFromSite(q, site, 2) : []), local: Boolean(s.setup?.local?.address ?? s.setup?.business?.address) /* a product with a place of its own answers "near me" */ });
+}
 /* every call that makes the drafts judges them by the same data: the coverage a page without a plan was given, and the facts AlmiSEO Data found changed */
 /* RR-363: which country a regulator's name means (the truth check: an answer about the right place) */
 const bodiesOf = (id) => { const seen = new Map(); for (const qs of Object.values(pread(id, "research.json", null)?.questions ?? {})) for (const q of qs) for (const b of [q.regulator, ...(q.also ?? [])].filter(Boolean)) if (b.country && !seen.has(b.name)) seen.set(b.name, { names: [b.short, b.name].filter((n) => n && n.length >= 3), country: b.country }); return [...seen.values()]; };
@@ -783,7 +809,7 @@ async function pullHeldAnswers(id, plan) { if (!currentLicence() || CONFIG.testO
 /** 🔴 RR-375 items 2 + 9: what changed at its source: the pages using it are listed, and rebuilt once in the normal flow. They wait for the owner's publish */
 /** the owner's weekly research report, read from AlmiSEO Data; written to his Research folder when it exists, once a week */
 /** 🔴 RR-380 item 7: the collector page, per product (the owner's only), read once a day from AlmiSEO Data */
-async function pullCollectors(id) { if (!currentLicence()?.owner && !CONFIG.owner) return; const was = pread(id, "collectors-status.json", null), today = new Date().toISOString().slice(0, 10); if (was?.on === today) return; const r = await seoClient().part("collectors", "AlmiWorld").catch(() => null); if (r?.ok && r.products) pwrite(id, "collectors-status.json", { on: today, last: r.last ?? null, money: r.money ?? null, products: r.products }); }
+async function pullCollectors(id) { if (!currentLicence()?.owner && !CONFIG.owner) return; const was = pread(id, "collectors-status.json", null), today = new Date().toISOString().slice(0, 10); if (was?.on === today) return; const r = await seoClient().part("collectors", "AlmiWorld").catch(() => null); if (r?.ok && r.products) pwrite(id, "collectors-status.json", { on: today, last: r.last ?? null, money: r.money ?? null, products: r.products, ...(r.dfs ? { dfs: r.dfs } : {}), news: r.news ?? null /* RR-389 Part 4 */ }); }
 async function pullResearch(id) { if (!currentLicence()?.owner && !CONFIG.owner) return; const was = pread(id, "research-report.json", null), today = new Date().toISOString().slice(0, 10); if (was?.on && (Date.parse(today) - Date.parse(was.on)) / 864e5 < 7) return; const r = await seoClient().part("research", "AlmiWorld").catch(() => null); if (!r?.ok || !r.text) return; pwrite(id, "research-report.json", { on: today, text: r.text, money: r.money ?? null }); const dir = CONFIG.researchFolder ?? "C:\\Projects\\_handoffs\\Research"; try { if (existsSync(dir)) writeFileSync(join(dir, `${today}_research-report.md`), r.text); } catch { /* the Data screen holds it */ } }
 async function pullChangedAnswers(id, subject) { const a = await seoClient().part("answers", subject).catch(() => null); if (!a?.ok) return; pwrite(id, "answers-status.json", { on: new Date().toISOString(), counts: a.counts ?? null, money: a.money ?? null, research: a.research ?? null, last: a.last ?? null, usage: a.usage ?? null }); const today = new Date().toISOString().slice(0, 10), kept = pread(id, FOUND_FILE, {}), { list } = takeChanged({ changed: a.changed ?? {}, kept, list: pread(id, CHANGED_FILE, { rows: {} }), plan: pread(id, "auto-plan.json", null), keyOf: answerKeyOf, today }); if (!Object.keys(list.rows ?? {}).length) return; pwrite(id, FOUND_FILE, kept); /* a change that came during a run still waits: the next read rebuilds it */ if (CONFIG.autoRefresh !== false && !making.has(id) && list.lastAuto !== today && LEDGER.allowed().ok) { list.lastAuto = today; pwrite(id, CHANGED_FILE, list); Promise.resolve().then(() => createPages(id)).catch(() => null); } else pwrite(id, CHANGED_FILE, list); }
 const moneyLines = (id) => { const ai = LEDGER.month(), aiToday = LEDGER.today(), cap = Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD), sd = searchDataView(), s = id ? pread(id, "answers-status.json", null) : null, usage = freeUsage(), month = new Date().toISOString().slice(0, 7), dfsMonth = (dfsLedger().spent ?? []).filter((x) => String(x.on).startsWith(month)).reduce((t, x) => t + (Number(x.cost) || 0), 0), $ = (x, n = 2) => `$${Number(x ?? 0).toFixed(n)}`; return [{ what: "Your AI (the app)", today: $(aiToday.usd), month: $(ai.usd), cap: `${$(cap)} a month` }, (() => { const w = LEDGER.route(AI_SEARCH.route); return { what: "AI web search (the app, inside your AI limit)", today: $(w.today.usd), month: $(w.month.usd), cap: `inside ${$(cap)} a month; ${w.month.searches} searches this month` }; })() /* RR-377 */, { what: "Paid Google search (the app)", today: $(sd.spentToday, 4), month: $(dfsMonth, 4), cap: `${$(sd.capDay)} a day` }, ...(s?.research ? [{ what: "Research collector", today: $(s.research.today), month: $(s.research.month), cap: `${$(s.research.cap)} a day` }] : []), ...(s?.money ? [{ what: "AI (the collectors)", today: $(s.money.collectorsAi.today), month: $(s.money.collectorsAi.month), cap: `${$(s.money.collectorsAi.cap)} a day` }, { what: "Paid Google search (the collectors)", today: $(s.money.dataForSeo.today, 4), month: $(s.money.dataForSeo.month, 4), cap: `${$(s.money.dataForSeo.capDay)} a day, ${$(s.money.dataForSeo.capTotal)} in total (${$(s.money.dataForSeo.total)} used)` }] : []), ...allowanceRows(usage, (n) => KEYS.status(n).saved).map((p) => ({ what: `${p.name} (free)`, today: "free", month: `${p.used} used`, cap: `stops at ${p.limit} a month${p.saved ? "" : ", no key yet"}${p.stopped ? `; stopped: ${p.stopped}` : ""}` })), ...JOBS_RUN().moneyLines() /* RR-379 */, ...["aso", "local", "ctr", "aiv"].map((r) => { const x = LEDGER.route(r); return { what: `${{ aso: "App stores", local: "Local SEO", ctr: "Click-rate fixes", aiv: "AI search visibility (Claude)" }[r]} — AI writing`, today: $(x.today.usd), month: $(x.month.usd), cap: `inside ${$(cap)} a month` }; })]; };
@@ -897,10 +923,12 @@ async function gatherOwnDemand(id) {
    * countries — asked once a day, kept in country-facts.json, read by the plan beside the owner's facts file */
   if (examProduct(s, id) && !seoRead && !outsideClient()) { const cfx = await countryFactsForPlan({ service: currentLicence() ? kwService() : null, cache: { load: () => pread(id, "country-facts.json", null), save: (v) => pwrite(id, "country-facts.json", v) }, countries: examCountriesOf(id) }).catch(() => ({ line: "AlmiWorld country facts: not reachable just now" })); lines.push(cfx.line); }
   const sc = searchConsoleOf(id);
-  if (!ownItemsOf(id).length && !(sc?.queries ?? []).length && !plannedOf(id).length) {
+  /* 🔴 RR-389 PART 1.2: "0 question groups" never stays 0 for a product with a subject: a product that is not an exam, with no question anyone asked held, gets its AI's research of what people ask at once (kept 30 days) */
+  const noQuestions = () => !examProduct(s, id) && subject && !askedForDemand(id).some((x) => /\?\s*$|^(?:how|what|why|which|where|when|who|is|are|can|does|do|should)\b/i.test(String(x.text ?? "").trim())) && !((Date.now() - Date.parse(pread(id, "ai-research.json", [])[0]?.on ?? 0)) / 864e5 < 30);
+  if ((!ownItemsOf(id).length && !(sc?.queries ?? []).length && !plannedOf(id).length) || noQuestions()) {
     const ai = aiOf(s);
     if (ai && LEDGER.allowed().ok) {
-      const a = await researchQuestionsAI({ ...ai, subject: subject ?? s.product?.name ?? "", what: s.setup?.official?.description ?? s.setup?.product?.what ?? "", countries: [], professions: [], ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }).catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 120) }));
+      const a = await researchQuestionsAI({ ...ai, subject: subject ?? s.product?.name ?? "", what: s.setup?.official?.description ?? s.setup?.product?.what ?? "", countries: [], professions: [], exam: examProduct(s, id), ...(CONFIG.aiApiBase ? { base: CONFIG.aiApiBase } : {}) }).catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 120) }));
       if (a.usage) LEDGER.add(a.usage);
       const on = new Date().toISOString().slice(0, 10);
       if (a.ok && a.questions?.length) pwrite(id, "ai-research.json", a.questions.map((q) => ({ text: q, source: `your AI's research (${on}) — an AI estimate, not search data`, on })));
@@ -1424,7 +1452,9 @@ async function makePages(id, key) {
   /* 🔴 RR-388 PART A: a product with its own subject pages (lists/own-pages.json, by its site): those pages, judged before they were listed */
   const buildOwn = () => { const x = ownPlanPages({ site: site?.origin ?? s.product?.site ?? null }); if (!x?.pages.length) return null; savePlan(id, x); return x; };
   const buildGeneric = () => { const f = seoFileOf(id), x = f?.plan?.length ? genericPlanPages({ file: f, subject: seedOf(s) }) : null; if (!x?.pages.length) return null; x.fromAlmiSeo = true; savePlan(id, x); return x; };
-  let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() /* RR-388 A: the product's own subject pages */;
+  /* 🔴 RR-389 PART 1: every other product gets a plan of its own questions, so each goes down the whole ladder (desktop/demand-plan.mjs) */
+  const buildDemand = () => { const x = demandPlanFor(id, site); if (!x?.pages.length) return null; savePlan(id, x); return x; };
+  let exam = handMade ? null : seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) /* RULING 2: the finished pages first */ : examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() ?? buildDemand() /* RR-388 A: the product's own subject pages; RR-389 Part 1: its own questions */;
   /* 🔴 RR-369 Part 2 (owner: "a run can wait up to 15 minutes for Google's queue before pages are made"): PAGES FIRST. The quick pass makes every page from what is in hand: our own data, checked facts, collectors, Google's answers already kept; new searches are posted and kept, nothing waits, no site of the results is read. The pages are shown at once. Then, on its own line on the board, the app collects Google's answers as they come, reads the top results and improves the pages by itself; what comes later still is used on the next run. The client never waits for Google to see pages. (REPLACES RR-368's one wait of 15 minutes) */
   /* no Google to wait for (the switch off, nothing kept): one pass, as before */
   const pagesFirst = CONFIG.testOffline !== true && CONFIG.testWholeRun !== true && (serpSettings().on === true || hasKeptSearch(exam?.pages ?? [])), savedBefore = savedTotal();
@@ -1453,7 +1483,7 @@ async function makePages(id, key) {
     const row = { on: new Date().toISOString(), pairs: Object.keys(verdicts).length, usd: runUsd, why, code, judged: Boolean(key), sources: sources.changed.length, removed: sources.removed.length, log: log.length }; plan.qaLog = log; plan.sourceLog = sources; plan.qaLine = row; if (!quick) pwrite(id, "qa-run.json", row); if (why) BOARD.amend(`make:${id}`, (l) => l.replace("This run is doing that now.", why)) /* 🔴 RR-373 item 7: the first pass's line, once the AI has refused */; };
   const pass = async (quick, step, sayingWhat, clock) => {
     const reading = (name) => step({ add: 1, what: `Reading ${name}'s page` });
-    if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() /* RR-388 A: the product's own subject pages */;
+    if (!quick && pagesFirst && !handMade) exam = seoFileOf(id)?.outside ? buildGeneric() ?? (examProduct(s, id) ? buildExamPlan(id) : null) : examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() ?? buildDemand() /* RR-388 A: the product's own subject pages; RR-389 Part 1: its own questions */;
     /* 🔴 RR-360 D · G5's order for every intent: saved in AlmiSEO Data → your own AI in your own browser → your own paid service, only if you switched it on */
     /* R13: saved in AlmiSEO Data first; then a search this app already made, free; then the client's own paid switch */
     const routeOf = (list) => coverageRoutes({ pages: list, file: seoFileOf(id), forcePaid: Array.isArray(CONFIG.testSerpOnly) ? CONFIG.testSerpOnly : null, browser: pread(id, BROWSER_COVERAGE, {}), paidOn: serpSettings().on === true || hasKeptSearch(list), paid: (left, askOnly = []) => { step({ done: 0, of: left.length, unit: "pages", what: quick ? "Asking Google in the background" : "Looking at what Google shows" }); return serpStep(id, { pages: left }, (p, state) => (state === "done" ? step({ add: 1 }) : step({ what: quick ? "Asking Google in the background" : `Looking at what Google shows for ${p.title}` })), sayingWhat, { quick, inHand: pagesFirst, askOnly }).catch((e) => ({ on: false, why: `the search-results step failed: ${String(e?.message ?? e).slice(0, 80)}` })); } });
@@ -1670,7 +1700,8 @@ if (CONFIG.almiSeoSync !== false) setTimeout(() => { syncAll(); setInterval(sync
 
 const server = createServer((req, res) => {
   if (String(req.url).startsWith("/api/")) screenSeenAt = Date.now();
-  const send = (code, obj, type = "application/json") => { res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
+  /* 🔴 RR-389 PART 5.4: every refusal the app sends carries its one fix and the screen for it (desktop/setup-guide.mjs refusalFix) */
+  const send = (code, obj, type = "application/json") => { if (type === "application/json" && obj && typeof obj === "object" && !Array.isArray(obj) && typeof obj.refused === "string" && !obj.fix) { const fix = refusalFix(obj.refused); if (fix) obj = { ...obj, fix }; } res.writeHead(code, { "content-type": type, "cache-control": "no-store" }); res.end(type === "application/json" ? JSON.stringify(obj) : obj); };
   let body = "";
   req.on("data", (c) => { body += c; if (body.length > 6_000_000) req.destroy(); });
   req.on("end", async () => {
@@ -1762,7 +1793,7 @@ const server = createServer((req, res) => {
           if (step === "product" && value && "social" in value) { s.setup.social = socialFrom(value.social ?? {}).links ?? {}; delete value.social; }
           /* RR-359: "What it is about" — the product's own subject, short (e.g. OET); empty = none (Create SEO pages then asks) */
           if (step === "product" && value) { if ("subject" in value) { const t = String(value.subject ?? "").trim(); if (t && subjectProblem(t)) return send(400, { refused: subjectProblem(t) }); if (t) value.subject = t; else delete value.subject; } else if (s.setup?.product?.subject) value.subject = s.setup.product.subject; }
-          if (step === "product" && value) { const typed = "ctaLabel" in value || "ctaHref" in value, c = ctaFrom(value); delete value.ctaLabel; delete value.ctaHref; if (typed ? c.cta : s.setup?.product?.cta) value.cta = typed ? c.cta : s.setup.product.cta; }
+          if (step === "product" && value) { const typed = "ctaLabel" in value || "ctaHref" in value, c = ctaFrom(value); if (typed && c.refused) return send(400, { refused: c.refused, field: "cta" }) /* RR-389 Part 5: a refusal is said, never dropped */; delete value.ctaLabel; delete value.ctaHref; if (typed ? c.cta : s.setup?.product?.cta) value.cta = typed ? c.cta : s.setup.product.cta; }
           /* RR-306 A3: a pasted key goes to Windows' secure store; the product's setup keeps only which key it uses */
           const keep = (name, key) => { if (!String(key ?? "").trim()) return null; const r = KEYS.set(name, key); return r.ok ? null : r.why; };
           if (!value?.skipped && step === "aiConnection" && value.provider) { const p = AI_PROVIDERS.find((x) => x.id === value.provider); const bad = keep(p.keyName, value.key); if (bad) return send(400, { refused: bad }); value = { provider: p.id, keyName: p.keyName }; }
@@ -1775,6 +1806,8 @@ const server = createServer((req, res) => {
           store.write(id, s);
           /* RR-307 A1: a new or changed website is checked at once */
           if (siteChanged && value.site) checkProduct(id).catch(() => {});
+          /* 🔴 RR-389 PART 1.2: a product's questions are gathered as soon as it has a subject (AlmiSEO Data's collectors registered for it, Search Console, its AI's research), never only at the first Create SEO pages */
+          if (step === "product" && productSubject(store.read(id)) && CONFIG.testOffline !== true) gatherOwnDemand(id).catch(() => null);
           return send(200, { ok: true });
         }
         if (req.method === "GET" && m[2] === "views") return send(200, {
@@ -1816,7 +1849,7 @@ const server = createServer((req, res) => {
         }
       }
       /* ── 🔴 RR-386 · AUTOPILOT: the switch, one cycle now (its cost first), the scan ("Check my site now"), the preview's bypass secret ── */
-      { const r = /^\/api\/products\/([^/]+)\/(autopilot|autopilot\/run|autopilot\/secret|autopilot\/server|scan|issues)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(autopilot|autopilot\/run|autopilot\/secret|autopilot\/server|scan|issues|setup-guide)$/.exec(u.pathname);
         if (r && store.list().some((p) => p.id === decodeURIComponent(r[1]))) { const id = decodeURIComponent(r[1]);
           if (r[2] === "autopilot" && req.method === "GET") { await pageCounts(id).catch(() => null); const st = apRead(id), cost = costPlan(apEstimate(id), apBudget().left); return send(200, { state: st, mode: st.mode, busy: AP_BUSY.has(id), cost, budget: apBudget(), cycle: pread(id, "autopilot-cycle.json", null), runs: pread(id, AP_RUNS, []).slice(-10).reverse().map((c) => ({ on: c.on, ok: c.ok, usd: c.usd, where: c.where, steps: c.steps.map((s) => ({ name: s.name, ok: s.ok, line: s.line })) })), weekly: pread(id, AP_WEEKLY, null), scan: pread(id, SCAN_FILE, null), bypassSaved: KEYS.status(vercelBypassName(id)).saved, goLive: pread(id, "go-live.json", null) }); }
           if (r[2] === "autopilot" && req.method === "POST") { const v = json(), mode = v.mode === MODES.AUTO ? MODES.AUTO : MODES.REVIEW, st = apRead(id); pwrite(id, AP_FILE, { ...st, mode, since: mode !== st.mode ? new Date().toISOString() : st.since }); didIt(id, mode === MODES.AUTO ? "Autopilot: on." : "Autopilot: off (Show me first)."); return send(200, { ok: true, mode, line: mode === MODES.AUTO ? "Autopilot is on: once a day the app finds answers, rebuilds, checks, publishes, takes the pages live after the preview passes the scan, tells Google and Bing, and reports — inside your Monthly AI limit. One press turns it off." : "Show me first: nothing goes out until you press it. Autopilot is off." }); }
@@ -1824,6 +1857,7 @@ const server = createServer((req, res) => {
             const p = runAutopilot(id, { approved: v.start === true, where: v.where === "runner" ? "runner" : "app" }).catch((e) => ({ ok: false, line: scrub(e?.message ?? e) })); if (v.wait === true) return send(200, await p); return send(200, { ok: true, started: true, line: "One cycle started: its steps show here as they finish." }); }
           if (r[2] === "autopilot/secret" && req.method === "POST") { const v = json(); if (!String(v.vercelBypass ?? "").trim()) { KEYS.remove(vercelBypassName(id)); return send(200, { ok: true, line: "Removed." }); } const k = KEYS.set(vercelBypassName(id), String(v.vercelBypass).trim()); return send(k.ok ? 200 : 400, k.ok ? { ok: true, line: "Saved: the scan now reads the preview itself, through Vercel's protection. It is never shown again." } : { refused: k.why }); }
           if (r[2] === "scan" && req.method === "GET") return send(200, { scan: pread(id, SCAN_FILE, null) });
+          if (r[2] === "setup-guide" && req.method === "GET") return send(200, setupGuideOf(id)); /* RR-389 Part 5.2 */
           if (r[2] === "issues" && req.method === "GET") { const list = await issuesNow(id, { fresh: u.searchParams.get("fresh") === "1" }).catch((e) => [{ id: "x", what: `The issues list could not be made: ${scrub(e?.message ?? e)}`, where: "Home", who: "A developer", found: new Date().toISOString().slice(0, 10) }]); return send(200, { open: list.filter((x) => !x.fixed), fixed: list.filter((x) => x.fixed).slice(0, 30) }); } /* RR-387 PART D */
           if (r[2] === "scan" && req.method === "POST") { const s = await scanFor(id, null, { preview: false }).catch((e) => ({ ok: false, why: scrub(e?.message ?? e), rows: [] })); return send(200, { scan: s, line: s.why ?? (s.ok ? `Every check passed (${s.crawled} pages read).` : `${s.rows.filter((x) => !x.ok).length} check(s) failed: see the table.`) }); }
           if (r[2] === "autopilot/server") return send(200, await autopilotServer(id, req.method === "POST" ? json() : null));
@@ -2054,8 +2088,9 @@ const server = createServer((req, res) => {
             if (!got.ok) return send(400, { refused: got.refused, skipped: got.skipped ?? [] });
             const next = addFactsFile(pread(id, FACTS_FILE, null), got, { on: new Date().toISOString() });
             pwrite(id, FACTS_FILE, next);
-            didIt(id, `Added the official facts file ${name}: ${got.counts.verified} fact${got.counts.verified === 1 ? "" : "s"} for pages, ${got.counts.check} "check the official page".`);
-            return send(200, { ok: true, line: `${name}: ${got.counts.verified} fact${got.counts.verified === 1 ? "" : "s"} proved on their official page go on your pages; ${got.counts.check} not proved show only "check the official page" with the link${got.counts.skipped ? `; ${got.counts.skipped} skipped` : ""}. Press Create SEO pages again to use them.`, skipped: got.skipped, view: factsFileView(next) });
+            didIt(id, `Added the official facts file ${name}: ${got.counts.verified} fact${got.counts.verified === 1 ? "" : "s"} for pages, ${got.counts.check} not proved yet (hidden).`);
+            /* 🔴 RR-389 Part 2.3 (Q&A LAW 5.2): a fact not proved on its page is hidden, never shown as "check the official page" */
+            return send(200, { ok: true, line: `${name}: ${got.counts.verified} fact${got.counts.verified === 1 ? "" : "s"} proved on their official page go on your pages; ${got.counts.check} not proved yet stay hidden until their page proves them${got.counts.skipped ? `; ${got.counts.skipped} skipped` : ""}. Press Create SEO pages again to use them.`, skipped: got.skipped, view: factsFileView(next) });
           }
           /* A · "Write better with AI" under a website item: its page's fact sheet (and its official answers), the same truth guard as YouTube */
           if (r[2] === "web/write" && req.method === "POST") {
@@ -2419,7 +2454,7 @@ const server = createServer((req, res) => {
               if (done?.written) m.published = done.written; if (m?.ok && (m.rewritten || m.removed || m.refreshed)) didIt(id, `Made the site equal the app: ${m.rewritten} rewritten (noindex), ${m.removed} removed, ${m.refreshed ?? 0} refreshed.`); logLine(DATA, `mirror: ${scrub(JSON.stringify({ ok: m?.ok, rewritten: m?.rewritten, removed: m?.removed, equal: m?.equal }))}`);
               return send(m?.ok ? 200 : 400, m?.ok ? { ...m, line: (m.published ? `${m.published} ready page${m.published === 1 ? "" : "s"} published first. ` : "") + (m.rewritten || m.removed || m.refreshed ? `Your site now equals the app: ${m.kept} kept${m.refreshed ? ` (${m.refreshed} of them written again as they go out now)` : ""}, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "Your site already equals the app — nothing was changed.") } : { refused: m?.why ?? "Nothing was changed." }); }
           }
-          if (r[2] === "publish/test" && req.method === "POST") { if (conn?.kind !== "github") return send(200, { ok: false, rows: [], line: "Test connection checks a GitHub connection." }); const t = await testGithubConnection({ target: conn, key: KEYS.get(keyName), allowLocal, testBase: CONFIG.testPublishBase ?? null }); publishLog(id, t.rows.map((x) => ({ check: x.check, ok: x.ok, status: x.status, message: x.message, why: x.ok ? null : x.line }))); return send(200, t); }
+          if (r[2] === "publish/test" && req.method === "POST") { if (conn?.kind !== "github") return send(200, { ok: false, rows: [], line: "Test connection checks a GitHub connection." }); const t = await testGithubConnection({ target: conn, key: KEYS.get(keyName), allowLocal, testBase: CONFIG.testPublishBase ?? null }); publishLog(id, t.rows.map((x) => ({ check: x.check, ok: x.ok, status: x.status, message: x.message, why: x.ok ? null : x.line }))); pwrite(id, "publish-test.json", { on: new Date().toISOString(), ok: t.ok === true }) /* RR-389 Part 5.2 */; keepExpiry(id, "Your GitHub token", t.expires ?? null, { where: "Publish settings", fix: "make a new GitHub token (Contents and Pull requests: Read and write on your site's repository), paste it under Publish settings and press Test connection" }); return send(200, t); }
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };
             const bad = checkTarget(t, { allowLocal }); if (bad) return send(400, { refused: bad });

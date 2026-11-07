@@ -96,6 +96,8 @@ export function ctaFrom(v = {}) {
   if (!label || !href0) return { refused: "Give the offer button both its words and its link — or leave both empty." };
   if (label.length < 3 || label.length > CTA_MAX) return { refused: `The button's words: 3 to ${CTA_MAX} characters.` };
   if (/[<>]/.test(label)) return { refused: "The button's words cannot hold < or >." };
+  /* 🔴 RR-389 PART 5 (owner's setup, 7 Nov: the words "Get AlmiVisibility, link /pricing, subject SEO" went into the button's words, and its link was the home page): the words are only what the button says */
+  if (/\bhttps?:\/\/|\blink\s*[:/]|\bsubject\b|(?:^|[\s,])\/[a-z]/i.test(label)) return { refused: "The button's words hold only what the button says (for example: Get AlmiVisibility). Put the address in \"The page it opens\" and the subject in \"What it is about\"." }; /* "$12/month" is words; " /pricing" is an address */
   const href = webAddress(href0);
   if (!href || !/^https?:\/\/[^/]+\.[^/]+|^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(href)) return { refused: "The button's link: a full web address (for example https://yoursite.com/signup)." };
   return { cta: { label, href } };

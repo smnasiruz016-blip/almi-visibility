@@ -175,6 +175,6 @@ test("10 · THE APP WIRES IT: ready pages never rewritten noindex; publish-ready
   assert.match(main, /readyUrls = new Set\(\(pages\?\.drafts \?\? \[\]\)\.filter\(\(d\) => d\.readyAsDraft\)\.map\(\(d\) => d\.url\)\)/);
   assert.match(main, /const done = await publishAll\(id\)\.catch/); assert.ok(main.includes("(autopilot|autopilot\\/run|autopilot\\/secret|autopilot\\/server|scan|issues)$/"), "the routes (RR-387: + issues)");
   assert.match(main, /backend: CONFIG\.secretsFromEnvOnly === true \? null :/); assert.match(readFileSync(join(REPO, "desktop", "autopilot-runner.mjs"), "utf8"), /secretsFromEnvOnly: true/);
-  assert.ok(ui.includes('id="apwrap"><summary><b>Autopilot</b>'),"on the Pages tab (four tabs stay four)"); assert.match(ui, /Check my site now/); assert.match(ui, /RR-386 item 1/); assert.match(ui, /RR-386 item 4: one count/);
+  assert.ok(ui.includes('id="apwrap" open><summary><b>Autopilot</b>'),"on the Pages tab (four tabs stay four)"); assert.match(ui, /Check my site now/); assert.match(ui, /RR-386 item 1/); assert.match(ui, /RR-386 item 4: one count/);
   const wf = readFileSync(join(REPO, ".github", "workflows", "autopilot.yml"), "utf8"); assert.match(wf, /secrets\.AUTOPILOT_RUNNER_KEY/); assert.match(wf, /node desktop\/autopilot-runner\.mjs/); assert.doesNotMatch(wf, /pull_request/);
 });

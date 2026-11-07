@@ -132,12 +132,12 @@ test("RR-354 · 2 · the keyword database's searches are search phrases — neve
 });
 
 test("RR-354 · THE APP WIRING: the exam plan is made by Create SEO pages and read by every call; the jobs route; the simple screens", () => {
-  for (const s of [/* RR-356: let — rebuilt in a repair round */ ": examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() /* RR-388 A: the product's own subject pages */;" /* RR-360: a product of any kind; RR-361: an outside client's finished pages come first */, 'pread(id, "auto-plan.json", null)?.pages', 'if (r[2] === "jobs" && req.method === "POST") {', 'if (r[2] === "pages-view" && req.method === "GET") {',
+  for (const s of [/* RR-356: let — rebuilt in a repair round */ ": examProduct(s, id) ? buildExamPlan(id) : buildGeneric() ?? buildOwn() ?? buildDemand() /* RR-388 A: the product's own subject pages; RR-389 Part 1: its own questions */;" /* RR-360: a product of any kind; RR-361: an outside client's finished pages come first */, 'pread(id, "auto-plan.json", null)?.pages', 'if (r[2] === "jobs" && req.method === "POST") {', 'if (r[2] === "pages-view" && req.method === "GET") {',
     "countries: examCountriesOf(id) }", 'json().approved !== true'])
     assert.ok(MAIN.includes(s), s);
   for (const s of ["<h3>What do you want done?</h3>", '<b>Show me before publishing</b>', '<b>Publish for me</b>', 'async function startJobs() {', '<span class="ok-i">✅ ready</span>', '<span class="warn-i">⚠️ needs work</span>',
-    '<button class="ghost" id="fixall">Fix all (${nWork})</button>', '<button class="big" id="puball">Publish all ready (${nReady})</button>', '<button class="big" id="ffgo" type="button">Use these facts now — create pages</button>',
-    '<button class="big" id="pgnext" type="button">See the pages — publish or fix them</button>', "<summary>More — add Search Console's download file instead</summary>", "<summary>More — for power users</summary>"])
+    '<button class="ghost" id="fixall">Fix all (${nWork})</button>', '<button class="big" id="puball">Publish all ready (${nReady})</button>', '<button class="big" type="button" data-addfilego>Use them now — create pages</button>' /* RR-389 Part 2.1 */,
+    '<button class="big" id="pgnext" type="button">See the pages — publish or fix them</button>', "<summary>More — add Search Console's download file instead</summary>"]) /* RR-389 Part 2.2: no "More — for power users" fold: its action is a big button */
     assert.ok(UI.includes(s), s);
   /* plain English: no internal words on the new screens */
   const shown = (UI.match(/RR-354[\s\S]*?(?=\/\* RR-353 · "Start the ticked jobs")/) ?? [""])[0] + readFileSync(join(REPO, "desktop", "plain-words.mjs"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/no key-fact card[^\]]*\]/, "");

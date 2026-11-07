@@ -165,8 +165,7 @@ export function localContent(p, { subject, fit, cta }) {
     const sections = [
       /* RR-329 (rule R9): the owner's own facts first, as AlmiWorld's own checked information */
       ...((p.own ?? []).length ? [{ heading: "AlmiWorld's own checks", lines: p.own.map((o) => line(o.text, o.link, o.on, o.note ?? "AlmiWorld's own checked information")) }] : []),
-      /* RR-351: what could not be proved on its official page — the reader is sent to that page, no value is printed */
-      ...((p.checkOfficial ?? []).length ? [{ heading: "Check on the official page", lines: p.checkOfficial.map((x) => line(`${x.label}: check the official page before you book or apply.`, x.link, x.on)) }] : []),
+      /* 🔴 RR-389 PART 2.3 (Q&A LAW 5.2 and 5B: unchecked lines are hidden): a fact not proved on its official page is not shown at all (it was "check the official page" since RR-351) */
       { heading: `What people in ${p.country} ask`, lines: (p.answered ?? []).map((q) => line(`${q.question} — ${q.answer}`, q.link, q.on, q.aiWritten ? "AI-written from the official facts on this page" : null)) },
       { heading: "Test centres", lines: [p.venue ? line(`${subject}'s own pages name a venue in ${p.country}${p.cities?.length ? `: ${p.cities.map((x) => x.city).join(", ")}` : ""}.`, p.centres?.link, p.centres?.on) : line(`${p.home}. The nearest venues: ${(p.nearest ?? []).join(", ")}.`, p.centres?.link, p.centres?.on)] },
       { heading: `The councils in ${p.country}`, lines: (p.councils ?? []).map((c) => line(`${PEOPLE_WORD[c.profession] ?? c.profession}: ${c.name} — ${c.address} — ${c.website}`, c.link, c.on)) },

@@ -251,5 +251,5 @@ test("RR-359 · 6 + 7 · the API login is not the e-mail; Start here; every scre
   assert.deepEqual(tabs, ["Overview", "Pages and articles", "Approvals", "YouTube", "Monthly report"]);
   for (const t of tabs) assert.ok(guide.includes(`"work:${t}": { line: "`), `tab ${t}`);
   assert.ok(UI.includes('<div id="nextbar" class="nextbar"></div>') && UI.includes("guideBars(name, args); // RR-359"));
-  assert.ok(UI.includes('nb.innerHTML = next ? `<p><button type="button" class="ghost" id="nextstep">${esc(next.label)}</button></p>` : "";'));
+  assert.ok(UI.includes('nb.innerHTML = next ? `<p class="nextline"><button type="button" class="big alt" id="nextstep">${esc(next.label)}</button></p>` : "";')); /* RR-389 Part 5.1: big, and the guided setup's next step when a product is open */
 });

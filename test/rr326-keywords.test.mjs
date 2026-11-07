@@ -131,7 +131,7 @@ for (const [name, make] of STORES) {
       let saved = 0, ops = 0;
       for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); saved += r.saved; ops += r.ops; if (!r.left.due) break; }
       const ideas = G.ideas(), prod = (c) => ({ "oet,oet exam": "oet", "cv maker": "cv", recipes: "food" })[c.body.keywordSeed.keywords.join()], where = (c) => LOCATIONS.find((l) => (l.geo ?? "ALL") === (c.body.geoTargetConstants[0] ?? "ALL")).name;
-      assert.equal(saved, 3 * 193, "every product and the category in every location"); assert.equal(ideas.length, saved); assert.equal(ops, ideas.length);
+      assert.equal(saved, 3 * 193 + 10, "every product and the category in every location; RR-389 Part 4: + each product's own languages in the countries that speak them (5 each)"); assert.equal(ideas.length, saved); assert.equal(ops, ideas.length);
       assert.ok(ideas.length <= QUOTA.collector, "inside the collector's cap — one third of Google's day");
       const seq = ideas.map((c) => `${prod(c)}|${where(c)}`), first = QUEUE_COUNTRIES.slice(0, 30).filter((c) => !NOT_IN_GOOGLE.includes(c)); // Iran (30th) has no Google location
       assert.deepEqual(seq.slice(0, 30), ["oet|All locations", ...first.map((c) => `oet|${c}`)], "AlmiOET's first 30 (and all locations) first, in the owner's order");
@@ -157,7 +157,7 @@ for (const [name, make] of STORES) {
       clock.t += 31 * 86400000;
       for (let run = 0; run < 20; run++) { const r = await runCollector({ store: s, ads, kv: K.kv, now: clock.now, budgetMs: 1e9 }); if (!r.left.due) break; }
       const later = G.ideas().slice(before).map(prod);
-      assert.equal(later.length, 2 * 193); assert.equal(later.filter((p) => p === "food").length, 0, "a category is not asked again before 60 days");
+      assert.equal(later.length, 2 * 193 + 10 /* RR-389 Part 4: the products' own languages again too */); assert.equal(later.filter((p) => p === "food").length, 0, "a category is not asked again before 60 days");
     } finally { await s.close(); }
   });
 }
@@ -616,7 +616,7 @@ test("D · the bundle: the database driver pinned, eight daily crons, 300 s, the
   try {
     const r = spawnSync(process.execPath, [join(REPO, "tools", "bundle-site.mjs"), "--public-lite", out], { encoding: "utf8" }); assert.equal(r.status, 0, r.stderr);
     const vj = JSON.parse(readFileSync(join(out, "vercel.json"), "utf8")), pj = JSON.parse(readFileSync(join(out, "package.json"), "utf8"));
-    assert.equal(vj.crons.filter((c) => c.path === "/cron/keywords").length, 8); assert.equal(vj.crons.length, 53, "RR-388 B: the five free collectors twice a day (+5); RR-388 B2: + one DataForSEO collectors run; RR-387 C: + one whois run; RR-328 B: + four country-facts runs; RR-331: + two test-dates runs and one Search Console check; RR-349: + sixteen hourly creator runs; RR-360: + four top-pages runs; RR-375: + six answers runs; RR-376: + one research run; RR-380: + places, rules, trends; RR-382: + lists"); assert.ok(vj.crons.every((c) => ["/cron/keywords", "/cron/country-facts", "/cron/test-dates", "/cron/search-console", "/cron/creators", "/cron/top-pages", "/cron/answers", "/cron/research", "/cron/places", "/cron/rules", "/cron/trends", "/cron/lists", "/cron/whois", "/cron/dfs"].includes(c.path) && /^\d+ \d+ \* \* \*$/.test(c.schedule))); assert.equal(vj.functions["api/index.mjs"].maxDuration, 300);
+    assert.equal(vj.crons.filter((c) => c.path === "/cron/keywords").length, 8); assert.equal(vj.crons.length, 57, "RR-389 Part 4: + news and jobs, twice a day each (+4); RR-388 B: the five free collectors twice a day (+5); RR-388 B2: + one DataForSEO collectors run; RR-387 C: + one whois run; RR-328 B: + four country-facts runs; RR-331: + two test-dates runs and one Search Console check; RR-349: + sixteen hourly creator runs; RR-360: + four top-pages runs; RR-375: + six answers runs; RR-376: + one research run; RR-380: + places, rules, trends; RR-382: + lists"); assert.ok(vj.crons.every((c) => ["/cron/keywords", "/cron/country-facts", "/cron/test-dates", "/cron/search-console", "/cron/creators", "/cron/top-pages", "/cron/answers", "/cron/research", "/cron/places", "/cron/rules", "/cron/trends", "/cron/lists", "/cron/whois", "/cron/dfs", /* RR-389 */ "/cron/news", "/cron/jobs"].includes(c.path) && /^\d+ \d+ \* \* \*$/.test(c.schedule))); assert.equal(vj.functions["api/index.mjs"].maxDuration, 300);
     assert.deepEqual(pj.dependencies, { pg: "8.23.1" }); assert.ok(existsSync(join(out, "owner-google-sign-in.mjs"))); assert.ok(existsSync(join(out, "desktop", "ads-wire.mjs")));
     assert.ok(!existsSync(join(out, "desktop", "keyword-db.mjs")), "the app's keyword database is not the site's");
     const engine = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")); assert.equal(engine.dependencies, undefined, "the engine itself installs nothing");

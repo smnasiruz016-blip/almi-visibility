@@ -40,7 +40,7 @@ import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./se
 import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 item 1c
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed } from "./publish.mjs"; /* RR-383: the site equals the app */
+import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed, notYetEqual, githubBlobText, unsafeIndexable } from "./publish.mjs"; /* RR-383: the site equals the app */
 import { THIN_MARK, asPublishedGuarded as asPublishedPage } from "./publish.mjs"; // RR-383: through the classified publisher, never the builder itself (F34 C5 census)
 import { pageFaults } from "./page-law.mjs"; // RR-383: a page that needs more answers carries this mark and goes out noindex
 import { improvePack } from "./improve.mjs"; // RR-356
@@ -237,7 +237,7 @@ function contextOf(id) {
 const publishKeyName = (kind, id) => { const k = TARGETS.find((x) => x.id === kind)?.keyName; return k ? `${k}_${id.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`.slice(0, 64) : null; }; // "Download the files" has no key
 const downloadsFor = (id) => join(CONFIG.downloadsDir ?? join(homedir(), "Downloads", "AlmiVisibility"), id);
 /* 🔴 RR-373 item 1 · THE PUBLISH LOG: every attempt, per page: the status and the site's own message. Never a header, never the key (each line passes scrub) */
-const PUBLISH_MIRROR = "publish-mirror.json" /* RR-383 */, PUBLISH_LOG = "publish-log.json", PUBLISH_LAST = "publish-last.json", PUBLISH_GROUP = CONFIG.testSecretsInMemory === true && CONFIG.testPublishGroup ? CONFIG.testPublishGroup : 50 /* one commit, so one site build, per group: 295 pages are 6 builds, not 295 */, PUB_STOP = new Set();
+const MIRROR_LOOK = new Map() /* RR-384: the last dry look per product */, PUBLISH_MIRROR = "publish-mirror.json" /* RR-383 */, PUBLISH_LOG = "publish-log.json", PUBLISH_LAST = "publish-last.json", PUBLISH_GROUP = CONFIG.testSecretsInMemory === true && CONFIG.testPublishGroup ? CONFIG.testPublishGroup : 50 /* one commit, so one site build, per group: 295 pages are 6 builds, not 295 */, PUB_STOP = new Set();
 const publishLog = (id, rows) => { const on = new Date().toISOString(); pwrite(id, PUBLISH_LOG, [...pread(id, PUBLISH_LOG, []), ...rows.map((r) => ({ on, url: r.url ?? null, path: r.path ?? r.remote?.path ?? null, check: r.check ?? null, ok: r.ok === true, status: r.status ?? null, message: scrub(r.message ?? "") || null, why: r.ok ? null : scrub(r.why ?? r.line ?? "") || null }))].slice(-5000)); };
 /* the reason on the screen: what to do, then the site's own words */
 const reasonOf = (o) => { const w = scrub(o?.why ?? ""), m = scrub(o?.message ?? ""); return `${w}${o?.status && m && !w.includes(m) ? ` (${o.status}: "${m}")` : ""}`.trim(); };
@@ -303,7 +303,7 @@ async function tellEngines(id, site, sc, lives) {
  * other page there is rewritten from its current draft (only checked lines, noindex, follow) or removed (desktop/publish.mjs mirrorPlan).
  * GitHub: one tree read and one commit. WordPress, Shopify, a download folder: a page published before that the app no longer holds as ready is taken down (unpublish).
  */
-async function mirrorTarget(id, conn) {
+async function mirrorTarget(id, conn, { dry = false } = {}) {
   if (!conn?.kind) return null;
   const pages = pread(id, "pages.json"), made = pages?.madeOn ?? null, recs = pread(id, "published.json", []), on = new Date().toISOString();
   const written = new Set(recs.filter((x) => (x.state === "PREVIEW" || x.state === "LIVE") && x.made === made && !x.noindexRewrite).map((x) => x.url)), readyUrls = new Set((pages?.drafts ?? []).filter((d) => d.readyAsDraft && written.has(d.url)).map((d) => d.url));
@@ -315,13 +315,20 @@ async function mirrorTarget(id, conn) {
     else if (f.truncated) out = { ok: false, why: "GitHub listed only part of the folder, so nothing older was removed." };
     else {
       const plan = mirrorPlan({ held: f.held, drafts: pages?.drafts ?? [], readyUrls, noteOf: CONFIG.testOffline === true ? () => null : noteOnPage, faultsOf: (html, url) => pageFaults(asPublishedPage(html, url), { url }) });
-      const r = await mirrorGithub({ target: conn, key: token, rewrite: plan.rewrite, remove: plan.remove, allowLocal, testBase });
-      if (r.ok && (plan.rewrite.length || plan.remove.length)) { const gone = new Set(plan.remove.map((x) => x.slug)), redone = new Set(plan.rewrite.map((x) => x.url)), pv = previewOf(conn), slugOfUrl = (u) => { try { return new URL(u).pathname.replace(/^\/+|\/+$/g, "").split("/").pop(); } catch { return null; } };
-        pwrite(id, "published.json", [...recs.map((x) => (gone.has(slugOfUrl(x.url)) && (x.state === "PREVIEW" || x.state === "LIVE") ? { ...x, state: "REMOVED", removedOn: on } : x)).filter((x) => !(redone.has(x.url) && (x.state === "PREVIEW" || x.state === "LIVE"))), ...plan.rewrite.map((x) => ({ url: x.url, title: (pages?.drafts ?? []).find((d) => d.url === x.url)?.title ?? x.url, target: conn, remote: { path: x.path, commit: r.commit }, on, made, state: pv ? "PREVIEW" : "LIVE", noindexRewrite: true, ...(pv ? { preview: { ...pv, path: x.path } } : {}) }))]); }
-      out = { ok: r.ok, why: r.ok ? null : r.why, kept: plan.keep.length, rewritten: r.rewritten, removed: r.removed, removedList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })), commit: r.commit ?? null };
+      /* RR-384: a page whose file on the branch is already exactly what would be written is not written again: a second press changes nothing */
+      const rewrite = notYetEqual(plan.rewrite, f.shas), refresh = [];
+      /* RR-384: a READY page written before the RR-383 guard that still says "index" with fewer than 6 real Q&A is written again as the guarded publish
+       * writes it now. Only those: a ready page's file is otherwise what the publish wrote (from its fresh rebuild), never rewritten from the saved draft */
+      for (const x of notYetEqual(plan.keepItems ?? [], f.shas).slice(0, 300)) { const sha = f.shas.get(x.path), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase }).catch(() => null) : null; if (text && unsafeIndexable(text)) refresh.push(x); }
+      if (dry) return { ok: true, dry: true, kept: plan.keep.length, refresh: refresh.length, refreshList: refresh.slice(0, 100).map((x) => x.url), equal: plan.rewrite.length - rewrite.length, rewrite: rewrite.length, remove: plan.remove.length, removeList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })) };
+      const r0 = await mirrorGithub({ target: conn, key: token, rewrite: [...rewrite, ...refresh], remove: plan.remove, allowLocal, testBase }), r = r0.ok ? { ...r0, rewritten: rewrite.length, refreshed: refresh.length } : r0;
+      if (r.ok && (rewrite.length || plan.remove.length)) { const gone = new Set(plan.remove.map((x) => x.slug)), redone = new Set(rewrite.map((x) => x.url)), pv = previewOf(conn), slugOfUrl = (u) => { try { return new URL(u).pathname.replace(/^\/+|\/+$/g, "").split("/").pop(); } catch { return null; } };
+        pwrite(id, "published.json", [...recs.map((x) => (gone.has(slugOfUrl(x.url)) && (x.state === "PREVIEW" || x.state === "LIVE") ? { ...x, state: "REMOVED", removedOn: on } : x)).filter((x) => !(redone.has(x.url) && (x.state === "PREVIEW" || x.state === "LIVE"))), ...rewrite.map((x) => ({ url: x.url, title: (pages?.drafts ?? []).find((d) => d.url === x.url)?.title ?? x.url, target: conn, remote: { path: x.path, commit: r.commit }, on, made, state: pv ? "PREVIEW" : "LIVE", noindexRewrite: true, ...(pv ? { preview: { ...pv, path: x.path } } : {}) }))]); }
+      out = { ok: r.ok, why: r.ok ? null : r.why, kept: plan.keep.length, refreshed: r.refreshed ?? 0, equal: plan.rewrite.length - rewrite.length, rewritten: r.rewritten, removed: r.removed, removedList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })), commit: r.commit ?? null };
     }
   } else {
     let removed = 0; const removedList = [], keep = [];
+    if (dry) { const stale = recs.filter((x) => x.state === "LIVE" && !readyUrls.has(x.url) && x.target?.kind === conn.kind); return { ok: true, dry: true, kept: recs.filter((x) => x.state === "LIVE").length - stale.length, equal: 0, rewrite: 0, remove: stale.length, removeList: stale.slice(0, 400).map((x) => ({ slug: x.url, why: "the app no longer holds it as ready" })) }; }
     for (const x of recs) { if (x.state !== "LIVE" || readyUrls.has(x.url) || x.target?.kind !== conn.kind) { keep.push(x); continue; } const u = await unpublish({ record: x, target: conn, key: token, allowLocal, testBase }).catch(() => ({ ok: false })); if (u.ok) { removed++; removedList.push({ slug: x.url, why: "the app no longer holds it as ready" }); keep.push({ ...x, state: "REMOVED", removedOn: on }); } else keep.push(x); }
     if (removed) pwrite(id, "published.json", keep); out = { ok: true, kept: recs.filter((x) => x.state === "LIVE").length - removed, rewritten: 0, removed, removedList };
   }
@@ -339,7 +346,7 @@ async function liveSitemapNoindexed(site, noindexUrls) {
   while (queue.length && seen.size < 12) { const u = queue.shift(); if (seen.has(u)) continue; seen.add(u); const t = await get(u); if (!t) continue; if (/<sitemapindex/i.test(t)) { for (const m of t.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) queue.push(m[1]); } else xml += t; }
   return seen.size ? sitemapNoindexed(xml, noindexUrls) : null;
 }
-const mirrorWords = (m) => (!m ? "" : `${m.ok ? (m.rewritten || m.removed ? ` The site now equals the app: ${m.kept ?? 0} kept, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "") : ` ${m.why}`}${m.sitemapNoindex?.count ? ` Warning: your site's sitemap still lists ${m.sitemapNoindex.count} page${m.sitemapNoindex.count === 1 ? "" : "s"} marked noindex (e.g. ${m.sitemapNoindex.sample[0]}): your site's code must leave them out of its sitemap.` : ""}`);
+const mirrorWords = (m) => (!m ? "" : `${m.ok ? (m.rewritten || m.removed || m.refreshed ? ` The site now equals the app: ${m.kept ?? 0} kept${m.refreshed ? ` (${m.refreshed} written again)` : ""}, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "") : ` ${m.why}`}${m.sitemapNoindex?.count ? ` Warning: your site's sitemap still lists ${m.sitemapNoindex.count} page${m.sitemapNoindex.count === 1 ? "" : "s"} marked noindex (e.g. ${m.sitemapNoindex.sample[0]}): your site's code must leave them out of its sitemap.` : ""}`);
 async function publishAll(id) {
   const key = `publish:${id}`; if (BOARD.running(key)) return { ok: false, busy: true, line: "Your pages are being published now." };
   const pages = pread(id, "pages.json"), go = waitingToPublish(pages, pread(id, "published.json", [])), N = go.length;
@@ -2135,7 +2142,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-308 D · PUBLISH: where the site is built, Approve & Publish (the five gates again, right before), Edit, Unpublish ── */
-      { const r = /^\/api\/products\/([^/]+)\/(publish|publish\/connect|publish\/draft|publish\/undo|publish\/test|publish\/stop|publish\/last\/close|draft\/edit)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(publish|publish\/connect|publish\/draft|publish\/undo|publish\/test|publish\/stop|publish\/last\/close|publish\/mirror|draft\/edit)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -2144,6 +2151,15 @@ const server = createServer((req, res) => {
           /* 🔴 RR-373: Stop; the reason closed by the owner; Test connection (nothing written) */
           if (r[2] === "publish/stop" && req.method === "POST") { PUB_STOP.add(id); return send(200, { ok: true, line: "Stopping after the pages being sent now." }); }
           if (r[2] === "publish/last/close" && req.method === "POST") { pwrite(id, PUBLISH_LAST, { ...pread(id, PUBLISH_LAST, {}), running: false, closed: true }); return send(200, { ok: true }); }
+          /* 🔴 RR-384 (owner's 1.15.40, 6 Nov 23:35: 0 new pages, so no "Publish all ready", so the RR-383 mirror never ran): what the site holds
+           * that differs from the app, read (GET, kept 2 minutes so a redraw does not ask GitHub again), and made equal on the owner's Start (POST) */
+          if (r[2] === "publish/mirror") {
+            const conn = withKnownFolder(pread(id, "publish.json")); if (!conn?.kind) return send(200, { ok: false, none: true, why: "Not connected to your site yet." }); if (publishBlocked(s)) return send(200, { ok: false, none: true, why: ALMIWORLD_NO });
+            if (req.method === "GET") { const was = MIRROR_LOOK.get(id); if (was && Date.now() - was.at < 120000 && u.searchParams.get("fresh") !== "1") return send(200, was.out); const out = await mirrorTarget(id, conn, { dry: true }).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })); MIRROR_LOOK.set(id, { at: Date.now(), out }); return send(200, out); }
+            if (req.method === "POST") { if (json().start !== true) return send(400, { refused: "Say Start first: the list of pages to remove is shown before anything changes." }); const key = `publish:${id}`; if (BOARD.running(key)) return send(409, { refused: "Your pages are being published now — wait for it to finish." }); MIRROR_LOOK.delete(id);
+              const m = await mirrorTarget(id, conn).catch((e) => ({ ok: false, why: `The site could not be made equal to the app: ${scrub(e?.message ?? e)}` })); MIRROR_LOOK.delete(id); if (m?.ok && (m.rewritten || m.removed || m.refreshed)) didIt(id, `Made the site equal the app: ${m.rewritten} rewritten (noindex), ${m.removed} removed, ${m.refreshed ?? 0} refreshed.`); logLine(DATA, `mirror: ${scrub(JSON.stringify({ ok: m?.ok, rewritten: m?.rewritten, removed: m?.removed, equal: m?.equal }))}`);
+              return send(m?.ok ? 200 : 400, m?.ok ? { ...m, line: m.rewritten || m.removed || m.refreshed ? `Your site now equals the app: ${m.kept} kept${m.refreshed ? ` (${m.refreshed} of them written again as they go out now)` : ""}, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "Your site already equals the app — nothing was changed." } : { refused: m?.why ?? "Nothing was changed." }); }
+          }
           if (r[2] === "publish/test" && req.method === "POST") { if (conn?.kind !== "github") return send(200, { ok: false, rows: [], line: "Test connection checks a GitHub connection." }); const t = await testGithubConnection({ target: conn, key: KEYS.get(keyName), allowLocal, testBase: CONFIG.testPublishBase ?? null }); publishLog(id, t.rows.map((x) => ({ check: x.check, ok: x.ok, status: x.status, message: x.message, why: x.ok ? null : x.line }))); return send(200, t); }
           if (r[2] === "publish/connect" && req.method === "POST") {
             const v = json(); const t = { kind: v.kind, site: v.site ? String(v.site).trim() : null, user: v.user ? String(v.user).trim() : null, repo: v.repo ? String(v.repo).trim() : null, branch: v.branch ? String(v.branch).trim() : null, folder: v.folder ? String(v.folder).trim() : "", shop: v.shop ? String(v.shop).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") : null };

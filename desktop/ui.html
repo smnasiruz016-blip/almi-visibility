@@ -1313,6 +1313,21 @@ function pageList() {
   if ($("#pagesearch")) $("#pagesearch").oninput = (e) => { PAGE_VIEW = { ...PAGE_VIEW, q: e.target.value, at: 0 }; pageList(); };
   if ($("#pagefilter")) $("#pagefilter").onchange = (e) => { PAGE_VIEW = { ...PAGE_VIEW, f: e.target.value, at: 0 }; pageList(); };
 }
+/* 🔴 RR-384 (owner's 1.15.40: 0 new pages, so no "Publish all ready", so the site kept 180 older pages): whenever the site differs from the app the
+ * button is there, even with 0 new pages. It shows the pages to remove first and asks Start; then the same guarded mirror as RR-383 runs */
+async function mirrorBox(fresh = false) {
+  const pid = P, box = $("#mirrorbox"); if (!box) return;
+  let M; try { M = await get(`/api/products/${encodeURIComponent(P)}/publish/mirror${fresh ? "?fresh=1" : ""}`); } catch { return; } /* the app was closed meanwhile: nothing to say */ if (P !== pid || !$("#mirrorbox")) return;
+  if (!M || M.none) return (box.innerHTML = "");
+  if (M.ok === false) return (box.innerHTML = `<p class="meta" id="mirrorwhy">Could not compare your site with the app: ${esc(M.why ?? "")}</p>`);
+  if (!M.rewrite && !M.remove && !M.refresh) return (box.innerHTML = `<p class="meta" id="mirrorsame">Your site equals the app: ${M.kept} page${M.kept === 1 ? "" : "s"} as checked${M.equal ? `, ${M.equal} already rewritten as noindex` : ""}. Nothing older is left.</p>`);
+  box.innerHTML = `<div class="card warn" id="mirrorcard"><p><b>Your site holds pages that differ from what the app has checked.</b> ${M.rewrite} will be rewritten with only their checked lines (noindex: visitors can read them, Google does not list them), ${M.remove} will be removed. ${M.kept} ready page${M.kept === 1 ? "" : "s"} stay${M.refresh ? `; ${M.refresh} of them are written again as they go out now (e.g. noindex when they show fewer than 6 real answers)` : " as they are"}.</p><p class="bigrow"><button class="big" type="button" id="mirrorgo">Make my site equal the app (${M.rewrite} to rewrite as noindex, ${M.remove} to remove${M.refresh ? `, ${M.refresh} to refresh` : ""})</button></p><div id="mirrorask"></div><p id="mirrormsg" class="meta"></p></div>`;
+  $("#mirrorgo").onclick = () => {
+    $("#mirrorask").innerHTML = `${M.remove ? `<p><b>These ${M.remove} page${M.remove === 1 ? "" : "s"} will be removed from your site:</b></p><ul class="lines">${(M.removeList ?? []).map((x) => `<li>${esc(x.slug)} — ${esc(x.why)}</li>`).join("")}</ul>` : "<p>No page will be removed.</p>"}<p><b>Start?</b> <button class="big" type="button" id="mirrorstart">Start</button> <button class="ghost" type="button" id="mirrorno">Not now</button></p>`;
+    $("#mirrorno").onclick = () => { $("#mirrorask").innerHTML = ""; };
+    $("#mirrorstart").onclick = async () => { $("#mirrorstart").disabled = true; note($("#mirrormsg"), "Making your site equal the app: one change to your site…"); const r = await post(`/api/products/${encodeURIComponent(P)}/publish/mirror`, { start: true }); if (P !== pid) return; if (r.refused) { $("#mirrorstart").disabled = false; return note($("#mirrormsg"), r.refused, "err"); } note($("#mirrormsg"), r.line, "ok"); setTimeout(() => mirrorBox(true), 400); };
+  };
+}
 async function pagesBox(waitingOnly = false) {
   PAGES_WAITING = waitingOnly; const pid = P, X = await get(`/api/products/${encodeURIComponent(P)}/publish`);
   if (!$("#pubbox") || P !== pid) return;
@@ -1341,8 +1356,8 @@ async function pagesBox(waitingOnly = false) {
     ${L ? ` · ${L.live ? `<a href="${esc(L.live)}" target="_blank">${esc(L.live)}</a>` : `saved in ${esc(L.saved ?? "")}`} <button class="ghost" data-undo="${esc(d.url)}">Undo — unpublish</button>`
       : ` <button class="ghost" data-edit="${esc(d.url)}">Edit</button> ${d.readyAsDraft ? `<button data-pub="${esc(d.url)}">Approve &amp; Publish</button>` : `<button data-fixpage="${esc(d.url)}">Fix</button>`}`}</p><div class="err" data-msg="${esc(d.url)}"></div></div>`; }).join("") + `<p class="bigrow" id="pagenav"></p>` + (mine.length ? `<h3 id="impsec">Your existing pages to improve (${mine.length})</h3><p class="meta">Each one is a page you already have. Visibility never makes a second page for it — it gives the content your page lacks, to add to it.</p>${mine.map((d) => `<div class="draftrow" data-mine><b>${esc(d.title)}</b> <span class="tag">your existing page</span><div class="meta"><a href="${esc(d.url)}" target="_blank">${esc(d.url)}</a></div>${moreBox(d.url)}<p class="meta"><a href="/api/products/${encodeURIComponent(P)}/improve-pack?url=${encodeURIComponent(d.url)}" target="_blank">Get the content</a> · <a href="/api/products/${encodeURIComponent(P)}/draft?url=${encodeURIComponent(d.url)}" target="_blank">Read the new content</a></p></div>`).join("")}` : "")
     : `<p>${waitingOnly ? "Nothing waits for your approval." : "No drafts yet — press Create SEO pages."}</p>`}
-  ${drafts.length ? `<p class="bigrow">${nWork ? `<button class="ghost" id="fixall">Fix all (${nWork})</button> ` : ""}${nReady ? `<button class="big" id="puball">Publish all ready (${nReady})</button>` : ""} <span id="allmsg"></span></p>` : ""}`;
-  topicPlansCard(); pageList();
+  ${drafts.length ? `<p class="bigrow">${nWork ? `<button class="ghost" id="fixall">Fix all (${nWork})</button> ` : ""}${nReady ? `<button class="big" id="puball">Publish all ready (${nReady})</button>` : ""} <span id="allmsg"></span></p>` : ""}<div id="mirrorbox"></div>`;
+  topicPlansCard(); pageList(); mirrorBox(); /* RR-384 */
   truthBox();
   if ($("#topcreatego")) $("#topcreatego").onclick = async () => { const b = $("#topcreatego"); if (!(await truthAsk())) return; b.disabled = true; note($("#topcreatemsg"), "Working: looking for the missing answers, then making and checking each page. The bar at the top shows how far it is."); const r = await post(`/api/products/${encodeURIComponent(P)}/jobs`, { jobs: ["create-pages"], approval: null }).catch(() => ({ refused: "The app did not answer." })); b.disabled = false; if (r.refused) return note($("#topcreatemsg"), r.refused, "err"); await pagesBox(waitingOnly); };
   if ($("#pubwhyok")) $("#pubwhyok").onclick = async () => { await post(`/api/products/${encodeURIComponent(P)}/publish/last/close`, {}); $("#pubwhy").remove(); };

@@ -13,6 +13,7 @@
  * "publish automatically after the gates" AND a connection exists.
  */
 import { mkdirSync, writeFileSync, existsSync, renameSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, resolve, sep } from "node:path";
 import { asPublished, THIN_MARK } from "../src/page/one-builder.mjs";
 import { visibleQa } from "./page-law.mjs";
@@ -337,7 +338,7 @@ export function mirrorPlan({ held, drafts, readyUrls, noteOf = () => null, fault
   const bySlug = new Map((drafts ?? []).map((d) => [slugOf(d.url).split("/").pop(), d])), out = { keep: [], rewrite: [], remove: [] };
   for (const [slug, path] of held) {
     const d = bySlug.get(slug);
-    if (d && readyUrls.has(d.url)) { out.keep.push(path); continue; }
+    if (d && readyUrls.has(d.url)) { out.keep.push(path); (out.keepItems ??= []).push({ url: d.url, path, html: d.html }); continue; } /* RR-384: a kept page is refreshed when its file differs from what the guarded publish writes now */
     const why = rewriteRefusal(d, { noteOf, faultsOf });
     if (why) out.remove.push({ path, slug, why }); else out.rewrite.push({ url: d.url, path, html: asNoindex(d.html) });
   }
@@ -349,8 +350,20 @@ export async function githubFolderPages({ target, key, fetchImpl = fetch, allowL
   const t = await send(`${api}/repos/${target.repo}/git/trees/${encodeURIComponent(target.branch)}?recursive=1`, { method: "GET", headers: ghHeaders(key) }, 60000);
   if (!t.ok) return { ok: false, why: t.why, status: t.status };
   const re = new RegExp(`^${folder ? `${folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/` : ""}([^/]+)/index\\.html$`), held = new Map();
-  for (const e of t.body?.tree ?? []) { const m = e.type === "blob" ? re.exec(e.path) : null; if (m) held.set(m[1], e.path); }
-  return { ok: true, held, truncated: t.body?.truncated === true };
+  const shas = new Map(); for (const e of t.body?.tree ?? []) { const m = e.type === "blob" ? re.exec(e.path) : null; if (m) { held.set(m[1], e.path); if (e.sha) shas.set(e.path, e.sha); } }
+  return { ok: true, held, shas, truncated: t.body?.truncated === true };
+}
+/** 🔴 RR-384: what the mirror writes for a rewrite, and Git's own name for that content (sha1 of "blob <bytes>\0<content>"): a file whose
+ *  name on the branch is already this one is equal, so a second press changes nothing */
+export const mirrorContent = (f) => asPublishedGuarded(f.html, f.url);
+export const gitBlobSha = (text) => { const b = Buffer.from(String(text), "utf8"); return createHash("sha1").update(`blob ${b.length}\0`).update(b).digest("hex"); };
+export const notYetEqual = (rewrite, shas) => rewrite.filter((x) => shas?.get(x.path) !== gitBlobSha(mirrorContent(x)));
+/** is a page file on the site indexable while it shows fewer than 6 real Q&A (a ready page written before the RR-383 guard)? */
+export const unsafeIndexable = (text) => { const t = String(text ?? ""); return visibleQa(t).length > 0 && realQa(t) < REAL_QA_MIN && !/<meta\b[^>]*name="robots"[^>]*content="[^"]*noindex/i.test(t); };
+/** one file's text from the branch (GitHub's documented git/blobs answer: base64 content) → text, or null */
+export async function githubBlobText({ target, key, sha, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+  const api = testBase ?? "https://api.github.com", send = caller({ target, fetchImpl, allowLocal }), r = await send(`${api}/repos/${target.repo}/git/blobs/${sha}`, { method: "GET", headers: ghHeaders(key) });
+  return r.ok && typeof r.body?.content === "string" ? Buffer.from(r.body.content, r.body.encoding === "base64" ? "base64" : "utf8").toString("utf8") : null;
 }
 /** the rewrites and removals as ONE commit (a removal is a tree entry with no content: sha null) */
 export async function mirrorGithub({ target, key, rewrite = [], remove = [], fetchImpl = fetch, allowLocal = false, testBase = null }) {
@@ -359,7 +372,7 @@ export async function mirrorGithub({ target, key, rewrite = [], remove = [], fet
   const attempt = async () => {
     const ref = await send(`${repo}/git/ref/heads/${target.branch}`, { method: "GET", headers: gh }); if (!ref.ok) return ref;
     const head = ref.body?.object?.sha, base = await send(`${repo}/git/commits/${head}`, { method: "GET", headers: gh }); if (!base.ok) return base;
-    const tree = await post(`${repo}/git/trees`, { base_tree: base.body?.tree?.sha, tree: [...rewrite.map((f) => ({ path: f.path, mode: "100644", type: "blob", content: asPublishedGuarded(f.html, f.url) })), ...remove.map((f) => ({ path: f.path, mode: "100644", type: "blob", sha: null }))] }, 120000); if (!tree.ok) return tree;
+    const tree = await post(`${repo}/git/trees`, { base_tree: base.body?.tree?.sha, tree: [...rewrite.map((f) => ({ path: f.path, mode: "100644", type: "blob", content: mirrorContent(f) })), ...remove.map((f) => ({ path: f.path, mode: "100644", type: "blob", sha: null }))] }, 120000); if (!tree.ok) return tree;
     const commit = await post(`${repo}/git/commits`, { message: `Mirror the app: rewrite ${rewrite.length} page${rewrite.length === 1 ? "" : "s"} (noindex), remove ${remove.length} (AlmiVisibility)`, tree: tree.body?.sha, parents: [head] }, 60000); if (!commit.ok) return commit;
     const up = await send(`${repo}/git/refs/heads/${target.branch}`, { method: "PATCH", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ sha: commit.body?.sha, force: false }) }); if (!up.ok) return up;
     if (!commit.body?.sha || up.body?.object?.sha !== commit.body.sha) return { ok: false, status: up.status, why: "GitHub answered without moving the branch. Nothing is counted as changed." };

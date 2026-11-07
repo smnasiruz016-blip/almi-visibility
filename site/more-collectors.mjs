@@ -142,7 +142,8 @@ export async function collectorsStatus({ seo, cf = null, today, counts = {}, cap
   const last = Object.fromEntries(await Promise.all(["places", "rules", "trends", "research", "answers", "lists"].map(async (j) => [j, (await seo.setting(`${j}-last-run`).catch(() => null))?.on ?? null])));
   const products = PRODUCT_DATA.map((p) => { const c = counts[p.key] ?? {}; return { key: p.key, name: p.name, data: p.data.map((item) => { const n = c[item.job] ?? null; const state = !item.built ? "not built yet" : n == null ? "not counted" : n > 0 ? "collected" : "missing"; return { what: item.what, job: item.job, every: `${item.recheckDays} days`, state, rows: n ?? 0 }; }) }; });
   /* the country facts' and answers' AI money is the "AI (the collectors)" line the app already shows (answers status); places, rules and trends are free */
-  return { on: today, last, money: Object.fromEntries(["top-pages", "research", "places", "rules", "trends"].map((j) => [j, money(j)])), products };
+  const dfs = await seo.setting("dfs-balance").catch(() => null); /* RR-388 B: the owner's prepaid DataForSEO balance, as its own account call said */
+  return { on: today, last, money: Object.fromEntries(["top-pages", "research", "places", "rules", "trends"].map((j) => [j, money(j)])), products, dfs: dfs ? { balance: dfs.balance, low: dfs.low === true, on: dfs.on } : null };
 }
 
 /* 🔴 RR-387 PART C · D6 WHOIS / DOMAIN AGE: RDAP, the registries' own protocol (free, official): the IANA bootstrap file names the RDAP server of

@@ -58,7 +58,7 @@ export async function runFreshness({ seo, topic, reader, today, at, keep = () =>
   }
   return out;
 }
-export async function runAnswers({ seo, cf, kv = null, env = process.env, reader, fetchImpl = fetch, aiFetch = fetchImpl, aiBase = undefined, now = () => Date.now(), budgetMs = ANSWERS.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, siteOf = ownSiteOf, freeBases = undefined }) {
+export async function runAnswers({ seo, cf, kv = null, otherUsd = 0, env = process.env, reader, fetchImpl = fetch, aiFetch = fetchImpl, aiBase = undefined, now = () => Date.now(), budgetMs = ANSWERS.runBudgetMs, groups = [], queue = DEFAULT_QUEUE, siteOf = ownSiteOf, freeBases = undefined }) {
   const start = now(), at = new Date(start).toISOString(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (env[ANSWERS.offEnv] === "1") return { ok: false, day: today, why: `The answers collector is switched off (${ANSWERS.offEnv}).` };
   if (!aiConfigured(env)) return { ok: false, day: today, why: `${CF_AI.keyName} is not set in Vercel yet.` };
@@ -67,7 +67,7 @@ export async function runAnswers({ seo, cf, kv = null, env = process.env, reader
   try {
     const caps = capsOf(env), spent0 = (await cf.spend(today)).aiUsd ?? 0, facts = await cf.facts(), order = (() => { const list = queue.products.filter((p) => p !== "pathway"), at = list.indexOf("visibility"); list.splice(at + 1, 0, "pathway"); return list; })() /* RR-376: right after AlmiVisibility */, rank = (t) => { const i = order.indexOf(t.id); return i < 0 ? 1e6 : i; };
     const topics = (await allTopics({ seo, groups })).filter((t) => t.owner === "almiworld" && !t.paused && ((t.jobs ?? LIVE_JOBS).includes("questions") || t.id === "pathway")).sort((a, b) => rank(a) - rank(b));
-    const room = () => spent0 + out.usd + ANSWERS.marginUsd < caps.aiUsd, inTime = () => now() - start < budgetMs;
+    const room = () => spent0 + otherUsd + out.usd + ANSWERS.marginUsd < caps.aiUsd /* RR-388 B: DataForSEO money too: one $2 a day for every collector */, inTime = () => now() - start < budgetMs;
     const usage = (await seo.setting(USAGE).catch(() => null)) ?? {}, free = freeSearch({ keyOf: (n) => env[n] || null, usage, fetchImpl, now, ...(freeBases ? { bases: freeBases } : {}) });
     let spendQueue = Promise.resolve();
     for (const topic of topics) {

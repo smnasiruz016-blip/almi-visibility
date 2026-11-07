@@ -21,6 +21,7 @@ import { ENV_NAMES, TOP_PAGES_CAPS, TOP_PAGES_JOB, TOP_PAGES_READS_JOB, topPages
 import { generalTopics, GENERAL_OFF } from "./more-collectors.mjs"; // RR-380
 import { DEFAULT_QUEUE } from "./queue.mjs";
 import { recordRun } from "./health.mjs";
+import { collectorsCapOf } from "./dfs-collectors.mjs"; // RR-388 B
 import { byMeaning, twinOf, meaningKey } from "../desktop/search-meaning.mjs"; // RR-370 item 11
 import { readFailures, hostOf } from "../desktop/read-failures.mjs"; // RR-369b item 5
 
@@ -60,7 +61,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
   const start = now(), today = dayOf(start), id = randomBytes(8).toString("hex");
   if (!topPagesConnected(env)) return { ok: false, day: today, why: `The top-pages collector is off (${ENV_NAMES.topPagesOn}, ${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}) — the owner's decision.` };
   if (kv) { const [locked] = await kv.run([["SET", "av:tp:lock", id, "NX", "EX", TOP_PAGES.lockSeconds]]); if (locked !== "OK") return { ok: false, day: today, why: "Another top-pages run is working — this one did nothing." }; }
-  const caps = topPagesCaps(env), spent = await sharedToday(seo, today) /* RR-388 B2: the $1 a day is shared with the ten DataForSEO collectors */, readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
+  const caps = topPagesCaps(env), spent = await sharedToday(seo, today) /* RR-388 B2: the $1 a day is shared with the ten DataForSEO collectors */, cfAiToday = cf ? Number((await cf.spend(today).catch(() => ({ aiUsd: 0 }))).aiUsd ?? 0) : 0, collectorsCap = collectorsCapOf(env) /* RR-388 B: one $2 a day for every collector */, readsToday = (await seo.spend(today, TOP_PAGES_READS_JOB)).units, budget0 = await topPagesBudget({ seo, env }), out = { ok: true, day: today, searches: 0, cost: 0, reads: 0, lists: 0, coverage: 0, stoppedBy: null, why: null };
   const auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
   const reads0 = reader.requests();
   const stop = (code, why) => { out.stoppedBy = code; out.why = why; };
@@ -107,6 +108,7 @@ export async function runTopPages({ seo, cf, kv = null, env = process.env, reade
           if (budget0.spent + out.cost + Math.max(price, TOP_PAGES_CAPS.searchReserveUsd) > caps.budget + 1e-9) { stop("BUDGET", `The top-pages budget is spent ($${caps.budget} in total) — the collector has stopped by itself.`); break; }
           if (topic.payer && (await seo.accountSpend(month, topic.payer)) + price > payerLimit + 1e-9) break; // this client's month is used: the next topic
           if (spent.usd + out.cost + price > caps.usd + 1e-9) { stop("CAP", `Today's top-pages cap ($${caps.usd}) is reached — tomorrow continues.`); break; }
+          if (cfAiToday + spent.usd + out.cost + price > collectorsCap + 1e-9) { stop("CAP", `Today's cap for all collectors together ($${collectorsCap}) is reached — tomorrow continues.`); break; } /* RR-388 B */
           /* 🔴 RR-370b: checked before it is sent; a bad one is counted, never sent */
           if (taskFault("serp", serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })[0])) { out.refused = (out.refused ?? 0) + 1; continue; }
           let r = null; try { r = await fetchImpl(SERP.url, { method: "POST", headers: { "content-type": "application/json", authorization: auth }, body: JSON.stringify(serpTask(intent, { location: TOP_PAGES.location, language: TOP_PAGES.language })), signal: AbortSignal.timeout(30000) }); } catch { r = null; }

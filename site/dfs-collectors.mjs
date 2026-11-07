@@ -1,11 +1,14 @@
 /**
  * 🔴 RR-388 PART B2 · THE TEN DATAFORSEO COLLECTORS (A2 B5 C5 D1 D2 D5 F1 F2 G1 I2 of ALMIWORLD_COLLECTORS_MAP_2026-11.md), on the AlmiSEO
  * Data server, through AlmiWorld's OWN server-side DataForSEO account (the top-pages account: ENV_NAMES.dfsLogin / dfsPassword).
- *   · EACH IS OFF until the owner switches it on (/owner/almiseo → "DataForSEO collectors"); nothing is bought while it is off.
+ *   · ON BY DEFAULT, once a day, with the PC off (owner, 7 Nov 08:36); each has its own switch to turn it OFF (/owner/almiseo → "DataForSEO
+ *     collectors"). Nothing runs before the owner merges and deploys (the server's own DataForSEO account must be set).
  *   · Each shows its cost per run from DataForSEO's OWN price page (PRICES: the page and the day it was read). A price older than
  *     PRICE_MAX_DAYS, or none, is "price not confirmed": the switch refuses and a run buys nothing.
- *   · ALL STAY INSIDE THE EXISTING DATAFORSEO CAPS, shared with the top-pages collector: $1 a day and $50 in total (topPagesCaps). The most a
- *     task can cost is counted BEFORE it is sent; a task that could pass either cap is not sent and the run stops. The caps are never raised.
+ *   · ALL COLLECTORS TOGETHER stay inside ONE $2 a day (owner, 7 Nov 08:39: COUNTRY_FACTS_AI_USD_PER_DAY, the cap the AI collectors already
+ *     share): the AI collectors' money of today + every DataForSEO collector's (top pages too) + this task's most. Also inside the $50 total
+ *     (topPagesCaps) and the owner's PREPAID BALANCE, read from DataForSEO's own account call (free) before buying: low → said ONCE (the
+ *     Issues list and the weekly report, through the collectors' status). Nothing is ever topped up or raised by code.
  *   · Each has its own job line (dfs-<id>), its own daily cap (DFS.perDayUsd, inside the shared $1) and its own refresh days.
  *   · Built and proved against DataForSEO's free SANDBOX only (sandbox.dataforseo.com: same shapes, no charge). ALMISEO_DATAFORSEO_SANDBOX=1, or
  *     the owner's "Test in the sandbox" button, sends every call there and books $0.
@@ -15,8 +18,11 @@ import { randomBytes } from "node:crypto";
 import { ENV_NAMES, topPagesCaps } from "./almiseo.mjs";
 
 export const DFS_LIVE = "https://api.dataforseo.com/v3", DFS_SANDBOX = "https://sandbox.dataforseo.com/v3";
-export const DFS = Object.freeze({ switches: "dfs-switches", pending: "dfs-pending", done: "dfs-done", last: "dfs-last-run", sandboxEnv: "ALMISEO_DATAFORSEO_SANDBOX", lockSeconds: 290, perDayUsd: 0.35, budgetMs: 240000 });
+export const DFS = Object.freeze({ balanceLowUsd: 5, balance: "dfs-balance", switches: "dfs-switches", pending: "dfs-pending", done: "dfs-done", last: "dfs-last-run", sandboxEnv: "ALMISEO_DATAFORSEO_SANDBOX", lockSeconds: 290, perDayUsd: 0.35, budgetMs: 240000 });
 export const PRICE_MAX_DAYS = 90;
+/** the one daily cap of ALL collectors together (the AI collectors' existing cap) */
+export const collectorsCapOf = (env = process.env) => (Number(env.COUNTRY_FACTS_AI_USD_PER_DAY) > 0 ? Number(env.COUNTRY_FACTS_AI_USD_PER_DAY) : 2);
+export const isOn = (sw, id) => sw?.[id] !== false; /* ON unless the owner turned it off */
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10), daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
@@ -60,7 +66,7 @@ export const OWN_SITES = Object.freeze([{ topic: "oet", site: "almioet.almiworld
 
 /** the owner's table: each collector, what it gives, cost per run and per month at the planned rate, and the TOTAL if all are on */
 export function dfsTable({ today, switches = {}, prices = PRICES, planned = {} } = {}) {
-  const rows = DFS_COLLECTORS.map((c) => { const p = priceOf(c, today, prices), tasks = planned[c.id] ?? (c.input === "shopping" ? 0 : c.perRun), run = p.ok ? r4(worstOf(c, prices) * tasks) : null, perMonth = run === null ? null : r4(run * 30 / c.refreshDays); return { id: c.id, title: c.title, gives: c.gives, products: c.products, on: switches[c.id] === true && p.ok, price: p.ok ? { says: p.says, url: p.url, on: p.on } : null, priceWhy: p.ok ? null : p.why, tasksPerRun: tasks, perRunUsd: run, everyDays: c.refreshDays, perMonthUsd: perMonth }; });
+  const rows = DFS_COLLECTORS.map((c) => { const p = priceOf(c, today, prices), tasks = planned[c.id] ?? (c.input === "shopping" ? 0 : c.perRun), run = p.ok ? r4(worstOf(c, prices) * tasks) : null, perMonth = run === null ? null : r4(run * 30 / c.refreshDays); return { id: c.id, title: c.title, gives: c.gives, products: c.products, on: isOn(switches, c.id) && p.ok, price: p.ok ? { says: p.says, url: p.url, on: p.on } : null, priceWhy: p.ok ? null : p.why, tasksPerRun: tasks, perRunUsd: run, everyDays: c.refreshDays, perMonthUsd: perMonth }; });
   const sum = (k) => r4(rows.reduce((t, r) => t + (r[k] ?? 0), 0));
   return { rows, totalPerRunUsd: sum("perRunUsd"), totalPerMonthUsd: sum("perMonthUsd"), unconfirmed: rows.filter((r) => !r.price).map((r) => r.id) };
 }
@@ -68,7 +74,7 @@ export function dfsTable({ today, switches = {}, prices = PRICES, planned = {} }
 export async function setSwitch({ seo, id, on, today, at, prices = PRICES }) {
   const c = byId(id); if (!c) return { ok: false, why: "No such collector." };
   if (on && !priceOf(c, today, prices).ok) return { ok: false, why: `${c.id} ${c.title}: price not confirmed — it stays off.` };
-  const sw = { ...((await seo.setting(DFS.switches).catch(() => null)) ?? {}) }; sw[c.id] = on === true; await seo.setSetting(DFS.switches, sw, { at });
+  const sw = { ...((await seo.setting(DFS.switches).catch(() => null)) ?? {}) }; sw[c.id] = on === true; /* stored both ways: an absent switch is ON */ await seo.setSetting(DFS.switches, sw, { at });
   return { ok: true, why: `${c.id} ${c.title} is ${on ? "ON" : "OFF"}.` };
 }
 
@@ -76,10 +82,12 @@ export async function setSwitch({ seo, id, on, today, at, prices = PRICES }) {
 export const dfsJob = (job) => job === "top-pages" || String(job).startsWith("dfs-");
 export async function dfsMoney(seo, today) { const rows = (await seo.spendSince("2000-01-01").catch(() => [])) ?? [], ours = rows.filter((r) => dfsJob(r.job)); return { today: r4(ours.filter((r) => r.day === today).reduce((t, r) => t + (Number(r.usd) || 0), 0)), total: r4(ours.reduce((t, r) => t + (Number(r.usd) || 0), 0)), byJobToday: Object.fromEntries(DFS_IDS.map((id) => [id, r4(ours.filter((r) => r.day === today && r.job === jobOf(id)).reduce((t, r) => t + (Number(r.usd) || 0), 0))])) }; }
 /** may one more task be bought? (before it is sent) */
-export function mayBuy({ money, caps, worst, job, runSpent = 0 }) {
+export function mayBuy({ money, caps, worst, job, runSpent = 0, otherToday = 0, collectorsCap = Infinity, balance = null }) {
   if (!(Number.isFinite(worst))) return { ok: false, code: "PRICE", why: "price not confirmed" };
   if (money.total + runSpent + worst > caps.budget + 1e-9) return { ok: false, code: "BUDGET", why: `The DataForSEO total ($${caps.budget}) would be passed: stopped by itself.` };
   if (money.today + runSpent + worst > caps.usd + 1e-9) return { ok: false, code: "CAP", why: `Today's DataForSEO cap ($${caps.usd}) would be passed: tomorrow continues.` };
+  if (otherToday + money.today + runSpent + worst > collectorsCap + 1e-9) return { ok: false, code: "CAP", why: `Today's cap for all collectors together ($${collectorsCap}) would be passed: tomorrow continues.` };
+  if (typeof balance === "number" && balance - runSpent < worst) return { ok: false, code: "BALANCE", why: `Your DataForSEO balance ($${balance.toFixed(2)}) cannot pay for the next task: nothing more is bought (the app never tops it up).` };
   if ((money.byJobToday[job] ?? 0) + runSpent + worst > DFS.perDayUsd + 1e-9) return { ok: false, code: "JOB_CAP", why: `This collector's daily cap ($${DFS.perDayUsd}) is reached.` };
   return { ok: true };
 }
@@ -119,17 +127,19 @@ export function rowsOf(c, result, { key, on }) {
 const taskOf = (a) => { if (!a || a.status_code !== 20000) return { ok: false, why: `DataForSEO refused (${a?.status_code ?? "no answer"}${a?.status_message ? `: ${a.status_message}` : ""})`, stop: [40100, 40200, 40201, 40210, 40501].includes(a?.status_code) }; const t = (a.tasks ?? [])[0]; if (!t) return { ok: false, why: "no task back" }; const cost = Number(t.cost) || 0; if (t.status_code === 20000) return { ok: true, cost, result: t.result ?? [], id: t.id }; if (t.status_code === 20100) return { ok: true, queued: true, cost, id: t.id }; if (t.status_code === 40601 || t.status_code === 40602) return { ok: false, waiting: true, cost, id: t.id }; return { ok: false, cost, why: `refused (${t.status_code}${t.status_message ? `: ${t.status_message}` : ""})` }; };
 
 /** one run of every collector that is ON and due. → { ok, day, sandbox, sent, collected, kept, usd, byCollector, stoppedBy, why } */
-export async function runDfs({ seo, kv = null, env = process.env, fetchImpl = fetch, now = () => Date.now(), topics = null, sandbox = env[DFS.sandboxEnv] === "1", only = null, prices = PRICES }) {
+export async function runDfs({ seo, cf = null, kv = null, env = process.env, fetchImpl = fetch, now = () => Date.now(), topics = null, sandbox = env[DFS.sandboxEnv] === "1", only = null, prices = PRICES }) {
   const start = now(), today = dayOf(start), at = new Date(start).toISOString(), out = { ok: true, day: today, sandbox, sent: 0, collected: 0, kept: 0, usd: 0, byCollector: {}, stoppedBy: null, why: null };
   if (!env[ENV_NAMES.dfsLogin] || !env[ENV_NAMES.dfsPassword]) return { ...out, ok: false, why: `No DataForSEO account on the server (${ENV_NAMES.dfsLogin}, ${ENV_NAMES.dfsPassword}): nothing was sent.` };
-  const sw = (await seo.setting(DFS.switches).catch(() => null)) ?? {}, on = DFS_COLLECTORS.filter((c) => (only ? only.includes(c.id) : sw[c.id] === true) && priceOf(c, today, prices).ok);
-  if (!on.length) return { ...out, why: only ? "price not confirmed" : "Every DataForSEO collector is off: nothing was sent." };
+  const sw = (await seo.setting(DFS.switches).catch(() => null)) ?? {}, on = DFS_COLLECTORS.filter((c) => (only ? only.includes(c.id) : isOn(sw, c.id)) && priceOf(c, today, prices).ok);
+  if (!on.length) return { ...out, why: only ? "price not confirmed" : "Every DataForSEO collector is off (or its price is not confirmed): nothing was sent." };
   const lockId = randomBytes(8).toString("hex");
   if (kv) { const [locked] = await kv.run([["SET", "av:dfs:lock", lockId, "NX", "EX", DFS.lockSeconds]]); if (locked !== "OK") return { ...out, ok: false, why: "Another DataForSEO collector run is working: this one did nothing." }; }
   try {
     const base = sandbox ? DFS_SANDBOX : DFS_LIVE, auth = `Basic ${Buffer.from(`${env[ENV_NAMES.dfsLogin]}:${env[ENV_NAMES.dfsPassword]}`).toString("base64")}`;
     const call = async (path, body, method = "POST") => { try { const r = await fetchImpl(`${base}${path}`, { method, headers: { authorization: auth, "content-type": "application/json" }, ...(method === "POST" ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(60000) }); return await r.json().catch(() => ({ status_code: r.status })); } catch { return null; } };
-    const caps = topPagesCaps(env), money = await dfsMoney(seo, today), done = (await seo.setting(DFS.done).catch(() => null)) ?? {}, pending = (await seo.setting(DFS.pending).catch(() => null)) ?? {};
+    const caps = topPagesCaps(env), collectorsCap = collectorsCapOf(env), otherToday = cf ? Number((await cf.spend(today).catch(() => ({ aiUsd: 0 }))).aiUsd ?? 0) : 0, money = await dfsMoney(seo, today), done = (await seo.setting(DFS.done).catch(() => null)) ?? {}, pending = (await seo.setting(DFS.pending).catch(() => null)) ?? {};
+    /* the prepaid balance, from DataForSEO's own account call (free: docs.dataforseo.com/v3/appendix/user_data); low → kept for the Issues list, once */
+    let balance = null; if (!sandbox) { const u = await call("/appendix/user_data", null, "GET"); const b = Number(u?.tasks?.[0]?.result?.[0]?.money?.balance); if (Number.isFinite(b)) { balance = b; out.balance = b; const was = (await seo.setting(DFS.balance).catch(() => null)) ?? {}; await seo.setSetting(DFS.balance, { on: at, balance: b, low: b < DFS.balanceLowUsd, lowSince: b < DFS.balanceLowUsd ? (was.lowSince ?? at) : null }, { at }).catch(() => null); } }
     const all = topics ?? (await seo.topics().catch(() => [])), lists = {}; for (const t of all) if (t.owner === "almiworld") lists[t.id] = await seo.lists(t.id).catch(() => []);
     const book = async (c, cost) => { if (sandbox || !(cost > 0)) return; out.usd = r4(out.usd + cost); money.today = r4(money.today + cost); money.total = r4(money.total + cost); money.byJobToday[jobOf(c.id)] = r4((money.byJobToday[jobOf(c.id)] ?? 0) + cost); await seo.addSpend(today, jobOf(c.id), { usd: cost, units: 1 }); };
     for (const c of on) {
@@ -143,7 +153,7 @@ export async function runDfs({ seo, kv = null, env = process.env, fetchImpl = fe
       for (const { key, task } of tasksFor(c, { topics: all, lists })) {
         if (mine.sent >= c.perRun || out.stoppedBy) break; if (now() - start > DFS.budgetMs) { out.stoppedBy = "TIME"; out.why = "This run's time is used: the next run continues."; break; }
         const k = `${c.id}|${key}`; if (pending[k] || (done[k] && daysBetween(done[k], today) < c.refreshDays)) continue;
-        const g = sandbox ? { ok: true } : mayBuy({ money, caps, worst, job: jobOf(c.id) }); if (!g.ok) { if (g.code === "JOB_CAP") { mine.why = g.why; break; } out.stoppedBy = g.code; out.why = g.why; break; }
+        const g = sandbox ? { ok: true } : mayBuy({ money, caps, worst, job: jobOf(c.id), otherToday, collectorsCap, balance: balance === null ? null : balance - out.usd }); if (!g.ok) { if (g.code === "JOB_CAP") { mine.why = g.why; break; } out.stoppedBy = g.code; out.why = g.why; break; }
         const path = c.mode === "standard" ? `${c.path}/task_post` : c.path, t = taskOf(await call(path, [task])); mine.sent++; out.sent++;
         await book(c, t.cost ?? 0); mine.usd = r4(mine.usd + (sandbox ? 0 : t.cost ?? 0));
         if (!t.ok) { mine.why = t.why ?? mine.why; if (t.stop) { out.stoppedBy = "DATAFORSEO"; out.why = t.why; break; } continue; }

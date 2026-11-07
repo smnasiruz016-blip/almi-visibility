@@ -1,0 +1,30 @@
+# RR-386 §2.4 · the autopilot cycle while the client's computer is off: once a day, every product our server says is due.
+# Needs (the owner sets them once): the repository secret AUTOPILOT_RUNNER_KEY (the same value as in Vercel) and the repository
+# variable AUTOPILOT_SERVER (the AlmiSEO Data server's address). Without them it says so and does nothing.
+# The job's log is public: the runner prints only a short code per product, never a name, a page or a key.
+name: autopilot
+on:
+  schedule:
+    - cron: "40 1 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: autopilot
+  cancel-in-progress: false
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+      - name: One cycle for every due product
+        env:
+          AUTOPILOT_SERVER: ${{ vars.AUTOPILOT_SERVER }}
+          AUTOPILOT_RUNNER_KEY: ${{ secrets.AUTOPILOT_RUNNER_KEY }}
+        run: node desktop/autopilot-runner.mjs --max-hours=5

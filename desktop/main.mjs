@@ -40,8 +40,13 @@ import { seoPages, articleOfDay, socialFor, monthReport, inSiteLook } from "./se
 import { searchFromLive } from "../src/report/monthly-report.mjs"; // RR-382 item 1c
 import { menuFor, seoCheck, aeoCheck, geoCheck, linksCheck, languagesCheck } from "./features.mjs";
 import { productStore, productCard } from "./products.mjs";
-import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed, notYetEqual, githubBlobText, unsafeIndexable, wrongIndexState, linkedSlugs } from "./publish.mjs"; /* RR-383: the site equals the app */
-import { THIN_MARK, asPublishedGuarded as asPublishedPage } from "./publish.mjs"; // RR-383: through the classified publisher, never the builder itself (F34 C5 census)
+import { TARGETS, previewOf, checkTarget, withKnownFolder, publishDraft, publishPagesGithub, testGithubConnection, stopsTheRun, sitemapAddress, unpublish, editDraft, mainOf, fixVia, fixExisting, improveExisting, githubFolderPages, mirrorPlan, mirrorGithub, sitemapNoindexed, notYetEqual, githubBlobText, unsafeIndexable, wrongIndexState, linkedSlugs, oldestLastChecked } from "./publish.mjs"; /* RR-383: the site equals the app */
+import { apState, isDue, runCycle, weeklyReport, costPlan, AP_FILE, AP_RUNS, AP_WEEKLY, EVERY_MS, MODES } from "./autopilot.mjs"; // RR-386
+import { githubApi, goLive } from "./go-live.mjs"; // RR-386
+import { apClient, packFiles, unpackFiles, joinBundles, hashesOf, baseOf } from "./autopilot-sync.mjs"; // RR-386
+import { LICENCE_HEADER, licenceHeaderOf } from "./keyword-service.mjs"; // RR-386
+import { scanSite, scanTable } from "./site-scan.mjs"; // RR-386
+import { THIN_MARK, asPublishedGuarded as asPublishedPage, realQa, checkedFeeRows, REAL_QA_MIN } from "./publish.mjs"; // RR-383: through the classified publisher, never the builder itself (F34 C5 census)
 import { pageFaults } from "./page-law.mjs"; // RR-383: a page that needs more answers carries this mark and goes out noindex
 import { improvePack } from "./improve.mjs"; // RR-356
 import { personOf, questionsOf, clusterIntents, coverageOf, secondSearch, decisionOf, rightToExist, afterPublish, BATCH } from "./recipe.mjs"; // RR-356 the recipe
@@ -161,7 +166,8 @@ const page = () => readFileSync(join(HERE, "ui.html"), "utf8").replace("/*SUNRIS
 let updateFound = null, updateReady = null, updateDownloading = null; // RR-355: the newer version, downloaded and verified in the background
 /* RR-306 A3: the client's own keys — pasted in the app, kept in Windows' secure store (Credential Manager); this computer's settings by NAME
  * as a fallback. A memory store only for tests (config testSecretsInMemory) — nothing persists there. */
-const KEYS = keyStore({ backend: CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
+/* 🔴 RR-386: the runner's headless app (secretsFromEnvOnly) never opens a secure store — not even on Windows: its keys come from its own process only */
+const KEYS = keyStore({ backend: CONFIG.secretsFromEnvOnly === true ? null : CONFIG.testSecretsInMemory === true ? memoryBackend() : process.platform === "win32" ? windowsBackend() : null, env: process.env });
 const KEY_ALLOWED = new Set([...FREE_KEY_NAMES, KEY_NAMES.youtube, KEY_NAMES.search, ...AI_PROVIDERS.map((p) => p.keyName), ADS_KEYS.secret, DFS_KEYS.login, DFS_KEYS.password, "PERPLEXITY_API_KEY", "PAGESPEED_API_KEY" /* RR-379 */, "ETSY_API_KEY" /* RR-381 */]); // RR-324 B/C: by name only
 /* RR-306 B + C: the product's YouTube — the right channel, always, and advice (desktop/youtube-app.mjs) */
 /* RR-311: the client's AI cost ledger (a monthly cap the client sets, default $10) and the per-product YouTube sign-in */
@@ -220,7 +226,7 @@ async function checkProduct(id) {
     pwrite(id, "check.json", card);
     /* RR-310 A2: the action plan is made again after every check */
     say({ stage: "Making your action plan", done: 0, of: 1, secondsLeft: null });
-    if (!card.failed) { try { await buildPlan(id); } catch {} } // a failed check keeps no plan made from an old read
+    if (!card.failed) { try { await buildPlan(id, say); } catch {} } // a failed check keeps no plan made from an old read
     return card;
   })().then((card) => { BOARD.finish(jobKey, { ok: !card?.failed, line: card?.failed ? "The check could not finish. Open the app to see why." : "Your site is checked." }); return card; }, (e) => { BOARD.finish(jobKey, { ok: false }); throw e; }).finally(() => { checking.delete(id); progress.delete(id); });
   checking.set(id, run);
@@ -310,7 +316,7 @@ async function tellEngines(id, site, sc, lives) {
 async function mirrorTarget(id, conn, { dry = false } = {}) {
   if (!conn?.kind) return null;
   const pages = pread(id, "pages.json"), made = pages?.madeOn ?? null, recs = pread(id, "published.json", []), on = new Date().toISOString();
-  const written = new Set(recs.filter((x) => (x.state === "PREVIEW" || x.state === "LIVE") && x.made === made && !x.noindexRewrite).map((x) => x.url)), readyUrls = new Set((pages?.drafts ?? []).filter((d) => d.readyAsDraft && written.has(d.url)).map((d) => d.url));
+  const written = new Set(recs.filter((x) => (x.state === "PREVIEW" || x.state === "LIVE") && x.made === made && !x.noindexRewrite).map((x) => x.url)), readyUrls = new Set((pages?.drafts ?? []).filter((d) => d.readyAsDraft).map((d) => d.url)); /* 🔴 RR-386 item 6 (owner's 1.15.42: the button was offered before "Publish all ready" and would have rewritten 125 ready pages as noindex): a READY page is never rewritten as noindex; it is kept, and the same action publishes it first */ void written;
   const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, testBase = CONFIG.testPublishBase ?? null;
   let out;
   if (conn.kind === "github") {
@@ -323,7 +329,9 @@ async function mirrorTarget(id, conn, { dry = false } = {}) {
       const rewrite = notYetEqual(plan.rewrite, f.shas), refresh = [];
       /* RR-384: a READY page written before the RR-383 guard that still says "index" with fewer than 6 real Q&A is written again as the guarded publish
        * writes it now. Only those: a ready page's file is otherwise what the publish wrote (from its fresh rebuild), never rewritten from the saved draft */
-      for (const x of notYetEqual(plan.keepItems ?? [], f.shas).slice(0, 300)) { const sha = f.shas.get(x.path), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase }).catch(() => null) : null; if (text && (unsafeIndexable(text) || wrongIndexState(text, x))) refresh.push(x); }
+      /* 🔴 RR-386 (the real proof: 11 pages the app no longer makes stood with a "Last checked" newer than their facts, kept because others link to them): such a page goes out through the guard too — its date set right, noindex if it is thin */
+      for (const b of (plan.blocked ?? []).slice(0, 100)) { const sha = f.shas.get(b.path), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase }).catch(() => null) : null, url = `${String(conn.site ?? "").replace(/\/+$/, "")}/${b.slug}`; if (text && (oldestLastChecked(text) !== text || unsafeIndexable(text))) refresh.push({ url, path: b.path, html: text, held: true }); }
+      for (const x of notYetEqual(plan.keepItems ?? [], f.shas).slice(0, 300)) { const sha = f.shas.get(x.path), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase }).catch(() => null) : null; if (text && (unsafeIndexable(text) || wrongIndexState(text, x) || oldestLastChecked(text) !== text)) refresh.push(x); } /* RR-386: and a "Last checked" newer than its oldest fact */
       /* RR-385: pages kept back because they are linked but cannot stand, and links that would point to a page not on the site */
       const extra = { added: rewrite.filter((x) => x.added).length, blocked: plan.blocked.length, blockedList: plan.blocked.slice(0, 100), broken: plan.broken.length, brokenList: plan.broken.slice(0, 200) };
       if (dry) return { ok: true, dry: true, kept: plan.keep.length, refresh: refresh.length, refreshList: refresh.slice(0, 100).map((x) => x.url), equal: plan.rewrite.length - rewrite.length, rewrite: rewrite.length, remove: plan.remove.length, removeList: plan.remove.slice(0, 400).map(({ slug, why }) => ({ slug, why })), ...extra };
@@ -341,18 +349,40 @@ async function mirrorTarget(id, conn, { dry = false } = {}) {
     if (removed) pwrite(id, "published.json", keep); out = { ok: true, kept: recs.filter((x) => x.state === "LIVE").length - removed, rewritten: 0, removed, removedList };
   }
   /* 🔴 RR-383 item 2: the page carries its own noindex; the site's sitemap must leave such pages out (the site's own code does that). Read the live sitemap(s) and say so if it still lists them */
-  if (out.ok !== false && CONFIG.testOffline !== true) { const noindex = new Set([...(pages?.drafts ?? []).filter((d) => !d.readyAsDraft || String(d.html ?? "").includes(THIN_MARK)).map((d) => d.url)]); const listed = await liveSitemapNoindexed(conn.site, noindex).catch(() => null); if (listed) out.sitemapNoindex = { on, count: listed.length, sample: listed.slice(0, 20) }; }
+  if (out.ok !== false && CONFIG.testOffline !== true) { const noindex = appNoindexUrls(pages, pread(id, "published.json", [])); /* 🔴 RR-386 item 5: only pages the app itself wrote to the site AND that go out noindex (the false "/guides/oet-pakistan": the site's own page, never written by the app, indexed live) */ const listed = await liveSitemapNoindexed(conn.site, noindex).catch(() => null); if (listed) out.sitemapNoindex = { on, count: listed.length, sample: listed.slice(0, 20) }; }
   out = { on, ...out }; pwrite(id, PUBLISH_MIRROR, out); return out;
+}
+/** RR-386 item 5: the addresses the app wrote to the site that go out noindex (a noindex rewrite, or a ready page the guard marks noindex) */
+function appNoindexUrls(pages, recs) {
+  const onSite = new Map(recs.filter((x) => x.state === "PREVIEW" || x.state === "LIVE").map((x) => [x.url, x])), out = new Set();
+  for (const d of pages?.drafts ?? []) { const r = onSite.get(d.url); if (!r || d.improve) continue; /* an existing page the app only improved keeps its own robots line (/guides/oet-pakistan) */ if (r.noindexRewrite === true || !d.readyAsDraft || /<meta name="robots" content="noindex/.test(asPublishedPage(d.html, d.url))) out.add(d.url); }
+  return out;
 }
 /** the site's own sitemap (robots.txt's Sitemap lines, else /sitemap.xml; one level of sitemap index, at most 12 files) against the pages marked noindex */
 async function liveSitemapNoindexed(site, noindexUrls) {
-  let origin; try { origin = new URL(site).origin; } catch { return null; } if (!noindexUrls.size) return [];
+  if (!noindexUrls.size) return []; const xml = await liveSitemapXml(site); return xml === null ? null : sitemapNoindexed(xml, noindexUrls);
+}
+/** RR-386 item 4: every address the live sitemap lists (the sitemap robots.txt names; one level of index) — null when the site names none */
+async function liveSitemapXml(site) {
+  let origin; try { origin = new URL(site).origin; } catch { return null; }
   const get = async (u) => { try { const r = await fetch(u, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(20000) }); return r.ok ? await r.text() : null; } catch { return null; } };
   const robots = await get(`${origin}/robots.txt`), first = [...String(robots ?? "").matchAll(/^\s*sitemap:\s*(\S+)/gim)].map((m) => m[1]).filter((u) => { try { return new URL(u).origin === origin; } catch { return false; } });
   if (!first.length) return null; /* RR-373 item 8: only the sitemap the site names itself; no address is assumed */
   const queue = [...first], seen = new Set(); let xml = "";
   while (queue.length && seen.size < 12) { const u = queue.shift(); if (seen.has(u)) continue; seen.add(u); const t = await get(u); if (!t) continue; if (/<sitemapindex/i.test(t)) { for (const m of t.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) queue.push(m[1]); } else xml += t; }
-  return seen.size ? sitemapNoindexed(xml, noindexUrls) : null;
+  return seen.size ? xml : null;
+}
+/** 🔴 RR-386 item 4 (owner's screen said 62 indexed, the report 45, the live sitemap 36): ONE count — what the live sitemap lists of the app's pages — with "ready" and "in Google" beside it, each said apart */
+const PAGE_COUNTS = new Map();
+async function pageCounts(id, { fresh = false } = {}) {
+  const was = PAGE_COUNTS.get(id); if (was && !fresh && Date.now() - was.at < 600000) return was.out;
+  const pages = pread(id, "pages.json"), drafts = (pages?.drafts ?? []).filter((d) => !d.improve), s = store.read(id), site = s.product?.site ?? null;
+  const ready = drafts.filter((d) => d.readyAsDraft), forGoogle = ready.filter((d) => !/<meta name="robots" content="noindex/.test(asPublishedPage(d.html, d.url)));
+  const urls = new Set(drafts.map((d) => d.url)), xml = CONFIG.testOffline === true ? null : await liveSitemapXml(site).catch(() => null), listed = xml === null ? null : [...new Set([...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1].replace(/\/+$/, "")))].filter((u) => urls.has(u) || urls.has(`${u}/`));
+  const sc = searchConsoleOf(id), g = sc?.kind === "CONNECTED" && sc.site && CONFIG.testOffline !== true ? await GOOGLE.pageRows(sc.site).catch(() => null) : null, seenG = g ? new Set(g.map((r) => String(r.page ?? r.keys?.[0] ?? "").replace(/\/+$/, ""))) : null, inGoogle = seenG ? drafts.filter((d) => seenG.has(d.url.replace(/\/+$/, ""))).length : null;
+  const out = { on: new Date().toISOString(), made: drafts.length, ready: ready.length, forGoogle: forGoogle.length, inSitemap: listed ? listed.length : null, inGoogle,
+    line: `${listed ? `In your live sitemap (what Google is told): ${listed.length} page${listed.length === 1 ? "" : "s"}.` : "Your live sitemap could not be read just now."} Ready in the app: ${ready.length} of ${drafts.length}; ${forGoogle.length} of them go to Google (6 or more real answers), the rest go out noindex.${listed && forGoogle.length !== listed.length ? ` ${forGoogle.length > listed.length ? `${forGoogle.length - listed.length} of those are not live yet: they are listed once they are published and live.` : `${listed.length - forGoogle.length} listed pages are no longer for Google in the app: the next go-live takes them out.`}` : ""} ${inGoogle === null ? "In Google: connect Search Console to see it." : `In Google (pages Search Console shows with views): ${inGoogle}.`}` };
+  PAGE_COUNTS.set(id, { at: Date.now(), out }); return out;
 }
 const mirrorWords = (m) => (!m ? "" : `${m.ok ? (m.rewritten || m.removed || m.refreshed ? ` The site now equals the app: ${m.kept ?? 0} kept${m.refreshed ? ` (${m.refreshed} written again)` : ""}, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "") : ` ${m.why}`}${m.sitemapNoindex?.count ? ` Warning: your site's sitemap still lists ${m.sitemapNoindex.count} page${m.sitemapNoindex.count === 1 ? "" : "s"} marked noindex (e.g. ${m.sitemapNoindex.sample[0]}): your site's code must leave them out of its sitemap.` : ""}`);
 async function publishAll(id) {
@@ -392,7 +422,7 @@ async function publishAll(id) {
   const ok = !stop && !stopped && !failed.length && written === N && (mirror?.ok ?? true), why = stop ? reasonOf(stop) : failed.length ? `${failed.length} ${failed.length === 1 ? "page was" : "pages were"} not published. The first: ${failed[0].url}: ${reasonOf(failed[0])}` : stopped ? `Stopped by you. Press Publish all ready to go on from there.` : null, words = preview ? `${written} of ${N} written to the preview (branch ${preview.branch}). Not live.` : `${written} of ${N} published.`, line = `${words}${why ? ` ${why}` : ""}${mirrorWords(mirror)}`;
   pwrite(id, PUBLISH_LAST, { on: new Date().toISOString(), running: false, ok, written, of: N, status: stop?.status ?? null, stopped, why, line, ...(stop?.needsCta ? { needsCta: true } : {}), ...(stop?.needsConnection ? { needsConnection: true } : {}) });
   BOARD.finish(key, { ok, line }); logLine(DATA, `publish: ${scrub(line)}`);
-  return { ok, written, of: N, stopped, why, line, ...(stop?.needsConnection ? { needsConnection: true } : {}), ...(stop?.needsCta ? { needsCta: true } : {}) };
+  return { ok, written, of: N, stopped, why, line, mirror, held: failed.slice(0, 300).map((f) => ({ url: f.url, why: reasonOf(f) })) /* RR-386: the gate's held pages, each with its reason */, ...(stop?.needsConnection ? { needsConnection: true } : {}), ...(stop?.needsCta ? { needsCta: true } : {}) };
 }
 /** Approve & Publish ONE draft: the five gates judge it again right before (as the client edited it); a failing gate stops it, said */
 async function publishOne(id, url, built = null) { const o = await publishOneTried(id, url, built); publishLog(id, [{ url, ...o }]); return o; }
@@ -435,25 +465,156 @@ const ALMIWORLD_NO = "AlmiWorld's own product: nothing is published or submitted
 const didIt = (id, what) => pwrite(id, "done.json", [...pread(id, "done.json", []), { on: new Date().toISOString(), what }].slice(-100));
 const planning = new Map();
 /** the product's ACTION PLAN, from its last check, its YouTube advice (read today, or read now) and its page plan — kept in plan.json */
-async function buildPlan(id) {
-  if (planning.has(id)) return planning.get(id);
+async function buildPlan(id, say = () => {}) {
+  /* 🔴 RR-386 item 3 (owner: "Making your action plan" sat at about 5% for 4+ minutes): each step says what it does and why it waits */
+  if (planning.has(id)) { const t0 = planStarted.get(id) ?? Date.now(); say({ stage: `Making your action plan: waiting for the plan another run started ${Math.round((Date.now() - t0) / 1000)} s ago (one plan at a time)`, done: 0, of: 3, secondsLeft: null }); return planning.get(id); }
+  planStarted.set(id, Date.now());
   const run = (async () => {
     const { s, site, sc, files, ctx } = contextOf(id), on = new Date().toISOString();
     let advice = null;
-    if (ctx.youtubeConfirmed && ctx.youtubeKey) { try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
+    if (ctx.youtubeConfirmed && ctx.youtubeKey) { say({ stage: "Making your action plan: step 1 of 3, reading your YouTube advice (waits for YouTube to answer)", done: 0, of: 3, secondsLeft: null }); try { const a = await YT.advice(id); advice = a.state === "READY" ? a : null; } catch { advice = null; } }
     const ytFound = ctx.youtubeConfirmed ? YT.foundFor(id) : null, ytData = ytFound?.state === "READY" ? ytFound : null;
     const web = hasWebsite(s) && site?.ok ? site : null;
     /* 🔴 RR-366 X5 (profiled on the built app: this pass held the window for 3.6 seconds at the start of a run): on its own thread too */
     const args = { site: web, target: pread(id, "publish.json")?.kind ?? null, searchConsole: sc, files, youtube: ytData, on, overrides: pread(id, "edits.json", {}), official: officialForPages(id), cta: ctaOf(store.read(id)), planned: plannedOf(id), own: ownItemsOf(id), subject: aboutOf(store.read(id)), noWorkNotes: CONFIG.testOffline !== true /* RR-374 */, ...madePlanOf(id) };
+    if (web) say({ stage: `Making your action plan: step 2 of 3, writing your ${(preadMemo(id, "pages.json")?.drafts ?? []).length || ""} pages again to plan from them (the longest step: about a minute for every 100 pages)`, done: 1, of: 3, secondsLeft: null });
     const pages = web ? await seoPagesOff({ args, data: seoExtraData(id), sync: () => seoPages({ ...args, ...seoExtras(id) }) }) : null;
     const found = foundInfo({ site: web, youtube: ytData, files, searchConsole: sc, keys: { ai: ctx.aiKey }, own: ownItemsOf(id), asked: askedOf(id), on });
+    say({ stage: "Making your action plan: step 3 of 3, putting the plan together", done: 2, of: 3, secondsLeft: null });
     const plan = actionPlan({ product: s.product, on, card: ctx.check, site: web, pages, found, youtube: advice, languages: s.setup?.languages?.codes ?? [], youtubeOnly: !hasWebsite(s) });
     pwrite(id, "plan.json", plan);
     return plan;
-  })().finally(() => planning.delete(id));
+  })().finally(() => { planning.delete(id); planStarted.delete(id); });
   planning.set(id, run);
   return run;
 }
+/** RR-376 item 3, made a function for RR-386: the topic plans from "topics others have pages on and we do not", kept with their approvals */
+function topicPlansFresh(id) { const held = pread(id, PLANS_FILE, { plans: [] }), was = Object.fromEntries(held.plans.map((p) => [p.key, p])), pg = preadMemo(id, "pages.json"), kwFile = pread(id, ALMISEO_KEYWORDS, null), a = pread(id, ALMISEO_FILE, null), plans = plansFromTopics({ topics: pg?.examPlan?.theyHave ?? [], keywords: kwFile?.rows ?? [], bank: [...(Array.isArray(a?.questions) ? a.questions : []), ...(Array.isArray(a?.asked) ? a.asked : []), ...[...new Set(Object.values(dfsLedger().serpCache ?? {}).flatMap((v) => v?.paa ?? []))].map((question) => ({ question }))], existing: (pg?.drafts ?? []).map((d) => d.title), subject: seedOf(store.read(id)), on: new Date().toISOString().slice(0, 10), was }); pwrite(id, PLANS_FILE, { plans }); return plans; }
+/* ───────────── 🔴 RR-386 · AUTOPILOT (desktop/autopilot.mjs): the cycle's steps are the app's own functions ───────────── */
+const AP_BUSY = new Set(), SCAN_FILE = "site-scan.json", vercelBypassName = (id) => `VERCEL_BYPASS_${String(id).toUpperCase().replace(/[^A-Z0-9]/g, "_")}`.slice(0, 64);
+const apRead = (id) => apState(pread(id, AP_FILE, null));
+const apBudget = () => { const cap = Number(CONFIG.aiMonthlyCapUSD ?? DEFAULT_CAP_USD), spent = LEDGER.month()?.usd ?? 0; return { cap, spent, left: Math.max(0, cap - spent) }; };
+/** the whole job's paid parts, before it starts (Q&A LAW 8; owner rule 7 Nov 01:03) */
+function apEstimate(id) {
+  const te = pread(id, TRUTH_EST, null), counts = PAGE_COUNTS.get(id)?.out ?? null, need = noindexNeeds(id), questions = [...need.values()].reduce((t, n) => t + n, 0);
+  const parts = [];
+  if (questions) parts.push({ name: `finding the missing answers (${questions} for ${need.size} pages; free sources first)`, usd: Math.round(questions * AP_ANSWER_USD * 100) / 100, divisible: true, unitUsd: AP_ANSWER_USD, units: questions });
+  if (te?.lines) parts.push({ name: `checking ${te.lines} new lines on their own source pages`, usd: te.usd, divisible: true, unitUsd: te.perLineUsd ?? 0.0088, units: te.lines });
+  void counts; return parts;
+}
+const AP_ANSWER_USD = 0.02; /* one missing answer: an AI web search and its extraction on the full page, Sonnet (measured on RR-377/385 runs, rounded up) */
+/** title → answers still needed, for the noindex ready pages (the fewest first) */
+function noindexNeeds(id) {
+  const out = new Map(); for (const d of (preadMemo(id, "pages.json")?.drafts ?? []).filter((x) => !x.improve)) { const h = asPublishedPage(d.html, d.url); if (!/<meta name="robots" content="noindex/.test(h)) continue; const n = Math.max(1, REAL_QA_MIN - realQa(d.html) - checkedFeeRows(d.html)); out.set(d.title, n); }
+  return out;
+}
+/** the scan of the client's site (desktop/site-scan.mjs); through: a stand-in for the preview (the branch's files) when Vercel's protection is on and no bypass is saved */
+async function scanFor(id, origin, { preview = false, head = null } = {}) {
+  const drafts = (preadMemo(id, "pages.json")?.drafts ?? []).filter((d) => !d.improve), conn = withKnownFolder(pread(id, "publish.json")), live = (() => { try { return new URL(store.read(id).product.site).origin; } catch { return null; } })();
+  const bypass = KEYS.get(vercelBypassName(id)), testScan = CONFIG.testScanFetch && CONFIG.testSecretsInMemory === true ? CONFIG.testScanFetch : null;
+  let fetchImpl = fetch, at = origin ?? live, through = null;
+  if (testScan) { const base = testScan; fetchImpl = (u, i) => fetch(`${base}/scan?u=${encodeURIComponent(u)}`, i).then(async (r) => { const t = await r.text(); return new Response(t, { status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "text/html" } }); }); }
+  else if (preview && bypass) { fetchImpl = (u, i) => fetch(u, { ...i, headers: { ...(i?.headers ?? {}), "x-vercel-protection-bypass": bypass, "x-vercel-set-bypass-cookie": "false" } }); }
+  else if (preview && conn?.kind === "github" && live) {
+    /* no bypass: the pages as they will go live = the branch's own files; robots, sitemaps and the site's own pages = the live site */
+    const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, f = await githubFolderPages({ target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null });
+    if (!f.ok) return { ok: false, why: `The preview's files could not be read: ${f.why}`, rows: [] };
+    at = live; through = "the preview read from the branch's own files (Vercel's protection is on: add the bypass secret to scan the preview itself)";
+    fetchImpl = async (u, i) => { let p; try { p = new URL(u); } catch { return fetch(u, i); } const slug = p.pathname.replace(/^\/+|\/+$/g, ""); if (p.origin === live && slug && !slug.includes("/") && f.held.has(slug)) { const sha = f.shas.get(f.held.get(slug)), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase: CONFIG.testPublishBase ?? null }).catch(() => null) : null; if (text != null) return new Response(text, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }); } return fetch(u.replace(/^https?:\/\/[^/]+/, live), i); };
+  }
+  if (!at) return { ok: false, why: "No site address to scan.", rows: [] };
+  /* 🔴 RR-386 (the third real proof: 4 new drafts never written to the site counted as "404" — after a merge that would have been a false rollback): the app's pages the scan must find are the ones it WROTE (on the preview or live), never a draft still waiting */
+  const written = new Set(pread(id, "published.json", []).filter((x) => x.state === "PREVIEW" || x.state === "LIVE").map((x) => x.url));
+  const pages = drafts.filter((d) => written.has(d.url)).map((d) => d.url.replace(/^https?:\/\/[^/]+/, at.replace(/\/+$/, "")));
+  const s = await scanSite({ origin: at, pages, fetchImpl, ua: USER_AGENT, maxPages: Number(CONFIG.scanMaxPages) || 900 });
+  const out = { ...s, through, preview, head }; if (!preview) pwrite(id, SCAN_FILE, out); return out;
+}
+/** after a merge: the pages written to the preview are live now */
+function markLive(id, merged) { const on = new Date().toISOString(); pwrite(id, "published.json", pread(id, "published.json", []).map((x) => (x.state === "PREVIEW" ? { ...x, state: "LIVE", live: x.url, wentLive: { on, pr: merged.pr, sha: merged.sha } } : x))); }
+function autopilotSteps(id) {
+  const before = { forGoogle: null };
+  return {
+    newPages: async () => { /* step 4 first, so the same make writes them */ const plans = topicPlansFresh(id), fresh = plans.filter((p) => p.status !== "approved"); for (const p of fresh) p.status = "approved"; if (fresh.length) pwrite(id, PLANS_FILE, { plans }); return { ok: true, line: fresh.length ? `${fresh.length} new page${fresh.length === 1 ? "" : "s"} from topics other sites cover approved; they are made in this cycle (noindex until they have enough answers).` : "No new topic to add.", data: { made: fresh.length, topics: fresh.slice(0, 40).map((p) => p.title ?? p.key) } }; },
+    answers: async (ctx) => {
+      before.forGoogle = (await pageCounts(id, { fresh: true }).catch(() => null))?.forGoogle ?? null;
+      ANSWER_ORDER.set(id, noindexNeeds(id));
+      pwrite(id, TRUTH_GO, { go: true, on: new Date().toISOString(), by: "autopilot" }); /* the switch is the client's yes; the whole cost was worked out first, and the Monthly AI limit stops the paid part that does not fit */
+      const usd0 = LEDGER.month()?.usd ?? 0;
+      try { const x = await createPages(id); if (x?.refused) return { ok: false, line: x.refused, stopCycle: true }; const imp = improving.get(id); if (imp) await imp.run; } finally { ANSWER_ORDER.delete(id); }
+      ctx.usd0 = usd0; const log = pread(id, ANSWERS_LOG, null), f = log?.finder ?? null;
+      return { ok: true, line: f ? `${f.found ?? f.answered ?? 0} answers found${f.stopped ? ` (stopped: ${f.stopped})` : ""}; ${log?.filled ?? 0} filled from a new source, ${log?.dropped ?? 0} questions still without an answer.` : "Answers looked for (free sources first).", usd: f?.usd ?? 0, data: { found: f?.found ?? null, usd: f?.usd ?? 0 } };
+    },
+    truth: async (ctx) => { const t = pread(id, TRUTH_RUN, null), est = pread(id, TRUTH_EST, null), ran = Boolean(t) && Date.parse(t.on) >= Date.parse(ctx.startedOn ?? 0); /* RR-386: whether the pass ran THIS cycle, and why it stopped */ return { ok: true, line: !ran ? `The truth pass did not run this cycle: ${est?.lines ? `${est.lines} lines wait for it` : "no new line to check"}.` : `${t.judged} line${t.judged === 1 ? "" : "s"} checked on their own source pages, ${t.failed} failed and hidden, $${Number(t.usd ?? 0).toFixed(2)}${t.unread ? `, ${t.unread} whose page would not open` : ""}${t.left ? `; ${t.left} left for the next cycle` : ""}${t.stopped ? ` (stopped: ${t.stopped})` : ""}.`, usd: ran ? t.usd ?? 0 : 0, data: t ? { ran, judged: t.judged, failed: t.failed, left: t.left ?? 0, of: t.of, waiting: est?.lines ?? null } : { ran: false, waiting: est?.lines ?? null } }; },
+    rebuild: async () => { const c = await pageCounts(id, { fresh: true }).catch(() => null), gained = c && before.forGoogle !== null ? c.forGoogle - before.forGoogle : null; return { ok: true, line: c ? `${c.ready} of ${c.made} pages ready; ${c.forGoogle} go to Google${gained !== null ? ` (${gained >= 0 ? `+${gained}` : gained} this cycle: noindex pages that reached 6 real answers lost their noindex by themselves)` : ""}.` : "Pages rebuilt.", data: c ? { ready: c.ready, forGoogle: c.forGoogle, gained } : null }; },
+    gate: async () => { const conn = pread(id, "publish.json"); if (!conn?.kind) return { ok: false, line: "No publish connection: nothing can go out.", stopCycle: true }; const done = await publishAll(id); return { ok: done.ok !== false || (done.written ?? 0) > 0, line: done.line, held: done.held ?? [], data: { written: done.written, of: done.of, mirror: done.mirror ? { ok: done.mirror.ok, rewritten: done.mirror.rewritten, removed: done.mirror.removed, blocked: done.mirror.blocked } : null }, ...(done.busy || done.needsConnection ? { stopCycle: true } : {}) }; },
+    goLive: async (ctx) => {
+      const conn = withKnownFolder(pread(id, "publish.json"));
+      if (conn?.kind !== "github" || !previewOf(conn)) return { ok: true, line: conn?.kind === "github" ? "The pages are written straight to the live branch." : "Your site publishes directly: nothing to take live." };
+      const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null; if (!token) return { ok: false, line: "No GitHub token saved: the pages stay on the preview.", stopCycle: true };
+      const gh = githubApi({ key: token, testBase: allowLocal ? CONFIG.testPublishBase ?? null : null });
+      const r = await goLive({ gh, conn: { repo: conn.repo, branch: conn.branch, folder: conn.folder, site: conn.site ?? store.read(id).product.site }, scan: (origin, o) => scanFor(id, o.preview ? origin : null, o), save: (x) => pwrite(id, "go-live.json", x), maxWaitMs: Number(CONFIG.testGoLiveWaitMs) || 30 * 60000, everyMs: Number(CONFIG.testGoLiveEveryMs) || 20000, bypass: Boolean(KEYS.get(vercelBypassName(id))) });
+      if (r.merged) markLive(id, r.merged); ctx.live = r.live ?? null;
+      const pages = r.merged ? pread(id, "published.json", []).filter((x) => x.wentLive?.sha === r.merged.sha).length : 0;
+      return { ok: r.ok, line: r.nothing ? "Nothing new to take live." : r.ok ? `Taken live: pull request #${r.merged.pr} merged after the preview passed the scan; the live deployment is Ready.` : r.held, held: r.held ? [{ url: r.pr ? `pull request #${r.pr}` : "the go-live", why: r.held }] : [], data: { pages, pr: r.merged?.pr ?? r.pr ?? null, rolledBack: r.rolledBack ?? null, way: r.way ?? null, steps: r.steps } };
+    },
+    liveScan: async (ctx) => { const s = ctx.live ?? await scanFor(id, null, { preview: false }); if (ctx.live) pwrite(id, SCAN_FILE, s); const bad = (s.rows ?? []).filter((r) => !r.ok); return { ok: s.ok === true, line: s.why ?? (s.ok ? `The live site passed every check (${s.crawled} pages read).` : `The live site failed ${bad.length} check${bad.length === 1 ? "" : "s"}: ${bad.map((r) => `${r.check} (${r.count})`).join(", ")}. Fixed in the next cycle.`), data: { crawled: s.crawled, failed: bad.map((r) => r.key), serious: s.serious ?? [] } }; },
+    engines: async () => { const x = await submitAll(id).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })), c = await pageCounts(id, { fresh: true }).catch(() => null); if (x.ok === false && /Nothing is published yet/.test(x.why ?? "")) return { ok: true, line: "Nothing is live yet: Google and Bing are told after the next go-live.", data: { inGoogle: c?.inGoogle ?? null } }; return { ok: x.ok !== false, line: x.ok === false ? x.why : x.line ?? "Google and Bing were told.", data: { inGoogle: c?.inGoogle ?? null } }; },
+    report: async () => ({ ok: true, line: "Saved." }),
+  };
+}
+/** one cycle now (the schedule, the server's runner, or the client's "Run one cycle now") */
+async function runAutopilot(id, { approved = false, where = "app" } = {}) {
+  if (AP_BUSY.has(id)) return { ok: false, busy: true, line: "A cycle is running now." };
+  const st = apRead(id); AP_BUSY.add(id); const key = `autopilot:${id}`; BOARD.start(key, { product: id, kind: "autopilot", label: "Autopilot: one cycle", what: "Working out the whole job's cost first", long: true });
+  pwrite(id, AP_FILE, { ...st, lease: { by: where, until: new Date(Date.now() + 6 * 3600000).toISOString() } });
+  try {
+    await pageCounts(id, { fresh: true }).catch(() => null);
+    const c = await runCycle({ mode: st.mode, approved, where, budget: apBudget(), estimate: async () => apEstimate(id), steps: autopilotSteps(id), save: (x) => { pwrite(id, "autopilot-cycle.json", x); const s = x.steps.at(-1); if (s) BOARD.step(key, { what: `${s.name}: ${String(s.line).slice(0, 140)}` }); } });
+    if (c.waiting) return c;
+    const runs = [...pread(id, AP_RUNS, []), c].slice(-60); pwrite(id, AP_RUNS, runs);
+    const w = pread(id, AP_WEEKLY, null); if (!w || Date.now() - Date.parse(w.on) >= 7 * 864e5 - 3600000) pwrite(id, AP_WEEKLY, weeklyReport(runs, { since: w ? Date.parse(w.on) : Date.now() - 7 * 864e5, budget: apBudget() }));
+    pwrite(id, AP_FILE, { ...apRead(id), last: { on: c.on, ok: c.ok, usd: c.usd, where }, next: new Date(Date.parse(c.on) + EVERY_MS).toISOString(), lease: null });
+    didIt(id, `Autopilot cycle: ${c.steps.filter((s) => s.ok).length} of ${c.steps.length} steps ok, $${c.usd.toFixed(2)}.`);
+    return c;
+  } finally { AP_BUSY.delete(id); const now = apRead(id); if (now.lease?.by === where) pwrite(id, AP_FILE, { ...now, lease: null }); BOARD.finish(key, { ok: true, line: "Autopilot cycle finished: see Autopilot." }); }
+}
+/** while the app is open: a due product's cycle runs here too (the server's runner does it while the computer is off) */
+function autopilotTick() { if (CONFIG.testSecretsInMemory === true && CONFIG.testAutopilotTick !== true) return; for (const p of store.list()) { try { const st = apRead(p.id); if (isDue(st) && !AP_BUSY.has(p.id) && !(st.server?.on && CONFIG.autopilotLocal !== true)) runAutopilot(p.id, { where: "app" }).catch((e) => writeLastError(DATA, "autopilot", e)); } catch { /* a product without its folder */ } } }
+/* 🔴 RR-386 §2.4: the product kept on our server too, so its cycle runs while this computer is off (site/autopilot-server.mjs; the runner: desktop/autopilot-runner.mjs) */
+const AP_SYNC_DIR = join(DATA, "autopilot-sync"), apSyncFile = (id) => join(AP_SYNC_DIR, `${String(id).replace(/[^A-Za-z0-9_-]/g, "_")}.json`);
+const apServer = () => { const signed = currentLicence(); if (!signed) return null; return apClient({ base: CONFIG.autopilotServerUrl ?? CONFIG.keywordServiceUrl ?? LICENCE_URL, headers: { [LICENCE_HEADER]: licenceHeaderOf(signed) } }); };
+const AP_SYNCING = new Set();
+/** pull what the server holds (if newer), join it with this app's copy, send the joined copy back — the two sides equal after */
+async function apSyncProduct(id) {
+  if (AP_SYNCING.has(id) || AP_BUSY.has(id)) return { ok: false, why: "busy" };
+  const c = apServer(); if (!c) return { ok: false, why: "No licence: the server cannot keep your product." };
+  AP_SYNCING.add(id);
+  try {
+    let was = {}; try { was = JSON.parse(readFileSync(apSyncFile(id), "utf8")); } catch { was = {}; }
+    const info = await c.info(id); if (info.status && info.status >= 400) return { ok: false, why: info.why ?? `the server answered ${info.status}` };
+    if (info.lease && info.lease.by === "runner") return { ok: true, waiting: true, line: "A cycle is running on our server now: your app takes its results when it ends." };
+    const app = packFiles(DATA, id); let files = app, from = null;
+    if ((info.version ?? 0) > (was.version ?? 0)) { const srv = await c.pull(id); if (srv) { const j = joinBundles({ base: was.base ?? null, app, server: srv.files }); files = j.files; from = j.from; unpackFiles(DATA, id, files); } }
+    const changed = JSON.stringify(hashesOf(files)) !== JSON.stringify(was.base?.hashes ?? null) || (info.version ?? 0) === 0;
+    let version = info.version ?? 0; if (changed) { const p = await c.push(id, version + 1, files, { from: "app", on: new Date().toISOString() }); version = p.version; }
+    mkdirSync(AP_SYNC_DIR, { recursive: true }); writeFileSync(apSyncFile(id), JSON.stringify({ version, on: new Date().toISOString(), base: baseOf(files) }));
+    return { ok: true, version, pulled: Boolean(from), from, sent: changed };
+  } catch (e) { return { ok: false, why: scrub(e?.message ?? e) }; } finally { AP_SYNCING.delete(id); }
+}
+/** GET: what the server keeps; POST { on, keys, email }: autopilot on our server on/off, the keys the runner needs (typed here once, sealed there, never shown again) */
+async function autopilotServer(id, body) {
+  const c = apServer(); if (!c) return { ok: false, why: "No licence: the server cannot keep your product." };
+  if (!body) { const info = await c.info(id).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })); return { ...info, local: (() => { try { return JSON.parse(readFileSync(apSyncFile(id), "utf8")).version; } catch { return 0; } })() }; }
+  const st = apRead(id), keys = body.keys && typeof body.keys === "object" ? Object.fromEntries(Object.entries(body.keys).filter(([, v]) => typeof v === "string")) : undefined;
+  const r = await c.set(id, { ...(body.on === true ? { mode: "autopilot" } : body.on === false ? { mode: "review" } : {}), ...(keys ? { keys } : {}), ...(typeof body.email === "string" ? { email: body.email } : {}) }).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) }));
+  if (r.ok === false || (r.status && r.status >= 400)) return { ok: false, why: r.why ?? "The server did not keep it." };
+  if (typeof body.on === "boolean") pwrite(id, AP_FILE, { ...st, server: { on: body.on, since: new Date().toISOString() } });
+  const s = body.on === true ? await apSyncProduct(id) : null;
+  return { ok: true, keys: r.keys ?? [], mode: r.mode, sync: s, line: body.on === true ? (s?.ok ? `Our server keeps your product (version ${s.version}) and runs its cycle once a day, also while this computer is off.` : `Turned on, but your product could not be sent yet: ${s?.why}. It is sent again in 10 minutes.`) : body.on === false ? "Our server no longer runs this product's cycle." : "Saved. The keys are never shown again." };
+}
+function autopilotSyncTick() { for (const p of store.list()) { try { if (apRead(p.id).server?.on) apSyncProduct(p.id).catch(() => null); } catch { /* no folder */ } } }
+const planStarted = new Map(); // RR-386 item 3
+const ANSWER_ORDER = new Map(); // RR-386: title → answers still needed, set by an autopilot cycle
 /** RR-358: the plan's sources — the keyword database, the search-data files, the pages, the research — newer than the plan itself */
 const planTried = new Map();
 const PLAN_SOURCES = ["keyword-db.json", "search-data-files.json", "pages.json", "research.json", "ai-research.json", "almiseo.json"];
@@ -534,6 +695,8 @@ const addressesOfCountry = (id) => { const packets = pread(id, "country-facts.js
 async function lookForFound(id, plan, step, key, subject, mayWait = false) {
   const withdrawn = withdrawFalse(id), w0 = LEDGER.route(AI_SEARCH.route).month.usd;
   const on = new Date().toISOString(), today = on.slice(0, 10), kept = pread(id, FOUND_FILE, {}), rows = wantedAnswers(plan), usd0 = LEDGER.month()?.usd ?? 0, spentOf = () => (dfsLedger().spent ?? []).filter((s) => String(s.on).startsWith(today)).reduce((t, s) => t + (Number(s.cost) || 0), 0), search0 = spentOf();
+  /* 🔴 RR-386 §2.2 step 1: in an autopilot cycle the noindex pages that need the FEWEST answers go first (1, then 2, …), then the rest as before */
+  { const pr = ANSWER_ORDER.get(id); if (pr) { const need = (r) => Math.min(...(r.pages ?? []).map((t) => pr.get(t) ?? 99), 99); rows.sort((x, y) => need(x) - need(y) || (y.pages?.length ?? 0) - (x.pages?.length ?? 0)); } }
   if (!rows.length || CONFIG.answerFills === false) return { rows, kept, stopped: null, usd: 0, searchUsd: 0 };
   step({ done: 0, of: rows.length, unit: "questions", what: "Looking for the missing answers" });
   /* 🔴 RR-378 item 3: an answer from a news article is read again on its own page (free): older than two years and not said to be current, it leaves; its pages are made again */
@@ -1441,6 +1604,8 @@ if (CONFIG.testOffline !== true) { const backfill = () => { for (const p of stor
 const syncAll = async () => { if (CONFIG.testOffline === true || !currentLicence()) return; for (const p of store.list()) { try { await syncAlmiSeo(p.id); } catch { /* the page says it could not be read */ } } };
 /* 🔴 RR-376 item 1: what was asked of Google is collected when it is ready, whether or not a run is going: on opening the app and every ten minutes, and goes to AlmiSEO Data. Collecting is free; nothing new is bought here */
 const collectWaiting = async () => { if (making.size || CONFIG.testOffline === true) return; const l = dfsLedger(); if (!Object.keys(l.pending ?? {}).length) return; const login = KEYS.get(DFS_KEYS.login), password = KEYS.get(DFS_KEYS.password); if (!login || !password) return; await collectQueued({ ledger: l, login, password, maxMs: 0, everyMs: 0, ...serpTest() }); if (making.size) return; writeFileSync(DFS_LEDGER_FILE, JSON.stringify(l)); uploadAll().catch(() => null); };
+/* 🔴 RR-386: a due autopilot cycle runs while the app is open (every 10 minutes it looks; a cycle runs once a day) */
+setTimeout(() => { autopilotSyncTick(); autopilotTick(); setInterval(() => { autopilotSyncTick(); autopilotTick(); }, 600e3).unref(); }, Number.isInteger(CONFIG.autopilotFirstMs) ? CONFIG.autopilotFirstMs : 3 * 60000).unref();
 if (CONFIG.collectWaiting !== false) setTimeout(() => { collectWaiting().catch(() => null); setInterval(() => collectWaiting().catch(() => null), 600e3).unref(); }, Number.isInteger(CONFIG.collectFirstMs) ? CONFIG.collectFirstMs : 30000).unref();
 if (CONFIG.almiSeoSync !== false) setTimeout(() => { syncAll(); setInterval(syncAll, SYNC.everyHours * 3600e3).unref(); }, Number.isInteger(CONFIG.almiSeoFirstMs) ? CONFIG.almiSeoFirstMs : SYNC.firstMs).unref();
 
@@ -1574,7 +1739,7 @@ const server = createServer((req, res) => {
       { const r = /^\/api\/products\/([^/]+)\/(data-lines|answers\/read|rank|topic-plans)$/.exec(u.pathname);
         if (r && store.list().some((p) => p.id === r[1])) { const id = r[1];
           /* 🔴 RR-376 item 3: drafts only; the owner approves */
-          if (r[2] === "topic-plans" && req.method === "GET") { const held = pread(id, PLANS_FILE, { plans: [] }), was = Object.fromEntries(held.plans.map((p) => [p.key, p])), pg = preadMemo(id, "pages.json"), kwFile = pread(id, ALMISEO_KEYWORDS, null), a = pread(id, ALMISEO_FILE, null), plans = plansFromTopics({ topics: pg?.examPlan?.theyHave ?? [], keywords: kwFile?.rows ?? [], bank: [...(Array.isArray(a?.questions) ? a.questions : []), ...(Array.isArray(a?.asked) ? a.asked : []), ...[...new Set(Object.values(dfsLedger().serpCache ?? {}).flatMap((v) => v?.paa ?? []))].map((question) => ({ question }))], existing: (pg?.drafts ?? []).map((d) => d.title), subject: seedOf(store.read(id)), on: new Date().toISOString().slice(0, 10), was }); pwrite(id, PLANS_FILE, { plans }); return send(200, { plans }); }
+          if (r[2] === "topic-plans" && req.method === "GET") { const plans = topicPlansFresh(id); return send(200, { plans }); }
           if (r[2] === "topic-plans" && req.method === "POST") { const v = json(), held = pread(id, PLANS_FILE, { plans: [] }), p = held.plans.find((x) => x.key === v.key); if (!p) return send(400, { refused: "That plan is not on the list." }); p.status = v.approve === true ? "approved" : "draft"; pwrite(id, PLANS_FILE, held); return send(200, { ok: true, status: p.status, line: p.status === "approved" ? "Approved. Press Create SEO pages to make it." : "Back to a draft." }); }
           if (r[2] === "rank" && req.method === "GET") return send(200, rankChart(pread(id, "search-history.json", null), String(u.searchParams.get("url") ?? "")));
           const toRead = () => Object.values(pread(id, PAGES_TO_READ, { pages: {} }).pages), items = () => toRead().slice(0, BROWSER.cap).map((p) => ({ kind: "answers", url: p.url, label: `${p.site}: ${p.questions.length} waiting question${p.questions.length === 1 ? "" : "s"}`, why: p.why }));
@@ -1588,6 +1753,18 @@ const server = createServer((req, res) => {
           }
         }
       }
+      /* ── 🔴 RR-386 · AUTOPILOT: the switch, one cycle now (its cost first), the scan ("Check my site now"), the preview's bypass secret ── */
+      { const r = /^\/api\/products\/([^/]+)\/(autopilot|autopilot\/run|autopilot\/secret|autopilot\/server|scan)$/.exec(u.pathname);
+        if (r && store.list().some((p) => p.id === decodeURIComponent(r[1]))) { const id = decodeURIComponent(r[1]);
+          if (r[2] === "autopilot" && req.method === "GET") { await pageCounts(id).catch(() => null); const st = apRead(id), cost = costPlan(apEstimate(id), apBudget().left); return send(200, { state: st, mode: st.mode, busy: AP_BUSY.has(id), cost, budget: apBudget(), cycle: pread(id, "autopilot-cycle.json", null), runs: pread(id, AP_RUNS, []).slice(-10).reverse().map((c) => ({ on: c.on, ok: c.ok, usd: c.usd, where: c.where, steps: c.steps.map((s) => ({ name: s.name, ok: s.ok, line: s.line })) })), weekly: pread(id, AP_WEEKLY, null), scan: pread(id, SCAN_FILE, null), bypassSaved: KEYS.status(vercelBypassName(id)).saved, goLive: pread(id, "go-live.json", null) }); }
+          if (r[2] === "autopilot" && req.method === "POST") { const v = json(), mode = v.mode === MODES.AUTO ? MODES.AUTO : MODES.REVIEW, st = apRead(id); pwrite(id, AP_FILE, { ...st, mode, since: mode !== st.mode ? new Date().toISOString() : st.since }); didIt(id, mode === MODES.AUTO ? "Autopilot: on." : "Autopilot: off (Show me first)."); return send(200, { ok: true, mode, line: mode === MODES.AUTO ? "Autopilot is on: once a day the app finds answers, rebuilds, checks, publishes, takes the pages live after the preview passes the scan, tells Google and Bing, and reports — inside your Monthly AI limit. One press turns it off." : "Show me first: nothing goes out until you press it. Autopilot is off." }); }
+          if (r[2] === "autopilot/run" && req.method === "POST") { const v = json(); if (AP_BUSY.has(id)) return send(409, { refused: "A cycle is running now." }); const st = apRead(id); if (st.mode !== MODES.AUTO && v.start !== true) { const cost = costPlan(apEstimate(id), apBudget().left); return send(200, { ok: false, waiting: true, cost, line: `${cost.line} Press Start to run it.` }); }
+            const p = runAutopilot(id, { approved: v.start === true, where: v.where === "runner" ? "runner" : "app" }).catch((e) => ({ ok: false, line: scrub(e?.message ?? e) })); if (v.wait === true) return send(200, await p); return send(200, { ok: true, started: true, line: "One cycle started: its steps show here as they finish." }); }
+          if (r[2] === "autopilot/secret" && req.method === "POST") { const v = json(); if (!String(v.vercelBypass ?? "").trim()) { KEYS.remove(vercelBypassName(id)); return send(200, { ok: true, line: "Removed." }); } const k = KEYS.set(vercelBypassName(id), String(v.vercelBypass).trim()); return send(k.ok ? 200 : 400, k.ok ? { ok: true, line: "Saved: the scan now reads the preview itself, through Vercel's protection. It is never shown again." } : { refused: k.why }); }
+          if (r[2] === "scan" && req.method === "GET") return send(200, { scan: pread(id, SCAN_FILE, null) });
+          if (r[2] === "scan" && req.method === "POST") { const s = await scanFor(id, null, { preview: false }).catch((e) => ({ ok: false, why: scrub(e?.message ?? e), rows: [] })); return send(200, { scan: s, line: s.why ?? (s.ok ? `Every check passed (${s.crawled} pages read).` : `${s.rows.filter((x) => !x.ok).length} check(s) failed: see the table.`) }); }
+          if (r[2] === "autopilot/server") return send(200, await autopilotServer(id, req.method === "POST" ? json() : null));
+        } }
       /* ── RR-307 · the product's Overview, Check now, Fix it for me, the feature cards, Google, delete ── */
       { const r = /^\/api\/products\/([^/]+)\/(overview|next|plan-summary|answers-log|check|fix|feature\/[a-z-]+|google\/start|google\/site|google\/export|delete|plan|plan\/save|do|indexnow|indexnow\/check|bing|search-engines|search-engines\/bing-done|social-links|jobs|pages-view|pages-row|councils\/browser|fix-existing|improve-pack|almiseo|almiseo\/sync|almiseo\/browser|truth|truth\/go)$/.exec(u.pathname); // RR-378e: truth, truth/go · RR-353: Bing, Search engines, social pages; RR-354: the ticked jobs, the pages in plain words
         if (r) {
@@ -1679,7 +1856,7 @@ const server = createServer((req, res) => {
           if (r[2] === "pages-row" && req.method === "GET") { const d = (preadMemo(id, "pages.json")?.drafts ?? []).find((x) => x.url === u.searchParams.get("url")); return d ? send(200, { open: d.open ?? [], ledger: d.ledger ?? null, recipe: d.recipe ?? null }) : send(404, { refused: "No such page." }); }
           if (r[2] === "pages-view" && req.method === "GET") {
             const live = pread(id, "published.json", []).filter((x) => x.state === "LIVE"), drafts = preadMemo(id, "pages.json")?.drafts ?? [];
-            return send(200, { rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null }; }), report: latestReport(id, s), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
+            return send(200, { counts: await pageCounts(id, { fresh: u.searchParams.get("fresh") === "1" }).catch(() => null) /* RR-386 item 4 */, rows: drafts.map((d) => { const L = live.find((x) => x.url === d.url); return { title: d.title, url: d.url, ready: d.readyAsDraft === true, why: plainWhy(d), live: L ? L.live ?? L.saved ?? true : null, improve: d.improve?.url ?? null }; }), report: latestReport(id, s), connected: Boolean(pread(id, "publish.json")?.kind), blocked: publishBlocked(s) ? ALMIWORLD_NO : null, review: (s.setup?.publishMode?.mode ?? PUBLISH_MODE.REVIEW_FIRST /* RR-355: never chosen = show me first (as Setup) */) === PUBLISH_MODE.REVIEW_FIRST });
           }
           if (r[2] === "do" && req.method === "POST") {
             const what = json().what, aw = publishBlocked(s);
@@ -2165,8 +2342,11 @@ const server = createServer((req, res) => {
             const conn = withKnownFolder(pread(id, "publish.json")); if (!conn?.kind) return send(200, { ok: false, none: true, why: "Not connected to your site yet." }); if (publishBlocked(s)) return send(200, { ok: false, none: true, why: ALMIWORLD_NO });
             if (req.method === "GET") { const was = MIRROR_LOOK.get(id); if (was && Date.now() - was.at < 120000 && u.searchParams.get("fresh") !== "1") return send(200, was.out); const out = await mirrorTarget(id, conn, { dry: true }).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })); MIRROR_LOOK.set(id, { at: Date.now(), out }); return send(200, out); }
             if (req.method === "POST") { if (json().start !== true) return send(400, { refused: "Say Start first: the list of pages to remove is shown before anything changes." }); const key = `publish:${id}`; if (BOARD.running(key)) return send(409, { refused: "Your pages are being published now — wait for it to finish." }); MIRROR_LOOK.delete(id);
-              const m = await mirrorTarget(id, conn).catch((e) => ({ ok: false, why: `The site could not be made equal to the app: ${scrub(e?.message ?? e)}` })); MIRROR_LOOK.delete(id); if (m?.ok && (m.rewritten || m.removed || m.refreshed)) didIt(id, `Made the site equal the app: ${m.rewritten} rewritten (noindex), ${m.removed} removed, ${m.refreshed ?? 0} refreshed.`); logLine(DATA, `mirror: ${scrub(JSON.stringify({ ok: m?.ok, rewritten: m?.rewritten, removed: m?.removed, equal: m?.equal }))}`);
-              return send(m?.ok ? 200 : 400, m?.ok ? { ...m, line: m.rewritten || m.removed || m.refreshed ? `Your site now equals the app: ${m.kept} kept${m.refreshed ? ` (${m.refreshed} of them written again as they go out now)` : ""}, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "Your site already equals the app — nothing was changed." } : { refused: m?.why ?? "Nothing was changed." }); }
+              /* 🔴 RR-386 item 6: publish-ready ALWAYS happens first, inside the same action (publishAll ends with the mirror when its run was not stopped) */
+              const done = await publishAll(id).catch((e) => ({ ok: false, why: scrub(e?.message ?? e) })); if (done?.busy) return send(409, { refused: done.line });
+              const m = done?.mirror ?? (done?.written === 0 && done?.of === 0 ? null : { ok: false, why: done?.why ?? "Publishing the ready pages did not finish, so nothing older was changed." }) ?? { ok: false, why: "Nothing was changed." }; MIRROR_LOOK.delete(id);
+              if (done?.written) m.published = done.written; if (m?.ok && (m.rewritten || m.removed || m.refreshed)) didIt(id, `Made the site equal the app: ${m.rewritten} rewritten (noindex), ${m.removed} removed, ${m.refreshed ?? 0} refreshed.`); logLine(DATA, `mirror: ${scrub(JSON.stringify({ ok: m?.ok, rewritten: m?.rewritten, removed: m?.removed, equal: m?.equal }))}`);
+              return send(m?.ok ? 200 : 400, m?.ok ? { ...m, line: (m.published ? `${m.published} ready page${m.published === 1 ? "" : "s"} published first. ` : "") + (m.rewritten || m.removed || m.refreshed ? `Your site now equals the app: ${m.kept} kept${m.refreshed ? ` (${m.refreshed} of them written again as they go out now)` : ""}, ${m.rewritten} rewritten with only checked lines (noindex), ${m.removed} removed.` : "Your site already equals the app — nothing was changed.") } : { refused: m?.why ?? "Nothing was changed." }); }
           }
           if (r[2] === "publish/test" && req.method === "POST") { if (conn?.kind !== "github") return send(200, { ok: false, rows: [], line: "Test connection checks a GitHub connection." }); const t = await testGithubConnection({ target: conn, key: KEYS.get(keyName), allowLocal, testBase: CONFIG.testPublishBase ?? null }); publishLog(id, t.rows.map((x) => ({ check: x.check, ok: x.ok, status: x.status, message: x.message, why: x.ok ? null : x.line }))); return send(200, t); }
           if (r[2] === "publish/connect" && req.method === "POST") {
@@ -2267,7 +2447,7 @@ const server = createServer((req, res) => {
         if (r.ok) { CONFIG.googleCanSubmit = r.canSubmit === true; saveConfig(); }
         return send(200, `<!doctype html><meta charset="utf-8"><title>AlmiVisibility</title><body style="font:16px system-ui;padding:40px"><h2>${r.ok ? "Signed in to Google ✓" : "Not connected"}</h2><p>${r.ok ? "Go back to AlmiVisibility and pick your site." : String(r.why).replace(/</g, "&lt;")}</p><p><a href="/#google=${encodeURIComponent(pid)}">Back to AlmiVisibility</a></p></body>`, "text/html; charset=utf-8");
       }
-      if (req.method === "GET" && u.pathname === "/api/google/sites") { const sites = await GOOGLE.sites(); return send(sites ? 200 : 400, sites ? { sites } : { refused: "Not signed in to Google — press Connect." }); }
+      if (req.method === "GET" && u.pathname === "/api/google/sites") { const sites = await GOOGLE.sites(); /* 🔴 RR-386 item 1: the real reason, and Connect again */ return send(sites ? 200 : 400, sites ? { sites } : { refused: GOOGLE.lastError() ? `${GOOGLE.lastError()} Press Connect to sign in again.` : "Not signed in to Google — press Connect.", connect: true }); }
       if (req.method === "POST" && u.pathname === "/api/google/client") { const v = json(); if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(String(v.clientId ?? "").trim())) return send(400, { refused: "That is not a Google sign-in client id (it ends with .apps.googleusercontent.com)." }); const k = KEYS.set("GOOGLE_CLIENT_SECRET", v.secret); if (!k.ok) return send(400, { refused: k.why }); CONFIG.googleClientId = String(v.clientId).trim(); saveConfig(); return send(200, { ok: true, status: GOOGLE.status() }); }
       if (req.method === "POST" && u.pathname === "/api/google/signout") { GOOGLE.signOut(); return send(200, { ok: true }); }
       if (req.method === "GET" && u.pathname === "/api/choices") return send(200, CHOICES);

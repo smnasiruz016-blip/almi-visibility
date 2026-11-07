@@ -85,17 +85,21 @@ export function googleConnect({ keys, config, fetchImpl = (u, i) => fetch(u, { .
   const clientId = () => config.googleClientId ?? null;
   const ready = () => Boolean(clientId() && keys.get(KEYS.secret));
   let access = null; // { token, until } — memory only
+  let lastError = null, expired = false; // RR-386 item 1
   const token = async () => {
     if (access && access.until > now() + 60000) return access.token;
     const refresh = keys.get(KEYS.refresh); if (!refresh) return null;
     const r = await fetchImpl(ep.token, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: clientId(), client_secret: keys.get(KEYS.secret), refresh_token: refresh, grant_type: "refresh_token" }) });
-    if (!r.ok) return null;
-    const j = await r.json(); access = { token: j.access_token, until: now() + (j.expires_in ?? 3600) * 1000 };
+    /* 🔴 RR-386 item 1: Google's own reason is kept (and shown); a refresh Google no longer accepts means "not signed in" — one clear state */
+    if (!r.ok) { const e = await r.json().catch(() => ({})); lastError = `Google said: ${String(e.error_description ?? e.error ?? `error ${r.status}`).slice(0, 200)} (${r.status}).`; if (e.error === "invalid_grant" || r.status === 400 || r.status === 401) expired = true; return null; }
+    const j = await r.json(); access = { token: j.access_token, until: now() + (j.expires_in ?? 3600) * 1000 }; expired = false; lastError = null;
     return access.token;
   };
-  const api = async (path, init = {}) => { const t = await token(); if (!t) return null; const r = await fetchImpl(`${ep.api}${path}`, { ...init, headers: { authorization: `Bearer ${t}`, "content-type": "application/json", ...(init.headers ?? {}) } }); return r.ok ? r.json() : null; };
+  const api = async (path, init = {}) => { const t = await token(); if (!t) return null; const r = await fetchImpl(`${ep.api}${path}`, { ...init, headers: { authorization: `Bearer ${t}`, "content-type": "application/json", ...(init.headers ?? {}) } }); if (!r.ok) { const e = await r.json().catch(() => ({})); lastError = `Google answered ${r.status}: ${String(e.error?.message ?? e.error ?? "no reason given").slice(0, 200)}`; if (r.status === 401) expired = true; return null; } return r.json(); };
   return Object.freeze({
-    status() { return { ready: ready(), signedIn: Boolean(keys.get(KEYS.refresh)), clientIdSet: Boolean(clientId()) }; },
+    status() { return { ready: ready(), signedIn: Boolean(keys.get(KEYS.refresh)) && !expired, clientIdSet: Boolean(clientId()), lastError }; },
+    /** RR-386 item 1: the real reason of the last failure (Google's own words), or null */
+    lastError: () => lastError,
     /** the address of Google's own sign-in page, opened in the client's browser */
     start(redirect, { submit = false, merchant = false } = {}) {
       if (!ready()) return { ok: false, why: "Google sign-in is not set up in this copy of AlmiVisibility yet (AlmiWorld's Google sign-in client is missing). Meanwhile, add a Search Console export file — it works today." };

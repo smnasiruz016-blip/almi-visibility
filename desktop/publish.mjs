@@ -17,6 +17,9 @@ import { createHash } from "node:crypto";
 import { join, resolve, sep } from "node:path";
 import { asPublished, THIN_MARK } from "../src/page/one-builder.mjs";
 import { visibleQa } from "./page-law.mjs";
+import { datesOf } from "./site-scan.mjs"; // RR-386
+/** 🔴 RR-386 (Q&A LAW 5A.6): "Last checked" is the OLDEST check date of the facts the page shows — set as the page goes out, for drafts made before too */
+export const oldestLastChecked = (html) => { const h = String(html ?? ""), d = datesOf(h); if (!d.last || !d.oldest || d.oldest >= d.last) return h; return h.replace(/(data-last-checked=")\d{4}-\d{2}-\d{2}(")/, `$1${d.oldest}$2`).replace(/(Last checked[^0-9<]{0,40}(?:<[^>]+>[^0-9<]{0,20})*)\d{4}-\d{2}-\d{2}/, `$1${d.oldest}`); }; /* both shapes: the app's own (data-last-checked) and a page's plain "Last checked: date" (the site's guides, RR-386) */
 /* 🔴 RR-383 item 2 (Q&A LAW 6): the PAGE carries noindex when it shows fewer than 6 real Q&A (the fee question not counted). Counted on the
  * finished page, the last word before it goes, so no page is indexable on a count made elsewhere (the real proof: 8 drafts with 5 went out "index") */
 export { THIN_MARK }; /* RR-383: main reads the mark through here (it never imports the builder) */
@@ -29,7 +32,7 @@ export const checkedFeeRows = (html) => (mainOf(html).match(/<details\b[^>]*data
 export const indexCount = (html) => realQa(html) + checkedFeeRows(html);
 /* only a Q&A or fee page is counted (Q&A LAW 6); a page with neither (an article, a client's own page) goes out as it was made. Below 6 → noindex;
  * a fee page that reaches 6 with its checked fee rows is indexed even when its draft was marked "needs more answers" */
-export const asPublishedGuarded = (html, url) => { const fees = checkedFeeRows(html), counted = visibleQa(html).length > 0 || fees > 0, n = indexCount(html); let h = String(html); if (counted && n < REAL_QA_MIN) h = asNoindex(h); else if (fees && n >= REAL_QA_MIN && h.includes(THIN_MARK)) h = h.replace(THIN_MARK, ""); return asPublished(h, url); };
+export const asPublishedGuarded = (html, url) => { const fees = checkedFeeRows(html), counted = visibleQa(html).length > 0 || fees > 0, n = indexCount(html); let h = oldestLastChecked(html); if (counted && n < REAL_QA_MIN) h = asNoindex(h); else if (fees && n >= REAL_QA_MIN && h.includes(THIN_MARK)) h = h.replace(THIN_MARK, ""); return asPublished(h, url); };
 
 export const TARGETS = Object.freeze([
   Object.freeze({ id: "wordpress", label: "WordPress", chooseIf: "your site is built with WordPress (you sign in at your-site/wp-admin).", needs: "your site's address, your WordPress user name, and an application password (WordPress → Users → Profile → Application Passwords → Add new).", keyName: "WORDPRESS_APP_PASSWORD" }),
@@ -247,7 +250,8 @@ export async function improveExisting({ target, key, url, section, fetchImpl = f
       const got = await call(`${api}/repos/${target.repo}/contents/${p}?ref=${encodeURIComponent(target.branch ?? "")}`, { method: "GET", headers: gh });
       if (!got.ok) { if (got.status === 404) continue; return got; }
       if (!got.body?.content || !got.body.sha) continue;
-      const next = withSection(Buffer.from(got.body.content, "base64").toString("utf8"), section);
+      /* 🔴 RR-386: the improved page says "Last checked" = its OLDEST fact date (the 11 guides on the live site said a newer one; the site PR fixed them once, this keeps them right) */
+      const next = oldestLastChecked(withSection(Buffer.from(got.body.content, "base64").toString("utf8"), section));
       const put = await call(`${api}/repos/${target.repo}/contents/${p}`, { method: "PUT", headers: { "content-type": "application/json", ...gh }, body: JSON.stringify({ message: `Improve ${path || "home"} (AlmiVisibility)`, content: Buffer.from(next).toString("base64"), branch: target.branch, sha: got.body.sha }) });
       return put.ok ? { ok: true, line: previewOf(target) ? `Improved in the preview: branch ${target.branch} of ${target.repo} (in ${p}). Not live until that branch is merged.` : `Improved on your site: ${url} (in ${p}) — it goes live with your site's next deploy.` } : put;
     }

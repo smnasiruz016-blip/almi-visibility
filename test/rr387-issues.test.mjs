@@ -40,6 +40,18 @@ test("2 · D2 OUTSIDE ERRORS: the service's own words, then ONE fix — Google, 
   assert.doesNotMatch(bugReport({ issue: { what: "x", where: "https://ex.com/a", source: "scan", sample: ["token sk-ant-api03-SECRETSECRET and ghp_SECRETSECRETSECRET at https://ex.com/a?key=abc123"] }, version: "1.15.44", product: "P" }), /sk-ant-api03-SECRET|ghp_SECRET|key=abc123/, "D4: no secret in a bug report");
 });
 
+test("4 · RR-387b: the 6 answers the second judge failed are hidden by their TEXT wherever they stand (the 12-professions line only under a question it does not answer); the full re-judge is on the Issues list and scheduled", async () => {
+  const { textUnfit, unfit, hideUnfit } = await import("../desktop/answer-fit.mjs"), { visibleQa } = await import("../desktop/page-law.mjs");
+  const coru = "In Ireland: CORU (Dietitians Registration Board) accepts OET (Dietetics): B (350) in three sub-tests and C+ (300) in one.", prof = "OET's own page: OET is made for 12 healthcare professions: medicine, nursing, dentistry, dietetics, pharmacy, physiotherapy, podiatry, radiology, occupational therapy, veterinary science, optometry and speech pathology.";
+  assert.equal(textUnfit("Where do dietitians from Nepal go, and what score does each country ask?", coru), true, "the same text under ANOTHER question too");
+  assert.equal(textUnfit("Can an MDS graduate apply to sit the OET in Kenya?", prof), true); assert.equal(textUnfit("Which professions can take OET?", prof), false, "where it answers the question, it stays");
+  assert.equal(unfit("Doctors in Kenya?", "Doctors in Kenya register with Kenya Medical Practitioners and Dentists Council."), true);
+  const page = `<html><head></head><body><main><details data-need-id="a"><summary>Where do dietitians go?</summary><p>${coru} <a class="src" href="https://s/x">S</a><span class="src"> · checked 2026-11-01</span></p><p>In the UK: HCPC accepts OET. <a class="src" href="https://s/y">S</a><span class="src"> · checked 2026-11-01</span></p></details></main></body></html>`;
+  assert.deepEqual(visibleQa(hideUnfit(page))[0].answers.map((x) => x.words), ["In the UK: HCPC accepts OET."]);
+  const l = findIssues({ rejudge: { from: "2026-12-01", usd: 12, done: false } }); assert.equal(l[0].what, "Full re-judge of all shown answers against their sources: about $12, scheduled for the first autopilot cycle in December."); assert.equal(findIssues({ rejudge: { done: true } }).length, 0, "gone once done");
+  const main = readFileSync(join(REPO, "desktop", "main.mjs"), "utf8"); assert.match(main, /const again = rejudgeDue\(id, today\), rows = truthRows\(plan, again \? Object\.fromEntries\(Object\.entries\(tv\)\.filter\(\(\[, v\]\) => String\(v\.on \?\? ""\) >= REJUDGE\.from\)\) : tv, today\)/); assert.match(main, /rejudge: \{ \.\.\.REJUDGE, done:/);
+});
+
 test("3 · D1 + D3: dates found and fixed; the money warning ONCE, never a raise; the week says only what changed and what needs the owner", () => {
   const a = findIssues({ budget: { left: 1.2 }, nextCycleUsd: 3.4, now: Date.parse("2026-11-20") });
   assert.equal(a.length, 1); assert.equal(a[0].what, "Next cycle about $3.40, left $1.20. The rest waits for 2026-12-01."); assert.doesNotMatch(a[0].what + (a[0].step ?? ""), /raise|increase/i);

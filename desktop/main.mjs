@@ -60,7 +60,8 @@ import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/article
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { secureBackendFor, selfUpdates } from "./platform.mjs";
 import { ownPlanPages } from "./own-pages.mjs"; // RR-388 A
-import { guardComparisons } from "./comparison-guard.mjs"; // RR-388 A3 // RR-388 C: one layer for Windows and a Mac
+import { guardComparisons } from "./comparison-guard.mjs"; // RR-388 A3
+import { documentText, researchRows, addOwnerResearch } from "./owner-research.mjs"; // RR-388 E4 // RR-388 C: one layer for Windows and a Mac
 import { youtubeApp } from "./youtube-app.mjs";
 import { SOCIAL_PLATFORMS, socialSetup, socialPlan, writeCaptionsAI } from "./social-app.mjs"; // RR-348 b
 import { LOCATIONS } from "../site/kw-seeds.mjs"; // RR-348 c: a country name → its code for the creator data
@@ -1463,6 +1464,7 @@ async function makePages(id, key) {
     if (exam?.bigger) settleLocal(exam);
     if (exam) addKnownAnswers(exam);
     /* 🔴 RR-388 A3: a comparison page says a competitor's price or feature only from that company's own page; none read → no comparison */
+    if (exam) { const o = addOwnerResearch(exam, pread(id, "owner-research.json", [])); pwrite(id, "owner-research-joined.json", { on: new Date().toISOString(), ...o }); } /* RR-388 E4: the owner's research, unchecked: the truth pass decides */
     if (exam) { const g = guardComparisons(exam, { ownName: s.product?.name ?? "", ownHost: s.product?.site ?? "" }); pwrite(id, "comparison-guard.json", { on: new Date().toISOString(), ...g }); }
     /* 🔴 RR-387 A2 + A3: answers judged on their whole source page (lists/known-answers.json) */
     if (exam && examProduct(s, id)) { applyLocalQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-366 Part 3 */ applyPairQuestions(exam, { subject: seedOf(s), ctxFor: localCtx(id) }); /* RR-369 Part 4 */ pwrite(id, "questions-wanted.json", { on: new Date().toISOString(), pages: exam.questionsWanted ?? [] }); }
@@ -2038,7 +2040,7 @@ const server = createServer((req, res) => {
           }
         } }
       /* ── RR-318 · the website's AI writing, "How many pages can I make?", the official answers, Search Console power ── */
-      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|keywords\/service|keywords\/service\/usage|official|official\/suggest|official\/page|search|search\/read|facts-file)$/.exec(u.pathname);
+      { const r = /^\/api\/products\/([^/]+)\/(web\/write|count|count\/make|count\/understand|count\/draftlist|count\/preview|count\/recheck|count\/light|count\/confirm|count\/ai|count\/index|research\/browser|research\/handin|research\/document|research\/file|research\/own|keywords|keywords\/folder|keywords\/ads|keywords\/ads\/start|keywords\/ads\/ideas|keywords\/dfs|keywords\/dfs\/volume|keywords\/service|keywords\/service\/usage|official|official\/suggest|official\/page|search|search\/read|facts-file)$/.exec(u.pathname);
         if (r) {
           const id = decodeURIComponent(r[1]);
           try { store.read(id); } catch (e) { return send(e.code === "NOT_A_PRODUCT_ID" ? 400 : 404, { refused: e.message }); }
@@ -2185,6 +2187,14 @@ const server = createServer((req, res) => {
           }
           /* RR-320 B · the browser search (F11 source a): what the client's OWN AI saw in Google in his OWN browser — accepted only by the F11
            * rules (client-started, notice first, ≥20 s apart, ≤30 a day, stopped at once on a captcha); the plan is made again at once from it */
+          /* 🔴 RR-388 E4: the owner's own research document (.odt .docx .txt .md): each question with its page kept as an UNCHECKED line; no page or an AI summary refused; the truth pass decides what is shown */
+          if (r[2] === "research/document" && req.method === "POST") {
+            const v = json(), text = documentText(String(v.name ?? ""), Buffer.from(String(v.base64 ?? ""), "base64"));
+            if (text === null) return send(400, { refused: "That file could not be read: give a .odt, .docx, .txt or .md document." });
+            const t = researchRows(text), on = new Date().toISOString().slice(0, 10), was = pread(id, "owner-research.json", []), key = (x) => `${x.question.toLowerCase()}|${x.link}`, have = new Set(was.map(key)), add = t.rows.filter((x) => !have.has(key(x))).map((x) => ({ ...x, on, file: String(v.name ?? "").slice(0, 120) }));
+            pwrite(id, "owner-research.json", [...was, ...add]); if (add.length) replan(id);
+            return send(add.length || t.rows.length ? 200 : 400, { ok: t.rows.length > 0, kept: add.length, again: t.rows.length - add.length, refused: t.refused, line: `${add.length} answer${add.length === 1 ? "" : "s"} with their page kept from ${String(v.name ?? "the file")}${t.rows.length - add.length ? ` (${t.rows.length - add.length} already here)` : ""}. Each is shown only after the truth check judges it on its page (Create SEO pages, or the next autopilot cycle).${t.refused.length ? ` Not used: ${t.refused.length} — ${[...new Set(t.refused.map((x) => x.why))].join("; ")}.` : ""}` });
+          }
           if (r[2] === "research/handin" && req.method === "POST") {
             let hand; try { hand = JSON.parse(Buffer.from(String(json().base64 ?? ""), "base64").toString("utf8")); } catch { return send(400, { refused: "That file is not the file your AI gave you after its search." }); }
             const runs = pread(id, "phrase-runs.json", []), t = takeHandIn(hand, { runsBefore: runs });

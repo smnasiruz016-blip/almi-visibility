@@ -1,0 +1,307 @@
+{
+ "note": "RR-387 A4 + A2: source pages that block AlmiVisibility's reader (each read again on 7 Nov 2026: none opened). Read in the owner's own browser (his VPN where needed) under 'Read these pages myself'; the truth pass then judges the lines on what he read.",
+ "site": "almioet.almiworld.com",
+ "on": "2026-11-07",
+ "pages": [
+  {
+   "url": "https://www.gmc-uk.org/registration-and-licensing/join-our-registers/before-you-apply-guide-for-doctors/evidence-of-your-knowledge-of-english/using-your-oet-certificate",
+   "lines": 22,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.apostille.gov.ph/faqs/",
+   "lines": 12,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://dfa.gov.ph/dfa-news/dfa-releasesupdate/23009-ph-does-away-with-red-ribbons-on-authentication-certificates",
+   "lines": 12,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.scfhs.org.sa/en/about/Pages/ContactInfo.aspx",
+   "lines": 11,
+   "why": "could not be read (moves too many times)"
+  },
+  {
+   "url": "https://mofa.gov.pk/news/important-announcement-public-facilitation-for-apostille-and-general-attestation",
+   "lines": 11,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://kenyaembassy-bern.ch/digitization-of-authentication-services-for-kenyan-issued-certificates/",
+   "lines": 11,
+   "why": "its robots.txt could not be read (robots.txt returned HTTP 503"
+  },
+  {
+   "url": "https://www.hpcsa.co.za/contact-us",
+   "lines": 10,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://ahpc.org.pk/contact-us.html",
+   "lines": 8,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://www.nhpc.org.np/browse/subject-wise-registration",
+   "lines": 7,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://sis.gov.eg/en/media-center/news/foreign-ministry-mcit-launch-document-authentication-service-by-mail/",
+   "lines": 7,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://hague.mofa.gov.bd/pages/static-pages/attestation-of-documents-695d21c101f260dcf5c90aa9",
+   "lines": 6,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://doha.mofa.gov.bd/pages/static-pages/document-attestation-b74b14-6952667735ce18e1c05a9540",
+   "lines": 6,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://www.mdcn.gov.ng/frequently-asked-questions",
+   "lines": 5,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.bmdc.org.bd/",
+   "lines": 4,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://portal.jordan.gov.jo/wps/wcm/connect/gov/egov/government+ministries+_+entities/ministry+of+foreign+affairs/services/authentication+of+documents",
+   "lines": 4,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://server.www.mdcn.gov.ng/contact-us",
+   "lines": 3,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://ahpc.ug/page/fees",
+   "lines": 3,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://www.bmdc.org.bd/reg-goodstand",
+   "lines": 3,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.ag.gov.au/international-relations/private-international-law/apostilles",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://www.occupationalenglishtest.org/test-information/healthcare-professions/",
+   "lines": 2,
+   "why": "could not be read (moves too many times)"
+  },
+  {
+   "url": "https://ahprbeta.abdm.gov.in/",
+   "lines": 2,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.sanc.co.za/contact/",
+   "lines": 2,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://pci.nic.in/GenInfo_LatestNews.html",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://www.prc.gov.ph/optometry",
+   "lines": 2,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://vct.go.tz",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://prc.gov.ph/radiologic-technology",
+   "lines": 2,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://bnmc.portal.gov.bd/sites/default/files/files/bnmc.portal.gov.bd/page/e73d4fde_b214_4f07_90f1_1c978320c91a/Application%20&%20Requirements%20for%20Good%20Professional%20Standing%20Certificate.pdf",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://mail.mvc.gov.my/3_faq.php",
+   "lines": 2,
+   "why": "That site's name could not be found."
+  },
+  {
+   "url": "https://ems.org.eg/",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://www.indiacode.nic.in/bitstream/123456789/19795/1/A2023-21.pdf",
+   "lines": 2,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.ehc.gov.eg/profession-practise-exam-for-physiotherapy",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://nhpc.gov.np/",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://health.delhi.gov.in/health/delhi-physiotherapy-and-occupational-therapy-council",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://bnmc.gov.bd/",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://jnc.gov.jo/EN/Pages/Contact_Us",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://www.pcb.gov.bd/",
+   "lines": 2,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://hq.moh.gov.my/ohp/mdc/doclink/tpc-guideline-2025-final/eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0cGMtZ3VpZGVsaW5lLTIwMjUtZmluYWwiLCJpYXQiOjE3NTQzNjk4NzMsImV4cCI6MTc1NDQ1NjI3M30.AD0vxa0IudkCqpmoh33sJcRMMn1NTDOBwTqitSjVTp3c",
+   "lines": 2,
+   "why": "the page answered 500"
+  },
+  {
+   "url": "https://nursing.moh.gov.my/faq/",
+   "lines": 2,
+   "why": "That site's name could not be found."
+  },
+  {
+   "url": "https://www.ireland.ie/en/dfa/overseas-travel/consular-services/authenticating-apostilles/",
+   "lines": 1,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://mohap.gov.ae/en/w/evaluation-of-health-professional",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://mohap.gov.ae/en/w/healthcare-professional-evaluation",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://support.occupationalenglishtest.org/s/article/How-do-I-book-OET",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://www.occupationalenglishtest.org/preparation-portal/free-sample-tests/",
+   "lines": 1,
+   "why": "could not be read (moves too many times)"
+  },
+  {
+   "url": "https://www.occupationalenglishtest.org/preparation-portal/free-sample-tests/reading-sample-test-1/",
+   "lines": 1,
+   "why": "could not be read (moves too many times)"
+  },
+  {
+   "url": "https://www.gmc-uk.org/registration-and-licensing/managing-your-registration/proof-of-registration/request-a-certificate-of-good-standing-from-us",
+   "lines": 1,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.occupationalenglishtest.org/test-information/healthcare-professions/dentistry/",
+   "lines": 1,
+   "why": "could not be read (moves too many times)"
+  },
+  {
+   "url": "https://www.ehc.gov.eg/en/news-inner1?articleId=374454",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://www.doh.gov.ae/en/contact-us",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://support.occupationalenglishtest.org/s/article/Can-I-make-highlights-or-write-notes-in-OET-on-computer-at-a-venue",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://bernepe.dfa.gov.ph/sample-sites/notarial-services/apostille-certificates",
+   "lines": 1,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.vci.ie/Utility/Contact",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt returned HTTP 429"
+  },
+  {
+   "url": "https://ehc.gov.eg/en/egyptian-board",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://copenhagen.mofa.gov.bd/pages/static-pages/6952668835ce18e1c05a9da2",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: fetch failed) — not read n"
+  },
+  {
+   "url": "https://gmc-uk.org/",
+   "lines": 1,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://www.mvc.gov.my/registration",
+   "lines": 1,
+   "why": "That site's name could not be found."
+  },
+  {
+   "url": "https://www.occupationalenglishtest.org/re-marking-policy/",
+   "lines": 1,
+   "why": "could not be read (moves too many times)"
+  },
+  {
+   "url": "https://nchr.mohap.gov.ae/en/form/contactus",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://www.sanc.co.za/2025/",
+   "lines": 1,
+   "why": "the page answered 403"
+  },
+  {
+   "url": "https://mohap.gov.ae/",
+   "lines": 1,
+   "why": "its robots.txt could not be read (robots.txt could not be read: timeout)"
+  },
+  {
+   "url": "https://www.ecfmg.org/certification/",
+   "lines": 0,
+   "why": "the page answered 403 (ECFMG: nothing about it is shown until it is read)"
+  }
+ ]
+}

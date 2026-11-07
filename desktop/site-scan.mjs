@@ -79,7 +79,7 @@ export async function scanSite({ origin, pages = [], fetchImpl = fetch, maxPages
   };
   while (todo.length) await Promise.all(todo.splice(0, concurrency).map(visit));
   const all = [...found.values()], htmlPages = all.filter((p) => p.html), indexable = htmlPages.filter((p) => !p.noindex), rows = [], listed = [];
-  const row = (key, fails, extra = {}) => { const c = SCAN_CHECKS.find((x) => x.key === key); rows.push({ key, check: c.check, mustBe: c.mustBe, ok: fails.length === 0, count: fails.length, sample: fails.slice(0, 25), ...extra }); };
+  const row = (key, fails, extra = {}) => { const c = SCAN_CHECKS.find((x) => x.key === key); rows.push({ key, check: c.check, mustBe: c.mustBe, ok: fails.length === 0, count: fails.length, sample: fails.slice(0, 25), all: fails.slice(0, 3000) /* RR-387 D: the Issues list counts every page, not the sample */, ...extra }); };
   row("status", all.filter((p) => p.status !== 200).map((p) => `${p.url}: ${p.status || p.why || "no answer"}`));
   { const bad = []; for (const [from, to] of linksFrom) for (const t of to) { const p = found.get(t); if (p && p.status !== 200) bad.push(`${from} → ${t.slice(host.length) || "/"} (${p.status || "no answer"})`); } row("links", bad, { linksChecked: [...linksFrom.values()].reduce((n, s) => n + s.size, 0) }); }
   row("noindexInSitemap", htmlPages.filter((p) => p.noindex && inSitemap.has(p.url)).map((p) => p.url));

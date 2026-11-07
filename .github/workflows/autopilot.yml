@@ -6,7 +6,12 @@ name: autopilot
 on:
   schedule:
     - cron: "40 1 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      check:
+        description: "Only check that the server accepts the runner's key (no cycle runs)"
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -19,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'schedule' && 'main' || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: "24.x"
@@ -27,4 +32,4 @@ jobs:
         env:
           AUTOPILOT_SERVER: ${{ vars.AUTOPILOT_SERVER }}
           AUTOPILOT_RUNNER_KEY: ${{ secrets.AUTOPILOT_RUNNER_KEY }}
-        run: node desktop/autopilot-runner.mjs --max-hours=5
+        run: node desktop/autopilot-runner.mjs ${{ inputs.check && '--check' || '--max-hours=5' }}

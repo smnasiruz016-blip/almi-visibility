@@ -53,7 +53,7 @@ import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerCli
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 import { runAnswers } from "./answers-collector.mjs"; // RR-375
 import { runResearch } from "./research-collector.mjs"; // RR-376
-import { runPlaces, runRules, runTrends } from "./more-collectors.mjs"; // RR-380
+import { runPlaces, runRules, runTrends, runWhois } from "./more-collectors.mjs"; // RR-380; RR-387 C (whois)
 import { runLists } from "./data-lists.mjs"; // RR-382: the data lists (ESCO, ILOSTAT, World Bank, Wikidata, College Scorecard, AlAdhan)
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -740,9 +740,11 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       /* RR-328 C · the app's country facts — the same licence as the keywords (while sales are not open: the owner's only); ONLY facts a page may
        * show (confirmed, or approved/edited by the owner) — never an unconfirmed one */
       /* 🔴 RR-386 · autopilot: the app (its licence) keeps its product here; the runner (its own key) takes the due ones (site/autopilot-server.mjs) */
-      if (u.pathname.startsWith("/v1/autopilot/") || u.pathname.startsWith("/runner/autopilot/")) {
+      if (u.pathname.startsWith("/v1/autopilot/") || u.pathname.startsWith("/runner/autopilot/") || u.pathname === "/autopilot" || u.pathname.startsWith("/autopilot/")) { /* RR-387 B3: + the phone page */
         const lic = u.pathname.startsWith("/v1/") ? checkLicence({ header: req.headers[LICENCE_HEADER], env, now: now(), salesOpen: false }) : null;
-        const r = await apHandle({ method: req.method, path: u.pathname, query: u.searchParams, raw, headers: req.headers, env, store: ap, lic, now: now(), sendWeekly: sendingOn(env) ? ({ to, text }) => sendEmail({ to, subject: "Your AlmiVisibility week", text, html: `<pre style=\"font:15px system-ui;white-space:pre-wrap\">${text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`, env, fetchImpl }) : null });
+        const r = await apHandle({ method: req.method, path: u.pathname, query: u.searchParams, raw, headers: req.headers, env, store: ap, lic, now: now(), origin: `https://${String(req.headers.host ?? "almivisibility.almiworld.com").replace(/[^a-z0-9.:-]/gi, "")}`, sendWeekly: sendingOn(env) ? ({ to, text, subject = "Your AlmiVisibility week" }) => sendEmail({ to, subject, text, html: `<pre style=\"font:15px system-ui;white-space:pre-wrap\">${text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`, env, fetchImpl }) : null });
+        if (r?.js) return send(r.status, r.js, "text/javascript; charset=utf-8", { "cache-control": "no-store" });
+        if (r?.html) return send(r.status, r.html, "text/html; charset=utf-8", { "cache-control": "no-store", "x-robots-tag": "noindex", "referrer-policy": "no-referrer" });
         if (r) return r.bytes ? send(r.status, r.bytes, "application/octet-stream", { ...r.headers, "cache-control": "no-store", "x-robots-tag": "noindex" }) : send(r.status, JSON.stringify(r.json), "application/json", { "cache-control": "no-store", "x-robots-tag": "noindex" });
       }
       if (u.pathname === "/v1/countries/facts") {
@@ -790,10 +792,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         return send(200, JSON.stringify(await runResearch({ seo, kv, env, now })), "application/json", { "cache-control": "no-store" });
       }
       /* 🔴 RR-380 · places (OpenStreetMap, links only), rules that change (rechecks on their own source pages, free), trends (monthly) */
-      if (req.method === "GET" && (u.pathname === "/cron/places" || u.pathname === "/cron/rules" || u.pathname === "/cron/trends" || u.pathname === "/cron/lists")) {
+      if (req.method === "GET" && (u.pathname === "/cron/places" || u.pathname === "/cron/rules" || u.pathname === "/cron/trends" || u.pathname === "/cron/lists" || u.pathname === "/cron/whois")) {
         if (!cronAuth()) return send(401, JSON.stringify({ ok: false }), "application/json", { "cache-control": "no-store" });
         if (!seo || (u.pathname === "/cron/rules" && !cf)) return send(200, JSON.stringify({ ok: false, why: "The database is not connected." }), "application/json", { "cache-control": "no-store" });
-        const r = u.pathname === "/cron/lists" ? await runLists({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/places" ? await runPlaces({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/rules" ? await runRules({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), now }) : await runTrends({ seo, kw: db, env, now });
+        const r = u.pathname === "/cron/whois" ? await runWhois({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/lists" ? await runLists({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/places" ? await runPlaces({ seo, kv, env, fetchImpl: tpFetch ?? fetchImpl, now }) : u.pathname === "/cron/rules" ? await runRules({ seo, cf, kv, env, reader: tpReader ?? officialReader({ fetchImpl: cfFetch, on: new Date(now()).toISOString() }), now }) : await runTrends({ seo, kw: db, env, now });
         if (kv) await recordRun(kv, u.pathname.slice(6), new Date(now()).toISOString().slice(0, 10), { progress: r.ok ? 1 : 0, code: r.ok ? null : "STOPPED", why: r.why ?? null }).catch(() => null);
         return send(200, JSON.stringify(r), "application/json", { "cache-control": "no-store" });
       }

@@ -81,6 +81,8 @@ export function apClient({ base, headers, fetchImpl = fetch, prefix = "/v1/autop
   return {
     info: async (product) => jsonOf(await call("GET", `${prefix}/${product}`)),
     set: async (product, body) => jsonOf(await call("POST", `${prefix}/${product}`, JSON.stringify(body))),
+    /** RR-387 B3: the one-time phone link (shown once in the app; also sent to the report e-mail) */
+    phone: async (product) => jsonOf(await call("POST", `${prefix}/${product}/phone`, "{}")),
     /** the whole bundle → { version, files, meta } or null */
     async pull(product, { statePath = `${prefix}/${product}/state` } = {}) {
       const first = await call("GET", `${statePath}?n=0`); if (first.status === 404) return null; if (!first.ok) throw new Error(`the server answered ${first.status}`);

@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkLead, fileSiteStore, hashPassword, adminSessions, isAdmin, dailyCounts, leadsCsv, testRecord, FOUNDER_EMAIL } from "../site/leads.mjs";
-import { familyStrip, footerColumns, FAMILY_PRODUCTS, NETWORK_LINKS } from "../site/family.mjs";
+import { footerColumns, FAMILY_PRODUCTS, ALMIWORLD } from "../site/family.mjs";
 import * as P from "../site/pages.mjs";
 
 const REPO = new URL("../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -47,15 +47,18 @@ test("THE HERO CARD · SAMPLE before a test (marked), the real result after it i
 });
 
 test("LIKE THE FAMILY · the family strip (all 23 products, the package's order) and Visibility's own links; the three-column footer; the AlmiWorld logo; no \"coming soon\" anywhere; \"Download here\"", () => {
-  const strip = familyStrip().map((l) => l.label);
-  assert.deepEqual([strip[0], strip[1], strip.at(-2), strip.at(-1), FAMILY_PRODUCTS.length], ["Home", "eBooks", "Contact Us", Object.values(NETWORK_LINKS).at(-1).label, 23]); /* the last network link by position: a generic test never names a subject (F09) */
-  assert.deepEqual(footerColumns().map((c) => c.title), ["AlmiWorld", "Products", "Legal & Contact"]);
+  /* RR-398 (owner, 8 Nov 2026): the AlmiWorld family bar and footer replace the RR-302 strip (it carried eBooks and old WordPress links) */
+  assert.equal(FAMILY_PRODUCTS.length, 23);
+  assert.equal(ALMIWORLD.home, "https://almiworld.com/");
+  assert.deepEqual(footerColumns().map((c) => c.title), [...ALMIWORLD.menus.map((m) => m.label), "AlmiWorld"]);
+  assert.doesNotMatch(JSON.stringify(ALMIWORLD), /ebook|\/blog-2\/|\?page_id=/i);
   const all = { home: P.home(), freeTest: P.freeTest(), features: P.features(), pricing: P.pricing(), download: P.download({ setupAvailable: true }), privacy: P.privacy({ preview: true }), terms: P.terms({ preview: true }) }; /* RR-325: the owner's own text (a local preview while it holds a [FILL]) */
   for (const [k, html] of Object.entries(all)) {
-    assert.match(html, /<nav class="family" aria-label="Family navigation"><a href="https:\/\/almiworld\.com\/">Home<\/a><a href="https:\/\/almiworld\.com\/ebooks-2\/">eBooks<\/a><a href="https:\/\/almijob\.almiworld\.com\/">AlmiJob<\/a>/, `${k}: family strip`);
+    assert.match(html, /<div class="awb" data-almiworld-bar=""><div class="awb-in"><a class="awb-logo" href="https:\/\/almiworld\.com\/"[^>]*><img [^>]*><\/a><a class="awb-home" href="https:\/\/almiworld\.com\/">Home<\/a><nav class="awb-nav" aria-label="AlmiWorld family"><details class="awb-drop"><summary>Exams<\/summary>/, `${k}: AlmiWorld bar with Home`);
+    assert.doesNotMatch(html, /ebooks|almiworld\.com\/blog-2\//i, `${k}: an eBooks or old WordPress link`);
     assert.match(html, /<nav class="product" aria-label="AlmiVisibility"><a href="\/"[^>]*>Home<\/a><a href="\/free-test"[^>]*>Free test<\/a><a href="\/features"[^>]*>Features<\/a><a href="\/pricing"[^>]*>Pricing<\/a><a href="\/download"[^>]*>Download<\/a>/, `${k}: own links`);
     assert.match(html, /<img src="\/brand\/almiworld-logo\.png" alt="AlmiWorld — live beautifully"/);
-    assert.match(html, /<footer class="site-footer">.*<p>AlmiWorld<\/p>.*<p>Products<\/p>.*<p>Legal &amp; Contact<\/p>/s);
+    assert.match(html, /<footer class="site-footer">.*<p>Exams<\/p>.*<p>Languages<\/p>.*<p>Career &amp; Study<\/p>.*<p>AlmiVisibility<\/p>.*<p>AlmiWorld<\/p>.*AlmiVisibility Privacy Policy.*AlmiVisibility Terms of Service/s);
     assert.doesNotMatch(html, /coming soon/i, `${k} says coming soon`);
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1, `${k}: one h1`);
     assert.match(html, /<meta name="description" content="[^"]{30,}">/);

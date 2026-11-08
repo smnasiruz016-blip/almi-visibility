@@ -503,7 +503,9 @@ test("REAL · the declared product's test drafts rebuilt under the page law (RR-
     assert.match(p.exception.record.commit, /^[0-9a-f]{40}$/);
     assert.ok(p.items > 0 && p.itemList.length === p.items && p.faqCount === p.items);
     assert.deepEqual(LAWS.map((k) => p.checks[k].state), LAWS.map(() => "PASS"), `${p.value}: a clause of the page law does not hold`);
-    assert.ok(p.html.includes(filed.questionnaire.design.brandName) && p.html.includes(filed.questionnaire.design.colours.primary) && p.html.includes(filed.questionnaire.design.cta.label), `${p.value}: the page does not wear the client's filed design`);
+    /* RR-398 note: the filed CTA LABEL follows the client's live header (RR-394, 8 Nov 2026: AlmiOET's button changed with its offer), while
+       these drafts were built on 12 Oct with the label of their day. The design is still held by brand, colour and the CTA's target. */
+    assert.ok(p.html.includes(filed.questionnaire.design.brandName) && p.html.includes(filed.questionnaire.design.colours.primary) && p.html.includes(`${filed.questionnaire.design.cta.href}"`) /* the target, written absolute on the page */, `${p.value}: the page does not wear the client's filed design`);
     assert.deepEqual(faqInPage(p.html), p.itemList.map((it) => ({ question: it.heading.shown, answer: it.claims.map((c) => c.text.trim()).join(" ") })), `${p.value}: the FAQ data is not the visible Q&A`);
     /* RR-258 · the company logo FILE and the product name in the header; the client's full navigation and footer, as filed; the logo's
        bytes are the filed bytes (sha256 re-derived here from the client's own folder) */

@@ -81,7 +81,7 @@ test("A · the home page: the free score FIRST, then the keyword finder and the 
     assert.match(h, /Made by <a href="https:\/\/almiworld\.com\/">AlmiWorld<\/a>/);
     for (const f of P.FEATURES) assert.ok(h.includes(f[0].replace(/&/g, "&amp;")), f[0]);
     assert.doesNotMatch(h, /href="\/(download|pricing|features|free-test|admin|buy)|action="\/(api|free-test|admin)|type="email"|\$30|\/ month|Buy\b|Download/, "nothing hidden is offered");
-    assert.match(h, /<nav class="family" aria-label="Family navigation">/); assert.match(h, /<footer class="site-footer">/);
+    assert.match(h, /<div class="awb" data-almiworld-bar="">/); assert.match(h, /<a class="awb-home" href="https:\/\/almiworld\.com\/">Home<\/a>/); assert.match(h, /<footer class="site-footer">/); /* RR-398: the AlmiWorld bar with Home replaces the family strip */
     assert.match(h, /<li><a href="\/privacy">AlmiVisibility Privacy Policy<\/a><\/li><li><a href="\/terms">AlmiVisibility Terms of Service<\/a><\/li>/, "the footer links both");
     assert.match(h, /<meta name="color-scheme" content="light dark">/); assert.match(h, /@media \(prefers-color-scheme:dark\)\{:root\{--cream:#14110D/);
     for (const name of ["RESEND_API_KEY", "STRIPE_SECRET_KEY", "LICENCE_SIGNING_KEY", "VISIBILITY_SITE_DATABASE_URL", "SITE_ADMIN_PASSWORD_HASH", ...STORE_NAMES.flat()]) assert.ok(!h.includes(name), `the page names ${name}`);

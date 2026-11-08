@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { createApp } from "../site/app.mjs";
 import { checkoutFields, createCheckout, PRODUCT_ID } from "../site/billing.mjs";
 import { reportEmail } from "../site/email.mjs";
-import { FAMILY, FAMILY_PRODUCTS, familyStrip } from "../site/family.mjs";
+import { FAMILY, FAMILY_PRODUCTS, ALMIWORLD } from "../site/family.mjs";
 import { familyFromPackage } from "../tools/family-from-almi-data.mjs";
 import { siteFiles, VERCEL_JSON } from "../tools/bundle-site.mjs";
 import { licenceState } from "../desktop/licence.mjs";
@@ -125,7 +125,8 @@ test("C · THE FAMILY LIST comes from almi-data (generated, with its version and
   assert.equal(FAMILY.source.package, "@smnasiruz016-blip/almi-data");
   assert.match(FAMILY.source.sha256, /^[0-9a-f]{64}$/);
   assert.ok(FAMILY.products.some((p) => p.key === "visibility"), "the list this file came from does not hold AlmiVisibility");
-  assert.ok(!FAMILY_PRODUCTS.some((p) => /visibility/i.test(p.href)) && familyStrip().length === FAMILY_PRODUCTS.length + 4);
+  /* RR-398: the family bar's menus are almiworld.com's own (site/almiworld-family.json), with AlmiVisibility under its own menu */
+  assert.ok(!FAMILY_PRODUCTS.some((p) => /visibility/i.test(p.href)) && ALMIWORLD.menus.some((m) => m.items.some((i) => /almivisibility\.almiworld\.com/.test(i.href))));
   const dir = join(REPO, "..", "almi-data");
   const built = existsSync(join(dir, "dist", "family.js")) && JSON.parse(readFileSync(join(dir, "package.json"), "utf8")).version === FAMILY.source.version;
   if (built) assert.deepEqual(familyFromPackage(dir), FAMILY, "site/family.generated.json is not what almi-data exports — re-run tools/family-from-almi-data.mjs");

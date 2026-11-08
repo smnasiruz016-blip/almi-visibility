@@ -46,6 +46,7 @@
 import { createHash } from "node:crypto";
 import { PROMISE, CHECK } from "./draft-render.mjs";
 import { judgeDraft, VERDICT as F40 } from "./quality-judgements.mjs";
+import { familyKitFor } from "../../site/family.mjs"; // RR-399 A7: a company's ONE family header and footer, when its design names one
 
 /** RR-335 · the owner's research rule: every page carries at least 3 internal links — the hub, its related pages and an article — from the
  * filed link plan (RR-286); fewer FAILS the page (it is never built) */
@@ -498,7 +499,7 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
   };
   const localFailed = Object.entries(local).filter(([, ok]) => !ok).map(([k]) => k);
   const trust = {
-    "the business is named and a contact link is shown": present(design?.brandName) && html.includes(esc(design.brandName)) && (design?.footer?.columns ?? []).some((col) => (col.links ?? []).some((l) => /contact/i.test(l.label ?? "") && html.includes(esc(l.label)))),
+    "the business is named and a contact link is shown": present(design?.brandName) && html.includes(esc(design.brandName)) && (familyKitFor(design)?.columns ?? design?.footer?.columns ?? []).some((col) => (col.links ?? []).some((l) => /contact/i.test(l.label ?? "") && html.includes(esc(l.label)))),
     "the product's own claims stand apart in product cards": items.every((it) => it.statements.every((s) => html.includes(`<div class="product" data-answer-id="${esc(s.answerId)}">`))),
     "the page adds a comparison table of its own": tables.length > 0 && tablesRefused.length === 0,
   };
@@ -531,9 +532,12 @@ export function joinedChecks({ fillerPhrases = [], items, html, stamp, title = "
       const co = design?.company, missing = [];
       if (!(present(co?.name) && present(co?.logo?.file) && head.includes(`<img src="${esc(assetName(co.logo.file))}" alt="${esc(co.logo.alt)}"`))) missing.push("the company logo is not in the header");
       if (!(present(design?.logo?.wordmark) && head.includes(`<span>${esc(design.logo.wordmark)}</span></a>`) && (!present(design?.logo?.image?.file) || head.includes(`<img src="${esc(assetName(design.logo.image.file))}"`)))) missing.push("the product logo or name is not in the header");
-      if (!(Array.isArray(design?.nav) && design.nav.length > 0 && inOrder(head, design.nav))) missing.push("the header navigation is not the client's full navigation, in its order");
+      /* RR-399 A7: a design whose company has a family kit is held to the kit's bar and footer — never to the navigation and footer filed */
+      const kit = familyKitFor(design), nav = kit ? kit.nav : design?.nav, columns = kit ? kit.columns : design?.footer?.columns ?? [];
+      if (kit && !(head.includes(kit.bar(present(co?.logo?.file) ? logoImage(co.logo, 34) : null)) && head.indexOf("data-almiworld-bar") < head.indexOf('class="brand"'))) missing.push("the company's family bar is not on top of the header");
+      if (!(Array.isArray(nav) && nav.length > 0 && inOrder(head, nav))) missing.push("the header navigation is not the client's full navigation, in its order");
       if (!inOrder(head, design?.actions ?? [])) missing.push("a header action of the client's site is missing");
-      if (!((design?.footer?.columns ?? []).length > 0 && design.footer.columns.every((col) => foot.includes(esc(col.title)) && inOrder(foot, col.links ?? [])))) missing.push("the footer is not the client's full footer");
+      if (!(columns.length > 0 && columns.every((col) => foot.includes(esc(col.title)) && inOrder(foot, col.links ?? [])))) missing.push("the footer is not the client's full footer");
       return state(missing.length === 0, missing.join("; "));
     })(),
     law2Hero: state(/<h1[ >]/.test(html) && html.includes(esc(title)) && intro.length === 2 && intro.every((l) => html.includes(esc(l))) && present(design?.cta?.label) && present(design?.cta?.href) && html.includes(esc(design.cta.label)), "the hero lacks its H1, its two-line intro or the client's call-to-action button"),
@@ -676,10 +680,15 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const co = design?.company;
   const company = present(co?.logo?.file) ? `<a class="company" href="${esc(co.href ?? "#")}" aria-label="${esc(co.name)}">${logoImage(co.logo, 56)}</a>` : "";
   const product = design ? `<a class="brand" href="${link("/")}">${present(design.logo?.image?.file) ? logoImage(design.logo.image, 36) : present(design.logo?.mark) ? `<span class="mark" aria-hidden="true">${esc(design.logo.mark)}</span>` : ""}<span>${esc(design.logo?.wordmark ?? design.brandName ?? "")}</span></a>` : "";
-  const header = design ? `<header class="site-head"><div class="bar"><div class="brands">${company}${product}</div>`
+  /* RR-399 A7: a company with a family kit — its family bar on top (the company logo is the bar's), then the product's own logo, actions
+   * and call to action; the kit's footer. The navigation and footer filed in the questionnaire are not shown: the kit is the one source */
+  const kit = familyKitFor(design);
+  const header = !design ? "" : kit ? `<header class="site-head">${kit.bar(present(co?.logo?.file) ? logoImage(co.logo, 34) : null)}<div class="bar"><div class="brands">${product}</div>`
+    + `<div class="head-right"><div class="acts">${(design.actions ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}${cta}</div></div></div></header>`
+    : `<header class="site-head"><div class="bar"><div class="brands">${company}${product}</div>`
     + `<div class="head-right"><div class="acts">${(design.actions ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}${cta}</div>`
-    + `<nav aria-label="${esc(co?.name ?? design.brandName ?? "Site")}">${(design.nav ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}</nav></div></div></header>` : "";
-  const footer = design ? `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>` : "";
+    + `<nav aria-label="${esc(co?.name ?? design.brandName ?? "Site")}">${(design.nav ?? []).map((n) => `<a href="${link(n.href)}">${esc(n.label)}</a>`).join("")}</nav></div></div></header>`;
+  const footer = !design ? "" : kit ? kit.footer() : `<footer class="site-foot"><div class="foot">${(design.footer?.columns ?? []).map((col) => `<div><h3>${esc(col.title)}</h3><ul>${(col.links ?? []).map((l) => `<li><a href="${link(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>${present(design.footer?.notice) ? `<p class="legal">${esc(design.footer.notice)}</p>` : ""}</footer>`;
   const source = (c) => `<a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}`;
   const table = (t) => `<table class="cmp"><caption>${esc(t.caption)}</caption><thead><tr>${t.columns.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr><th scope="row">${esc(r.label)}</th>${r.cells.map((c) => `<td>${esc(c.value)} <a class="src" href="${esc(c.link)}" rel="nofollow">${STRUCTURE.source}: ${esc(c.source)}</a>${present(c.readOn) ? `<span class="src"> · ${STRUCTURE.checked} ${esc(c.readOn)}</span>` : ""}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   const checkedLine = (r) => `<p class="checked-not-found" data-answer-kind="${ANSWER_KIND.CHECKED_NOT_FOUND}" data-record-id="${esc(r.id)}">${esc(r.line)} <span class="src">${STRUCTURE.pagesChecked}: ${r.checked.map((c) => `<a class="src" href="${esc(c.url)}" rel="nofollow">${esc(c.name)}</a>`).join(", ")} · ${STRUCTURE.checked} ${esc(r.checkedOn)}</span></p>`;
@@ -715,7 +724,7 @@ export function renderJoined({ title, stamp, items, design = null, intro = [], c
   const firstItem = items.find((it) => it.claims.some((c) => present(c.text)));
   const firstAnswer = firstItem ? `${firstItem.heading.shown ?? firstItem.heading.wording} ${firstItem.claims.map((c) => String(c.text ?? "").trim()).find(present)}` : "";
   const description = firstAnswer.length > 155 ? `${firstAnswer.slice(0, 152).replace(/\s+\S*$/, "")}…` : firstAnswer;
-  return [`<!doctype html>`, `<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${esc(title)}</title>${description ? `<meta name="description" content="${esc(description)}">` : ""}<style>${styleOf(design)}</style>`,
+  return [`<!doctype html>`, `<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${esc(title)}</title>${description ? `<meta name="description" content="${esc(description)}">` : ""}<style>${styleOf(design)}${kit ? kit.css : ""}</style>`,
     `<script type="application/ld+json">${ld}</script></head><body>`,
     `<p class="stamp">${esc(stamp)}</p>`, header, `<main>`,
     `<section class="hero"><h1>${esc(title)}</h1>${intro.map((l) => `<p>${esc(l)}</p>`).join("")}${cta}</section>`,

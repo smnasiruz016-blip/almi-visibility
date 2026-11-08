@@ -47,13 +47,17 @@ export const ALMIWORLD_BAR_CSS = `.awb{background:#2b1028;color:#fbeff8;font:600
 .awb-mob-panel a{display:block;padding:7px 0}
 @media(max-width:900px){.awb-nav{display:none}.awb-mob{display:block}}`;
 
+/** RR-400: on almivisibility.almiworld.com the family logo is served by this site (site/img/almi-latest.webp, the same file as
+ * ALMIWORLD.logo.src, 240x160), because the site's CSP is img-src 'self' data: and blocked the almiworld.com copy (best practices 93). */
+export const FAMILY_LOGO_PATH = "/brand/almi-latest.webp";
+
 /** The AlmiWorld family bar, as HTML (on top of every page). RR-399 A7: a built guide passes `logo` (its own served copy of the AlmiWorld
- * logo file, already HTML) so the page fetches nothing from another site; everything else is the kit's. */
+ * logo file, already HTML) so the page fetches nothing from another site; without it, this site's own copy (RR-400). */
 export function almiworldBar({ logo = null } = {}) {
   const F = ALMIWORLD;
   const items = (m) => m.items.map((i) => `<li><a href="${esc(i.href)}">${esc(i.label)}</a></li>`).join("");
   return `<div class="awb" data-almiworld-bar=""><div class="awb-in">`
-    + `<a class="awb-logo" href="${esc(F.home)}" aria-label="AlmiWorld home">${logo ?? `<img src="${esc(F.logo.src)}" alt="${esc(F.logo.alt)}" width="${F.logo.width}" height="${F.logo.height}">`}</a>`
+    + `<a class="awb-logo" href="${esc(F.home)}" aria-label="AlmiWorld home">${logo ?? `<img src="${FAMILY_LOGO_PATH}" alt="${esc(F.logo.alt)}" width="${F.logo.width}" height="${F.logo.height}">`}</a>`
     + `<a class="awb-home" href="${esc(F.home)}">Home</a>`
     + `<nav class="awb-nav" aria-label="AlmiWorld family">${F.menus.map((m) => `<details class="awb-drop"><summary>${esc(m.label)}</summary><ul>${items(m)}</ul></details>`).join("")}${F.links.map((l) => `<a href="${esc(l.href)}">${esc(l.label)}</a>`).join("")}</nav>`
     + `<details class="awb-mob"><summary aria-label="AlmiWorld menu">AlmiWorld ☰</summary><div class="awb-mob-panel">${F.menus.map((m) => `<p>${esc(m.label)}</p>${m.items.map((i) => `<a href="${esc(i.href)}">${esc(i.label)}</a>`).join("")}`).join("")}<p>AlmiWorld</p>${F.links.map((l) => `<a href="${esc(l.href)}">${esc(l.label)}</a>`).join("")}</div></details>`

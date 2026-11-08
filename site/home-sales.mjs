@@ -243,7 +243,7 @@ export function faqSection() {
 export const HOME_CSS = `<style>
 .dl-hero{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0 0}
 .pill.dl{background:#1A1A2E;color:#FFFFFF;border:2px solid #1A1A2E;font-weight:700} .pill.dl:hover{background:#2E2E4A} .pill.dl span{margin-right:8px}
-.dl-os{font-size:14px;color:var(--muted);font-weight:600} .dl-update{margin:8px 0 0;font-size:13px} .dl-update a{color:var(--coralDeep)}
+.dl-os{font-size:14px;color:var(--muted);font-weight:600} .dl-update{margin:8px 0 0;font-size:13px} .dl-update a{color:var(--coralText)}
 .aimap{position:relative;margin:28px 0 0;max-width:600px}
 .aimap ul{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:0;margin:0;padding:0;list-style:none}
 .ai-lines{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible} .ai-lines line{stroke:var(--sunrise);stroke-width:2;stroke-dasharray:5 5;opacity:.75}
@@ -263,7 +263,7 @@ export const HOME_CSS = `<style>
 .newband{background:linear-gradient(90deg,#0B0B0F,#1B1030);color:#FFFFFF;padding:18px 0}
 .nb-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap} .nb-icons{display:inline-flex;gap:10px} .nb-icons .bi,.so-icons .bi{border-radius:10px;background:#FFFFFF;padding:4px}
 .nb-text{margin:0;flex:1 1 320px;font-size:19px;line-height:1.35} .nb-text strong{color:#FFFFFF} .nb-text span{display:block;font-size:15px;color:#D9D9E3}
-.nb-tag{display:inline-block;margin-right:6px;padding:2px 10px;border-radius:999px;background:#FE2C55;color:#FFFFFF;font-size:13px;letter-spacing:.08em}
+.nb-tag{display:inline-block;margin-right:6px;padding:2px 10px;border-radius:999px;background:#FE2C55;color:#1A1A2E;font-size:13px;letter-spacing:.08em}
 .newband .pill.nb-go{background:#25F4EE;color:#0B0B0F;font-weight:700}
 .soband{position:relative;overflow:hidden;background:#0B0B0F;color:#E4E4EC;padding:72px 0}
 .soband::before{content:"";position:absolute;right:-120px;top:-140px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(37,244,238,.18),transparent 70%);pointer-events:none}
@@ -331,7 +331,7 @@ export const HOME_CSS = `<style>
 .tt-creator{margin:22px 0 0;padding:16px;border-radius:14px;background:#0B0B0F;border:1px solid #2A2A33;color:#E4E4EC;font-size:15px} .tt-creator ul{margin:4px 0 0;padding-left:20px} .tt-creator h3{margin:0 0 8px} .tt-offer{margin:22px 0 0} .tt-offer a{color:#F4A340;font-weight:700;font-size:17px}
 .dayplan h2{margin-top:4px} .dayplan .center{text-align:center}
 .days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:28px 0 0;padding:0;list-style:none}
-.days li{background:var(--white);border:1px solid var(--peach);border-radius:16px;padding:16px 18px} .days b{display:block;color:var(--coralDeep);font-size:15px;text-transform:uppercase;letter-spacing:.06em} .days span{display:block;margin-top:4px;color:var(--ink);font-weight:600}
+.days li{background:var(--white);border:1px solid var(--peach);border-radius:16px;padding:16px 18px} .days b{display:block;color:var(--coralText);font-size:15px;text-transform:uppercase;letter-spacing:.06em} .days span{display:block;margin-top:4px;color:var(--ink);font-weight:600}
 .daytag{margin:24px 0 8px;text-align:center;font-size:18px;color:var(--ink)}
 .footnote{margin:20px 0 28px;font-size:13px;text-align:center} .faq details{border-top:1px solid var(--peach);padding:12px 0} .faq summary{cursor:pointer;font-weight:600;color:var(--ink)} .faq details p{margin:8px 0 0}
 @media (max-width:820px){.tt-top{grid-template-columns:1fr} .tt{padding:18px} .yt-head{flex-direction:column;align-items:flex-start;gap:18px} .yt-cards,.days{grid-template-columns:1fr} .yt-ba{grid-template-columns:1fr} .yt-arrow{transform:rotate(90deg);justify-self:start} .ytband{padding:56px 0}}

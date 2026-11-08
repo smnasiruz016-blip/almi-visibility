@@ -14,7 +14,7 @@ import { hostOf } from "../desktop/country-facts.mjs"; // RR-333: a guidance ans
 import { cssVariables } from "../desktop/theme.mjs";
 import { PRIVACY_LINE, MARKETING_LINE } from "./leads.mjs";
 import { LIMITS, NO_PROMISE } from "./free-test.mjs";
-import { familyStrip, footerColumns } from "./family.mjs";
+import { footerColumns, almiworldBar, ALMIWORLD_BAR_CSS } from "./family.mjs";
 import { loadLegal, fillsIn, renderLegal } from "./legal.mjs"; // RR-325 C
 import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
 import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
@@ -201,7 +201,8 @@ export const MARKETING = Object.freeze({
 });
 const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout — <a href='/help/promotion-code'>how to use a promotion code</a>.";
 /* RR-325 A: every footer links AlmiVisibility's own Privacy Policy and Terms of Service */
-const footerCols = () => footerColumns().map((c) => (c.title === "Legal & Contact" ? { ...c, links: [...c.links, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
+/* RR-398: almiworld.com's own footer columns, then AlmiVisibility's own privacy and terms in the AlmiWorld column */
+const footerCols = () => footerColumns().map((c) => (c.title === "AlmiWorld" ? { ...c, links: [...c.links, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
 /*
  * 🔴 RR-389 PART 3.2 (the owner's app on almivisibility.almiworld.com, 7 Nov: 93/100; 6 of 7 pages without structured data, 1 without a
  * description, nothing saying who we are). Every page says who we are in a machine-readable way: Organization (AlmiWorld, with the profiles
@@ -226,16 +227,17 @@ export function fitDescription(d) {
 }
 export function frame({ path, title, description: description0, body, noindex = false, lite = false }) {
   const description = fitDescription(description0);
-  const strip = familyStrip(), NAVS = lite === "sales" ? SALES_NAV : lite ? LITE_NAV : NAV, cta = lite ? ["/#score", "Get my score"] : ["/#test", "Test my site"];
+  const NAVS = lite === "sales" ? SALES_NAV : lite ? LITE_NAV : NAV, cta = lite ? ["/#score", "Get my score"] : ["/#test", "Test my site"];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">${noindex ? '<meta name="robots" content="noindex, nofollow">' : ""}<link rel="canonical" href="${ORIGIN}${path === "/" ? "/" : path}"> ${""/* RR-388 A4: the app's own scan wants a canonical on EVERY page (the live /manage had none); a noindex page points to itself */}
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico">${noindex ? "" : siteLd({ offers: lite !== true })}
-<style>${CSS}</style></head><body><a class="skip" href="#main">Skip to content</a>
+<style>${CSS}${ALMIWORLD_BAR_CSS}</style></head><body><a class="skip" href="#main">Skip to content</a>
+${almiworldBar() /* RR-398: the AlmiWorld family bar (logo + Home + almiworld.com's menus) on top of every page */}
 <header class="site-header" data-testid="global-header"><div class="wrap bar">
 <a class="brand" href="/" aria-label="AlmiVisibility home"><img src="/brand/almiworld-logo.png" alt="AlmiWorld — live beautifully" width="96" height="40"><span class="name">AlmiVisibility</span></a>
-<div class="rows"><nav class="family" aria-label="Family navigation">${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</nav>
+<div class="rows">
 <nav class="product" aria-label="AlmiVisibility">${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<a class="pill" href="${cta[0]}">${cta[1]}</a>${lite === "sales" ? `<a class="pill alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a>` : ""}</nav></div>
-<details class="menu"><summary aria-label="Open menu">Menu</summary><div class="drawer">${lite === "sales" ? `<a class="pill alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a>` : ""}<p>AlmiVisibility</p>${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}<p>AlmiWorld</p>${strip.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join("")}</div></details>
+<details class="menu"><summary aria-label="Open menu">Menu</summary><div class="drawer">${lite === "sales" ? `<a class="pill alt" href="${BUY_NOW.href}" data-buy>${esc(BUY_NOW.label)}</a>` : ""}<p>AlmiVisibility</p>${NAVS.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</div></details>
 </div></header>
 <main id="main">${body}</main>
 <footer class="site-footer"><div class="wrap"><div class="fcols">${footerCols().map((c) => `<div class="${c.title === "Products" ? "products" : ""}"><p>${esc(c.title)}</p><ul>${c.links.map((l) => `<li><a href="${l.href}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")}</div>

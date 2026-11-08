@@ -12,7 +12,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const ASSETS = ["site/family.generated.json", "site/legal.generated.json", "desktop/brand/almiworld-logo.png", "installer/almiworld.ico"];
+const ASSETS = ["site/family.generated.json", "site/almiworld-family.json" /* RR-398 */, "site/legal.generated.json", "desktop/brand/almiworld-logo.png", "installer/almiworld.ico"];
 
 /** Every repository file site/app.mjs reaches through static and string imports, and the assets the site reads at runtime. */
 export function siteFiles() {

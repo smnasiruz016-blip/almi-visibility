@@ -8,6 +8,7 @@
 import { runNews, runJobs } from "./rr389-collectors.mjs"; // RR-389 Part 4
 import { readFileSync, existsSync, statSync, createReadStream } from "node:fs";
 import { join, dirname } from "node:path";
+import { FAMILY_LOGO_PATH } from "./family.mjs"; // RR-400: the family bar logo, served from this site
 import { fileURLToPath } from "node:url";
 import * as P from "./pages.mjs";
 import { articleHtml, ARTICLE_PRODUCTS } from "./articles.mjs";
@@ -182,6 +183,7 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
       if (req.method === "POST" && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return send(403, "Forbidden", "text/plain");
       if (req.method === "GET" && PAGES[u.pathname]) { const html = PAGES[u.pathname](u); return html === null ? send(404, P.notFound(u.pathname)) : send(200, html); } // RR-325: a legal page with a [FILL] is not published
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === FAMILY_LOGO_PATH) return send(200, readFileSync(join(HERE, "img", "almi-latest.webp")), "image/webp", { "cache-control": "public, max-age=86400" }); // RR-400
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /buy/\nDisallow: /unsubscribe\nDisallow: /v1/\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", "/free-test", "/features", "/pricing", "/download"].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
@@ -442,6 +444,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && sales && SITE_MEDIA[u.pathname]) return send(200, readFileSync(join(HERE, SITE_MEDIA[u.pathname].file)), SITE_MEDIA[u.pathname].type, { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && (u.pathname === "/privacy" || u.pathname === "/terms")) { const html = u.pathname === "/privacy" ? P.privacy({ preview, lite: true }) : P.terms({ preview, lite: true }); return html === null ? send(404, P.notFound(u.pathname, { lite: true })) : send(200, html); }
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
+      if (req.method === "GET" && u.pathname === FAMILY_LOGO_PATH) return send(200, readFileSync(join(HERE, "img", "almi-latest.webp")), "image/webp", { "cache-control": "public, max-age=86400" }); // RR-400
       if (req.method === "GET" && sales && P.HELP[u.pathname]) return send(200, P.helpPage(u.pathname)); // RR-353: the help guides
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/review.js") return send(200, REVIEW_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-362: the owner's ticks

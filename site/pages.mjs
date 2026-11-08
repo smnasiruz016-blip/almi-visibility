@@ -58,6 +58,7 @@ export const SAMPLE = Object.freeze({ score: 72, byCategory: { TECHNICAL: 88, CO
 export const scoreWord = (s) => (s === null || s === undefined ? "Not measured" : s >= 90 ? "Very good" : s >= 75 ? "Good" : s >= 50 ? "Needs work" : "Poor");
 
 const CSS = `${cssVariables()}
+:root{--coralText:#B84237;--sunriseText:#9A5A10} /* RR-400: coral and sunrise for TEXT; --coralDeep #FF6B5B and --sunriseDeep #E08E2A are 2.5-2.8:1 on cream/white (fail WCAG AA); these are 5.3:1 */
 ${FLOW_CSS}
 *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--cream);color:var(--text);font:16px/1.6 var(--font);min-height:100vh;display:flex;flex-direction:column}
 a{color:var(--ink)} main{flex:1 0 auto;width:100%}
@@ -78,8 +79,8 @@ a{color:var(--ink)} main{flex:1 0 auto;width:100%}
 .menu .drawer{position:absolute;left:0;right:0;top:100%;background:var(--cream);border-bottom:1px solid var(--peach);padding:12px 24px 18px;max-height:75vh;overflow:auto}
 .menu .drawer a{display:block;padding:7px 0;font-weight:600;color:var(--ink);text-decoration:none} .menu .drawer p{margin:14px 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
-h1{color:var(--ink);font-size:clamp(34px,5vw,52px);line-height:1.08;font-weight:600;margin:0;text-wrap:balance} h2{color:var(--ink);font-size:clamp(26px,3.2vw,32px);font-weight:600;margin:0;text-align:center} h3{color:var(--ink);font-size:18px;font-weight:600;margin:0}
-.eyebrow{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--sunriseDeep);margin:0 0 14px}
+h1{color:var(--ink);font-size:clamp(34px,5vw,52px);line-height:1.08;font-weight:600;margin:0;text-wrap:balance} h2{color:var(--ink);font-size:clamp(26px,3.2vw,32px);font-weight:600;margin:0;text-align:center} h3,h2.as-h3{color:var(--ink);font-size:18px;font-weight:600;margin:0;text-align:left}
+.eyebrow{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--sunriseText);margin:0 0 14px}
 .sub{max-width:680px;margin:12px auto 0;text-align:center;color:var(--muted)}
 /* the hero — almi-oet page.tsx: a cream-to-peach gradient, two soft glows, a two-column grid */
 .hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--cream) 0%,var(--cream) 50%,var(--peach) 100%);padding:64px 0 80px}
@@ -148,7 +149,7 @@ table.legal{width:100%;border-collapse:collapse;font-size:15px;background:var(--
 @media (max-width:600px){.kwrow{grid-template-columns:1fr} .kwcard{padding:16px}}
 @media (prefers-reduced-motion:reduce){.live .gauge path.val,.meter .bar span{animation:none} .meter .bar span{left:0;width:100%;opacity:.6}}
 /* RR-325: dark mode — the same layout in the night colours; button words stay dark on the coral and sunrise buttons (WCAG 4.5:1) */
-@media (prefers-color-scheme:dark){:root{--cream:#14110D;--white:#1E1A15;--peach:#3A2F22;--ink:#FDF6EC;--text:#E9E1D3;--muted:#C9BDAA}
+@media (prefers-color-scheme:dark){:root{--cream:#14110D;--white:#1E1A15;--peach:#3A2F22;--ink:#FDF6EC;--text:#E9E1D3;--muted:#C9BDAA;--coralText:#FF8A7D;--sunriseText:#F4A340}
 .site-header{background:rgba(20,17,13,.95)} .hero{background:linear-gradient(135deg,#14110D 0%,#14110D 50%,#2A2119 100%)} section.peach{background:rgba(58,47,34,.35)}
 .pill,.pill.alt,.steps .card h3::before,.badge,.draft{color:#1A1A2E} .pill.ghost{color:var(--ink)} .badge{background:#FFE8D6} .badge.real{background:#D9F2EE}
 .v.good{color:#5FD39A} .v.warn{color:#F4C15A} .err{color:#FF9B8F} .final{background:#2A2119} .final h2,.final p{color:var(--ink)} .scorecard{box-shadow:none}}`;
@@ -261,12 +262,12 @@ export const FEATURES = Object.freeze([
 ]);
 export const YOUTUBE = "Visibility checks your own channel — missing titles, descriptions, chapters, thumbnail text and links back to your product page — and suggests titles, tags and chapters only from your real search phrases and questions. It writes a short video script from each article; you make the video. It reads your channel only through your own YouTube key or a YouTube Studio export you import — never by scraping youtube.com.";
 const priceCards = (sales = false) => `<ul class="cards">${PLANS.map((p) => `<li class="card center"><div class="price">$${p.price}<small> / month</small></div><p><b>${esc(p.products)}</b></p><p class="note" data-for>${esc(p.forWho)}</p><form method="post" action="/api/billing/checkout"><input type="hidden" name="plan" value="${p.id}"><button class="pill" type="submit">Buy</button></form></li>`).join("")}</ul><p class="note center" style="margin-top:16px">Per month, in US dollars. Every plan has every feature — plans differ only in how many products you add. The free site score needs no card.${sales ? ` ${TAX_LINE}` : ""}</p>`;
-const includesBox = () => `<div class="card" data-includes style="max-width:820px;margin:28px auto 0"><h3>Every plan includes</h3><ul>${INCLUDES.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`;
+const includesBox = () => `<div class="card" data-includes style="max-width:820px;margin:28px auto 0"><h2 class="as-h3">Every plan includes</h2><ul>${INCLUDES.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`;
 
 export const home = ({ result = null, error = null, values = {}, emailOn = false, emailed = null } = {}) => frame({ path: "/", title: "AlmiVisibility — is your website easy to find on Google and in AI answers?", description: "Test your website free: a visibility score out of 100 for technical basics, content, accessibility, links and security — then AlmiVisibility builds the sourced pages your customers search for.",
   body: `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · Website visibility</p>
-<h1>Is your website easy to find on Google and in <span style="color:var(--coralDeep)">AI answers?</span></h1>
+<h1>Is your website easy to find on Google and in <span style="color:var(--coralText)">AI answers?</span></h1>
 <p class="lead">Test it free in a minute. AlmiVisibility reads up to ${LIMITS.pagesPerTest} of your pages, scores what it can measure, and shows what to fix first. Then it builds the pages your customers are searching for — every fact with its source and the date it was checked.</p>
 <div class="cta"><a class="pill big" href="#test">Test my site free</a><a class="pill ghost" href="/features">See what it does</a></div>
 <p class="small">${esc(NO_PROMISE)}</p>${emailNotice(emailed)}</div>

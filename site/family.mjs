@@ -47,16 +47,17 @@ export const ALMIWORLD_BAR_CSS = `.awb{background:#2b1028;color:#fbeff8;font:600
 .awb-mob-panel a{display:block;padding:7px 0}
 @media(max-width:900px){.awb-nav{display:none}.awb-mob{display:block}}`;
 
-/** The AlmiWorld family bar, as HTML (on top of every page). */
-/** RR-400: the family logo is served by this site (site/img/almi-latest.webp, the same file as ALMIWORLD.logo.src, 240x160), because
- * the site's CSP is img-src 'self' data: and blocked the almiworld.com copy (a console error: best practices 93). */
+/** RR-400: on almivisibility.almiworld.com the family logo is served by this site (site/img/almi-latest.webp, the same file as
+ * ALMIWORLD.logo.src, 240x160), because the site's CSP is img-src 'self' data: and blocked the almiworld.com copy (best practices 93). */
 export const FAMILY_LOGO_PATH = "/brand/almi-latest.webp";
 
-export function almiworldBar() {
+/** The AlmiWorld family bar, as HTML (on top of every page). RR-399 A7: a built guide passes `logo` (its own served copy of the AlmiWorld
+ * logo file, already HTML) so the page fetches nothing from another site; without it, this site's own copy (RR-400). */
+export function almiworldBar({ logo = null } = {}) {
   const F = ALMIWORLD;
   const items = (m) => m.items.map((i) => `<li><a href="${esc(i.href)}">${esc(i.label)}</a></li>`).join("");
   return `<div class="awb" data-almiworld-bar=""><div class="awb-in">`
-    + `<a class="awb-logo" href="${esc(F.home)}" aria-label="AlmiWorld home"><img src="${FAMILY_LOGO_PATH}" alt="${esc(F.logo.alt)}" width="${F.logo.width}" height="${F.logo.height}"></a>`
+    + `<a class="awb-logo" href="${esc(F.home)}" aria-label="AlmiWorld home">${logo ?? `<img src="${FAMILY_LOGO_PATH}" alt="${esc(F.logo.alt)}" width="${F.logo.width}" height="${F.logo.height}">`}</a>`
     + `<a class="awb-home" href="${esc(F.home)}">Home</a>`
     + `<nav class="awb-nav" aria-label="AlmiWorld family">${F.menus.map((m) => `<details class="awb-drop"><summary>${esc(m.label)}</summary><ul>${items(m)}</ul></details>`).join("")}${F.links.map((l) => `<a href="${esc(l.href)}">${esc(l.label)}</a>`).join("")}</nav>`
     + `<details class="awb-mob"><summary aria-label="AlmiWorld menu">AlmiWorld ☰</summary><div class="awb-mob-panel">${F.menus.map((m) => `<p>${esc(m.label)}</p>${m.items.map((i) => `<a href="${esc(i.href)}">${esc(i.label)}</a>`).join("")}`).join("")}<p>AlmiWorld</p>${F.links.map((l) => `<a href="${esc(l.href)}">${esc(l.label)}</a>`).join("")}</div></details>`
@@ -65,3 +66,47 @@ export function almiworldBar() {
 
 /** The footer columns: almiworld.com's own (RR-398). AlmiVisibility's own privacy and terms are added by the page frame. */
 export const footerColumns = () => Object.freeze(ALMIWORLD.footer.columns.map((c) => Object.freeze({ title: c.title, links: [...c.links] })));
+
+/* RR-399 A7 · the kit's footer look (AlmiWorldFooter on every other product: scoped "awf-" classes, no script) */
+export const ALMIWORLD_FOOTER_CSS = `.awf{background:#2b1028;color:#e6d9e6;font:400 15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;border-top:8px solid #e8604c;padding:36px 0 28px;margin-top:40px}
+.awf a{color:#fbeff8;text-decoration:none;display:inline-block;padding:3px 0;min-height:28px}
+.awf a:hover{text-decoration:underline}
+.awf-in{max-width:1180px;margin:0 auto;padding:0 16px}
+.awf-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:20px}
+.awf-h{color:#ffc9a9;font-weight:800;margin:0 0 8px}
+.awf ul{list-style:none;margin:0;padding:0}
+.awf-copy{border-top:1px solid #4d2a48;margin-top:16px;padding-top:12px;font-size:14px}
+.awf-copy a{text-decoration:underline}`;
+
+/* RR-399 A7 · a built guide's own stylesheet styles every <details>/<summary> as a question card; the bar's menus are not question cards,
+ * and its logo is the guide's own cropped logo file (a frame holding a positioned picture) */
+const GUIDE_RESET_CSS = `.awb details{background:none;border:0;border-radius:0;margin:0;padding:0}.awb summary{font-size:inherit;font-weight:inherit;color:inherit}.awb details[open] summary{border-bottom:0}
+.awb-logo .logo-file{background:#fff4e6;border-radius:8px}.awb-logo .logo-file img{padding:0;background:none;border-radius:0}
+.awb nav{justify-content:flex-start}`;
+
+/**
+ * RR-399 A7 (RR-397 found AlmiOET's built guides would carry the old filed navigation — eBooks, old WordPress links — on their next publish).
+ * The family kit a BUILT PAGE wears, or null: a page whose filed design names AlmiWorld as its company (the company's address is the kit's
+ * home) shows the AlmiWorld family bar on top of its header and the AlmiWorld footer, from this one kit, in place of the navigation and
+ * footer filed in its questionnaire. The product keeps its own logo, actions and call to action. Any other company's page is unchanged.
+ */
+export function familyKitFor(design) {
+  if (design?.company?.href !== ALMIWORLD.home) return null;
+  return Object.freeze({
+    home: ALMIWORLD.home,
+    css: `${ALMIWORLD_BAR_CSS}\n${GUIDE_RESET_CSS}\n${ALMIWORLD_FOOTER_CSS}`,
+    bar: (logo) => almiworldBar({ logo }),
+    footer: almiworldFooter,
+    /* the bar's links in the order the bar shows them (its menus' links, then its own links), and its footer columns: what a page check holds the page to */
+    nav: Object.freeze([...ALMIWORLD.menus.flatMap((m) => m.items), ...ALMIWORLD.links]),
+    columns: footerColumns(),
+  });
+}
+
+/** RR-399 A7 · the AlmiWorld family footer, as HTML: the kit's columns and its copy line (no year: a built page is the same whenever it is rebuilt). */
+export function almiworldFooter() {
+  const F = ALMIWORLD;
+  return `<footer class="awf" data-almiworld-footer=""><div class="awf-in"><div class="awf-cols">`
+    + F.footer.columns.map((c) => `<div><p class="awf-h">${esc(c.title)}</p><ul>${c.links.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`).join("")
+    + `</div><p class="awf-copy">© ${esc(F.footer.copy)} · <a href="mailto:${esc(F.footer.email)}">${esc(F.footer.email)}</a></p></div></footer>`;
+}

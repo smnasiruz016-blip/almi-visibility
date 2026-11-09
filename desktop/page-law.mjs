@@ -15,8 +15,20 @@ const text = (h) => decode(String(h ?? "").replace(/<style[\s\S]*?<\/style>|<scr
 const norm = (s) => decode(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const mainOf = (h) => /<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(String(h ?? ""))?.[1] ?? "";
 /* 5.2: never shown to a customer, on the page or in its FAQ data */
-export const FORBIDDEN = Object.freeze([/\bdoes not say this\b/i, /\bcould not be read\b/i, /\b(?:still )?being looked for\b/i, /\b404\b/, /\bwork note\b/i, /\bnot read yet\b/i, /\bundefined\b/, /\bNaN\b/, /\[object Object\]/, /\bTODO\b/, /\bour reader\b/i, /\bthe judge\b/i, /\bstand-in\b/i, /\bthe pages checked show\b/i]);
-const forbiddenIn = (t) => FORBIDDEN.filter((re) => re.test(t)).map((re) => re.source);
+/* 🔴 RR-408 B3: "404" is forbidden as an ERROR MESSAGE ("404 – Page not found", "Error 404", a block that says only "404"), never as digits
+ * inside a longer number: `\b404\b` failed three AlmiSalary pages on "৳1,404,000". N404 = a 404 that is not part of a longer number. */
+const N404 = String.raw`(?<![\w.,])404(?![.,]?\d|\w)`;
+export const ERROR_404 = new RegExp(String.raw`^\s*(?:error\s*)?404\s*[.!]?\s*$|${N404}\s*(?:[-–—:|·]\s*)?(?:error\b|(?:this\s+)?(?:page|file|url|document)?\s*(?:could\s+not\s+be|was\s+not|is\s+not|not)\s+found)|\b(?:error|http|status)(?:\s+code)?\s*:?\s*${N404}|\bnot\s+found\b[^.!?]{0,10}${N404}`, "i");
+export const FORBIDDEN = Object.freeze([/\bdoes not say this\b/i, /\bcould not be read\b/i, /\b(?:still )?being looked for\b/i, ERROR_404, /\bwork note\b/i, /\bnot read yet\b/i, /\bundefined\b/, /\bNaN\b/, /\[object Object\]/, /\bTODO\b/, /\bour reader\b/i, /\bthe judge\b/i, /\bstand-in\b/i, /\bthe pages checked show\b/i]);
+/** how a forbidden rule is named in a fault (the 404 rule is too long to print) */
+export const forbiddenName = (re) => (re === ERROR_404 ? "a 404 error message" : re.source);
+/* 🔴 RR-408 B1: a page's text as its BLOCKS (a heading, paragraph, list item, table cell, ...). A forbidden phrase counts inside one block
+ * only: the scan joined the heading "What officialdom does not say" and the next paragraph "This is the part…" and read "does not say this".
+ * Inline tags (a, strong, em, span) stay inside their block, so "does not <em>say</em> this" in one paragraph still fails. */
+const BLOCK_TAG = /<\/?(?:p|h[1-6]|li|td|th|tr|dt|dd|div|section|article|header|footer|nav|aside|main|details|summary|blockquote|figcaption|figure|caption|pre|table|thead|tbody|tfoot|ul|ol|dl|form|fieldset|legend|label|button|option|select|textarea|br|hr)\b[^>]*>/gi;
+export const textBlocks = (h, dec = decode) => String(h ?? "").replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, "\u0001").replace(BLOCK_TAG, "\u0001").replace(/<[^>]+>/g, " ").split("\u0001").map((s) => dec(s).replace(/\s+/g, " ").trim()).filter(Boolean);
+/** the forbidden rules any one block breaks (blocks: a list of strings, each one block) */
+export const forbiddenInBlocks = (blocks) => FORBIDDEN.filter((re) => blocks.some((b) => re.test(b))).map(forbiddenName);
 /** the questions and answers a customer sees: each <details> with its <summary> and the answer paragraphs under it */
 export function visibleQa(html) {
   return [...mainOf(html).matchAll(/<details\b[^>]*data-need-id[^>]*>([\s\S]*?)<\/details>/gi)].map((m) => { /* a question block; a "choose your country" list is navigation, not a question */
@@ -32,8 +44,8 @@ export function faqData(html) {
 }
 export function pageFaults(html, { url = null, known = null } = {}) {
   const h = String(html ?? ""), main = mainOf(h), faults = [], qa = visibleQa(h), shown = text(main);
-  for (const f of forbiddenIn(shown)) faults.push(`a customer would read forbidden words (/${f}/)`);
-  for (const x of faqData(h)) for (const f of forbiddenIn(`${x.q} ${x.a}`)) faults.push(`the FAQ data holds forbidden words (/${f}/)`);
+  for (const f of forbiddenInBlocks(textBlocks(main))) faults.push(`a customer would read forbidden words (/${f}/)`);
+  for (const x of faqData(h)) for (const f of forbiddenInBlocks([x.q, x.a])) faults.push(`the FAQ data holds forbidden words (/${f}/)`);
   for (const x of qa) { if (!x.answers.length) faults.push(`"${x.q.slice(0, 80)}" is shown with no answer`); for (const a of x.answers) { if (withoutNotes(a.words) !== a.words) faults.push(`"${x.q.slice(0, 60)}": its answer holds a work note`); if (!/<a class="src" href="https?:\/\/[^"]+"/.test(a.html)) faults.push(`"${x.q.slice(0, 60)}": an answer without its source link`); else if (!/checked \d{4}-\d{2}-\d{2}/.test(a.html)) faults.push(`"${x.q.slice(0, 60)}": an answer without the date it was checked`); if (/\(Source: [^)]*\)/.test(a.words)) faults.push(`"${x.q.slice(0, 60)}": its source is named twice`); } }
   const faq = faqData(h); if (faq.length) { const seen = new Map(qa.map((x) => [norm(x.q), x])); for (const f of faq) { const v = seen.get(norm(f.q)); if (!v) faults.push(`the FAQ data asks "${f.q.slice(0, 60)}", which the page does not show`); else if (!v.answers.some((a) => norm(a.words).includes(norm(f.a).slice(0, 120)) || norm(f.a).includes(norm(a.words).slice(0, 120)))) faults.push(`the FAQ data answers "${f.q.slice(0, 60)}" with words the page does not show`); } const asked = new Set(faq.map((f) => norm(f.q))); for (const x of qa) if (x.answers.length && !asked.has(norm(x.q))) faults.push(`"${x.q.slice(0, 60)}" is shown but not in the FAQ data`); }
   if (main && !/Last checked/i.test(main)) faults.push("no \"Last checked\" date");

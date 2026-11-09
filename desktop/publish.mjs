@@ -393,12 +393,13 @@ export function mirrorPlan({ held, drafts, readyUrls, noteOf = () => null, fault
   return out;
 }
 /** the pages a GitHub target's folder holds now (one tree read) → Map(slug → path) */
-export async function githubFolderPages({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null }) {
+export async function githubFolderPages({ target, key, fetchImpl = fetch, allowLocal = false, testBase = null, make = true }) {
   const api = testBase ?? "https://api.github.com", send = caller({ target, fetchImpl, allowLocal }), folder = String(target.folder ?? "").replace(/^\/+|\/+$/g, "");
   const read = () => send(`${api}/repos/${target.repo}/git/trees/${encodeURIComponent(target.branch)}?recursive=1`, { method: "GET", headers: ghHeaders(key) }, 60000);
   let t = await read(), made = { created: false };
-  /* RR-389 Part 3.1: the mirror reads the branch first: a missing preview branch (404) is made again from production, then read */
-  if (!t.ok && t.status === 404) { made = await ensurePreviewBranch({ target, key, fetchImpl, allowLocal, testBase }); if (made.created) t = await read(); }
+  /* RR-389 Part 3.1: the mirror reads the branch first: a missing preview branch (404) is made again from production, then read.
+   * RR-404: make: false only reads (the scan reads production's folder; it never makes a branch) */
+  if (make && !t.ok && t.status === 404) { made = await ensurePreviewBranch({ target, key, fetchImpl, allowLocal, testBase }); if (made.created) t = await read(); }
   if (!t.ok) return { ok: false, why: t.why, status: t.status };
   const re = new RegExp(`^${folder ? `${folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/` : ""}([^/]+)/index\\.html$`), held = new Map();
   const shas = new Map(); for (const e of t.body?.tree ?? []) { const m = e.type === "blob" ? re.exec(e.path) : null; if (m) { held.set(m[1], e.path); if (e.sha) shas.set(e.path, e.sha); } }

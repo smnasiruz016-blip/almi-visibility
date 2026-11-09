@@ -142,7 +142,7 @@ test("RR-353 · 10 + 11 · IndexNow on publish; the Search engines panel; two he
   assert.ok(/More info/.test(w) && /Run anyway/.test(w) && !/Never send a key/.test(w) && /<title>Help — /.test(w));
   assert.ok(/Add promotion code/.test(p) && /Apply/.test(p));
   assert.match(guidePage("youtube-key"), /Never send a key in chat or email/, "the key guides keep their warning");
-  assert.deepEqual(Object.keys(SITE.HELP), ["/help/promotion-code", "/help/windows-protected-your-pc"]);
+  assert.deepEqual(Object.keys(SITE.HELP), ["/help/promotion-code", "/help/windows-protected-your-pc", "/help/install", "/help/update"]); /* RR-409: + how to install, how to update */
   const sw = SITE.helpPage("/help/windows-protected-your-pc"), sp = SITE.helpPage("/help/promotion-code");
   assert.ok(/More info/.test(sw) && /Run anyway/.test(sw) && /href="\/help\/promotion-code"/.test(sw));
   assert.ok(/Add promotion code/.test(sp));

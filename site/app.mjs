@@ -11,6 +11,7 @@ import { join, dirname } from "node:path";
 import { FAMILY_LOGO_PATH } from "./family.mjs"; // RR-400: the family bar logo, served from this site
 import { fileURLToPath } from "node:url";
 import * as P from "./pages.mjs";
+import { BADGE as MS_BADGE } from "./ms-store.mjs"; // RR-409
 import { articleHtml, ARTICLE_PRODUCTS } from "./articles.mjs";
 import { publishToWordPress, wpConfigured, WP_KEYS, todayArticle } from "./wp-publish.mjs"; // RR-344
 import { testableUrl, runFreeTest, dailyLimiter } from "./free-test.mjs";
@@ -72,7 +73,7 @@ export const LAUNCH_VARS = Object.freeze([
   [BILLING_KEY_NAMES.stripeSecret, "opens Stripe Checkout", true], ...Object.values(PRICE_ENV).map((n) => [n, "the plan's Stripe price", true]),
   [ROUTER_KEY_NAME, "Stripe events through the billing router", true],
   [PORTAL_CONFIG_NAME, "optional — press “Create Manage-plan portal” below; the site then finds AlmiVisibility's own portal by itself", false],
-  [SITE_KEY_NAMES.storeUrl, "optional — the Microsoft Store listing (https://apps.microsoft.com/…); once set, Download points there", false],
+  [SITE_KEY_NAMES.storeUrl, "no longer needed (RR-409: the Microsoft Store listing is in the code, site/ms-store.mjs)", false],
   [WP_KEYS.user, "optional — your WordPress user name: an approved article is published on the almiworld.com blog (RR-344)", false], [WP_KEYS.password, "optional — the WordPress application password for the blog (never shown)", false],
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
@@ -142,7 +143,7 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
   const localSetup = () => Boolean(setupFile && existsSync(setupFile));
   const setupAvailable = () => localSetup() || httpsUrl(env[SITE_KEY_NAMES.setupUrl]);
   const emailOn = () => sendingOn(env);
-  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": () => P.pricing({ sales }), "/download": () => P.download({ setupAvailable: setupAvailable(), sales, storeUrl: storeUrlOf(env) }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
+  const PAGES = { "/": () => P.home({ emailOn: emailOn() }), "/free-test": () => P.freeTest({ emailOn: emailOn() }), "/features": P.features, "/pricing": () => P.pricing({ sales, setupAvailable: setupAvailable() }), "/download": () => P.download({ setupAvailable: setupAvailable(), sales }), "/privacy": () => P.privacy({ preview: legalPreview(env) }), "/terms": () => P.terms({ preview: legalPreview(env) }) };
   const formOf = (body, type) => (/json/.test(type ?? "") ? JSON.parse(body || "{}") : Object.fromEntries(new URLSearchParams(body)));
   const cookie = (req, name) => (req.headers.cookie ?? "").split(/;\s*/).map((c) => c.split("=")).find(([k]) => k === name)?.[1] ?? null;
   const who = (req) => String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
@@ -184,6 +185,7 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
       if (req.method === "GET" && PAGES[u.pathname]) { const html = PAGES[u.pathname](u); return html === null ? send(404, P.notFound(u.pathname)) : send(200, html); } // RR-325: a legal page with a [FILL] is not published
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === FAMILY_LOGO_PATH) return send(200, readFileSync(join(HERE, "img", "almi-latest.webp")), "image/webp", { "cache-control": "public, max-age=86400" }); // RR-400
+      if (req.method === "GET" && u.pathname === MS_BADGE.src) return send(200, readFileSync(join(HERE, "img", "ms-store-badge-en-us-dark.svg")), "image/svg+xml", { "cache-control": "public, max-age=86400" }); // RR-409: Microsoft's own badge, unchanged
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /buy/\nDisallow: /unsubscribe\nDisallow: /v1/\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", "/free-test", "/features", "/pricing", "/download"].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
@@ -397,8 +399,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
     if (finderOn() && (owner(req) || finderPublicForOldTests)) { try { finderTicket = await limits.ticket(); } catch { finderTicket = null; } }
     let titleTicket = null; if (titleLimits) { try { titleTicket = await titleLimits.ticket(); } catch { titleTicket = null; } }
     /* RR-348 (owner): the Download button high on the home — the Store once it is set, else the latest Setup (VISIBILITY_SETUP_URL), else the page */
-    const download = storeUrlOf(env) ?? (httpsUrl(env[SITE_KEY_NAMES.setupUrl]) ? "/download/AlmiVisibility-Setup.exe" : "/download");
-    return P.liteHome({ sales, download, scoreOn: Boolean(ticket), ticket, owner: owner(req) || finderPublicForOldTests, ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
+    /* 🔴 RR-409: Microsoft's Store badge always; the installer (the second choice) only when it can be downloaded */
+    const installer = httpsUrl(env[SITE_KEY_NAMES.setupUrl]) ? "/download/AlmiVisibility-Setup.exe" : null;
+    return P.liteHome({ sales, installer, scoreOn: Boolean(ticket), ticket, owner: owner(req) || finderPublicForOldTests, ...o, finder: { on: Boolean(finderTicket), ticket: finderTicket, ...(o.finder ?? {}) }, title: { on: Boolean(titleTicket), ticket: titleTicket, ...(o.title ?? {}) } });
   };
   const published = () => [...["/privacy", "/terms"].filter((p) => (p === "/privacy" ? P.privacy() : P.terms()) !== null), ...(sales ? ["/pricing", "/download", ...Object.keys(P.HELP)] : [])]; // RR-353: the help guides
   const groupNames = async () => { try { return (await currentGroups(db)).groups; } catch { return []; } };
@@ -446,6 +449,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && u.pathname === "/brand/almiworld-logo.png") return send(200, LOGO, "image/png", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === FAMILY_LOGO_PATH) return send(200, readFileSync(join(HERE, "img", "almi-latest.webp")), "image/webp", { "cache-control": "public, max-age=86400" }); // RR-400
       if (req.method === "GET" && sales && P.HELP[u.pathname]) return send(200, P.helpPage(u.pathname)); // RR-353: the help guides
+      if (req.method === "GET" && u.pathname === MS_BADGE.src) return send(200, readFileSync(join(HERE, "img", "ms-store-badge-en-us-dark.svg")), "image/svg+xml", { "cache-control": "public, max-age=86400" }); // RR-409: Microsoft's own badge, unchanged
       if (req.method === "GET" && u.pathname === "/favicon.ico") return send(200, ICON, "image/x-icon", { "cache-control": "public, max-age=86400" });
       if (req.method === "GET" && u.pathname === "/review.js") return send(200, REVIEW_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-362: the owner's ticks
       if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons

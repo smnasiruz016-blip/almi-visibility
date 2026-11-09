@@ -62,6 +62,7 @@ import { cssVariables } from "./theme.mjs";
 import { articleSettings, settingsView, PUBLISH_MODE } from "../src/page/articles.mjs";
 import { keyStore, windowsBackend, memoryBackend, KEY_NAMES, AI_PROVIDERS } from "./secrets.mjs";
 import { secureBackendFor, selfUpdates } from "./platform.mjs";
+import { installKind, firstStoreStart, KIND, STORE_LINE } from "./store-package.mjs"; // RR-409
 import { ownPlanPages } from "./own-pages.mjs"; // RR-388 A
 import { guardComparisons } from "./comparison-guard.mjs"; // RR-388 A3
 import { documentText, researchRows, addOwnerResearch } from "./owner-research.mjs"; // RR-388 E4 // RR-388 C: one layer for Windows and a Mac
@@ -136,8 +137,14 @@ setDefaultAutoSelectFamily(false); setDefaultResultOrder("ipv4first");
 const DATA = arg("data");
 if (!DATA) { console.error("usage: node desktop/main.mjs --data=<dir>"); process.exit(1); }
 const INSTALL = arg("install", join(HERE, "..", ".."));
-const STORE_BUILD = existsSync(join(HERE, "..", "microsoft-package.txt")); // RR-375 item 10
+/* 🔴 RR-409 (replaces RR-375's marker file): the kind of install, from what WINDOWS told the launcher (--package-family). A Store or other
+ * package never updates itself: the Store does it. A direct install works as before. */
+const INSTALL_KIND = installKind(arg("package-family"));
+const STORE_BUILD = INSTALL_KIND !== KIND.direct;
+const NOT_SELF_UPDATED_LINE = INSTALL_KIND === KIND.store ? STORE_LINE : "This copy runs as a Windows package, which is updated by the package — never by the app itself.";
 const VERSION = existsSync(join(HERE, "..", "version.txt")) ? readFileSync(join(HERE, "..", "version.txt"), "utf8").trim() : "0.0.0-dev";
+/* RR-409: a Store install's first start takes a copy of the direct install's data (its own folder never overwritten); then they are apart */
+const FIRST_STORE_START = INSTALL_KIND === KIND.store ? (() => { try { return firstStoreStart({ data: DATA, from: arg("copy-from") }); } catch (e) { return { copied: false, why: `the copy failed: ${e.message}` }; } })() : null;
 mkdirSync(DATA, { recursive: true });
 const store = productStore(DATA);
 const LICENCE_FILE = join(DATA, "licence.json");
@@ -1672,6 +1679,7 @@ async function continueChecks() {
 }
 /* 🔴 RR-363 A3 (found on the owner's PC: his launcher dated from 1 Nov: an update replaces the app folder and never the launcher, so "/same-window" never reached him): the package carries the launcher; the app puts it in place. A file in use is tried again */
 function refreshLauncher() {
+  if (STORE_BUILD) return true; /* RR-409: a package's program folder is Windows' own (read-only); the Store brings the launcher */
   const from = join(HERE, "..", "launcher", "AlmiVisibility.exe"), to = join(INSTALL ?? "", "AlmiVisibility.exe"); if (!INSTALL || !existsSync(from) || !existsSync(to)) return true;
   try { if (readFileSync(from).equals(readFileSync(to))) return true; copyFileSync(from, to); reopenWindowIfNone(); return true; } catch { return false; }
 }
@@ -1685,6 +1693,7 @@ function reopenWindowIfNone() {
 rmSync(STOP_FILE(), { force: true });
 /* 🔴 RR-372: every way this process can end by its own error writes why, before it ends; what it is doing is on disk for the supervisor, for the ways no code runs */
 clearLastError(DATA); for (const s of [process.stdout, process.stderr]) s.on("error", () => {});
+if (FIRST_STORE_START) logLine(DATA, `Microsoft Store install: ${FIRST_STORE_START.copied ? `the direct install's data was copied (${FIRST_STORE_START.items} items)` : `no data copied — ${FIRST_STORE_START.why}`}`); // RR-409
 const lastWords = (kind) => (e) => { writeLastError(DATA, kind, e); logLine(DATA, `${kind}: ${String(e?.stack ?? e)}`); console.error(kind, e); process.exit(70); };
 process.on("uncaughtException", lastWords("uncaughtException")); process.on("unhandledRejection", lastWords("unhandledRejection"));
 let lastStep = null; const nowDoing = () => { const run = BOARD.list().filter((j) => j.running), step = run.map((j) => `${j.label}: ${j.what ?? ""}${j.of ? ` (${j.done} of ${j.of})` : ""}`).join(" · ") || null, m = process.memoryUsage(); writeState(DATA, { step, memoryMB: Math.round(m.rss / 1048576), heapMB: Math.round(m.heapUsed / 1048576), pid: process.pid, version: VERSION }); const key = step?.replace(/\(\d+ of \d+\)/g, "") ?? null; if (key !== lastStep) { lastStep = key; logLine(DATA, step ?? "nothing running"); trimLog(DATA); } }; nowDoing(); setInterval(nowDoing, 2000).unref();
@@ -1728,7 +1737,7 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/home") {
         const st = await licenceNow();
         const products = store.list();
-        return send(200, { version: VERSION, company: store.company(), products: products.map((s) => ({ ...productCard(s), ...cardCounts(s.id), next: nextStepFor(s), reviewAlerts: (pread(s.id, "seo-reviews.json", {})?.alerts ?? []).length /* RR-382 item 1a */, sameSiteAs: products.find((o) => o.id !== s.id && o.created < s.created && s.product.site && o.product.site && hostOf(o.product.site) === hostOf(s.product.site))?.product.name ?? null })), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus() });
+        return send(200, { version: VERSION, company: store.company(), products: products.map((s) => ({ ...productCard(s), ...cardCounts(s.id), next: nextStepFor(s), reviewAlerts: (pread(s.id, "seo-reviews.json", {})?.alerts ?? []).length /* RR-382 item 1a */, sameSiteAs: products.find((o) => o.id !== s.id && o.created < s.created && s.product.site && o.product.site && hostOf(o.product.site) === hostOf(s.product.site))?.product.name ?? null })), licence: st.line, limit: limitLine(st, products.length), plans: plansView(), mayAdd: mayAddProduct(st, products.length).ok, accountSet: Boolean(CONFIG.account), google: googleClientStatus(), install: INSTALL_KIND, updatesLine: STORE_BUILD ? NOT_SELF_UPDATED_LINE : null /* RR-409 */ });
       }
       /* RR-313 B1: ONE place to switch Google sign-in on (YouTube AND Search Console use the same client) — the client id is shown, the secret never */
       if (req.method === "GET" && u.pathname === "/api/google/client") return send(200, googleClientStatus());
@@ -2735,7 +2744,8 @@ const server = createServer((req, res) => {
       if (req.method === "GET" && u.pathname === "/api/licence") { const st = await licenceNow(); return send(200, { state: st.state, line: st.line, mayStartNewWork: st.mayStartNewWork, plan: st.plan?.words ?? null, plans: PLANS.map((p) => p.words) }); }
       /* RR-353: the app asks on start and every few hours (the screen calls this); only a NEWER, verified version can be installed */
       if (req.method === "GET" && u.pathname === "/api/update") {
-        if (STORE_BUILD) return send(200, { state: "UP_TO_DATE", store: true, line: `Visibility ${VERSION} came from the Microsoft Store, which updates it by itself.` }); /* RR-375 item 10: a Store package never swaps its own folder */
+        /* 🔴 RR-409: a Store (or any) package: the app's own updater does NOTHING — no check, no download, no prompt */
+        if (STORE_BUILD) return send(200, { state: "STORE", store: INSTALL_KIND === KIND.store, install: INSTALL_KIND, line: NOT_SELF_UPDATED_LINE, current: VERSION, version: null, ready: false, downloading: false });
         let r; try { r = await checkForUpdate({ channelUrl: UPDATE_URL, current: VERSION, publicKeyPem: keyPem("update-public.pem") }); } catch { r = { state: "UNREACHABLE", line: `Could not check for updates just now. Visibility keeps working on ${VERSION}; try again later.` }; }
         updateFound = r.state === "AVAILABLE" ? r.manifest : null;
         /* 🔴 RR-355 (owner: "check at app start and every 4 hours, download in the background, then one button 'Update ready — Restart'; the client
@@ -2745,6 +2755,7 @@ const server = createServer((req, res) => {
       }
       if (req.method === "POST" && u.pathname === "/api/update/install") {
         const { agree } = json();
+        if (STORE_BUILD) return send(400, { refused: NOT_SELF_UPDATED_LINE }); /* RR-409: never a take-over of a package's folder */
         if (!updateFound) return send(400, { refused: "Check for updates first — no newer version is waiting." });
         if (!selfUpdates(process.platform) && CONFIG.testUpdateArgs === undefined) return send(400, { refused: `Version ${updateFound.version} is ready. On a Mac, download it from almivisibility.almiworld.com and open it; your data is kept.` }); /* RR-388 C */
         let d; try { d = updateReady && updateReady.version === updateFound.version ? { ok: true, ...updateReady } : await downloadUpdate({ channelUrl: UPDATE_URL, manifest: updateFound, dataDir: DATA, publicKeyPem: keyPem("update-public.pem") }); } catch { return send(400, { refused: "The update could not be downloaded — check the internet connection and try again. Nothing was changed." }); }

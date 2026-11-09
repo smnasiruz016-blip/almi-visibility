@@ -41,7 +41,7 @@ test("RR-348 · Instagram: first line before “more”, clear value, keywords, 
 });
 
 test("RR-348 · the home: the owner's line, TikTok and Instagram in the strip, three tabs with YouTube checked, the app picture with Download under it", () => {
-  const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t", title: { on: true, ticket: "tt" }, download: "/download/AlmiVisibility-Setup.exe" });
+  const home = P.liteHome({ sales: true, scoreOn: true, ticket: "t", title: { on: true, ticket: "tt" }, installer: "/download/AlmiVisibility-Setup.exe" /* RR-409: the parameter is the installer now */ });
   assert.ok(home.includes("<h2>Stop Making Videos Nobody Finds.</h2>") && YT.heading === "Stop Making Videos Nobody Finds.", "RR-350 COPY v2");
   assert.ok(ENGINES.some((e) => e.name === "TikTok") && ENGINES.some((e) => e.name === "Instagram"));
   assert.ok(home.includes("Names and logos are trademarks of their owners; AlmiVisibility is not affiliated with them."));
@@ -51,7 +51,8 @@ test("RR-348 · the home: the owner's line, TikTok and Instagram in the strip, t
   /* the button sits in the hero, right after its two buttons and before the strip — above the score card's end, so at the top */
   const shot = home.indexOf("data-app-shot"), img = home.indexOf("src=\"/img/app-home.jpg\""), dl = home.indexOf("data-download-hero"), nb = home.indexOf("data-new-band");
   assert.ok(home.indexOf("<section class=\"hero shero\"") < shot && shot < img && img < dl && dl < home.indexOf("class=\"sh-act\"") && dl < nb, "the app picture in the hero, the Download button directly under it");
-  assert.match(home, /<a class="pill big dl" href="\/download\/AlmiVisibility-Setup\.exe" download><span aria-hidden="true">⬇<\/span> Download the app here<\/a>/);
+  /* RR-409 (restated): under the picture, Microsoft's Store badge first, then the installer as the second choice */
+  assert.match(home, /<div class="dl-hero" data-download-hero><a class="ms-badge" href="https:\/\/apps\.microsoft\.com\/detail\/9N1HKDNVTC7D" rel="noopener" data-store-badge>[\s\S]*?<p class="dl-alt" data-installer><a href="\/download\/AlmiVisibility-Setup\.exe" download>Or download the installer \(\.exe\)<\/a>/);
   assert.ok(home.includes(DOWNLOAD.update.replace("(", "(")) && /1\.14 or earlier/.test(DOWNLOAD.update));
   assert.ok(home.includes('<a href="/download">Download</a>'), "Download stays in the menu");
 });
@@ -98,7 +99,7 @@ test("RR-348 · ON THE SALES SITE: a TikTok POST gives the caption result with C
   };
   try {
     const home = await (await fetch(base + "/")).text();
-    assert.match(home, /class="pill big dl" href="\/download\/AlmiVisibility-Setup\.exe" download/);
+    assert.match(home, /data-installer><a href="\/download\/AlmiVisibility-Setup\.exe" download>/); // RR-409: the installer is the second choice
     const dl = await fetch(base + "/download/AlmiVisibility-Setup.exe", { redirect: "manual" });
     assert.deepEqual([dl.status, dl.headers.get("location")], [302, SETUP], "the button serves VISIBILITY_SETUP_URL — GitHub's releases/latest");
     const t = await post("tiktok", "vlog #fyp");

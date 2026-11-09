@@ -50,6 +50,7 @@ import { githubApi, goLive } from "./go-live.mjs"; // RR-386
 import { apClient, packFiles, unpackFiles, joinBundles, hashesOf, baseOf } from "./autopilot-sync.mjs"; // RR-386
 import { LICENCE_HEADER, licenceHeaderOf } from "./keyword-service.mjs"; // RR-386
 import { scanSite, scanTable } from "./site-scan.mjs"; // RR-386
+import { previewStandIn, removedSlugs, scanPagesWritten } from "./preview-stand-in.mjs"; // RR-404
 import { THIN_MARK, asPublishedGuarded as asPublishedPage, realQa, checkedFeeRows, REAL_QA_MIN } from "./publish.mjs"; // RR-383: through the classified publisher, never the builder itself (F34 C5 census)
 import { pageFaults } from "./page-law.mjs"; // RR-383: a page that needs more answers carries this mark and goes out noindex
 import { improvePack } from "./improve.mjs"; // RR-356
@@ -518,7 +519,7 @@ function noindexNeeds(id) {
   return out;
 }
 /** the scan of the client's site (desktop/site-scan.mjs); through: a stand-in for the preview (the branch's files) when Vercel's protection is on and no bypass is saved */
-async function scanFor(id, origin, { preview = false, head = null } = {}) {
+async function scanFor(id, origin, { preview = false, head = null, prod = null, afterMerge = false } = {}) {
   const drafts = (preadMemo(id, "pages.json")?.drafts ?? []).filter((d) => !d.improve), conn = withKnownFolder(pread(id, "publish.json")), live = (() => { try { return new URL(store.read(id).product.site).origin; } catch { return null; } })();
   const bypass = KEYS.get(vercelBypassName(id)), testScan = CONFIG.testScanFetch && CONFIG.testSecretsInMemory === true ? CONFIG.testScanFetch : null;
   let fetchImpl = fetch, at = origin ?? live, through = null;
@@ -528,12 +529,16 @@ async function scanFor(id, origin, { preview = false, head = null } = {}) {
     /* no bypass: the pages as they will go live = the branch's own files; robots, sitemaps and the site's own pages = the live site */
     const keyNeeded = TARGETS.find((x) => x.id === conn.kind)?.keyName, token = keyNeeded ? KEYS.get(publishKeyName(conn.kind, id)) : null, f = await githubFolderPages({ target: conn, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null }); branchMadeNote(id, f.branchMade);
     if (!f.ok) return { ok: false, why: `The preview's files could not be read: ${f.why}`, rows: [] };
-    at = live; through = "the preview read from the branch's own files (Vercel's protection is on: add the bypass secret to scan the preview itself)";
-    fetchImpl = async (u, i) => { let p; try { p = new URL(u); } catch { return fetch(u, i); } const slug = p.pathname.replace(/^\/+|\/+$/g, ""); if (p.origin === live && slug && !slug.includes("/") && f.held.has(slug)) { const sha = f.shas.get(f.held.get(slug)), text = sha ? await githubBlobText({ target: conn, key: token, sha, allowLocal, testBase: CONFIG.testPublishBase ?? null }).catch(() => null) : null; if (text != null) return new Response(text, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }); } return fetch(u.replace(/^https?:\/\/[^/]+/, live), i); };
+    /* 🔴 RR-404: production's folder too (read only): a page the branch removes answers 404 and leaves the sitemap, as on the preview */
+    const pf = prod && prod !== conn.branch ? await githubFolderPages({ target: { ...conn, branch: prod }, key: token, allowLocal, testBase: CONFIG.testPublishBase ?? null, make: false }) : null;
+    if (prod && !pf?.ok) return { ok: false, why: `Production's pages could not be read: ${pf?.why ?? "no answer"}`, rows: [] };
+    const gone = pf ? removedSlugs(pf.held, f.held) : new Set();
+    at = live; through = `the preview read from the branch's own files (Vercel's protection is on: add the bypass secret to scan the preview itself)${gone.size ? `; ${gone.size} page(s) the preview removes answer 404` : ""}`;
+    fetchImpl = previewStandIn({ live, held: f.held, gone, readPage: async (slug) => { const sha = f.shas.get(f.held.get(slug)); return sha ? githubBlobText({ target: conn, key: token, sha, allowLocal, testBase: CONFIG.testPublishBase ?? null }) : null; } });
   }
   if (!at) return { ok: false, why: "No site address to scan.", rows: [] };
   /* 🔴 RR-386 (the third real proof: 4 new drafts never written to the site counted as "404" — after a merge that would have been a false rollback): the app's pages the scan must find are the ones it WROTE (on the preview or live), never a draft still waiting */
-  const written = new Set(pread(id, "published.json", []).filter((x) => x.state === "PREVIEW" || x.state === "LIVE").map((x) => x.url));
+  const written = scanPagesWritten(pread(id, "published.json", []), { preview, afterMerge }); /* RR-404: a live scan finds the LIVE pages */
   const pages = drafts.filter((d) => written.has(d.url)).map((d) => d.url.replace(/^https?:\/\/[^/]+/, at.replace(/\/+$/, "")));
   const s = await scanSite({ origin: at, pages, fetchImpl, ua: USER_AGENT, maxPages: Number(CONFIG.scanMaxPages) || 900 });
   const out = { ...s, through, preview, head }; if (!preview) pwrite(id, SCAN_FILE, out); return out;

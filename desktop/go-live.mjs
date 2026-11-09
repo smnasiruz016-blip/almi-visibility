@@ -74,7 +74,7 @@ export async function goLive({ gh, conn, scan, save = () => {}, maxWaitMs = 30 *
   if (pv.d?.state !== "success") { step("preview", false, `The preview deployment ended ${pv.d?.state ?? "missing"}.`); return { ...out, ok: false, held: `The preview did not build (${pv.d?.state ?? "no deployment"}).`, pr: pr.number }; }
   if (!pv.k.ok) { step("preview", false, `Checks failed: ${pv.k.failed.join(", ")}.`); return { ...out, ok: false, held: `A check failed on the preview: ${pv.k.failed.slice(0, 3).join(", ")}.`, pr: pr.number }; }
   step("preview", true, `Preview Ready (${pv.d.url ?? "no address"}); every check green.`);
-  out.preview = await scan(pv.d.url, { preview: true, bypass, head });
+  out.preview = await scan(pv.d.url, { preview: true, bypass, head, prod });
   if (!out.preview?.ok) { step("preview-scan", false, `The scan failed on the preview: ${(out.preview?.rows ?? []).filter((r) => !r.ok).map((r) => `${r.check} ${r.count}`).join(", ") || out.preview?.why}.`); return { ...out, ok: false, held: "Not taken live: the preview failed the scan (the reasons are saved).", pr: pr.number }; }
   step("preview-scan", true, `The preview passed the scan (${out.preview.crawled} pages${out.preview.through ? `, ${out.preview.through}` : ""}).`);
   /* 5 · the way back, written BEFORE the merge */
@@ -87,7 +87,7 @@ export async function goLive({ gh, conn, scan, save = () => {}, maxWaitMs = 30 *
   const pd = await waitFor(async () => { const d = await deploymentOf(gh, repo, mg.j.sha, "Production"); return { done: ["success", "failure", "error"].includes(d?.state), d }; }, { maxMs: maxWaitMs, everyMs, now });
   if (pd.d?.state !== "success") { step("production", false, pd.timedOut ? "The live deployment did not finish in time." : `The live deployment ended ${pd.d?.state ?? "missing"}.`); return { ...out, ok: false, held: "Merged, but the live deployment is not Ready: the next cycle scans it.", liveWaiting: true }; }
   step("production", true, "Live deployment Ready.");
-  out.live = await scan(conn.site, { preview: false });
+  out.live = await scan(conn.site, { preview: false, afterMerge: true });
   if (out.live?.serious?.length) {
     const rb = await rollBack({ gh, repo, way: out.way }); out.rolledBack = rb; step("rollback", rb.ok, rb.ok ? `Rolled back (${rb.sha.slice(0, 7)}): ${out.live.serious.slice(0, 2).join("; ")}.` : `The rollback failed: ${rb.why}`);
     return { ...out, ok: false, held: `A serious failure on the live site (${out.live.serious[0]}): ${rb.ok ? "rolled back by itself" : "the rollback FAILED, a person must act"}.` };

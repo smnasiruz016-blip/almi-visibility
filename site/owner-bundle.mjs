@@ -16,7 +16,9 @@ const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return
 /** every local file a module imports, from HEAD's text */
 export function importClosure(start, read) {
   const seen = new Set(), todo = [...start];
-  while (todo.length) { const f = todo.pop(); if (seen.has(f)) continue; const t = read(f); if (t === null) continue; seen.add(f); if (!f.endsWith(".mjs")) continue; for (const m of t.matchAll(/(?:^|[\s;])(?:import|export)\s[^"'`;]*?from\s+["'](\.\.?\/[^"']+)["']|import\(\s*["'](\.\.?\/[^"']+)["']\s*\)|new URL\(\s*["'](\.\.?\/[^"']+)["']\s*,\s*import\.meta\.url/g)) todo.push(posix.normalize(posix.join(posix.dirname(f), m[1] ?? m[2] ?? m[3]))); }
+  while (todo.length) { const f = todo.pop(); if (seen.has(f)) continue; const t = read(f); if (t === null) continue; seen.add(f); if (!f.endsWith(".mjs")) continue; for (const m of t.matchAll(/(?:^|[\s;])(?:import|export)\s[^"'`;]*?from\s+["'](\.\.?\/[^"']+)["']|import\(\s*["'](\.\.?\/[^"']+)["']\s*\)|new URL\(\s*["'](\.\.?\/[^"']+)["']\s*,\s*import\.meta\.url/g)) todo.push(posix.normalize(posix.join(posix.dirname(f), m[1] ?? m[2] ?? m[3])));
+    /* 🔴 RR-404 (found by RUNNING the bundle: the family logo answered 503 on every page): a file the module reads at a literal path beside it, join(HERE, "img", "x.webp") */
+    for (const m of t.matchAll(/\bjoin\(\s*HERE\s*,\s*((?:["'][^"'`$]+["']\s*,\s*)*["'][^"'`$]+["'])\s*\)/g)) todo.push(posix.normalize(posix.join(posix.dirname(f), ...[...m[1].matchAll(/["']([^"']+)["']/g)].map((x) => x[1])))); }
   return seen;
 }
 export function bundle({ repo, like, out }) {

@@ -66,6 +66,16 @@ test("🔴 scanPagesWritten: a live scan looks for LIVE pages; PREVIEW ones only
   assert.deepEqual([...scanPagesWritten(pub, { afterMerge: true })], ["a", "b"]);
 });
 
+test("🔴 owner-bundle takes a file app.mjs READS beside it (join(HERE, ...)): the RR-400 family logo, missing from the bundle, answered 503 on every page", async () => {
+  const { importClosure } = await import("../site/owner-bundle.mjs");
+  const read = (f) => { try { return readFileSync(new URL(`../${f}`, import.meta.url)).toString("utf8"); } catch { return null; } };
+  const c = importClosure(["site/app.mjs"], read);
+  assert.ok(c.has("site/img/almi-latest.webp"), "the family logo the server sends at /brand/almi-latest.webp");
+  assert.ok(c.has("desktop/brand/almiworld-logo.png") && c.has("installer/almiworld.ico"));
+  const fake = importClosure(["a/m.mjs"], (f) => ({ "a/m.mjs": 'const x = readFileSync(join(HERE, "img", "y.webp")); const z = join(HERE, `t${n}`);', "a/img/y.webp": "bin" })[f] ?? null);
+  assert.deepEqual([...fake].sort(), ["a/img/y.webp", "a/m.mjs"]);
+});
+
 test("wiring: scanFor uses the stand-in with production's folder, read only; go-live passes prod and afterMerge; the build packs the module", () => {
   const main = readFileSync(new URL("../desktop/main.mjs", import.meta.url), "utf8"), gl = readFileSync(new URL("../desktop/go-live.mjs", import.meta.url), "utf8"), build = readFileSync(new URL("../desktop/build.mjs", import.meta.url), "utf8");
   assert.match(main, /githubFolderPages\(\{ target: \{ \.\.\.conn, branch: prod \}[^)]*make: false \}\)/);

@@ -40,7 +40,25 @@ static class Program {
   /* TESTS ONLY: /DATA=<dir> uses another data folder and /NOSYSTEM writes no shortcut and no Programs-list entry, so a test install never
    * touches the user's own app, data, desktop icon or registry */
   static string dataOverride = null; static bool noSystem = false;
-  public static string DataDir { get { return dataOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Name); } }
+  /* 🔴 RR-409 · A MICROSOFT STORE INSTALL: Windows itself says whether this program runs inside a package (GetCurrentPackageFamilyName;
+   * 15700 = APPMODEL_ERROR_NO_PACKAGE = a direct install). A package's data lives in its OWN folder (LocalState), so a Store install and a
+   * direct install never write each other's files; its first start copies the direct install's data (desktop/store-package.mjs). A package
+   * is updated by the Store: this program never installs over it, never applies an update to it, never uninstalls it. /PACKAGE= is for
+   * TESTS ONLY: it acts as if Windows had named that package. */
+  [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+  static extern int GetCurrentPackageFamilyName(ref int length, System.Text.StringBuilder name);
+  static string packageOverride = null; static bool packageAsked = false; static string packageFamily = null;
+  public static string PackageFamily { get {
+    if (packageOverride != null) return packageOverride == "" ? null : packageOverride;
+    if (packageAsked) return packageFamily; packageAsked = true;
+    try { int len = 0; if (GetCurrentPackageFamilyName(ref len, null) != 122 /* ERROR_INSUFFICIENT_BUFFER: there is a package */) return packageFamily = null; var sb = new System.Text.StringBuilder(len); if (GetCurrentPackageFamilyName(ref len, sb) == 0) packageFamily = sb.ToString(); }
+    catch (EntryPointNotFoundException) { packageFamily = null; } /* a Windows without packages */
+    return packageFamily;
+  } }
+  public static string DirectDataDir { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Name); } }
+  public static string DataDir { get { return dataOverride ?? (PackageFamily != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages", PackageFamily, "LocalState", Name) : DirectDataDir); } }
+  const string StoreLine = "Updates come from the Microsoft Store.";
+  static void NotInAPackage() { if (PackageFamily != null) throw new Blocked("AlmiVisibility was installed from the Microsoft Store. " + StoreLine + "\n\nNothing was changed."); }
   static string Desktop { get { return Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory); } }
   static string StartMenu { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), Name + ".lnk"); } }
   static string Self { get { return Assembly.GetExecutingAssembly().Location; } }
@@ -59,10 +77,10 @@ static class Program {
   [STAThread]
   static int Main(string[] args) {
     var exe = Path.GetFileNameWithoutExtension(Self).ToLowerInvariant();
-    dataOverride = Arg(args, "/DATA="); noSystem = Has(args, "/NOSYSTEM");
+    dataOverride = Arg(args, "/DATA="); noSystem = Has(args, "/NOSYSTEM"); packageOverride = Arg(args, "/PACKAGE=");
     try {
-      if (Has(args, "/apply-update")) return ApplyUpdate(args);
-      if (Has(args, "/uninstall") || exe == "uninstall") return Has(args, "/S") ? Uninstall(Has(args, "/REMOVEDATA")) : UninstallWizard();
+      if (Has(args, "/apply-update")) { NotInAPackage(); return ApplyUpdate(args); } // RR-409: the Store updates a Store install
+      if (Has(args, "/uninstall") || exe == "uninstall") { NotInAPackage(); return Has(args, "/S") ? Uninstall(Has(args, "/REMOVEDATA")) : UninstallWizard(); }
       if (exe == "almivisibility") return Launch(!Has(args, "/nowindow"));
       if (Has(args, "/S")) {
         var dir = Arg(args, "/D=") ?? DefaultDir;
@@ -323,16 +341,18 @@ static class Program {
     /* 🔴 RR-372: the app's parent, which keeps how it ended; it starts main.mjs. A package from before it has none: main.mjs is started as before */
     var main = Path.Combine(dir, "app", "desktop", "supervisor.mjs");
     if (!File.Exists(main)) main = Path.Combine(dir, "app", "desktop", "main.mjs");
+    var firstStart = !Directory.Exists(DataDir); // RR-409: a Store install's first start may copy the direct install's data first
     Directory.CreateDirectory(DataDir);
     var port = RunningPort(node);
     if (port == null) {
       if (!File.Exists(node) || !File.Exists(main)) throw new Blocked("AlmiVisibility's program files are incomplete (" + (File.Exists(node) ? main : node) + " is missing).\n\nWhat to do: run the latest AlmiVisibility Setup again — it repairs the program and keeps your data.");
       var runFile = Path.Combine(DataDir, "run.json");
       if (File.Exists(runFile)) File.Delete(runFile);
-      var p = new ProcessStartInfo(node, "\"" + main + "\" --data=\"" + DataDir + "\" --install=\"" + dir + "\"" + (KeepPort != null ? " --port=" + KeepPort : "")) { CreateNoWindow = true, UseShellExecute = false, WorkingDirectory = Path.Combine(dir, "app") };
+      var p = new ProcessStartInfo(node, "\"" + main + "\" --data=\"" + DataDir + "\" --install=\"" + dir + "\"" + (KeepPort != null ? " --port=" + KeepPort : "") + (PackageFamily != null ? " --package-family=\"" + PackageFamily + "\" --copy-from=\"" + DirectDataDir + "\"" : "") /* RR-409 */) { CreateNoWindow = true, UseShellExecute = false, WorkingDirectory = Path.Combine(dir, "app") };
       Process.Start(p);
       port = "";
-      for (int i = 0; i < 150 && (port = PortIn(runFile)) == ""; i++) Thread.Sleep(100);
+      var tenths = PackageFamily != null && firstStart ? 1200 : 150; /* RR-409: the copy of a big data folder may take longer than 15 seconds, once */
+      for (int i = 0; i < tenths && (port = PortIn(runFile)) == ""; i++) Thread.Sleep(100);
       if (port == "") throw new Blocked("AlmiVisibility did not start within 15 seconds.\n\nWhat to do: wait a minute and open it again. If it still does not start, restart the computer. If your antivirus says it blocked AlmiVisibility, restore it from the antivirus's quarantine and allow it.");
       Log(dir, "LAUNCHED the app on port " + port);
     }

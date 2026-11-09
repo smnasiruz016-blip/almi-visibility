@@ -15,6 +15,7 @@
  * No ranking, traffic, views or citation is promised anywhere.
  */
 import { PLATFORMS, PLATFORM_NAME, CAPTION_TOOL, platformOf } from "./title-check.mjs"; // RR-348
+import { storeBadge, installerLine, MS_STORE_CSS } from "./ms-store.mjs"; // RR-409: the Microsoft Store badge, the installer second
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 export const HERO = Object.freeze({
@@ -144,10 +145,10 @@ ${titleTool({ ...tool, buyHref })}
  * products" + "What would you like to do now?", made with demo data: a test key pair, a demo company, no real key or person) with the
  * Download button directly under it. On a phone the picture and the button come right after the heading. ── */
 export const APP_SHOT = Object.freeze({ src: "/img/app-home.jpg", width: 1600, height: 1216, alt: "The AlmiVisibility app on Windows: “Your products” with a website, a YouTube channel and a shop, and “What would you like to do now?” (demo data)" });
-export function salesHero({ headline, sub, data, buyHref, buyLabel, download = "/download" }) {
+export function salesHero({ headline, sub, data, buyHref, buyLabel, installer = null }) {
   return `<section class="hero shero"><div class="wrap sh-grid">
 <div class="sh-text"><p class="eyebrow">AlmiVisibility · by AlmiWorld</p><h1>${esc(headline)}</h1><p class="lead">${esc(sub)}</p></div>
-<div class="sh-media" data-app-shot><figure class="sh-shot"><img src="${APP_SHOT.src}" width="${APP_SHOT.width}" height="${APP_SHOT.height}" alt="${esc(APP_SHOT.alt)}" fetchpriority="high"></figure>${downloadHero(download)}</div>
+<div class="sh-media" data-app-shot><figure class="sh-shot"><img src="${APP_SHOT.src}" width="${APP_SHOT.width}" height="${APP_SHOT.height}" alt="${esc(APP_SHOT.alt)}" fetchpriority="high"></figure>${downloadHero(installer)}</div>
 <div class="sh-act"><div class="cta"><a class="pill big" href="#score">${esc(HERO.score)}</a><a class="pill big alt" href="${esc(buyHref)}" data-buy>${esc(HERO.buy)}</a></div>
 <p class="sh-ticks" data-ticks>${HERO.ticks.map((t) => `<span>✓ ${esc(t)}</span>`).join("")}</p>
 </div></div></section>`; // RR-347 FIX v2 point 5: the no-promise line is a footnote at the end of the page
@@ -191,10 +192,11 @@ export function socialBand(buyHref = "/pricing") {
  * releases/latest), or the Download page. Older copies (1.14 and before) cannot check today's licence: the line under it says to update. */
 export const DOWNLOAD = Object.freeze({ button: "Download the app here", os: "Windows 10 & 11 · always the latest version",
   update: "Using an older AlmiVisibility (1.14 or earlier)? Please update to the latest version — download it here and install it over the old one. Your data stays." });
-export function downloadHero(href = "/download") {
-  const setup = href.startsWith("/download/");
-  return `<div class="dl-hero" data-download-hero><a class="pill big dl" href="${esc(href)}"${setup ? " download" : ""}${href.startsWith("https://") ? ' rel="noopener"' : ""}><span aria-hidden="true">⬇</span> ${esc(DOWNLOAD.button)}</a><span class="dl-os">${esc(DOWNLOAD.os)}</span></div>
-<p class="dl-update"><a href="${esc(href)}"${setup ? " download" : ""}>${esc(DOWNLOAD.update)}</a></p>`;
+export function downloadHero(installer = null) {
+  /* 🔴 RR-409: Microsoft's Store badge is the main download; the installer is the small second choice under it, with the blue-window guide */
+  const upd = installer ?? "/download", setup = upd.startsWith("/download/");
+  return `<div class="dl-hero" data-download-hero>${storeBadge()}<span class="dl-os">${esc(DOWNLOAD.os)}</span></div>${installer ? installerLine(installer) : ""}
+<p class="dl-update"><a href="${esc(upd)}"${setup ? " download" : ""}>${esc(DOWNLOAD.update)}</a></p>`;
 }
 
 export const DAYS = Object.freeze({
@@ -241,6 +243,7 @@ export function faqSection() {
 }
 
 export const HOME_CSS = `<style>
+${MS_STORE_CSS}
 .dl-hero{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0 0}
 .pill.dl{background:#1A1A2E;color:#FFFFFF;border:2px solid #1A1A2E;font-weight:700} .pill.dl:hover{background:#2E2E4A} .pill.dl span{margin-right:8px}
 .dl-os{font-size:14px;color:var(--muted);font-weight:600} .dl-update{margin:8px 0 0;font-size:13px} .dl-update a{color:var(--coralText)}

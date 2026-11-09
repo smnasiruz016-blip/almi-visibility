@@ -30,6 +30,9 @@ runs/crawl/*.br -text
 # git blob; no conversion may ever touch them.
 runs/owner-verification/** -text
 
+# RR-409: Microsoft's own Store badge, byte for byte as Microsoft serves it (CRLF inside); its sha256 is pinned by a test.
+site/img/ms-store-badge-*.svg -text
+
 # ALL run evidence, not two paths out of four. runs/ holds the raw observations, findings,
 # census and export evidence that ticks stand on. runs/crawl/*.br and
 # runs/owner-verification/** were already protected; the other 69 tracked files under runs/

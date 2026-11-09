@@ -64,8 +64,8 @@ test("LIKE THE FAMILY · the family strip (all 23 products, the package's order)
     assert.match(html, /<meta name="description" content="[^"]{30,}">/);
     assert.doesNotMatch(html.replace(/No one controls search engines or AI answers\. AlmiVisibility does not promise any ranking[^<]*/, ""), /\s#1\b|number one|first page of google|guarantee[ds]? (a |your )?(rank|traffic|citation)|will rank|top of google/i, `${k} promises a result`);
   }
-  assert.match(all.download, /<a class="pill big" href="\/download\/AlmiVisibility-Setup\.exe" download>Download here<\/a>/);
-  assert.match(all.download, /unknown publisher/);
+  /* RR-409 (restated): Microsoft's Store badge first; the installer the second choice, the blue-window guide beside it only */
+  assert.match(all.download, /data-store-badge>[\s\S]*<p class="dl-alt" data-installer><a href="\/download\/AlmiVisibility-Setup\.exe" download>Or download the installer \(\.exe\)<\/a> · <a href="\/help\/windows-protected-your-pc" data-installer-guide>/);
   for (const [n, t] of [[30, "1 product"], [40, "up to 5 products"], [60, "up to 10 products"], [80, "unlimited products"]]) assert.match(all.pricing, new RegExp(`\\$${n}<small> / month</small></div><p><b>${t}</b>`));
   /* RR-339 (owner, 28 Oct 2026): "There is no free trial" and "Prices set by AlmiWorld on 20 October 2026" are removed everywhere */
   assert.doesNotMatch(all.pricing, /There is no free trial|Prices set by AlmiWorld/);

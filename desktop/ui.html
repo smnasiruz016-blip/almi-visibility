@@ -250,7 +250,7 @@ window.addEventListener("unhandledrejection", (e) => { console.error(e.reason); 
 async function home() {
   if (!(await here("home"))) return;
   const H = await get("/api/home");
-  $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence;
+  $("#ver").textContent = "version " + H.version + (H.updatesLine ? " · " + H.updatesLine : "") /* RR-409: a Store install says who updates it */; $("#lic").textContent = H.licence;
   if (!H.company) return company();
   const M = await get("/api/menu");
   const logo = H.company.logoFile ? `<img src="/company-logo" alt="${esc(H.company.name)} logo">` : "";
@@ -1035,6 +1035,8 @@ async function checkUpdates(byHand = false) {
     note(msg, `Version ${r.version} found (${at}).`, "ok");
     return r;
   }
+  /* RR-409: a Microsoft Store install: the Store updates it; the app never offers, downloads or installs an update */
+  if (r.state === "STORE") { $("#updbar").innerHTML = ""; note(msg, r.line, "ok"); return r; }
   if (r.state === "REFUSED") $("#updbar").innerHTML = `<div class="warn">${esc(r.line)}</div>`;
   else if (!$("#updgo")) $("#updbar").innerHTML = "";
   if (byHand || r.state === "REFUSED") note(msg, r.state === "UP_TO_DATE" ? `✓ ${r.line} (checked ${at})` : r.line, r.state === "UP_TO_DATE" ? "ok" : "err");
@@ -1803,7 +1805,7 @@ async function searchScreen() {
 }
 Object.assign(SCREENS, { home, planScreen, youtubeSettings, company, addProduct, setup, work, publishScreen, editScreen, googleSignInScreen, googleScreen, pageCountScreen, searchScreen, jobScreen /* RR-379 */ });
 const hash = location.hash.slice(1);
-const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version; $("#lic").textContent = H.licence; });
+const header = () => get("/api/home").then((H) => { $("#ver").textContent = "version " + H.version + (H.updatesLine ? " · " + H.updatesLine : "") /* RR-409: a Store install says who updates it */; $("#lic").textContent = H.licence; });
 /* RR-303: #plan opens "Your plan"; #youtube=<product id> opens that product's YouTube settings (a link straight to a screen) */
 if (hash.startsWith("product=")) { openProduct(decodeURIComponent(hash.slice(8))); header(); }
 else if (hash.startsWith("google=")) { P = decodeURIComponent(hash.slice(7)); get(`/api/products/${encodeURIComponent(P)}/state`).then((st) => { S = st; googleScreen(); }); header(); }

@@ -173,7 +173,8 @@ test("8 · English first; the screen says the range and the sample's check; E ·
   assert.equal(planOf().numbers.languagePages, 0);
   assert.match(UI, /searched \$\{j\.range\} a month \(Keyword Planner, Google's ranges\)/); assert.match(UI, /practice sample: \$\{j\.sample\.ok \? `original ✓/);
   assert.match(SETUP, /new FileStream\(path, FileMode\.Open, FileAccess\.Read, FileShare\.ReadWrite \| FileShare\.Delete\)/, "run.json read with sharing");
-  assert.match(SETUP, /for \(int i = 0; i < 150 && \(port = PortIn\(runFile\)\) == ""; i\+\+\) Thread\.Sleep\(100\);/, "the launcher waits for a run.json that holds a port");
+  /* RR-409 (restated): still 150 tenths (15 s) as before; only a Store install's very first start waits up to 1200 (its one-time data copy) */
+  assert.match(SETUP, /var tenths = PackageFamily != null && firstStart \? 1200 : 150;[^\n]*\n\s*for \(int i = 0; i < tenths && \(port = PortIn\(runFile\)\) == ""; i\+\+\) Thread\.Sleep\(100\);/, "the launcher waits for a run.json that holds a port");
   assert.ok(!/File\.ReadAllText\([^)]*run/.test(SETUP), "no plain read of run.json is left (it fails while the app is writing it)");
   assert.match(SETUP, /var port = PortIn\(run\);/, "asking the app to quit reads it shared too");
 });

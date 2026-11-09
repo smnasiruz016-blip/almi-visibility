@@ -209,18 +209,20 @@ test("RR-342 · the 31-day clean-up: old keyword lists and replaced figures go; 
   assert.match(src.slice(src.indexOf("out.tidied ="), src.indexOf("const { groups } = await currentGroups")), /store\.packMonths[\s\S]*store\.prune/);
 });
 
-test("RR-342 · the Microsoft Store: once VISIBILITY_STORE_URL is set, Download points to the listing; the GitHub Setup is linked from nowhere but still answers", async () => {
-  const STORE = "https://apps.microsoft.com/detail/9NTESTONLY0";
-  const s = await site({ ...ENV, VISIBILITY_SETUP_URL: "https://github.com/x/almivisibility-releases/releases/latest/download/AlmiVisibility-Setup.exe", VISIBILITY_STORE_URL: STORE });
-  try {
-    const page = await (await fetch(`${s.base}/download`)).text();
-    assert.match(page, new RegExp(`<a class="pill big" href="${STORE}" rel="noopener" data-store>Get it from the Microsoft Store</a>`));
-    assert.ok(!page.includes("/download/AlmiVisibility-Setup.exe"), "the Setup link is still on the page");
-    assert.ok(!/not yet code-signed/.test(page), "the unsigned-installer warning beside a Store link");
-    assert.equal((await fetch(`${s.base}/download/AlmiVisibility-Setup.exe`, { redirect: "manual" })).status, 302, "the hidden fallback stopped answering");
-  } finally { s.close(); }
-  const s2 = await site({ ...ENV, VISIBILITY_SETUP_URL: "https://github.com/x/r/releases/latest/download/AlmiVisibility-Setup.exe", VISIBILITY_STORE_URL: "https://evil.example/app" });
-  try { const page = await (await fetch(`${s2.base}/download`)).text(); assert.ok(!page.includes("evil.example") && page.includes("/download/AlmiVisibility-Setup.exe"), "a non-Store address was linked"); } finally { s2.close(); }
+/* RR-409 (restated, owner 9 Nov 2026): the Store listing is known (9N1HKDNVTC7D) and lives in the code; VISIBILITY_STORE_URL no longer
+ * decides anything; the installer is no longer hidden — it is the second choice under Microsoft's badge (test/rr409-microsoft-store.test.mjs) */
+test("RR-342 → RR-409 · the Microsoft Store: Download points to the real listing whatever VISIBILITY_STORE_URL holds; the GitHub Setup still answers", async () => {
+  const STORE = "https://apps.microsoft.com/detail/9N1HKDNVTC7D";
+  for (const extra of [{}, { VISIBILITY_STORE_URL: "https://apps.microsoft.com/detail/9NTESTONLY0" }, { VISIBILITY_STORE_URL: "https://evil.example/app" }]) {
+    const s = await site({ ...ENV, VISIBILITY_SETUP_URL: "https://github.com/x/almivisibility-releases/releases/latest/download/AlmiVisibility-Setup.exe", ...extra });
+    try {
+      const page = await (await fetch(`${s.base}/download`)).text();
+      assert.ok(page.includes(`<a class="ms-badge" href="${STORE}" rel="noopener" data-store-badge>`), "the Store badge");
+      assert.ok(!page.includes("9NTESTONLY0") && !page.includes("evil.example"), "an address from the env var was linked");
+      assert.ok(!/not yet code-signed/.test(page), "the unsigned-installer warning outside the installer line");
+      assert.equal((await fetch(`${s.base}/download/AlmiVisibility-Setup.exe`, { redirect: "manual" })).status, 302, "the Setup stopped answering");
+    } finally { s.close(); }
+  }
 });
 
 test("RR-342 · code signing: signing.json names the signer (no secret in it); signtool signs, timestamps and verifies; no file → unsigned, said", () => {

@@ -15,6 +15,7 @@ import { cssVariables } from "../desktop/theme.mjs";
 import { PRIVACY_LINE, MARKETING_LINE } from "./leads.mjs";
 import { LIMITS, NO_PROMISE } from "./free-test.mjs";
 import { footerColumns, almiworldBar, ALMIWORLD_BAR_CSS } from "./family.mjs";
+import { MS_STORE, INSTALLER, getTheApp, MS_STORE_CSS } from "./ms-store.mjs"; // RR-409
 import { loadLegal, fillsIn, renderLegal } from "./legal.mjs"; // RR-325 C
 import { LITE_LIMITS as LITE } from "./limits.mjs"; // RR-325 B
 import { LOCATIONS } from "./kw-seeds.mjs"; // RR-326
@@ -203,7 +204,8 @@ export const MARKETING = Object.freeze({
 const TAX_LINE = "Prices exclude VAT and sales tax; where it applies, the tax is added at checkout. Have a promotion code? Enter it at checkout — <a href='/help/promotion-code'>how to use a promotion code</a>.";
 /* RR-325 A: every footer links AlmiVisibility's own Privacy Policy and Terms of Service */
 /* RR-398: almiworld.com's own footer columns, then AlmiVisibility's own privacy and terms in the AlmiWorld column */
-const footerCols = () => footerColumns().map((c) => (c.title === "AlmiWorld" ? { ...c, links: [...c.links, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
+/* RR-409: and AlmiVisibility's Microsoft Store listing */
+const footerCols = () => footerColumns().map((c) => (c.title === "AlmiWorld" ? { ...c, links: [...c.links, { label: "AlmiVisibility in the Microsoft Store", href: MS_STORE.url }, { label: "AlmiVisibility Privacy Policy", href: "/privacy" }, { label: "AlmiVisibility Terms of Service", href: "/terms" }] } : c));
 /*
  * 🔴 RR-389 PART 3.2 (the owner's app on almivisibility.almiworld.com, 7 Nov: 93/100; 6 of 7 pages without structured data, 1 without a
  * description, nothing saying who we are). Every page says who we are in a machine-readable way: Organization (AlmiWorld, with the profiles
@@ -215,6 +217,8 @@ export const ORG = Object.freeze({ name: "AlmiWorld", url: "https://almiworld.co
 export function siteLd({ offers = true } = {}) {
   const org = { "@type": "Organization", "@id": `${ORG.url}#org`, name: ORG.name, url: ORG.url, logo: `${ORIGIN}/brand/almiworld-logo.png`, sameAs: [...ORG.sameAs] };
   const app = { "@type": "SoftwareApplication", "@id": `${ORIGIN}/#app`, name: "AlmiVisibility", url: `${ORIGIN}/`, applicationCategory: "BusinessApplication", operatingSystem: "Windows", description: APP_LINE, publisher: { "@id": `${ORG.url}#org` },
+    /* 🔴 RR-409: the Microsoft Store listing is where it is installed from. NO rating and NO review count: there are none yet */
+    downloadUrl: MS_STORE.url, installUrl: MS_STORE.url, sameAs: [MS_STORE.url],
     /* the offer only where the site sells (a public-lite site shows no price, so its markup holds none) */
     ...(offers ? { offers: PLANS.map((p) => ({ "@type": "Offer", name: `${p.products}: $${p.price} a month`, price: String(p.price), priceCurrency: "USD", url: `${ORIGIN}/pricing`, priceSpecification: { "@type": "UnitPriceSpecification", price: String(p.price), priceCurrency: "USD", unitText: "MONTH" } })) } : {}) };
   return `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": [org, app] }).replace(/</g, "\\u003c")}</script>`;
@@ -316,19 +320,22 @@ ${section("", `<h2>YouTube, too</h2><div class="card tick-card" style="max-width
 ${section("peach", `<h2>Ten languages</h2><p class="sub">The same facts, numbers, sources and dates in every language — only the wording changes. Arabic and Urdu are written right to left.</p><ul class="chips">${LANGS.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`)}
 ${section("", `<div class="final"><h2>Start with the free test</h2><p>See your score before you decide.</p><p><a class="pill big" href="/#test">Test my site</a></p></div>`)}` });
 
-export const pricing = ({ sales = false } = {}) => frame({ path: "/pricing", lite: sales ? "sales" : false, title: "Pricing — AlmiVisibility", description: "AlmiVisibility plans: $30 a month for 1 product, $40 for up to 5, $60 for up to 10, $80 for unlimited products. Every plan has every feature.",
-  body: `<section class="hero"><div class="wrap"><p class="eyebrow">Pricing</p><h1>${esc(MARKETING.pricingHeading)}</h1><p class="lead">${esc(MARKETING.pricingLine)}</p>${IMG.pricing}</div></section>
+export const pricing = ({ sales = false, setupAvailable = false } = {}) => frame({ path: "/pricing", lite: sales ? "sales" : false, title: "Pricing — AlmiVisibility", description: "AlmiVisibility plans: $30 a month for 1 product, $40 for up to 5, $60 for up to 10, $80 for unlimited products. Every plan has every feature.",
+  body: `<section class="hero"><div class="wrap"><p class="eyebrow">Pricing</p><h1>${esc(MARKETING.pricingHeading)}</h1><p class="lead">${esc(MARKETING.pricingLine)}</p><style>${MS_STORE_CSS}</style>${getTheApp({ installer: setupAvailable ? INSTALLER.href : null }) /* RR-409 */}${IMG.pricing}</div></section>
 ${section("paper", priceCards(sales) + includesBox() + MANAGE_LINE)}
 ${section("", `<div class="final"><h2>Not sure yet?</h2><p>Run the free website test first.</p><p><a class="pill big" href="${sales ? "/#score" : "/#test"}">Test my site</a></p></div>`)}` });
 
-/* RR-342 (owner: the Microsoft Store is the main path): once the listing exists, Download points to it; the GitHub Setup stays at its old
- * address only, linked from nowhere (a hidden fallback) */
-export const download = ({ setupAvailable = false, sales = false, storeUrl = null } = {}) => frame({ path: "/download", lite: sales ? "sales" : false, title: "Download AlmiVisibility for Windows", description: "Download AlmiVisibility for Windows: install it like any program, add your product, and get sourced pages, articles and a monthly report.",
+/* RR-342 (owner: the Microsoft Store is the main path). 🔴 RR-409 (owner, 9 Nov 2026: live in the Store, 9N1HKDNVTC7D): Microsoft's badge
+ * first, always; the direct installer stays as the small second choice under it (when it can be downloaded), the blue-window guide beside
+ * it only. `storeUrl` is kept for the old callers and no longer decides anything. */
+export const download = ({ setupAvailable = false, sales = false } = {}) => frame({ path: "/download", lite: sales ? "sales" : false, title: "Download AlmiVisibility for Windows", description: "Download AlmiVisibility for Windows: install it like any program, add your product, and get sourced pages, articles and a monthly report.",
   body: `<section class="hero"><div class="wrap"><p class="eyebrow">Download</p><h1>AlmiVisibility for Windows</h1>
-<p class="lead">${storeUrl ? "Get it from the Microsoft Store: one click installs it, and the Store keeps it up to date." : "Download the installer, click Next, Install and Finish, and open AlmiVisibility from your desktop."}</p>
-<div class="cta">${storeUrl ? `<a class="pill big" href="${esc(storeUrl)}" rel="noopener" data-store>Get it from the Microsoft Store</a>` : setupAvailable || !sales ? `<a class="pill big" href="/download/AlmiVisibility-Setup.exe"${setupAvailable ? "" : ' aria-disabled="true"'} download>Download here</a>` : '<span class="pill big" aria-disabled="true">The download opens soon</span>'}<a class="pill ghost" href="/pricing">See the plans</a></div>
+<style>${MS_STORE_CSS}</style>
+<p class="lead">Get it from the Microsoft Store: one click installs it, and the Store keeps it up to date.</p>
+${getTheApp({ installer: setupAvailable ? INSTALLER.href : null })}
+<div class="cta"><a class="pill ghost" href="/pricing">See the plans</a></div>
 ${sales ? `<p class="small" data-update-line><b>${esc(DOWNLOAD.update.replace("download it here", "download it above"))}</b></p>${IMG.download}` : ""}
-<p class="small">Windows 10 or 11. Your data stays on your own computer.${storeUrl ? "</p>" : ` The installer is not yet code-signed, so Windows may show an “unknown publisher” warning when you open it — choose “More info”, then “Run anyway” (<a href="/help/windows-protected-your-pc">step by step</a>).</p>`}</div></section>
+<p class="small">Windows 10 or 11. Your data stays on your own computer.</p></div></section>
 ${section("paper", `<h2>After you install</h2>${cardList([
   ["Add your product", "Your company, your product and its website."],
   ["Choose your plan", "Pay monthly by card. Your plan sets how many products you can add."],
@@ -357,6 +364,13 @@ export const HELP = Object.freeze({
   "/help/windows-protected-your-pc": { title: "“Windows protected your PC” — how to install AlmiVisibility", h1: "The blue “Windows protected your PC” window", description: "Windows may show “Windows protected your PC” when you open the AlmiVisibility installer. Press More info, then Run anyway.",
     intro: "When you open the AlmiVisibility installer, Windows may show a blue window: “Windows protected your PC”. Windows shows it for a program it does not know yet — our installer is not yet signed with a code-signing certificate. It is not a virus warning.",
     steps: ["Download the installer only from this site's Download page — never from another site.", "Open the downloaded file. If the blue window “Windows protected your PC” appears, press the small words “More info” under the text.", "The window now shows the program's name (AlmiVisibility Setup) and “Publisher: Unknown publisher”. Press “Run anyway”.", "Windows may then ask “Do you want to allow this app to make changes?” — press Yes. The installer opens; follow it. Your data stays on your own computer."] },
+  /* 🔴 RR-409: the client guides for installing and updating, the Microsoft Store first */
+  "/help/install": { title: "How to install AlmiVisibility — AlmiVisibility", h1: "How to install AlmiVisibility", description: "Install AlmiVisibility from the Microsoft Store: open its Store page, press Get, then open it from the Start menu. The installer (.exe) is a second choice.",
+    intro: `AlmiVisibility is in the Microsoft Store: ${MS_STORE.url}`,
+    steps: [`Open AlmiVisibility's page in the Microsoft Store: ${MS_STORE.url} — or press the Microsoft Store badge on this site.`, "Press “Get” (the Store may show “Install”). The Store downloads and installs AlmiVisibility.", "Open AlmiVisibility from the Start menu. Your data stays on your own computer.", "A second choice: the installer (.exe) from this site's Download page. Only that installer may show the blue “Windows protected your PC” window — its own guide is next to the installer link."] },
+  "/help/update": { title: "How to update AlmiVisibility — AlmiVisibility", h1: "How to update AlmiVisibility", description: "Installed from the Microsoft Store, AlmiVisibility is updated by the Store. Installed with the installer (.exe), the app updates itself when you agree.",
+    intro: "How AlmiVisibility is updated depends on how you installed it. Your products and data are kept either way.",
+    steps: [`Installed from the Microsoft Store: the Store updates it by itself. In the app, Check for updates says “Updates come from the Microsoft Store.” To update at once, open the Microsoft Store, press Library (on Windows 10: Downloads and updates), then press Get updates. AlmiVisibility's Store page: ${MS_STORE.url}`, "Installed with the installer (.exe): the app checks for a new version when it opens and every 4 hours, and downloads it in the background. When it is ready, press “Update ready — Restart”. It installs only when you press it."] },
 });
 export const helpPage = (path, { sales = true } = {}) => { const h = HELP[path]; if (!h) return null;
   return frame({ path, lite: sales ? "sales" : true, title: h.title, description: h.description, body: `<section class="page"><div class="wrap prose"><h1>${esc(h.h1)}</h1><p>${esc(h.intro)}</p><ol>${h.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol><p>Other help: ${Object.entries(HELP).filter(([p]) => p !== path).map(([p, x]) => `<a href="${p}">${esc(x.h1.replace(/[“”]/g, "\""))}</a>`).join(" · ")} · <a href="/download">Download</a> · <a href="/pricing">Pricing</a></p></div></section>` }); };
@@ -418,12 +432,12 @@ ${real ? `<p class="fine" style="margin-top:6px">${esc(result.url)} · ${result.
 ${real ? "" : '<p class="fine" style="text-align:center;margin-top:8px">SAMPLE — an illustrative example, not a real score.</p>'}
 ${scoreOn && ticket ? form : off}</div>`;
 }
-export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, download = "/download" } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
+export const liteHome = ({ result = null, error = null, values = {}, scoreOn = false, ticket = null, left = null, owner = false, finder = {}, sales = false, title = {}, installer = null } = {}) => frame({ path: "/", lite: sales ? "sales" : true,
   title: sales ? "AlmiVisibility — get found on Google, ChatGPT and YouTube" : "AlmiVisibility — get the score of your site",
   description: sales ? `One app grows your website and your YouTube channel: pages, articles, titles and ideas. Free title & caption checker. ${MARKETING.data} From $30 a month.` /* RR-389 Part 3.2: 170 characters at most */ :"Get your website's visibility score free: technical basics, content, accessibility, links and security. AlmiVisibility, made by AlmiWorld — the app is coming soon.",
   /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
    * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
-  body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, download })}${newBand()}
+  body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, installer })}${newBand()}
 <section class="band shome"><div class="wrap sgrid"><div>${aiMap()}</div><div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
 ${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${socialBand(BUY_NOW.href)}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>`
     : `<section class="hero"><div class="wrap grid2"><div>

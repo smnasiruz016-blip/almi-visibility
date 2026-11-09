@@ -6,7 +6,7 @@
  * engine, no third party). Pure but for the injected fetch.
  *   scanSite({ origin, pages, fetchImpl, maxPages, concurrency }) → { ok, on, origin, crawled, rows: [{ key, check, mustBe, ok, count, sample }], serious, listed }
  */
-import { FORBIDDEN, visibleQa, faqData } from "./page-law.mjs";
+import { forbiddenInBlocks, textBlocks, visibleQa, faqData } from "./page-law.mjs";
 
 export const SCAN_CHECKS = Object.freeze([
   Object.freeze({ key: "status", check: "Status", mustBe: "Every page answers 200" }),
@@ -15,7 +15,7 @@ export const SCAN_CHECKS = Object.freeze([
   Object.freeze({ key: "notInSitemap", check: "Indexable pages in no sitemap", mustBe: "Listed, with the reason" }),
   Object.freeze({ key: "forbidden", check: "Forbidden texts (Q&A LAW 5.2)", mustBe: "0 (\"not confirmed yet\" is allowed)" }),
   Object.freeze({ key: "faq", check: "FAQ data", mustBe: "Equal to the visible Q&A on every page" }),
-  Object.freeze({ key: "canonical", check: "Canonical", mustBe: "On every page, pointing to the live domain" }),
+  Object.freeze({ key: "canonical", check: "Canonical", mustBe: "On every indexable page, pointing to the live domain (noindex pages: not needed)" }),
   Object.freeze({ key: "titles", check: "Titles", mustBe: "Unique among indexable pages" }),
   Object.freeze({ key: "robots", check: "robots.txt", mustBe: "Allows the indexable pages" }),
   Object.freeze({ key: "sitemap", check: "Sitemap", mustBe: "The sitemap robots.txt names answers 200" }),
@@ -60,7 +60,8 @@ export function faqDiff(html) {
   const asked = new Set(faq.map((f) => norm(f.q))); for (const x of qa) if (x.answers.length && !asked.has(norm(x.q))) out.push(`"${x.q.slice(0, 60)}" shown, not in the FAQ data`);
   return out;
 }
-const forbiddenIn = (html) => { const t = `${text(mainOf(html))} ${faqData(html).map((x) => `${x.q} ${x.a}`).join(" ")}`; return FORBIDDEN.filter((re) => re.test(t)).map((re) => re.source); };
+/* 🔴 RR-408 B1: one text block at a time (heading, paragraph, list item, table cell; each FAQ question and answer apart), never across two */
+const forbiddenIn = (html) => forbiddenInBlocks([...textBlocks(mainOf(html), decode), ...faqData(html).flatMap((x) => [x.q, x.a])]);
 
 export async function scanSite({ origin, pages = [], fetchImpl = fetch, maxPages = 900, concurrency = 6, timeoutMs = 20000, ua = "AlmiVisibility-scan", now = () => Date.now() }) {
   const home = pageKey(origin); if (!home) return { ok: false, why: "No site address to scan." };
@@ -87,7 +88,9 @@ export async function scanSite({ origin, pages = [], fetchImpl = fetch, maxPages
   rows.push({ key: "notInSitemap", check: "Indexable pages in no sitemap", mustBe: "Listed, with the reason", ok: true, count: listed.length, sample: listed.slice(0, 25).map((x) => `${x.url}: ${x.why}`) });
   row("forbidden", htmlPages.filter((p) => p.forbidden.length).map((p) => `${p.url}: /${p.forbidden.join("/, /")}/`));
   row("faq", htmlPages.filter((p) => p.faq.length).map((p) => `${p.url}: ${p.faq[0]}`));
-  row("canonical", htmlPages.map((p) => (!p.canonical.length ? `${p.url}: no canonical` : p.canonical.length > 1 ? `${p.url}: ${p.canonical.length} canonicals` : (() => { try { return new URL(p.canonical[0], p.url).origin === host ? null : `${p.url}: points to ${p.canonical[0]}`; } catch { return `${p.url}: unreadable canonical`; } })())).filter(Boolean));
+  /* 🔴 RR-408 B2: a noindex page needs no canonical (AlmiCV /login, /signup, /forgot-password failed "on every page"): the check reads the
+   * indexable pages; each noindex page is shown as "not needed (noindex)", never as a fail */
+  row("canonical", indexable.map((p) => (!p.canonical.length ? `${p.url}: no canonical` : p.canonical.length > 1 ? `${p.url}: ${p.canonical.length} canonicals` : (() => { try { return new URL(p.canonical[0], p.url).origin === host ? null : `${p.url}: points to ${p.canonical[0]}`; } catch { return `${p.url}: unreadable canonical`; } })())).filter(Boolean), { notNeeded: htmlPages.filter((p) => p.noindex).map((p) => `${p.url}: not needed (noindex)`) });
   { const by = new Map(); for (const p of indexable) { const t = norm(p.title); if (!t) continue; by.set(t, [...(by.get(t) ?? []), p.url]); } const bad = []; for (const p of indexable) { if (!norm(p.title)) bad.push(`${p.url}: no title`); else { const same = by.get(norm(p.title)); if (same.length > 1) bad.push(`${p.url}: same title as ${same.length - 1} other page(s) ("${p.title.slice(0, 60)}")`); } } row("titles", bad); }
   row("robots", rb.status !== 200 && rb.status !== 404 ? [`robots.txt answered ${rb.status || "nothing"}`] : indexable.filter((p) => !robotsAllows(robots.rules, new URL(p.url).pathname || "/")).map((p) => `${p.url}: disallowed by robots.txt`));
   row("sitemap", !robots.sitemaps.length ? ["robots.txt names no sitemap"] : sitemapRows.filter((s) => s.named && s.status !== 200).map((s) => `${s.url}: ${s.status || "no answer"}`), { sitemaps: sitemapRows.filter((s) => s.named).map((s) => s.url) });
@@ -97,4 +100,4 @@ export async function scanSite({ origin, pages = [], fetchImpl = fetch, maxPages
   return { ok: rows.every((r) => r.ok), on: new Date(now()).toISOString(), origin: host, crawled: all.length, html: htmlPages.length, indexable: indexable.length, inSitemap: inSitemap.size, rows, serious, listed };
 }
 /** the scan as one plain table (the report, the screen) */
-export const scanTable = (s) => (s?.rows ?? []).map((r) => `| ${r.check} | ${r.mustBe} | ${r.ok ? "PASS" : "FAIL"} | ${r.count} |${r.sample.length ? ` ${r.sample.slice(0, 3).join("; ").replace(/\|/g, "/")}` : ""} |`).join("\n");
+export const scanTable = (s) => (s?.rows ?? []).map((r) => `| ${r.check} | ${r.mustBe} | ${r.ok ? "PASS" : "FAIL"} | ${r.count} |${r.sample.length ? ` ${r.sample.slice(0, 3).join("; ").replace(/\|/g, "/")}` : ""}${r.notNeeded?.length ? ` ${r.notNeeded.length} not needed (noindex)` : ""} |`).join("\n");

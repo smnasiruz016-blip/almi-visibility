@@ -1,0 +1,868 @@
+<title>Teoriprøve Træner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#eef1f5;
+  --card:#ffffff;
+  --card-2:#f7f9fb;
+  --ink:#161e28;
+  --ink-2:#4a5a6b;
+  --ink-3:#7b8b9c;
+  --line:#d8dfe7;
+  --line-2:#e7ecf1;
+  --blaa:#1b5fa8;
+  --blaa-dyb:#12406f;
+  --blaa-blod:#e3edf7;
+  --gul:#cf9320;
+  --gul-blod:#fbf1dc;
+  --groen:#2b7355;
+  --groen-blod:#e2f0ea;
+  --rod:#c0322a;
+  --rod-blod:#fae7e5;
+  --skygge:0 1px 2px rgba(22,30,40,.06), 0 6px 18px rgba(22,30,40,.07);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f151c;
+    --card:#19212b;
+    --card-2:#1f2833;
+    --ink:#e7edf3;
+    --ink-2:#a7b6c5;
+    --ink-3:#7a8a9a;
+    --line:#2c3845;
+    --line-2:#242f3b;
+    --blaa:#5b9ddb;
+    --blaa-dyb:#9cc4e9;
+    --blaa-blod:#17293c;
+    --gul:#e0ad48;
+    --gul-blod:#2f2617;
+    --groen:#5cb38c;
+    --groen-blod:#142d24;
+    --rod:#e0736a;
+    --rod-blod:#331b19;
+    --skygge:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f151c;
+  --card:#19212b;
+  --card-2:#1f2833;
+  --ink:#e7edf3;
+  --ink-2:#a7b6c5;
+  --ink-3:#7a8a9a;
+  --line:#2c3845;
+  --line-2:#242f3b;
+  --blaa:#5b9ddb;
+  --blaa-dyb:#9cc4e9;
+  --blaa-blod:#17293c;
+  --gul:#e0ad48;
+  --gul-blod:#2f2617;
+  --groen:#5cb38c;
+  --groen-blod:#142d24;
+  --rod:#e0736a;
+  --rod-blod:#331b19;
+  --skygge:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Familjen Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:660px;margin:0 auto;padding-inline:16px;padding-block:0 56px}
+
+/* ---------- topbar ---------- */
+.topbar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-2);
+  margin-inline:-16px;padding:10px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.topbar .tilbage{
+  border:1px solid var(--line);background:var(--card);color:var(--ink);
+  border-radius:9px;padding:6px 11px;font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;
+}
+.topbar .tilbage:hover{background:var(--card-2)}
+.topbar .hvor{font-size:.85rem;font-weight:600;letter-spacing:.02em;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar .taeller{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.82rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+
+/* ---------- forside ---------- */
+.forside-top{padding:30px 0 22px;border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--blaa);margin-bottom:10px;
+}
+h1{
+  font-size:clamp(1.9rem,6.4vw,2.5rem);line-height:1.08;margin:0 0 10px;
+  font-weight:700;letter-spacing:-.02em;text-wrap:balance;
+}
+.manchet{
+  font-family:Newsreader,Georgia,"Times New Roman",serif;
+  font-size:1.05rem;color:var(--ink-2);margin:0;max-width:44ch;
+}
+.fakta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.fakta span{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.74rem;padding:5px 10px;border-radius:999px;
+  background:var(--blaa-blod);color:var(--blaa-dyb);font-variant-numeric:tabular-nums;
+}
+
+/* ---------- sektioner ---------- */
+.sek{margin-top:30px}
+.sek-hoved{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sek-hoved h2{font-size:.78rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin:0}
+.sek-hoved .note{font-size:.78rem;color:var(--ink-3);font-family:"IBM Plex Mono",ui-monospace,monospace}
+
+/* prøve-kort: den ene ting der løftes */
+.proevekort{
+  background:linear-gradient(160deg,var(--blaa) 0%,var(--blaa-dyb) 100%);
+  color:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--skygge);
+  display:flex;flex-direction:column;gap:14px;
+}
+.proevekort h3{margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-.01em}
+.proevekort p{margin:0;font-size:.9rem;opacity:.9;max-width:38ch}
+.proevekort .start{
+  align-self:flex-start;border:none;border-radius:10px;padding:11px 20px;
+  background:#fff;color:var(--blaa-dyb);font:inherit;font-weight:700;font-size:.95rem;cursor:pointer;
+}
+.proevekort .start:hover{background:#eef4fa}
+
+/* emneliste */
+.liste{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.rk{
+  display:flex;align-items:center;gap:13px;width:100%;
+  border:none;border-bottom:1px solid var(--line-2);background:transparent;color:var(--ink);
+  font:inherit;text-align:left;padding:13px 15px;cursor:pointer;
+}
+.rk:last-child{border-bottom:none}
+.rk:hover{background:var(--card-2)}
+.rk .mrk{
+  width:30px;height:30px;flex:none;border-radius:8px;background:var(--blaa-blod);
+  display:grid;place-items:center;color:var(--blaa-dyb);font-weight:700;font-size:.8rem;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+}
+.rk .txt{flex:1;min-width:0}
+.rk .navn{font-weight:600;font-size:.97rem;display:block}
+.rk .under{font-size:.79rem;color:var(--ink-3);display:block;margin-top:1px}
+.rk .hoj{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.78rem;
+  padding:3px 8px;border-radius:999px;font-variant-numeric:tabular-nums;flex:none;
+  background:var(--card-2);color:var(--ink-3);border:1px solid var(--line-2);
+}
+.rk .hoj.god{background:var(--groen-blod);color:var(--groen);border-color:transparent}
+.rk .pil{color:var(--ink-3);flex:none;font-size:1rem}
+
+/* ---------- spørgsmål ---------- */
+.bar{height:4px;background:var(--line);border-radius:999px;overflow:hidden;margin:16px 0 20px}
+.bar i{display:block;height:100%;background:var(--blaa);transition:width .25s ease}
+.sp{
+  font-family:Newsreader,Georgia,"Times New Roman",serif;
+  font-size:1.32rem;line-height:1.34;font-weight:400;margin:0 0 22px;text-wrap:pretty;
+}
+.valg{display:flex;gap:10px}
+.valg button{
+  flex:1;padding:17px 12px;border-radius:12px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--ink);font:inherit;font-weight:600;font-size:1.02rem;cursor:pointer;
+  transition:border-color .12s ease, background .12s ease;
+}
+.valg button:hover:not(:disabled){border-color:var(--blaa);background:var(--card-2)}
+.valg button:disabled{cursor:default;opacity:.55}
+.valg button.er-ret{border-color:var(--groen);background:var(--groen-blod);color:var(--groen);opacity:1}
+.valg button.er-forkert{border-color:var(--rod);background:var(--rod-blod);color:var(--rod);opacity:1}
+
+.svar{margin-top:18px;border-radius:12px;padding:15px 16px;border:1px solid var(--line)}
+.svar.ret{background:var(--groen-blod);border-color:color-mix(in srgb,var(--groen) 35%,transparent)}
+.svar.forkert{background:var(--rod-blod);border-color:color-mix(in srgb,var(--rod) 35%,transparent)}
+.svar .dom{font-weight:700;font-size:.92rem;margin-bottom:5px;letter-spacing:.01em}
+.svar.ret .dom{color:var(--groen)}
+.svar.forkert .dom{color:var(--rod)}
+.svar .hvorfor{font-family:Newsreader,Georgia,serif;font-size:1rem;line-height:1.5;color:var(--ink)}
+
+.naeste{
+  width:100%;margin-top:18px;border:none;border-radius:11px;padding:14px;
+  background:var(--blaa);color:#fff;font:inherit;font-weight:700;font-size:1rem;cursor:pointer;
+}
+.naeste:hover{background:var(--blaa-dyb)}
+.sek-knap{
+  width:100%;margin-top:9px;border:1px solid var(--line);border-radius:11px;padding:12px;
+  background:var(--card);color:var(--ink-2);font:inherit;font-weight:500;font-size:.92rem;cursor:pointer;
+}
+.sek-knap:hover{background:var(--card-2)}
+
+.kort{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--skygge)}
+
+/* ---------- tavler ---------- */
+.tavle{display:grid;place-items:center;padding:14px 0 20px}
+.tavle svg{width:158px;height:158px}
+.mulighed{
+  display:block;width:100%;text-align:left;margin-bottom:9px;
+  padding:13px 15px;border-radius:11px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--ink);font:inherit;font-size:.97rem;cursor:pointer;
+}
+.mulighed:hover:not(:disabled){border-color:var(--blaa);background:var(--card-2)}
+.mulighed:disabled{cursor:default;opacity:.5}
+.mulighed.er-ret{border-color:var(--groen);background:var(--groen-blod);color:var(--groen);opacity:1;font-weight:600}
+.mulighed.er-forkert{border-color:var(--rod);background:var(--rod-blod);color:var(--rod);opacity:1}
+
+/* ---------- resultat ---------- */
+.res{text-align:center;padding:8px 0 4px}
+.res .tal{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:3.1rem;font-weight:600;
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;margin:14px 0 6px;
+}
+.res .dom{font-size:1.15rem;font-weight:700;letter-spacing:.01em}
+.res .detalje{color:var(--ink-2);font-size:.9rem;margin-top:6px}
+.bestaaet{color:var(--groen)} .dumpet{color:var(--rod)}
+.merke{
+  display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 11px;border-radius:999px;background:var(--gul-blod);color:var(--gul);
+}
+
+.fejlliste{margin-top:22px}
+.fejl{
+  border-left:3px solid var(--rod);background:var(--card-2);
+  border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:10px;
+}
+.fejl .fsp{font-family:Newsreader,Georgia,serif;font-size:1rem;line-height:1.4}
+.fejl .fsvar{font-size:.85rem;color:var(--ink-2);margin-top:6px}
+.fejl .fsvar b{color:var(--groen)}
+
+/* ---------- ordforklaring ---------- */
+.ord{display:flex;justify-content:space-between;gap:16px;padding:12px 2px;border-bottom:1px solid var(--line-2)}
+.ord:last-child{border-bottom:none}
+.ord dt{font-weight:600;font-size:.95rem;flex:none;max-width:44%}
+.ord dd{margin:0;text-align:right;color:var(--ink-2);font-size:.9rem;
+  font-family:Newsreader,Georgia,serif;line-height:1.4}
+dl{margin:0}
+
+.timer{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;font-variant-numeric:tabular-nums}
+.timer.knap{color:var(--rod)}
+.advarsel{
+  font-size:.83rem;color:var(--ink-2);text-align:center;margin-top:16px;
+  padding:11px;background:var(--gul-blod);border-radius:10px;
+}
+.bund{
+  margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:.78rem;line-height:1.6;color:var(--ink-3);
+}
+.bund b{color:var(--ink-2);font-weight:600}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+:focus-visible{outline:2.5px solid var(--blaa);outline-offset:2px;border-radius:6px}
+</style>
+
+<div class="wrap notranslate" id="app" lang="da" translate="no"></div>
+
+<script>
+"use strict";
+/* ============================================================================
+   TEORIPRØVE TRÆNER — dansk køreteori, øvelsesmateriale.
+   Originale spørgsmål skrevet ud fra offentlige danske færdselsregler.
+   IKKE Færdselsstyrelsens officielle spørgsmål.
+
+   Kontrollerede fakta (september 2026):
+   - Teoriprøven kat. B: 25 scenarier, højst 5 fejl, 25 minutter,
+     gyldig i 18 måneder, findes på dansk, engelsk, færøsk,
+     grønlandsk og tysk.                       [fstyr.dk]
+   - 17-årige må fra 1. juli 2025 køre alene kl. 05-20; uden for
+     det tidsrum kræves ledsager.              [Transportministeriet, L165]
+   - Promillegrænse 0,5. Nye bilister: 0,2 i de første 3 år.
+   - Hastighed: byzone 50, landevej 80, motortrafikvej 80, motorvej 130.
+     Med anhænger 80 (100 kun med tempo-100-godkendt vogntog).
+   - Lys tændt hele døgnet. Barn under 135 cm: godkendt barnestol.
+   - Pigdæk kun 1. nov - 15. apr, på alle fire hjul. Mønsterdybde min. 1,6 mm.
+   ========================================================================== */
+
+var EMNER = [
+  {n:"hast",  t:"Hastighed",                 u:"Grænser, bremselængde og tilpasset fart"},
+  {n:"spir",  t:"Spiritus og køreevne",      u:"Promille, medicin, træthed"},
+  {n:"lys",   t:"Lys og signaler",           u:"Nærlys, fjernlys, blinklys, havariblink"},
+  {n:"sele",  t:"Seler og børn",             u:"Sikkerhedssele, barnestol, airbag"},
+  {n:"mobil", t:"Mobil og opmærksomhed",     u:"Håndholdt mobil, distraktion, klip"},
+  {n:"vige",  t:"Vigepligt",                 u:"Højre vigepligt, hajtænder, rundkørsel"},
+  {n:"cykel", t:"Cyklister og bløde trafikanter", u:"Cykelsti, højresving, fodgængere"},
+  {n:"motor", t:"Motorvej og landevej",      u:"Tilkørsel, overhaling, nødspor"},
+  {n:"vejr",  t:"Vejr, føre og dæk",         u:"Glat føre, tåge, pigdæk, mønsterdybde"},
+  {n:"kort",  t:"Kørekort, klip og ansvar",  u:"Alder, klip, forsikring, uheld"}
+];
+
+/* [emne, påstand, sandt, forklaring] */
+var SP = [
+/* ---------------- HASTIGHED (18) ---------------- */
+["hast","I byzone er den generelle hastighedsgrænse 50 km/t.",true,"I tættere bebygget område er grænsen 50 km/t, medmindre en tavle siger noget andet."],
+["hast","På almindelig landevej uden for byen er den generelle grænse 80 km/t.",true,"Landevej: 80 km/t, hvis intet andet er skiltet."],
+["hast","På motorvej er den generelle grænse 130 km/t, hvis intet lavere er skiltet.",true,"Mange motorvejsstrækninger er dog skiltet til 110 km/t."],
+["hast","På motortrafikvej må du køre 130 km/t ligesom på motorvej.",false,"Motortrafikvej er som udgangspunkt 80 km/t — den er ikke en motorvej."],
+["hast","Med anhænger eller campingvogn må du køre 130 km/t på motorvejen.",false,"Med anhænger er grænsen 80 km/t. Kun et tempo-100-godkendt vogntog må køre 100 km/t."],
+["hast","Et tempo-100-godkendt vogntog må køre 100 km/t på motorvejen.",true,"Både bil og anhænger skal være godkendt, og mærkatet skal sidde bagpå."],
+["hast","Lastbiler over 3,5 tons må køre 130 km/t på motorvejen som personbiler.",false,"Tunge køretøjer over 3,5 tons må højst køre 80 km/t."],
+["hast","En skiltet hastighedszone ved en skole gælder kun i skoletiden.",false,"Zonen gælder hele døgnet, medmindre en undertavle angiver et bestemt tidsrum."],
+["hast","En skiltet grænse må gerne overskrides, hvis vejen er helt tom.",false,"En skiltet grænse gælder altid, uanset hvor lidt trafik der er."],
+["hast","Holder du den skiltede hastighed, kører du altid forsvarligt.",false,"Grænsen gælder gode forhold. I regn, tåge, mørke og tæt trafik skal du køre langsommere."],
+["hast","I tåge, regn eller isslag bør du køre under den skiltede grænse.",true,"Den sikre hastighed er ofte langt under det, tavlen tillader."],
+["hast","Bremselængden bliver omtrent fire gange så lang, når du fordobler farten.",true,"Bremselængden vokser med kvadratet på hastigheden — dobbelt fart, fire gange længden."],
+["hast","Du må kortvarigt overskride grænsen for at overhale hurtigere.",false,"Overhaling giver aldrig ret til at køre for stærkt."],
+["hast","At køre unødigt langsomt og spærre for andre er ikke tilladt.",true,"Du må ikke uden rimelig grund køre så langsomt, at du hindrer den normale trafik."],
+["hast","Standselængden er det samme som bremselængden.",false,"Standselængde = reaktionslængde + bremselængde. Ved 80 km/t kører du ca. 22 meter, alene mens du reagerer."],
+["hast","Fartbøder i Danmark er lave og håndhæves sjældent.",false,"Bøderne er høje og håndhæves — også over for udenlandske bilister."],
+["hast","Kører du mere end 30 % for stærkt, kan det koste et klip i kørekortet.",true,"Overskridelse på mere end 30 % udløser klip ud over bøden."],
+["hast","På vådt føre er det nok at sætte farten lidt ned — afstanden kan være den samme.",false,"Både fart og afstand skal justeres, for bremselængden bliver længere på vådt føre."],
+
+/* ---------------- SPIRITUS (18) ---------------- */
+["spir","Den generelle promillegrænse for bilkørsel i Danmark er 0,5.",true,"0,5 promille er grænsen — men den eneste sikre mængde er ingen."],
+["spir","Nye bilister har i de første tre år en lavere grænse på 0,2 promille.",true,"Siden 1. juli 2025 skal nye bilister holde sig under 0,2 promille."],
+["spir","Som ny bilist er én lille øl i orden, hvis du stadig føler dig frisk.",false,"Med 0,2 som grænse er der reelt ingen plads til alkohol overhovedet."],
+["spir","Ligger du lige under 0,5, er din kørsel upåvirket.",false,"Selv under grænsen forlænges reaktionstiden, og dømmekraften svækkes."],
+["spir","Kun tid fjerner alkohol fra kroppen — kaffe og mad gør det ikke hurtigere.",true,"Intet andet end tid sænker promillen."],
+["spir","Morgenen efter en fest kan du stadig være over grænsen.",true,"Alkohol forlader kroppen langsomt — regn med flere timer."],
+["spir","Et koldt brusebad gør dig ædru nok til at køre.",false,"Det vækker dig måske, men promillen er den samme."],
+["spir","Et stort måltid ophæver den alkohol, du har drukket.",false,"Mad forsinker optagelsen en smule, men gør dig ikke ædru."],
+["spir","Bøden for spirituskørsel er et fast beløb, uanset hvad du tjener.",false,"Bøden er indkomstbestemt, og ved høj promille mister du kørekortet oven i."],
+["spir","Du kan frit nægte at puste, hvis politiet standser dig.",false,"Nægtelse behandles som en positiv prøve og har samme konsekvenser."],
+["spir","Visse former for receptmedicin kan gøre dig uegnet til at køre.",true,"Medicin med en rød advarselstrekant må ikke kombineres med kørsel."],
+["spir","Kørsel påvirket af euforiserende stoffer straffes lige så hårdt som spirituskørsel.",true,"Der gælder en nulgrænse for de klassificerede stoffer."],
+["spir","Træthed er ubehageligt, men påvirker ikke køreevnen nævneværdigt.",false,"Efter mange timer uden søvn svarer reaktionsevnen til at være påvirket af alkohol."],
+["spir","Alkohol og træthed sammen er farligere end hver for sig.",true,"Virkningerne lægger sig oven i hinanden."],
+["spir","Du kan vente med at finde transport, til du mærker, hvor påvirket du er.",false,"Dømmekraften er det første, alkoholen svækker — aftal transporten inden første genstand."],
+["spir","Selv en lille mængde alkohol forlænger din reaktionstid.",true,"Reaktion og dømmekraft påvirkes, længe før du selv mærker det."],
+["spir","Du må gerne lade en påvirket ven køre, hvis det kun er en kort tur.",false,"Du bør forhindre det — og korte ture er dem, de fleste uheld sker på."],
+["spir","Så længe du er ædru, er du altid egnet til at køre.",false,"Sygdom, stærke følelser, medicin og træthed kan gøre dig uegnet, selv uden alkohol."],
+
+/* ---------------- LYS (18) ---------------- */
+["lys","I Danmark skal du køre med lys hele døgnet, også i dagslys.",true,"Nærlys eller kørelys skal være tændt hele tiden, året rundt."],
+["lys","På en klar sommerdag må du slukke alt lys.",false,"Lyset skal være tændt uanset vejr og tidspunkt."],
+["lys","Kørelys foran er nok i regn og tåge, for så er du synlig forfra.",false,"Kørelys tænder ofte ikke baglygterne — i dårlig sigt skal du tænde nærlys."],
+["lys","Du skal blænde ned fra fjernlys, når du møder modkørende.",true,"Skift til nærlys i god tid, så du ikke blænder den anden."],
+["lys","Fjernlys må gerne blive tændt, når du kører tæt bag en anden bil.",false,"Fjernlys blænder forankørende gennem spejlene — blænd ned."],
+["lys","Tågelygter må bruges i klart vejr for at blive mere synlig.",false,"Tågelygter må kun bruges i tåge eller kraftig regn og sne."],
+["lys","Én virkende forlygte er nok på en kort tur i mørke.",false,"Begge forlygter skal virke — ellers må bilen ikke køre."],
+["lys","Havariblink bruges, når du er en midlertidig forhindring, fx sidst i en kø.",true,"Havariblink advarer om fare — ikke om at du har travlt."],
+["lys","Havariblink giver dig lov til at holde ulovligt, fx i et vigepligtsfelt.",false,"Havariblink ophæver ingen standsnings- eller parkeringsforbud."],
+["lys","Det er nok at blinke, mens du drejer.",false,"Signalér i god tid før manøvren, så andre kan nå at reagere."],
+["lys","Bremselys, baglygter og blinklys skal virke, før du kører ud.",true,"De viser andre, hvad du har tænkt dig — de er en del af bilens syn."],
+["lys","Snavsede eller snedækkede lygter kan sagtens blive siddende, hvis pærerne virker.",false,"Snavs kan halvere lysstyrken — tør dem af, før du kører."],
+["lys","Svigter lyset i mørke, skal du standse sikkert, så snart du kan.",true,"Kørsel uden lys i mørke er farligt for alle."],
+["lys","En cyklist skal have hvidt lys foran og rødt lys bagpå i mørke.",true,"Desuden kræves reflekser på pedaler, hjul og bagpå."],
+["lys","I kraftig regn eller sne hjælper nærlys andre med at se dig.",true,"Kørelys alene kan være for svagt i nedbør."],
+["lys","Havariblink alene er nok, hvis du holder stille på kørebanen.",false,"Sæt også advarselstrekanten op i god afstand, så andre kan nå at bremse."],
+["lys","Refleksvesten tager du på, når du er kommet ud af bilen.",false,"Tag vesten på inde i bilen — du er mest usynlig i netop de sekunder, du stiger ud."],
+["lys","Lygterne skal være indstillet, så de ikke blænder modkørende.",true,"Forkert indstillede lygter blænder, selv når du kører med nærlys."],
+
+/* ---------------- SELER OG BØRN (18) ---------------- */
+["sele","Sikkerhedssele er påbudt for alle, på alle pladser.",true,"Både fører og passagerer skal spænde selen, foran og bagi."],
+["sele","Et barn under 135 cm skal bruge godkendt barnestol eller selepude.",true,"Højden afgør — ikke alderen."],
+["sele","En bagudvendt barnestol må gerne stå foran en aktiv airbag.",false,"Aldrig. En udløst airbag rammer barnets hoved med fuld kraft."],
+["sele","Skal en bagudvendt stol stå foran, skal airbaggen slås fra først.",true,"Slå passagerairbaggen fra, og kontrollér at lampen viser det."],
+["sele","Børn over 10 år har selv ansvaret for at spænde selen.",false,"Føreren er ansvarlig for, at alle under 15 år er korrekt fastspændt."],
+["sele","På en kort tur kan selen godt springes over.",false,"De fleste uheld sker tæt på hjemmet og ved lav fart."],
+["sele","At holde en baby på skødet er et acceptabelt alternativ til en barnestol.",false,"Ved en opbremsning er det umuligt at holde fast i et barn."],
+["sele","Du må gerne have flere passagerer, end der er seler i bilen.",false,"Der må aldrig være flere personer end fastspændte pladser."],
+["sele","Et barn på 120 cm kan godt bruge voksenselen alene, når det sidder bagi.",false,"Under 135 cm kræves godkendt barnestol eller selepude — uanset hvilken plads barnet sidder på."],
+["sele","Selen skal ligge over skulderen og hofterne, ikke over halsen og maven.",true,"Juster selens højde, så den ligger rigtigt."],
+["sele","Små børn er sikrest bagudvendt så længe som muligt.",true,"Bagudvendt beskytter hoved og nakke bedst ved frontalt sammenstød."],
+["sele","En barnestol, der har været med i et uheld, kan genbruges, hvis den ser hel ud.",false,"Skift den ud — skaderne i plasten kan være usynlige."],
+["sele","Løse genstande i kabinen kan blive farlige ved en opbremsning.",true,"En bærbar computer på bagsædet bliver et projektil ved 50 km/t."],
+["sele","Bagage i bagagerummet er ufarlig, fordi bagsædet holder den tilbage.",false,"Ved et kraftigt sammenstød kan tung bagage presse bagsædet frem — sikr den."],
+["sele","En gravid passager skal have hofteselen under maven, over hofterne.",true,"Selen beskytter stadig — den skal bare ligge rigtigt."],
+["sele","Selen er frivillig for voksne på bagsædet.",false,"Selen er påbudt på alle pladser — og en useld person bagi rammer forsædet med stor kraft."],
+["sele","At undlade selen koster kun en bøde, ikke helbredet.",false,"Selen nedsætter risikoen for at blive dræbt eller hårdt kvæstet markant."],
+["sele","Det gør ingen forskel, om du har en tyk vinterjakke på under selen.",false,"Jakken giver flere centimeters slør, og sløret bliver til fart ind i selen."],
+
+/* ---------------- MOBIL OG OPMÆRKSOMHED (18) ---------------- */
+["mobil","Det er forbudt at bruge håndholdt mobiltelefon under kørsel.",true,"Du må ikke holde telefonen i hånden, mens bilen kører."],
+["mobil","Håndfri telefon er tilladt, men deler stadig din opmærksomhed.",true,"Lovligt — men samtalen stjæler stadig en del af din opmærksomhed."],
+["mobil","At blive taget med håndholdt mobil giver bøde og et klip i kørekortet.",true,"Det koster både bøde og klip."],
+["mobil","At skrive en sms, mens du holder for rødt, er lovligt og sikkert.",false,"Håndholdt brug er forbudt, også når bilen holder stille i trafikken."],
+["mobil","Du må godt indtaste en ny adresse i GPS'en under kørsel, når skærmen sidder fast i bilen.",false,"Indstil ruten, mens bilen holder stille — betjening under kørsel tager blikket fra vejen."],
+["mobil","At se video på telefonen er i orden i langsom kø.",false,"Video må aldrig ses under kørsel — heller ikke i kø."],
+["mobil","At samle noget op fra gulvet under kørsel er ufarligt, når det går hurtigt.",false,"Du kører i blinde imens — stands et sikkert sted i stedet."],
+["mobil","Ved 80 km/t svarer et blik på to sekunder til cirka 44 meter i blinde.",true,"80 km/t er ca. 22 meter i sekundet."],
+["mobil","Håndfri samtaler påvirker slet ikke køreevnen.",false,"Forskning viser, at også håndfri samtale forringer opmærksomheden."],
+["mobil","Du kan ikke bede dine passagerer om at dæmpe sig — turen er lige så meget deres.",false,"Du er ansvarlig for bilen, og din koncentration kommer først."],
+["mobil","Træthed nedsætter opmærksomheden på linje med en distraktion.",true,"Hold pause hver anden time på lange ture."],
+["mobil","En god bilist ser langt frem og forudser, hvad andre kan finde på.",true,"Se frem, tjek spejle, og hav en plan for det uventede."],
+["mobil","Det er lige så sikkert at betjene skærmen i midterkonsollen som knapperne på rattet.",false,"Skærmen kræver, at du kigger væk fra vejen — ratknapperne gør ikke."],
+["mobil","Man kan overse en fare med øjnene åbne, hvis tankerne er et andet sted.",true,"Det kaldes blikket uden blikket — du kigger, men ser ikke."],
+["mobil","Et hurtigt kig på mobilen ved 110 km/t er ufarligt.",false,"Ved 110 km/t tilbagelægger du cirka 30 meter i blinde hvert sekund."],
+["mobil","Rygning eller damp under kørsel påvirker aldrig koncentrationen.",false,"Alt, der optager en hånd eller et blik, øger risikoen."],
+["mobil","Musik i meget høj lydstyrke kan overdøve udrykning og advarselssignaler.",true,"Du skal kunne høre trafikken omkring dig."],
+["mobil","Vrede eller gråd under kørslen betyder ikke noget, så længe du holder øje med vejen.",false,"Stærke følelser forringer dømmekraften lige så effektivt som træthed — hold ind."],
+
+/* ---------------- VIGEPLIGT (18) ---------------- */
+["vige","I et uskiltet vejkryds har du højre vigepligt.",true,"Uden tavler eller afmærkning skal du holde tilbage for trafik fra højre."],
+["vige","Trekantstavlen med spidsen nedad betyder ubetinget vigepligt.",true,"Du skal holde tilbage for al trafik på den krydsende vej."],
+["vige","Hajtænder på tværs af din vognbane betyder, at du har vigepligt.",true,"De trekantede markeringer gælder, også hvor der ikke står en tavle."],
+["vige","En stoptavle betyder fuldt stop, også når vejen ser tom ud.",true,"Bilen skal stå helt stille, før du kører frem."],
+["vige","Ved en stoptavle må du rulle langsomt igennem, hvis der ikke kommer nogen.",false,"Fuldt stop betyder fuldt stop — hjulene skal stå stille."],
+["vige","På hovedvej kan du køre gennem krydset uden at se dig for, fordi de andre har vigepligt.",false,"Vigepligten er deres — men ansvaret for at undgå sammenstødet er stadig også dit."],
+["vige","I en rundkørsel har du vigepligt for trafikken, der allerede kører rundt.",true,"Hold tilbage ved indkørslen, og blink ved udkørslen."],
+["vige","Du må begynde en overhaling, så snart vognbanen foran dig er fri.",false,"Du skal kunne overskue hele den strækning, overhalingen kræver — også den modkørendes del."],
+["vige","Overhaling til højre er den normale måde at passere på åben vej.",false,"Du må kun passere til højre i vognbanekøer eller hvor banerne er afmærkede."],
+["vige","Du skal holde tilbage for fodgængere, der allerede er gået ud på et fodgængerfelt.",true,"Og du skal kunne standse for dem, der tydeligt vil krydse."],
+["vige","En bus, der blinker ud fra et stoppested, skal vente på al anden trafik.",false,"I byzone har bussen fortrinsret, når den signalerer — hjælp den ud."],
+["vige","Når du svinger, kan du have vigepligt for fodgængere på den vej, du drejer ind på.",true,"Fodgængere, der krydser den vej du svinger ind på, har fortrinsret."],
+["vige","Du bør ikke køre ind i et kryds, du ikke kan komme ud af — heller ikke for grønt.",true,"Grønt lys betyder ikke, at du må blokere krydset."],
+["vige","Ved en indsnævring skal du flette så tidligt som muligt og lade den anden bane køre tom.",false,"Brug begge baner helt frem til indsnævringen og flet så skiftevis — det er lynlåsprincippet."],
+["vige","En bilist, der svinger til venstre gennem modkørende trafik, har vigepligt for den.",true,"Vent på et sikkert hul — husk også modkørende cyklister og knallerter."],
+["vige","Udrykningskøretøjer med blink og sirene skal have fri bane.",true,"Træk sikkert ind til siden og stop — kør aldrig ud i et kryds for rødt for at flytte dig."],
+["vige","Kører du ud fra en parkeringsplads eller indkørsel, har du vigepligt for al trafik.",true,"Du har ubetinget vigepligt, når du kommer fra et areal uden for vejen."],
+["vige","Vigepligt betyder altid, at du skal standse helt.",false,"Kun stoptavlen kræver fuldt stop. Ved anden vigepligt skal du blot kunne nå at holde tilbage."],
+
+/* ---------------- CYKLISTER (18) ---------------- */
+["cykel","Før du svinger til højre, skal du se efter cyklister på din højre side.",true,"Det klassiske danske uheld: bilen svinger højre, cyklisten kører ligeud."],
+["cykel","En cyklist, der kører ligeud i cykelstien, har fortrinsret for en bil, der svinger højre over stien.",true,"Hold tilbage for cyklisten, før du drejer."],
+["cykel","Du må kortvarigt standse i cykelstien for at sætte en passager af.",false,"Standsning og parkering i cykelsti er forbudt — det tvinger cyklisten ud i trafikken."],
+["cykel","Du må overhale en cyklist tæt, når bare du kører langsomt forbi.",false,"Lav fart erstatter ikke plads — hold omkring en meters sideafstand."],
+["cykel","Før du åbner bildøren, skal du se efter cyklister bagfra.",true,"Brug gerne højre hånd til venstre dør — så drejer kroppen med og du kigger bagud."],
+["cykel","Det er i orden at køre i en afmærket cykelsti, når trafikken er tæt.",false,"Cykelstien er for cyklister og små knallerter — biler skal holde sig væk."],
+["cykel","Et barn på cykel opfører sig som en voksen cyklist, når det har taget cyklistprøven.",false,"Børn drejer og vakler uden at se sig tilbage — giv dem ekstra plads og tid."],
+["cykel","Når du svinger til venstre, skal du også holde øje med modkørende cyklister.",true,"Cyklister overses let, fordi de er smalle og hurtigere end man tror."],
+["cykel","To cyklister ved siden af hinanden kører altid ulovligt.",false,"Det er lovligt i visse situationer — giv dem plads frem for at presse dig forbi."],
+["cykel","Du bør tjekke højre sidespejl og den blinde vinkel før hvert højresving.",true,"Spejl og skulderblik — hver gang, også når du tror stien er tom."],
+["cykel","Det er acceptabelt at dytte aggressivt ad cyklister for at få dem til at flytte sig.",false,"Hornet er et faresignal, ikke et utålmodighedssignal."],
+["cykel","Ved rødt lys skal biler holde bag cyklisternes fremrykkede stopfelt.",true,"Feltet findes, så cyklisterne er synlige, når lyset skifter."],
+["cykel","Om vinteren kan cyklister vige uden om is, så giv dem ekstra plads.",true,"Regn med pludselige udfald uden om huller, is og løv."],
+["cykel","Ladcykler og elcykler kører hurtigere, end man regner med.",true,"Vurder deres fart, før du trækker ud eller svinger."],
+["cykel","En cyklist skal have virkende lygter og reflekser for at køre i mørke.",true,"Hvidt foran, rødt bagi, plus reflekser."],
+["cykel","Fodgængere træder kun ud i et fodgængerfelt, så mellem felterne kan du køre ubekymret.",false,"Især børn træder ud mellem parkerede biler — sæt farten ned, hvor udsynet er dårligt."],
+["cykel","Ved et busstoppested kan der komme fodgængere frem foran og bag bussen.",true,"Kør forbi holdende busser med lav fart og stor opmærksomhed."],
+["cykel","Som bilist har du et særligt ansvar over for de bløde trafikanter.",true,"Du sidder i det tunge køretøj — ansvaret følger med vægten."],
+
+/* ---------------- MOTORVEJ OG LANDEVEJ (18) ---------------- */
+["motor","Nødsporet må bruges til at køre forbi en kø.",false,"Nødsporet er kun til nødsituationer og udrykning."],
+["motor","På tilkørselsrampen skal du tilpasse farten til motorvejens trafik, før du fletter.",true,"Brug accelerationssporet til at komme op i fart — flet ikke ind med lav fart."],
+["motor","Trafikken på motorvejen har vigepligt for dig, når du kører på fra en rampe.",false,"Det er dig på rampen, der skal tilpasse dig — de har ikke vigepligt for dig."],
+["motor","Du må blive i venstre vognbane, når du kører den tilladte hastighed.",false,"Venstre bane er til overhaling — træk tilbage til højre, så snart der er plads."],
+["motor","Du må standse på motorvejen for at læse et kort.",false,"Standsning på motorvej er kun tilladt ved nødsituation."],
+["motor","Får du motorstop, skal du ind i nødsporet, tænde havariblink og gå bag autoværnet.",true,"Forlad bilen på højre side, tag refleksvest på og vent bag autoværnet."],
+["motor","En billængdes afstand er nok på motorvejen, når du er opmærksom.",false,"Brug totresekundersreglen — ved 130 km/t er to sekunder over 70 meter."],
+["motor","Du må bakke på motorvejen, hvis du er kørt forbi din afkørsel.",false,"Bakning og vending er forbudt — kør videre til næste afkørsel."],
+["motor","På landevej er modkørende trafik den største risiko ved overhaling.",true,"Overhal kun med fuldt overblik over hele strækningen."],
+["motor","En ubrudt midterlinje må du ikke krydse for at overhale.",true,"Den ubrudte linje må ikke overskrides."],
+["motor","Spejlene alene er nok, før du skifter vognbane.",false,"Spejlene har en blind vinkel — der mangler altid et skulderblik."],
+["motor","Du må overhale lige før et uoverskueligt sving eller en bakketop.",false,"Overhal aldrig, hvor du ikke kan se hele vejen frem."],
+["motor","Ved indsnævring eller vejarbejde fletter man efter lynlåsprincippet.",true,"En bil fra hver bane, skiftevis, helt fremme ved indsnævringen."],
+["motor","I en tunnel holder du lyset tændt, holder afstand og standser ikke.",true,"Følg skiltningen, og stands kun ved nødsituation."],
+["motor","Kan du følge kantlinjen i mørke, kan du roligt holde samme fart som i dagslys.",false,"Du skal kunne standse inden for den strækning, lygterne oplyser."],
+["motor","På landevej med kantbane må du køre i kantbanen for at lade andre overhale.",false,"Kantbanen er ikke en vognbane — sæt i stedet farten ned og lad dem passere sikkert."],
+["motor","Vildtskiltet betyder, at du skal være ekstra opmærksom ved daggry og skumring.",true,"Dyr krydser oftest tidligt om morgenen og sidst på dagen."],
+["motor","Åbner du vinduet og skruer op for musikken, kan du køre videre, selv om du er træt.",false,"Det udskyder søvnen få minutter. Hold ind på en rasteplads, og sov eller skift fører."],
+
+/* ---------------- VEJR, FØRE OG DÆK (18) ---------------- */
+["vejr","På isglat vej bør du øge afstanden til den forankørende betydeligt.",true,"Bremselængden kan blive mange gange længere på is."],
+["vejr","Sne og is har kun lille betydning for bremselængden.",false,"Bremselængden kan blive op til flere gange længere."],
+["vejr","Vinterdæk er lovpligtige i Danmark fra november til marts.",false,"Vinterdæk er ikke lovpligtige i Danmark — men stærkt anbefalede om vinteren."],
+["vejr","Pigdæk må kun bruges fra 1. november til 15. april.",true,"Og de skal sidde på alle fire hjul."],
+["vejr","Pigdæk må gerne sidde på kun to hjul, hvis det er drivhjulene.",false,"Pigdæk skal monteres på alle fire hjul."],
+["vejr","Den lovlige mindste mønsterdybde på et dæk er 1,6 mm.",true,"Under 1,6 mm er dækket ulovligt — og grebet er dårligt længe inden."],
+["vejr","Slidte dæk er fine om sommeren på tør vej.",false,"Slidte dæk mister greb i alle årstider og giver akvaplaning i regn."],
+["vejr","Akvaplaning kan ikke ske ved lav hastighed med nye dæk.",false,"Risikoen falder, men forsvinder ikke — dybt vand og høj fart er den farlige kombination."],
+["vejr","Sort is kan være næsten usynlig, så regn med glat vej i koldt, fugtigt vejr.",true,"Broer og skyggefulde strækninger fryser først."],
+["vejr","I tåge hjælper fjernlys dig med at se længere frem.",false,"Fjernlyset kastes tilbage af tågen og blænder dig selv — brug nærlys."],
+["vejr","I stærk sidevind skal du holde ekstra fast i rattet ved broer og åbne strækninger.",true,"Vinden rammer hårdest, når du kommer ud fra læ."],
+["vejr","Bilens ruder skal være fri for is og dug, før du kører.",true,"Et lille kighul i isen er ikke nok — og det er ulovligt."],
+["vejr","Sne på taget må gerne blive liggende.",false,"Den kan skride ned over forruden eller ryge af til de bagvedkørende."],
+["vejr","Dæktrykket behøver kun tjekkes, når dækkene skiftes.",false,"Kulde sænker trykket, og for lavt tryk forringer både greb, bremselængde og forbrug."],
+["vejr","Ved regn efter lang tørke er vejen særligt glat i starten.",true,"Vand og olie blandes på vejbanen, før regnen når at skylle den ren."],
+["vejr","Ned ad en lang bakke er det bedst at holde bremsen nede hele vejen.",false,"Bremserne bliver overophedede og mister virkning — skift ned i gear, og lad motoren bremse."],
+["vejr","Kommer bilen i skrid, skal du styre derhen, hvor du vil hen, og slippe bremsen.",true,"Slip bremsen, kig og styr mod det frie — hårde ratudslag gør det værre."],
+["vejr","Vådt løv på vejen har ingen betydning for grebet.",false,"Vådt løv er næsten lige så glat som is — især i sving og ved opbremsning."],
+
+/* ---------------- KØREKORT, KLIP OG ANSVAR (18) ---------------- */
+["kort","Man kan tage kørekort til almindelig bil (kategori B) fra man er 17 år.",true,"Aldersgrænsen for kategori B er 17 år."],
+["kort","En 17-årig med kørekort må køre alene mellem kl. 05 og 20.",true,"Reglen gælder fra 1. juli 2025."],
+["kort","Uden for tidsrummet kl. 05-20 skal en 17-årig have en ledsager med.",true,"Om aftenen og natten kræves fortsat en godkendt ledsager."],
+["kort","Det er nok at have et billede af kørekortet på telefonen.",false,"Kørekortet skal kunne forevises — et foto er ikke gyldigt i sig selv."],
+["kort","Teoriprøven består af 25 scenarier, og du må højst have 5 fejl.",true,"Består du ikke, kan prøven tages om — men den skal bestås før den praktiske prøve."],
+["kort","Du har 25 minutter til teoriprøven.",true,"25 minutter til 25 scenarier — cirka ét minut per spørgsmål."],
+["kort","En bestået teoriprøve er gyldig i 18 måneder.",true,"Den praktiske prøve skal bestås inden for de 18 måneder."],
+["kort","Teoriprøven kan kun tages på dansk.",false,"Den findes på dansk, engelsk, færøsk, grønlandsk og tysk."],
+["kort","Tre klip inden for tre år koster en almindelig bilist kørekortet.",true,"Derefter skal både teoriprøve og praktisk prøve tages om."],
+["kort","Nye bilister mister kørekortet allerede ved to klip i de første tre år.",true,"Nye bilister har en skærpet grænse i de første tre år."],
+["kort","Uanset hvor mange regler du bryder ved samme lejlighed, kan det kun give ét klip.",false,"Fart plus kørsel over for rødt er to klip — overtrædelserne tælles hver for sig."],
+["kort","Ansvarsforsikring er lovpligtig for en bil, der bruges på vej.",true,"Uden ansvarsforsikring må bilen ikke køre."],
+["kort","Ved et uheld med lettere personskade kan I selv aftale jer til rette og køre videre.",false,"Ved personskade skal der tilkaldes hjælp — ring 112, og bliv på stedet."],
+["kort","Du må forlade et uheldssted, hvis skaden ser lille ud og ingen er kommet til skade.",false,"Du skal udveksle oplysninger — at køre fra stedet er flugt fra uheld."],
+["kort","Ved et uheld skal du straks ud og hjælpe uden at bruge tid på at sikre stedet.",false,"Et usikret uheldssted koster ofte flere tilskadekomne — havariblink og trekant først."],
+["kort","Som fører har du ansvaret for, at bilen er i lovlig og sikker stand.",true,"Dæk, lygter, bremser og ruder er dit ansvar, hver gang du sætter dig ind."],
+["kort","Får du ikke en indkaldelse til syn, behøver du ikke foretage dig noget.",false,"Fristen er ejerens ansvar — en bil uden gyldigt syn må ikke køre på vej."],
+["kort","Vanvidskørsel kan koste dig bilen, også selv om du har lånt den.",true,"Bilen kan konfiskeres ved vanvidskørsel — også en lånt eller leaset bil."]
+];
+
+/* ---------------- FÆRDSELSTAVLER ----------------
+   Danske tavler: advarsel = hvid trekant med rød kant.
+   Hovedvej = gul rude. Forbud = hvid/rød cirkel. Blå = påbud/oplysning. */
+var R="#c8322b", B="#1b5fa8", H="#ffffff", S="#15181c", G="#f0c419";
+function tv(i){return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img">'+i+'</svg>';}
+function adv(i){return tv('<polygon points="50,13 89,81 11,81" fill="'+H+'" stroke="'+R+'" stroke-width="8" stroke-linejoin="round"/>'+i);}
+
+var TAVLER=[
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+R+'"/><rect x="23" y="43" width="54" height="14" rx="2" fill="'+H+'"/>'),
+ q:"Hvad betyder denne tavle?",m:["Indkørsel forbudt","Hovedvej","Ophør af alle forbud","Parkering tilladt"],r:0,
+ f:"Rød skive med hvid bjælke betyder indkørsel forbudt — du må ikke køre ind ad vejen."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+H+'" stroke="'+R+'" stroke-width="9"/><text x="50" y="64" font-size="34" font-family="Arial,Helvetica,sans-serif" font-weight="bold" fill="'+S+'" text-anchor="middle">50</text>'),
+ q:"Hvad betyder denne tavle?",m:["Hastighedsbegrænsning 50 km/t","Mindste hastighed 50 km/t","Vejledende hastighed 50","Ophør af 50-zone"],r:0,
+ f:"Tal i rød ring på hvid skive er den højst tilladte hastighed — her 50 km/t."},
+{s:tv('<polygon points="50,16 86,78 14,78" fill="'+H+'" stroke="'+R+'" stroke-width="9" stroke-linejoin="round"/>'),
+ q:"Hvad betyder denne tavle?",m:["Ubetinget vigepligt","Fuldt stop","Indkørsel forbudt","Rundkørsel"],r:0,
+ f:"Den omvendte trekant betyder ubetinget vigepligt — hold tilbage for trafikken på tværvejen."},
+{s:tv('<polygon points="31,12 69,12 88,31 88,69 69,88 31,88 12,69 12,31" fill="'+R+'"/><text x="50" y="59" font-size="21" font-family="Arial,Helvetica,sans-serif" font-weight="bold" fill="'+H+'" text-anchor="middle">STOP</text>'),
+ q:"Hvad betyder denne tavle?",m:["Fuldt stop, derefter vigepligt","Vigepligt kun ved tæt trafik","Indkørsel forbudt","Ophør af hovedvej"],r:0,
+ f:"Den røde ottekant betyder fuldt stop — bilen skal stå stille, også når vejen ser tom ud."},
+{s:tv('<polygon points="50,9 91,50 50,91 9,50" fill="'+G+'" stroke="'+H+'" stroke-width="6"/>'),
+ q:"Hvad betyder denne gule rude?",m:["Hovedvej","Rundkørsel","Parkering","Blind vej"],r:0,
+ f:"Den gule rude med hvid kant betyder hovedvej — den krydsende trafik har vigepligt for dig."},
+{s:adv('<text x="50" y="74" font-size="42" font-family="Arial,Helvetica,sans-serif" font-weight="bold" fill="'+S+'" text-anchor="middle">!</text>'),
+ q:"Hvad advarer denne tavle om?",m:["Farligt vejkryds eller anden fare","Indkørsel forbudt","Vejen er lukket","Påbudt kørselsretning"],r:0,
+ f:"Udråbstegn i advarselstrekanten varsler en fare, der ikke har sin egen tavle — sæt farten ned."},
+{s:adv('<circle cx="42" cy="46" r="5" fill="'+S+'"/><path d="M42 51 L42 65 M42 56 L36 61 M42 56 L48 60 M42 65 L37 76 M42 65 L47 76" stroke="'+S+'" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="61" cy="51" r="4" fill="'+S+'"/><path d="M61 55 L61 66 M61 59 L56 63 M61 59 L66 62 M61 66 L57 75 M61 66 L65 75" stroke="'+S+'" stroke-width="3" fill="none" stroke-linecap="round"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Børn — skole eller legeområde","Fodgængere forbudt","Legeplads med parkering","Kun for cyklister"],r:0,
+ f:"To børn i advarselstrekanten betyder skole eller legeområde — sæt farten markant ned."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+B+'"/><g fill="none" stroke="'+H+'" stroke-width="6"><path d="M40 30 A22 22 0 0 1 71 41"/><path d="M72 46 A22 22 0 0 1 58 74"/><path d="M52 74 A22 22 0 0 1 28 52"/></g><g fill="'+H+'"><polygon points="71,41 63,38 68,49"/><polygon points="58,74 62,66 51,69"/><polygon points="28,52 36,55 31,44"/></g>'),
+ q:"Hvad betyder denne blå tavle?",m:["Rundkørsel — følg pilene","Svingning forbudt","Ensrettet vej","Motorvej"],r:0,
+ f:"Blå cirkel med pile er rundkørsel — hold tilbage for trafikken, der allerede kører rundt."},
+{s:adv('<rect x="35" y="45" width="25" height="12" rx="2" fill="'+S+'"/><circle cx="41" cy="59" r="3" fill="'+S+'"/><circle cx="55" cy="59" r="3" fill="'+S+'"/><path d="M27 72 q8 -7 16 0 t16 0" stroke="'+S+'" stroke-width="3" fill="none"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Glat vej","Parkeringsplads","Bump i vejen","Vaskehal"],r:0,
+ f:"Bil med udskridningsspor i trekanten betyder glat vej — sæt farten ned."},
+{s:tv('<rect x="15" y="15" width="70" height="70" rx="8" fill="'+B+'"/><text x="50" y="67" font-size="46" font-family="Arial,Helvetica,sans-serif" font-weight="bold" fill="'+H+'" text-anchor="middle">P</text>'),
+ q:"Hvad betyder denne tavle?",m:["Parkering tilladt","Parkering forbudt","Kun busstoppested","Tankstation"],r:0,
+ f:"Blå firkant med hvidt P betyder, at parkering er tilladt her — læs eventuelle undertavler."},
+{s:adv('<g fill="none" stroke="'+S+'" stroke-width="3.5"><circle cx="37" cy="64" r="8"/><circle cx="62" cy="64" r="8"/><path d="M37 64 L48 64 L56 52 M48 64 L56 52 L62 64 M56 52 L60 52"/></g>'),
+ q:"Hvad advarer denne tavle om?",m:["Cyklister kan krydse eller komme ud","Cykling forbudt","Cykelværksted","Cykelparkering"],r:0,
+ f:"Cykel i advarselstrekanten betyder, at cyklister kan krydse vejen — hold godt øje."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+H+'" stroke="'+R+'" stroke-width="9"/><rect x="29" y="52" width="17" height="10" rx="2" fill="'+S+'"/><rect x="54" y="41" width="17" height="10" rx="2" fill="'+R+'"/>'),
+ q:"Hvad betyder denne tavle?",m:["Overhaling forbudt","Modkørende trafik","Motorkøretøjer forbudt","Ophør af overhalingsforbud"],r:0,
+ f:"To biler side om side i rød ring betyder, at overhaling er forbudt her."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+B+'"/><g fill="none" stroke="'+H+'" stroke-width="4"><circle cx="35" cy="60" r="10"/><circle cx="65" cy="60" r="10"/><path d="M35 60 L46 60 L55 47 M46 60 L55 47 L65 60 M55 47 L59 47"/></g>'),
+ q:"Hvad betyder denne blå tavle?",m:["Påbudt cykelsti","Cykling forbudt","Cykeludlejning","Cyklister har vigepligt"],r:0,
+ f:"Hvid cykel på blå cirkel markerer cykelsti — cyklister skal bruge den, og biler skal holde sig væk."},
+{s:adv('<line x1="33" y1="76" x2="45" y2="45" stroke="'+S+'" stroke-width="5"/><line x1="67" y1="76" x2="55" y2="45" stroke="'+S+'" stroke-width="5"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Indsnævret vej","Vejen bliver bredere","Delt vejbane","Blind vej"],r:0,
+ f:"Vejen bliver smallere — sæt farten ned og vær klar til at holde tilbage."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+B+'"/><circle cx="50" cy="50" r="41" fill="none" stroke="'+R+'" stroke-width="8"/><line x1="23" y1="77" x2="77" y2="23" stroke="'+R+'" stroke-width="8"/>'),
+ q:"Hvad betyder denne tavle?",m:["Parkering forbudt","Standsning helt forbudt","Parkering tilladt","Hovedvej"],r:0,
+ f:"Blå skive med rød ring og én skrå streg betyder parkering forbudt — standsning er stadig tilladt."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+B+'"/><circle cx="50" cy="50" r="41" fill="none" stroke="'+R+'" stroke-width="8"/><line x1="23" y1="23" x2="77" y2="77" stroke="'+R+'" stroke-width="8"/><line x1="77" y1="23" x2="23" y2="77" stroke="'+R+'" stroke-width="8"/>'),
+ q:"Hvad betyder denne tavle?",m:["Standsning forbudt","Parkering forbudt, standsning tilladt","Parkering tilladt","Indkørsel forbudt"],r:0,
+ f:"Rødt kryds betyder standsning forbudt — du må ikke engang holde kortvarigt."},
+{s:tv('<rect x="15" y="15" width="70" height="70" rx="8" fill="'+B+'"/><circle cx="45" cy="32" r="5" fill="'+H+'"/><path d="M45 37 L45 54 M45 42 L39 50 M45 42 L52 48 M45 54 L40 68 M45 54 L51 66" stroke="'+H+'" stroke-width="3" fill="none" stroke-linecap="round"/><g fill="'+H+'"><rect x="33" y="72" width="6" height="4"/><rect x="43" y="72" width="6" height="4"/><rect x="53" y="72" width="6" height="4"/></g>'),
+ q:"Hvad betyder denne blå tavle?",m:["Fodgængerfelt","Fodgængere forbudt","Legeplads","Sygehus"],r:0,
+ f:"Blå firkant med gående figur markerer et fodgængerfelt — vær klar til at holde tilbage."},
+{s:adv('<g fill="'+S+'"><ellipse cx="51" cy="58" rx="13" ry="6"/><rect x="41" y="61" width="3" height="11"/><rect x="49" y="61" width="3" height="11"/><rect x="59" y="61" width="3" height="11"/><path d="M63 50 q6 -3 8 2 l-2 4 q-5 1 -6 -2 z"/></g><path d="M69 47 l3 -6 M71 49 l5 -4 M68 46 l0 -6" stroke="'+S+'" stroke-width="2" fill="none"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Vildt på vejen","Zoologisk have","Jagtområde","Dyrehandel"],r:0,
+ f:"Springende hjort betyder vildtvekslested — vær særligt opmærksom ved daggry og skumring."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+H+'" stroke="'+R+'" stroke-width="9"/><rect x="31" y="44" width="38" height="14" rx="3" fill="'+S+'"/><circle cx="40" cy="61" r="4" fill="'+S+'"/><circle cx="60" cy="61" r="4" fill="'+S+'"/>'),
+ q:"Hvad betyder denne tavle?",m:["Motorkøretøjer forbudt","Parkering for biler","Bilvask","Ophør af forbud"],r:0,
+ f:"Bil i rød ring betyder, at motorkøretøjer ikke må køre ind."},
+{s:adv('<path d="M50 38 L50 70" stroke="'+S+'" stroke-width="5"/><path d="M50 38 q14 8 0 16 q-14 8 0 16" stroke="'+S+'" stroke-width="5" fill="none"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Farlige sving","Vejarbejde","Stejl bakke","Rundkørsel"],r:0,
+ f:"Flere sving efter hinanden — sæt farten ned før det første sving, ikke inde i det."},
+{s:tv('<rect x="15" y="15" width="70" height="70" rx="8" fill="'+B+'"/><path d="M28 74 L50 26 L72 74 Z" fill="none" stroke="'+H+'" stroke-width="5"/><path d="M50 26 L50 74" stroke="'+H+'" stroke-width="4"/>'),
+ q:"Hvad betyder denne blå tavle?",m:["Motorvej","Motortrafikvej","Tunnel","Bro"],r:0,
+ f:"Blå tavle med motorvejssymbol markerer motorvejens begyndelse — særlige regler gælder herfra."},
+{s:adv('<path d="M26 74 L50 34 L74 74" fill="none" stroke="'+S+'" stroke-width="5" stroke-linejoin="round"/><path d="M40 74 L60 74" stroke="'+S+'" stroke-width="4"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Stigning eller stejl bakke","Bro over vandet","Tunnel","Bump"],r:0,
+ f:"Bakketegnet betyder stejl stigning eller fald — vælg gear i god tid."},
+{s:tv('<circle cx="50" cy="50" r="41" fill="'+B+'"/><path d="M50 26 L50 74" stroke="'+H+'" stroke-width="7"/><path d="M50 26 L38 40 M50 26 L62 40" stroke="'+H+'" stroke-width="7" fill="none" stroke-linecap="round"/>'),
+ q:"Hvad betyder denne blå tavle?",m:["Påbudt kørselsretning — ligeud","Ensrettet vej ophører","Blind vej","Motorvej"],r:0,
+ f:"Hvid pil på blå cirkel er et påbud: du skal køre i pilens retning."},
+{s:adv('<rect x="44" y="30" width="12" height="30" rx="2" fill="'+S+'"/><circle cx="50" cy="68" r="6" fill="'+S+'"/>'),
+ q:"Hvad advarer denne tavle om?",m:["Lyssignal forude","Jernbaneoverskæring","Vejarbejde","Fodgængerfelt"],r:0,
+ f:"Trafiklys i advarselstrekanten betyder signalreguleret kryds forude — vær klar til at standse."}
+];
+
+var ORD=[
+["Ubetinget vigepligt","Du skal holde tilbage for al trafik på den krydsende vej."],
+["Højre vigepligt","I et uskiltet kryds holder du tilbage for trafik fra højre."],
+["Hajtænder","Trekantede markeringer på vejen, der betyder vigepligt."],
+["Hovedvej","Vej markeret med gul rude — krydsende trafik har vigepligt for dig."],
+["Byzone","Tættere bebygget område. Grundhastighed 50 km/t."],
+["Landevej","Almindelig vej uden for byen. Grundhastighed 80 km/t."],
+["Motortrafikvej","Vej med motorvejslignende regler, men grundhastighed 80 km/t."],
+["Motorvej","Grundhastighed 130 km/t, ofte skiltet til 110."],
+["Nødspor","Sporet yderst til højre. Kun til nødsituationer."],
+["Nærlys","Det lys, du kører med hele døgnet."],
+["Fjernlys","Langt lys. Skal blændes ned for modkørende og forankørende."],
+["Tågelygter","Må kun bruges i tåge eller kraftig nedbør."],
+["Havariblink","Advarer om, at du er en midlertidig forhindring."],
+["Spirituskørsel","Kørsel over promillegrænsen: 0,5 — 0,2 for nye bilister i tre år."],
+["Sikkerhedssele","Påbudt på alle pladser, både foran og bagi."],
+["Selepude","Løfter barnet, så voksenselen ligger over hofter og skulder."],
+["Klip","Mærke i kørekortet ved grov overtrædelse. Tre klip på tre år koster kørekortet — for nye bilister to."],
+["Rundkørsel","Du har vigepligt for trafikken, der allerede kører rundt."],
+["Fodgængerfelt","Afmærket overgang. Hold tilbage for gående i feltet."],
+["Cykelsti","Forbeholdt cyklister og små knallerter. Biler må ikke standse der."],
+["Blind vinkel","Området ved siden af bilen, som spejlene ikke dækker. Kræver skulderblik."],
+["Lynlåsprincippet","Ved indsnævring fletter bilerne skiftevis, en fra hver bane."],
+["Pigdæk","Kun tilladt 1. november – 15. april, og på alle fire hjul."],
+["Mønsterdybde","Dækkets slidbane. Mindst 1,6 mm er lovligt krav."],
+["Akvaplaning","Dækket mister kontakt med vejen på grund af vand. Slip speederen, styr lige."],
+["Standselængde","Reaktionslængde plus bremselængde — hele vejen fra fare til stilstand."],
+["Vanvidskørsel","Særligt hensynsløs kørsel. Bilen kan konfiskeres, også en lånt bil."],
+["Færdselsstyrelsen","Myndigheden bag kørekort og teoriprøve i Danmark."]
+];
+
+/* ======================== tilstand og hjælpere ======================== */
+try{document.documentElement.setAttribute("lang","da");
+document.documentElement.setAttribute("translate","no");
+document.documentElement.classList.add("notranslate");}catch(e){}
+var app=document.getElementById("app");
+var S_={skaerm:"hjem"};
+var NOEGLE="teoriproeve-fremgang-v1";
+
+function laes(){try{var r=localStorage.getItem(NOEGLE);return r?JSON.parse(r):{};}catch(e){return {};}}
+function gem(o){try{localStorage.setItem(NOEGLE,JSON.stringify(o));}catch(e){}}
+var FREM=laes();
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+var froe=987654321^(Date.now()&0xffff);
+function tilf(){froe=(froe*1103515245+12345)&0x7fffffff;return froe/0x7fffffff;}
+function bland(a){var r=a.slice();for(var i=r.length-1;i>0;i--){var j=Math.floor((i+1)*tilf());var t=r[i];r[i]=r[j];r[j]=t;}return r;}
+function vis(html){app.innerHTML=html;window.scrollTo(0,0);}
+function spInd(n){var u=[];for(var i=0;i<SP.length;i++){if(SP[i][0]===n)u.push(SP[i]);}return u;}
+
+function topbar(hvor,taeller){
+  return '<div class="topbar"><button class="tilbage" onclick="hjem()">‹ Forside</button>'+
+    '<span class="hvor">'+esc(hvor)+'</span>'+
+    (taeller?'<span class="taeller">'+taeller+'</span>':'')+'</div>';
+}
+function bund(){
+  return '<div class="bund"><b>Om materialet.</b> Originale øvelsesspørgsmål skrevet ud fra offentlige danske '+
+  'færdselsregler. Det er ikke Færdselsstyrelsens officielle spørgsmål.<br>'+
+  '<b>Den rigtige prøve.</b> Kategori B: 25 scenarier, højst 5 fejl, 25 minutter. Bestået teoriprøve er gyldig i 18 måneder. '+
+  'Prøven findes på dansk, engelsk, færøsk, grønlandsk og tysk.<br>'+
+  '<b>Husk.</b> Reglerne kan ændre sig. Kontrollér altid det aktuelle hos Færdselsstyrelsen og din køreskole.</div>';
+}
+
+/* ======================== forside ======================== */
+function hjem(){
+  S_.skaerm="hjem"; if(S_.ur){clearTimeout(S_.ur);S_.ur=null;}
+  var raekker="";
+  for(var i=0;i<EMNER.length;i++){
+    var e=EMNER[i], n=spInd(e.n).length, b=FREM["e_"+e.n];
+    var mrk=b!=null?('<span class="hoj'+(b>=80?' god':'')+'">'+b+'%</span>'):'<span class="hoj">—</span>';
+    raekker+='<button class="rk" onclick="startEmne(\''+e.n+'\')">'+
+      '<span class="mrk">'+(i+1<10?"0":"")+(i+1)+'</span>'+
+      '<span class="txt"><span class="navn">'+esc(e.t)+'</span><span class="under">'+esc(e.u)+' · '+n+' spørgsmål</span></span>'+
+      mrk+'<span class="pil">›</span></button>';
+  }
+  var bedste=FREM.proeve_bedste;
+  vis('<div class="forside-top">'+
+    '<div class="eyebrow">Kategori B · Danmark</div>'+
+    '<h1>Teoriprøve Træner</h1>'+
+    '<p class="manchet">Øv dig på de danske færdselsregler emne for emne — og tag en prøve, der følger den rigtige prøves format.</p>'+
+    '<div class="fakta"><span>25 scenarier</span><span>højst 5 fejl</span><span>25 minutter</span></div>'+
+  '</div>'+
+
+  '<div class="sek"><div class="sek-hoved"><h2>Prøven</h2>'+
+    (bedste!=null?'<span class="note">bedste: '+bedste+' / 25</span>':'')+'</div>'+
+    '<div class="proevekort"><h3>Tag en teoriprøve</h3>'+
+    '<p>25 spørgsmål på 25 minutter. Ingen svar undervejs — præcis som til den rigtige prøve. Du består med højst 5 fejl.</p>'+
+    '<button class="start" onclick="startProeve()">Start prøven</button></div></div>'+
+
+  '<div class="sek"><div class="sek-hoved"><h2>Øv efter emne</h2><span class="note">'+SP.length+' spørgsmål</span></div>'+
+    '<div class="liste">'+raekker+'</div></div>'+
+
+  '<div class="sek"><div class="sek-hoved"><h2>Mere</h2></div><div class="liste">'+
+    '<button class="rk" onclick="startTavler()"><span class="mrk">▲</span><span class="txt">'+
+      '<span class="navn">Færdselstavler</span><span class="under">Kend tavlerne · '+TAVLER.length+' tavler</span></span>'+
+      (FREM.tavler_bedste!=null?'<span class="hoj'+(FREM.tavler_bedste>=80?' god':'')+'">'+FREM.tavler_bedste+'%</span>':'<span class="hoj">—</span>')+
+      '<span class="pil">›</span></button>'+
+    '<button class="rk" onclick="visOrd()"><span class="mrk">Aa</span><span class="txt">'+
+      '<span class="navn">Ordforklaring</span><span class="under">Faste begreber fra teorien · '+ORD.length+' ord</span></span>'+
+      '<span class="pil">›</span></button>'+
+  '</div></div>'+ bund());
+}
+
+/* ======================== øv efter emne ======================== */
+function startEmne(n){
+  S_.skaerm="oev"; S_.emne=n; S_.liste=bland(spInd(n)); S_.i=0; S_.point=0;
+  tegnOev();
+}
+function tegnOev(){
+  var q=S_.liste[S_.i], e=null;
+  for(var i=0;i<EMNER.length;i++){if(EMNER[i].n===S_.emne)e=EMNER[i];}
+  vis(topbar(e.t,(S_.i+1)+" / "+S_.liste.length)+
+    '<div class="bar"><i style="width:'+(S_.i/S_.liste.length*100)+'%"></i></div>'+
+    '<div class="kort"><p class="sp">'+esc(q[1])+'</p>'+
+    '<div class="valg"><button id="j" onclick="svarOev(true)">Rigtigt</button>'+
+    '<button id="n" onclick="svarOev(false)">Forkert</button></div>'+
+    '<div id="sv"></div><div id="nx"></div></div>'+
+    '<button class="sek-knap" onclick="hjem()">Afslut emnet</button>');
+}
+function svarOev(valg){
+  var q=S_.liste[S_.i], ret=q[2], korrekt=(valg===ret);
+  document.getElementById("j").disabled=true;
+  document.getElementById("n").disabled=true;
+  document.getElementById(valg?"j":"n").classList.add(korrekt?"er-ret":"er-forkert");
+  if(!korrekt)document.getElementById(ret?"j":"n").classList.add("er-ret");
+  if(korrekt)S_.point++;
+  document.getElementById("sv").innerHTML='<div class="svar '+(korrekt?"ret":"forkert")+'">'+
+    '<div class="dom">'+(korrekt?"Rigtigt":"Forkert — det rigtige svar er "+(ret?"rigtigt":"forkert"))+'</div>'+
+    '<div class="hvorfor">'+esc(q[3])+'</div></div>';
+  document.getElementById("nx").innerHTML='<button class="naeste" onclick="naesteOev()">'+
+    (S_.i+1>=S_.liste.length?"Se resultatet":"Næste spørgsmål")+'</button>';
+}
+function naesteOev(){
+  S_.i++;
+  if(S_.i>=S_.liste.length){slutOev();return;}
+  tegnOev();
+}
+function slutOev(){
+  var pct=Math.round(S_.point/S_.liste.length*100), e=null;
+  for(var i=0;i<EMNER.length;i++){if(EMNER[i].n===S_.emne)e=EMNER[i];}
+  var gl=FREM["e_"+S_.emne];
+  if(gl==null||pct>gl){FREM["e_"+S_.emne]=pct;gem(FREM);}
+  vis(topbar(e.t)+'<div class="kort res">'+
+    '<span class="merke">'+esc(e.t)+'</span>'+
+    '<div class="tal">'+S_.point+' / '+S_.liste.length+'</div>'+
+    '<div class="detalje">'+pct+' % rigtige'+(gl!=null&&pct>gl?' — ny bedste':'')+'</div>'+
+    '</div>'+
+    '<button class="naeste" onclick="startEmne(\''+S_.emne+'\')">Tag emnet igen</button>'+
+    '<button class="sek-knap" onclick="hjem()">Tilbage til forsiden</button>'+bund());
+}
+
+/* ======================== færdselstavler ======================== */
+function startTavler(){
+  S_.skaerm="tavler"; S_.liste=bland(TAVLER.map(function(_,i){return i;})); S_.i=0; S_.point=0;
+  tegnTavle();
+}
+function tegnTavle(){
+  var t=TAVLER[S_.liste[S_.i]], m="";
+  S_.raek=bland([0,1,2,3]);
+  for(var i=0;i<S_.raek.length;i++){
+    m+='<button class="mulighed" id="m'+i+'" onclick="svarTavle('+i+')">'+esc(t.m[S_.raek[i]])+'</button>';
+  }
+  vis(topbar("Færdselstavler",(S_.i+1)+" / "+S_.liste.length)+
+    '<div class="bar"><i style="width:'+(S_.i/S_.liste.length*100)+'%"></i></div>'+
+    '<div class="kort"><div class="tavle">'+t.s+'</div>'+
+    '<p class="sp" style="font-size:1.08rem;margin-bottom:16px">'+esc(t.q)+'</p>'+m+
+    '<div id="sv"></div><div id="nx"></div></div>'+
+    '<button class="sek-knap" onclick="hjem()">Afslut</button>');
+}
+function svarTavle(valgt){
+  var t=TAVLER[S_.liste[S_.i]], korrekt=(S_.raek[valgt]===t.r);
+  for(var i=0;i<S_.raek.length;i++){
+    var b=document.getElementById("m"+i); b.disabled=true;
+    if(S_.raek[i]===t.r)b.classList.add("er-ret");
+  }
+  if(!korrekt)document.getElementById("m"+valgt).classList.add("er-forkert"); else S_.point++;
+  document.getElementById("sv").innerHTML='<div class="svar '+(korrekt?"ret":"forkert")+'">'+
+    '<div class="dom">'+(korrekt?"Rigtigt":"Forkert")+'</div><div class="hvorfor">'+esc(t.f)+'</div></div>';
+  document.getElementById("nx").innerHTML='<button class="naeste" onclick="naesteTavle()">'+
+    (S_.i+1>=S_.liste.length?"Se resultatet":"Næste tavle")+'</button>';
+}
+function naesteTavle(){
+  S_.i++;
+  if(S_.i>=S_.liste.length){
+    var pct=Math.round(S_.point/S_.liste.length*100);
+    var gl=FREM.tavler_bedste;
+    if(gl==null||pct>gl){FREM.tavler_bedste=pct;gem(FREM);}
+    vis(topbar("Færdselstavler")+'<div class="kort res"><span class="merke">Færdselstavler</span>'+
+      '<div class="tal">'+S_.point+' / '+S_.liste.length+'</div>'+
+      '<div class="detalje">'+pct+' % rigtige</div></div>'+
+      '<button class="naeste" onclick="startTavler()">Tag tavlerne igen</button>'+
+      '<button class="sek-knap" onclick="hjem()">Tilbage til forsiden</button>'+bund());
+    return;
+  }
+  tegnTavle();
+}
+
+/* ======================== teoriprøve ======================== */
+function startProeve(){
+  S_.skaerm="proeve";
+  S_.liste=bland(SP).slice(0,25);
+  S_.i=0; S_.point=0; S_.svar=[];
+  S_.start=Date.now(); S_.graense=25*60*1000;
+  tegnProeve(); tikTid();
+}
+function tikTid(){
+  if(S_.skaerm!=="proeve")return;
+  var rest=S_.graense-(Date.now()-S_.start);
+  if(rest<=0){slutProeve(true);return;}
+  var el=document.getElementById("ur");
+  if(el){
+    var m=Math.floor(rest/60000), s=Math.floor((rest%60000)/1000);
+    el.textContent=m+":"+(s<10?"0":"")+s;
+    if(rest<120000)el.classList.add("knap");
+  }
+  S_.ur=setTimeout(tikTid,1000);
+}
+function tegnProeve(){
+  var q=S_.liste[S_.i];
+  vis('<div class="topbar"><button class="tilbage" onclick="afbrydProeve()">Afbryd</button>'+
+    '<span class="hvor">Teoriprøve</span>'+
+    '<span class="taeller"><span class="timer" id="ur">25:00</span> · '+(S_.i+1)+' / 25</span></div>'+
+    '<div class="bar"><i style="width:'+(S_.i/25*100)+'%"></i></div>'+
+    '<div class="kort"><p class="sp">'+esc(q[1])+'</p>'+
+    '<div class="valg"><button onclick="svarProeve(true)">Rigtigt</button>'+
+    '<button onclick="svarProeve(false)">Forkert</button></div></div>'+
+    '<div class="advarsel">Ingen svar undervejs — ligesom til den rigtige prøve. Du består med højst 5 fejl.</div>');
+}
+function svarProeve(valg){
+  var q=S_.liste[S_.i], korrekt=(valg===q[2]);
+  if(korrekt)S_.point++;
+  S_.svar.push({q:q,korrekt:korrekt});
+  S_.i++;
+  if(S_.i>=25){slutProeve(false);return;}
+  tegnProeve();
+}
+function afbrydProeve(){ if(S_.ur){clearTimeout(S_.ur);S_.ur=null;} S_.skaerm=""; hjem(); }
+function slutProeve(tidUdloeb){
+  if(S_.ur){clearTimeout(S_.ur);S_.ur=null;}
+  S_.skaerm="resultat";
+  var fejl=25-S_.point, bestaaet=(fejl<=5)&&!tidUdloeb;
+  var gl=FREM.proeve_bedste;
+  if(gl==null||S_.point>gl){FREM.proeve_bedste=S_.point;gem(FREM);}
+  var forkerte=S_.svar.filter(function(a){return !a.korrekt;});
+  var liste="";
+  if(forkerte.length){
+    liste='<div class="fejlliste"><div class="sek-hoved"><h2>Dem du missede</h2>'+
+      '<span class="note">'+forkerte.length+'</span></div>'+
+      forkerte.map(function(a){
+        return '<div class="fejl"><div class="fsp">'+esc(a.q[1])+'</div>'+
+          '<div class="fsvar">Rigtigt svar: <b>'+(a.q[2]?"rigtigt":"forkert")+'</b> — '+esc(a.q[3])+'</div></div>';
+      }).join('')+'</div>';
+  } else if(!tidUdloeb){
+    liste='<div class="kort" style="margin-top:18px;text-align:center;color:var(--ink-2)">Ingen fejl — helt rent bord.</div>';
+  }
+  vis(topbar("Resultat")+'<div class="kort res">'+
+    '<span class="merke">Teoriprøve</span>'+
+    '<div class="tal '+(bestaaet?"bestaaet":"dumpet")+'">'+S_.point+' / 25</div>'+
+    '<div class="dom '+(bestaaet?"bestaaet":"dumpet")+'">'+(bestaaet?"Bestået":(tidUdloeb?"Tiden løb ud":"Ikke bestået"))+'</div>'+
+    '<div class="detalje">'+fejl+' fejl · du må højst have 5</div>'+
+    '<div class="detalje">'+(bestaaet?"Det ville have været nok til den rigtige prøve. Held og lykke!":"Læs forklaringerne nedenfor, og prøv igen.")+'</div>'+
+    '</div>'+
+    '<button class="naeste" onclick="startProeve()">Tag en ny prøve</button>'+
+    '<button class="sek-knap" onclick="hjem()">Tilbage til forsiden</button>'+
+    liste+bund());
+}
+
+/* ======================== ordforklaring ======================== */
+function visOrd(){
+  S_.skaerm="ord";
+  var r=ORD.map(function(o){
+    return '<div class="ord"><dt>'+esc(o[0])+'</dt><dd>'+esc(o[1])+'</dd></div>';
+  }).join('');
+  vis(topbar("Ordforklaring",ORD.length+" ord")+'<div class="kort"><dl>'+r+'</dl></div>'+
+    '<button class="sek-knap" onclick="hjem()">Tilbage til forsiden</button>'+bund());
+}
+
+window.hjem=hjem; window.startEmne=startEmne; window.svarOev=svarOev; window.naesteOev=naesteOev;
+window.startTavler=startTavler; window.svarTavle=svarTavle; window.naesteTavle=naesteTavle;
+window.startProeve=startProeve; window.svarProeve=svarProeve; window.afbrydProeve=afbrydProeve;
+window.visOrd=visOrd;
+
+hjem();
+</script>

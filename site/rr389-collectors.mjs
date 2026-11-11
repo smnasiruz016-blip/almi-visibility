@@ -18,6 +18,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { collectorsCapOf, collectorsSpentToday } from "./collectors-day.mjs";
+import { readAshe, ASHE } from "./ons-ashe.mjs"; // RR-390 B1
 
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 export const UA = "AlmiVisibility/1.0 (+https://almivisibility.almiworld.com)";
@@ -51,7 +52,8 @@ export const NEWS_SOURCES = Object.freeze([
   { id: "ahpra", name: "Ahpra: news", url: "https://www.ahpra.gov.au/News.aspx", products: ["oet", "ielts", "pte"] },
   { id: "ielts", name: "IELTS: news and insights", url: "https://ielts.org/news-and-insights", products: ["ielts"] },
   { id: "pte", name: "Pearson PTE: news", url: "https://www.pearsonpte.com/news", products: ["pte"] },
-  { id: "ircc", name: "Immigration, Refugees and Citizenship Canada: news", url: "https://www.canada.ca/en/immigration-refugees-citizenship/news.html", products: ["pathway", "celpip", "study", "job"] },
+  /* RR-390 B4: the news PAGE is drawn by script (0 items to our reader); the Government of Canada's own Canada News Centre feed (Atom), IRCC only, read 7 Nov 2026 */
+  { id: "ircc", name: "Immigration, Refugees and Citizenship Canada: news (Canada News Centre)", url: "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=departmentofcitizenshipandimmigration&sort=publishedDate&orderBy=desc&pick=30&format=atom&atomtitle=IRCC", products: ["pathway", "celpip", "study", "job"] },
 ]);
 /* an item that may change a fact we show */
 export const RULE_WORDS = /\b(?:fees?|prices?|costs?|charges?|scores?|grades?|bands?|dates?|deadlines?|rules?|requirements?|required|eligib\w*|changes?|changing|updated?|new|increase[sd]?|introduc\w*|replac\w*|from \d{1,2} [A-Z][a-z]+|visa|licen[cs]\w*|registration|test|exam|ranking|core update|spam update|indexing)\b/i;
@@ -118,7 +120,7 @@ export function onetRows(j, { on, max = 2000 }) {
   return rows.slice(0, max).map((r) => (Array.isArray(r) ? Object.fromEntries(cols.map((c, i) => [c, r[i]])) : r)).filter((r) => r.onetsoc_code && r.title).map((r) => ({ topic: "jobs:onet", key: `onet|${r.onetsoc_code}`, kind: "occupation", day: on, data: { code: r.onetsoc_code, title: r.title, description: r.description ?? null, source: { ...ONET_SOURCE, readOn: on } } }));
 }
 export async function runJobs({ seo, cf = null, kv = null, env = process.env, fetchImpl = fetch, now = () => Date.now(), robots = new Map() }) {
-  const start = now(), at = new Date(start).toISOString(), today = dayOf(start), out = { ok: true, day: today, wages: 0, occupations: 0, usd: 0, why: null };
+  const start = now(), at = new Date(start).toISOString(), today = dayOf(start), out = { ok: true, day: today, wages: 0, occupations: 0, ukWages: 0, usd: 0, why: null };
   if (env[JOBS.offEnv] === "1") return { ok: false, day: today, why: `The jobs collector is switched off (${JOBS.offEnv}).` };
   const spent = await collectorsSpentToday({ seo, cf, kv, today }).catch(() => null); if (spent && spent.total >= collectorsCapOf(env)) return { ok: false, day: today, why: `Every collector together has spent today's $${collectorsCapOf(env)}: this run waits for tomorrow.` };
   return lockRun(kv, "jobs", JOBS.lockSeconds, async () => {
@@ -127,6 +129,8 @@ export async function runJobs({ seo, cf = null, kv = null, env = process.env, fe
     for (let i = 0; i < roles.length; i += Math.floor(JOBS.perCall / 2)) { const part = roles.slice(i, i + Math.floor(JOBS.perCall / 2)); let j = null; try { const r = await fetchImpl(JOBS.bls, { method: "POST", headers: { "content-type": "application/json", "user-agent": UA }, body: JSON.stringify({ seriesid: part.flatMap(([soc]) => [oewsSeries(soc, "04"), oewsSeries(soc, "13")]) }), signal: AbortSignal.timeout(30000) }); j = r.ok ? await r.json().catch(() => null) : null; } catch { j = null; } if (!j || j.status !== "REQUEST_SUCCEEDED") { out.why = "The BLS public API did not answer: read again next run."; break; } const rows = wageRows(j, part, { on: today }); if (rows.length) await seo.putSearches(rows, { at }); out.wages += rows.length; }
     if (await mayRead(JOBS.onet, { fetchImpl, cache: robots })) { let j = null; try { const r = await fetchImpl(JOBS.onet, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(60000) }); j = r.ok ? await r.json().catch(() => null) : null; } catch { j = null; } const rows = j ? onetRows(j, { on: today }) : []; for (let i = 0; i < rows.length; i += 200) await seo.putSearches(rows.slice(i, i + 200), { at }); out.occupations = rows.length; if (!j) out.why = `${out.why ? `${out.why} ` : ""}O*NET's file did not answer: read again next run.`; }
     else out.why = `${out.why ? `${out.why} ` : ""}O*NET's robots.txt does not let us read its file.`;
+    /* 🔴 RR-390 B1: UK wages by occupation, ONS ASHE Table 14 (site/ons-ashe.mjs), robots.txt obeyed */
+    if (await mayRead(ASHE.page, { fetchImpl, cache: robots })) { const u = await readAshe({ fetchImpl, on: today, userAgent: UA }).catch((e) => ({ ok: false, why: String(e?.message ?? e).slice(0, 120) })); if (u.ok) { for (let i = 0; i < u.rows.length; i += 200) await seo.putSearches(u.rows.slice(i, i + 200), { at }); out.ukWages = u.rows.length; out.ukEdition = u.edition?.year ?? null; } else out.ukWhy = `ONS: ${u.why}`; } /* the UK part waits on its own: the US rows stand */
     await seo.setSetting("jobs-last-run", { on: at, ...out, complete: !out.why }, { at }).catch(() => null); return out;
   });
 }
@@ -137,10 +141,13 @@ export const MORE_LANGUAGES = Object.freeze({ ar: { name: "Arabic", constant: "l
 /* where each language is asked: the countries of the plan that speak it */
 export const LANGUAGE_PLACES = Object.freeze({ ar: ["AE", "SA", "QA"], ur: ["PK"], hi: ["IN"], bn: ["BD"], fr: ["CA"], es: ["US"], de: [], it: [], pt: [], ja: [], ko: [], nl: [], da: [], no: [], sv: [], is: [] });
 /* a product's own languages: its learners' languages, and for a language product the language it teaches (asked where the plan has a country for it) */
-export const PRODUCT_LANGUAGES = Object.freeze({ oet: ["ur", "hi", "ar"], ielts: ["ur", "hi", "ar", "bn"], pte: ["ur", "hi", "ar"], celpip: ["hi", "ur", "fr"], toefl: ["hi", "ar"], det: ["hi", "ar"], cv: ["ur", "hi", "ar"], job: ["ur", "hi", "ar"], salary: ["ur", "hi", "ar"], study: ["ur", "hi", "ar", "bn"], halal: ["ar", "ur"], health: ["ur", "hi", "ar"], pathway: ["ur", "hi", "ar"], visibility: ["es", "fr"] });
+/* RR-390 B2: the seed groups' own keys are "prep" (IELTS) and "jobs" — RR-389 wrote "ielts" and "job", so those two were never asked */
+export const PRODUCT_LANGUAGES = Object.freeze({ oet: ["ur", "hi", "ar"], prep: ["ur", "hi", "ar", "bn"], pte: ["ur", "hi", "ar"], celpip: ["hi", "ur", "fr"], toefl: ["hi", "ar"], det: ["hi", "ar"], cv: ["ur", "hi", "ar"], jobs: ["ur", "hi", "ar"], salary: ["ur", "hi", "ar"], study: ["ur", "hi", "ar", "bn"], halal: ["ar", "ur"], health: ["ur", "hi", "ar"], pathway: ["ur", "hi", "ar"], visibility: ["es", "fr"] });
+/* 🔴 RR-390 B2 · a LANGUAGE product is also asked in the language it prepares for, in the countries whose exams and offices ask for it (each a Google location of the plan) */
+export const TEACHES = Object.freeze({ french: [["fr", ["FR", "BE", "CH", "CA"]]], spanish: [["es", ["ES", "MX"]]], japanese: [["ja", ["JP"]]], korean: [["ko", ["KR"]]], italian: [["it", ["IT", "CH"]]], goethe: [["de", ["DE", "AT", "CH"]]], portuguese: [["pt", ["PT", "BR"]]], dutch: [["nl", ["NL", "BE"]]], danish: [["da", ["DK"]]], norwegian: [["no", ["NO"]]], swedish: [["sv", ["SE"]]], icelandic: [["is", ["IS"]]], swiss: [["de", ["CH"]], ["fr", ["CH"]]] });
 /** the keyword collector's extra units: one per product × language × country (the product's own seeds), its language named */
-export function languageUnits(groups, { languages = MORE_LANGUAGES, places = LANGUAGE_PLACES, byProduct = PRODUCT_LANGUAGES, locations = [], seedKeyOf = (s) => s.join("|") } = {}) {
-  const out = [];
-  for (const g of groups) { if (g.kind !== "product") continue; for (const lang of byProduct[g.key] ?? []) for (const code of places[lang] ?? []) { const loc = locations.find((l) => l.code === code); if (!loc || !languages[lang]) continue; out.push(Object.freeze({ id: `${g.id}|${loc.code}|${lang}`, group: g.id, kind: g.kind, cadence: "monthly", refreshDays: 30, product: g.key, country: loc.name, seeds: Object.freeze([...g.seeds]), location: loc.code, geo: loc.geo, language: lang, seedKey: seedKeyOf([...g.seeds]) })); } }
+export function languageUnits(groups, { languages = MORE_LANGUAGES, places = LANGUAGE_PLACES, byProduct = PRODUCT_LANGUAGES, teaches = TEACHES, locations = [], seedKeyOf = (s) => s.join("|") } = {}) {
+  const out = [], seen = new Set();
+  for (const g of groups) { if (g.kind !== "product") continue; const pairs = [...(byProduct[g.key] ?? []).flatMap((lang) => (places[lang] ?? []).map((code) => [lang, code])), ...(teaches[g.key] ?? []).flatMap(([lang, codes]) => codes.map((code) => [lang, code]))]; for (const [lang, code] of pairs) { const loc = locations.find((l) => l.code === code); if (!loc || !languages[lang] || seen.has(`${g.id}|${code}|${lang}`)) continue; seen.add(`${g.id}|${code}|${lang}`); out.push(Object.freeze({ id: `${g.id}|${loc.code}|${lang}`, group: g.id, kind: g.kind, cadence: "monthly", refreshDays: 30, product: g.key, country: loc.name, seeds: Object.freeze([...g.seeds]), location: loc.code, geo: loc.geo, language: lang, seedKey: seedKeyOf([...g.seeds]) })); } }
   return out;
 }

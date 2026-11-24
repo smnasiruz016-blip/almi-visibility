@@ -60,6 +60,11 @@ export function stateCounters({ load, save }) {
 }
 export const memoryCounters = () => { let m = {}; return stateCounters({ load: () => m, save: (s) => { m = s; } }); };
 
+/* RR-414 · the admin panel's fields on a licence: who it belongs to and the free-licence record (who granted it, when, why; each change
+ * logged), when it started and when the app last checked it. A write that does not carry one of them keeps the stored value. */
+export const PANEL_FIELDS = Object.freeze(["email", "grantedBy", "grantedAt", "reason", "startedAt", "lastSeen", "log"]);
+export function keepPanelFields(prev, next) { const out = { ...next }; for (const f of PANEL_FIELDS) if ((out[f] === undefined || out[f] === null) && prev?.[f] !== undefined && prev?.[f] !== null) out[f] = prev[f]; return out; }
+
 /** A local file store (local runs and tests only). */
 export function fileSiteStore(dir) {
   mkdirSync(dir, { recursive: true });
@@ -77,7 +82,9 @@ export function fileSiteStore(dir) {
     async markEmailed(email, testedUrl, sent) { const a = read("leads.json"); for (const l of a) if (l.email === email && l.testedUrl === testedUrl) l.reportEmailed = sent; write("leads.json", a); },
     /* RR-303 A: the licences (accounts) and the checkout sessions that name their licence key */
     async accounts() { const a = read("accounts.json"); return Array.isArray(a) ? {} : a; },
-    async saveAccounts(acc) { write("accounts.json", acc); },
+    /* RR-414: a Stripe event rewrites a licence from its own fields only — what the admin panel and the licence check recorded is kept */
+    async saveAccounts(acc) { const old = read("accounts.json"), prev = Array.isArray(old) ? {} : old; const out = {}; for (const [k, v] of Object.entries(acc)) out[k] = keepPanelFields(prev[k], v); write("accounts.json", out); },
+    async touchLicence(account, at) { const a = read("accounts.json"); if (!Array.isArray(a) && a[account]) { a[account] = { ...a[account], lastSeen: at }; write("accounts.json", a); } },
     async addCheckout(c) { const a = read("checkouts.json"); a.push(c); write("checkouts.json", a); },
     async checkout(sessionId) { return read("checkouts.json").find((c) => c.sessionId === sessionId) ?? null; },
   });
@@ -106,7 +113,11 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
     await q("CREATE TABLE IF NOT EXISTS visibility_hits (key text NOT NULL, at_ms bigint NOT NULL)");
     await q("CREATE INDEX IF NOT EXISTS visibility_hits_key ON visibility_hits (key)");
     await q("CREATE TABLE IF NOT EXISTS visibility_day_salts (day text PRIMARY KEY, salt text NOT NULL)");
+    /* RR-414: the admin panel's fields (keepPanelFields) — added once, empty for every licence that exists */
+    await q("ALTER TABLE visibility_licences ADD COLUMN IF NOT EXISTS email text, ADD COLUMN IF NOT EXISTS granted_by text, ADD COLUMN IF NOT EXISTS granted_at timestamptz, ADD COLUMN IF NOT EXISTS reason text, ADD COLUMN IF NOT EXISTS started_at timestamptz, ADD COLUMN IF NOT EXISTS last_seen timestamptz, ADD COLUMN IF NOT EXISTS log text");
   })());
+  const ts = (v) => (v === null || v === undefined ? undefined : new Date(v).toISOString());
+  const panelOf = (r) => Object.fromEntries(Object.entries({ email: r.email ?? undefined, grantedBy: r.granted_by ?? undefined, grantedAt: ts(r.granted_at), reason: r.reason ?? undefined, startedAt: ts(r.started_at), lastSeen: ts(r.last_seen), log: r.log ? (() => { try { return JSON.parse(r.log); } catch { return undefined; } })() : undefined }).filter(([, v]) => v !== undefined));
   return Object.freeze({
     kind: "NEON",
     async sessionSet(hash, rec) { await init(); await q("DELETE FROM visibility_admin_sessions WHERE until_ms < $1", [Date.now()]); await q("INSERT INTO visibility_admin_sessions (token_hash, email, until_ms) VALUES ($1, $2, $3) ON CONFLICT (token_hash) DO UPDATE SET email = $2, until_ms = $3", [hash, rec.email, rec.until]); },
@@ -123,8 +134,11 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
     async listTests() { await init(); return q("SELECT site, score, pages, at FROM visibility_free_tests ORDER BY at DESC LIMIT 5000"); },
     async unsubscribe(token) { await init(); if (!token) return false; return (await q("UPDATE visibility_leads SET marketing = false, unsubscribed = true WHERE unsub_token = $1 RETURNING email", [token])).length > 0; },
     async markEmailed(email, testedUrl, sent) { await init(); await q("UPDATE visibility_leads SET report_emailed = $3 WHERE email = $1 AND tested_url = $2", [email, testedUrl, sent]); },
-    async accounts() { await init(); return Object.fromEntries((await q("SELECT account, plan, status, period_end AS \"periodEnd\", subscription, kind, licensee FROM visibility_licences")).map((r) => [r.account, { plan: r.plan, status: r.status, periodEnd: r.periodEnd === null ? null : new Date(r.periodEnd).toISOString(), subscription: r.subscription, ...(r.kind ? { kind: r.kind, licensee: r.licensee } : {}) }])); },
-    async saveAccounts(acc) { await init(); for (const [k, v] of Object.entries(acc)) await q("INSERT INTO visibility_licences (account, plan, status, period_end, subscription, kind, licensee) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (account) DO UPDATE SET plan = $2, status = $3, period_end = $4, subscription = $5, kind = $6, licensee = $7", [k, v.plan, v.status, v.periodEnd, v.subscription, v.kind ?? null, v.licensee ?? null]); },
+    async accounts() { await init(); return Object.fromEntries((await q("SELECT account, plan, status, period_end AS \"periodEnd\", subscription, kind, licensee, email, granted_by, granted_at, reason, started_at, last_seen, log FROM visibility_licences")).map((r) => [r.account, { plan: r.plan, status: r.status, periodEnd: r.periodEnd === null ? null : new Date(r.periodEnd).toISOString(), subscription: r.subscription, ...(r.kind ? { kind: r.kind, licensee: r.licensee } : {}), ...panelOf(r) }])); },
+    /* RR-414: the panel's fields are written when given and KEPT when not (COALESCE) — a Stripe event never wipes them; last_seen only by touchLicence */
+    async saveAccounts(acc) { await init(); for (const [k, v] of Object.entries(acc)) await q("INSERT INTO visibility_licences (account, plan, status, period_end, subscription, kind, licensee, email, granted_by, granted_at, reason, started_at, log) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (account) DO UPDATE SET plan = $2, status = $3, period_end = $4, subscription = $5, kind = $6, licensee = $7, email = COALESCE($8, visibility_licences.email), granted_by = COALESCE($9, visibility_licences.granted_by), granted_at = COALESCE($10, visibility_licences.granted_at), reason = COALESCE($11, visibility_licences.reason), started_at = COALESCE($12, visibility_licences.started_at), log = COALESCE($13, visibility_licences.log)", [k, v.plan, v.status, v.periodEnd, v.subscription, v.kind ?? null, v.licensee ?? null, v.email ?? null, v.grantedBy ?? null, v.grantedAt ?? null, v.reason ?? null, v.startedAt ?? null, v.log ? JSON.stringify(v.log) : null]); },
+    /* RR-414: the app's last licence check (the panel's "last activation") */
+    async touchLicence(account, at) { await init(); await q("UPDATE visibility_licences SET last_seen = $2 WHERE account = $1", [account, at]); },
     async addCheckout(c) { await init(); await q("INSERT INTO visibility_checkouts (session_id, licence_key, plan, at) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING", [c.sessionId, c.licenceKey, c.plan, c.at]); },
     async checkout(sessionId) { await init(); const r = await q("SELECT session_id AS \"sessionId\", licence_key AS \"licenceKey\", plan, at FROM visibility_checkouts WHERE session_id = $1", [sessionId]); return r[0] ?? null; },
   });
@@ -132,7 +146,7 @@ export function neonSiteStore(connectionString, { fetchImpl = fetch } = {}) {
 
 /** The store for this run: Neon when its variable is set, else the local file store — named either way. */
 /** RR-303 F: on Vercel there is no lasting disk — without the database nothing is stored (named), never a file that vanishes */
-export const disabledStore = () => Object.freeze({ kind: "NOT CONNECTED (no database: VISIBILITY_SITE_DATABASE_URL)", ...memoryCounters(), async addLead() { return false; }, async listLeads() { return []; }, async addTest() { return false; }, async listTests() { return []; }, async unsubscribe() { return false; }, async markEmailed() {}, async accounts() { return {}; }, async saveAccounts() { throw new Error("no database"); }, async addCheckout() { throw new Error("no database"); }, async checkout() { return null; } });
+export const disabledStore = () => Object.freeze({ kind: "NOT CONNECTED (no database: VISIBILITY_SITE_DATABASE_URL)", ...memoryCounters(), async addLead() { return false; }, async listLeads() { return []; }, async addTest() { return false; }, async listTests() { return []; }, async unsubscribe() { return false; }, async markEmailed() {}, async accounts() { return {}; }, async saveAccounts() { throw new Error("no database"); }, async touchLicence() {}, async addCheckout() { throw new Error("no database"); }, async checkout() { return null; } });
 export const siteStore = ({ env = process.env, localDir }) => (env[KEY_NAMES.database] ? neonSiteStore(env[KEY_NAMES.database]) : env.VERCEL ? disabledStore() : fileSiteStore(localDir));
 
 /** Per day: the free tests, the leads, and how many leads said yes to marketing. Newest day first. */

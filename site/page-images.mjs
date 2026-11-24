@@ -59,7 +59,7 @@ export const IMG = Object.freeze({
     { icon: "screen", title: "Your site today", lines: ["What search engines", "and AI assistants can read"] },
     { icon: "question", title: "What people search", lines: ["The real questions", "people want answered"] },
     { icon: "doc", title: "Pages that answer", lines: ["Drafts in your own design,", "each fact with its source"] }] }),
-  score: flowImage({ id: "img-score", flow: false, highlight: false, label: "What the free score checks: technical basics, content, accessibility, links and security", title: "What the free score checks", foot: "Up to 10 public pages · robots.txt obeyed · Shown on screen, never stored", steps: [
+  score: flowImage({ id: "img-score", flow: false, highlight: false, label: "What the free score checks: technical basics, content, accessibility, links and security", title: "What the free score checks", foot: "Up to 10 public pages · robots.txt obeyed · We keep the site address, its score and the date · Never your name, email or IP address", steps: [ // RR-414 addition: shown only on the sales home, which keeps each test
     { icon: "gear", title: "Technical", lines: ["Canonical, language, mobile", "view and structured data"] },
     { icon: "doc", title: "Content", lines: ["Titles, descriptions", "and one main heading"] },
     { icon: "person", title: "Accessibility", lines: ["Text that describes", "each image"] },

@@ -22,6 +22,7 @@ import { OWNER } from "../desktop/licence.mjs";
 import { refOf, grantFree, extendFree, revokeFree, licenceRows, pageOf, salesOf, statsOf, stripeGet, isVisibilitySub } from "../site/admin-panel.mjs";
 import { keepPanelFields, fileSiteStore } from "../site/leads.mjs";
 import { runFreeTest } from "../site/free-test.mjs";
+import { KEEP_LINE, liteHome } from "../site/pages.mjs";
 
 const T0 = Date.parse("2026-11-24T10:00:00Z"), S = T0 / 1000, DAY = 86400;
 const OWNER_KEY = "owner-key-for-tests-only-0123456789abcdef";
@@ -235,6 +236,22 @@ test("RR-414 · leads: the emails and the free site tests (a /score run is logge
     const c2 = await a.get("/admin/tests.csv", { cookie: a.cookie });
     assert.equal(c2.text, `site,score,pages,date\r\nhttps://tested-shop.example/,${score},${tests[0].pages},${String(tests[0].at).slice(0, 10)}\r\n`);
   } finally { a.close(); }
+});
+
+test("RR-414 addition · the sales home says truthfully what a free test keeps; no public text there says it is not stored", async () => {
+  const a = await site();
+  try {
+    const home = (await a.get("/")).text;
+    const KEEP = "We keep the address of the site you test, its score and the date, to improve the service. We do not store your name, email or IP address with it.";
+    assert.equal(KEEP_LINE, KEEP, "the owner's words, exactly");
+    const form = /<form class="testform" method="post" action="\/score">[\s\S]*?<\/form>/.exec(home)?.[0] ?? "";
+    assert.ok(form.includes(`<span data-keep-line>${KEEP}</span>`), "the sentence is under the free test form");
+    assert.match(home, /We keep the site address, its score and the date/, "the score picture's footer says it too");
+    for (const old of ["the result is shown here only", "Shown on screen, never stored"]) assert.ok(!home.includes(old), `the sales home still says "${old}"`);
+  } finally { a.close(); }
+  // the pre-sales (public-lite) site keeps nothing, so it keeps its old, still true, line
+  const lite = liteHome({ scoreOn: true, ticket: "t" });
+  assert.ok(lite.includes("the result is shown here only") && !lite.includes(KEEP_LINE));
 });
 
 test("RR-414 · HQ's /api/admin/stats and /api/billing/health: the network's format, behind ADMIN_API_SECRET, fail-closed, no secret shape", async () => {

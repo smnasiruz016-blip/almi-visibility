@@ -413,7 +413,10 @@ export const SCORE_JS = `(function () {
   }
 })();
 `;
-export function liteScoreCard({ result = null, error = null, values = {}, scoreOn = false, ticket = null } = {}) {
+/* RR-414 addition (owner, 24 Nov 2026): the sales site keeps each free test (the tested site, its score, the date — site/app.mjs /score),
+ * so it says so, in the owner's words. The pre-sales (public-lite) site keeps nothing and keeps its old line. */
+export const KEEP_LINE = "We keep the address of the site you test, its score and the date, to improve the service. We do not store your name, email or IP address with it.";
+export function liteScoreCard({ result = null, error = null, values = {}, scoreOn = false, ticket = null, sales = false } = {}) {
   const real = Boolean(result), s = real ? result : SAMPLE;
   const meter = `<div id="meter" class="meter" role="status" aria-live="polite" hidden><div class="bar"><span></span></div><p class="fine">Checking your site — reading up to ${LIMITS.pagesPerTest} pages, following its robots.txt, then its links and https. This usually takes 10 to 30 seconds. <b data-secs>0</b> s</p></div>`;
   const form = `<form class="testform" method="post" action="/score"><input type="hidden" name="ticket" value="${esc(ticket)}">
@@ -422,7 +425,7 @@ export function liteScoreCard({ result = null, error = null, values = {}, scoreO
 ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}
 <button class="pill big" type="submit">Get my score</button>
 ${meter}
-<p class="fine">Free: ${LITE.perVisitorPerDay} scores a day, up to ${LIMITS.pagesPerTest} pages each. No email needed — the result is shown here only. <a href="/privacy">Privacy</a></p></form>`;
+<p class="fine">Free: ${LITE.perVisitorPerDay} scores a day, up to ${LIMITS.pagesPerTest} pages each. ${sales ? `No email needed. <span data-keep-line>${esc(KEEP_LINE)}</span>` : "No email needed — the result is shown here only."} <a href="/privacy">Privacy</a></p></form>`;
   const off = `<div class="testform" data-score-off>${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}<p class="fine" role="status" style="font-size:14px;color:var(--ink)">The free score is being switched on. Please come back soon.</p></div>`;
   /* the real score's number carries data-score: /score.js counts it up while the gauge fills (CSS) */
   const g = real && Number.isFinite(s.score) ? gauge(s.score).replace(`<b>${Math.max(0, Math.min(100, s.score))}</b>`, `<b data-score="${Math.max(0, Math.min(100, s.score))}">${Math.max(0, Math.min(100, s.score))}</b>`) : gauge(s.score);
@@ -438,7 +441,7 @@ export const liteHome = ({ result = null, error = null, values = {}, scoreOn = f
   /* RR-348 owner change: the sales home — the hero with the app's own screen and Download, the NEW band, the icon strip beside the free
    * score, the YouTube band, the TikTok + Instagram band; the pre-sales (public-lite) home is unchanged */
   body: `${sales ? `${HOME_CSS}${salesHero({ headline: MARKETING.headline, sub: HERO.sub, data: MARKETING.data, buyHref: BUY_NOW.href, buyLabel: BUY_NOW.label, installer })}${newBand()}
-<section class="band shome"><div class="wrap sgrid"><div>${aiMap()}</div><div>${liteScoreCard({ result, error, values, scoreOn, ticket })}</div></div></section>
+<section class="band shome"><div class="wrap sgrid"><div>${aiMap()}</div><div>${liteScoreCard({ result, error, values, scoreOn, ticket, sales: true })}</div></div></section>
 ${youtubeBand(BUY_NOW.href, { ...title, gauge, guidance: TITLE_TOOL.guidance, perDay: TITLE_TOOL.perVisitorPerDay })}${socialBand(BUY_NOW.href)}${dayPlan()}<section class="band"><div class="wrap">${IMG.home}<p class="buystrip" data-buy-strip>${esc(BUY_NOW.strip)} · <a href="${BUY_NOW.href}" data-buy>Buy now</a></p>${IMG.score}</div></section>`
     : `<section class="hero"><div class="wrap grid2"><div>
 <p class="eyebrow">AlmiVisibility · by AlmiWorld</p>

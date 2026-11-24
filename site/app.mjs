@@ -52,6 +52,8 @@ import { BRAND_ICONS } from "./home-sales.mjs"; // RR-348 owner change: the offi
 import { apHandle, apPgStore, AP_LIMITS } from "./autopilot-server.mjs"; // RR-386
 import { seoPgStore } from "./almiseo-store.mjs"; // RR-360 AlmiSEO Data
 import { ownerReview, decideTicked, REVIEW_JS } from "./owner-review.mjs"; // RR-362
+import { readStripeSubs, salesOf, licenceRows, pageOf, grantFree, extendFree, revokeFree, statsOf, healthOfBilling, hqAuthorized, testsCsv } from "./admin-panel.mjs"; // RR-414
+import * as AP from "./admin-pages.mjs"; // RR-414
 import { almiSeoAnswer, saveFromApp, saveBought, heldBought, BOUGHT, registerClient, planLimits, allTopics, clientTopicsToWork, useClientTemplates, parseTopicLine, spendLedger, topPagesBudget, syncFindings, alertChanged, groupsForTopics, queueWithClients, PLAN_LIMIT_FIELDS, ENV_NAMES as SEO_ENV, accountHash } from "./almiseo.mjs";
 import { runTopPages, topPagesConnected } from "./top-pages.mjs";
 import { runAnswers } from "./answers-collector.mjs"; // RR-375
@@ -78,7 +80,8 @@ export const LAUNCH_VARS = Object.freeze([
   [SITE_KEY_NAMES.setupUrl, "the Setup download (the release's AlmiVisibility-Setup.exe link)", true], [SITE_KEY_NAMES.updateBase, "the app's updates (the release folder link, ending in /)", true],
   [BILLING_KEY_NAMES.testModeOnly, "takes payments — set it to yes only at your launch GREEN", false],
   [LICENCE_KEYS.webhookSecret, "only for a Stripe destination straight to this site (not needed with the router)", false],
-  [KEY_NAMES.adminHash, "the /admin sign-in (admin is hidden on the sales site)", false],
+  [KEY_NAMES.adminHash, "the old /admin sign-in of the full site — not used on the sales site (RR-414: /admin there is the owner panel, signed in like /owner)", false],
+  ["ADMIN_API_SECRET", "AlmiWorld HQ reads /api/admin/stats and /api/billing/health with it — the same value HQ holds (RR-414)", false],
   [EMAIL_KEY_NAMES.resend, "emails — the sales site sends none yet", false], [EMAIL_KEY_NAMES.from, "the emails' sender — not used yet", false]]);
 export const launchVarsOf = (env) => LAUNCH_VARS.map(([name, use, needed, isSet]) => {
   const set = isSet ? isSet(env) : String(env[name] ?? "").trim() !== "";
@@ -129,8 +132,11 @@ export function createApp({ env = process.env, dataDir = join(HERE, "..", ".site
   const m = modeOf(env, mode);
   if (m === "public-lite") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, apStore, sleep, cfStore, cfReader, cfAi, gscFetch, wpFetch, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch, finderPublicForOldTests });
   /* RR-338: the sales site's store is the same Neon database as the collectors' when VISIBILITY_SITE_DATABASE_URL is not set (its own visibility_* tables) */
+  /* RR-414: the admin panel reads and writes the SAME licence store the selling handler uses (its visibility_* tables) */
+  const storeEnv = env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) };
   if (m === "sales") return createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, apStore, sleep, cfStore, cfReader, cfAi, gscFetch, stripeFetch, wpFetch, titleAi, creatorAi, ytFetch, seoStore, tpFetch, tpReader, emailFetch, finderPublicForOldTests,
-    salesHandle: fullApp({ env, storeEnv: env[KEY_NAMES.database] || !dbUrlOf(env) ? env : { ...env, [KEY_NAMES.database]: dbUrlOf(env) }, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
+    adminStore: siteStore({ env: storeEnv, localDir: dataDir }),
+    salesHandle: fullApp({ env, storeEnv, dataDir, setupFile, now, fetchImpl: stripeFetch ?? fetchImpl, freeTest, sales: true }) });
   return fullApp({ env, dataDir, setupFile, now, fetchImpl, freeTest });
 }
 
@@ -178,6 +184,8 @@ function fullApp({ env, storeEnv = env, dataDir, setupFile, now, fetchImpl, free
         const accounts = await store.accounts();
         /* RR-342: a key Vercel holds but the site cannot use is said by NAME (it was a bare 500 to every app) */
         let signed; try { signed = signedLicence({ accounts, account, privateKeyPem: pem, now: now() }); } catch { return send(503, JSON.stringify({ deferred: `the licence signing key in Vercel (${SITE_KEY_NAMES.signingKey}) cannot be used — see /owner, Launch settings` }), "application/json", PRIVATE); }
+        /* RR-414: the admin panel's "last activation" — when the app last checked this licence (a failure never fails the check) */
+        if (account && accounts[account] && store.touchLicence) { try { await store.touchLicence(account, new Date(now()).toISOString()); } catch { /* the check still answers */ } }
         return send(200, JSON.stringify(signed), "application/json", PRIVATE);
       }
       /* a form from another site is refused (the site's own forms only) */
@@ -324,7 +332,7 @@ const legalPreview = (env) => env.VISIBILITY_LEGAL_PREVIEW === "1" && !env.VERCE
  *   RR-326 THE OWNER (owner.mjs): no limit on his own browser; his page /owner (counts, Google's operations used, the seed list).
  *   RR-326 THE COLLECTOR: /cron/keywords, only with Vercel's own `Authorization: Bearer <CRON_SECRET>` (kw-collector.mjs).
  */
-function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, apStore = null, gscFetch = null, salesHandle = null, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null, finderPublicForOldTests = false }) { // RR-348 c: creatorAi, ytFetch (tests)
+function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFetch, kwStore, sleep, cfStore, cfReader, cfAi, apStore = null, gscFetch = null, salesHandle = null, adminStore = null /* RR-414 */, stripeFetch = null, wpFetch = null, titleAi = null, creatorAi = null, ytFetch = null, seoStore = null, tpFetch = null, tpReader = null, emailFetch = null, finderPublicForOldTests = false }) { // RR-348 c: creatorAi, ytFetch (tests)
   const sales = Boolean(salesHandle); // RR-338
   const total = Number(env.FREE_SCORE_DAILY_TOTAL) > 0 ? Math.floor(Number(env.FREE_SCORE_DAILY_TOTAL)) : LITE_LIMITS.siteTotalPerDay; // the owner may set the site's daily total
   const st = storeOf(env), kv = st ? kvStore(st, { fetchImpl: kvFetch }) : null, limits = kv ? liteLimits({ kv, now, siteTotal: total }) : null;
@@ -454,7 +462,7 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       if (req.method === "GET" && u.pathname === "/review.js") return send(200, REVIEW_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-362: the owner's ticks
       if (req.method === "GET" && u.pathname === "/copy.js") return send(200, P.COPY_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-344: the owner's Copy buttons
       if (req.method === "GET" && u.pathname === "/score.js") return send(200, P.SCORE_JS, "text/javascript; charset=utf-8", { "cache-control": "public, max-age=3600" }); // RR-325: the moving meter
-      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /title-check\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
+      if (req.method === "GET" && u.pathname === "/robots.txt") return send(200, `User-agent: *\nAllow: /\nDisallow: /score\nDisallow: /title-check\nDisallow: /keywords\nDisallow: /owner\nDisallow: /cron\nDisallow: /v1\n${sales ? "Disallow: /admin\nDisallow: /api/\n" : ""}\nSitemap: ${P.ORIGIN}/sitemap.xml\n`, "text/plain");
       if (req.method === "GET" && u.pathname === "/sitemap.xml") return send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["/", ...published(), ...(await ownPageSlugs({ env, fetchImpl }).catch(() => [])).map((x) => `/${x}`) /* RR-388 A2 */].map((p) => `<url><loc>${P.ORIGIN}${p}</loc></url>`).join("")}</urlset>\n`, "application/xml");
       if (req.method === "POST" && u.pathname === "/score") {
         const f = form();
@@ -466,6 +474,9 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         const t = await testableUrl(f.url, dns); if (!t.ok) return again(400, t.why);
         const take = owner(req) ? { ok: true, left: null } : await limits.take(who(req)); if (!take.ok) return again(429, take.why); // RR-326 D: the owner has no limit
         const result = await freeTest({ url: t.url, fetchImpl: publicOnly(fetchImpl, dns), deadlineMs: LITE_LIMITS.checkDeadlineMs, linksAndSecurity: true });
+        /* RR-414 (owner, 24 Nov 2026: the admin panel lists "free site-test submissions with their score and date") · on the sales site the
+         * test is logged — the tested site, its score, the pages read, the date (leads.mjs testRecord). NEVER the visitor or their address. */
+        if (sales && adminStore && result) { try { await adminStore.addTest(testRecord(result)); } catch { /* the visitor still gets the result */ } }
         return send(200, await home(req, { result, left: take.left, values }), undefined, { "cache-control": "no-store" });
       }
       /* RR-347 ADD-2 · the free YouTube title checker (sales home only): the checks always; the AI titles inside the tool's daily dollar cap */
@@ -511,6 +522,53 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
         if (!found) return send(404, P.notFound(u.pathname, { lite: true }));
         const result = { rows: found.rows.map((r) => ({ ...r, group: groupOf(r.keyword) })), locationName: loc.name, language: LANGUAGES[FINDER.language].name, period: found.period, source };
         return send(200, csvOf(result), "text/csv; charset=utf-8", { "content-disposition": `attachment; filename="keywords-${qq.q.replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "search"}-${loc.code.toLowerCase()}.csv"`, "cache-control": "no-store", "x-robots-tag": "noindex" });
+      }
+      /* 🔴 RR-414 · HQ's two endpoints, in the network's format, behind ADMIN_API_SECRET (x-admin-secret; fail-closed) — sales site only */
+      if (sales && adminStore && req.method === "GET" && (u.pathname === "/api/admin/stats" || u.pathname === "/api/billing/health")) {
+        const json = (code, o) => send(code, JSON.stringify(o), "application/json", { ...PRIVATE });
+        if (!hqAuthorized(req, env)) return json(401, { error: "unauthorized" });
+        if (u.pathname === "/api/billing/health") {
+          let dbConnected = !/NOT CONNECTED/.test(String(adminStore.kind)); if (dbConnected) { try { await adminStore.accounts(); } catch { dbConnected = false; } }
+          return json(200, healthOfBilling({ env, dbConnected, signingOk: signingKeyState(env).ok }));
+        }
+        const [accounts, leads, st] = await Promise.all([adminStore.accounts(), adminStore.listLeads(), readStripeSubs({ env, fetchImpl: stripeFetch ?? fetch })]);
+        const rows = licenceRows({ accounts, subs: st.subs, env, now: now() });
+        return json(200, { ...statsOf({ rows, sales: st.ok ? salesOf(st.subs, now()) : null, leads: leads.length, now: now() }), stripe: st.ok ? "read" : st.why });
+      }
+      /* 🔴 RR-414 · THE ADMIN PANEL (site/admin-panel.mjs, site/admin-pages.mjs): the owner's sign-in (the same cookie as /owner), never indexed */
+      if (sales && adminStore && (u.pathname === "/admin" || u.pathname.startsWith("/admin/"))) {
+        const priv = { ...PRIVATE };
+        if (!ownerOn(env) || !kv) return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
+        if (!owner(req)) return req.method === "GET" ? send(401, P.ownerSignIn(), undefined, priv) : send(403, "Forbidden", "text/plain", priv);
+        const today = new Date(now()).toISOString().slice(0, 10), BY = "owner (signed in with the owner key)";
+        const subsNow = () => readStripeSubs({ env, fetchImpl: stripeFetch ?? fetch });
+        const rowsNow = async () => { const [accounts, st] = await Promise.all([adminStore.accounts(), subsNow()]); return { rows: licenceRows({ accounts, subs: st.subs, env, now: now() }), st }; };
+        const customers = async (o = {}) => { const { rows, st } = await rowsNow(); return send(o.code ?? 200, AP.adminCustomers({ view: pageOf(rows, { q: u.searchParams.get("q") ?? "", page: u.searchParams.get("page") ?? 1 }), message: o.message, error: o.error, granted: o.granted, salesWhy: st.ok ? null : st.why, today }), undefined, priv); };
+        if (req.method === "GET" && u.pathname === "/admin") {
+          const [{ rows, st }, leads, tests] = await Promise.all([rowsNow(), adminStore.listLeads(), adminStore.listTests()]);
+          let spend = null; if (cf) { try { const days = await cf.spendSince(today.slice(0, 8) + "01"); spend = { today: days.find((d) => d.day === today)?.aiUsd ?? 0, month: Math.round(days.reduce((a, d) => a + d.aiUsd, 0) * 100) / 100, cap: capsOf(env).aiUsd }; } catch { spend = null; } }
+          const s = statsOf({ rows, sales: null, now: now() });
+          return send(200, AP.adminHome({ sales: st.ok ? salesOf(st.subs, now()) : null, salesWhy: st.ok ? null : st.why, licences: rows.length, activeLicences: s.licencesActive, freeLicences: s.freeLicences, leads: leads.length, tests: tests.length, spend }), undefined, priv);
+        }
+        if (req.method === "GET" && u.pathname === "/admin/customers") return customers();
+        if (req.method === "GET" && u.pathname === "/admin/licences/revoke") {
+          const row = (await rowsNow()).rows.find((r) => r.ref === u.searchParams.get("ref") && r.kind === "FREE" && r.status !== "revoked");
+          return row ? send(200, AP.adminRevokeConfirm({ row }), undefined, priv) : customers({ code: 404, error: "No running free licence with that reference." });
+        }
+        if (req.method === "POST" && ["/admin/licences/grant", "/admin/licences/extend", "/admin/licences/revoke"].includes(u.pathname)) {
+          const f = form(), accounts = await adminStore.accounts(), at = now();
+          const r = u.pathname.endsWith("/grant") ? grantFree(accounts, { email: f.email, plan: f.plan, until: f.until, reason: f.reason, by: BY, now: at })
+            : u.pathname.endsWith("/extend") ? extendFree(accounts, { ref: f.ref, until: f.until, reason: f.reason, by: BY, now: at })
+              : revokeFree(accounts, { ref: f.ref, confirm: f.confirm, reason: f.reason, by: BY, now: at });
+          if (!r.ok) return customers({ code: 400, error: r.why });
+          try { await adminStore.saveAccounts(accounts); } catch { return customers({ code: 503, error: "The licence store could not be written — nothing was changed." }); }
+          if (u.pathname.endsWith("/grant")) return customers({ message: "Granted.", granted: { key: r.account, email: r.record.email, until: r.record.periodEnd.slice(0, 10) } });
+          return customers({ message: u.pathname.endsWith("/extend") ? `Extended until ${String(f.until)}.` : r.already ? "It was already revoked." : "Revoked." });
+        }
+        if (req.method === "GET" && u.pathname === "/admin/leads") return send(200, AP.adminLeadsPanel({ leads: await adminStore.listLeads(), tests: await adminStore.listTests(), storeKind: adminStore.kind }), undefined, priv);
+        if (req.method === "GET" && u.pathname === "/admin/leads.csv") return send(200, leadsCsv(await adminStore.listLeads()), "text/csv; charset=utf-8", { ...priv, "content-disposition": `attachment; filename="visibility-leads-${today}.csv"` });
+        if (req.method === "GET" && u.pathname === "/admin/tests.csv") return send(200, testsCsv(await adminStore.listTests()), "text/csv; charset=utf-8", { ...priv, "content-disposition": `attachment; filename="visibility-free-tests-${today}.csv"` });
+        return send(404, P.notFound(u.pathname, { lite: true }), undefined, priv);
       }
       /* RR-326 B + D · the owner's own page — only when he has set his key in Vercel */
       if (u.pathname.startsWith("/owner")) {

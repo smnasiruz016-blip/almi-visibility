@@ -17,7 +17,7 @@ const CSS = `<style>.ap h1{text-align:left;margin:0 0 12px} .ap h2{text-align:le
 
 const NAV = [["/admin", "Overview"], ["/admin/customers", "Customers & licences"], ["/admin/leads", "Leads"], ["/owner", "Collectors & AI cost ↗"]];
 const shell = (path, title, inner) => frame({ path, lite: true, noindex: true, title: `${title} — AlmiVisibility admin`, description: "Private.",
-  body: `<section class="page"><div class="wrap prose ap">${CSS}<nav class="apnav" aria-label="Admin">${NAV.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${esc(t)}</a>`).join("")}<form method="post" action="/owner/sign-out" class="inline" style="margin-left:auto"><button class="pill ghost sm" type="submit">Sign out</button></form></nav><h1>${esc(title)}</h1>${inner}</div></section>` });
+  body: `<section class="page"><div class="wrap ap">${CSS}<nav class="apnav" aria-label="Admin">${NAV.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ""}>${esc(t)}</a>`).join("")}<form method="post" action="/owner/sign-out" class="inline" style="margin-left:auto"><button class="pill ghost sm" type="submit">Sign out</button></form></nav><h1>${esc(title)}</h1>${inner}</div></section>` });
 const stat = (n, label) => `<span class="stat"><b>${esc(n)}</b>${esc(label)}</span>`;
 const msg = (m) => (m ? `<p class="card" role="status" style="padding:12px 16px">${esc(m)}</p>` : "");
 const err = (m) => (m ? `<p class="err" role="alert">${esc(m)}</p>` : "");

@@ -64,6 +64,14 @@ export async function runOne({ item, keys, files, node = process.execPath, main 
   }
 }
 
+/** 🔴 RR-417 · the server's answer as JSON, or a named error: its status and what it is — never "Unexpected token 'T'" (a plain-text page
+ * read as JSON hid the server's real state for five days) */
+export async function answerOf(r, what) {
+  const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch { j = null; }
+  if (r.status === 409 && j?.locked) throw Object.assign(new Error(`the server cannot read its saved ${what} (sealed with an older server key)`), { locked: true });
+  if (!r.ok || !j) throw new Error(`the server answered ${r.status}${j ? "" : " (not JSON)"} for the ${what}`);
+  return j;
+}
 /** every due product, one after the other */
 export async function runDue({ server, runnerKey, log = console.log, ...o }) {
   const headers = { "x-autopilot-runner": runnerKey }, base = server, c = apClient({ base, headers, prefix: "/runner/autopilot" });
@@ -73,10 +81,13 @@ export async function runDue({ server, runnerKey, log = console.log, ...o }) {
   if (res.status !== 200) { log(`The server did not answer the runner (${res.status || res.why}).`); return [{ ok: false }]; }
   const due = await res.json().catch(() => ({ due: [] }));
   const out = [];
+  /* 🔴 RR-417: a product the server can no longer read (sealed under an older server key) is not handed out; the server has told the client
+   * (app, phone page). The runner SAYS it, as a warning on the job — it cannot fix it: only the client's app can send the product again */
+  for (const l of due.locked ?? []) { log(`::warning::${code(l.key)}: LOCKED — the server cannot read its saved ${[l.bundle && "copy", l.keys && "keys"].filter(Boolean).join(" and ") || "data"} (sealed with an older server key). Not run; the client's app must send it again.`); out.push({ key: l.key, ok: true, locked: true }); }
   for (const item of due.due ?? []) {
     const statePath = `/runner/autopilot/${item.key}/state`;
     try {
-      const keys = (await fetch(new URL(`/runner/autopilot/${item.key}/secrets`, base), { headers, signal: AbortSignal.timeout(60000) }).then((r) => r.json())).keys ?? {};
+      const keys = (await answerOf(await fetch(new URL(`/runner/autopilot/${item.key}/secrets`, base), { headers, signal: AbortSignal.timeout(60000) }), "keys")).keys ?? {};
       const got = await c.pull(item.key, { statePath }); if (!got) { log(`${code(item.key)}: nothing kept`); continue; }
       const r = await runOne({ item, keys, files: got.files, ...o });
       if (r.files) await c.push(item.key, got.version + 1, r.files, { from: "runner", on: new Date().toISOString(), stopped: !r.ok }, { statePath }); /* B4: a run that stopped too: its spend is in the ledger it hands back */
@@ -90,6 +101,7 @@ export async function runDue({ server, runnerKey, log = console.log, ...o }) {
     }
   }
   if (!out.length) log("No product is due.");
+  else if (out.every((x) => x.locked)) log("No product could run: every due product is locked (above).");
   return out;
 }
 

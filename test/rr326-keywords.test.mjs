@@ -368,7 +368,7 @@ test("A · the owner's sign-in script: the client ID and secret are read from Go
     let opened = null, google = null;
     /* the stand-in browser visits this computer only — an address elsewhere is never fetched (the run then ends at its short wait, RED) */
     const browser = (forge = false) => (u) => { opened = u; if (!/^http:\/\/127\.0\.0\.1:\d+\//.test(u)) return; setTimeout(async () => { try { const r = await fetch(u, { redirect: "manual" }); google = new URL(r.headers.get("location")); await fetch(`${google.searchParams.get("redirect_uri")}?code=the-code&state=${forge ? "forged" : google.searchParams.get("state")}`); } catch { /* a broken script: the run ends at its short wait — never an error outside the test */ } }, 10); };
-    const run = async (o) => { const saved = []; const code = await signIn({ log, cwd: dir, open: browser(o.forge), waitMs: 8000, fetchImpl, addEnv: async (name, value) => { saved.push([name, value]); return true; }, ...o }); return { code, saved }; };
+    const run = async (o) => { const saved = []; const code = await signIn({ log, cwd: dir, open: browser(o.forge), waitMs: 8000, fetchImpl, addEnv: async (name, value) => { saved.push([name, value]); return true; }, hasEnv: async () => false, ...o }); return { code, saved }; };
     /* dragged in: PowerShell types the path in quotes */
     const asked = [];
     const r1 = await run({ argv: [], askFn: async (q) => { asked.push(q); return `"${fake}"`; } });
@@ -379,7 +379,11 @@ test("A · the owner's sign-in script: the client ID and secret are read from Go
     assert.deepEqual(r1.saved.slice(0, 3).map(([, v]) => v), [SECRETS.GOOGLE_ADS_CLIENT_ID, SECRETS.GOOGLE_ADS_CLIENT_SECRET, SECRETS.GOOGLE_ADS_REFRESH_TOKEN], "the file's values, as they are"); assert.ok(r1.saved[3][1].length >= 40);
     /* given as an argument: nothing asked */
     const r2 = await run({ argv: [fake], askFn: async () => { throw new Error("asked although the file was given"); } }); assert.equal(r2.code, 0);
-    const printed = out.join("\n");
+    /* 🔴 RR-417: a project that HAS a CRON_SECRET keeps it — replacing it (22 Nov 2026) locked every autopilot product sealed with it */
+    const r3 = await run({ argv: [fake], hasEnv: async (n) => n === "CRON_SECRET" }); assert.equal(r3.code, 0);
+    assert.deepEqual(r3.saved.map(([n]) => n), ["GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN"], "an existing CRON_SECRET was replaced");
+    const r4 = await run({ argv: [fake], hasEnv: async () => null }); assert.equal(r4.code, 1); assert.deepEqual(r4.saved, [], "saved although Vercel's names could not be read");
+    const printed = out.join("\n"); assert.match(printed, /CRON_SECRET is already set in Vercel: it is kept as it is/);
     for (const v of [SECRETS.GOOGLE_ADS_CLIENT_ID, SECRETS.GOOGLE_ADS_CLIENT_SECRET, SECRETS.GOOGLE_ADS_REFRESH_TOKEN, r1.saved[3][1], r2.saved[3][1]]) assert.ok(!printed.includes(v), "a value was printed");
     assert.ok(!printed.includes("accounts.google.com"), "Google's address (it carries the client ID) was printed");
     assert.match(printed, /accounts this sign-in reaches: 1234567890/); assert.match(printed, /Saved in Vercel \(Production, sensitive\): GOOGLE_ADS_REFRESH_TOKEN/);

@@ -617,8 +617,11 @@ async function apSyncProduct(id) {
     { const st0 = apRead(id); if (info.mode === "review" && st0.mode === MODES.AUTO && st0.server?.on) { pwrite(id, AP_FILE, { ...st0, mode: MODES.REVIEW, since: new Date().toISOString(), offFrom: "phone" }); didIt(id, "Autopilot was turned off from your phone."); } }
     if (info.lease && info.lease.by === "runner") return { ok: true, waiting: true, line: "A cycle is running on our server now: your app takes its results when it ends." };
     const app = packFiles(DATA, id); let files = app, from = null;
-    if ((info.version ?? 0) > (was.version ?? 0)) { const srv = await c.pull(id); if (srv) { const j = joinBundles({ base: was.base ?? null, app, server: srv.files }); files = j.files; from = j.from; unpackFiles(DATA, id, files); } }
-    const changed = JSON.stringify(hashesOf(files)) !== JSON.stringify(was.base?.hashes ?? null) || (info.version ?? 0) === 0;
+    /* 🔴 RR-417: the server can no longer read its copy (sealed under an older server key) → nothing is pulled; this app's own copy is sent
+     * again as the next version, sealed with today's key */
+    const lockedCopy = Boolean(info.locked?.bundle);
+    if (!lockedCopy && (info.version ?? 0) > (was.version ?? 0)) { const srv = await c.pull(id); if (srv) { const j = joinBundles({ base: was.base ?? null, app, server: srv.files }); files = j.files; from = j.from; unpackFiles(DATA, id, files); } }
+    const changed = lockedCopy || JSON.stringify(hashesOf(files)) !== JSON.stringify(was.base?.hashes ?? null) || (info.version ?? 0) === 0;
     let version = info.version ?? 0; if (changed) { const p = await c.push(id, version + 1, files, { from: "app", on: new Date().toISOString() }); version = p.version; }
     mkdirSync(AP_SYNC_DIR, { recursive: true }); writeFileSync(apSyncFile(id), JSON.stringify({ version, on: new Date().toISOString(), base: baseOf(files) }));
     return { ok: true, version, pulled: Boolean(from), from, sent: changed };

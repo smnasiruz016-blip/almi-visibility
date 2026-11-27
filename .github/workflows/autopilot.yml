@@ -28,6 +28,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.x"
+      # RR-417: the check mode also runs the runner against this commit's OWN server code on 127.0.0.1 (a product sealed under an old
+      # key, the real runner, the real site app; no secret, no production) — then only pings the real server (read only, no cycle).
+      - name: Self-test (this commit's runner and server, local only)
+        if: ${{ inputs.check }}
+        run: node --test test/rr417-autopilot-locked.test.mjs
       - name: One cycle for every due product
         env:
           AUTOPILOT_SERVER: ${{ vars.AUTOPILOT_SERVER }}

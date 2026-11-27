@@ -26,7 +26,19 @@ export const productKey = (account, product) => createHash("sha256").update(`alm
 export function sealKey(env) { const s = String(env.AUTOPILOT_KEY ?? env.CRON_SECRET ?? ""); return s.length >= 16 ? Buffer.from(hkdfSync("sha256", s, "almivisibility-autopilot", "at-rest-v1", 32)) : null; }
 export const seal = (key, buf) => { const iv = randomBytes(12), c = createCipheriv("aes-256-gcm", key, iv), body = Buffer.concat([c.update(buf), c.final()]); return Buffer.concat([iv, c.getAuthTag(), body]); };
 export const open = (key, buf) => { const b = Buffer.from(buf), d = createDecipheriv("aes-256-gcm", key, b.subarray(0, 12)); d.setAuthTag(b.subarray(12, 28)); return Buffer.concat([d.update(b.subarray(28)), d.final()]); };
-export const runnerAllowed = (env, header) => { const s = String(env.AUTOPILOT_RUNNER_KEY ?? ""), got = String(header ?? ""); return s.length >= 24 && got.length === s.length && timingSafeEqual(Buffer.from(got), Buffer.from(s)); };
+/* 🔴 RR-417 · data sealed under an OLDER at-rest key (CRON_SECRET was replaced on 22 Nov 2026 by owner-google-sign-in.mjs, and with it the
+ * key every saved bundle and every saved client key was sealed with): open() throws; that throw reached the site's catch-all and the
+ * runner read "The free score is not available just now" as its JSON, every day. Now it is a named state: LOCKED — the server says it
+ * (to the runner, to the app, on the phone page) and never hands such a product to the runner; the client's app sends its own copy
+ * again (a new version, sealed with today's key) and types its keys once more. The old ciphertext is kept, never deleted. */
+export const openOrNull = (key, buf) => { if (!buf) return null; try { return open(key, buf); } catch { return null; } };
+export const LOCKED_LINE = "Our server can no longer read this product's saved copy or keys: they were sealed with an older server key. Open AlmiVisibility on your computer: it sends the product again by itself; then type your keys for autopilot once more.";
+export const lockedOf = async (store, key0, row) => {
+  const keys = row.secrets ? openOrNull(key0, row.secrets) === null : false;
+  let bundle = false; if (row.version) { const c = await store.chunk(row.key, row.version, 0); bundle = c ? openOrNull(key0, c) === null : false; }
+  return { keys, bundle, any: keys || bundle };
+};
+export const runnerAllowed =(env, header) => { const s = String(env.AUTOPILOT_RUNNER_KEY ?? ""), got = String(header ?? ""); return s.length >= 24 && got.length === s.length && timingSafeEqual(Buffer.from(got), Buffer.from(s)); };
 
 /** the store: Postgres (Neon) and a memory twin for the tests — ONE contract */
 export function apPgStore({ url, Pool = null }) {
@@ -100,12 +112,12 @@ export async function apHandle({ method, path, query, raw, headers, env, store, 
       let mailed = false; if (row.email && sendWeekly) { const sent = await sendWeekly({ to: row.email, text: `Your AlmiVisibility autopilot from your phone: see the last cycle and this week's report, and turn autopilot OFF.\n\n${link}\n\nThis link works for ${PHONE_DAYS} days; a newer one replaces it. Keep it to yourself.`, subject: "Your autopilot, from your phone" }).catch(() => null); mailed = Boolean(sent?.ok); }
       return { status: 200, json: { ok: true, link, until: n.phone.until, mailed } }; }
     if (!v1[2]) {
-      if (method === "GET") return { status: 200, json: { ok: true, ...(view(row) ?? { mode: "review", version: 0, chunks: 0, keys: [] }) } };
+      if (method === "GET") { if (!row) return { status: 200, json: { ok: true, mode: "review", version: 0, chunks: 0, keys: [] } }; const l = await lockedOf(store, key0, row); return { status: 200, json: { ok: true, ...view(row), ...(l.keys ? { keys: [] } : {}), ...(l.any ? { locked: { keys: l.keys, bundle: l.bundle, why: LOCKED_LINE } } : {}) } }; }
       if (method !== "POST") return { status: 405, json: { ok: false } };
       const b = json(); row ??= { key, account: lic.account, product: v1[1], mode: "review", version: 0, chunks: 0, size: 0, names: [] };
       if (b.mode === "autopilot" || b.mode === "review") row.mode = b.mode;
       if (b.email !== undefined) row.email = String(b.email ?? "").trim().slice(0, 200) || null;
-      if (b.keys && typeof b.keys === "object") { const was = row.secrets ? JSON.parse(open(key0, row.secrets).toString("utf8")) : {}; for (const [k, v] of Object.entries(b.keys)) { if (!SECRET_NAMES.includes(k)) continue; const s = String(v ?? "").trim(); if (s) was[k] = s; else delete was[k]; } row.secrets = seal(key0, Buffer.from(JSON.stringify(was))); row.names = Object.keys(was).sort(); }
+      if (b.keys && typeof b.keys === "object") { const opened = openOrNull(key0, row.secrets), was = opened ? JSON.parse(opened.toString("utf8")) : {}; /* RR-417: keys under an older key cannot be kept — the new ones replace them */ for (const [k, v] of Object.entries(b.keys)) { if (!SECRET_NAMES.includes(k)) continue; const s = String(v ?? "").trim(); if (s) was[k] = s; else delete was[k]; } row.secrets = seal(key0, Buffer.from(JSON.stringify(was))); row.names = Object.keys(was).sort(); }
       await store.put(row); return { status: 200, json: { ok: true, ...view(row) } };
     }
     /* the bundle, in chunks: POST ?version=&n=&of= (the last chunk makes the version current), GET ?n= */
@@ -118,16 +130,20 @@ export async function apHandle({ method, path, query, raw, headers, env, store, 
       if (n === of - 1) { for (let i = 0; i < of; i++) if (!(await store.chunk(key, version, i))) return { status: 400, json: { ok: false, why: `Chunk ${i} is missing.` } }; Object.assign(row, { version, chunks: of, size: Number(query.get("size")) || 0 }); await store.put(row); await store.dropOld(key, version); }
       return { status: 200, json: { ok: true, version: n === of - 1 ? version : row.version } };
     }
-    if (method === "GET") { if (!row?.version) return { status: 404, json: { ok: false, why: "Nothing kept yet." } }; const n = Number(query.get("n") ?? 0), c = await store.chunk(key, row.version, n); return c ? { status: 200, bytes: open(key0, c), headers: { "x-version": String(row.version), "x-chunks": String(row.chunks) } } : { status: 404, json: { ok: false } }; }
+    if (method === "GET") { if (!row?.version) return { status: 404, json: { ok: false, why: "Nothing kept yet." } }; const n = Number(query.get("n") ?? 0), c = await store.chunk(key, row.version, n); if (!c) return { status: 404, json: { ok: false } }; const b = openOrNull(key0, c); return b ? { status: 200, bytes: b, headers: { "x-version": String(row.version), "x-chunks": String(row.chunks) } } : { status: 409, json: { ok: false, locked: true, why: LOCKED_LINE } }; }
     return { status: 405, json: { ok: false } };
   }
   /* the runner */
   if (!runnerAllowed(env, headers["x-autopilot-runner"])) return { status: 401, json: { ok: false } };
   if (rn[1] === "ping") return { status: 200, json: { ok: true, runner: "key accepted" } }; /* RR-387 B5: no side effect */
-  if (rn[1] === "due") { const out = []; for (const r of await store.all()) { if (r.mode !== "autopilot" || !r.version || (r.lease_until && Date.parse(r.lease_until) > now) || (r.last?.on && now - Date.parse(r.last.on) < AP_LIMITS.dueMs)) continue; const full = await store.get(r.key); full.lease_until = new Date(now + AP_LIMITS.leaseMs).toISOString(); full.lease_by = "runner"; await store.put(full); out.push({ key: r.key, product: r.product, version: r.version, chunks: r.chunks }); } return { status: 200, json: { ok: true, due: out } }; }
+  if (rn[1] === "due") { const out = [], locked = []; for (const r of await store.all()) { if (r.mode !== "autopilot" || !r.version || (r.lease_until && Date.parse(r.lease_until) > now) || (r.last?.on && now - Date.parse(r.last.on) < AP_LIMITS.dueMs && !r.last?.locked)) continue; const full = await store.get(r.key);
+      /* 🔴 RR-417: a product the server cannot read is never handed out (the runner could only fail on it, every day); it is SAID — in the
+       * due answer (the runner prints it as a warning) and in the product's last cycle (the app and the phone page show it) — once per version */
+      const l = await lockedOf(store, key0, full); if (l.any) { locked.push({ key: r.key, keys: l.keys, bundle: l.bundle }); if (full.last?.locked !== full.version) { full.last = { on: new Date(now).toISOString(), ok: false, usd: 0, where: "server", locked: full.version, steps: [{ name: "Server", ok: false, line: LOCKED_LINE }] }; await store.put(full); } continue; }
+      full.lease_until = new Date(now + AP_LIMITS.leaseMs).toISOString(); full.lease_by = "runner"; await store.put(full); out.push({ key: r.key, product: r.product, version: r.version, chunks: r.chunks }); } return { status: 200, json: { ok: true, due: out, locked } }; }
   const key = rn[2], row = await store.get(key); if (!row) return { status: 404, json: { ok: false } };
-  if (rn[3] === "secrets") return { status: 200, json: { ok: true, keys: row.secrets ? JSON.parse(open(key0, row.secrets).toString("utf8")) : {} } };
-  if (rn[3] === "state" && method === "GET") { const c = await store.chunk(key, row.version, Number(query.get("n") ?? 0)); return c ? { status: 200, bytes: open(key0, c), headers: { "x-version": String(row.version), "x-chunks": String(row.chunks) } } : { status: 404, json: { ok: false } }; }
+  if (rn[3] === "secrets") { const o = openOrNull(key0, row.secrets); if (row.secrets && !o) return { status: 409, json: { ok: false, locked: true, why: LOCKED_LINE } }; return { status: 200, json: { ok: true, keys: o ? JSON.parse(o.toString("utf8")) : {} } }; }
+  if (rn[3] === "state" && method === "GET") { const c = await store.chunk(key, row.version, Number(query.get("n") ?? 0)); if (!c) return { status: 404, json: { ok: false } }; const b = openOrNull(key0, c); return b ? { status: 200, bytes: b, headers: { "x-version": String(row.version), "x-chunks": String(row.chunks) } } : { status: 409, json: { ok: false, locked: true, why: LOCKED_LINE } }; }
   if (rn[3] === "state" && method === "POST") { const version = Number(query.get("version")), n = Number(query.get("n")), of = Number(query.get("of")); if (!(version === row.version + 1) || !(n >= 0 && n < of && of <= AP_LIMITS.maxChunks) || raw.length > AP_LIMITS.chunkBytes) return { status: 400, json: { ok: false } }; await store.putChunk(key, version, n, seal(key0, raw)); if (n === of - 1) { Object.assign(row, { version, chunks: of, size: Number(query.get("size")) || 0 }); await store.put(row); await store.dropOld(key, version); } return { status: 200, json: { ok: true } }; }
   if (rn[3] === "done") { const b = json(); row.last = b.cycle ? { on: b.cycle.on, ok: b.cycle.ok, usd: b.cycle.usd, where: "server", steps: (b.cycle.steps ?? []).map((s) => ({ name: s.name, ok: s.ok, line: String(s.line ?? "").slice(0, 300) })) } : row.last; row.lease_until = null; row.lease_by = null;
     if (b.weekly?.text && b.weekly.on && row.weekly?.on !== b.weekly.on) { row.weekly = b.weekly; if (row.email && sendWeekly) { const n = newPhone(now); row.phone = n.phone; const sent = await sendWeekly({ to: row.email, text: `${b.weekly.text}\n\nFrom your phone (see the last cycle, turn autopilot OFF): ${phoneLink(origin, key, n.token)}` }).catch(() => null); if (sent?.ok) row.weekly_sent = new Date(now).toISOString().slice(0, 10); } }

@@ -892,6 +892,10 @@ function createLiteApp({ env, now, fetchImpl, freeTest, kvFetch, resolve, adsFet
       /* RR-388 A2: one of AlmiVisibility's own pages (off until ALMIVISIBILITY_PAGES_ORIGIN is set) */
       if (req.method === "GET") { const own = await ownPage(u.pathname, { env, fetchImpl }); if (own) return send(200, own.html, "text/html; charset=utf-8", { "cache-control": "public, max-age=300" }); }
       send(404, P.notFound(u.pathname, { lite: true }));
-    } catch { send(503, "The free score is not available just now. Please try again later.", "text/plain"); }
+    } catch {
+      /* 🔴 RR-417: a machine's route (the app's /v1, the runner's /runner) gets JSON it can read, never the free score's sentence */
+      if (/^\/(v1|runner)\//.test(String(req.url ?? ""))) return send(503, JSON.stringify({ ok: false, why: "The server could not answer this just now." }), "application/json", { "cache-control": "no-store" });
+      send(503, "The free score is not available just now. Please try again later.", "text/plain");
+    }
   };
 }

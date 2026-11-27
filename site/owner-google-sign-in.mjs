@@ -8,7 +8,8 @@
  * He signs in on Google's OWN page in his own browser and allows the Google Ads permission. Then the script puts these into his Vercel
  * project's PRODUCTION settings as SENSITIVE values, through his own Vercel CLI, each value on the CLI's standard input (never on a
  * command line, never printed, never written to a file):
- *   GOOGLE_ADS_CLIENT_ID · GOOGLE_ADS_CLIENT_SECRET · GOOGLE_ADS_REFRESH_TOKEN · CRON_SECRET (a new random value no one needs to see)
+ *   GOOGLE_ADS_CLIENT_ID · GOOGLE_ADS_CLIENT_SECRET · GOOGLE_ADS_REFRESH_TOKEN · CRON_SECRET (a new random value no one needs to see —
+ *   ONLY when the project has none, RR-417: it also seals autopilot's saved data, and replacing it made all of that unreadable)
  * It prints only names, and the Google Ads account ids the sign-in can reach (so he can check his 10-digit customer id) — never a value.
  * Google's address (which carries the client ID) is never printed either: the browser opens a local address that forwards to it.
  * He sets GOOGLE_ADS_CUSTOMER_ID and OWNER_ACCESS_KEY in Vercel himself, then redeploys.
@@ -65,10 +66,18 @@ export function addVercelEnv(name, value, { cwd = process.cwd() } = {}) {
     p.stdin.end(value);
   });
 }
+/** 🔴 RR-417 · is a Production setting there? Names only (`vercel env ls production` prints names, never values) → true | false | null (could not tell) */
+export function hasVercelEnv(name, { cwd = process.cwd() } = {}) {
+  return new Promise((resolve) => {
+    let out = ""; const p = spawn("npx", ["--yes", VERCEL_CLI, "env", "ls", "production"], { cwd, stdio: ["ignore", "pipe", "ignore"], shell: process.platform === "win32" });
+    p.stdout.on("data", (d) => { out += d; }); p.on("error", () => resolve(null));
+    p.on("exit", (code) => resolve(code === 0 ? out.split(/\r?\n/).some((l) => l.trim().split(/\s+/)[0] === name) : null));
+  });
+}
 /** the owner's browser opens an address (explorer.exe on Windows: the address is never read by a command shell) */
 export function openBrowser(url) { const [cmd, args] = process.platform === "win32" ? ["explorer.exe", [url]] : process.platform === "darwin" ? ["open", [url]] : ["xdg-open", [url]]; try { spawn(cmd, args, { stdio: "ignore", detached: true }).unref(); } catch { /* the local address is printed too */ } }
 
-export async function main({ argv = process.argv.slice(2), log = (s) => console.log(s), askFn = ask, open = openBrowser, fetchImpl = fetch, addEnv = addVercelEnv, cwd = process.cwd(), read, waitMs = 10 * 60000 } = {}) {
+export async function main({ argv = process.argv.slice(2), log = (s) => console.log(s), askFn = ask, open = openBrowser, fetchImpl = fetch, addEnv = addVercelEnv, hasEnv = hasVercelEnv, cwd = process.cwd(), read, waitMs = 10 * 60000 } = {}) {
   if (!existsSync(`${cwd}/.vercel`)) { log("Run this from your deploy folder (the one you deploy with npx vercel@latest --prod) — its Vercel link is not here. Nothing was done."); return 2; }
   log("AlmiVisibility — Google sign-in for the keyword finder. Nothing from your client file is shown, saved on this computer or copied.");
   const path = argv[0] ?? (await askFn("Drag your Google client JSON file into this window, then press Enter: "));
@@ -113,7 +122,12 @@ export async function main({ argv = process.argv.slice(2), log = (s) => console.
     /* RR-331: did he allow Search Console (read only) too, and how many of our sites does it reach — a count only */
     if (!String(j.scope ?? "").split(" ").includes("https://www.googleapis.com/auth/webmasters.readonly")) log("Search Console was NOT allowed in this sign-in (the box was not ticked) — run this again and tick it, or Search Console stays off.");
     else try { const r = await fetchImpl(AUTH.sites, { headers: { authorization: `Bearer ${j.access_token}` } }); const x = await r.json().catch(() => ({})); log(r.ok ? `Search Console sites this sign-in reaches: ${(x.siteEntry ?? []).filter((e) => /almiworld\.com/.test(e.siteUrl)).length} almiworld.com site(s)` : `Search Console answered ${r.status}${r.status === 403 ? " — switch on \"Google Search Console API\" in the same Google Cloud project" : ""}.`); } catch { log("The Search Console check did not answer — the sign-in itself is saved below."); }
-    const values = [["GOOGLE_ADS_CLIENT_ID", clientId], ["GOOGLE_ADS_CLIENT_SECRET", secret], ["GOOGLE_ADS_REFRESH_TOKEN", j.refresh_token], ["CRON_SECRET", b64url(randomBytes(32))]];
+    /* 🔴 RR-417: CRON_SECRET is made ONLY when the project has none. Replacing it (as on 22 Nov 2026) also replaced the key autopilot's saved
+     * products and keys are sealed with (site/autopilot-server.mjs sealKey) — every one of them became unreadable and the runner failed daily */
+    const cronThere = await hasEnv("CRON_SECRET", { cwd });
+    if (cronThere === null) { log("Could not read the names of your Vercel settings — run this again. Nothing was saved."); return 1; }
+    const values = [["GOOGLE_ADS_CLIENT_ID", clientId], ["GOOGLE_ADS_CLIENT_SECRET", secret], ["GOOGLE_ADS_REFRESH_TOKEN", j.refresh_token], ...(cronThere ? [] : [["CRON_SECRET", b64url(randomBytes(32))]])];
+    if (cronThere) log("CRON_SECRET is already set in Vercel: it is kept as it is (it also locks autopilot's saved data).");
     for (const [name, value] of values) { const ok = await addEnv(name, value, { cwd }); log(ok ? `Saved in Vercel (Production, sensitive): ${name}` : `NOT saved: ${name} — run this again`); if (!ok) return 1; }
     log("Next, in Vercel → Settings → Environment Variables (Production): add GOOGLE_ADS_CUSTOMER_ID (your 10-digit Google Ads id) and OWNER_ACCESS_KEY (a long random key of your own, at least 32 characters). Then run: npx vercel@latest --prod");
     return 0;

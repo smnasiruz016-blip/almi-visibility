@@ -28,7 +28,7 @@ const XLSX = zip({ "xl/workbook.xml": '<workbook><sheets><sheet name="Notes" she
 
 test("B1 · ONS ASHE Table 14.7a, Full-Time: one row per 4-digit occupation with a reliable median; 'x' (unreliable) is never kept; source, licence and date on every row", () => {
   const outer = zip({ "PROV - Occupation SOC20 (4) Table 14.7a   Annual pay - Gross 2026.xlsx": XLSX.toString("latin1") }); assert.equal(zipFiles(outer).length, 1);
-  const rows = asheRows(sheetRows(XLSX, "Full-Time"), { on: "2026-11-07", url: "https://www.ons.gov.uk/file?uri=/x.zip", year: "2026 (provisional)" });
+  const rows = asheRows(sheetRows(XLSX, "Full-Time"), { on: "2026-11-07", url: "https://www.ons.gov.uk/file?uri=/x.zip", year: "2026", provisional: true }); // RR-417: the year and the provisional flag, each on its own
   assert.equal(rows.length, 1, "the 'x' row and the headline row are not occupations with a figure");
   assert.deepEqual([rows[0].data.soc2020, rows[0].data.medianAnnualGbp, rows[0].data.meanAnnualGbp, rows[0].data.p25AnnualGbp, rows[0].data.p75AnnualGbp], ["2134", 59863, 69121, 43509, 82149]);
   assert.equal(rows[0].data.source.licence, "Open Government Licence v3.0"); assert.equal(rows[0].data.source.readOn, "2026-11-07");
